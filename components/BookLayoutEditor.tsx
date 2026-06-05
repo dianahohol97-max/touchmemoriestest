@@ -1207,6 +1207,17 @@ export default function BookLayoutEditor() {
       coverState: JSON.parse(JSON.stringify(coverState)),
     }]);
   };
+  // Coalesced snapshot for high-frequency edits (drag-pan a photo, zoom slider,
+  // typing in a text block). Records ONE undo step per burst: the first call
+  // after a >500ms idle window snapshots the pre-edit state; rapid follow-ups
+  // within the same gesture are suppressed, so a single Ctrl+Z reverts the whole
+  // pan / zoom / typing run rather than one pixel or one character.
+  const lastEditPushRef = useRef(0);
+  const pushHistoryCoalesced = () => {
+    const now = Date.now();
+    if (now - lastEditPushRef.current > 500) pushHistory();
+    lastEditPushRef.current = now;
+  };
   const undo = () => { haptic.light();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
@@ -1364,7 +1375,10 @@ export default function BookLayoutEditor() {
   // Ctrl+Z undo, Arrow keys for layout cycling / spread navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      // Match the PHYSICAL Z key (e.code) so Ctrl+Z works on any keyboard
+      // layout — on a Ukrainian layout that key reports e.key='я', which the
+      // old `e.key==='z'` check missed entirely, so undo did nothing.
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.code === 'KeyZ' || e.key === 'z' || e.key === 'Z' || e.key === 'я' || e.key === 'Я')) {
         e.preventDefault();
         undo();
       }
@@ -2619,12 +2633,12 @@ export default function BookLayoutEditor() {
     const si = parts[0] === 'spread' ? Number(parts[2]) : Number(parts[1]);
     const sensitivity = 1.5 / Math.max(1, pages[pi]?.slots[si]?.zoom || 1);
     startPointerDrag(e,
-      (dx, dy) => setPages(prev => prev.map((p, i) => i !== pi ? p : {
+      (dx, dy) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
           ...sl, cropX: Math.max(0,Math.min(100, cx - dx/sensitivity)),
                 cropY: Math.max(0,Math.min(100, cy - dy/sensitivity))
         })
-      }))
+      })); }
     );
   };
   // Keep legacy aliases so existing JSX doesn't break
@@ -2649,7 +2663,7 @@ export default function BookLayoutEditor() {
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(pageIdx) }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
-  const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
+  const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
   const deleteTxtForPage = (id: string, pageIdx: number) => {
     pushHistory();
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) }));
@@ -2683,7 +2697,7 @@ export default function BookLayoutEditor() {
     );
   };
 
-  const updateTxt = (id: string, ch: Partial<TextBlock>) => setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) }));
+  const updateTxt = (id: string, ch: Partial<TextBlock>) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
   const deleteTxt = (id: string) => { setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
 
   //  z-order: bring forward / send backward / to top / to bottom
@@ -5967,7 +5981,7 @@ export default function BookLayoutEditor() {
                                   pushHistory();
                                   setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid, ...getFocalCrop(pid) }) }));
                                 }}
-                                onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                 <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
@@ -5996,11 +6010,11 @@ export default function BookLayoutEditor() {
                                   return (
                                   <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
                                     <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
+                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
+                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
+                                      <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
                                       <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
                                       <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
                                         e.stopPropagation();
@@ -6637,7 +6651,7 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
@@ -6670,11 +6684,11 @@ export default function BookLayoutEditor() {
                                     <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:`translateX(calc(-50% + ${shiftX}px))`,display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
                                       {/* Row 1: zoom + rotate + delete */}
                                       <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
+                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
                                         <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
+                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
+                                        <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
                                         <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
                                           e.stopPropagation();
