@@ -37,7 +37,7 @@ export default function PromotionEmail({
     heroImageUrl = 'https://images.unsplash.com/photo-1516961642265-531546e84af2?q=80&w=1200&auto=format&fit=crop',
     bodyText = 'Збережіть найтепліші моменти з найріднішими. Ми підготували для вас чудову можливість створити фотокнигу, яка збереже ваші спогади назавжди.',
     promoCode = 'MOM2024',
-    promoValue = '-15%',
+    promoValue = '-7%',
     promoDetails = 'на всі преміум фотокниги до 15 травня',
     appUrl = 'https://touchmemories.com.ua',
     products = [

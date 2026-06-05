@@ -50,11 +50,11 @@ export default function AbandonedCartEmail({
             <Head />
             <Preview>Ваш кошик чекає — завершіть замовлення в кілька кліків</Preview>
             <Tailwind>
-                <Body className="bg-[#fffbeb] font-sans text-[#263A99] m-0 p-0">
-                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#fef3c7]">
+                <Body className="bg-[#f1f5f9] font-sans text-[#263A99] m-0 p-0">
+                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#e2e8f0]">
 
-                        <Section className="bg-[#fef3c7] py-[32px] text-center border-b border-[#fde68a]">
-                            <Text className="text-[24px] font-black text-[#d97706] m-0 tracking-widest uppercase">
+                        <Section className="bg-[#263A99] py-[32px] text-center">
+                            <Text className="text-[24px] font-black text-white m-0 tracking-widest uppercase">
                                 TouchMemories
                             </Text>
                         </Section>
@@ -74,9 +74,9 @@ export default function AbandonedCartEmail({
                             </Text>
                             )}
 
-                            <Section className="border border-[#fde68a] rounded-[3px] mb-[28px]">
+                            <Section className="border border-[#c7d2fe] rounded-[3px] mb-[28px]">
                                 {items.slice(0, 8).map((it, idx) => (
-                                    <Row key={idx} className={idx > 0 ? 'border-t border-[#fef3c7]' : ''}>
+                                    <Row key={idx} className={idx > 0 ? 'border-t border-[#e2e8f0]' : ''}>
                                         {it.image ? (
                                             <Column className="w-[64px] p-[10px]">
                                                 <Img src={it.image} width="56" height="56" alt={it.name} className="rounded-[3px] object-cover" />

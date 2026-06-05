@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // Win-back automation. Targets customers whose latest PAID order is between
 // DAYS_MIN and DAYS_MAX days ago, who haven't ordered since, aren't
 // unsubscribed, and haven't been win-backed within COOLDOWN_DAYS. Sends a
-// -10% WINBACK10 nudge via Brevo and records the send in email_automation_log.
+// -7% WINBACK7 nudge via Brevo and records the send in email_automation_log.
 //
 // Dormant until the site accumulates real paid orders — get_winback_candidates
 // returns 0 today, so this is a no-op that activates automatically as data arrives.
@@ -49,8 +49,8 @@ export async function GET(request: Request) {
         if (cfg && !cfg.enabled) {
             return NextResponse.json({ message: 'Win-back disabled in admin', sent: 0 });
         }
-        const promoCode = cfg?.promo_code || 'WINBACK10';
-        const subject = cfg?.subject || 'Ми скучили — ваша знижка -10% на наступну фотокнигу';
+        const promoCode = cfg?.promo_code || 'WINBACK7';
+        const subject = cfg?.subject || 'Ми скучили — ваша знижка -7% на наступну фотокнигу';
         const bodyOverride = cfg?.body || undefined;
 
         let sent = 0;
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
             const firstName = nameParts.length ? nameParts[nameParts.length - 1] : '';
             try {
                 const html = await render(
-                    WinBackEmail({ firstName, promoCode, discount: '-10%', appUrl, body: bodyOverride })
+                    WinBackEmail({ firstName, promoCode, discount: '-7%', appUrl, body: bodyOverride })
                 );
                 await sendBrevoEmail({
                     to: c.email,

@@ -114,8 +114,8 @@ export default OrderShippedEmail;
 
 // Styles
 const offerBox = {
-    backgroundColor: '#fffbeb',
-    border: '1px solid #fde68a',
+    backgroundColor: '#f1f5f9',
+    border: '1px solid #c7d2fe',
     borderRadius: '3px',
     padding: '24px',
     margin: '0 0 24px',
@@ -124,7 +124,7 @@ const offerBox = {
 const offerTitle = {
     fontSize: '12px',
     fontWeight: '700',
-    color: '#d97706',
+    color: '#263A99',
     letterSpacing: '1px',
     margin: '0 0 8px',
 };

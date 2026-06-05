@@ -26,8 +26,8 @@ export default function WinBackEmail({
     firstName = '',
     body,
 
-    promoCode = 'WINBACK10',
-    discount = '-10%',
+    promoCode = 'WINBACK7',
+    discount = '-7%',
     appUrl = 'https://touchmemories.com.ua',
 }: WinBackEmailProps) {
     const greeting = firstName ? `Привіт, ${firstName}!` : 'Привіт!';
@@ -37,11 +37,11 @@ export default function WinBackEmail({
             <Head />
             <Preview>Ми скучили! Ваша знижка на наступну фотокнигу всередині</Preview>
             <Tailwind>
-                <Body className="bg-[#fffbeb] font-sans text-[#263A99] m-0 p-0">
-                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#fef3c7]">
+                <Body className="bg-[#f1f5f9] font-sans text-[#263A99] m-0 p-0">
+                    <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#e2e8f0]">
 
-                        <Section className="bg-[#fef3c7] py-[32px] text-center border-b border-[#fde68a]">
-                            <Text className="text-[24px] font-black text-[#d97706] m-0 tracking-widest uppercase">
+                        <Section className="bg-[#263A99] py-[32px] text-center">
+                            <Text className="text-[24px] font-black text-white m-0 tracking-widest uppercase">
                                 TouchMemories
                             </Text>
                         </Section>
@@ -66,8 +66,8 @@ export default function WinBackEmail({
                                 наступне замовлення:
                             </Text>
 
-                            <Section className="bg-[#fffbeb] border border-[#fde68a] rounded-[3px] text-center py-[24px] mb-[32px]">
-                                <Text className="text-[#d97706] font-bold text-[14px] m-0 uppercase tracking-wide mb-[8px]">
+                            <Section className="bg-[#f1f5f9] border border-[#c7d2fe] rounded-[3px] text-center py-[24px] mb-[32px]">
+                                <Text className="text-[#263A99] font-bold text-[14px] m-0 uppercase tracking-wide mb-[8px]">
                                     Ваш промокод
                                 </Text>
                                 <Text className="text-[#263A99] font-black text-[28px] m-0 tracking-widest">

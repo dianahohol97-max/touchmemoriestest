@@ -37,20 +37,20 @@ export async function GET(req: Request) {
 
         const html = `
 <div style="font-family:'Montserrat',sans-serif;max-width:540px;margin:auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)">
-  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:32px;text-align:center">
+  <div style="background:linear-gradient(135deg,#263A99,#1A2870);padding:32px;text-align:center">
     <p style="color:white;font-size:40px;margin:0">⏰</p>
     <h2 style="color:white;margin:8px 0 0;font-size:20px;font-weight:900">Ваш сертифікат закінчується!</h2>
   </div>
   <div style="padding:32px">
     ${cert.recipient_name ? `<p style="font-size:16px;font-weight:700;color:#374151;margin:0 0 16px">Привіт, ${cert.recipient_name}!</p>` : ''}
     <p style="color:#64748b;margin:0 0 24px;line-height:1.6">
-      Нагадуємо, що ваш подарунковий сертифікат <strong>Touch.Memories</strong> закінчується через <strong style="color:#f59e0b">${daysLeft} ${daysLeft === 7 ? 'днів' : 'дні'}</strong>.
+      Нагадуємо, що ваш подарунковий сертифікат <strong>Touch.Memories</strong> закінчується через <strong style="color:#263A99">${daysLeft} ${daysLeft === 7 ? 'днів' : 'дні'}</strong>.
     </p>
-    <div style="background:#fffbeb;border:2px dashed #f59e0b;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
-      <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase">Код сертифікату</p>
-      <p style="font-size:28px;font-weight:900;color:#92400e;letter-spacing:0.15em;margin:8px 0">${cert.code}</p>
-      <p style="font-size:24px;font-weight:800;color:#d97706;margin:0">${cert.amount} грн</p>
-      <p style="margin:8px 0 0;font-size:13px;color:#92400e">Дійсний до: ${expiryStr}</p>
+    <div style="background:#f5f7ff;border:2px dashed #c7d2fe;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#263A99;text-transform:uppercase">Код сертифікату</p>
+      <p style="font-size:28px;font-weight:900;color:#263A99;letter-spacing:0.15em;margin:8px 0">${cert.code}</p>
+      <p style="font-size:24px;font-weight:800;color:#263A99;margin:0">${cert.amount} грн</p>
+      <p style="margin:8px 0 0;font-size:13px;color:#475569">Дійсний до: ${expiryStr}</p>
     </div>
     <a href="https://touchmemories.com.ua" style="display:block;text-align:center;padding:16px;background:#263A99;color:white;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px">
       Використати зараз →

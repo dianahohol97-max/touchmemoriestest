@@ -28,7 +28,7 @@ export default function BirthdayEmail({
     firstName = 'Клієнт',
     promoCode = 'HAPPY-BDAY-20',
     validUntil = '7 днів',
-    discountValue = '-20%',
+    discountValue = '-7%',
     appUrl = 'https://touchmemories.com.ua',
     body,
 }: BirthdayEmailProps) {

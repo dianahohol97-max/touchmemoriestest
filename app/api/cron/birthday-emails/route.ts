@@ -119,7 +119,7 @@ export async function GET(request: Request) {
                 .insert({
                     code: promoCodeString,
                     type: 'percent',
-                    value: 20,
+                    value: 7,
                     min_order_amount: 500,
                     is_single_use_per_customer: true,
                     valid_until: validUntil.toISOString(),
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
                     firstName: firstName,
                     promoCode: promoCodeString,
                     validUntil: '7 днів',
-                    discountValue: '-20%',
+                    discountValue: '-7%',
                     appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
                     body: bodyOverride,
                 })
