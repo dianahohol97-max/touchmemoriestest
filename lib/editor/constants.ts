@@ -235,10 +235,17 @@ export const FONT_GROUPS = [
   { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale','Tenor Sans','Forum','Oranienbaum','Bellota','Playfair Display SC','Prosto One','Stalinist One','Underdog','Gabriela','Cormorant Infant','Cinzel Decorative','El Messiri','Marmelad','Ledger'] },
 ];
 
-// Google Fonts URL (single source — loaded once)
+// Google Fonts URL (single source — loaded once).
+// IMPORTANT: request bare `family=Name` with NO :ital,wght axes. Google Fonts
+// CSS2 returns 400 for the ENTIRE request if any requested family lacks a
+// requested variant — and ~a third of these fonts are single-weight with no
+// italic (Bebas Neue, Lobster, Pacifico, Marmelad, Great Vibes, Press Start 2P…).
+// The old `:ital,wght@0,400;0,700;1,400` therefore loaded ZERO fonts and made the
+// font picker do nothing. Bare families always resolve (regular; bold is
+// synthesised by the browser). Cyrillic is served automatically via unicode-range.
 export const GOOGLE_FONTS_URL = (() => {
-  const families = FONT_DATA.map(f => f.name.replace(/ /g, '+')).map(f => `family=${f}:ital,wght@0,400;0,700;1,400`).join('&');
-  return `https://fonts.googleapis.com/css2?${families}&subset=cyrillic,cyrillic-ext,latin&display=swap`;
+  const families = FONT_DATA.map(f => `family=${f.name.replace(/ /g, '+')}`).join('&');
+  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
 })();
 
 //  Printed cover background presets 

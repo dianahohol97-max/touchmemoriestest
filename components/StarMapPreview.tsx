@@ -128,6 +128,23 @@ function drawForest(ctx: CanvasRenderingContext2D, W: number, H: number) {
 export default function StarMapPreview({ config, onConfigChange }: { config: StarMapConfig; onConfigChange?: (cfg: StarMapConfig) => void }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [fontTick, setFontTick] = useState(0);
+
+    // The canvas (unlike HTML) does not reflow when a webfont finishes loading,
+    // so when the selected font changes we explicitly wait for it (latin +
+    // cyrillic, in the weights/styles we draw) and force one redraw — otherwise
+    // the map text keeps the previous/fallback font until some other change.
+    useEffect(() => {
+        const fonts = (typeof document !== 'undefined') ? (document as any).fonts : null;
+        const fam = config.fontFamily;
+        if (!fonts || !fam) return;
+        let cancelled = false;
+        const sample = 'Зоряне небо Ab';
+        const specs = [`16px "${fam}"`, `bold 16px "${fam}"`, `italic 16px "${fam}"`];
+        Promise.all(specs.map((s: string) => fonts.load(s, sample).catch(() => {})))
+            .then(() => { if (!cancelled) setFontTick((t) => t + 1); });
+        return () => { cancelled = true; };
+    }, [config.fontFamily]);
 
     useEffect(() => {
         const canvas = canvasRef.current; if(!canvas) return;
@@ -528,7 +545,7 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
             ctx.fillText(`${latS}  ${lonS}`, W/2, H-20*s); ctx.globalAlpha=1;
         }
-    }, [config]);
+    }, [config, fontTick]);
 
     const aspectMap: Record<string, string> = {
         'A4 (21×29.7 см)': '210/297',
