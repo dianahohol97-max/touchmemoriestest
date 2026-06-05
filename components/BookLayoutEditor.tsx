@@ -3052,19 +3052,19 @@ export default function BookLayoutEditor() {
       // failure we resolve with an error (never reject, never hang) so the loop
       // counts it and moves on instead of locking the customer on the spinner.
       const uploadFileWithRetry = async (uploadPath: string, body: Blob, contentType: string): Promise<{ error: any }> => {
-        for (let attempt = 0; attempt < 3; attempt++) {
+        for (let attempt = 0; attempt < 4; attempt++) {
           let timer: ReturnType<typeof setTimeout> | null = null;
           const uploadPromise = sb.storage
             .from('photobook-uploads')
             .upload(uploadPath, body, { cacheControl: '31536000', upsert: true, contentType })
             .then((r: any) => r, (e: any) => ({ error: e }));
           const timeoutPromise = new Promise<{ error: any }>((resolve) => {
-            timer = setTimeout(() => resolve({ error: new Error('upload-timeout') }), 45000);
+            timer = setTimeout(() => resolve({ error: new Error('upload-timeout') }), 90000);
           });
           const result: any = await Promise.race([uploadPromise, timeoutPromise]);
           if (timer) clearTimeout(timer);
           if (!result?.error) return { error: null };
-          if (attempt === 2) return { error: result.error };
+          if (attempt === 3) return { error: result.error };
           await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
         }
         return { error: new Error('upload-failed') };
