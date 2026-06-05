@@ -884,7 +884,7 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   //  PAGE: 7 фото 
   if (layout === 'p-7-grid')       { const sw=(W-2*g)/3, sh=(H-2*g)/3; return [[0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))).concat(S(6,0,(sh+g)*2,W,sh))].flat(); }
   if (layout === 'p-7-hero')       { const bh=H*0.5; const sw=(W-5*g)/6; return [S(0,0,0,W,bh), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
-  if (layout === 'p-7-3-4')        { const sw=(W-2*g)/3; const sh=(H-g)/2; return [...[0,1,2].map(i=>S(i,i*(sw+g),0,sw,sh)), ...[0,1,2].map(i=>S(i+3,i*(sw+g),sh+g,sw,sh)), S(6,0,0,0,0)].slice(0,7); }
+  if (layout === 'p-7-3-4')        { const sw3=(W-2*g)/3; const sw4=(W-3*g)/4; return [S(0,0,0,sw3,h2), S(1,sw3+g,0,sw3,h2), S(2,2*(sw3+g),0,sw3,h2), S(3,0,h2+g,sw4,h2), S(4,sw4+g,h2+g,sw4,h2), S(5,2*(sw4+g),h2+g,sw4,h2), S(6,3*(sw4+g),h2+g,sw4,h2)]; }
   if (layout === 'p-7-4-3')        { const sw4=(W-3*g)/4; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:3},(_,i)=>S(i+4,i*(sw3+g),sh+g,sw3,sh))]; }
   if (layout === 'p-7-mosaic')     return [S(0,0,0,W*0.55,H*0.55), S(1,W*0.55+g,0,W*0.45-g,H*0.28-g/2), S(2,W*0.55+g,H*0.28+g/2,W*0.45-g,H*0.28-g/2), S(3,0,H*0.55+g,w3,H*0.45-g), S(4,w3+g,H*0.55+g,w3,H*0.45-g), S(5,2*(w3+g),H*0.55+g,w3,H*0.45-g), S(6,W*0.55+g,H*0.55+g,W*0.45-g,H*0.45-g)];
   if (layout === 'p-7-col')        { const h7=(H-6*g)/7; return Array.from({length:7},(_,i)=>S(i,0,i*(h7+g),W,h7)); }
@@ -1976,20 +1976,26 @@ export default function BookLayoutEditor() {
     pushHistory();
 
     const page = pages[targetIdx];
-    // Collect existing photos from layout slots only (preserve first N for new layout)
+    // Carry over photos from BOTH layout slots and free slots, in order, so
+    // switching layout never silently drops a photo that lived in a free slot.
     const layoutPhotos = page ? page.slots.map(s2 => s2.photoId).filter(Boolean) as string[] : [];
+    const freePhotos = (freeSlots[targetIdx] || []).map(fs => fs.photoId).filter(Boolean) as string[];
+    const allPhotos = [...layoutPhotos, ...freePhotos];
 
     if (def.slots > 0) {
-      // Create new layout slots, carrying over first N photos
-      const newSlots = Array.from({ length: def.slots }, (_, si) => ({
-        photoId: layoutPhotos[si] ?? null,
-        ...getFocalCrop(layoutPhotos[si] ?? null), zoom: 1,
+      // Create as many slots as the renderer will ACTUALLY show for this layout
+      // (getSlotDefs is the source of truth), not the declared table count — this
+      // prevents a photo from landing in a slot index that never gets rendered.
+      const realCount = getSlotDefs(layout, 1000, 1000).length || def.slots;
+      const newSlots = Array.from({ length: realCount }, (_, si) => ({
+        photoId: allPhotos[si] ?? null,
+        ...getFocalCrop(allPhotos[si] ?? null), zoom: 1,
       }));
-      // Extra photos dropped silently — they remain in the photo strip
+      // Extra photos (beyond slot count) remain available in the photo strip
       setPages(prev => prev.map((p, i) =>
         i !== targetIdx ? p : { ...p, layout, slots: newSlots, textBlocks: p.textBlocks || [] }
       ));
-      // Clear any existing FreeSlots on this page
+      // Clear any existing FreeSlots on this page (their photos were carried above)
       setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
     } else {
       // Text-only layout — clear all slots and FreeSlots
