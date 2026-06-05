@@ -263,7 +263,7 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
     ? (currentPageIndex === -1 ? project.coverPage : project.pages[currentPageIndex])
     : null
 
-  const selectedElement = currentPage?.elements.find(
+  const selectedElement = currentPage?.elements?.find(
     el => el.id === selectedElementId
   )
 
