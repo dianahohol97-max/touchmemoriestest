@@ -287,12 +287,14 @@ export function BookPreviewModal({
           );
         })}
 
-        {/* Text blocks */}
+        {/* Text blocks — fontSize is authored against the editor's 700px base page
+            height, so scale it to this preview page height to match the editor. */}
         {(page.textBlocks || []).map(tb => (
-          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder) }}>
+          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), maxWidth: '90%' }}>
             <span style={{
-              fontSize: tb.fontSize * 0.85, fontFamily: tb.fontFamily, color: tb.color,
-              fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal', whiteSpace: 'pre',
+              fontSize: tb.fontSize * (cH / 700), fontFamily: tb.fontFamily, color: tb.color,
+              fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal',
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'block', textShadow: '0 1px 2px rgba(0,0,0,0.2)',
             }}>{tb.text}</span>
           </div>
         ))}
