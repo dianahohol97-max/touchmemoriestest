@@ -39,8 +39,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const tr = ((product.translations as any) || {})[locale] || {};
-  const title = tr.meta_title || tr.name || product.meta_title || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
-  const rawDesc = tr.meta_description || tr.description || product.meta_description || getLocalized(product, locale, 'short_description') || product.description || '';
+  const isUk = locale === 'uk';
+  const title = tr.meta_title || (isUk ? product.meta_title : '') || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
+  const rawDesc = tr.meta_description || (isUk ? product.meta_description : '') || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '';
   const description = rawDesc.toString().slice(0, 160);
   const ogImage = product.og_image || (product.images && product.images[0]) || `${getBaseUrl()}/og-image.jpg`;
   const path = `/catalog/${slug}`;
@@ -127,9 +128,10 @@ export default async function ProductPage({ params }: Props) {
 
   if (product) {
     const tr = ((product.translations as any) || {})[locale] || {};
+    const isUk = locale === 'uk';
     const name = tr.name || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
-    const desc = (tr.meta_description || tr.description || product.meta_description
-      || getLocalized(product, locale, 'short_description') || product.description || '').toString().slice(0, 300);
+    const desc = (tr.meta_description || (isUk ? product.meta_description : '')
+      || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '').toString().slice(0, 300);
     const image = product.og_image || (product.images && (product.images as any[])[0]) || `${base}/og-image.jpg`;
     const price = Number(product.price_from || product.price || 0);
     const category = (product.categories as any) || null;
