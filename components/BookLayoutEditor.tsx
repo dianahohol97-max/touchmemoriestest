@@ -5850,7 +5850,7 @@ export default function BookLayoutEditor() {
                       }
                     }}
                     onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
-                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
+                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(`spread-${spreadPageIdx}-`)) || (!!editSlotKey && editSlotKey.startsWith(`spread-${spreadPageIdx}-`))) ? 'visible' : 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
                     {/* Center spine line — always visible fold indicator */}
@@ -5957,7 +5957,7 @@ export default function BookLayoutEditor() {
                             }
                           }}
                           style={{ ...slotStyle,
-                            overflow: photoEditSlot === key ? 'visible' : 'hidden',
+                            overflow: (photoEditSlot === key || editSlotKey === key) ? 'visible' : 'hidden',
                             transform: undefined,
                             background: photo ? 'transparent' : (isOver ? 'rgba(59,130,246,0.12)' : 'rgba(240,242,255,0.65)'),
                             border: isOver ? '2px dashed #3b82f6' : (photo ? (pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : '1px solid rgba(255,255,255,0.4)') : '1.5px dashed #c7d2fe'),
