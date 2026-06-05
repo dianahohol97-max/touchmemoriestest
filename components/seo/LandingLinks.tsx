@@ -2,12 +2,14 @@ import Link from 'next/link';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { geoCityLabel, clusterLabel } from '@/lib/seo/landingLabels';
+import { getLocalized } from '@/lib/i18n/localize';
 
 interface Row {
     category_slug: string;
     occasion: string;
     kind: string;
     h1: string | null;
+    translations?: any;
 }
 
 // Server component. Renders an internal-links section so crawlers can reach the
@@ -19,7 +21,7 @@ export default async function LandingLinks({ locale }: { locale: string }) {
 
     const { data } = await supabase
         .from('landing_pages')
-        .select('category_slug, occasion, kind, h1')
+        .select('category_slug, occasion, kind, h1, translations')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
@@ -31,7 +33,7 @@ export default async function LandingLinks({ locale }: { locale: string }) {
 
     const href = (r: Row) => `/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`;
     const cityLabel = (r: Row) => geoCityLabel(r.occasion, r.h1);
-    const otherLabel = (r: Row) => clusterLabel(r.h1, r.occasion);
+    const otherLabel = (r: Row) => clusterLabel(getLocalized(r, locale, 'h1'), r.occasion);
 
     const sectionStyle: React.CSSProperties = {
         background: '#fafafa',

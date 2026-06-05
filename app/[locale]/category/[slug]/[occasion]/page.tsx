@@ -79,8 +79,9 @@ export async function generateMetadata({
   const lp = await getLanding(toDbCategorySlug(slug), occasion);
   if (!lp) return { title: 'Touch.Memories' };
 
-  const title = (lp.meta_title || lp.h1 || 'Touch.Memories').toString();
-  const description = (lp.meta_description || lp.intro || '')
+  const lpTitle = getLocalized(lp, locale, 'meta_title') || getLocalized(lp, locale, 'h1');
+  const title = (lpTitle || 'Touch.Memories').toString();
+  const description = (getLocalized(lp, locale, 'meta_description') || getLocalized(lp, locale, 'intro') || '')
     .toString()
     .replace(/\s+/g, ' ')
     .trim()
@@ -137,12 +138,12 @@ export default async function LandingPage({
   const catName = cat ? (getLocalized(cat as any, locale, 'name') || (cat as any).name) : '';
 
   // Sibling landing pages for internal linking (discovery + link equity).
-  let geoSiblings: Array<{ category_slug: string; occasion: string; kind: string; h1: string | null }> = [];
+  let geoSiblings: Array<{ category_slug: string; occasion: string; kind: string; h1: string | null; translations?: any }> = [];
   let otherSiblings: typeof geoSiblings = [];
   if (supabase) {
     const { data: sib } = await supabase
       .from('landing_pages')
-      .select('category_slug, occasion, kind, h1')
+      .select('category_slug, occasion, kind, h1, translations')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
     const siblings = ((sib as any[]) || []).filter(
@@ -155,7 +156,10 @@ export default async function LandingPage({
   const site = getBaseUrl();
   const pageUrl = getCanonicalUrl(locale, `/category/${publicSlug}/${occasion}`);
   const catUrl = getCanonicalUrl(locale, `/category/${publicSlug}`);
-  const introParas = String(lp.intro || '').split(/\n{2,}/).map((p: string) => p.trim()).filter(Boolean);
+  const lpH1 = getLocalized(lp, locale, 'h1') || lp.h1;
+  const lpIntro = getLocalized(lp, locale, 'intro') || lp.intro;
+  const lpMetaDesc = getLocalized(lp, locale, 'meta_description') || lp.meta_description;
+  const introParas = String(lpIntro || '').split(/\n{2,}/).map((p: string) => p.trim()).filter(Boolean);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -163,10 +167,10 @@ export default async function LandingPage({
       {
         '@type': 'CollectionPage',
         '@id': `${pageUrl}#collection`,
-        name: lp.h1,
+        name: lpH1,
         url: pageUrl,
-        ...(lp.meta_description || lp.intro
-          ? { description: String(lp.meta_description || lp.intro).replace(/\s+/g, ' ').slice(0, 300) }
+        ...(lpMetaDesc || lpIntro
+          ? { description: String(lpMetaDesc || lpIntro).replace(/\s+/g, ' ').slice(0, 300) }
           : {}),
         isPartOf: { '@id': `${site}/#website` },
         ...(lp.hero_image ? { primaryImageOfPage: lp.hero_image } : {}),
@@ -177,7 +181,7 @@ export default async function LandingPage({
           { '@type': 'ListItem', position: 1, name: t.home, item: getCanonicalUrl(locale, '') },
           { '@type': 'ListItem', position: 2, name: t.catalog, item: getCanonicalUrl(locale, '/catalog') },
           ...(catName ? [{ '@type': 'ListItem', position: 3, name: catName, item: catUrl }] : []),
-          { '@type': 'ListItem', position: catName ? 4 : 3, name: lp.h1, item: pageUrl },
+          { '@type': 'ListItem', position: catName ? 4 : 3, name: lpH1, item: pageUrl },
         ],
       },
       ...(products.length
@@ -214,12 +218,12 @@ export default async function LandingPage({
             </>
           )}
           <span>/</span>
-          <span style={{ color: '#1e2d7d', fontWeight: 600 }}>{lp.h1}</span>
+          <span style={{ color: '#1e2d7d', fontWeight: 600 }}>{lpH1}</span>
         </nav>
 
         <header style={{ marginBottom: 32, maxWidth: 800 }}>
           <h1 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 900, color: '#1e2d7d', letterSpacing: '-0.02em', marginBottom: 16 }}>
-            {lp.h1}
+            {lpH1}
           </h1>
           {introParas.map((p: string, i: number) => (
             <p key={i} style={{ fontSize: 16, lineHeight: 1.75, color: '#475569', marginBottom: 14 }}>{p}</p>
@@ -277,7 +281,7 @@ export default async function LandingPage({
                 <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', listStyle: 'none', padding: 0, margin: 0 }}>
                   {otherSiblings.map((r) => (
                     <li key={`${r.category_slug}-${r.occasion}`}>
-                      <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{clusterLabel(r.h1, r.occasion)}</Link>
+                      <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{clusterLabel(getLocalized(r, locale, 'h1'), r.occasion)}</Link>
                     </li>
                   ))}
                 </ul>
