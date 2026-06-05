@@ -2868,11 +2868,10 @@ export default function BookLayoutEditor() {
         // memory at this point (config.selectedXxx, coverState.decoXxx,
         // hasKalka, hasEndpaper, plus the URL searchParams that carried
         // lamination / urgent / spine / etc. from the catalog page).
-        const opts: Record<string, string> = {
-          'Розмір': config.selectedSize || '',
-          'Сторінок': `${contentPages} сторінок`,
-          'Обкладинка': config.selectedCoverType || '',
-        };
+        const opts: Record<string, string> = {};
+        if (config.selectedSize) opts['Розмір'] = config.selectedSize;
+        opts['Сторінок'] = `${contentPages} сторінок`;
+        if (config.selectedCoverType) opts['Обкладинка'] = config.selectedCoverType;
         // Cover colour — only present for soft covers (velour / fabric /
         // leatherette). For printed photo covers this is just blank.
         const coverColor = config.selectedCoverColor || coverColorOverride || '';
@@ -2940,7 +2939,12 @@ export default function BookLayoutEditor() {
           ];
           for (const [key, label] of urlOpts) {
             const v = searchParams.get(key);
-            if (v && v !== 'none' && v !== '0' && v !== '') {
+            if (!v || v === 'none' || v === '0' || v === '') continue;
+            if (key === 'urgent') {
+              const lv = v.toLowerCase();
+              if (lv === 'standard' || lv.includes('стандартна')) continue;
+              opts[label] = 'Термінове виготовлення (+30%)';
+            } else {
               opts[label] = v;
             }
           }
@@ -3543,8 +3547,8 @@ export default function BookLayoutEditor() {
     if (typesettingApplies) {
       typesettingExtra = 195; // TYPESETTING_PRICE for magazine
     }
-    const urgentRaw = searchParams?.get('urgent') || '';
-    const isUrgent = !!urgentRaw && urgentRaw !== '0' && !urgentRaw.toLowerCase().includes('стандартна');
+    const urgentRaw = (searchParams?.get('urgent') || '').toLowerCase();
+    const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
     const surchargedOrdered = (isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered) + typesettingExtra;
     const surchargedCurrent = (isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent) + typesettingExtra;
     baseDynamicPrice = surchargedCurrent;
@@ -3574,8 +3578,8 @@ export default function BookLayoutEditor() {
     // originally-ordered count. So the customer's first total is rush-
     // inflated, and any subsequent page tweak shows the delta against
     // the rush-inflated baseline.
-    const urgentRawHC = searchParams?.get('urgent') || '';
-    const isUrgentHC = !!urgentRawHC && urgentRawHC !== '0' && !urgentRawHC.toLowerCase().includes('стандартна');
+    const urgentRawHC = (searchParams?.get('urgent') || '').toLowerCase();
+    const isUrgentHC = !!urgentRawHC && urgentRawHC !== '0' && urgentRawHC !== 'standard' && !urgentRawHC.includes('стандартна');
     if (isUrgentHC) {
       const orderedBase = result.dynamicPrice - result.priceDiff;
       const orderedSurcharged = Math.round(orderedBase * 1.3);
@@ -8826,7 +8830,7 @@ export default function BookLayoutEditor() {
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
             <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
-              Фотокнигу додано до кошика!
+              {config?.productName || 'Товар'} додано до кошика!
             </h2>
             <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>
               Оформити замовлення або продовжити покупки?
