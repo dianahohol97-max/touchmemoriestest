@@ -360,8 +360,6 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'p-7-mosaic',       label: '7 мозаїка',           slots: 7, group: '7 фото' },
   { id: 'p-7-cols',         label: '7 (4+3 стовпці)',     slots: 7, group: '7 фото' },
   { id: 'p-7-focus',        label: '1 велике + 6 малих',  slots: 7, group: '7 фото' },
-  { id: 'p-7-row',          label: '7 рядок',             slots: 7, group: '7 фото' },
-  { id: 'p-7-col-full',     label: '7 стовпець повний',   slots: 7, group: '7 фото' },
   { id: 'p-7-panorama',     label: 'Панорама + 6',        slots: 7, group: '7 фото' },
   { id: 'p-7-magazine',     label: 'Журнальний 7',        slots: 7, group: '7 фото' },
   { id: 'p-7-diagonal',     label: '7 діагональ',         slots: 7, group: '7 фото' },
@@ -6469,7 +6467,7 @@ export default function BookLayoutEditor() {
                         setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newSlot] }));
                         toast.success('Фото додано на сторінку');
                       }}
-                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
+                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-'))) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
@@ -6590,8 +6588,15 @@ export default function BookLayoutEditor() {
                                     const slotHPx = Number((s as any).height) || 100;
                                     const below = slotTopPx < 52;
                                     const posStyle = below ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) } : { top: -44 };
+                                    // Keep the toolbar inside the page horizontally — near an edge a
+                                    // slot-centred toolbar would otherwise spill out and get cut off.
+                                    const slotLeftPx = Number((s as any).left) || 0;
+                                    const slotWPx = Number((s as any).width) || 100;
+                                    const slotCenter = slotLeftPx + slotWPx / 2;
+                                    const HALF = isMobile ? 90 : 130;
+                                    const shiftX = Math.round(Math.max(HALF, Math.min(pageW - HALF, slotCenter)) - slotCenter);
                                     return (
-                                    <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
+                                    <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:`translateX(calc(-50% + ${shiftX}px))`,display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
                                       {/* Row 1: zoom + rotate + delete */}
                                       <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
