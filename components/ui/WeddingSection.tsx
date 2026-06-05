@@ -1,118 +1,18 @@
-'use client';
-import { useT } from '@/lib/i18n/context';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { WeddingSectionClient, type WeddingImages } from './WeddingSectionClient';
 
-export function WeddingSection() {
-  const t = useT();
-    const { ref, inView } = useInView({
-        triggerOnce: true,
-        threshold: 0.1,
-    });
+// Server wrapper: card images are editable in admin → Контент → секція "wedding"
+// (metadata.images.{guestbook,newspaper,photobook,magazine}). Falls back to the
+// bundled /images/wedding/*.png when a slot is empty.
+export async function WeddingSection() {
+    const supabase = getAdminClient();
+    const { data: section } = await supabase
+        .from('section_content')
+        .select('metadata')
+        .eq('section_name', 'wedding')
+        .eq('is_active', true)
+        .maybeSingle();
 
-    const categories = [
-        {
-            subtitle: t('wedding.before_subtitle'),
-            title: t('wedding.before_title'),
-            products: [
-                {
-                    name: t('wedding.guestbook'),
-                    image: '/images/wedding/guestbook.png',
-                    href: '/catalog?category=guestbooks'
-                },
-                {
-                    name: t('wedding.newspaper'),
-                    image: '/images/wedding/newspaper.png',
-                    href: '/catalog?category=newspapers',
-                    orderHref: '/catalog/wedding-newspaper'
-                }
-            ]
-        },
-        {
-            subtitle: t('wedding.after_subtitle'),
-            title: t('wedding.after_title'),
-            products: [
-                {
-                    name: t('wedding.photobook'),
-                    image: '/images/wedding/photobook.png',
-                    href: '/catalog?category=photobooks'
-                },
-                {
-                    name: t('wedding.magazine'),
-                    image: '/images/wedding/magazine.png',
-                    href: '/catalog?category=hlyantsevi-zhurnaly'
-                }
-            ]
-        }
-    ];
-
-    return (
-        <section ref={ref} className="section-padding bg-white overflow-hidden">
-            <div className="container">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
-                    {categories.map((category, catIdx) => (
-                        <div key={catIdx} className="space-y-12">
-                            {/* Column Header */}
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={inView ? { opacity: 1, y: 0 } : {}}
-                                transition={{ duration: 0.8, delay: catIdx * 0.2 }}
-                                className="space-y-4"
-                            >
-                                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#263A99] block" style={{ letterSpacing: "0.14em", opacity: 0.6 }}>
-                                    {category.subtitle}
-                                </span>
-                                <h2 className="text-[40px] lg:text-[48px] font-black text-primary leading-none tracking-tight">
-                                    {category.title}
-                                </h2>
-                                
-                            </motion.div>
-
-                            {/* Product Cards Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                {category.products.map((product, prodIdx) => (
-                                    <motion.div
-                                        key={prodIdx}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={inView ? { opacity: 1, scale: 1 } : {}}
-                                        transition={{ duration: 0.6, delay: (catIdx * 0.2) + (prodIdx * 0.1) + 0.3 }}
-                                        className="group space-y-6"
-                                    >
-                                        {/* Image Container */}
-                                        <Link href={product.href} className="block">
-                                            <div className="relative aspect-[4/5] rounded-xl overflow-hidden shadow-[var(--card-shadow)] bg-gray-50 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
-                                                <Image
-                                                    src={product.image}
-                                                    alt={product.name}
-                                                    fill
-                                                    className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                                                />
-                                                <div className="absolute inset-0 bg-black/0 group-hover:bg-primary/5 transition-colors duration-500" />
-                                            </div>
-                                        </Link>
-
-                                        {/* Content */}
-                                        <div className="space-y-4">
-                                            <h3 className="text-xl font-black text-primary tracking-tight">
-                                                {product.name}
-                                            </h3>
-                                            <Link
-                                                href={(product as any).orderHref ?? product.href}
-                                                className="inline-block bg-[#1e2d7d] text-white hover:bg-[#263a99] font-semibold px-5 py-2.5 rounded-full transition-colors text-sm"
-                                            >
-                                                {t('wedding.order')}
-                                            </Link>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
+    const images: WeddingImages = (section?.metadata as any)?.images || {};
+    return <WeddingSectionClient weddingImages={images} />;
 }

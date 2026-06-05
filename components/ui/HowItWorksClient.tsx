@@ -17,11 +17,12 @@ interface FeatureCard {
 
 interface HowItWorksClientProps {
   featureCards: FeatureCard[];
+  sectionImage?: string;
 }
 
 const ICONS = [Sparkles, PenLine, Truck, Users];
 
-export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
+export function HowItWorksClient({ featureCards, sectionImage }: HowItWorksClientProps) {
   const t = useT();
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
   const { content, blocks } = useTheme();
@@ -90,7 +91,7 @@ export function HowItWorksClient({ featureCards }: HowItWorksClientProps) {
             transition={{ duration: 0.7, delay: 0.2 }}
           >
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_Cdn1awE3AcBOHi31FkW9Q17N3LTvFwkW9duVLxPCRhc2bGmSCiYsulAy2c6fwpux9vGNJJsM7RoUGNYyQMEFc4WYgRqjQz0xI_TQ7sqjavZlUBH8ufqP8ND4La7ycUQydACQe_X0N0N8f5YFJXvnL2D2rUeNKLhp0oNP7UXiZa1U_bJ-CWqp-6T_tB6TrFse3GauWwOBNTtYxEM7FY_9imCt57F-0u6di3nz7PqL0GIWLc5bFCQ4E0THpj3IUl6vuRgt8qOwL7g"
+              src={sectionImage || "https://lh3.googleusercontent.com/aida-public/AB6AXuD_Cdn1awE3AcBOHi31FkW9Q17N3LTvFwkW9duVLxPCRhc2bGmSCiYsulAy2c6fwpux9vGNJJsM7RoUGNYyQMEFc4WYgRqjQz0xI_TQ7sqjavZlUBH8ufqP8ND4La7ycUQydACQe_X0N0N8f5YFJXvnL2D2rUeNKLhp0oNP7UXiZa1U_bJ-CWqp-6T_tB6TrFse3GauWwOBNTtYxEM7FY_9imCt57F-0u6di3nz7PqL0GIWLc5bFCQ4E0THpj3IUl6vuRgt8qOwL7g"}
               alt="Touch Memories workshop"
               style={{ width: '100%', borderRadius: '20px', boxShadow: '0 20px 50px rgba(38,58,153,0.12)', objectFit: 'cover', maxHeight: '480px' }}
             />

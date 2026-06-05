@@ -56,7 +56,7 @@ export function PhotoPrintPromoClient({
 
     const steps = sectionContent?.metadata?.steps || defaultSteps;
 
-    const collageImages = [
+    const defaultCollage = [
         '/images/collage/1.png',
         '/images/collage/2.png',
         '/images/collage/3.png',
@@ -67,6 +67,12 @@ export function PhotoPrintPromoClient({
         '/images/collage/8.png',
         '/images/collage/9.png',
     ];
+    // Admin override: section_content.metadata.collage[i] replaces a slot;
+    // empty/missing slots fall back to the bundled default image.
+    const metaCollage: string[] = Array.isArray(sectionContent?.metadata?.collage)
+        ? sectionContent!.metadata.collage
+        : [];
+    const collageImages = defaultCollage.map((d, i) => metaCollage[i] || d);
 
     return (
         <section ref={ref} className="section-padding bg-white overflow-hidden">
