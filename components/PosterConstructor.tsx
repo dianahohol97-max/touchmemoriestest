@@ -1194,13 +1194,15 @@ export default function PosterConstructor() {
                             style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, width:20, height:20, color:'#fff', cursor:'pointer', fontSize:14, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
                           <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10, minWidth:30 }}>{Math.round((photo.zoom||1)*100)}%</span>
                           {/* Crop X */}
-                          <span style={{ color:'#fff', fontSize:10 }}>↔</span>
-                          <input type="range" min={0} max={100} value={photo.cropX||50}
+                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вліво/вправо. Працює, коли фото більше за клітинку — спершу наблизь 🔍">↔</span>
+                          <input type="range" min={0} max={100} value={photo.cropX ?? 50}
+                            title="Зсув фото вліво/вправо (спершу наблизь 🔍, щоб зʼявився запас для руху)"
                             onChange={e => updatePhoto(photo.id, { cropX: +e.target.value })}
                             style={{ width:60, accentColor:'#3b82f6' }}/>
                           {/* Crop Y */}
-                          <span style={{ color:'#fff', fontSize:10 }}>↕</span>
-                          <input type="range" min={0} max={100} value={photo.cropY||50}
+                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вгору/вниз. Працює, коли фото більше за клітинку — спершу наблизь 🔍">↕</span>
+                          <input type="range" min={0} max={100} value={photo.cropY ?? 50}
+                            title="Зсув фото вгору/вниз (спершу наблизь 🔍, щоб зʼявився запас для руху)"
                             onChange={e => updatePhoto(photo.id, { cropY: +e.target.value })}
                             style={{ width:60, accentColor:'#3b82f6' }}/>
                           {/* Reset */}
