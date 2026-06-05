@@ -140,6 +140,74 @@ export default function AccountPage() {
         toast.success('Додано в кошик');
     };
 
+    // Reopen a saved book/journal/magazine design back in BookLayoutEditor.
+    // The photo FILES aren't stored on our servers (only the design structure
+    // is), so we restore the full layout/text/cover/options and hand the editor
+    // a filename→slots map; the user re-adds the same photos and they snap back.
+    const reopenDesign = async (d: Design) => {
+        try {
+            const { data: row, error } = await supabase.from('projects').select('*').eq('id', d.id).single();
+            if (error || !row) { toast.error('Не вдалося відкрити дизайн'); return; }
+            const cp: any = row.cart_payload || {};
+            const ov: any = row.overlays_data || {};
+            const photosMeta: any[] = Array.isArray(row.uploaded_photos) ? row.uploaded_photos : [];
+
+            // Prefer the exact saved config; otherwise reconstruct the essentials.
+            const config = ov.config || {
+                productSlug: cp.slug || row.product_type,
+                productName: cp.name || row.name,
+                productId: cp.product_id,
+                selectedSize: row.format,
+                selectedPageCount: cp.options?.['Сторінок'] || `${row.total_pages} сторінок`,
+                selectedCoverType: row.cover_type,
+                totalPrice: cp.price,
+            };
+            const slug = String(config.productSlug || '').toLowerCase().trim();
+
+            // Structure draft — exactly the shape the editor's restore path reads.
+            const draft = {
+                pages: row.pages_data || [],
+                coverState: row.cover_data || undefined,
+                freeSlots: ov.freeSlots,
+                pageStickers: ov.pageStickers,
+                pageShapes: ov.pageShapes,
+                pageBgs: ov.pageBgs,
+                qrOverlays: ov.qrOverlays,
+                generatedQRCount: ov.generatedQRCount,
+            };
+
+            // filename -> the slots / free-slots / cover it occupied.
+            const idToName: Record<string, string> = {};
+            photosMeta.forEach((p: any) => { if (p?.id && p?.name) idToName[p.id] = p.name; });
+            const placement: Record<string, { pages: { pi: number; si: number }[]; free: { pi: number; idx: number }[]; cover: boolean }> = {};
+            const ensure = (name: string) => (placement[name] ||= { pages: [], free: [], cover: false });
+            (row.pages_data || []).forEach((pg: any, pi: number) => (pg?.slots || []).forEach((s: any, si: number) => {
+                const nm = s?.photoId ? idToName[s.photoId] : undefined;
+                if (nm) ensure(nm).pages.push({ pi, si });
+            }));
+            Object.entries(ov.freeSlots || {}).forEach(([pi, arr]: [string, any]) => (arr || []).forEach((fs: any, idx: number) => {
+                const nm = fs?.photoId ? idToName[fs.photoId] : undefined;
+                if (nm) ensure(nm).free.push({ pi: Number(pi), idx });
+            }));
+            const coverPid = (row.cover_data as any)?.photoId;
+            if (coverPid && idToName[coverPid]) ensure(idToName[coverPid]).cover = true;
+
+            // Hand off via the same sessionStorage keys the editor already reads.
+            sessionStorage.setItem('bookConstructorConfig', JSON.stringify(config));
+            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify([]));
+            sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(draft));
+            sessionStorage.setItem('bookReopenPlacement', JSON.stringify(placement));
+            sessionStorage.setItem('bookReopenProjectId', String(row.id));
+            try { (window as any).__bookPhotoOriginals = undefined; } catch {}
+
+            const locale = (typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk') || 'uk';
+            router.push(`/${locale}/editor/book/layout`);
+        } catch (e) {
+            console.error('reopenDesign failed:', e);
+            toast.error('Не вдалося відкрити дизайн');
+        }
+    };
+
     const toggleDesignSelected = (id: string) => {
         setSelectedDesignIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
@@ -568,6 +636,10 @@ export default function AccountPage() {
                                                 : isDeskCal ? `/order/desk-calendar`
                                                 : isWallCal ? `/order/wall-calendar`
                                                 : d.source === 'editor' ? `/editor/${d.id}` : `/review/${d.id}`;
+                                            // Book/journal/magazine designs reopen in BookLayoutEditor via a
+                                            // sessionStorage hand-off (the old /editor/{id} route is a different,
+                                            // incompatible editor). Special products keep their own constructors.
+                                            const isBookEditor = d.source === 'editor' && !isStarmap && !isPoster && !isDeskCal && !isWallCal;
                                             const editLabel = d.source === 'editor' ? 'Продовжити редагування' : 'Переглянути';
                                             const visual = getProductVisual(d.product_type);
                                             const isEditing = editingDesignId === d.id;
@@ -651,21 +723,30 @@ export default function AccountPage() {
                                                             </span>
                                                         </div>
                                                         <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
-                                                            <Link href={editUrl}
-                                                                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#eef2ff', color: '#263a99', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid #c7d2fe' }}>
-                                                                <Pencil size={13}/> {editLabel}
-                                                            </Link>
+                                                            {isBookEditor ? (
+                                                                <button onClick={() => reopenDesign(d)}
+                                                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#eef2ff', color: '#263a99', borderRadius: 8, border: '1px solid #c7d2fe', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                                                                    <Pencil size={13}/> {editLabel}
+                                                                </button>
+                                                            ) : (
+                                                                <Link href={editUrl}
+                                                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#eef2ff', color: '#263a99', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700, border: '1px solid #c7d2fe' }}>
+                                                                    <Pencil size={13}/> {editLabel}
+                                                                </Link>
+                                                            )}
                                                             {d.cart_payload ? (
                                                                 /* New designs: exact saved price -> add to cart directly */
                                                                 <button onClick={() => orderSingleDesign(d)}
                                                                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
                                                                     <ShoppingBag size={13}/> Замовити
                                                                 </button>
+                                                            ) : isBookEditor ? (
+                                                                <button onClick={() => reopenDesign(d)}
+                                                                    title="Відкриється в редакторі — там підтвердьте та додайте в кошик"
+                                                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                                                                    <ShoppingBag size={13}/> Замовити
+                                                                </button>
                                                             ) : (
-                                                                /* Legacy designs (no saved price): route through the
-                                                                   editor/constructor where price is computed correctly,
-                                                                   then the user adds to cart from there. Never guesses
-                                                                   a price. */
                                                                 <Link href={editUrl}
                                                                     title="Відкриється в редакторі — там підтвердьте та додайте в кошик"
                                                                     style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px 12px', background: '#263a99', color: 'white', borderRadius: 8, textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>

@@ -1410,6 +1410,11 @@ export default function BookLayoutEditor() {
     return () => { try { document.head.removeChild(link); } catch{} };
   }, []);
 
+  // Reopen-from-cabinet: maps a saved photo's FILENAME to the slots it occupied,
+  // so when the user re-adds the same files they snap back into place. The photo
+  // files themselves aren't stored on our servers, only the design structure is.
+  const reopenPlacementRef = React.useRef<Record<string, { pages: { pi: number; si: number }[]; free: { pi: number; idx: number }[]; cover: boolean }>>({});
+
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
     if (cfg) {
@@ -1500,7 +1505,11 @@ export default function BookLayoutEditor() {
           const cfgSlug = currentConfig ? (JSON.parse(currentConfig).productSlug || '') : '';
           const isDraftMagazine = /magazine|journal|zhurnal/i.test(cfgSlug);
           const magazineMinTooLow = isDraftMagazine && draftContent < 8;
-          if (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow) {
+          // When reopening a saved design from the account, the draft IS the
+          // authoritative design (it may include endpapers/forzac that make the
+          // raw page count differ), so never discard it on the count heuristic.
+          const isReopen = !!sessionStorage.getItem('bookReopenProjectId');
+          if (!isReopen && (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow)) {
             // Draft is from a different order — discard it
             sessionStorage.removeItem(draftKey);
           } else {
@@ -1527,6 +1536,22 @@ export default function BookLayoutEditor() {
         }
       } catch {}
     }
+
+    // Reopen flow: a saved design was written into sessionStorage by the
+    // account page. Pick up the filename→slots map so re-added photos snap back.
+    try {
+      const placementRaw = sessionStorage.getItem('bookReopenPlacement');
+      if (placementRaw) {
+        const placement = JSON.parse(placementRaw) || {};
+        reopenPlacementRef.current = placement;
+        sessionStorage.removeItem('bookReopenPlacement');
+        sessionStorage.removeItem('bookReopenProjectId');
+        const n = Object.keys(placement).length;
+        if (n > 0) {
+          setTimeout(() => { try { toast(`Дизайн відновлено. Додай ті самі ${n} фото — вони стануть на свої місця за назвою файлу.`, { duration: 12000 }); } catch {} }, 700);
+        }
+      }
+    } catch {}
   }, [router]);
 
   // Persist photos to sessionStorage whenever they change (debounced)
@@ -1560,7 +1585,44 @@ export default function BookLayoutEditor() {
     }, 1000);
   }, [photos]);
 
-  // Auto-save editor state to sessionStorage (debounced, with status indicator)
+  // Reopen flow: when the user re-adds photos, match each by FILENAME to the
+  // slots it occupied in the saved design and drop it back in. Consumes the map
+  // entry once placed so it runs at most once per photo.
+  useEffect(() => {
+    const map = reopenPlacementRef.current;
+    if (!map || Object.keys(map).length === 0 || photos.length === 0) return;
+    let placedAny = false;
+    for (const photo of photos) {
+      const loc = map[photo.name];
+      if (!loc) continue;
+      placedAny = true;
+      if (loc.pages?.length) {
+        setPages(prev => prev.map((pg, pi) => {
+          const hits = loc.pages.filter(l => l.pi === pi);
+          return hits.length
+            ? { ...pg, slots: pg.slots.map((s, si) => hits.some(h => h.si === si) ? { ...s, photoId: photo.id, ...getFocalCrop(photo.id) } : s) }
+            : pg;
+        }));
+      }
+      if (loc.free?.length) {
+        setFreeSlots(prev => {
+          const u = { ...prev };
+          for (const f of loc.free) {
+            const arr = u[f.pi] ? [...u[f.pi]] : [];
+            if (arr[f.idx]) arr[f.idx] = { ...arr[f.idx], photoId: photo.id };
+            u[f.pi] = arr;
+          }
+          return u;
+        });
+      }
+      if (loc.cover) setCoverState(prev => ({ ...prev, photoId: photo.id }));
+      delete map[photo.name];
+    }
+    if (placedAny && Object.keys(map).length === 0) {
+      try { toast.success('Усі фото повернулись на свої місця'); } catch {}
+    }
+  }, [photos]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!pages.length) return;
     setSaveStatus('saving');
@@ -3379,6 +3441,9 @@ export default function BookLayoutEditor() {
         freeSlots,
         qrOverlays,
         generatedQRCount,
+        // Full constructor config — lets a saved design be reopened with the
+        // exact product/size/cover/options instead of a best-effort guess.
+        config,
       };
 
       const { error } = await sb.from('projects').insert({
