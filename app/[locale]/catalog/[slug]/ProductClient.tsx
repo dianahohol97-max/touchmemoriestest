@@ -1210,6 +1210,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         {opt.type === 'velour_swatches' ? (
                                                             <VelourSwatchPicker
                                                                 coverTypeId={opt.cover_type_id || ''}
+                                                                disabledCodes={Array.isArray(opt.disabled_codes) ? opt.disabled_codes : []}
                                                                 value={String(customProductOptions[opt.name] || '')}
                                                                 onChange={(name) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: name }))}
                                                             />

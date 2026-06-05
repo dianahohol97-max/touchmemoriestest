@@ -21,10 +21,12 @@ export default function VelourSwatchPicker({
   coverTypeId,
   value,
   onChange,
+  disabledCodes = [],
 }: {
   coverTypeId: string;
   value: string;
   onChange: (name: string) => void;
+  disabledCodes?: string[];
 }) {
   const [colors, setColors] = useState<CoverColor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,9 @@ export default function VelourSwatchPicker({
           .eq('active', true)
           .order('sort_order', { ascending: true });
         if (!alive) return;
-        const list = (data || []) as CoverColor[];
+        const list = ((data || []) as CoverColor[]).filter(
+          (c) => !(disabledCodes || []).includes(c.code || '')
+        );
         setColors(list);
         if (list.length && !value) onChange(list[0].name);
       } finally {

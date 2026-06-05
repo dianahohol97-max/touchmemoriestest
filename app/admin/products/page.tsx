@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { compressImageFile } from '@/lib/compress-upload-image';
+import VelourColorToggles from '@/components/admin/VelourColorToggles';
 import { toast } from 'sonner';
 import {
     Save, Plus, Trash2, Activity, Package,
@@ -31,8 +32,10 @@ function slugify(input: string): string {
 
 interface Category { id: string; name: string; slug: string; }
 interface ProductOption {
-    name: string; type: 'select' | 'multiselect' | 'text';
+    name: string; type: 'select' | 'multiselect' | 'text' | 'velour_swatches' | 'inscription';
     required?: boolean;
+    cover_type_id?: string;
+    disabled_codes?: string[];
     options: { label: string; value: string; price: number; allows_text?: boolean; stock?: number | null }[];
 }
 interface Product {
@@ -770,6 +773,8 @@ export default function ProductsAdminPage() {
                                                             <option value="select">Select</option>
                                                             <option value="multiselect">Multi</option>
                                                             <option value="text">Text</option>
+                                                            <option value="velour_swatches">Кольори велюру</option>
+                                                            <option value="inscription">Напис</option>
                                                         </select>
                                                     </F>
                                                     <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, cursor:'pointer', marginBottom:2 }}>
@@ -781,6 +786,13 @@ export default function ProductsAdminPage() {
                                                     </button>
                                                 </div>
                                                 <div style={{ padding:12 }}>
+                                                    {opt.type === 'velour_swatches' ? (
+                                                      <VelourColorToggles
+                                                        coverTypeId={(opt as any).cover_type_id || ''}
+                                                        disabledCodes={Array.isArray((opt as any).disabled_codes) ? (opt as any).disabled_codes : []}
+                                                        onChange={(codes)=>updOpt(oi,{ disabled_codes: codes } as any)}
+                                                      />
+                                                    ) : (<>
                                                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 80px 70px 56px 28px', gap:6, marginBottom:6 }}>
                                                         {['Назва','Value','Ціна ₴','Склад','Текст',''].map((h,i)=><div key={i} style={{ fontSize:10, fontWeight:700, color:(i===2||i===3)?'#1e2d7d':'#9ca3af', textTransform:'uppercase', textAlign: i===4?'center':'left' }} title={h==='Текст' ? 'Якщо увімкнено — клієнт побачить поле для введення тексту (напр. напис на обкладинці) при виборі цього варіанту' : (h==='Склад' ? 'Залишок для цього варіанту. Порожньо = без обмеження (виготовлення під замовлення).' : undefined)}>{h}</div>)}
                                                     </div>
@@ -802,6 +814,7 @@ export default function ProductsAdminPage() {
                                                     <button onClick={()=>addItem(oi)} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, color:'#1e2d7d', background:'none', border:'1px dashed #c7d2fe', borderRadius:6, padding:'5px 10px', cursor:'pointer', fontWeight:600, marginTop:4 }}>
                                                         <Plus size={11}/> Додати варіант
                                                     </button>
+                                                    </>)}
                                                 </div>
                                             </div>
                                         ))}
