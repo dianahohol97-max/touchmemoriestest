@@ -4176,6 +4176,11 @@ export default function BookLayoutEditor() {
                         <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
                           onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
                           style={{ width:30, height:24, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
+                        <input type="text" value={coverState.backCoverBgColor || '#f1f5f9'}
+                          onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
+                          onBlur={e=>{ let v=e.target.value.trim(); if(v && !v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{3,8}$/.test(v)) setCoverState(p=>({...p,backCoverBgColor:v})); }}
+                          placeholder="#f1f5f9"
+                          style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
                         <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                           style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                       </div>
