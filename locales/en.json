@@ -846,7 +846,7 @@
     "headline_label": "Headline",
     "subtitle_label": "Subtitle / Date",
     "dedication_label": "Dedication (optional)",
-    "dedication_placeholder": "Add a special message... Emojis supported ",
+    "dedication_placeholder": "Add a special message...",
     "design_title": "Poster Design",
     "design_subtitle": "Style and color scheme",
     "color_scheme_label": "Color Scheme",

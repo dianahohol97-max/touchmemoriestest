@@ -227,7 +227,7 @@ export default function StarMapConstructor() {
                 'Стиль': config.style
             },
             slug: product.slug,
-            personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nДедикація: ${config.dedication}`
+            personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nПрисвята: ${config.dedication}`
         };
 
         addItem(cartPayload);
@@ -569,7 +569,7 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
             {/* Dedication */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Дедикація (необов'язково)
+                    Присвята (необов'язково)
                 </label>
                 <textarea
                     value={config.dedication}
