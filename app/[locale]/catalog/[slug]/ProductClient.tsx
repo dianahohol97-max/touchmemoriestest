@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType } from '@/components/ui/ProductOptionsSelector';
 import InscriptionDesigner, { INSCRIPTION_KEYS } from '@/components/ui/InscriptionDesigner';
+import VelourSwatchPicker from '@/components/ui/VelourSwatchPicker';
 import WishlistButton from '@/components/WishlistButton';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 import { useAuthModal } from '@/lib/auth-modal-context';
@@ -668,6 +669,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             // never made it into the cart line — the customer just saw
             // "8 сторінок" with no other context.
             product.options.forEach((opt: any) => {
+                if (opt.type === 'velour_swatches') {
+                    const v = String(customProductOptions[opt.name] || '');
+                    if (v) itemOptions[opt.name] = v;
+                    return;
+                }
                 if (opt.type === 'inscription') {
                     if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
                         const txt = (customProductOptions[INSCRIPTION_KEYS.text] || '').toString().trim();
@@ -751,6 +757,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             }
         } else if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
+                if (opt.type === 'velour_swatches') {
+                    const v = String(customProductOptions[opt.name] || '');
+                    if (!v) { missing.push(opt.name); } else { itemOptions[opt.name] = v; }
+                    return;
+                }
                 if (opt.type === 'inscription') {
                     if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
                         const txt = (customProductOptions[INSCRIPTION_KEYS.text] || '').toString().trim();
@@ -1179,7 +1190,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             ...(isTravelbook || isPhotobookOrMagazine ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
                                             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
                                         return product.options
-                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0 || opt.type === 'counter' || opt.type === 'inscription'))
+                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0 || opt.type === 'counter' || opt.type === 'inscription' || opt.type === 'velour_swatches'))
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
                                                 return (
@@ -1189,7 +1200,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                             {optLabel(opt.name)}
                                                         </label>
                                                         )}
-                                                        {opt.type === 'inscription' ? (
+                                                        {opt.type === 'velour_swatches' ? (
+                                                            <VelourSwatchPicker
+                                                                coverTypeId={opt.cover_type_id || ''}
+                                                                value={String(customProductOptions[opt.name] || '')}
+                                                                onChange={(name) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: name }))}
+                                                            />
+                                                        ) : opt.type === 'inscription' ? (
                                                             <InscriptionDesigner
                                                                 config={opt}
                                                                 values={customProductOptions as any}
