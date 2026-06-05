@@ -21,6 +21,7 @@ import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsP
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
 import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType } from '@/components/ui/ProductOptionsSelector';
+import InscriptionDesigner, { INSCRIPTION_KEYS } from '@/components/ui/InscriptionDesigner';
 import WishlistButton from '@/components/WishlistButton';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 import { useAuthModal } from '@/lib/auth-modal-context';
@@ -583,6 +584,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             // Skip options already accounted for in dynamicPrice or photobook lookup
             if (hardcodedNames.has(opt.name)) return;
 
+            if (opt.type === 'inscription') {
+                if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
+                    extraModifiers += Number(opt.price || 0);
+                }
+                return;
+            }
+
             const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
             if (opt.type === 'counter') {
@@ -627,6 +635,15 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     const handleAddToCart = () => {
         const itemOptions: Record<string, string> = {};
 
+        // Block if a personalised inscription is switched on but left empty.
+        if (Array.isArray(product.options) &&
+            product.options.some((o: any) => o.type === 'inscription') &&
+            customProductOptions[INSCRIPTION_KEYS.on] === 'yes' &&
+            !(customProductOptions[INSCRIPTION_KEYS.text] || '').toString().trim()) {
+            toast.error('Введіть текст напису або вимкніть персоналізований напис');
+            return;
+        }
+
         // For photobook products with PhotobookOptions component
         if (isPhotobook && photobookOptions) {
             itemOptions['Розмір'] = photobookOptions.size;
@@ -651,6 +668,16 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             // never made it into the cart line — the customer just saw
             // "8 сторінок" with no other context.
             product.options.forEach((opt: any) => {
+                if (opt.type === 'inscription') {
+                    if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
+                        const txt = (customProductOptions[INSCRIPTION_KEYS.text] || '').toString().trim();
+                        itemOptions[INSCRIPTION_KEYS.text] = txt;
+                        itemOptions[INSCRIPTION_KEYS.font] = String(customProductOptions[INSCRIPTION_KEYS.font] || '');
+                        itemOptions[INSCRIPTION_KEYS.size] = String(customProductOptions[INSCRIPTION_KEYS.size] || '');
+                        itemOptions[INSCRIPTION_KEYS.color] = String(customProductOptions[INSCRIPTION_KEYS.color] || '');
+                    }
+                    return;
+                }
                 if (opt.type === 'counter') {
                     const n = Math.max(0, Math.floor(Number(customProductOptions[opt.name]) || 0));
                     if (n > 0) itemOptions[opt.name] = counterValueLabel(opt, n);
@@ -724,6 +751,17 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             }
         } else if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
+                if (opt.type === 'inscription') {
+                    if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
+                        const txt = (customProductOptions[INSCRIPTION_KEYS.text] || '').toString().trim();
+                        if (!txt) { missing.push('текст напису'); return; }
+                        itemOptions[INSCRIPTION_KEYS.text] = txt;
+                        itemOptions[INSCRIPTION_KEYS.font] = String(customProductOptions[INSCRIPTION_KEYS.font] || '');
+                        itemOptions[INSCRIPTION_KEYS.size] = String(customProductOptions[INSCRIPTION_KEYS.size] || '');
+                        itemOptions[INSCRIPTION_KEYS.color] = String(customProductOptions[INSCRIPTION_KEYS.color] || '');
+                    }
+                    return;
+                }
                 if (opt.type === 'counter') {
                     const n = Math.max(0, Math.floor(Number(customProductOptions[opt.name]) || 0));
                     if (n > 0) itemOptions[opt.name] = counterValueLabel(opt, n);
@@ -1141,15 +1179,23 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             ...(isTravelbook || isPhotobookOrMagazine ? ['Ламінація обкладинки', 'Ламінація', 'Індивідуальна обкладинка'] : []),
                                             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка']);
                                         return product.options
-                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0 || opt.type === 'counter'))
+                                            .filter((opt: any) => !hardcodedNames.has(opt.name) && (opt.options?.length > 0 || opt.values?.length > 0 || opt.type === 'counter' || opt.type === 'inscription'))
                                             .map((opt: any) => {
                                                 const items = opt.options || opt.values || [];
                                                 return (
                                                     <div key={opt.name}>
+                                                        {opt.type !== 'inscription' && (
                                                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '8px', color: '#1e2d7d' }}>
                                                             {optLabel(opt.name)}
                                                         </label>
-                                                        {opt.type === 'counter' ? (() => {
+                                                        )}
+                                                        {opt.type === 'inscription' ? (
+                                                            <InscriptionDesigner
+                                                                config={opt}
+                                                                values={customProductOptions as any}
+                                                                onChange={(key, value) => setCustomProductOptions(prev => ({ ...prev, [key]: value }))}
+                                                            />
+                                                        ) : opt.type === 'counter' ? (() => {
                                                             const minN = Number(opt.min ?? 0);
                                                             const n = Math.max(minN, Math.floor(Number(customProductOptions[opt.name]) || 0));
                                                             const unit = Number(opt.unit_price || 0);
