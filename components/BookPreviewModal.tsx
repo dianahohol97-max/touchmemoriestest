@@ -480,7 +480,12 @@ export function BookPreviewModal({
     // an empty right half — which is what Diana hit. With the gate, page
     // mode is the only legal render path for magazines and travelbooks,
     // matching what the editor canvas does in single-page mode.
-    const isSpread = isSpreadMode && leftPage && leftPage.layout && String(leftPage.layout).startsWith('sp-');
+    // The front kalka spread (forzats + kalka) must use the two-page path below
+    // so renderForzats/renderKalkaPage run — otherwise, in spread mode the blank
+    // forzats page carries an sp-* layout and this branch renders it as one wide
+    // empty page, hiding the kalka entirely (it never showed in the preview).
+    const isKalkaSpread = hasKalka && leftPI === kalkaForzatsIdx && rightPI === kalkaPageIdx;
+    const isSpread = isSpreadMode && leftPage && leftPage.layout && String(leftPage.layout).startsWith('sp-') && !isKalkaSpread;
 
     if (isSpread) {
       return (
