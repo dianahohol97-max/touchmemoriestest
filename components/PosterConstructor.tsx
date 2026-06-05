@@ -1181,12 +1181,18 @@ export default function PosterConstructor() {
                           onClick={e => e.stopPropagation()}
                         >
                           <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>Кадрування {i+1}:</span>
-                          {/* Zoom */}
-                          <span style={{ color:'#fff', fontSize:10 }}></span>
+                          {/* Zoom — explicit −/+ so it's clear you can enlarge/shrink the photo */}
+                          <span style={{ color:'#fff', fontSize:11 }}>🔍</span>
+                          <button onClick={() => updatePhoto(photo.id, { zoom: Math.max(1, +(((photo.zoom||1) - 0.1).toFixed(2))) })}
+                            title="Зменшити фото"
+                            style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, width:20, height:20, color:'#fff', cursor:'pointer', fontSize:14, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>−</button>
                           <input type="range" min={100} max={300} value={Math.round((photo.zoom||1)*100)}
                             onChange={e => updatePhoto(photo.id, { zoom: +e.target.value/100 })}
-                            style={{ width:70, accentColor:'#3b82f6' }}/>
-                          <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10, minWidth:28 }}>{Math.round((photo.zoom||1)*100)}%</span>
+                            style={{ width:64, accentColor:'#3b82f6' }}/>
+                          <button onClick={() => updatePhoto(photo.id, { zoom: Math.min(3, +(((photo.zoom||1) + 0.1).toFixed(2))) })}
+                            title="Збільшити фото"
+                            style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, width:20, height:20, color:'#fff', cursor:'pointer', fontSize:14, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
+                          <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10, minWidth:30 }}>{Math.round((photo.zoom||1)*100)}%</span>
                           {/* Crop X */}
                           <span style={{ color:'#fff', fontSize:10 }}>↔</span>
                           <input type="range" min={0} max={100} value={photo.cropX||50}
