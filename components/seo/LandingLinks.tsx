@@ -68,10 +68,35 @@ export default async function LandingLinks({ locale }: { locale: string }) {
         color: '#475569',
         textDecoration: 'none',
     };
+    const summaryStyle: React.CSSProperties = {
+        maxWidth: 1100,
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        fontSize: 14,
+        fontWeight: 800,
+        color: '#263A99',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+    };
 
     return (
         <section aria-label="Популярні сторінки" style={sectionStyle}>
-            <div style={wrapStyle}>
+            <style>{`
+                .ll-details > summary { list-style: none; }
+                .ll-details > summary::-webkit-details-marker { display: none; }
+                .ll-details > summary .ll-chev { transition: transform .2s ease; display: inline-block; font-size: 12px; }
+                .ll-details[open] > summary .ll-chev { transform: rotate(180deg); }
+                .ll-body { margin-top: 24px; }
+            `}</style>
+            <details className="ll-details">
+                <summary style={summaryStyle}>
+                    <span>Популярні сторінки та запити</span>
+                    <span className="ll-chev" aria-hidden="true">▾</span>
+                </summary>
+                <div className="ll-body" style={wrapStyle}>
                 {geo.length > 0 && (
                     <div>
                         <h2 style={headingStyle}>Фотокниги з доставкою в містах</h2>
@@ -96,7 +121,8 @@ export default async function LandingLinks({ locale }: { locale: string }) {
                         </ul>
                     </div>
                 )}
-            </div>
+                </div>
+            </details>
         </section>
     );
 }
