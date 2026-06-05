@@ -2848,12 +2848,23 @@ export default function BookLayoutEditor() {
     const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
     const orderId = `pb-${Date.now()}`;
 
+    // Never let a zero-price item into the cart — that produced orders with
+    // total = 0 in the admin (travelbook / hard-cover journal fall through the
+    // photobook_prices matrix, so dynamicPrice could resolve to 0). Fall back to
+    // the configurator's totalPrice, and if even that is 0, refuse and tell the
+    // user rather than silently creating a free order.
+    const finalPrice = dynamicPrice > 0 ? dynamicPrice : ((config.totalPrice || 0) > 0 ? config.totalPrice : 0);
+    if (!(finalPrice > 0)) {
+      try { toast.error('Не вдалося визначити ціну. Онови сторінку та обери параметри ще раз.'); } catch {}
+      return;
+    }
+
     const cartPayload = {
       id: orderId,
       slug: _slug,
       product_id: config.productId,
       name: config.productName || 'Фотокнига',
-      price: dynamicPrice,
+      price: finalPrice,
       qty: isGraduation ? GRADUATION_MIN_QTY : 1,
       ...(isGraduation ? { min_qty: GRADUATION_MIN_QTY } : {}),
       image: productImage,
