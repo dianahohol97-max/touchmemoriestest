@@ -144,7 +144,7 @@ export default function ContentManagementPage() {
         setUploading(false);
     }
 
-    async function handleSectionCollageUpload(sectionId: string, index: number, file: File) {
+    async function handleSectionCollageUpload(sectionId: string, index: number, file: File, metaKey: string = 'collage') {
         setUploading(true);
         const toastId = toast.loading('Завантаження фото...');
         const url = await uploadToStorage(file, 'touch-memories-assets', 'content/collage');
@@ -152,10 +152,10 @@ export default function ContentManagementPage() {
         if (url) {
             const section = sectionContent.find(s => s.id === sectionId);
             const md: any = { ...(section?.metadata || {}) };
-            const arr: string[] = Array.isArray(md.collage) ? [...md.collage] : [];
+            const arr: string[] = Array.isArray(md[metaKey]) ? [...md[metaKey]] : [];
             while (arr.length < 9) arr.push('');
             arr[index] = url;
-            md.collage = arr;
+            md[metaKey] = arr;
             updateSectionField(sectionId, 'metadata', md);
             toast.success('Фото завантажено — збережіть секцію');
         }
@@ -1182,6 +1182,32 @@ export default function ContentManagementPage() {
                                                                         {uploading ? '...' : 'Замінити фото'}
                                                                         <input type="file" accept="image/*" className="hidden" disabled={uploading}
                                                                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionWeddingUpload(section.id, key, f); e.target.value = ''; }} />
+                                                                    </label>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {section.section_name === 'final_cta' && (
+                                                <div className="space-y-3 p-4 bg-blue-50/40 rounded-lg border border-blue-100">
+                                                    <label className="block text-sm font-semibold text-gray-800">Сітка «Книга побажань» (9 фото)</label>
+                                                    <p className="text-xs text-gray-500">Порожня клітинка показує градієнт. Завантаж фото, щоб замінити його.</p>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        {Array.from({ length: 9 }).map((_, i) => {
+                                                            const url = (section.metadata as any)?.tiles?.[i] || '';
+                                                            return (
+                                                                <div key={i} className="space-y-1">
+                                                                    {url ? (
+                                                                        <img src={url} alt={`Плитка ${i + 1}`} className="w-full h-24 object-cover rounded-md border border-gray-200" />
+                                                                    ) : (
+                                                                        <div className="w-full h-24 rounded-md border border-gray-200 bg-gradient-to-br from-[#1e2d7d] to-[#6b7cc9]" />
+                                                                    )}
+                                                                    <label className="block text-center text-[11px] px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded cursor-pointer">
+                                                                        {uploading ? '...' : `Фото ${i + 1}`}
+                                                                        <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                                                                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleSectionCollageUpload(section.id, i, f, 'tiles'); e.target.value = ''; }} />
                                                                     </label>
                                                                 </div>
                                                             );
