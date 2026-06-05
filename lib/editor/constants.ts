@@ -228,12 +228,21 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Marmelad', cyr: true }, { name: 'Ledger', cyr: true },
 ];
 
-export const FONT_GROUPS = [
+const FONT_GROUPS_ALL = [
   { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope','Roboto','Fira Sans','Source Sans 3','Noto Sans','Outfit','DM Sans','Plus Jakarta Sans'] },
   { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif','Crimson Text','Cormorant','Old Standard TT','Literata','Bitter','Vollkorn'] },
   { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand','Shadows Into Light','Permanent Marker','Handlee','Architects Daughter','Reenie Beanie','Comforter','Tektur','Cormorant Unicase','Podkova','Seymour One','Shantell Sans','Comforter Brush','Kyiv Type Sans','Wix Madefor Text','Schibsted Grotesk'] },
   { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale','Tenor Sans','Forum','Oranienbaum','Bellota','Playfair Display SC','Prosto One','Stalinist One','Underdog','Gabriela','Cormorant Infant','Cinzel Decorative','El Messiri','Marmelad','Ledger'] },
 ];
+
+// Only offer fonts that actually render Cyrillic. These constructors produce
+// Ukrainian captions, and a Latin-only font silently falls back / shows tofu for
+// Cyrillic text — which is why some fonts "didn't read Cyrillic". Latin-only
+// faces are dropped from the picker (kept in FONT_GROUPS_ALL for reference).
+const _cyrFontNames = new Set(FONT_DATA.filter(f => f.cyr).map(f => f.name));
+export const FONT_GROUPS = FONT_GROUPS_ALL
+  .map(g => ({ ...g, fonts: g.fonts.filter(f => _cyrFontNames.has(f)) }))
+  .filter(g => g.fonts.length > 0);
 
 // Google Fonts URL (single source — loaded once).
 // IMPORTANT: request bare `family=Name` with NO :ital,wght axes. Google Fonts

@@ -4222,9 +4222,9 @@ export default function BookLayoutEditor() {
                               </button>
                             </>
                           )}
-                          <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null } as any))}
-                            style={{ width:'100%', padding:'5px', fontSize:10, color:'#94a3b8', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer' }}>
-                            Прибрати фото із задньої обкладинки
+                          <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null, backCoverSlot: undefined } as any))}
+                            style={{ width:'100%', padding:'7px', fontSize:11, fontWeight:700, color:'#ef4444', background:'#fff7f7', border:'1px solid #fecaca', borderRadius:6, cursor:'pointer' }}>
+                            × Прибрати фото з задньої обкладинки
                           </button>
                         </>
                       )}
