@@ -3125,6 +3125,7 @@ export default function BookLayoutEditor() {
     // guestbooks, planners — is hand-bound or printed page-by-page, so
     // the lab wants one JPEG per spread/page.
     const exportedFiles: any[] = [];
+    let uploadErrDetail = '';
     const slugLower = (config?.productSlug || '').toLowerCase();
     const wantsPdf = slugLower === 'personalized-glossy-magazine';
 
@@ -3156,7 +3157,10 @@ export default function BookLayoutEditor() {
           const result: any = await Promise.race([uploadPromise, timeoutPromise]);
           if (timer) clearTimeout(timer);
           if (!result?.error) return { error: null };
-          if (attempt === 3) return { error: result.error };
+          if (attempt === 3) {
+            if (!uploadErrDetail) uploadErrDetail = String(result.error?.message || result.error?.error || result.error?.statusCode || result.error || '').slice(0, 140);
+            return { error: result.error };
+          }
           await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
         }
         return { error: new Error('upload-failed') };
@@ -3416,7 +3420,8 @@ export default function BookLayoutEditor() {
       // photos would silently be missing from the order (the old behaviour).
       // Tell them loudly so they retry or contact us instead of paying for an
       // order with no print files.
-      toast.error('Не вдалося завантажити фото для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам.', { duration: 9000 });
+      toast.error(`Не вдалося завантажити фото для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам.${uploadErrDetail ? ` (деталі: ${uploadErrDetail})` : ''}`, { duration: 9000 });
+      if (uploadErrDetail) console.error('[print-upload] all uploads failed:', uploadErrDetail);
     }
     setUploadState(prev => prev ? { ...prev, active: false } : null);
 
