@@ -7,10 +7,16 @@ export async function POST(req: Request) {
     if (!guard.ok) return guard.response;
 
     try {
-        const { path } = await req.json();
+        const { path, type } = await req.json();
         if (path) {
-            revalidatePath(path);
-            console.log(`Revalidated path: ${path}`);
+            // For dynamic routes (e.g. '/[locale]') Next requires the route
+            // pattern plus a type ('page' | 'layout'). Literal paths work without.
+            if (type === 'page' || type === 'layout') {
+                revalidatePath(path, type);
+            } else {
+                revalidatePath(path);
+            }
+            console.log(`Revalidated path: ${path}${type ? ` (${type})` : ''}`);
             return NextResponse.json({ revalidated: true, now: Date.now() });
         }
         return NextResponse.json({ revalidated: false, message: 'Missing path' }, { status: 400 });

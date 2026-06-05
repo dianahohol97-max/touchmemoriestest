@@ -58,6 +58,18 @@ interface SectionContent {
     metadata: any;
 }
 
+// Invalidate the ISR-cached homepage (revalidate 4h) so admin content edits
+// appear immediately instead of after the cache window.
+async function revalidateHome() {
+    try {
+        await fetch('/api/admin/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/[locale]', type: 'page' }),
+        });
+    } catch { /* non-fatal: content still updates on next revalidation */ }
+}
+
 export default function ContentManagementPage() {
     const supabase = createClient();
     const [loading, setLoading] = useState(true);
@@ -349,6 +361,7 @@ export default function ContentManagementPage() {
                 .eq('id', heroContent.id);
 
             if (error) throw error;
+            await revalidateHome();
             toast.success('Hero секцію збережено');
         } catch (error) {
             console.error('Error saving hero content:', error);
@@ -378,6 +391,7 @@ export default function ContentManagementPage() {
 
                 if (error) throw error;
             }
+            await revalidateHome();
             toast.success('Кнопки збережено');
         } catch (error) {
             console.error('Error saving buttons:', error);
@@ -403,6 +417,7 @@ export default function ContentManagementPage() {
 
                 if (error) throw error;
             }
+            await revalidateHome();
             toast.success('Картки збережено');
         } catch (error) {
             console.error('Error saving cards:', error);
@@ -535,6 +550,7 @@ export default function ContentManagementPage() {
                 .eq('id', sectionId);
 
             if (error) throw error;
+            await revalidateHome();
             toast.success('Секцію збережено');
             setEditingSectionId(null);
         } catch (error) {
