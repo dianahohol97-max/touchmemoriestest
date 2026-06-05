@@ -2593,11 +2593,17 @@ export default function BookLayoutEditor() {
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) }));
     setSelectedTextId(null); setEditingTextId(null);
   };
+  // Tracks whether the last text pointer interaction was an actual drag (moved
+  // beyond a small threshold). Used to suppress the click-to-edit that would
+  // otherwise fire when releasing after dragging a text onto a photo.
+  const txtDragMovedRef = React.useRef(false);
   const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number) => {
     e.stopPropagation();
+    txtDragMovedRef.current = false;
     haptic.light();
     startPointerDrag(e,
       (dx, dy) => {
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) txtDragMovedRef.current = true;
         const SNAP = 2; // snap threshold in %
         let nx = Math.max(0, Math.min(95, tx + (dx / pageW) * 100));
         let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
@@ -6143,7 +6149,7 @@ export default function BookLayoutEditor() {
                             }
                             startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx);
                           }}
-                          onClick={e => { e.stopPropagation(); if(isSel && !isEd) { setEditingTextId(tb.id); } }}
+                          onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
                           style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
@@ -6739,7 +6745,7 @@ export default function BookLayoutEditor() {
                               }
                               startTxtDragForPage(e, tb.id, tb.x, tb.y, pageIdx);
                             }}
-                            onClick={e=>{e.stopPropagation();if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
+                            onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
                             style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
