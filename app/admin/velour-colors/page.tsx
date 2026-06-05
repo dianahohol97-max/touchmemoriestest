@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Save, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
+import InscriptionExamplesAdmin from '@/components/admin/InscriptionExamplesAdmin';
 
 interface CoverType { id: string; name: string; }
 interface CoverColor {
@@ -131,6 +132,8 @@ export default function VelourColorsPage() {
             <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24 }}>
                 Кольори згруповані за типом обкладинки. Для кожного кольору можна задати код, назву, приблизний відтінок і завантажити живе фото свотча. Ці кольори тягнуться на сторінки товарів, що використовують відповідну групу.
             </p>
+
+            <InscriptionExamplesAdmin />
 
             {types.map(type => {
                 const list = colors.filter(c => c.cover_type_id === type.id).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));

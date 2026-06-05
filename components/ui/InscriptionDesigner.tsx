@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import InscriptionExamples from '@/components/ui/InscriptionExamples';
 
 // Personalised cover inscription that the customer designs themselves:
 // turn it on, type the text, pick the foil colour, font (same palette as the
@@ -86,6 +87,8 @@ export default function InscriptionDesigner({
 
   return (
     <div style={{ marginTop: 4 }}>
+      {/* Examples gallery — shown immediately so customers see what an inscription looks like */}
+      <InscriptionExamples />
       {/* Toggle */}
       <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '12px 14px', border: on ? '2px solid #1e2d7d' : '1px solid #d1d5db', borderRadius: 10, background: on ? '#f0f3ff' : 'white' }}>
         <input
