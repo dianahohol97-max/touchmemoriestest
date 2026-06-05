@@ -2552,7 +2552,6 @@ export default function BookLayoutEditor() {
   }, []);
 
   const onDrop = (e: React.DragEvent, pi: number, si: number) => {
-    pushHistory();
     e.preventDefault();
     // Always clear the drag-over highlight on drop — the native dragend event
     // is unreliable (it fires on the source, which may have re-rendered), which
@@ -2568,6 +2567,7 @@ export default function BookLayoutEditor() {
 
     // Swap: source is a page slot AND target already has a photo
     if (sourceType === 'pageSlot' && targetPhotoId && !isNaN(srcPI) && !isNaN(srcSI)) {
+      pushHistory();
       setPages(prev => prev.map((p, pi2) => {
         if (pi2 === pi && pi2 === srcPI) {
           // Same page — swap two slots
@@ -2577,8 +2577,11 @@ export default function BookLayoutEditor() {
         if (pi2 === srcPI) return { ...p, slots: p.slots.map((s2, si2) => si2 === srcSI ? { ...s2, photoId: targetPhotoId } : s2) };
         return p;
       }));
-    } else if (sourceType === 'freeSlot') {
+      return;
+    }
+    if (sourceType === 'freeSlot') {
       // Source is a FreeSlot — place photo, put target photo back in source freeSlot
+      pushHistory();
       const srcFreeSlotId = e.dataTransfer?.getData('sourceFreeSlotId');
       setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }) }));
       if (srcFreeSlotId && targetPhotoId) {
@@ -2590,10 +2593,23 @@ export default function BookLayoutEditor() {
           return updated;
         });
       }
-    } else {
-      // Normal drop — just place photo
-      setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }) }));
+      return;
     }
+    // Tray photo (dragged from the photo strip).
+    const isJournalDoc = _slug.includes('journal') || _slug.includes('fotozhurnal');
+    const canGrow = pi > 0 && (isSpreadMode || (isJournalDoc && !isEndpaperPage(pi)));
+    const existing = (pages[pi]?.slots || []).map(s => s.photoId).filter(Boolean) as string[];
+    // If the spot is already taken, ADD this photo to the page and re-collage
+    // (the layout grows) instead of replacing the photo under the cursor. This
+    // lets you drop several photos onto a spread to build a collage without
+    // pre-picking a count or hunting for empty space (impossible with one photo).
+    if (targetPhotoId && canGrow && !existing.includes(photoId)) {
+      autoCollage([...existing, photoId], pi); // records its own history
+      return;
+    }
+    // Empty slot, non-growable page, or the photo is already on this page → place it.
+    pushHistory();
+    setPages(prev => prev.map((p, pi2) => pi2 !== pi ? p : { ...p, slots: p.slots.map((s2, si2) => si2 !== si ? s2 : { ...s2, photoId }) }));
   };
   const clearSlot = (pi: number, si: number) => {
     pushHistory();
