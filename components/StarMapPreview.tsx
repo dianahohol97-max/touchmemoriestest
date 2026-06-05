@@ -268,7 +268,7 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
 
         // Coord grid (RA/Dec grid)
         if(config.showGrid) {
-            ctx.save(); ctx.strokeStyle=config.starColor; ctx.globalAlpha=isLight?0.2:0.3; ctx.lineWidth=0.8;
+            ctx.save(); ctx.strokeStyle=config.starColor; ctx.globalAlpha=isLight?0.28:0.42; ctx.lineWidth=0.9;
             // Dec circles every 30°
             for(let dec=-60;dec<=90;dec+=30) {
                 const pts2:any[]=[];
