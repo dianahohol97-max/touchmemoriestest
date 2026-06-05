@@ -64,7 +64,7 @@ export async function GET() {
     REPLICATE_API_TOKEN: !!process.env.REPLICATE_API_TOKEN,
 
     // Marketing / analytics
-    NEXT_PUBLIC_GA_ID: !!process.env.NEXT_PUBLIC_GA_ID,
+    NEXT_PUBLIC_GA_ID: !!(process.env.NEXT_PUBLIC_GA_ID || process.env.NEXT_PUBLIC_GA_MEASUREMENT),
     NEXT_PUBLIC_FB_PIXEL_ID: !!process.env.NEXT_PUBLIC_FB_PIXEL_ID,
   };
 

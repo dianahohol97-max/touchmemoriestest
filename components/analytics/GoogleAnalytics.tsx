@@ -8,7 +8,7 @@ export function GoogleAnalytics() {
   const { consent } = useConsent();
   const [shouldLoad, setShouldLoad] = useState(false);
 
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT;
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT || process.env.NEXT_PUBLIC_GA_ID;
 
   useEffect(() => {
     if (consent.analytics && gaId) setShouldLoad(true);

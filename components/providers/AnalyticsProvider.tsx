@@ -20,7 +20,7 @@ export function AnalyticsProvider() {
 
   useEffect(() => {
     if (pathname && window.gtag) {
-      window.gtag('config', process.env.NEXT_PUBLIC_GA_MEASUREMENT || '', {
+      window.gtag('config', process.env.NEXT_PUBLIC_GA_MEASUREMENT || process.env.NEXT_PUBLIC_GA_ID || '', {
         page_path: pathname,
       });
     }
