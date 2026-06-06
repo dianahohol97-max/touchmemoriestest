@@ -36,8 +36,8 @@ async function fetchNavData() {
 
 // Slugs already in the main nav — exclude from "Інші товари"
 const MAIN_CAT_SLUGS = new Set([
-  'photomagnets','certificates','posters','calendars',
-  'guestbooks','puzzles','graduation-books',
+  'photobooks','travelbooks','hlyantsevi-zhurnaly',
+  'guestbooks','photomagnets','graduation-books','certificates',
 ]);
 
 export function Navigation() {
