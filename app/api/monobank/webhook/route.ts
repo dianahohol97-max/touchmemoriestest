@@ -7,6 +7,61 @@ export const dynamic = 'force-dynamic';
 
 const PRODUCT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Monobank signs each webhook with the private key of the account that created
+// the invoice. We run two merchant accounts (ФОП Коблик / ФОП Гоголь), so a
+// single static pub key can't verify both. Load the public key of every active
+// Monobank account (via /api/merchant/pubkey using its token), cache it, and
+// accept a webhook if its X-Sign verifies against ANY of them. Env
+// MONOBANK_PUB_KEY (PEM) is kept as an extra fallback.
+let pubKeyCache: { keys: string[]; ts: number } | null = null;
+const PUBKEY_TTL_MS = 60 * 60 * 1000; // 1h
+
+async function loadMonobankPubKeys(admin: ReturnType<typeof getAdminClient>): Promise<string[]> {
+    if (pubKeyCache && Date.now() - pubKeyCache.ts < PUBKEY_TTL_MS) return pubKeyCache.keys;
+    const keys: string[] = [];
+    if (process.env.MONOBANK_PUB_KEY) keys.push(process.env.MONOBANK_PUB_KEY);
+    try {
+        const { data: accounts } = await admin
+            .from('bank_accounts')
+            .select('api_key')
+            .eq('bank_name', 'Monobank')
+            .eq('is_active', true);
+        for (const acc of accounts || []) {
+            if (!acc?.api_key) continue;
+            try {
+                const r = await fetch('https://api.monobank.ua/api/merchant/pubkey', {
+                    headers: { 'X-Token': acc.api_key },
+                });
+                if (!r.ok) continue;
+                const j = await r.json();
+                if (j?.key) {
+                    // Monobank returns the PEM public key base64-encoded.
+                    keys.push(Buffer.from(j.key, 'base64').toString('utf8'));
+                }
+            } catch (e) {
+                console.error('loadMonobankPubKeys: failed for one account', e);
+            }
+        }
+    } catch (e) {
+        console.error('loadMonobankPubKeys: bank_accounts query failed', e);
+    }
+    if (keys.length > 0) pubKeyCache = { keys, ts: Date.now() };
+    return keys;
+}
+
+function verifyMonobankSignature(rawBody: string, xSignBase64: string, pubKeys: string[]): boolean {
+    return pubKeys.some(pk => {
+        try {
+            const v = crypto.createVerify('SHA256');
+            v.update(rawBody);
+            v.end();
+            return v.verify(pk, xSignBase64, 'base64');
+        } catch {
+            return false;
+        }
+    });
+}
+
 /**
  * Decrement stock for the items in a paid order.
  *
@@ -97,44 +152,25 @@ export async function POST(req: Request) {
         const body = await req.text();
         const data = JSON.parse(body);
 
-        // Verify signature.
-        // If MONOBANK_PUB_KEY is configured, the signature is REQUIRED — reject
-        // requests that lack the header or fail verification. Previously the
-        // verification was skipped when the header was absent, which made the
-        // endpoint trivially forgeable: any unauthenticated caller could POST
-        // {reference, status:'success'} and mark an order as paid.
-        const pubKey = process.env.MONOBANK_PUB_KEY;
-        if (pubKey) {
+        // Verify signature against the public key of EITHER Monobank account
+        // (each ФОП signs its own webhooks). Keys are loaded from the active
+        // bank_accounts and cached; env MONOBANK_PUB_KEY is an extra fallback.
+        const supabase = getAdminClient();
+        const pubKeys = await loadMonobankPubKeys(supabase);
+        if (pubKeys.length > 0) {
             const xSignBase64 = req.headers.get('X-Sign');
             if (!xSignBase64) {
                 console.error('Monobank webhook: missing X-Sign header');
-                return NextResponse.json(
-                    { error: 'Missing signature' },
-                    { status: 401 }
-                );
+                return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
             }
-            const verify = crypto.createVerify('SHA256');
-            verify.update(body);
-            verify.end();
-
-            const isValid = verify.verify(pubKey, xSignBase64, 'base64');
-            if (!isValid) {
+            if (!verifyMonobankSignature(body, xSignBase64, pubKeys)) {
                 console.error('Monobank webhook signature verification failed');
-                return NextResponse.json(
-                    { error: 'Invalid signature' },
-                    { status: 401 }
-                );
+                return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
             }
-        } else {
-            // Hard-fail in production if the env var was forgotten. Better to
-            // 503 the webhook than silently process unsigned payloads.
-            if (process.env.NODE_ENV === 'production') {
-                console.error('Monobank webhook: MONOBANK_PUB_KEY not configured in production');
-                return NextResponse.json(
-                    { error: 'Webhook not configured' },
-                    { status: 503 }
-                );
-            }
+        } else if (process.env.NODE_ENV === 'production') {
+            // No keys at all (no active Monobank accounts and no env fallback).
+            console.error('Monobank webhook: no Monobank public keys available in production');
+            return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
         }
 
         const {
@@ -165,8 +201,6 @@ export async function POST(req: Request) {
             );
         }
 
-        const supabase = getAdminClient();
-
         // Validate reference looks like a UUID (our order_id format) so a
         // malformed payload can't cause oddities in the WHERE clause below.
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -186,7 +220,7 @@ export async function POST(req: Request) {
         //     keypair situation.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, items')
+            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items')
             .eq('id', reference)
             .single();
 
@@ -206,7 +240,11 @@ export async function POST(req: Request) {
 
         // Amount verification (only meaningful on 'success' / 'hold').
         if ((status === 'success' || status === 'hold') && typeof amount === 'number') {
-            const expectedKopecks = Math.round(Number(existingOrder.total) * 100);
+            // Split/prepaid orders are invoiced for prepaid_amount (≈50%), not
+            // the full total — compare against whatever was actually charged.
+            const isSplit = existingOrder.payment_type === 'split' && Number(existingOrder.prepaid_amount) > 0;
+            const expectedUah = isSplit ? Number(existingOrder.prepaid_amount) : Number(existingOrder.total);
+            const expectedKopecks = Math.round(expectedUah * 100);
             if (Math.abs(amount - expectedKopecks) > 1) {
                 // Off-by-one tolerance for rounding, but anything bigger is suspicious.
                 console.error('Monobank webhook: amount mismatch', {
