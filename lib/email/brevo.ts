@@ -27,7 +27,7 @@ export async function sendBrevoEmail({ to, toName, subject, html, fromName, from
         body: JSON.stringify({
             sender: {
                 name: fromName || process.env.BREVO_FROM_NAME || 'Touch.Memories',
-                email: fromEmail || process.env.BREVO_FROM_EMAIL || 'hello@touchmemories.com.ua',
+                email: fromEmail || process.env.BREVO_FROM_EMAIL || 'touch.memories3@gmail.com',
             },
             to: [{ email: to, name: toName || to }],
             subject,

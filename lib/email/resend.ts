@@ -6,7 +6,7 @@ import { sendBrevoEmail, getBrevoApiKey } from './brevo';
 const FROM_NAME = process.env.RESEND_FROM_NAME || process.env.BREVO_FROM_NAME || 'TouchMemories';
 // Always send from the verified Brevo sender, regardless of any per-call
 // "from" address (unverified senders are rejected by Brevo).
-const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'hello@touchmemories.com.ua';
+const BREVO_FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'touch.memories3@gmail.com';
 
 interface SendEmailParams {
     to: string;
