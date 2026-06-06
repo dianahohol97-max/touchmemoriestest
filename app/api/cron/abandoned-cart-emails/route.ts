@@ -68,7 +68,6 @@ export async function GET(request: Request) {
                     toName: c.email,
                     subject,
                     html,
-                    fromEmail: 'touch.memories3@gmail.com',
                 });
                 await supabase.from('email_automation_log').insert({
                     email: c.email,
