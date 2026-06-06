@@ -5,6 +5,7 @@ import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { Upload, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 import { toast } from 'sonner';
 import { useCartStore } from '@/store/cart-store';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,7 @@ export default function DiplomaOrderPage() {
     const router = useRouter();
     const { addItem } = useCartStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { dragActive, dropProps } = useDropZone(files => handleLogoChange({ target: { files } } as any));
     const [step, setStep] = useState(1);
   const [showCartModal, setShowCartModal] = useState(false);
 
@@ -220,8 +222,8 @@ export default function DiplomaOrderPage() {
                                                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">×</button>
                                         </div>
                                     ) : (
-                                        <button onClick={() => fileInputRef.current?.click()}
-                                            className="px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#1e2d7d] text-gray-500 hover:text-[#1e2d7d] text-sm font-semibold transition-all">
+                                        <button onClick={() => fileInputRef.current?.click()} {...dropProps}
+                                            className={`px-6 py-3 border-2 border-dashed rounded-lg text-sm font-semibold transition-all ${dragActive ? 'border-[#1e2d7d] text-[#1e2d7d] bg-[#f0f3ff]' : 'border-gray-300 text-gray-500 hover:border-[#1e2d7d] hover:text-[#1e2d7d]'}`}>
                                             <Upload size={16} className="inline mr-2" /> Завантажити
                                         </button>
                                     )}

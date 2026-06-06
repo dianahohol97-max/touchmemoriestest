@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cart-store';
 import { CoverEditor, CoverConfig, VELOUR_COLORS, LEATHERETTE_COLORS, FABRIC_COLORS } from '@/components/CoverEditor';
 import { toast } from 'sonner';
 import { ShoppingCart, Upload, Check, X } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 
 const DECO_LABELS: Record<string, string> = {
   acryl: 'Акрил', photovstavka: 'Фотовставка', flex: 'Фотодрук Flex',
@@ -86,6 +87,8 @@ function WishbookCoverEditorContent() {
     setPhotos(prev => [...prev, ...newPhotos]);
   }, []);
 
+  const { dragActive, dropProps } = useDropZone(handleFiles);
+
   const handleAddToCart = () => {
     addItem({
       id: `wishbook-${Date.now()}`,
@@ -157,8 +160,8 @@ function WishbookCoverEditorContent() {
               </div>
               <div id="wishbook-photo-section" style={{ display: 'none', marginTop: 12 }}>
                 {photos.length === 0 ? (
-                  <div onClick={() => fileInputRef.current?.click()}
-                    style={{ border: '2px dashed #cbd5e1', borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc' }}>
+                  <div onClick={() => fileInputRef.current?.click()} {...dropProps}
+                    style={{ border: dragActive ? '2px dashed #1e2d7d' : '2px dashed #cbd5e1', borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer', background: dragActive ? '#eff6ff' : '#f8fafc', transition: 'background 0.15s, border-color 0.15s' }}>
                     <Upload size={22} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
                     <p style={{ fontSize: 13, color: '#64748b', fontWeight: 600, margin: 0 }}>Завантажити фото</p>
                     <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, marginBottom: 0 }}>JPG, PNG · до 20 МБ</p>
@@ -181,8 +184,8 @@ function WishbookCoverEditorContent() {
                         </button>
                       </div>
                     ))}
-                    <div onClick={() => fileInputRef.current?.click()}
-                      style={{ width: 60, height: 60, border: '2px dashed #cbd5e1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', fontSize: 22 }}>+</div>
+                    <div onClick={() => fileInputRef.current?.click()} {...dropProps}
+                      style={{ width: 60, height: 60, border: dragActive ? '2px dashed #1e2d7d' : '2px dashed #cbd5e1', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8', fontSize: 22, background: dragActive ? '#eff6ff' : 'transparent' }}>+</div>
                   </div>
                 )}
                 <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }}

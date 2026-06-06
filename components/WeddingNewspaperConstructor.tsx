@@ -338,6 +338,8 @@ export default function WeddingNewspaperConstructor() {
                   <input ref={el => { fileInputs.current[s.key] = el; }} type="file" accept="image/*"
                     onChange={e => handleFile(s.key, e.target.files?.[0])} style={{ display: 'none' }} />
                   <div onClick={() => fileInputs.current[s.key]?.click()}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f && f.type.startsWith('image/')) handleFile(s.key, f); }}
                     style={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', borderRadius: 8, cursor: 'pointer',
                       border: `2px dashed ${st?.path ? '#10b981' : '#cbd5e1'}`, background: '#f8fafc',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>

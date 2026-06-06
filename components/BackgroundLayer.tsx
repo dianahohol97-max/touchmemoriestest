@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 import { toast } from 'sonner';
 import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
 
@@ -61,6 +62,7 @@ interface BgControlsProps {
 
 export function BackgroundControls({ bg, onChange }: BgControlsProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const { dragActive, dropProps } = useDropZone(files => handleImageUpload({ target: { files } } as any));
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files?.[0];
@@ -147,8 +149,8 @@ export function BackgroundControls({ bg, onChange }: BgControlsProps) {
       {bg.type==='image' && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} style={{ display:'none' }} />
-          <button onClick={() => fileRef.current?.click()}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px', border:'2px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:11, color:'#1e2d7d', width:'100%' }}>
+          <button onClick={() => fileRef.current?.click()} {...dropProps}
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'9px', border:'2px dashed #1e2d7d', borderRadius:8, background:dragActive?'#dbe3ff':'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:11, color:'#1e2d7d', width:'100%', transition:'background .15s' }}>
             <ImageIcon size={14} /> {bg.imageUrl ? 'Змінити фото' : 'Завантажити фото'}
           </button>
           {bg.imageUrl && (

@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, Type, Image as ImageIcon } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 
 // Google Fonts
 const GoogleFontsStyle = () => (
@@ -872,6 +873,7 @@ export default function PhotoAlbumConstructor() {
     uploadedPhoto: null,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { dragActive, dropProps } = useDropZone(files => handlePhotoUpload({ target: { files } } as any));
 
   const currentFormat = FORMATS[selectedFormat];
   const selectedTemplateObj = TEMPLATES.find(t => t.id === state.selectedTemplate) || TEMPLATES[0];
@@ -1083,7 +1085,8 @@ export default function PhotoAlbumConstructor() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2"
+                {...dropProps}
+                className={`w-full px-4 py-2 border rounded text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'}`}
               >
                 <Upload size={16} />
                 {state.uploadedPhoto ? 'Замінити фото' : 'Завантажити фото'}

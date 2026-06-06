@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { Upload, Wand2, X, Download, RefreshCw } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 
 export type PixarStyle = 'pixar' | 'anime' | 'cartoon' | 'watercolor' | 'sketch' | 'oilpainting';
 export const AI_PORTRAIT_PRICE = 75; // UAH surcharge per order
@@ -35,6 +36,7 @@ interface Props {
 
 export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compact = false }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { dragActive, dropProps } = useDropZone(files => handleFileChange({ target: { files } } as any));
   const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [sourcePreview, setSourcePreview] = useState<string>(sourcePhotoUrl || '');
   const [selectedStyle, setSelectedStyle] = useState<PixarStyle>('pixar');
@@ -157,8 +159,8 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
                 style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
             </div>
           ) : (
-            <button onClick={() => fileInputRef.current?.click()}
-              style={{ width:'100%', padding:'10px', border:'2px dashed #c7d2fe', borderRadius:8, background:'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            <button onClick={() => fileInputRef.current?.click()} {...dropProps}
+              style={{ width:'100%', padding:'10px', border:dragActive?'2px dashed #1e2d7d':'2px dashed #c7d2fe', borderRadius:8, background:dragActive?'#eef2ff':'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'background .15s,border-color .15s' }}>
               <Upload size={14}/> Завантажити фото
             </button>
           )}
@@ -234,8 +236,8 @@ export default function PixarPortraitGenerator({ onResult, sourcePhotoUrl, compa
                 <div style={{ position:'absolute', bottom:8, left:8, background:'rgba(0,0,0,0.6)', color:'#fff', fontSize:10, padding:'2px 6px', borderRadius:4 }}>Оригінал</div>
               </div>
             ) : (
-              <button onClick={() => fileInputRef.current?.click()}
-                style={{ width:'100%', height:200, border:'2px dashed #c7d2fe', borderRadius:10, background:'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:14, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <button onClick={() => fileInputRef.current?.click()} {...dropProps}
+                style={{ width:'100%', height:200, border:dragActive?'2px dashed #1e2d7d':'2px dashed #c7d2fe', borderRadius:10, background:dragActive?'#eef2ff':'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:14, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, transition:'background .15s,border-color .15s' }}>
                 <Upload size={28}/>
                 <span>Завантажити фото</span>
                 <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>JPG, PNG до 10 МБ</span>

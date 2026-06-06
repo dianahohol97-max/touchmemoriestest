@@ -4,10 +4,23 @@ import { useState } from 'react'
 import { useEditorStore } from '@/lib/editor-store'
 import { LAYOUTS } from '@/lib/layouts'
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator'
+import { useDropZone } from '@/lib/hooks/useDropZone'
 
 export default function LeftPanel() {
   const [tab, setTab] = useState<'pages' | 'photos' | 'layouts' | 'qr'>('layouts')
   const { project, currentPageIndex, setCurrentPage, addElement, setPageBackground } = useEditorStore()
+
+  const addPhotoFiles = (files: FileList | File[] | null) => {
+    Array.from(files ?? []).forEach((file: File) => {
+      if (!file.type.startsWith('image/')) return
+      const url = URL.createObjectURL(file as Blob)
+      addElement(currentPageIndex, {
+        id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        type: 'photo', photoUrl: url, x: 50, y: 50, width: 300, height: 300, rotation: 0, opacity: 100, zIndex: 1,
+      } as any)
+    })
+  }
+  const { dragActive, dropProps } = useDropZone(files => addPhotoFiles(files))
 
   const pages = project?.pages ?? []
   const bgColors = ['#ffffff', '#f8f4f0', '#1a1a2e', '#2d4a3e', '#c4704f', '#e8d5b7', '#f0e6d3']
@@ -114,30 +127,14 @@ export default function LeftPanel() {
         {/* Photos tab */}
         {tab === 'photos' && (
           <div>
-            <label className="block w-full bg-[#1e2d7d] text-white text-xs font-semibold py-2 px-3 rounded-lg text-center cursor-pointer hover:bg-[#263a99] transition-colors">
+            <label {...dropProps} className={`block w-full text-white text-xs font-semibold py-2 px-3 rounded-lg text-center cursor-pointer transition-colors ${dragActive ? 'bg-[#263a99] ring-2 ring-[#1e2d7d]' : 'bg-[#1e2d7d] hover:bg-[#263a99]'}`}>
               + Завантажити фото
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => {
-                  Array.from(e.target.files ?? []).forEach((file: File) => {
-                    const url = URL.createObjectURL(file as Blob)
-                    addElement(currentPageIndex, {
-                      id: `photo_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-                      type: 'photo',
-                      photoUrl: url,
-                      x: 50,
-                      y: 50,
-                      width: 300,
-                      height: 300,
-                      rotation: 0,
-                      opacity: 100,
-                      zIndex: 1,
-                    } as any)
-                  })
-                }}
+                onChange={(e) => addPhotoFiles(e.target.files)}
               />
             </label>
             <p className="text-xs text-gray-400 mt-3 text-center">

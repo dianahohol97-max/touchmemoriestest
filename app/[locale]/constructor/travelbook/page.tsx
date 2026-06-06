@@ -4,6 +4,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
+import { useDropZone } from '@/lib/hooks/useDropZone'
 import SmartModeSelector from '@/components/SmartModeSelector'
 import SmartModeProcessor from '@/components/SmartModeProcessor'
 
@@ -90,6 +91,8 @@ export default function TravelBookConstructor() {
     const files = Array.from(e.target.files || [])
     setUploadedPhotos(prev => [...prev, ...files].slice(0, maxFiles))
   }, [maxFiles])
+
+  const { dragActive, dropProps } = useDropZone(files => handlePhotoUpload({ target: { files } } as any))
 
   const removePhoto = useCallback((index: number) => {
     setUploadedPhotos(prev => prev.filter((_, i) => i !== index))
@@ -566,7 +569,7 @@ export default function TravelBookConstructor() {
                 Менше фото — більше простору на кожній сторінці. Більше — насиченіша книга.
               </p>
 
-              <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-[#C4704F] transition-colors">
+              <label {...dropProps} className={`block w-full border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${dragActive ? 'border-[#C4704F] bg-[#faf3ef]' : 'border-gray-300 hover:border-[#C4704F]'}`}>
                 <input
                   type="file"
                   multiple

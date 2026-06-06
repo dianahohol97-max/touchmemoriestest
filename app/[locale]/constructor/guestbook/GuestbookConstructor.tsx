@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { ArrowLeft, Upload, Check, ShoppingCart } from 'lucide-react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 import { useRouter } from 'next/navigation';
 
 // Google Fonts embedded
@@ -921,6 +922,7 @@ export default function GuestbookConstructor() {
   const [bgColor, setBgColor] = useState<string>('#faf8f5');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { dragActive, dropProps } = useDropZone(files => handlePhotoUpload({ target: { files } } as any));
 
   // Get current template
   const currentTemplate = COVER_TEMPLATES.find(t => t.id === selectedTemplate) || COVER_TEMPLATES[0];
@@ -1130,7 +1132,8 @@ export default function GuestbookConstructor() {
 
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-400 hover:bg-blue-50/30 transition-all group"
+                      {...dropProps}
+                      className={`w-full border-2 border-dashed rounded-xl p-6 transition-all group ${dragActive ? 'border-blue-400 bg-blue-50/30' : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50/30'}`}
                     >
                       <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-blue-500 transition-colors" />
                       <div className="text-sm font-bold text-gray-600 group-hover:text-blue-600">

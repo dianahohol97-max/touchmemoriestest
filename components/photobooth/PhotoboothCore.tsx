@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 import { CameraManager } from '@/lib/photobooth/camera';
 import { CanvasGenerator } from '@/lib/photobooth/canvas-generator';
 import { UploadManager } from '@/lib/photobooth/upload';
@@ -58,6 +59,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { dropProps } = useDropZone(files => handleFileUpload(files));
   const cameraManagerRef = useRef<CameraManager | null>(null);
   const canvasGeneratorRef = useRef<CanvasGenerator | null>(null);
   const uploadManagerRef = useRef<UploadManager | null>(null);
@@ -540,6 +542,7 @@ export const PhotoboothCore: React.FC<PhotoboothCoreProps> = ({
             />
             <button
               onClick={() => fileInputRef.current?.click()}
+              {...dropProps}
               className="btn-upload"
             >
               Вибрати фотографії

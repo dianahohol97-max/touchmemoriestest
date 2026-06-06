@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/cart-store';
 import { useT } from '@/lib/i18n/context';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { useDropZone } from '@/lib/hooks/useDropZone';
 
 // Puzzle formats: A5 (15×21) and A4 (20×30) in both orientations.
 type PuzzleFormat = {
@@ -64,6 +65,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
   const router = useRouter();
   const { addItem } = useCartStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { dragActive, dropProps } = useDropZone(files => files[0] && handleFileUpload(files[0]));
 
   // Pick the initial format from the product the user chose. The slug encodes
   // the sheet size (puzzle-a5 -> A5, puzzle-20x30 -> A4). MUST resolve to a
@@ -331,8 +333,8 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
             <>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('puzzle.uploadPhoto')}</div>
-                <button onClick={() => fileInputRef.current?.click()}
-                  style={{ width: '100%', padding: '16px', border: '2px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => fileInputRef.current?.click()} {...dropProps}
+                  style={{ width: '100%', padding: '16px', border: dragActive ? '2px dashed #1e2d7d' : '2px dashed #cbd5e1', borderRadius: 8, background: dragActive ? '#eff6ff' : '#f8fafc', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, transition: 'background 0.15s, border-color 0.15s' }}>
                   <Upload size={20} color="#64748b" />
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#1e2d7d' }}>{config.photoUrl ? t('puzzle.replacePhoto') : t('puzzle.uploadPhoto')}</div>
                 </button>

@@ -236,7 +236,8 @@ export default function DeskCalendarConstructor(){
   const coverBgFileRef=useRef<HTMLInputElement>(null);
   const PW=260,PH=Math.round(260*(21/15));
   useEffect(()=>{const l=document.createElement('link');l.rel='stylesheet';l.href=GOOGLE_FONTS_URL;document.head.appendChild(l);return()=>{try{document.head.removeChild(l);}catch{}};},[]);
-  const handleUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);const{m,s}=upTarget.current;setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={url,zoom:1,cropX:50,cropY:50};return n;});if(fileRef.current)fileRef.current.value='';};
+  const setMonthSlotFile=(m:number,s:number,f:File)=>{if(!f||!f.type.startsWith('image/'))return;const url=URL.createObjectURL(f);setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={url,zoom:1,cropX:50,cropY:50};return n;});};
+  const handleUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;const{m,s}=upTarget.current;setMonthSlotFile(m,s,f);if(fileRef.current)fileRef.current.value='';};
   const updateSlot=(m:number,s:number,patch:Partial<PhotoSlot>)=>setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={...n[m][s],...patch};return n;});
   const openUp=(m:number,s:number)=>{upTarget.current={m,s};fileRef.current?.click();};
   const handleCoverPhotoUpload=(e:React.ChangeEvent<HTMLInputElement>,slot:number)=>{const f=e.target.files?.[0];if(!f)return;const url=URL.createObjectURL(f);setCover((prev:CoverConfig)=>({...prev,photos:(prev.photos as (string|null)[]).map((p,i)=>i===slot?url:p)}));if(e.target)e.target.value='';};
@@ -448,7 +449,7 @@ export default function DeskCalendarConstructor(){
                     )}
                   </div>
                 ):(
-                  <button key={si} onClick={()=>openUp(active-1,si)} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+                  <button key={si} onClick={()=>openUp(active-1,si)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files?.[0];if(f)setMonthSlotFile(active-1,si,f);}} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
                     <Upload size={11}/><span style={{fontSize:8,fontWeight:700}}>{collage.slots>1?`Фото ${si+1}`:'Фото'}</span>
                   </button>
                 );
