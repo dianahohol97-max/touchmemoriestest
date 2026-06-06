@@ -51,6 +51,12 @@ export const metadata: Metadata = {
     // Several tokens can coexist; add more to this array if another
     // Google property needs verifying without removing this one.
     google: '8nxC7U2tum2CMHvmNrfCVTH0q3xDG06YIjAXGGxquiA',
+    // Meta (Facebook/Instagram) domain verification — required for Commerce
+    // Manager catalog + Instagram Shopping. Renders
+    // <meta name="facebook-domain-verification" content="...">.
+    other: {
+      'facebook-domain-verification': 'log1qnzblw5feag1mojf20wfsuo2ak',
+    },
   },
 };
 
