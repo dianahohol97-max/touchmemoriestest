@@ -1,7 +1,26 @@
 import { NextResponse } from 'next/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 const NP_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
-const API_KEY = process.env.NOVA_POSHTA_API_KEY;
+
+// API key comes from the configured NP account (Admin → Доставка → Нова Пошта),
+// falling back to env. Resolved per request so admin changes take effect live.
+async function resolveNpApiKey(): Promise<string | undefined> {
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase
+            .from('np_accounts')
+            .select('api_key')
+            .eq('is_active', true)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+        return data?.api_key || process.env.NOVA_POSHTA_API_KEY;
+    } catch {
+        return process.env.NOVA_POSHTA_API_KEY;
+    }
+}
 
 // Allowlist of (modelName, calledMethod) pairs that the public cart/checkout
 // flow legitimately needs. Anything else gets rejected — the proxy used to be
@@ -53,11 +72,19 @@ export async function POST(req: Request) {
             if (v !== undefined) safeProps[k] = v;
         }
 
+        const apiKey = await resolveNpApiKey();
+        if (!apiKey) {
+            return NextResponse.json(
+                { success: false, error: 'Нова Пошта не налаштована (немає API-ключа в Адмінка → Доставка → Нова Пошта)' },
+                { status: 503 }
+            );
+        }
+
         const response = await fetch(NP_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                apiKey: API_KEY,
+                apiKey,
                 modelName,
                 calledMethod,
                 methodProperties: safeProps,

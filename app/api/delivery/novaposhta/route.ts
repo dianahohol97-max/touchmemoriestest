@@ -1,4 +1,22 @@
 import { NextResponse } from 'next/server';
+import { getAdminClient } from '@/lib/supabase/admin';
+
+async function resolveNpApiKey(): Promise<string | undefined> {
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase
+            .from('np_accounts')
+            .select('api_key')
+            .eq('is_active', true)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+        return data?.api_key || process.env.NOVA_POSHTA_API_KEY;
+    } catch {
+        return process.env.NOVA_POSHTA_API_KEY;
+    }
+}
 
 /**
  * Public-facing helper used by the cart UI to look up Nova Poshta warehouses
@@ -18,7 +36,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: 'invalid city' }, { status: 400 });
         }
 
-        const apiKey = process.env.NOVA_POSHTA_API_KEY;
+        const apiKey = await resolveNpApiKey();
         if (!apiKey) {
             return NextResponse.json({ success: false, error: 'service unavailable' }, { status: 503 });
         }
