@@ -7,6 +7,51 @@ export const dynamic = 'force-dynamic';
 
 const NP_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function npCall(apiKey: string, modelName: string, calledMethod: string, methodProperties: Record<string, any>) {
+    const r = await fetch(NP_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey, modelName, calledMethod, methodProperties }),
+    });
+    return r.json();
+}
+
+// Resolve every sender ref Nova Poshta needs for InternetDocument.save from the
+// API key plus human-readable hints (city name + warehouse number). The sender
+// counterparty and contact person come from the key's own account; city and
+// warehouse are looked up by name/number unless already a GUID.
+async function resolveSender(apiKey: string, cityHint?: string, warehouseHint?: string, phoneHint?: string) {
+    const cp = await npCall(apiKey, 'Counterparty', 'getCounterparties', { CounterpartyProperty: 'Sender', Page: '1' });
+    const counterpartyRef: string | undefined = cp?.data?.[0]?.Ref;
+
+    let contactRef: string | undefined;
+    let contactPhone: string | undefined;
+    if (counterpartyRef) {
+        const cps = await npCall(apiKey, 'Counterparty', 'getCounterpartyContactPersons', { Ref: counterpartyRef, Page: '1' });
+        contactRef = cps?.data?.[0]?.Ref;
+        contactPhone = cps?.data?.[0]?.Phones;
+    }
+
+    let cityRef: string | undefined = cityHint && GUID.test(cityHint) ? cityHint : undefined;
+    if (!cityRef && cityHint) {
+        const c = await npCall(apiKey, 'Address', 'getCities', { FindByString: cityHint });
+        cityRef = c?.data?.[0]?.Ref;
+    }
+
+    let warehouseRef: string | undefined = warehouseHint && GUID.test(warehouseHint) ? warehouseHint : undefined;
+    if (!warehouseRef && warehouseHint && cityRef) {
+        const num = String(warehouseHint).replace(/\D/g, '');
+        const w = await npCall(apiKey, 'Address', 'getWarehouses', { CityRef: cityRef });
+        const list: any[] = w?.data || [];
+        const hit = list.find(x => String(x.Number) === num) || list.find(x => (x.Description || '').includes(`№${num}`));
+        warehouseRef = hit?.Ref;
+    }
+
+    return { counterpartyRef, contactRef, cityRef, warehouseRef, phone: phoneHint || contactPhone };
+}
+
 export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -41,14 +86,27 @@ export async function POST(
             .maybeSingle();
 
         const npApiKey = npAcc?.api_key || process.env.NOVA_POSHTA_API_KEY;
-        const senderCityRef = npAcc?.sender_city_ref || process.env.NP_SENDER_CITY_REF;
-        const senderWarehouseRef = npAcc?.sender_warehouse_ref || process.env.NP_SENDER_WAREHOUSE_REF;
-        const senderName = npAcc?.sender_name || process.env.NP_SENDER_NAME;
-        const senderPhone = npAcc?.sender_phone || process.env.NP_SENDER_PHONE;
+        const cityHint = npAcc?.sender_city_ref || process.env.NP_SENDER_CITY_REF;
+        const warehouseHint = npAcc?.sender_warehouse_ref || process.env.NP_SENDER_WAREHOUSE_REF;
+        const phoneHint = npAcc?.sender_phone || process.env.NP_SENDER_PHONE;
 
-        if (!npApiKey || !senderCityRef || !senderWarehouseRef || !senderName || !senderPhone) {
+        if (!npApiKey) {
             return NextResponse.json({
-                error: 'Нова Пошта не налаштована. Додайте акаунт у Адмінка → Доставка → Нова Пошта (API-ключ, ім\'я та телефон відправника, City Ref і Warehouse Ref).'
+                error: 'Нова Пошта не налаштована: немає API-ключа (Адмінка → Доставка → Нова Пошта).'
+            }, { status: 400 });
+        }
+
+        // Resolve every sender ref NP needs from the key + city/warehouse hints.
+        const sender = await resolveSender(npApiKey, cityHint, warehouseHint, phoneHint);
+        const missing: string[] = [];
+        if (!sender.counterpartyRef) missing.push('відправник-контрагент');
+        if (!sender.contactRef) missing.push('контактна особа');
+        if (!sender.cityRef) missing.push('місто відправника');
+        if (!sender.warehouseRef) missing.push('відділення відправника');
+        if (!sender.phone) missing.push('телефон відправника');
+        if (missing.length) {
+            return NextResponse.json({
+                error: `Нова Пошта: не вдалося визначити дані відправника (${missing.join(', ')}). Перевірте місто/відділення відправника та телефон в Адмінка → Доставка → Нова Пошта.`
             }, { status: 400 });
         }
 
@@ -66,11 +124,12 @@ export async function POST(
                 SeatsAmount: '1',
                 Description: 'Фотокнига',
                 Cost: order.total.toString(),
-                // Sender details (from np_accounts / env)
-                CitySender: senderCityRef,
-                SenderAddress: senderWarehouseRef,
-                ContactSender: senderName,
-                SendersPhone: senderPhone,
+                // Sender details (resolved from np_accounts hints + NP account)
+                CitySender: sender.cityRef,
+                Sender: sender.counterpartyRef,
+                SenderAddress: sender.warehouseRef,
+                ContactSender: sender.contactRef,
+                SendersPhone: (sender.phone || '').replace(/\D/g, ''),
                 // Recipient details from order
                 CityRecipient: order.delivery_address?.city_ref || '[customer city ref]',
                 RecipientAddress: order.delivery_address?.warehouse_ref || order.delivery_address?.street_ref || '[customer warehouse or address ref]',
