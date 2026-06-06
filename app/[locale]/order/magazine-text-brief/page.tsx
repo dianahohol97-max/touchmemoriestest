@@ -168,6 +168,8 @@ function MagazineTextBriefContent() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [coverDrag, setCoverDrag] = useState(false);
 
   const visibleFields = FIELDS.filter(f => f.packages.includes(pkg));
 
@@ -616,15 +618,21 @@ function MagazineTextBriefContent() {
         />
         <button
           onClick={() => fileInputRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); if (!dragActive) setDragActive(true); }}
+          onDragEnter={(e) => { e.preventDefault(); setDragActive(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false); }}
+          onDrop={(e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); }}
           style={{
-            width: '100%', padding: 24, border: '2px dashed #cbd5e1', borderRadius: 12,
-            background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 8, color: '#64748b',
+            width: '100%', padding: 24,
+            border: dragActive ? '2px dashed #1e2d7d' : '2px dashed #cbd5e1', borderRadius: 12,
+            background: dragActive ? '#eff6ff' : '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 8, color: dragActive ? '#1e2d7d' : '#64748b',
+            transition: 'background 0.15s, border-color 0.15s, color 0.15s',
           }}
         >
           <Upload size={32} />
           <span style={{ fontWeight: 600 }}>Завантажити фото</span>
-          <span style={{ fontSize: 12 }}>можна обрати кілька файлів одразу</span>
+          <span style={{ fontSize: 12 }}>можна обрати кілька файлів одразу або перетягнути сюди</span>
         </button>
 
         {photos.length > 0 && (
@@ -754,10 +762,16 @@ function MagazineTextBriefContent() {
           ) : (
             <button
               onClick={() => coverInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); if (!coverDrag) setCoverDrag(true); }}
+              onDragEnter={(e) => { e.preventDefault(); setCoverDrag(true); }}
+              onDragLeave={(e) => { e.preventDefault(); setCoverDrag(false); }}
+              onDrop={(e) => { e.preventDefault(); setCoverDrag(false); handleCoverPhoto(e.dataTransfer.files); }}
               style={{
-                width: '100%', padding: 20, border: '2px dashed #cbd5e1', borderRadius: 10,
-                background: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column',
-                alignItems: 'center', gap: 6, color: '#64748b',
+                width: '100%', padding: 20,
+                border: coverDrag ? '2px dashed #1e2d7d' : '2px dashed #cbd5e1', borderRadius: 10,
+                background: coverDrag ? '#eff6ff' : '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 6, color: coverDrag ? '#1e2d7d' : '#64748b',
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
               }}
             >
               <Upload size={24} />
