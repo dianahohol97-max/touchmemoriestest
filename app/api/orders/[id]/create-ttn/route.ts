@@ -29,9 +29,32 @@ export async function POST(
             return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         }
 
+        // Resolve Nova Poshta credentials from the configured account
+        // (Admin → Доставка → Нова Пошта → np_accounts), falling back to env.
+        const { data: npAcc } = await supabase
+            .from('np_accounts')
+            .select('*')
+            .eq('is_active', true)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+        const npApiKey = npAcc?.api_key || process.env.NOVA_POSHTA_API_KEY;
+        const senderCityRef = npAcc?.sender_city_ref || process.env.NP_SENDER_CITY_REF;
+        const senderWarehouseRef = npAcc?.sender_warehouse_ref || process.env.NP_SENDER_WAREHOUSE_REF;
+        const senderName = npAcc?.sender_name || process.env.NP_SENDER_NAME;
+        const senderPhone = npAcc?.sender_phone || process.env.NP_SENDER_PHONE;
+
+        if (!npApiKey || !senderCityRef || !senderWarehouseRef || !senderName || !senderPhone) {
+            return NextResponse.json({
+                error: 'Нова Пошта не налаштована. Додайте акаунт у Адмінка → Доставка → Нова Пошта (API-ключ, ім\'я та телефон відправника, City Ref і Warehouse Ref).'
+            }, { status: 400 });
+        }
+
         // 2. Call Nova Poshta API to create TTN
         const npPayload = {
-            apiKey: process.env.NOVA_POSHTA_API_KEY,
+            apiKey: npApiKey,
             modelName: 'InternetDocument',
             calledMethod: 'save',
             methodProperties: {
@@ -43,11 +66,11 @@ export async function POST(
                 SeatsAmount: '1',
                 Description: 'Фотокнига',
                 Cost: order.total.toString(),
-                // Sender details (Placeholders for user to fill in .env)
-                CitySender: process.env.NP_SENDER_CITY_REF || '[your city ref]',
-                SenderAddress: process.env.NP_SENDER_WAREHOUSE_REF || '[your warehouse ref]',
-                ContactSender: process.env.NP_SENDER_NAME || '[your name]',
-                SendersPhone: process.env.NP_SENDER_PHONE || '[your phone]',
+                // Sender details (from np_accounts / env)
+                CitySender: senderCityRef,
+                SenderAddress: senderWarehouseRef,
+                ContactSender: senderName,
+                SendersPhone: senderPhone,
                 // Recipient details from order
                 CityRecipient: order.delivery_address?.city_ref || '[customer city ref]',
                 RecipientAddress: order.delivery_address?.warehouse_ref || order.delivery_address?.street_ref || '[customer warehouse or address ref]',
