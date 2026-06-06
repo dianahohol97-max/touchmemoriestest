@@ -23,6 +23,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { toast, Toaster } from 'react-hot-toast';
 import { Upload, X, Check } from 'lucide-react';
+import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
 
 type Package = 'basic' | 'premium';
@@ -263,23 +264,33 @@ function MagazineTextBriefContent() {
       //    that we don't repeat here.
       const sessionId = `magazine-brief-${Date.now()}`;
       const uploadedItems: Array<{ path: string; name: string; size: number; type: string }> = [];
+      // order-files bucket enforces allowed_mime_types. Some phones report
+      // images as "image/jpg" (invalid) or with an empty/odd type, which the
+      // bucket rejects. Normalise to a type the bucket accepts.
+      const ALLOWED_CT = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/avif', 'application/pdf']);
+      const safeCt = (f: File) => {
+        let t = (f.type || '').toLowerCase();
+        if (t === 'image/jpg') t = 'image/jpeg';
+        return ALLOWED_CT.has(t) ? t : 'application/octet-stream';
+      };
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const fileToUpload = await normalizeImageFile(photo.file);
+        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
         const { error } = await supabase.storage
           .from('order-files')
-          .upload(path, photo.file, { upsert: true });
+          .upload(path, fileToUpload, { upsert: true, contentType: safeCt(fileToUpload) });
         if (error) {
           console.error('upload error:', error);
-          toast.error(`Не вдалось завантажити ${photo.file.name}`);
+          toast.error(`Не вдалось завантажити ${photo.file.name}: ${(error as any)?.message || 'спробуйте ще раз'}`);
           continue;
         }
         uploadedItems.push({
           path,
           name: photo.file.name,
-          size: photo.file.size,
-          type: photo.file.type || 'image/jpeg',
+          size: fileToUpload.size,
+          type: fileToUpload.type || 'image/jpeg',
         });
       }
       if (uploadedItems.length === 0) {
@@ -292,20 +303,22 @@ function MagazineTextBriefContent() {
       // the exact image the customer picked for the cover.
       let coverPhotoPath: string | null = null;
       if (coverPhoto) {
-        const safeName = coverPhoto.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const coverToUpload = await normalizeImageFile(coverPhoto.file);
+        const safeName = coverToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${sessionId}/cover_${safeName}`;
         const { error } = await supabase.storage
           .from('order-files')
-          .upload(path, coverPhoto.file, { upsert: true });
+          .upload(path, coverToUpload, { upsert: true, contentType: safeCt(coverToUpload) });
         if (error) {
           console.error('cover upload error:', error);
+          toast.error(`Не вдалось завантажити обкладинку: ${(error as any)?.message || 'спробуйте ще раз'}`);
         } else {
           coverPhotoPath = path;
           uploadedItems.push({
             path,
             name: `[ОБКЛАДИНКА] ${coverPhoto.file.name}`,
-            size: coverPhoto.file.size,
-            type: coverPhoto.file.type || 'image/jpeg',
+            size: coverToUpload.size,
+            type: coverToUpload.type || 'image/jpeg',
           });
         }
       }
