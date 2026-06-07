@@ -1523,6 +1523,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         'Тип оздоблення обкладинки': 'decoration',
                                                         'Варіант оздоблення': 'decoration_variant',
                                                         'Колір велюру': 'cover_color',
+                                                        'Колір обкладинки': 'cover_color',
                                                         'Колір тканини': 'cover_color',
                                                         'Колір шкірзаміннику': 'cover_color',
                                                         'Колір шкіри': 'cover_color',
