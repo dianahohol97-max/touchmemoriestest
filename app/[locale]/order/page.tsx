@@ -8,6 +8,7 @@ import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, 
 import { compressImageFile } from '@/lib/compress-upload-image'
 import { uploadImageToStorage } from '@/lib/storage-upload'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
+import FlowHeader from '@/components/ui/FlowHeader'
 
 interface UploadedFile {
   id: string
@@ -802,7 +803,9 @@ function OrderForm() {
   if (submitted) return <SuccessScreen orderId={orderId} />
 
   return (
-    <div className="min-h-screen bg-[#f0f2f8] py-12 px-4">
+    <div className="min-h-screen bg-[#f0f2f8]">
+      <FlowHeader />
+      <div className="py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-[#1e2d7d]">Оформлення замовлення з дизайнером</h1>
@@ -977,6 +980,7 @@ function OrderForm() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
