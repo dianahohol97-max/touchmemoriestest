@@ -520,6 +520,13 @@ export default function BookPhotoUpload() {
                 const pageCountReq = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
                 const meetsMinimum = pageCountReq > 0 ? photos.length >= pageCountReq : photos.length > 0;
                 const remaining = pageCountReq > 0 ? Math.max(0, pageCountReq - photos.length) : 0;
+                // Product-aware noun so a photobook doesn't read "журналу".
+                const slugLc = (config?.productSlug || '').toLowerCase();
+                const productNoun = /magazine|zhurnal|journal/.test(slugLc)
+                    ? 'журналу'
+                    : /travel/.test(slugLc)
+                        ? 'тревелбука'
+                        : 'фотокниги';
                 // Two meaningful states in the constructor: short of the
                 // page-count minimum (red), or at/above it (green). There is
                 // NO upper cap here — the customer lays the book out
@@ -552,7 +559,7 @@ export default function BookPhotoUpload() {
                             // Customers expect to fill every page with at least
                             // one photo, so we tell them upfront here.
                             <div className="text-xs text-red-700 mt-2">
-                                Для журналу на {pageCountReq} сторінок потрібно мінімум {pageCountReq} фото, інакше частина сторінок буде порожня.
+                                Для {productNoun} на {pageCountReq} сторінок потрібно мінімум {pageCountReq} фото, інакше частина сторінок буде порожня.
                             </div>
                         )}
                     </div>

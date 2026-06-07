@@ -835,22 +835,20 @@ export default function AccountPage() {
                                     <div style={{ background: 'white', borderRadius: 14, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #e9edf5', display: 'flex', flexDirection: 'column', gap: 16 }}>
                                         <div style={{ fontSize: 13, fontWeight: 800, color: '#263a99', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Налаштування</div>
 
-                                        {/* Email subscriptions */}
-                                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 18px', background: '#f8fafc', borderRadius: 12, cursor: 'pointer', border: '1px solid #e9edf5' }}>
+                                        {/* Email subscriptions — single click target (a label wrapping
+                                            both a hidden checkbox and a div onClick fired twice and cancelled
+                                            itself, so the switch appeared stuck). */}
+                                        <div role="switch" aria-checked={formData.email_subscribed}
+                                            onClick={() => setFormData({...formData, email_subscribed: !formData.email_subscribed})}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 18px', background: '#f8fafc', borderRadius: 12, cursor: 'pointer', border: '1px solid #e9edf5' }}>
                                             <div>
                                                 <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>Email-розсилка</div>
                                                 <div style={{ fontSize: 12, color: '#64748b' }}>Дізнавайтесь першими про акції та новинки</div>
                                             </div>
-                                            <div style={{ position: 'relative', width: 44, height: 24, flexShrink: 0 }}>
-                                                <input type="checkbox" checked={formData.email_subscribed}
-                                                    onChange={e => setFormData({...formData, email_subscribed: e.target.checked})}
-                                                    style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}/>
-                                                <div onClick={() => setFormData({...formData, email_subscribed: !formData.email_subscribed})}
-                                                    style={{ width: 44, height: 24, borderRadius: 12, background: formData.email_subscribed ? '#263a99' : '#e2e8f0', cursor: 'pointer', transition: 'background 0.2s', position: 'relative' }}>
-                                                    <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: formData.email_subscribed ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}/>
-                                                </div>
+                                            <div style={{ width: 44, height: 24, borderRadius: 12, background: formData.email_subscribed ? '#263a99' : '#e2e8f0', flexShrink: 0, transition: 'background 0.2s', position: 'relative' }}>
+                                                <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: formData.email_subscribed ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}/>
                                             </div>
-                                        </label>
+                                        </div>
 
                                         {/* Account info */}
                                         <div style={{ padding: '16px 18px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e9edf5' }}>

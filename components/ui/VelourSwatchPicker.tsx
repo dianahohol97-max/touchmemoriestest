@@ -59,33 +59,55 @@ export default function VelourSwatchPicker({
   if (loading) return <div style={{ fontSize: 13, color: '#94a3b8' }}>Завантаження кольорів…</div>;
   if (!colors.length) return <div style={{ fontSize: 13, color: '#94a3b8' }}>Кольори тимчасово недоступні.</div>;
 
+  const selected = colors.find((c) => c.name === value) || null;
+
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-      {colors.map((c) => {
-        const sel = value === c.name;
-        return (
-          <button
-            key={c.id}
-            type="button"
-            title={c.code ? `${c.name} (${c.code})` : c.name}
-            onClick={() => onChange(c.name)}
-            style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-              padding: 6, borderRadius: 12, cursor: 'pointer',
-              border: sel ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-              background: sel ? '#f0f3ff' : 'white', width: 84,
-            }}
-          >
-            <span style={{ width: 68, height: 68, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: c.hex_approx || '#e2e8f0', display: 'block' }}>
-              {c.photo_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={c.photo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              )}
-            </span>
-            <span style={{ fontSize: 11, fontWeight: sel ? 700 : 500, color: sel ? '#1e2d7d' : '#475569', textAlign: 'center', lineHeight: 1.15 }}>{c.name}</span>
-          </button>
-        );
-      })}
+    <div>
+      {/* Large preview of the chosen colour so it's visible at a glance. Uses
+          the uploaded swatch photo when present, otherwise the approximate
+          hex chip — it upgrades to the real fabric automatically once photos
+          are added in admin (/admin/velour-colors). */}
+      {selected && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14, padding: 12, borderRadius: 12, background: '#f8fafc', border: '1px solid #e9edf5' }}>
+          <span style={{ width: 92, height: 92, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: selected.hex_approx || '#e2e8f0', display: 'block', flexShrink: 0 }}>
+            {selected.photo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={selected.photo_url} alt={selected.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            )}
+          </span>
+          <div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>Обраний колір</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1e2d7d' }}>{selected.name}{selected.code ? ` · ${selected.code}` : ''}</div>
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+        {colors.map((c) => {
+          const sel = value === c.name;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              title={c.code ? `${c.name} (${c.code})` : c.name}
+              onClick={() => onChange(c.name)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                padding: 6, borderRadius: 12, cursor: 'pointer',
+                border: sel ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                background: sel ? '#f0f3ff' : 'white', width: 84,
+              }}
+            >
+              <span style={{ width: 68, height: 68, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: c.hex_approx || '#e2e8f0', display: 'block' }}>
+                {c.photo_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.photo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                )}
+              </span>
+              <span style={{ fontSize: 11, fontWeight: sel ? 700 : 500, color: sel ? '#1e2d7d' : '#475569', textAlign: 'center', lineHeight: 1.15 }}>{c.name}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
