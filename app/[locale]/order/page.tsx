@@ -6,6 +6,7 @@ import { Suspense, useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
 import { compressImageFile } from '@/lib/compress-upload-image'
+import { uploadImageToStorage } from '@/lib/storage-upload'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 
 interface UploadedFile {
@@ -690,11 +691,9 @@ function OrderForm() {
         const f = formData.files[i]
         const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
-        const { error: upErr } = await supabase.storage
-          .from('order-files')
-          .upload(path, f.file, { upsert: true })
+        const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
         if (upErr) { console.error('photo upload error:', upErr); continue }
-        uploaded.push({ path, name: f.name, size: f.size, type: f.file.type || 'image/jpeg' })
+        uploaded.push({ path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
       }
 
       if (uploaded.length === 0) {
@@ -707,12 +706,10 @@ function OrderForm() {
         const cf = formData.coverPhoto
         const safeName = cf.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const path = `${sessionId}/cover_${safeName}`
-        const { error: cErr } = await supabase.storage
-          .from('order-files')
-          .upload(path, cf.file, { upsert: true })
+        const { error: cErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, cf.file, { downscale: true })
         if (!cErr) {
           coverPath = path
-          uploaded.push({ path, name: `[ОБКЛАДИНКА] ${cf.name}`, size: cf.size, type: cf.file.type || 'image/jpeg', cover: true })
+          uploaded.push({ path, name: `[ОБКЛАДИНКА] ${cf.name}`, size: up.size, type: up.type || 'image/jpeg', cover: true })
         } else {
           console.error('cover upload error:', cErr)
         }

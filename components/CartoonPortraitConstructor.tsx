@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -376,19 +377,14 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
             if (config.uploadedPhoto) {
                 const safeName = config.uploadedPhoto.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                 const path = `${userKey}/${cartItemId}/source_${safeName}`;
-                const { error: uploadError } = await sb.storage
-                    .from('order-files')
-                    .upload(path, config.uploadedPhoto, {
-                        cacheControl: '31536000', upsert: true,
-                        contentType: config.uploadedPhoto.type || 'image/jpeg',
-                    });
+                const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, config.uploadedPhoto, { cacheControl: '31536000', downscale: true });
                 if (!uploadError) {
                     exportedFiles.push({
                         path, fileName: `source_${config.uploadedPhoto.name}`,
                         bucket: 'order-files', fileCategory: 'photo-upload',
                         productType: 'cartoon-portrait', fileType: 'upload',
-                        size: config.uploadedPhoto.size,
-                        mimeType: config.uploadedPhoto.type || 'image/jpeg',
+                        size: up.size,
+                        mimeType: up.type || 'image/jpeg',
                         pageNumber: 1,
                     });
                 }

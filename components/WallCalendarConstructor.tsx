@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -543,18 +544,13 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 if (!p.file) continue;
                 const safeName = p.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                 const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('order-files')
-                    .upload(path, p.file, {
-                        cacheControl: '31536000', upsert: true,
-                        contentType: p.file.type || 'image/jpeg',
-                    });
+                const { error: uploadError, file: up } = await uploadImageToStorage(supabase, 'order-files', path, p.file, { cacheControl: '31536000', downscale: true });
                 if (uploadError) { console.warn('wall-cal upload failed:', uploadError); continue; }
                 exportedFiles.push({
                     path, fileName: p.file.name, bucket: 'order-files',
                     fileCategory: 'photo-upload', productType: 'wall-calendar',
-                    fileType: 'upload', size: p.file.size,
-                    mimeType: p.file.type || 'image/jpeg', pageNumber: i + 1,
+                    fileType: 'upload', size: up.size,
+                    mimeType: up.type || 'image/jpeg', pageNumber: i + 1,
                 });
             }
             if (exportedFiles.length > 0) {

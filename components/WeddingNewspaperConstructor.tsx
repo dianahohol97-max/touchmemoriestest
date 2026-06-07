@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -169,10 +170,9 @@ export default function WeddingNewspaperConstructor() {
       const slotIdx = (design?.slots.findIndex(s => s.key === slotKey) ?? 0) + 1;
       const fileName = `${String(slotIdx).padStart(2, '0')}_${slotKey}.${ext}`;
       const path = `${userKey}/${cartItemId}/${fileName}`;
-      const { error } = await supabase.storage.from('order-files')
-        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: '31536000' });
+      const { error, file: up } = await uploadImageToStorage(supabase, 'order-files', path, file, { downscale: true, cacheControl: '31536000' });
       if (error) throw error;
-      setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], path, fileName, size: file.size, uploading: false } }));
+      setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], path, fileName, size: up.size, uploading: false } }));
     } catch (e: any) {
       toast.error(`Помилка завантаження: ${e?.message || 'спробуйте ще раз'}`);
       setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], uploading: false } }));

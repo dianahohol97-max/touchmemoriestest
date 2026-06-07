@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 
 import { useState, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -181,19 +182,17 @@ export default function DesignerOrderFlow() {
             const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${sessionId}/${photo.id}_${safeName}`;
 
-            const { error } = await supabase.storage
-                .from('order-files')
-                .upload(path, photo.file, { upsert: true });
+            const { error, file: up } = await uploadImageToStorage(supabase, 'order-files', path, photo.file, { downscale: true });
 
             if (error) {
                 console.error('Upload error:', error);
-                toast.error(`Помилка завантаження ${photo.file.name}`);
+                toast.error(`Помилка завантаження ${photo.file.name}: ${(error as any)?.message || ''}`);
             } else {
                 items.push({
                     path,
                     name: photo.file.name,
-                    size: photo.file.size,
-                    type: photo.file.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+                    size: up.size,
+                    type: up.type || `image/${ext === 'jpg' ? 'jpeg' : ext}`,
                 });
                 setPhotos(prev => prev.map(p =>
                     p.id === photo.id ? { ...p, uploaded: true, storagePath: path } : p

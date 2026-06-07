@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 
 import { useState, useRef, useEffect } from 'react';
 import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
@@ -179,18 +180,13 @@ const router = useRouter();
         if (!m.photoFile) continue;
         const safeName = m.photoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('order-files')
-          .upload(path, m.photoFile, {
-            cacheControl: '31536000', upsert: true,
-            contentType: m.photoFile.type || 'image/jpeg',
-          });
+        const { error: uploadError, file: up } = await uploadImageToStorage(supabase, 'order-files', path, m.photoFile, { cacheControl: '31536000', downscale: true });
         if (uploadError) { console.warn('magnet upload failed:', uploadError); continue; }
         exportedFiles.push({
           path, fileName: m.photoFile.name, bucket: 'order-files',
           fileCategory: 'photo-upload', productType: 'photomagnets',
-          fileType: 'upload', size: m.photoFile.size,
-          mimeType: m.photoFile.type || 'image/jpeg', pageNumber: i + 1,
+          fileType: 'upload', size: up.size,
+          mimeType: up.type || 'image/jpeg', pageNumber: i + 1,
         });
       }
       if (exportedFiles.length > 0) {

@@ -1,4 +1,5 @@
 'use client';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 
 import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -108,18 +109,13 @@ export default function CanvasPrintConstructor() {
             const userKey = user?.id || 'anon';
             const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${userKey}/${cartItemId}/${safeName}`;
-            const { error: uploadError } = await sb.storage
-                .from('order-files')
-                .upload(path, photo.file, {
-                    cacheControl: '31536000', upsert: true,
-                    contentType: photo.file.type || 'image/jpeg',
-                });
+            const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, photo.file, { cacheControl: '31536000' });
             if (!uploadError) {
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
                     path, fileName: photo.file.name, bucket: 'order-files',
                     fileCategory: 'photo-upload', productType: 'canvas-print',
-                    fileType: 'upload', size: photo.file.size,
-                    mimeType: photo.file.type || 'image/jpeg',
+                    fileType: 'upload', size: up.size,
+                    mimeType: up.type || 'image/jpeg',
                 }));
             } else {
                 console.warn('canvas-print upload failed:', uploadError);
