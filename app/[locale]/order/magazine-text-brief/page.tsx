@@ -24,6 +24,7 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { toast, Toaster } from 'react-hot-toast';
 import { Upload, X, Check } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
+import { downscaleImageIfLarge } from '@/lib/downscale-image';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
 
 type Package = 'basic' | 'premium';
@@ -275,7 +276,8 @@ function MagazineTextBriefContent() {
       };
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        const fileToUpload = await normalizeImageFile(photo.file);
+        const normalized = await normalizeImageFile(photo.file);
+        const fileToUpload = await downscaleImageIfLarge(normalized);
         const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
         const { error } = await supabase.storage
@@ -303,7 +305,7 @@ function MagazineTextBriefContent() {
       // the exact image the customer picked for the cover.
       let coverPhotoPath: string | null = null;
       if (coverPhoto) {
-        const coverToUpload = await normalizeImageFile(coverPhoto.file);
+        const coverToUpload = await downscaleImageIfLarge(await normalizeImageFile(coverPhoto.file));
         const safeName = coverToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${sessionId}/cover_${safeName}`;
         const { error } = await supabase.storage
