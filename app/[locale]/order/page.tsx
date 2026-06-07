@@ -686,18 +686,19 @@ function OrderForm() {
       // limit entirely and actually persists the order.
       const sessionId = `designer-order-${Date.now()}`
       const uploaded: Array<{ path: string; name: string; size: number; type: string; cover?: boolean }> = []
+      let lastUploadError: any = null
 
       for (let i = 0; i < formData.files.length; i++) {
         const f = formData.files[i]
         const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
         const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
-        if (upErr) { console.error('photo upload error:', upErr); continue }
+        if (upErr) { console.error('photo upload error:', upErr); lastUploadError = upErr; continue }
         uploaded.push({ path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
       }
 
       if (uploaded.length === 0) {
-        throw new Error('no photos uploaded')
+        throw new Error(`Не вдалося завантажити фото${lastUploadError?.message ? `: ${lastUploadError.message}` : ''}`)
       }
 
       // Optional dedicated cover photo
@@ -790,9 +791,9 @@ function OrderForm() {
       if (order) setOrderId(order.id)
       sessionStorage.removeItem('designerOrderConfig')
       setSubmitted(true)
-    } catch (e) {
+    } catch (e: any) {
       console.error('designer order submit error:', e)
-      setError("Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
+      setError(e?.message ? `Сталася помилка: ${e.message}` : "Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
     } finally {
       setSubmitting(false)
     }
