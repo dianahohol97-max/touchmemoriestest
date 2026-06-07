@@ -46,6 +46,12 @@ export interface CoverState {
   printedBgColor?: string;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
+  // Whether the back-cover photo slot has been opted into (printed covers).
+  backCoverEnabled?: boolean;
+  // Position/size/shape of the back-cover photo slot, percent-based like the
+  // front printedPhotoSlot. Lets the customer drag/resize the photo on the
+  // back cover; honoured by CoverView (editor) and BookPreviewModal (preview).
+  backCoverSlot?: PrintedPhotoSlot;
   // Free-positioned text blocks rendered on the back cover. Same shape as
   // printedTextBlocks (which lives on the front cover) so cart payload,
   // preview, and editor logic can reuse the same helpers.
