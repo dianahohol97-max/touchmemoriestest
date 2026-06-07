@@ -115,6 +115,7 @@ export async function POST(req: Request) {
                     .from('orders')
                     .update({
                         order_status: 'delivered',
+                        delivered_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', orderId);

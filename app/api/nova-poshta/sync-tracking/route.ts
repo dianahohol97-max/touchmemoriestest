@@ -143,7 +143,10 @@ export async function GET(req: NextRequest) {
                     .update({
                         tracking_status: npStatus,
                         order_status: newOrderStatus,
-                        updated_at: new Date().toISOString()
+                        updated_at: new Date().toISOString(),
+                        ...(newOrderStatus === 'delivered' && order.order_status !== 'delivered'
+                            ? { delivered_at: new Date().toISOString() }
+                            : {}),
                     })
                     .eq('id', order.id);
 

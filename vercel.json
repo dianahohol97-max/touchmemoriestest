@@ -21,6 +21,10 @@
             "schedule": "0 3 * * *"
         },
         {
+            "path": "/api/cron/cleanup-order-files",
+            "schedule": "0 4 * * *"
+        },
+        {
             "path": "/api/nova-poshta/sync-tracking",
             "schedule": "0 6 * * *"
         },
