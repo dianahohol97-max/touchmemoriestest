@@ -423,7 +423,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                 // Fetch Related Products
                 const { data: relatedData } = await supabase
                     .from('products')
-                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id, translations')
+                    .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, category_id, translations, fulfillment_type')
                     .eq('is_active', true)
                     .neq('id', data.id)
                     .limit(4);
@@ -2028,7 +2028,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }} className={styles.relatedGrid}>
                             {relatedProducts.map((p) => (
                             // @ts-ignore
-                                <ProductCard key={p.id} product={p} />
+                                <ProductCard key={p.id} product={p} primaryAction="cart" />
                             ))}
                         </div>
                     </div>

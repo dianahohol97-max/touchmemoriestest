@@ -9,6 +9,7 @@ import styles from './ProductCard.module.css';
 import Link from 'next/link';
 import Image from 'next/image';
 import WishlistButton from '@/components/WishlistButton';
+import { useCartStore } from '@/store/cart-store';
 
 interface ProductCardProps {
     product: {
@@ -22,12 +23,18 @@ interface ProductCardProps {
         short_description?: string;
         is_personalized?: boolean;
         is_partially_personalized?: boolean;
+        fulfillment_type?: string | null;
     };
+    /** 'details' (default) links to the product page. 'cart' shows an "add to
+     * cart" button: ready-made (in_stock) items go straight to the cart;
+     * items that need configuration still open the product page. */
+    primaryAction?: 'details' | 'cart';
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, primaryAction = 'details' }: ProductCardProps) {
     const t = useT();
     const locale = useLocale();
+    const addItem = useCartStore((s) => s.addItem);
     const currency = useMemo(() => detectCurrency(locale), [locale]);
     const categorySlug = typeof product.categories === 'object' ? product.categories?.slug || 'all' : 'all';
     const rawPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
@@ -94,9 +101,36 @@ export function ProductCard({ product }: ProductCardProps) {
                     </div>
 
                     <div className="mt-2 sm:mt-6 flex justify-center w-full">
-                        <div className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
-                            {t('ui.details')}
-                        </div>
+                        {primaryAction === 'cart' ? (
+                            <div
+                                role="button"
+                                onClick={(e) => {
+                                    // Ready-made items add straight to the cart; items that
+                                    // need configuration fall through to the product page
+                                    // (let the wrapping Link navigate).
+                                    if (product.fulfillment_type === 'in_stock') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        addItem({
+                                            id: product.id,
+                                            product_id: product.id,
+                                            name: getLocalized(product, locale, 'name'),
+                                            price: rawPrice || 0,
+                                            qty: 1,
+                                            image: product.images?.[0],
+                                            slug: product.slug,
+                                        });
+                                    }
+                                }}
+                                className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center"
+                            >
+                                {product.fulfillment_type === 'in_stock' ? t('product.add_to_cart') : t('product.order_now')}
+                            </div>
+                        ) : (
+                            <div className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center">
+                                {t('ui.details')}
+                            </div>
+                        )}
                     </div>
                 </div>
             </Link>
