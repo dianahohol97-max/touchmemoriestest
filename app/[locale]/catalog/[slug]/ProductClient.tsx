@@ -508,6 +508,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     };
 
     const isPhotobook = product.slug?.includes('photobook') || product.slug?.includes('graduation');
+    // File-pocket albums (файликові): the customer inserts their own photos at
+    // home, so there is no photo-upload / editor step — ordering is just the
+    // cover colour + optional inscription, added straight to the cart.
+    const isFillableAlbum = (product.slug || '').toLowerCase().includes('album');
     const minQuantity = product.slug?.includes('graduation') ? 5 : 1;
     const isPhotobookProduct = isPhotobook || product.slug?.includes('fotokniga') || 
         product.slug?.includes('velyur') || product.slug?.includes('velour') || 
@@ -1503,6 +1507,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         <button
                                             onClick={() => {
                                                 const slug = product.slug || resolvedParams.slug;
+                                                // Fillable albums: no upload/editor — add straight to
+                                                // cart with cover colour + optional inscription.
+                                                if (slug.toLowerCase().includes('album')) { handleAddToCart(); return; }
                                                 const base = getConstructorUrl(slug);
                                                 // Magazine "we write the text" packages bypass the
                                                 // constructor entirely and go to the questionnaire
@@ -1623,9 +1630,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             }}
                                             className="hover:bg-[#1a2966]"
                                         >
-                                            {t('product_page.open_editor')}
+                                            {isFillableAlbum ? 'Додати в кошик' : t('product_page.open_editor')}
                                         </button>
-                                        {isWishbookProduct(product.slug || resolvedParams.slug) ? (
+                                        {!isFillableAlbum && (isWishbookProduct(product.slug || resolvedParams.slug) ? (
                                             <button
                                                 onClick={() => requireAuth(
                                                     () => setGuestbookModalOpen(true),
@@ -1686,7 +1693,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         >
                                             {t('product_page.order_with_designer')}
                                         </button>
-                                        )}
+                                        ))}
                                     </div>
                                         );
                                     })()}
