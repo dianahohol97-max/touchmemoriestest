@@ -430,6 +430,15 @@ export function BookPreviewModal({
             }
             return null;
           })()}
+          {(coverState?.coverPhotos || []).map((cp: any) => {
+            const cph = cp.photoId ? getPhoto(cp.photoId) : null;
+            if (!cph) return null;
+            return (
+              <div key={cp.id} style={{ position:'absolute', left:`${cp.x}%`, top:`${cp.y}%`, width:`${cp.w}%`, height:`${cp.h}%`, borderRadius: cp.shape==='circle'?'50%':cp.shape==='rounded'?'10px':'2px', overflow:'hidden', zIndex:6 }}>
+                <img src={cph.preview} draggable={false} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${cp.cropX??50}% ${cp.cropY??50}%`, transform:`scale(${cp.zoom??1}) rotate(${cp.rotation??0}deg)` }}/>
+              </div>
+            );
+          })}
           {renderFrame(getFrame(0), pageW, pageH)}
           {renderShapes(pageShapes[0] || [])}
           {renderStickers(pageStickers[0], pageW)}
@@ -475,6 +484,16 @@ export function BookPreviewModal({
           return (
             <div key={tb.id} style={{ position: 'absolute', left: `${safeX}%`, top: `${safeY}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5, maxWidth: `${pageW * 0.84}px` }}>
               <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} />
+            </div>
+          );
+        })}
+
+        {(coverState?.coverPhotos || []).map((cp: any) => {
+          const cph = cp.photoId ? getPhoto(cp.photoId) : null;
+          if (!cph) return null;
+          return (
+            <div key={cp.id} style={{ position:'absolute', left:`${cp.x}%`, top:`${cp.y}%`, width:`${cp.w}%`, height:`${cp.h}%`, borderRadius: cp.shape==='circle'?'50%':cp.shape==='rounded'?'10px':'2px', overflow:'hidden', zIndex:6 }}>
+              <img src={cph.preview} draggable={false} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${cp.cropX??50}% ${cp.cropY??50}%`, transform:`scale(${cp.zoom??1}) rotate(${cp.rotation??0}deg)` }}/>
             </div>
           );
         })}

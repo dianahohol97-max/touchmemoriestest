@@ -4489,6 +4489,17 @@ export default function BookLayoutEditor() {
                   ))}
                 </div>
                 )}
+
+                {/* Free photo on the cover — any material. Adds a draggable,
+                    resizable photo the customer can place anywhere (like text). */}
+                <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
+                  <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
+                    style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6 }}>
+                    + Додати фото
+                  </button>
+                  <div style={{ fontSize:10, color:'#94a3b8' }}>Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.</div>
+                </div>
               </div>
             )}
             {/* BACKGROUND */}

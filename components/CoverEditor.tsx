@@ -113,6 +113,11 @@ export interface CoverConfig {
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
+  // Free, draggable + resizable photos placed anywhere on the cover (works on
+  // any material — printed or soft). Independent of the template photo slots.
+  // x/y/w/h are percentages of the cover (0–100) so they scale identically in
+  // the editor, the preview modal and the print export.
+  coverPhotos?: { id: string; photoId: string | null; x: number; y: number; w: number; h: number; cropX?: number; cropY?: number; zoom?: number; rotation?: number; shape?: 'rect'|'rounded'|'circle' }[];
 }
 
 interface CoverEditorProps {
@@ -904,6 +909,64 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 opacity:1, transition:'opacity 0.15s', boxShadow:'0 1px 3px rgba(0,0,0,0.35)',
               }}
             >×</button>
+          </div>
+        );
+      })}
+
+      {/* Free draggable + resizable photos — work on ANY cover material.
+          Container drag = move, corner handle = resize, wheel/toolbar = zoom.
+          x/y/w/h are % of the cover so they scale to preview + print. */}
+      {(config.coverPhotos||[]).map(cp => {
+        const ph = photos.find(p => p.id === cp.photoId);
+        const radius = cp.shape==='circle' ? '50%' : cp.shape==='rounded' ? '10px' : '2px';
+        const updateCP = (patch: Partial<NonNullable<CoverConfig['coverPhotos']>[number]>) =>
+          onChange({ coverPhotos: (config.coverPhotos||[]).map(c => c.id===cp.id ? {...c, ...patch} : c) });
+        return (
+          <div key={cp.id}
+            onPointerDown={e => {
+              e.stopPropagation(); e.preventDefault(); haptic.light();
+              const sx=cp.x, sy=cp.y;
+              startPointerDrag(e, (dx,dy) => {
+                updateCP({
+                  x: Math.max(0, Math.min(100-cp.w, sx + dx/canvasW*100)),
+                  y: Math.max(0, Math.min(100-cp.h, sy + dy/canvasH*100)),
+                });
+              });
+            }}
+            onWheel={e => { if(!ph) return; e.preventDefault(); updateCP({ zoom: Math.max(1, Math.min(4, (cp.zoom??1)+(e.deltaY>0?-0.05:0.05))) }); }}
+            onDragOver={e=>{e.preventDefault();e.stopPropagation();}}
+            onDrop={e=>{e.preventDefault();e.stopPropagation();const id=e.dataTransfer.getData('photoId')||e.dataTransfer.getData('text/plain');if(id)updateCP({photoId:id});}}
+            onClick={()=>{ if(!ph && photos.length>0) updateCP({ photoId: photos[0].id }); }}
+            style={{ position:'absolute', left:`${cp.x}%`, top:`${cp.y}%`, width:`${cp.w}%`, height:`${cp.h}%`,
+              borderRadius:radius, overflow:'hidden', cursor:'move', zIndex:22, background:'transparent' }}>
+            {ph
+              ? <img src={ph.preview} draggable={false} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${cp.cropX??50}% ${cp.cropY??50}%`, transform:`scale(${cp.zoom??1}) rotate(${cp.rotation??0}deg)`, pointerEvents:'none', userSelect:'none' }}/>
+              : <div data-html2canvas-ignore="true" style={{ display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,color:'rgba(255,255,255,0.85)',border:'1.5px dashed rgba(255,255,255,0.7)',background:'rgba(255,255,255,0.12)',borderRadius:radius }}><ImageIcon size={20}/><span style={{fontSize:9,fontWeight:700}}>Фото</span></div>}
+            {/* Edit affordance outline — ignored by the print snapshot */}
+            {ph && <div data-html2canvas-ignore="true" style={{ position:'absolute', inset:0, border:'1px solid rgba(96,165,250,0.9)', borderRadius:radius, pointerEvents:'none' }}/>}
+            <button data-html2canvas-ignore="true" onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();onChange({coverPhotos:(config.coverPhotos||[]).filter(c=>c.id!==cp.id)});}}
+              style={{ position:'absolute',top:-9,right:-9,width:20,height:20,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'2px solid #fff',cursor:'pointer',fontSize:12,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:24,padding:0 }}>×</button>
+            <div data-html2canvas-ignore="true" onPointerDown={e=>{
+                e.stopPropagation(); e.preventDefault(); haptic.light();
+                const sw=cp.w, sh=cp.h;
+                startPointerDrag(e,(dx,dy)=>{
+                  updateCP({
+                    w: Math.max(10, Math.min(100-cp.x, sw+dx/canvasW*100)),
+                    h: Math.max(10, Math.min(100-cp.y, sh+dy/canvasH*100)),
+                  });
+                });
+              }}
+              style={{ position:'absolute',bottom:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#fff',border:'2px solid #3b82f6',cursor:'nwse-resize',zIndex:24,boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}/>
+            {ph && (
+              <div data-html2canvas-ignore="true" onPointerDown={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}
+                style={{ position:'absolute',bottom:3,left:'50%',transform:'translateX(-50%)',display:'flex',alignItems:'center',gap:2,background:'rgba(0,0,0,0.7)',borderRadius:14,padding:'1px 6px',zIndex:23 }}>
+                <button onClick={e=>{e.stopPropagation();updateCP({zoom:Math.max(1,(cp.zoom??1)-0.1)});}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:22,textAlign:'center'}}>{Math.round((cp.zoom??1)*100)}%</span>
+                <button onClick={e=>{e.stopPropagation();updateCP({zoom:Math.min(4,(cp.zoom??1)+0.1)});}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
+                <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
+                <button onClick={e=>{e.stopPropagation();updateCP({rotation:(((cp.rotation??0)+90)%360)});}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:11,fontWeight:700,padding:'0 2px'}}>↷</button>
+              </div>
+            )}
           </div>
         );
       })}
