@@ -31,19 +31,20 @@ import Image from 'next/image';
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
 export default function CheckoutPage() {
-    const { items, getTotal, clearCart } = useCartStore();
+    const { items, getTotal, getDuplicateDiscount, clearCart } = useCartStore();
     const router = useRouter();
     const { t, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     const rawTotal = getTotal();
+    const dupDiscount = getDuplicateDiscount();
     const [promoCode, setPromoCode] = useState('');
     const [promoInput, setPromoInput] = useState('');
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoError, setPromoError] = useState('');
-    const total = rawTotal - promoDiscount;
+    const total = rawTotal - promoDiscount - dupDiscount;
 
     // ── Display currency + intl markup ──────────────────────────────
     // Default currency follows locale; the switcher lets anyone flip UAH/EUR.
@@ -76,7 +77,7 @@ export default function CheckoutPage() {
     const intlShippingUah = (isIntl && intlCfg.rate > 0)
         ? computeIntlShippingUah(markedSubtotal, intlCfg.rate, { freeThresholdEur: intlCfg.freeThresholdEur, flatFeeEur: intlCfg.flatFeeEur })
         : 0;
-    const markedTotal = Math.max(0, markedSubtotal - promoDiscount + intlShippingUah);
+    const markedTotal = Math.max(0, markedSubtotal - promoDiscount - dupDiscount + intlShippingUah);
     // Charge currency is always UAH (Monobank); this only formats what's shown.
     const money = (uah: number) => formatPrice(uah, displayCurrency);
 
@@ -911,6 +912,12 @@ export default function CheckoutPage() {
                                           </span>
                                         : <span>за тарифами перевізника</span>}
                                 </div>
+                                {dupDiscount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
+                                        <span>🎁 Знижка за копії:</span>
+                                        <span>-{money(dupDiscount)}</span>
+                                    </div>
+                                )}
                                 {promoDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
                                         <span>🏷️ Знижка ({promoCode}):</span>

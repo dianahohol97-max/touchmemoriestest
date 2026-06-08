@@ -18,7 +18,8 @@ export default function CartDrawer() {
         closeDrawer,
         removeItem,
         updateQuantity,
-        getTotal
+        getTotal,
+        getDuplicateDiscount,
     } = useCartStore();
 
     // Cart items that carry a re-openable design snapshot get an "Редагувати"
@@ -49,6 +50,8 @@ export default function CartDrawer() {
     };
 
     const total = getTotal();
+    const dupDiscount = getDuplicateDiscount();
+    const netTotal = Math.max(0, total - dupDiscount);
 
     return (
         <AnimatePresence>
@@ -266,9 +269,15 @@ export default function CartDrawer() {
                                 borderTop: '1px solid #f0f0f0',
                                 backgroundColor: '#fdfdfd'
                             }}>
+                                {dupDiscount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>
+                                        <span>🎁 Знижка за копії</span>
+                                        <span>-{dupDiscount} ₴</span>
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                                     <span style={{ fontWeight: 600, color: '#666' }}>{t('cart.total_to_pay')}</span>
-                                    <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary)' }}>{total} ₴</span>
+                                    <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary)' }}>{netTotal} ₴</span>
                                 </div>
 
                                 <Link

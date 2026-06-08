@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
     const { t, locale } = useTranslation();
-    const { items, removeItem, updateQuantity, getTotal } = useCartStore();
+    const { items, removeItem, updateQuantity, getTotal, getDuplicateDiscount } = useCartStore();
     const router = useRouter();
 
     // Which cart items have a re-openable design snapshot (saved by the editor
@@ -58,6 +58,8 @@ export default function CartPage() {
     };
 
     const total = getTotal();
+    const dupDiscount = getDuplicateDiscount();
+    const netTotal = Math.max(0, total - dupDiscount);
 
     // Some items (built in the constructor) are added without an image. Fall back
     // to the product's catalog image so the cart always shows an illustration.
@@ -168,13 +170,19 @@ export default function CartPage() {
                                         <span>Проміжна сума</span>
                                         <span>{total} ₴</span>
                                     </div>
+                                    {dupDiscount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                                            <span>🎁 Знижка за копії</span>
+                                            <span>-{dupDiscount} ₴</span>
+                                        </div>
+                                    )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
                                         <span>Доставка</span>
                                         <span>За тарифами НП</span>
                                     </div>
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '24px', fontWeight: 900 }}>
                                         <span>Всього</span>
-                                        <span>{total} ₴</span>
+                                        <span>{netTotal} ₴</span>
                                     </div>
                                 </div>
 

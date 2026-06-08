@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 
 export interface CartItem {
     id: string;
@@ -34,6 +35,7 @@ interface CartState {
     updateQuantity: (id: string | number, qty: number) => void;
     clearCart: () => void;
     getTotal: () => number;
+    getDuplicateDiscount: () => number;
     openDrawer: () => void;
     closeDrawer: () => void;
     toggleDrawer: () => void;
@@ -95,6 +97,9 @@ export const useCartStore = create<CartState>()(
             clearCart: () => set({ items: [] }),
             getTotal: () => {
                 return get().items.reduce((total, item) => total + item.price * item.qty, 0);
+            },
+            getDuplicateDiscount: () => {
+                return duplicateDiscountForCart(get().items as any);
             },
             openDrawer: () => set({ isDrawerOpen: true }),
             closeDrawer: () => set({ isDrawerOpen: false }),
