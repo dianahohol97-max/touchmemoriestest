@@ -657,7 +657,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           their text was added to state but never rendered. This block
           renders printedTextBlocks for the printed cover whenever the
           photo-slot block above did NOT (so text never double-renders). */}
-      {!isSoft && !renderPrintedPhotoSlot && (() => {
+      {!renderPrintedPhotoSlot && (() => {
         const texts = config.printedTextBlocks ?? [];
         if (texts.length === 0) return null;
         return (
