@@ -805,7 +805,7 @@ export default function CheckoutPage() {
                                     <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>Ваше замовлення</h3>
                                 </div>
                                 <div style={{ display: 'inline-flex', border: '1px solid #e5e7eb', borderRadius: '999px', overflow: 'hidden' }}>
-                                    {(['UAH', 'EUR'] as Currency[]).map(c => (
+                                    {(['UAH', 'EUR', 'USD'] as Currency[]).map(c => (
                                         <button
                                             key={c}
                                             type="button"
@@ -820,7 +820,7 @@ export default function CheckoutPage() {
                                                 color: displayCurrency === c ? '#fff' : '#6b7280',
                                             }}
                                         >
-                                            {c === 'UAH' ? '₴ UAH' : '€ EUR'}
+                                            {c === 'UAH' ? '₴ UAH' : c === 'EUR' ? '€ EUR' : '$ USD'}
                                         </button>
                                     ))}
                                 </div>

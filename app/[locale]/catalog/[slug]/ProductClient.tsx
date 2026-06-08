@@ -1955,6 +1955,27 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                 >
                                                     {giftHintSending ? t('product_page.hint_sending') : t('product_page.hint_send')}
                                                 </button>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '2px 0' }}>
+                                                    <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{t('product_page.hint_or')}</span>
+                                                    <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        const url = typeof window !== 'undefined' ? window.location.href : '';
+                                                        const text = `${giftHintForm.message ? giftHintForm.message + '\n\n' : ''}${t('product_page.hint_copy_text')} ${product.name}: ${url}`;
+                                                        try {
+                                                            await navigator.clipboard.writeText(text);
+                                                            toast.success(t('product_page.hint_copied'));
+                                                        } catch {
+                                                            toast.error(t('product_page.hint_error_retry'));
+                                                        }
+                                                    }}
+                                                    style={{ padding: '13px', background: '#fff', color: '#1e2d7d', border: '1.5px solid #1e2d7d', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                                                >
+                                                    {t('product_page.hint_copy_btn')}
+                                                </button>
                                             </div>
                                         </>
                                     )}
