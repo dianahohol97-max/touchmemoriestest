@@ -48,6 +48,7 @@ const menuItems = [
     { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders' },
     { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
     { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production' },
+    { name: 'Кадрування (друк)', href: '/admin/kadruvannya', icon: <LayoutTemplate size={20} />, section: 'production' },
     { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production' },
     { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers' },
     { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai' },
