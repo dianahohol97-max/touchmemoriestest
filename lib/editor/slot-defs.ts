@@ -380,6 +380,9 @@ if (layout === 'sp-1-top-strip') return [S(0, 0, 0, W, H*0.4)];
   if (layout === 'sp-mirror-1')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, ha, hh), S(1, rx, vt, ha, hh)]; }
   if (layout === 'sp-mirror-2')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-g)/2, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, rx, vt, cw, hh), S(3, rx+cw+g, vt, cw, hh)]; }
   if (layout === 'sp-mirror-3')  { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-2*g)/3, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, outer+2*(cw+g), vt, cw, hh), S(3, rx, vt, cw, hh), S(4, rx+cw+g, vt, cw, hh), S(5, rx+2*(cw+g), vt, cw, hh)]; }
+  // Колаж: велике фото + стовпець із 2 фото стопкою, край-до-краю
+  if (layout === 'sp-4-pairs-center') { const a=W-2*g, wA=a*0.30, wS=a*0.17, wD=a*0.53, hh=(H-g)/2, xS=wA+g, xD=xS+wS+g; return [S(0,0,0,wA,H), S(1,xS,0,wS,hh), S(2,xS,hh+g,wS,hh), S(3,xD,0,wD,H)]; }
+  if (layout === 'sp-6-pairs')        { const a=W-3*g, wA=a*0.26, wS1=a*0.14, wD=a*0.37, wS2=a*0.23, hh=(H-g)/2, xB=wA+g, xD=xB+wS1+g, xE=xD+wD+g; return [S(0,0,0,wA,H), S(1,xB,0,wS1,hh), S(2,xB,hh+g,wS1,hh), S(3,xD,0,wD,H), S(4,xE,0,wS2,hh), S(5,xE,hh+g,wS2,hh)]; }
 
   return [S(0, 0, 0, W, H)];
 }

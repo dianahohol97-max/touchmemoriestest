@@ -171,7 +171,9 @@ type LayoutType =
   'sp-4-editorial' | 'sp-4-pyramid' | 'sp-4-scattered' | 'sp-4-2-2' | 'sp-4-asymm-wide' |
   'sp-5-editorial' | 'sp-6-editorial' | 'sp-8-editorial' | 'sp-11-grid' | 'sp-14-grid' |
   // Вертикальні слоти на сторінку + дзеркальні пари на розворот (поза лінією згину)
-  'p-vert-1' | 'p-vert-2' | 'p-vert-3' | 'sp-mirror-1' | 'sp-mirror-2' | 'sp-mirror-3';
+  'p-vert-1' | 'p-vert-2' | 'p-vert-3' | 'sp-mirror-1' | 'sp-mirror-2' | 'sp-mirror-3' |
+  // Колаж зі стовпцями-парами (велике + пара фото стопкою)
+  'sp-6-pairs' | 'sp-4-pairs-center';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
@@ -519,6 +521,9 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-mirror-1',         label: '1+1 дзеркально',      slots: 2, group: 'Розворот 2 фото' },
   { id: 'sp-mirror-2',         label: '2+2 дзеркально',      slots: 4, group: 'Розворот 4 фото' },
   { id: 'sp-mirror-3',         label: '3+3 дзеркально',      slots: 6, group: 'Розворот 5+ фото' },
+  // Колаж: велике фото + стовпець із двох фото стопкою
+  { id: 'sp-4-pairs-center',   label: 'Великі з боків + пара', slots: 4, group: 'Розворот 4 фото' },
+  { id: 'sp-6-pairs',          label: '2 великих + 2 пари',   slots: 6, group: 'Розворот 5+ фото' },
 ];
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -1064,6 +1069,9 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   if (layout === 'sp-mirror-1')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, ha, hh), S(1, rx, vt, ha, hh)]; }
   if (layout === 'sp-mirror-2')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-g)/2, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, rx, vt, cw, hh), S(3, rx+cw+g, vt, cw, hh)]; }
   if (layout === 'sp-mirror-3')        { const outer=W*0.05, spine=W*0.035, vt=H*0.08, ha=W*0.5-spine-outer, cw=(ha-2*g)/3, hh=H-2*vt, rx=W*0.5+spine; return [S(0, outer, vt, cw, hh), S(1, outer+cw+g, vt, cw, hh), S(2, outer+2*(cw+g), vt, cw, hh), S(3, rx, vt, cw, hh), S(4, rx+cw+g, vt, cw, hh), S(5, rx+2*(cw+g), vt, cw, hh)]; }
+  // Колаж: велике фото + стовпець із 2 фото стопкою, край-до-краю
+  if (layout === 'sp-4-pairs-center') { const a=W-2*g, wA=a*0.30, wS=a*0.17, wD=a*0.53, hh=(H-g)/2, xS=wA+g, xD=xS+wS+g; return [S(0,0,0,wA,H), S(1,xS,0,wS,hh), S(2,xS,hh+g,wS,hh), S(3,xD,0,wD,H)]; }
+  if (layout === 'sp-6-pairs')        { const a=W-3*g, wA=a*0.26, wS1=a*0.14, wD=a*0.37, wS2=a*0.23, hh=(H-g)/2, xB=wA+g, xD=xB+wS1+g, xE=xD+wD+g; return [S(0,0,0,wA,H), S(1,xB,0,wS1,hh), S(2,xB,hh+g,wS1,hh), S(3,xD,0,wD,H), S(4,xE,0,wS2,hh), S(5,xE,hh+g,wS2,hh)]; }
 
   return [S(0, 0, 0, W, H)];
 }
