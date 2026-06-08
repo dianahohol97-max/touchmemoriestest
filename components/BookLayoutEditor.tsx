@@ -1114,7 +1114,7 @@ export default function BookLayoutEditor() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
-  const { addItem } = useCartStore();
+  const { addItem, replaceItem } = useCartStore();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const designerOrderId = searchParams?.get('designer_order_id') || null;
   const hasTextLayout = searchParams?.get('text_layout') === 'with';
@@ -1522,7 +1522,7 @@ export default function BookLayoutEditor() {
           // When reopening a saved design from the account, the draft IS the
           // authoritative design (it may include endpapers/forzac that make the
           // raw page count differ), so never discard it on the count heuristic.
-          const isReopen = !!sessionStorage.getItem('bookReopenProjectId');
+          const isReopen = !!sessionStorage.getItem('bookReopenProjectId') || !!sessionStorage.getItem('bookEditCartItemId');
           if (!isReopen && (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow)) {
             // Draft is from a different order — discard it
             sessionStorage.removeItem(draftKey);
@@ -2975,7 +2975,34 @@ export default function BookLayoutEditor() {
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
     };
 
-    addItem(cartPayload as any);
+    // If the customer arrived here via "Редагувати" on a cart item, reuse that
+    // cart id so the edited design replaces the original instead of adding a
+    // duplicate. (Set by the cart's edit button.)
+    const editingCartItemId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bookEditCartItemId') : null;
+    if (editingCartItemId) cartPayload.id = editingCartItemId;
+
+    // Save a self-contained snapshot of this design (config + draft + its own
+    // photos) keyed by the cart item id, so the customer can reopen THIS item
+    // later from the cart and keep editing — even with several books in the
+    // cart. Per-item photos avoid the shared-key problem (one bookConstructorPhotos
+    // would otherwise show the last-edited book's photos). Wrapped in try/catch:
+    // if sessionStorage is full the snapshot is skipped and the cart simply
+    // won't offer "edit" for this item (it still orders fine).
+    try {
+      const snap = {
+        config,
+        photos: sessionStorage.getItem('bookConstructorPhotos') || '[]',
+        draft: { productSlug: (config?.productSlug || '').toLowerCase().trim(), pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount },
+      };
+      sessionStorage.setItem('tmCartEdit_' + cartPayload.id, JSON.stringify(snap));
+    } catch { /* storage full — skip; item still orders, just not re-editable */ }
+
+    if (editingCartItemId) {
+      replaceItem(cartPayload as any);
+      sessionStorage.removeItem('bookEditCartItemId');
+    } else {
+      addItem(cartPayload as any);
+    }
 
     const clearSlug = (config?.productSlug || '').toLowerCase().trim();
     if (clearSlug) sessionStorage.removeItem(`bookEditorDraft_${clearSlug}`);

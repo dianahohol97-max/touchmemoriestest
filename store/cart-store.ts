@@ -29,6 +29,7 @@ interface CartState {
     isDrawerOpen: boolean;
     addItem: (item: CartItem) => void;
     addItems: (items: CartItem[]) => void;
+    replaceItem: (item: CartItem) => void;
     removeItem: (id: string | number) => void;
     updateQuantity: (id: string | number, qty: number) => void;
     clearCart: () => void;
@@ -55,6 +56,17 @@ export const useCartStore = create<CartState>()(
                 }
                 return { items: [...state.items, item], isDrawerOpen: true };
             }),
+            // Overwrite an existing item in place (used when the customer edits
+            // a configured item — e.g. a photobook — and re-adds it from the
+            // editor). Unlike addItem it does NOT bump qty; the edited design
+            // replaces the old one at the same cart position. Falls back to
+            // appending if the id isn't present.
+            replaceItem: (item) => set((state) => ({
+                items: state.items.some((i) => i.id === item.id)
+                    ? state.items.map((i) => (i.id === item.id ? { ...item } : i))
+                    : [...state.items, item],
+                isDrawerOpen: true,
+            })),
             addItems: (newItems) => set((state) => {
                 const currentItems = [...state.items];
 

@@ -245,6 +245,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     ), []);
 
     useEffect(() => {
+        // Starting a fresh book order from the catalog — drop any leftover
+        // "editing this cart item" flag so a new configuration is ADDED to the
+        // cart rather than replacing a previously edited item.
+        try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('bookEditCartItemId'); } catch { /* ignore */ }
+    }, []);
+
+    useEffect(() => {
         async function fetchProduct() {
             const { data, error } = await supabase
                 .from('products')

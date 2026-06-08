@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Image from 'next/image';
-import { Trash2, Plus, Minus, ChevronRight, ImageIcon } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronRight, ImageIcon, Pencil } from 'lucide-react';
 import { logCartEvent } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,34 @@ export default function CartPage() {
     const { t, locale } = useTranslation();
     const { items, removeItem, updateQuantity, getTotal } = useCartStore();
     const router = useRouter();
+
+    // Which cart items have a re-openable design snapshot (saved by the editor
+    // when the item was added). Only those show an "Редагувати" button — the
+    // snapshot lives in sessionStorage, so editing is available within the
+    // current browsing session.
+    const [editableIds, setEditableIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const ids = new Set<string>();
+        for (const it of items) {
+            try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
+        }
+        setEditableIds(ids);
+    }, [items]);
+
+    const editCartItem = (item: { id: string }) => {
+        try {
+            const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
+            if (!raw) return;
+            const snap = JSON.parse(raw);
+            sessionStorage.setItem('bookConstructorConfig', JSON.stringify(snap.config));
+            sessionStorage.setItem('bookConstructorPhotos', snap.photos || '[]');
+            const slug = (snap.config?.productSlug || '').toLowerCase().trim();
+            sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(snap.draft || {}));
+            sessionStorage.setItem('bookEditCartItemId', item.id);
+            router.push(`/${locale}/editor/book/layout`);
+        } catch { /* ignore */ }
+    };
 
     // Track checkout initiation
     useEffect(() => {
@@ -106,6 +134,12 @@ export default function CartPage() {
                                                       <div style={{ marginTop:2, fontSize:11, color:'#aaa' }}>{(item as any).personalization_note}</div>
                                                     )}
                                                 </div>
+                                                {editableIds.has(item.id) && (
+                                                    <button onClick={() => editCartItem(item)}
+                                                        style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1.5px solid #1e2d7d', background: '#fff', color: '#1e2d7d', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                        <Pencil size={13} /> Редагувати
+                                                    </button>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: "3px" }}>
                                                 <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={qtyBtnStyle}><Minus size={14} /></button>

@@ -1,13 +1,17 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Pencil } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useT } from '@/lib/i18n/context';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useT, useLocale } from '@/lib/i18n/context';
 
 export default function CartDrawer() {
     const t = useT();
+    const locale = useLocale();
+    const router = useRouter();
     const {
         items,
         isDrawerOpen,
@@ -16,6 +20,33 @@ export default function CartDrawer() {
         updateQuantity,
         getTotal
     } = useCartStore();
+
+    // Cart items that carry a re-openable design snapshot get an "Редагувати"
+    // button (snapshot saved by the editor, lives in this browsing session).
+    const [editableIds, setEditableIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const ids = new Set<string>();
+        for (const it of items) {
+            try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
+        }
+        setEditableIds(ids);
+    }, [items, isDrawerOpen]);
+
+    const editCartItem = (item: { id: string }) => {
+        try {
+            const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
+            if (!raw) return;
+            const snap = JSON.parse(raw);
+            sessionStorage.setItem('bookConstructorConfig', JSON.stringify(snap.config));
+            sessionStorage.setItem('bookConstructorPhotos', snap.photos || '[]');
+            const slug = (snap.config?.productSlug || '').toLowerCase().trim();
+            sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(snap.draft || {}));
+            sessionStorage.setItem('bookEditCartItemId', item.id);
+            closeDrawer();
+            router.push(`/${locale}/editor/book/layout`);
+        } catch { /* ignore */ }
+    };
 
     const total = getTotal();
 
@@ -184,6 +215,13 @@ export default function CartDrawer() {
                                                     {key}: {typeof value === 'object' ? value.name : value}
                                                 </span>
                                             ))}
+
+                                            {editableIds.has(item.id) && (
+                                                <button onClick={() => editCartItem(item)}
+                                                    style={{ marginTop: 6, alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', border: '1.5px solid #1e2d7d', background: '#fff', color: '#1e2d7d', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                    <Pencil size={12} /> Редагувати
+                                                </button>
+                                            )}
 
                                             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 {/* Quantity controls */}
