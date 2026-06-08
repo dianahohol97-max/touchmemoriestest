@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import jsPDF from 'jspdf';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import { Upload, Download, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 
@@ -55,8 +57,8 @@ function bestGrid(count: number, cellW: number, cellH: number) {
   return { cols: best.cols, rows: best.rows };
 }
 
-// Center-crop (cover) draw of an image into a destination rect.
-function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: number, dy: number, dw: number, dh: number) {
+// Cover-fit draw of an image into a destination rect (center-crop).
+function drawCoverCore(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: number, dy: number, dw: number, dh: number) {
   if (dw <= 0 || dh <= 0) return;
   const ir = img.width / img.height;
   const tr = dw / dh;
@@ -64,6 +66,25 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: num
   if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
   else { sw = img.width; sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
   ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
+// Draw with optional 90° auto-rotation so the photo's orientation matches the
+// cell (a landscape photo in a portrait cell is turned, and vice versa) — this
+// keeps far more of the photo than a straight center-crop would.
+function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, dx: number, dy: number, dw: number, dh: number, autoRotate: boolean) {
+  if (dw <= 0 || dh <= 0) return;
+  const imgLandscape = img.width >= img.height;
+  const cellLandscape = dw >= dh;
+  if (autoRotate && imgLandscape !== cellLandscape) {
+    ctx.save();
+    ctx.translate(dx + dw / 2, dy + dh / 2);
+    ctx.rotate(Math.PI / 2);
+    // axes are swapped after the rotation, so draw into a swapped rect
+    drawCoverCore(ctx, img, -dh / 2, -dw / 2, dh, dw);
+    ctx.restore();
+  } else {
+    drawCoverCore(ctx, img, dx, dy, dw, dh);
+  }
 }
 
 export default function KadruvannyaPage() {
@@ -78,6 +99,7 @@ export default function KadruvannyaPage() {
   const [marginMm, setMarginMm] = useState(5);
   const [borderMm, setBorderMm] = useState(0);
   const [cutLines, setCutLines] = useState(false);
+  const [autoRotate, setAutoRotate] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -139,6 +161,7 @@ export default function KadruvannyaPage() {
         ctx, p.img,
         (cellX + borderMm) * pxmm, (cellY + borderMm) * pxmm,
         (cell.w - 2 * borderMm) * pxmm, (cell.h - 2 * borderMm) * pxmm,
+        autoRotate,
       );
       if (cutLines) {
         ctx.strokeStyle = 'rgba(120,120,120,0.6)';
@@ -146,7 +169,7 @@ export default function KadruvannyaPage() {
         ctx.strokeRect(cellX * pxmm, cellY * pxmm, cell.w * pxmm, cell.h * pxmm);
       }
     });
-  }, [layout, cell, gapMm, borderMm, cutLines]);
+  }, [layout, cell, gapMm, borderMm, cutLines, autoRotate]);
 
   // Render previews whenever inputs change.
   useEffect(() => {
@@ -208,6 +231,43 @@ export default function KadruvannyaPage() {
     } catch (e) {
       console.error(e);
       toast.error('Помилка експорту PDF');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const renderSheetBlob = (pagePhotos: LoadedPhoto[], quality = 0.92): Promise<Blob> => {
+    const { sheetW, sheetH } = layout;
+    const off = document.createElement('canvas');
+    off.width = Math.round(sheetW * PX_PER_MM);
+    off.height = Math.round(sheetH * PX_PER_MM);
+    const ctx = off.getContext('2d')!;
+    ctx.imageSmoothingQuality = 'high';
+    drawPage(ctx, pagePhotos, PX_PER_MM);
+    return new Promise(res => off.toBlob(b => res(b!), 'image/jpeg', quality));
+  };
+
+  const exportJpg = async () => {
+    if (!pages.length) { toast.error('Спочатку додай фото'); return; }
+    setExporting(true);
+    try {
+      const base = `kadr-${useCustom ? 'custom' : preset.id}`;
+      if (pages.length === 1) {
+        const blob = await renderSheetBlob(pages[0]);
+        saveAs(blob, `${base}-${photos.length}sht.jpg`);
+      } else {
+        const zip = new JSZip();
+        for (let i = 0; i < pages.length; i++) {
+          const blob = await renderSheetBlob(pages[i]);
+          zip.file(`arkush-${String(i + 1).padStart(2, '0')}.jpg`, blob);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, `${base}-${photos.length}sht-${pages.length}ark.zip`);
+      }
+      toast.success(`Готово: ${pages.length} арк. · ${photos.length} фото`);
+    } catch (e) {
+      console.error(e);
+      toast.error('Помилка експорту JPG');
     } finally {
       setExporting(false);
     }
@@ -275,8 +335,11 @@ export default function KadruvannyaPage() {
               <div><label style={label}>Відступ між фото, мм</label><input type="number" min={0} max={20} value={gapMm} onChange={e => setGapMm(Math.max(0, +e.target.value))} style={inputS} /></div>
               <div><label style={label}>Поле аркуша, мм</label><input type="number" min={0} max={30} value={marginMm} onChange={e => setMarginMm(Math.max(0, +e.target.value))} style={inputS} /></div>
               <div><label style={label}>Біла рамка, мм</label><input type="number" min={0} max={10} step={0.5} value={borderMm} onChange={e => setBorderMm(Math.max(0, +e.target.value))} style={inputS} /></div>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer', paddingBottom: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 8, paddingBottom: 6 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={autoRotate} onChange={e => setAutoRotate(e.target.checked)} /> Авто-поворот
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
                   <input type="checkbox" checked={cutLines} onChange={e => setCutLines(e.target.checked)} /> Лінії різу
                 </label>
               </div>
@@ -294,13 +357,19 @@ export default function KadruvannyaPage() {
                 Набір не влазить у цей аркуш — обери «По сітці» або зменши кількість.
               </div>
             )}
-            <button onClick={exportPdf} disabled={exporting || !photos.length} style={{
+            <button onClick={exportJpg} disabled={exporting || !photos.length} style={{
               marginTop: 14, width: '100%', padding: '13px', borderRadius: 10, border: 'none', cursor: photos.length ? 'pointer' : 'not-allowed',
               background: photos.length ? '#1e2d7d' : '#cbd5e1', color: '#fff', fontWeight: 800, fontSize: 15,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}>
               {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-              {exporting ? 'Готую PDF…' : 'Завантажити PDF'}
+              {exporting ? 'Готую…' : `Завантажити JPG${pages.length > 1 ? ' (zip)' : ''}`}
+            </button>
+            <button onClick={exportPdf} disabled={exporting || !photos.length} style={{
+              marginTop: 8, width: '100%', padding: '9px', borderRadius: 10, cursor: photos.length ? 'pointer' : 'not-allowed',
+              background: '#fff', border: '1.5px solid #e2e8f0', color: '#475569', fontWeight: 700, fontSize: 13,
+            }}>
+              …або одним PDF
             </button>
           </div>
         </div>
