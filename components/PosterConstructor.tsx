@@ -286,10 +286,17 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
   const H = Math.round(W / sizeObj.ratio);
   const layout = LAYOUTS.find(l => l.id === config.layoutId) || LAYOUTS[0];
   const slots = layout.getSlots(W, H, config.padding);
+  // Guards against stale async image draws: every redraw bumps this, and an
+  // image's onload only paints if it still belongs to the latest redraw. Without
+  // it, a slower-loading photo (often the first/largest) could finish AFTER a
+  // newer redraw and repaint itself with an outdated zoom/crop — which looked
+  // like "the zoom % changed but the photo didn't move".
+  const drawGenRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const myGen = ++drawGenRef.current;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d')!;
@@ -354,6 +361,7 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
+          if (myGen !== drawGenRef.current) { resolve(); return; } // superseded by a newer redraw
           ctx.save();
           applyShapeClip(ctx, slot);
           ctx.clip();
@@ -381,6 +389,7 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
     });
 
     Promise.all(drawPromises).then(() => {
+      if (myGen !== drawGenRef.current) return; // superseded by a newer redraw
       // Frame — drawn on top of the photos so it's always visible, with widths
       // scaled to the canvas so "Товста"/"Подвійна"/"Округла" are clearly
       // different (a fixed 8px line was invisibly thin on a full-res poster).
