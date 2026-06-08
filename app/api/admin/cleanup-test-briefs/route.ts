@@ -26,32 +26,29 @@ export async function GET(req: Request) {
   const supabase = getAdminClient();
   if (!supabase) return NextResponse.json({ error: 'No admin client' }, { status: 500 });
 
-  // Get the exact full object paths for the three prefixes (handles any nesting)
-  // by reading the storage.objects table with the service-role client.
-  const orFilter = TEST_PREFIXES.map(p => `name.like.${p}/%`).join(',');
-  const { data: rows, error: selErr } = await supabase
-    .schema('storage')
-    .from('objects')
-    .select('name')
-    .eq('bucket_id', BUCKET)
-    .or(orFilter);
-
-  if (selErr) return NextResponse.json({ error: selErr.message }, { status: 500 });
-
-  const paths = (rows || []).map((r: any) => r.name).filter(Boolean);
-  if (paths.length === 0) {
-    return NextResponse.json({ ok: true, deleted: 0, note: 'Nothing to delete (already clean).' });
-  }
-
-  // Remove via the Storage API in chunks of 100.
+  // Enumerate each prefix via the Storage API (files are flat under the prefix),
+  // then remove them. Reading storage.objects via PostgREST isn't available
+  // (the storage schema isn't exposed), so we list through the Storage API.
   let deleted = 0;
+  const report: Record<string, number> = {};
   const errors: string[] = [];
-  for (let i = 0; i < paths.length; i += 100) {
-    const chunk = paths.slice(i, i + 100);
-    const { error } = await supabase.storage.from(BUCKET).remove(chunk);
-    if (error) errors.push(error.message);
-    else deleted += chunk.length;
+
+  for (const prefix of TEST_PREFIXES) {
+    const { data: files, error: listErr } = await supabase.storage
+      .from(BUCKET)
+      .list(prefix, { limit: 1000 });
+    if (listErr) { errors.push(`${prefix}: ${listErr.message}`); report[prefix] = -1; continue; }
+
+    const paths = (files || [])
+      .filter((f: any) => f && f.name)
+      .map((f: any) => `${prefix}/${f.name}`);
+    if (paths.length === 0) { report[prefix] = 0; continue; }
+
+    const { error: rmErr } = await supabase.storage.from(BUCKET).remove(paths);
+    if (rmErr) { errors.push(`${prefix}: ${rmErr.message}`); report[prefix] = -2; continue; }
+    deleted += paths.length;
+    report[prefix] = paths.length;
   }
 
-  return NextResponse.json({ ok: errors.length === 0, deleted, total: paths.length, errors });
+  return NextResponse.json({ ok: errors.length === 0, deleted, report, errors });
 }
