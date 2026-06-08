@@ -314,7 +314,18 @@ export function Navigation() {
               </button>
             </div>
             <nav className="flex flex-col p-8 gap-1 overflow-y-auto">
-              {[...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:'/catalog' }, ...aboutItems].map(link => (
+              {(() => {
+                // mainProductLinks (hero pills) and the DB-driven navLinks overlap
+                // on the same category URLs (photobooks / magazines / travelbooks),
+                // which showed up as duplicate menu rows (Фотокнига + Фотокниги,
+                // Глянцевий журнал + Журнали, Тревелбук + Travel Book). De-dupe by
+                // href, keeping the first occurrence so the cleaner mainProductLinks
+                // labels win and the unique DB entries (Книга побажань, Фотомагніти…)
+                // still appear once.
+                const seen = new Set<string>();
+                return [...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:'/catalog' }, ...aboutItems]
+                  .filter(link => { if (!link.href || seen.has(link.href)) return !link.href; seen.add(link.href); return true; });
+              })().map(link => (
                 <Link key={link.id || link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)}
                   className="py-4 text-base font-bold text-primary no-underline border-b border-primary/5 block">
                   {link.name}
