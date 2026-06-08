@@ -8838,12 +8838,12 @@ export default function BookLayoutEditor() {
             textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
             <div style={{ fontSize:36, marginBottom:12 }}>📤</div>
             <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:6 }}>
-              {uploadState.active ? 'Завантаження фото...' : 'Фото завантажено!'}
+              {uploadState.active ? 'Готуємо ваш макет до друку...' : 'Макет збережено!'}
             </h2>
             <p style={{ color:'#64748b', fontSize:13, marginBottom:16 }}>
               {uploadState.active
-                ? `${uploadState.done} з ${uploadState.total} файлів${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`
-                : `${uploadState.done} з ${uploadState.total} файлів завантажено${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`}
+                ? `Сторінка ${uploadState.done} з ${uploadState.total}${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`
+                : `${uploadState.total} сторінок збережено${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`}
             </p>
             <div style={{ width:'100%', height:8, background:'#e2e8f0', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
               <div style={{
