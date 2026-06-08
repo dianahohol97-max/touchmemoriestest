@@ -164,6 +164,10 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
     const [uploading, setUploading] = useState(false);
     const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(initialData?.custom_attributes || []);
     const [attributePriceModifiers, setAttributePriceModifiers] = useState<AttributePriceModifiers>(initialData?.attribute_price_modifiers || {});
+    // Configurator characteristics (the `options` jsonb the product page reads:
+    // each has a name + a list of values with label/value/price, and optionally
+    // an example `image` that swaps the gallery when that value is selected).
+    const [productOptions, setProductOptions] = useState<any[]>(Array.isArray(initialData?.options) ? initialData.options : []);
     const [tags, setTags] = useState<string[]>(initialData?.tags || []);
     const [tagInput, setTagInput] = useState('');
     const [allExistingTags, setAllExistingTags] = useState<string[]>([]);
@@ -405,6 +409,20 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         setTags(tags.filter(t => t !== tag));
     };
 
+    // ── Configurator characteristics (options) editing ──────────────
+    const addProductOption = () =>
+        setProductOptions(o => [...o, { name: '', type: 'select', required: false, options: [] }]);
+    const removeProductOption = (i: number) =>
+        setProductOptions(o => o.filter((_, idx) => idx !== i));
+    const updateProductOption = (i: number, field: string, value: any) =>
+        setProductOptions(o => o.map((opt, idx) => idx === i ? { ...opt, [field]: value } : opt));
+    const addOptionValue = (i: number) =>
+        setProductOptions(o => o.map((opt, idx) => idx === i ? { ...opt, options: [...(opt.options || []), { label: '', value: '', price: 0 }] } : opt));
+    const removeOptionValue = (i: number, j: number) =>
+        setProductOptions(o => o.map((opt, idx) => idx === i ? { ...opt, options: (opt.options || []).filter((_: any, vj: number) => vj !== j) } : opt));
+    const updateOptionValue = (i: number, j: number, field: string, value: any) =>
+        setProductOptions(o => o.map((opt, idx) => idx === i ? { ...opt, options: (opt.options || []).map((v: any, vj: number) => vj === j ? { ...v, [field]: value } : v) } : opt));
+
     const handleSubmit = async (publish: boolean) => {
         setLoading(true);
 
@@ -423,6 +441,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
             is_active: publish,
             images: images,
             variants: variants,
+            options: productOptions,
             characteristics: customAttributes,
             attribute_price_modifiers: attributePriceModifiers,
             tags: tags,
@@ -721,6 +740,73 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                         </div>
                                     );
                                 })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Configurator Characteristics (options) */}
+                    <div style={cardStyle}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ padding: '10px', backgroundColor: '#eef2ff', borderRadius: '3px', color: '#1e2d7d' }}><Layout size={20} /></div>
+                                <div>
+                                    <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0 }}>Характеристики (конструктор)</h3>
+                                    <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Параметри, які клієнт обирає на сторінці товару. Для значення можна задати приклад-фото — воно з’явиться в галереї при виборі цього значення.</p>
+                                </div>
+                            </div>
+                            <button type="button" onClick={addProductOption} style={addBtnStyle}><Plus size={18} /> Додати характеристику</button>
+                        </div>
+
+                        {productOptions.length === 0 ? (
+                            <div style={emptyStateStyle}>Характеристик ще немає. Додайте, напр. «Розмір», «Покриття» або «Біла рамочка».</div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                {productOptions.map((opt: any, i: number) => (
+                                    <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, background: '#fafbff' }}>
+                                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+                                            <input
+                                                value={opt.name || ''}
+                                                onChange={e => updateProductOption(i, 'name', e.target.value)}
+                                                placeholder="Назва характеристики (напр. Біла рамочка 3мм)"
+                                                style={{ ...inputStyle, flex: 2, minWidth: 220, margin: 0 }}
+                                            />
+                                            <select value={opt.type || 'select'} onChange={e => updateProductOption(i, 'type', e.target.value)} style={{ ...inputStyle, flex: 1, minWidth: 120, margin: 0 }}>
+                                                <option value="select">Вибір зі списку</option>
+                                                <option value="text">Текст</option>
+                                            </select>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#475569' }}>
+                                                <input type="checkbox" checked={!!opt.required} onChange={e => updateProductOption(i, 'required', e.target.checked)} />
+                                                Обов’язкова
+                                            </label>
+                                            <button type="button" onClick={() => removeProductOption(i)} style={{ padding: 8, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}><Trash2 size={18} /></button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {(opt.options || []).map((val: any, j: number) => (
+                                                <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                    <input value={val.label || ''} onChange={e => updateOptionValue(i, j, 'label', e.target.value)} placeholder="Підпис (З рамочкою)" style={{ ...variantInputStyle, flex: 2, minWidth: 160 }} />
+                                                    <input value={val.value ?? ''} onChange={e => updateOptionValue(i, j, 'value', e.target.value)} placeholder="значення (with)" style={{ ...variantInputStyle, flex: 1, minWidth: 110 }} />
+                                                    <input type="number" value={val.price ?? 0} onChange={e => updateOptionValue(i, j, 'price', Number(e.target.value))} placeholder="+грн" style={{ ...variantInputStyle, width: 90 }} />
+                                                    <select
+                                                        value={val.image || ''}
+                                                        onChange={e => updateOptionValue(i, j, 'image', e.target.value)}
+                                                        style={{ ...variantInputStyle, flex: 1, minWidth: 150 }}
+                                                        title="Приклад-фото для галереї"
+                                                    >
+                                                        <option value="">— приклад-фото: немає —</option>
+                                                        {images.map((url, imgIdx) => (
+                                                            <option key={url} value={url}>Фото {imgIdx + 1}</option>
+                                                        ))}
+                                                    </select>
+                                                    <button type="button" onClick={() => removeOptionValue(i, j)} style={{ padding: 6, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={15} /></button>
+                                                </div>
+                                            ))}
+                                            <button type="button" onClick={() => addOptionValue(i)} style={{ alignSelf: 'flex-start', marginTop: 4, fontSize: 12, fontWeight: 700, color: '#1e2d7d', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                                <Plus size={14} /> Додати значення
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
