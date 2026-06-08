@@ -50,6 +50,7 @@ interface Product {
     is_popular: boolean;
     popular_order: number;
     created_at: string;
+    fulfillment_type?: string | null;
     categories?: {
         name: string;
         slug: string;
@@ -132,7 +133,7 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
 
             const { data: prodData } = await supabase
                 .from('products')
-                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, translations, categories(name, slug)')
+                .select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, created_at, is_personalized, is_partially_personalized, fulfillment_type, translations, categories(name, slug)')
                 .eq('is_active', true);
 
             if (prodData) setProducts(prodData as any);
@@ -401,7 +402,7 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
                                             {t('catalog.popular_badge')}
                                         </div>
                                     )}
-                                    <ProductCard product={product} />
+                                    <ProductCard product={product} primaryAction={product.fulfillment_type === 'in_stock' ? 'cart' : 'details'} />
                                 </div>
                             ))}
                             {sortedProducts.length === 0 && (

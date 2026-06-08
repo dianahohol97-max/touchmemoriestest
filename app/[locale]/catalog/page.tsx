@@ -44,7 +44,7 @@ export default async function CatalogPage() {
     if (supabase) {
       const [{ data: cats }, { data: prods }] = await Promise.all([
         supabase.from('categories').select('id, name, slug, cover_image, display_style, translations').eq('is_active', true).order('sort_order'),
-        supabase.from('products').select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, category_id, translations').eq('is_active', true).order('sort_order'),
+        supabase.from('products').select('id, name, slug, price, price_from, short_description, images, is_popular, popular_order, category_id, fulfillment_type, translations').eq('is_active', true).order('sort_order'),
       ]);
       initialCategories = cats || [];
       initialProducts = prods || [];
