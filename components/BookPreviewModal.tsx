@@ -68,6 +68,8 @@ interface FreeSlot {
 
 interface KalkaState {
   text: string; textColor: string; fontSize: number; fontFamily: string;
+  bold?: boolean; italic?: boolean; textAlign?: 'left' | 'center' | 'right';
+  textX?: number; textY?: number;
   imageUrl: string | null;
   imgCropX: number; imgCropY: number; imgZoom: number;
   imgScale: number; imgX: number; imgY: number;
@@ -320,8 +322,8 @@ export function BookPreviewModal({
         </div>
       )}
       {kalkaState?.text && (
-        <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 2, pointerEvents: 'none' }}>
-          <span style={{ fontSize: (kalkaState.fontSize || 24) * 0.85, fontFamily: kalkaState.fontFamily || 'Playfair Display', color: kalkaState.textColor || '#333', whiteSpace: 'pre-wrap' }}>{kalkaState.text}</span>
+        <div style={{ position: 'absolute', left: `${kalkaState.textX ?? 50}%`, top: `${kalkaState.textY ?? 50}%`, transform: kalkaState.textAlign === 'left' ? 'translate(0,-50%)' : kalkaState.textAlign === 'right' ? 'translate(-100%,-50%)' : 'translate(-50%,-50%)', maxWidth: '90%', zIndex: 2, pointerEvents: 'none' }}>
+          <span style={{ display: 'inline-block', fontSize: (kalkaState.fontSize || 24) * 0.85, fontFamily: kalkaState.fontFamily || 'Playfair Display', color: kalkaState.textColor || '#333', fontWeight: kalkaState.bold ? 700 : 400, fontStyle: kalkaState.italic ? 'italic' : 'normal', textAlign: kalkaState.textAlign || 'center', whiteSpace: 'pre-wrap', opacity: 0.85 }}>{kalkaState.text}</span>
         </div>
       )}
       {!kalkaState?.text && !kalkaState?.imageUrl && (
@@ -391,11 +393,43 @@ export function BookPreviewModal({
       const bg = effectiveCoverColor || '#8b7355';
       return (
         <div style={{ width: pageW, height: pageH, background: bg, flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {coverState?.decoText && (
-            <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
-              <span style={{ fontSize: (coverState.textFontSize || 24) * 0.85, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{coverState.decoText}</span>
-            </div>
-          )}
+          {(() => {
+            const decoType = coverState?.decoType;
+            const decoText = coverState?.decoText || '';
+            // Mirror CoverEditor's decoration rendering so the preview matches
+            // the editor: a metal/acryl plate is a CENTRED box sized from the
+            // decoVariant (mm → px via the cover width), with the inscription
+            // centred inside it. Flex / engraving text is positioned by textX/textY.
+            const parseDims = (v: string): { w: number; h: number; round: boolean } => {
+              if (!v) return { w: 100, h: 100, round: false };
+              if (v.startsWith('Ø')) { const d = parseFloat(v.replace('Ø', '').replace(/\s*мм.*/, '')); return { w: d, h: d, round: true }; }
+              const m = v.match(/(\d+)[×x](\d+)/);
+              return m ? { w: parseInt(m[1]), h: parseInt(m[2]), round: false } : { w: 100, h: 100, round: false };
+            };
+            if (decoType === 'metal') {
+              const dims = parseDims(coverState?.decoVariant || '100×100 мм');
+              const scale = pageW / (Math.max(1, propW) * 10); // px per mm (width-based, matches editor)
+              const plateW = dims.w * scale, plateH = dims.h * scale;
+              const isSilver = (coverState?.decoColor || 'gold') === 'silver';
+              const grad = isSilver
+                ? 'linear-gradient(135deg,#5A5A5A 0%,#E8E8E8 40%,#C8C8C8 55%,#4A4A4A 100%)'
+                : 'linear-gradient(135deg,#9A7000 0%,#FFD700 40%,#D4AF37 55%,#8B6000 100%)';
+              const fs = Math.max(7, Math.min(plateW / 7, plateH * 0.5));
+              return (
+                <div style={{ position: 'absolute', left: (pageW - plateW) / 2, top: (pageH - plateH) / 2, width: plateW, height: plateH, borderRadius: dims.round ? '50%' : 3, background: grad, boxShadow: '0 3px 14px rgba(0,0,0,0.4),inset 0 1px 1px rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', pointerEvents: 'none' }}>
+                  <span style={{ color: isSilver ? '#1A1A1A' : '#3D2800', fontSize: fs, fontFamily: (coverState?.textFontFamily || 'Montserrat') + ',sans-serif', fontWeight: 700, letterSpacing: '0.05em', textAlign: 'center', padding: '0 6px', maxWidth: '90%', wordBreak: 'break-word', lineHeight: 1.1 }}>{decoText}</span>
+                </div>
+              );
+            }
+            if (decoText) {
+              return (
+                <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
+                  <span style={{ fontSize: (coverState.textFontSize || 24) * 0.85, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
+                </div>
+              );
+            }
+            return null;
+          })()}
           {renderFrame(getFrame(0), pageW, pageH)}
           {renderShapes(pageShapes[0] || [])}
           {renderStickers(pageStickers[0], pageW)}
