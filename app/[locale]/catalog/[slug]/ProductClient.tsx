@@ -255,6 +255,29 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         sessionStorage.setItem(key, JSON.stringify(customProductOptions));
     }, [customProductOptions]);
 
+    // When a selected option value carries an example image, reflect it in the
+    // gallery's main image. This is how the photo-print "Біла рамочка" option
+    // shows a framed example when "З рамочкою" is picked and an unframed one for
+    // "Без рамочки" — no separate block, the gallery itself reacts. Generic: any
+    // product option value with an `image` works the same way. Options without
+    // images leave the gallery untouched, so other products are unaffected.
+    useEffect(() => {
+        const opts = (product as any)?.options;
+        if (!Array.isArray(opts)) return;
+        let img: string | null = null;
+        for (const opt of opts) {
+            const items = opt?.options || opt?.values || [];
+            if (!Array.isArray(items)) continue;
+            const selectedVal = customProductOptions[opt.name];
+            if (selectedVal === undefined || selectedVal === null || selectedVal === '') continue;
+            const match = items.find((it: any) => (it?.value ?? it?.name ?? it) === selectedVal);
+            if (match && typeof match.image === 'string' && match.image.trim()) {
+                img = match.image.trim();
+            }
+        }
+        if (img) setMainImage(img);
+    }, [customProductOptions, product]);
+
     // Recalculate price when customProductOptions change for travelbook
     useEffect(() => {
         if (!product) return;
