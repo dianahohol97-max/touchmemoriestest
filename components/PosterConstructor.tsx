@@ -298,24 +298,8 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
     ctx.fillStyle = config.bgColor;
     ctx.fillRect(0, 0, W, H);
 
-    // Frame
-    if (config.frameStyle !== 'none') {
-      ctx.save();
-      const fw = config.frameStyle === 'thick' ? 8 : config.frameStyle === 'double' ? 3 : 4;
-      ctx.strokeStyle = config.frameColor;
-      ctx.lineWidth = fw;
-      if (config.frameStyle === 'rounded') {
-        const r = 12;
-        ctx.beginPath(); ctx.roundRect(fw/2, fw/2, W-fw, H-fw, r); ctx.stroke();
-      } else {
-        ctx.strokeRect(fw/2, fw/2, W-fw, H-fw);
-      }
-      if (config.frameStyle === 'double') {
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(10, 10, W-20, H-20);
-      }
-      ctx.restore();
-    }
+    // (Frame is drawn AFTER the photos — see below — so it sits on top and is
+    // actually visible instead of being covered by full-bleed photo slots.)
 
     // Draw photo slots
     // Helper: apply shape clip path
@@ -397,6 +381,31 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
     });
 
     Promise.all(drawPromises).then(() => {
+      // Frame — drawn on top of the photos so it's always visible, with widths
+      // scaled to the canvas so "Товста"/"Подвійна"/"Округла" are clearly
+      // different (a fixed 8px line was invisibly thin on a full-res poster).
+      if (config.frameStyle !== 'none') {
+        ctx.save();
+        const unit = W / 400; // scale reference
+        const fw = config.frameStyle === 'thick' ? Math.round(10 * unit)
+                 : config.frameStyle === 'double' ? Math.round(3 * unit)
+                 : Math.round(4 * unit);
+        ctx.strokeStyle = config.frameColor;
+        ctx.lineWidth = fw;
+        if (config.frameStyle === 'rounded') {
+          const r = Math.round(16 * unit);
+          ctx.beginPath(); ctx.roundRect(fw / 2, fw / 2, W - fw, H - fw, r); ctx.stroke();
+        } else {
+          ctx.strokeRect(fw / 2, fw / 2, W - fw, H - fw);
+        }
+        if (config.frameStyle === 'double') {
+          const gap = Math.round(7 * unit);
+          ctx.lineWidth = Math.max(1, Math.round(1.5 * unit));
+          ctx.strokeRect(fw + gap, fw + gap, W - 2 * (fw + gap), H - 2 * (fw + gap));
+        }
+        ctx.restore();
+      }
+
       // Draw text blocks
       config.textBlocks.forEach(tb => {
         ctx.save();

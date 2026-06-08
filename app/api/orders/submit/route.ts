@@ -248,7 +248,10 @@ export async function POST(request: NextRequest) {
 
   if (error || !inserted) {
     console.error('orders/submit insert error:', error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create order', detail: error?.message || null, code: (error as any)?.code || null },
+      { status: 500 },
+    );
   }
 
   // Audit trail
