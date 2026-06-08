@@ -2012,13 +2012,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                {t('product_page.shipping_info')}
+                                {product.shipping_info && String(product.shipping_info).trim() ? product.shipping_info : t('product_page.shipping_info')}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>
                                     <CheckCircle2 size={16} color="#16a34a" />
                                 </div>
-                                {t('product_page.payment_info')}
+                                {product.payment_info && String(product.payment_info).trim() ? product.payment_info : t('product_page.payment_info')}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 500 }}>
                                 <div style={{ background: '#dcfce7', padding: '6px', borderRadius: "3px" }}>

@@ -157,6 +157,9 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         is_popular: initialData?.is_popular ?? false,
         sku: initialData?.sku || '',
         is_partially_personalized: initialData?.is_partially_personalized ?? false,
+        production_time: initialData?.production_time || '',
+        shipping_info: initialData?.shipping_info || '',
+        payment_info: initialData?.payment_info || '',
     });
 
     const [variants, setVariants] = useState<ProductVariant[]>(initialData?.variants || []);
@@ -536,6 +539,26 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                             <div>
                                 <label style={labelStyle}>Короткий опис (на картці)</label>
                                 <textarea name="short_description" value={formData.short_description} onChange={handleInputChange} style={{ ...textareaStyle, minHeight: '80px' }} rows={2} />
+                            </div>
+                            <div style={{ padding: '16px 18px', borderRadius: '3px', border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e2d7d', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Інфо-блок на сторінці товару
+                                    <span style={{ display: 'block', marginTop: 4, fontSize: '11px', fontWeight: 600, color: '#94a3b8', textTransform: 'none', letterSpacing: 0 }}>
+                                        Три рядки з галочками. Залиш порожнім — покаже стандартний текст.
+                                    </span>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Термін виготовлення</label>
+                                    <input name="production_time" value={formData.production_time} onChange={handleInputChange} style={inputStyle} placeholder="напр. 7–14 робочих днів" />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Доставка</label>
+                                    <input name="shipping_info" value={formData.shipping_info} onChange={handleInputChange} style={inputStyle} placeholder="Швидка та безпечна доставка Новою Поштою" />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Оплата</label>
+                                    <input name="payment_info" value={formData.payment_info} onChange={handleInputChange} style={inputStyle} placeholder="Оплата при отриманні або онлайн (Apple Pay/Google Pay)" />
+                                </div>
                             </div>
                             <div>
                                 <label style={labelStyle}>Повний опис продукту</label>
