@@ -3,6 +3,7 @@ import { useState, useEffect, use } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import DesignerProjectBlock from './DesignerProjectBlock';
+import PrintSheetsCard from './PrintSheetsCard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
@@ -1211,6 +1212,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                 {/* Right Side */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                    <PrintSheetsCard orderId={order.id} />
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}><User size={20} /> Клієнт</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>

@@ -440,6 +440,17 @@ export default function CheckoutPage() {
             // to the order before we clear the cart in either branch below.
             await linkPendingExports(orderId, cartItemIds);
 
+            // Fire-and-forget: auto-build print-ready imposition sheets for any
+            // custom-size prints / magnets in this order. Idempotent and fully
+            // non-blocking — it must never delay or break checkout.
+            try {
+                const hasPrintables = items.some((it: any) => {
+                    const s = `${it.slug || ''} ${it.category_slug || ''}`.toLowerCase();
+                    return s.includes('print') || s.includes('magnet') || s.includes('polaroid') || s.includes('druk');
+                });
+                if (hasPrintables) fetch(`/api/orders/${orderId}/print-sheets`, { method: 'POST' }).catch(() => {});
+            } catch { /* ignore */ }
+
             // 2. ALWAYS create Monobank invoice — invoice is 100% if 'full', 50% if 'split'.
             toast.loading(actualPaymentType === 'split'
                 ? `Створюємо посилання на передоплату ${prepaidAmount} ₴...`
