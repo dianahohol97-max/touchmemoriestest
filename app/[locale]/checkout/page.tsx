@@ -179,6 +179,18 @@ export default function CheckoutPage() {
         }
     }, [paymentOptions.allowSplit, formData.paymentChoice]);
 
+    // Display preview of the split prepayment. Mirrors the server model: items
+    // that aren't 'full_or_split' (e.g. фотодрук) are prepaid in full, the rest
+    // is halved. UA-only path (split is disabled for international), so the base
+    // `total` is an accurate basis for the shown figure.
+    const fullOnlyBase = items.reduce((s: number, it: any) => {
+        const m = dbModes[it.slug] || dbModes[it.product_id] || it.payment_mode || 'full_only';
+        return m === 'full_or_split' ? s : s + (it.price * it.qty);
+    }, 0);
+    const splitPrepaidPreview = Math.max(0, Math.round(Math.min(fullOnlyBase, total) + Math.max(0, total - fullOnlyBase) / 2));
+    const splitRemainderPreview = Math.max(0, total - splitPrepaidPreview);
+    const hasMixedFullOnly = fullOnlyBase > 0 && fullOnlyBase < total;
+
     const checkoutTracked = useRef(false);
     useEffect(() => {
         if (items.length === 0 && currentStep !== 'complete') {
@@ -737,13 +749,20 @@ export default function CheckoutPage() {
                                             icon={<CreditCard size={24} />}
                                         />
                                         {(paymentOptions.allowSplit && !isIntl) ? (
+                                            <>
                                             <PaymentOption
                                                 id="split_50_50"
-                                                label={`50% передоплата онлайн (${Math.round(total / 2)} ₴), решта при отриманні`}
+                                                label={`${hasMixedFullOnly ? 'Передоплата' : '50% передоплата'} онлайн (${splitPrepaidPreview} ₴), решта ${splitRemainderPreview} ₴ при отриманні`}
                                                 active={formData.paymentChoice === 'split_50_50'}
                                                 onClick={() => setFormData(p => ({ ...p, paymentChoice: 'split_50_50' }))}
                                                 icon={<Truck size={24} />}
                                             />
+                                            {hasMixedFullOnly && (
+                                                <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280', lineHeight: 1.4 }}>
+                                                    Деякі товари в кошику оплачуються повністю наперед, тому онлайн зараз — {splitPrepaidPreview} ₴, а 50% від решти ({splitRemainderPreview} ₴) ви сплатите при отриманні.
+                                                </div>
+                                            )}
+                                            </>
                                         ) : (
                                             <div style={{
                                                 padding: '12px 16px',
@@ -786,7 +805,7 @@ export default function CheckoutPage() {
                                             ) : (
                                                 <><CreditCard size={20} />
                                                 {formData.paymentChoice === 'split_50_50'
-                                                    ? `Сплатити ${Math.round(total / 2)} ₴`
+                                                    ? `Сплатити ${splitPrepaidPreview} ₴`
                                                     : 'Перейти до оплати'}</>
                                             )}
                                         </button>

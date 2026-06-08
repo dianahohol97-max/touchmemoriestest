@@ -41,17 +41,12 @@ export function getAvailablePaymentOptions(items: CartItemPayment[]): PaymentOpt
   // Treat missing mode as 'full_only' (safe default).
   const modes = items.map(i => (i.payment_mode || 'full_only') as PaymentMode);
 
-  // Any 'full_only' product blocks split
-  const fullOnlyItem = items.find((_, idx) => modes[idx] === 'full_only');
-  if (fullOnlyItem) {
-    return {
-      allowFull: true,
-      allowSplit: false,
-      splitBlockedReason: `Для товару «${fullOnlyItem.name || fullOnlyItem.slug || 'у кошику'}» доступна лише повна онлайн-оплата`,
-    };
-  }
-
-  // Need at least one full_or_split to enable split
+  // Need at least one full_or_split item to offer the 50% prepayment at all.
+  // A mixed cart (some full_only + at least one splittable) NO LONGER blocks
+  // split: the split simply becomes "full_only items fully prepaid + 50% of the
+  // rest" (computed in computePaymentAmounts via fullPrepaidPortion). This lets
+  // a customer who adds e.g. a photobook (splittable) + a фотодрук (full_only)
+  // still pay part on delivery instead of being forced into full prepayment.
   const hasSplittable = modes.some(m => m === 'full_or_split');
   if (!hasSplittable) {
     return {
@@ -77,6 +72,7 @@ export function computePaymentAmounts(
   total: number,
   paymentType: 'full' | 'split',
   deliveryMethod: string,
+  fullPrepaidPortion: number = 0,
 ): {
   prepaid_amount: number;
   cod_amount: number;
@@ -86,12 +82,17 @@ export function computePaymentAmounts(
   if (paymentType === 'full') {
     return { prepaid_amount: t, cod_amount: 0, pickup_unpaid_balance: 0 };
   }
-  // split: 50% online up front, 50% later
-  const half = Math.round(t / 2);
-  const remaining = t - half;
+  // split: full_only items are charged in full up front; the remaining
+  // (splittable items + delivery − discount) is split 50% online / 50% later.
+  // fullPrepaidPortion = 0 reduces this to a plain 50/50 of the whole total.
+  const fp = Math.max(0, Math.min(t, Math.round(Number(fullPrepaidPortion) || 0)));
+  const splitBase = Math.max(0, t - fp);
+  const halfOfSplit = Math.round(splitBase / 2);
+  const prepaid = Math.min(t, fp + halfOfSplit);
+  const remaining = t - prepaid;
   const isPickup = /pickup|самовивіз/i.test(deliveryMethod);
   return {
-    prepaid_amount: half,
+    prepaid_amount: prepaid,
     cod_amount: isPickup ? 0 : remaining,
     pickup_unpaid_balance: isPickup ? remaining : 0,
   };

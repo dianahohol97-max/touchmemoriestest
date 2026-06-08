@@ -128,15 +128,20 @@ export async function POST(request: NextRequest) {
   const admin = getAdminClient();
 
   let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
-  if (payment_type === 'split') {
+  const modeBySlug = new Map<string, string>();
+  {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
       const { data: prodRows } = await admin
         .from('products')
         .select('slug, payment_mode')
         .in('slug', slugs);
-      const modeBySlug = new Map<string, string>();
       (prodRows || []).forEach(r => modeBySlug.set(r.slug, r.payment_mode));
+    }
+  }
+  if (payment_type === 'split') {
+    const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
+    if (slugs.length > 0) {
       const cartForCheck: CartItemPayment[] = body.items.map(i => ({
         slug: i.slug,
         payment_mode: (modeBySlug.get(i.slug || '') as any) || 'full_only',
@@ -191,7 +196,21 @@ export async function POST(request: NextRequest) {
   const finalDeliveryCost = shipRegion === 'INTL' ? intlShipping : delivery_cost;
   const markedTotal = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
 
-  const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method);
+  // For a split order, full_only items must be charged 100% up front; only the
+  // splittable items (+ delivery − discount) are split 50/50. Sum the marked
+  // value of every non-splittable item and hand it to computePaymentAmounts.
+  let markedFullOnlyPortion = 0;
+  if (payment_type === 'split') {
+    for (const i of body.items) {
+      const mode = modeBySlug.get(i.slug || '') || 'full_only';
+      if (mode !== 'full_or_split') {
+        markedFullOnlyPortion += Math.round(Number(i.total_price || 0) * priceMultiplier);
+      }
+    }
+    markedFullOnlyPortion = Math.max(0, Math.min(markedFullOnlyPortion, markedTotal));
+  }
+
+  const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method, markedFullOnlyPortion);
   const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
   const { data: inserted, error } = await admin
