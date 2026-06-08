@@ -10,6 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import WishlistButton from '@/components/WishlistButton';
 import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
     product: {
@@ -50,14 +51,14 @@ export function ProductCard({ product, primaryAction = 'details' }: ProductCardP
             className="group flex flex-col h-full bg-white rounded-[3px] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-all duration-500 overflow-hidden border border-gray-100"
         >
             <Link href={`/catalog/${product.slug}`} className="no-underline text-inherit flex flex-col h-full">
-                <div className="relative w-full aspect-[2/3] overflow-hidden bg-gray-50 border-b border-gray-100">
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-50 border-b border-gray-100">
                     {product.images?.[0] ? (
                         <Image
                             src={product.images[0]}
                             alt={getLocalized(product, locale, "name")}
                             fill
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className="object-cover object-center transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
+                            className="object-cover object-top transition-transform duration-700 ease-[0.23,1,0.32,1] group-hover:scale-110"
                         />
                     ) : (
                         // No image in the DB for this product yet. The old code
@@ -120,6 +121,7 @@ export function ProductCard({ product, primaryAction = 'details' }: ProductCardP
                                             image: product.images?.[0],
                                             slug: product.slug,
                                         });
+                                        toast.success(t('product_page.added_to_cart'));
                                     }
                                 }}
                                 className="w-full bg-[#1e2d7d] text-white font-bold text-[11px] sm:text-sm py-2 sm:py-3 px-2 sm:px-6 rounded-lg hover:bg-[#152158] transition-colors duration-200 cursor-pointer text-center"
