@@ -120,6 +120,12 @@ interface PhotoFile {
   storagePath?: string;
 }
 
+// Clickable suggestions for the cover brief — customers rarely know what to type
+// for "era" / "style", so we offer glossy-magazine presets they can tap (and
+// still edit freely). These feed the brief our editor uses to design the cover.
+const COVER_ERA_SUGGESTIONS = ['Сучасний', 'Вінтаж', 'Ретро 90-х', 'Голлівуд', 'Романтичний', 'Святковий', 'Драматичний'];
+const COVER_STYLE_SUGGESTIONS = ['Fashion / мода', 'Glamour', 'Модель (model)', 'Editorial', 'Beauty', 'Глянцевий яскравий', 'Пастельний ніжний', 'Чорно-білий', 'Мінімалізм'];
+
 function MagazineTextBriefContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -740,6 +746,19 @@ function MagazineTextBriefContent() {
             placeholder='напр. "вінтаж 90-х", "ретро", "сучасний мінімалізм"'
             style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
           />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {COVER_ERA_SUGGESTIONS.map(s => (
+              <button key={s} type="button" onClick={() => setCoverEra(s)}
+                style={{
+                  padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  border: coverEra === s ? '1px solid #1e2d7d' : '1px solid #e2e8f0',
+                  background: coverEra === s ? '#eef1fb' : '#fff',
+                  color: coverEra === s ? '#1e2d7d' : '#475569',
+                }}>
+                {s}
+              </button>
+            ))}
+          </div>
           <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
             Яку атмосферу часу має передавати журнал — це впливає на шрифти й кольори.
           </p>
@@ -756,6 +775,22 @@ function MagazineTextBriefContent() {
             placeholder='напр. "журнальний glossy", "ніжний пастельний", "стильний чорно-білий"'
             style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none' }}
           />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {COVER_STYLE_SUGGESTIONS.map(s => (
+              <button key={s} type="button" onClick={() => setCoverStyle(s)}
+                style={{
+                  padding: '6px 12px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  border: coverStyle === s ? '1px solid #1e2d7d' : '1px solid #e2e8f0',
+                  background: coverStyle === s ? '#eef1fb' : '#fff',
+                  color: coverStyle === s ? '#1e2d7d' : '#475569',
+                }}>
+                {s}
+              </button>
+            ))}
+          </div>
+          <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>
+            Стиль обкладинки в дусі глянцю — оберіть варіант або впишіть свій. Це задає вигляд назв і написів на обкладинці.
+          </p>
         </div>
 
         <div style={{ marginBottom: 16 }}>
