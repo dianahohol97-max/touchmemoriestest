@@ -22,6 +22,7 @@ interface OrderFormData {
   files: UploadedFile[]
   comment: string
   ownText: string
+  kalkaText: string
   delivery: 'nova_poshta' | 'pickup' | ''
   city: string
   address: string
@@ -201,12 +202,15 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
   )
 }
 
-function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange }: {
+function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, showKalka, kalkaText, onKalkaTextChange }: {
   value: string
   onChange: (v: string) => void
   showOwnText?: boolean
   ownText?: string
   onOwnTextChange?: (v: string) => void
+  showKalka?: boolean
+  kalkaText?: string
+  onKalkaTextChange?: (v: string) => void
 }) {
   return (
     <div>
@@ -220,6 +224,19 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange }:
             onChange={e => onOwnTextChange?.(e.target.value)}
             rows={8}
             placeholder="Вставте або напишіть текст для журналу. Можна розділяти по розворотах, наприклад: Розворот 1 — ...; Розворот 2 — ..."
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
+          />
+        </div>
+      )}
+      {showKalka && (
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-[#1e2d7d] mb-2">Що розмістити на кальці?</label>
+          <p className="text-gray-500 text-sm mb-3">Ви додали кальку (прозорий аркуш перед першою сторінкою). Опишіть, що на ній надрукувати: напис, ім'я, дата, цитата чи побажання, а також де розмістити (по центру, зверху тощо). Якщо хочете малюнок або візерунок — опишіть його чи надішліть приклад дизайнеру.</p>
+          <textarea
+            value={kalkaText || ''}
+            onChange={e => onKalkaTextChange?.(e.target.value)}
+            rows={4}
+            placeholder="Наприклад: по центру напис «Наша історія 2024» курсивом; або легкий рослинний візерунок по краях."
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
           />
         </div>
@@ -494,6 +511,12 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.ownText}</p>
           </div>
         )}
+        {data.kalkaText && (
+          <div className="bg-[#f0f2f8] rounded-xl p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Калька</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.kalkaText}</p>
+          </div>
+        )}
         {data.comment && (
           <div className="bg-[#f0f2f8] rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Коментар</p>
@@ -682,7 +705,7 @@ function OrderForm() {
   )
 
   const [formData, setFormData] = useState<OrderFormData>({
-    files: [], comment: '', ownText: '', delivery: '', city: '', address: '',
+    files: [], comment: '', ownText: '', kalkaText: '', delivery: '', city: '', address: '',
     name: '', lastName: '', phone: '', contactChannel: '', contactHandle: '',
     coverInscription: '', coverPhoto: null,
   })
@@ -785,6 +808,7 @@ function OrderForm() {
           notes: [
             'Замовлення з дизайнером',
             formData.ownText ? `Текст для журналу (власний текст клієнта):\n${formData.ownText}` : '',
+            formData.kalkaText ? `Калька (що розмістити):\n${formData.kalkaText}` : '',
             formData.comment ? `Коментар: ${formData.comment}` : '',
             `Доставка: ${deliveryText}`,
             formData.coverInscription ? `Надпис на обкладинці: ${formData.coverInscription}` : '',
@@ -801,6 +825,7 @@ function OrderForm() {
           total: 0,
           text_brief: {
             own_text: formData.ownText || null,
+            kalka_text: formData.kalkaText || null,
             cover: { inscription: formData.coverInscription, photo_path: coverPath },
             collected_at: new Date().toISOString(),
           },
@@ -990,6 +1015,19 @@ function OrderForm() {
             showOwnText={String(savedConfig?.config?.['Верстка тексту'] || '') === 'own'}
             ownText={formData.ownText}
             onOwnTextChange={v => update('ownText', v)}
+            showKalka={(() => {
+              const cfg = savedConfig?.config || {};
+              let v = String(cfg['Калька перед першою сторінкою'] ?? cfg['tracingPaper'] ?? cfg['tracing'] ?? cfg['Калька'] ?? '').toLowerCase().trim();
+              if (!v) {
+                for (const [k, val] of Object.entries(cfg)) {
+                  const kl = k.toLowerCase();
+                  if (kl.includes('кальк') || kl.includes('tracing')) { v = String(val).toLowerCase().trim(); break; }
+                }
+              }
+              return !!v && v !== 'none' && !v.includes('без');
+            })()}
+            kalkaText={formData.kalkaText}
+            onKalkaTextChange={v => update('kalkaText', v)}
           />}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
