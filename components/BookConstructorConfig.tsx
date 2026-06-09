@@ -1192,7 +1192,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {types.sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {types.filter((c: any) => c.name !== 'Випускна' && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button key={cover.id} type="button"
                                         onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); setSelectedCoverColor(''); }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
@@ -1399,7 +1399,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {coverTypes.filter((c: any) => c.name !== 'Випускна').sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {coverTypes.filter((c: any) => c.name !== 'Випускна' && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button
                                         key={cover.id}
                                         type="button"

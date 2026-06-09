@@ -575,7 +575,7 @@ function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
 //                                              Оздоблення = Акрил / Фотовставка
 //   • Everything else (and direct /order
 //     visits with no product) ............... no cover block
-function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean } {
+function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean; exampleUpload?: boolean } {
   const slug = String(savedConfig?.slug || '').toLowerCase();
   if (!slug) return { show: false, allowInscription: false };
 
@@ -596,9 +596,11 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
   if (isPrintedPhotobook) return { show: true, allowInscription: true };
 
   if (isPremiumPhotobook) {
-    // Only show when the customer picked an insert that can hold a photo.
-    // The option is "Оздоблення" with values acryl / photovstavka (the DB
-    // stores the canonical value; the carried config may hold the label).
+    // Velour/fabric/leatherette covers have no printed photo. The cover
+    // block is relevant in two cases:
+    //   • acryl / photo-insert — the customer supplies a photo for the insert
+    //   • flex (друк кольором) / engraving — the decoration IS text, so the
+    //     customer must be able to write the desired cover inscription.
     const cfg = savedConfig?.config || {};
     const finishRaw = String(
       cfg['Оздоблення'] ?? cfg['Тип оздоблення'] ?? cfg['finish'] ?? ''
@@ -606,17 +608,23 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
     const hasInsert =
       finishRaw.includes('acryl') || finishRaw.includes('акрил') ||
       finishRaw.includes('photovstavka') || finishRaw.includes('фотовставк');
-    return { show: hasInsert, allowInscription: false };
+    const hasText =
+      finishRaw.includes('flex') || finishRaw.includes('флекс') ||
+      finishRaw.includes('друк кольор') ||
+      finishRaw.includes('гравір') || finishRaw.includes('гравію') ||
+      finishRaw.includes('graviruvannya');
+    return { show: hasInsert || hasText, allowInscription: hasText, exampleUpload: hasText && !hasInsert };
   }
 
   return { show: false, allowInscription: false };
 }
 
-function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
+function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, exampleUpload }: {
   allowInscription: boolean,
   inscription: string,
   coverPhoto: UploadedFile | null,
   onChange: (field: string, value: any) => void,
+  exampleUpload?: boolean,
 }) {
   const coverRef = useRef<HTMLInputElement>(null)
 
@@ -643,7 +651,9 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
     <div className="mt-8 pt-6 border-t border-gray-200">
       <h3 className="text-base font-bold text-[#1e2d7d] mb-1">Обкладинка</h3>
       <p className="text-gray-500 text-sm mb-4">
-        Завантажте окреме фото для обкладинки{allowInscription ? ' і коротко опишіть, що має бути на ній зображено або написано' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.
+        {exampleUpload
+          ? 'Напишіть текст, який має бути на обкладинці, і за бажанням додайте приклад дизайну, який вам подобається — дизайнер орієнтуватиметься на нього.'
+          : `Завантажте окреме фото для обкладинки${allowInscription ? ' і коротко опишіть, що має бути на ній зображено або написано' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.`}
       </p>
 
       <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => pickCover(e.target.files)} />
@@ -666,19 +676,19 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange }: {
           className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center gap-2 text-gray-500 hover:border-[#1e2d7d] hover:bg-[#f8f9fc] transition-colors mb-4"
         >
           <Upload className="w-6 h-6" />
-          <span className="font-semibold text-sm">Завантажити фото обкладинки</span>
-          <span className="text-xs text-gray-400">вертикальне фото, обличчя крупно</span>
+          <span className="font-semibold text-sm">{exampleUpload ? 'Додати приклад дизайну' : 'Завантажити фото обкладинки'}</span>
+          <span className="text-xs text-gray-400">{exampleUpload ? 'фото або скрін дизайну, який вам подобається (опційно)' : 'вертикальне фото, обличчя крупно'}</span>
         </button>
       )}
 
       {allowInscription && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Що має бути на обкладинці (опційно)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{exampleUpload ? 'Бажаний текст на обкладинці (опційно)' : 'Що має бути на обкладинці (опційно)'}</label>
           <textarea
             value={inscription}
             onChange={e => onChange('coverInscription', e.target.value)}
             rows={3}
-            placeholder='Опишіть, що хочете бачити на обкладинці: ім&apos;я, девіз, або яке фото — напр. "Книга про Марію", "наше весілля, фото з арки" або "найкраще спільне фото з відпустки"'
+            placeholder={exampleUpload ? 'Напр.: «Наша історія 2024», ім&apos;я, дата чи цитата — те, що надрукувати на обкладинці.' : 'Опишіть, що хочете бачити на обкладинці: ім&apos;я, девіз, або яке фото — напр. "Книга про Марію", "наше весілля, фото з арки" або "найкраще спільне фото з відпустки"'}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none font-sans"
           />
           <p className="text-xs text-gray-400 mt-1.5">Можна залишити порожнім — тоді дизайнер обере на власний розсуд.</p>
@@ -1006,6 +1016,7 @@ function OrderForm() {
                 inscription={formData.coverInscription}
                 coverPhoto={formData.coverPhoto}
                 onChange={update}
+                exampleUpload={cap.exampleUpload}
               />
             );
           })()}
