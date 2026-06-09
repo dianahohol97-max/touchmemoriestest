@@ -509,7 +509,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const timer = setTimeout(() => {
             // Photobooks need size + pages; wishbook needs size + cover; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
-                ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor))
+                ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor) && photobookPrices.length > 0)
                 : pt === 'wishbook'
                 ? (selectedSize && selectedCoverType && (selectedCoverType === 'Друкована' || selectedCoverColor))
                 : selectedPageCount;
@@ -519,7 +519,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }, 150);
         return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType, selectedCoverColor]);
+    }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType, selectedCoverColor, photobookPrices.length]);
 
     const calculatePrice = (): number => {
         if (!product) return 0;
@@ -588,8 +588,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 const closest = available.reduce((prev: any, curr: any) =>
                     Math.abs(curr.page_count - pageNum) < Math.abs(prev.page_count - pageNum) ? curr : prev
                 );
+                let total = closest.base_price || 0;
+                // Same kalka surcharge as the exact-match path — otherwise a
+                // nearest-page-count fallback silently dropped the +300 ₴.
+                if (enableKalka && closest.kalka_surcharge) {
+                    total += Number(closest.kalka_surcharge) || 0;
+                }
                 const copiesNum = parseInt(selectedCopies) || 1;
-                return (closest.base_price || 0) * copiesNum;
+                return total * copiesNum;
             }
             return 0;
         }

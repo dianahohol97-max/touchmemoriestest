@@ -477,6 +477,9 @@ export default function BookPhotoUpload() {
                                 const lamCost = pages > 0 ? pages * 5 : 0;
                                 return <p>• {t('photo_upload.lamination_pages')} {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
                             })()}
+                            {(config as any).enableKalka && (
+                                <p>• Калька перед першою сторінкою: <b>так</b> (+300 ₴)</p>
+                            )}
                             {recommendedRange && (
                                 typeof recommendedRange === 'string'
                                     ? <p>• {t('photo_upload.recommended_count')} <b>{recommendedRange}</b></p>
