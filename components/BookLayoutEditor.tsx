@@ -1101,7 +1101,7 @@ function computeFitZoom(el: HTMLElement | null, baseW: number, baseH: number): n
   const availW = el.clientWidth - padX;
   const availH = el.clientHeight - padY;
   if (availW <= 0 || availH <= 0) return null;
-  const fit = Math.floor(Math.min(availW / baseW, availH / baseH) * 100);
+  const fit = Math.floor(Math.min(availW / baseW, availH / baseH) * 100 * 0.93);
   return Math.max(20, Math.min(150, fit));
 }
 
@@ -1293,17 +1293,23 @@ export default function BookLayoutEditor() {
   const canvasViewportRef = useRef<HTMLDivElement>(null);
   const dimsRef = useRef<{ baseW: number; baseH: number }>({ baseW: 0, baseH: 0 });
   const autoFitDoneRef = useRef(false);
-  // On first load (once the canvas is rendered), zoom so the whole spread is
-  // visible instead of being clipped at the default heuristic zoom.
+  // True once the user manually changes zoom (buttons / pinch). While true, the
+  // per-spread auto-fit stops overriding their choice — until they hit "Вмістити".
+  const userZoomedRef = useRef(false);
+  // On desktop, fit each view (cover + every spread) to the viewport so the
+  // whole spread is always visible — unless the user manually zoomed (then we
+  // leave their choice until they press "Вмістити"). Mobile uses the dedicated
+  // width-fit effect below.
   useEffect(() => {
-    if (autoFitDoneRef.current) return;
+    if (isMobile) return;
     if (!config || pages.length === 0) return;
+    if (userZoomedRef.current) return;
     const id = requestAnimationFrame(() => {
       const z = computeFitZoom(canvasViewportRef.current, dimsRef.current.baseW, dimsRef.current.baseH);
       if (z != null) { setZoom(z); autoFitDoneRef.current = true; }
     });
     return () => cancelAnimationFrame(id);
-  }, [config, pages.length]);
+  }, [config, pages.length, currentIdx, isMobile]);
   // On mobile, fit the spread to the viewport WIDTH (so it's never clipped off
   // the side) on first paint and whenever the spread changes, a panel opens, or
   // the screen rotates/resizes. Width-fit (not min(w,h)) guarantees the full
@@ -1919,6 +1925,7 @@ export default function BookLayoutEditor() {
   // Keep the latest spread dims for the auto-fit effect; expose a Fit handler.
   dimsRef.current = { baseW, baseH };
   const fitToView = () => {
+    userZoomedRef.current = false;
     const z = computeFitZoom(canvasViewportRef.current, baseW, baseH);
     if (z != null) setZoom(z);
   };
@@ -2353,9 +2360,22 @@ export default function BookLayoutEditor() {
       result.pages = result.pages.slice(0, targetPages);
     }
 
-    // Apply cover photo
+    // Apply cover photos (front + back). autoBuild only returns coverPhotoId
+    // when cover photos are enabled, so we gate the back cover on the same
+    // signal — when the user wanted an auto cover, fill BOTH sides, not just
+    // the front (previously the back cover was left empty after «Магічна збірка»).
     if (result.coverPhotoId && isPrinted) {
-      setCoverState((prev: any) => ({ ...prev, photoId: result.coverPhotoId }));
+      const frontId = result.coverPhotoId;
+      // Prefer a different photo for the back so both covers aren't identical;
+      // fall back to the last/front photo when only one image is available.
+      const backId = photos.find(p => p.id !== frontId)?.id || photos[photos.length - 1]?.id || frontId;
+      setCoverState((prev: any) => ({
+        ...prev,
+        photoId: frontId,
+        backCoverEnabled: true,
+        backCoverPhotoId: backId,
+        backCoverSlot: prev.backCoverSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' },
+      }));
     }
 
     // Build new pages array: keep page 0 (cover), rebuild content pages
@@ -3735,9 +3755,9 @@ export default function BookLayoutEditor() {
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <button onClick={()=>setShowAutoBuild(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Магічна збірка</button>
             <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
-            <button onPointerDown={()=>setZoom(z=>Math.max(20,z-10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
+            <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.max(20,z-10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
-            <button onPointerDown={()=>setZoom(z=>Math.min(150,z+10))} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
+            <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.min(150,z+10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
             {isMobile && <button onPointerDown={()=>{ const el=canvasViewportRef.current; const bw=dimsRef.current.baseW; if(el&&bw>0){ const cs=getComputedStyle(el); const padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0); const availW=el.clientWidth-padX; if(availW>0) setZoom(Math.max(20,Math.min(150,Math.floor(availW/bw*100)))); } }} title="Вмістити по ширині" style={{ padding:'6px 8px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:800, color:'#1e2d7d', touchAction:'manipulation' }}>↔</button>}
             {!isMobile && <button onPointerDown={fitToView} title="Вмістити весь розворот" style={{ padding:'6px 10px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:800, color:'#1e2d7d' }}>Вмістити</button>}
           </div>
@@ -7213,37 +7233,13 @@ export default function BookLayoutEditor() {
                 </button>
               );
             })()}
-            {/* Endpaper thumbnails — shown after cover when hasEndpaper */}
-            {hasEndpaper && (() => {
-              const epPages = [
-                { label: 'Форзац (перший)', pageIdx: endpaperFirstIdx, surcharge: endpaperSurcharge },
-                { label: 'Форзац (останній)', pageIdx: endpaperLastIdx, surcharge: endpaperSurcharge },
-              ];
-              return epPages.map(({ label, pageIdx, surcharge }) => {
-                const ep = pageIdx === endpaperFirstIdx ? endpaperState.first : endpaperState.last;
-                // The forzac lives inside a content spread (it isn't its own spread),
-                // so clicking the thumb must move the canvas to that spread AND open
-                // the endpaper editing tab — otherwise the canvas stays put and it
-                // looks like the click "does nothing".
-                const epSpread = Math.max(1, Math.floor((pageIdx - 1) / 2) + 1);
-                const active = currentIdx === epSpread && leftTab === ('endpaper' as any);
-                return (
-                  <button key={label}
-                    onClick={() => { setCurrentIdx(epSpread); setLeftTab('endpaper' as any); }}
-                    title={`${label} — клікніть для редагування`}
-                    style={{ width:'100%', padding:'4px', border: active ? '2px solid #059669' : '1px solid #d1fae5', borderRadius:6, background: active ? '#dcfce7' : '#f0fdf4', cursor:'pointer', textAlign:'center' }}>
-                    <div style={{ width:'100%', aspectRatio:`${prop.w}/${prop.h}`, background: ep.enabled ? '#e0f2fe' : '#f1f5f9', borderRadius:3, marginBottom:3, position:'relative', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      {ep.imageUrl
-                        ? <img src={ep.imageUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
-                        : <span style={{ fontSize:8, color:'#94a3b8', fontWeight:600, letterSpacing:1, textTransform:'uppercase', writingMode:'vertical-rl' }}>ФОРЗАЦ</span>
-                      }
-                      {ep.enabled && <div style={{ position:'absolute', bottom:2, left:0, right:0, textAlign:'center', fontSize:7, fontWeight:700, color:'#0369a1', background:'rgba(255,255,255,0.8)' }}>+{surcharge}₴</div>}
-                    </div>
-                    <span style={{ fontSize:9, fontWeight:700, color:'#059669' }}>{label.replace(' (перший)', ' 1').replace(' (останній)', ' 2')}</span>
-                  </button>
-                );
-              });
-            })()}
+            {/* Forzats are the book's first and last PAGE (per the «ФЗ Форзац»
+                tab instructions — edited inline by clicking that page in the
+                spread). They therefore already appear as the left page of the
+                first spread and the right page of the last spread, so we do NOT
+                render separate forzac thumbnails here — that produced an empty
+                duplicate of the same page in the rail. The first/last spread
+                thumbnails below carry a «Форзац» tag instead. */}
 
             {/* Content spreads */}
             {Array.from({ length: Math.ceil((pages.length - 1) / 2) }, (_, si) => {
@@ -7348,6 +7344,11 @@ export default function BookLayoutEditor() {
                   <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>
                     {pgL?.label?.replace('Стор. ', '')}{pgR ? `–${pgR.label?.replace('Стор. ', '')}` : ''}
                   </span>
+                  {hasEndpaper && (leftIdx === endpaperFirstIdx || rightIdx === endpaperLastIdx || leftIdx === endpaperLastIdx || rightIdx === endpaperFirstIdx) && (
+                    <span style={{ display:'block', fontSize:8, fontWeight:700, color:'#059669', letterSpacing:0.3 }}>
+                      {leftIdx === endpaperFirstIdx || rightIdx === endpaperFirstIdx ? 'містить форзац 1' : 'містить форзац 2'}
+                    </span>
+                  )}
                 </button>
               );
             })}

@@ -1645,7 +1645,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {getOptionValues(option).map((value) => (
                                     <option key={value.name} value={value.name}>
                                         {value.name}
-                                        {value.priceModifier !== undefined && value.priceModifier !== 0 &&
+                                        {option.name !== 'Кількість сторінок' && value.priceModifier !== undefined && value.priceModifier !== 0 &&
                                             ` (+${value.priceModifier} ₴)`
                                         }
                                     </option>
