@@ -33,7 +33,7 @@ export const FABRIC_COLORS: Record<string, string> = {
 // three in sync when adding/changing a velour color.
 // TODO: extract to lib/cover-colors.ts as single source of truth.
 export const VELOUR_COLORS: Record<string, string> = {
-  'Молочний':'#F0EAD6',       'Бежевий':'#D9C8B0',        'Таупе':'#A89880',
+  'Молочний':'#F0EAD6',       'Бежевий':'#D9C8B0',        'Таупе':'#7C7167',
   'Рожевий':'#E8B4B8',        'Бордо':'#7A2838',          'Сірий перловий':'#9A9898',
   'Лаванда':'#B8A8C8',        'Синій':'#1A2040',          'Графітовий':'#3A3038',
   'Бірюзовий':'#1A9090',      'Фіолетовий':'#8C2D80',     'Блакитно-сірий':'#607080',

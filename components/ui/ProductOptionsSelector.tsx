@@ -91,7 +91,7 @@ const POLAROID_PRICES: Record<string, number> = {
 const VELOUR_COLORS = [
   { code: 'В-01', name: 'Молочний',        hex: '#F0EAD6' },
   { code: 'В-02', name: 'Бежевий',         hex: '#D9C8B0' },
-  { code: 'В-03', name: 'Таупе',           hex: '#A89880' },
+  { code: 'В-03', name: 'Таупе',           hex: '#7C7167' },
   { code: 'В-04', name: 'Рожевий',         hex: '#E8B4B8' },
   { code: 'В-05', name: 'Бордо',           hex: '#7A2838' },
   { code: 'В-06', name: 'Сірий перловий',  hex: '#9A9898' },
