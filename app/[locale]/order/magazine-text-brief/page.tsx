@@ -168,6 +168,7 @@ function MagazineTextBriefContent() {
   const [submitting, setSubmitting] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -338,6 +339,11 @@ function MagazineTextBriefContent() {
           customer_email: email || null,
           customer_telegram: telegram || null,
           with_designer: true,
+          // order_number + delivery_method are NOT NULL with no default/trigger;
+          // this client-side insert must supply them or it fails (same fix as
+          // the designer flow). Delivery is confirmed by the team afterwards.
+          order_number: `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          delivery_method: 'pickup',
           items: [{
             product_slug: productSlug,
             product_name: productName,
@@ -378,7 +384,7 @@ function MagazineTextBriefContent() {
             collected_at: new Date().toISOString(),
           },
         })
-        .select('id')
+        .select('id, order_number')
         .single();
 
       if (orderError) throw orderError;
@@ -403,6 +409,7 @@ function MagazineTextBriefContent() {
       }
 
       setOrderId(order.id);
+      setOrderNumber(order.order_number);
       setOrderComplete(true);
       toast.success('Замовлення прийнято! Менеджер звʼяжеться з вами.');
     } catch (err: any) {
@@ -431,8 +438,8 @@ function MagazineTextBriefContent() {
         <p style={{ color: '#475569', marginBottom: 8 }}>
           Дякуємо! Наш менеджер звʼяжеться з вами найближчим часом для уточнення деталей та підтвердження замовлення.
         </p>
-        {orderId && (
-          <p style={{ color: '#94a3b8', fontSize: 14 }}>Номер замовлення: {orderId.slice(0, 8)}</p>
+        {orderNumber && (
+          <p style={{ color: '#94a3b8', fontSize: 14 }}>Номер замовлення: <strong>{orderNumber}</strong></p>
         )}
         <button onClick={() => router.push('/uk')} style={{
           marginTop: 32, padding: '12px 24px', background: '#1e2d7d', color: '#fff',

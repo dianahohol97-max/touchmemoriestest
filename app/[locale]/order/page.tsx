@@ -490,7 +490,7 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
   )
 }
 
-function SuccessScreen({ orderId }: { orderId?: string | null }) {
+function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
   const router = useRouter()
   return (
     <div className="text-center py-12">
@@ -499,8 +499,8 @@ function SuccessScreen({ orderId }: { orderId?: string | null }) {
       </div>
       <h2 className="text-2xl font-bold text-[#1e2d7d] mb-3">Замовлення відправлено!</h2>
       <p className="text-gray-500 max-w-md mx-auto mb-2">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
-      {orderId && <p className="text-gray-400 text-sm mb-8">Номер замовлення: {orderId.slice(0, 8)}</p>}
-      {!orderId && <div className="mb-8" />}
+      {orderNumber && <p className="text-gray-400 text-sm mb-8">Номер замовлення: <strong>{orderNumber}</strong></p>}
+      {!orderNumber && <div className="mb-8" />}
       <button onClick={() => router.push('/catalog')} className="bg-[#1e2d7d] hover:bg-[#263a99] text-white font-semibold px-8 py-3 rounded-lg transition-colors">
         Повернутись до каталогу
       </button>
@@ -641,6 +641,7 @@ function OrderForm() {
   const [error, setError] = useState('')
   const [savedConfig, setSavedConfig] = useState<any>(null)
   const [orderId, setOrderId] = useState<string | null>(null)
+  const [orderNumber, setOrderNumber] = useState<string | null>(null)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -770,7 +771,7 @@ function OrderForm() {
             collected_at: new Date().toISOString(),
           },
         })
-        .select('id')
+        .select('id, order_number')
         .single()
 
       if (orderError) throw orderError
@@ -789,7 +790,7 @@ function OrderForm() {
         )
       }
 
-      if (order) setOrderId(order.id)
+      if (order) { setOrderId(order.id); setOrderNumber(order.order_number) }
       sessionStorage.removeItem('designerOrderConfig')
       setSubmitted(true)
     } catch (e: any) {
@@ -800,7 +801,7 @@ function OrderForm() {
     }
   }
 
-  if (submitted) return <SuccessScreen orderId={orderId} />
+  if (submitted) return <SuccessScreen orderNumber={orderNumber} />
 
   return (
     <div className="min-h-screen bg-[#f0f2f8]">
