@@ -41,7 +41,7 @@ export function detectDecoType(decoString: string): CoverDecoType {
   const deco = (decoString || '').toLowerCase();
   if (deco.includes('акрил') || deco.includes('acrylic') || deco.includes('acryl')) return 'acryl';
   if (deco.includes('фотовставка') || deco.includes('photo_insert') || deco.includes('photo insert')) return 'photovstavka';
-  if (deco.includes('флекс') || deco.includes('flex')) return 'flex';
+  if (deco.includes('флекс') || deco.includes('flex') || deco.includes('друк кольор')) return 'flex';
   if (deco.includes('метал') || deco.includes('metal')) return 'metal';
   if (deco.includes('гравір') || deco.includes('гравію') || deco.includes('engraving') || deco.includes('graviruvannya')) return 'graviruvannya';
   return 'none';
