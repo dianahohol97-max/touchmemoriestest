@@ -1941,14 +1941,29 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('побажань');
   const isMagazine = _slug.includes('magazine') || _slug.includes('journal') || _slug.includes('zhurnal');
   const magazineTextEnabled = !isWishbook; // show templates for all products
+  const isTravel = _slug.includes('travel') || (config?.productName || '').toLowerCase().includes('тревел');
+  const isPhotobook = _slug.includes('photobook') || _slug.includes('fotoknig') ||
+    (config?.productName || '').toLowerCase().includes('фотокниг');
+  // Products where laying out text on the inside pages is a paid typesetting
+  // job (+195 ₴), exactly like the journal. Photobook + travel book have no
+  // paid "with text" variant, so ANY text the customer adds on the content
+  // pages turns the order into верстка. (The cover inscription is billed
+  // separately, so the cover page is excluded from the trigger below.)
+  const isTypesettingTextProduct = isMagazine || isPhotobook || isTravel;
 
   // Whether the customer added their own text on a "no text" magazine variant.
   // We allow it (with a warning) but it turns the order into a typeset job, so
   // the +195 ₴ typesetting fee is now applied AUTOMATICALLY (previously the
   // manager had to add it by hand, which risked lost revenue). Driven by the
   // content-page text blocks the Text tab / text templates create.
-  const userAddedTextOnNoTextVariant = isMagazine && !hasTextLayout &&
-    pages.some(p => (p.textBlocks?.length || 0) > 0);
+  const userAddedTextOnNoTextVariant = isTypesettingTextProduct && !hasTextLayout && (
+    isMagazine
+      // Journal: unchanged — any text block (incl. cover) counts.
+      ? pages.some(p => (p.textBlocks?.length || 0) > 0)
+      // Photobook / travel: only inside-page text triggers верстка; the cover
+      // (index 0) is a separate inscription charge.
+      : pages.slice(1).some(p => (p.textBlocks?.length || 0) > 0)
+  );
   // Effective typesetting flag — either the paid "with text" variant, or a
   // no-text variant the customer added text to. Drives both the price (+195 ₴)
   // and the manager-visible order line.
@@ -1960,10 +1975,14 @@ export default function BookLayoutEditor() {
   // add-on (+195 ₴ "верстка тексту", NOT retouching) which the manager adds
   // to the order on confirmation. Rendered at the top of both the desktop and
   // mobile text panels so it appears the moment they open the tab.
-  const noTextLayoutNotice = (isMagazine && !hasTextLayout) ? (
+  const noTextLayoutNotice = (isTypesettingTextProduct && !hasTextLayout) ? (
     <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'#fff7ed', border:'1px solid #fdba74', borderRadius:10, fontSize:12, lineHeight:1.45, color:'#9a3412' }}>
       <span style={{ fontSize:15, lineHeight:1 }}>⚠️</span>
-      <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна — щойно ви це зробите, до замовлення <b>автоматично</b> додається послуга верстки (<b>+195 ₴</b>).</span>
+      {isMagazine ? (
+        <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна — щойно ви це зробите, до замовлення <b>автоматично</b> додається послуга верстки (<b>+195 ₴</b>).</span>
+      ) : (
+        <span>Додавання тексту на сторінки — це послуга <b>верстки</b>. Щойно ви додасте текст, до замовлення <b>автоматично</b> додається <b>+195 ₴</b>.</span>
+      )}
     </div>
   ) : null;
 
@@ -3796,8 +3815,14 @@ export default function BookLayoutEditor() {
   // generatedQRCount which increments on each successful "Згенерувати QR"
   // click. Uploaded QR (user's own PNG) does not add to this count.
   const qrExtra = generatedQRCount * QR_PRICE_PER_GENERATION;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
-  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra;
+  // Typesetting (верстка тексту) +195 ₴. The magazine branch already folds
+  // this into baseDynamicPrice, so here we only add it for the other
+  // typesetting products (photobook / travel book) when the customer has laid
+  // out text on the inside pages — same flat fee, charged once.
+  const TYPESETTING_PRICE = 195;
+  const typesettingExtra = (typesettingApplies && !isMagazine) ? TYPESETTING_PRICE : 0;
+  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
