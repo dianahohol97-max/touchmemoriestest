@@ -1552,6 +1552,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         'Тип оздоблення': 'decoration',
                                                         'Тип оздоблення обкладинки': 'decoration',
                                                         'Варіант оздоблення': 'decoration_variant',
+                                                        'Колір напису': 'decoration_color',
                                                         'Колір велюру': 'cover_color',
                                                         'Колір обкладинки': 'cover_color',
                                                         'Колір тканини': 'cover_color',

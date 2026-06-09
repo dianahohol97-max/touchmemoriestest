@@ -1139,6 +1139,22 @@ function KalkaCalendar({ year, color, baseFont }: { year: number; color: string;
   );
 }
 
+// Resolve the initial cover-decoration colour from the constructor config.
+// Flex (друк кольором) stores a NAMED value matching the editor's flex picker
+// ('gold' | 'silver' | 'white' | 'black'); everything else uses a hex.
+function resolveInitDecoColor(decoType: CoverDecoType, raw: string): string {
+  const r = (raw || '').toLowerCase().trim();
+  if (decoType === 'flex') {
+    if (['gold', 'silver', 'white', 'black'].includes(r)) return r;
+    if (r.includes('золот') || r.includes('gold')) return 'gold';
+    if (r.includes('срібн') || r.includes('срібло') || r.includes('silver')) return 'silver';
+    if (r.includes('білий') || r.includes('white')) return 'white';
+    if (r.includes('чорн') || r.includes('black')) return 'black';
+    return 'gold';
+  }
+  return detectDecoColor(raw);
+}
+
 export default function BookLayoutEditor() {
   const router = useRouter();
   const t = useT();
@@ -1215,7 +1231,7 @@ export default function BookLayoutEditor() {
         const c = JSON.parse(cfg);
         const decoType = detectDecoType(c.selectedDecorationType || c.selectedDecoration || '');
         const variant = c.selectedDecorationVariant || '';
-        const decoColor = detectDecoColor(c.selectedDecorationColor || '');
+        const decoColor = resolveInitDecoColor(decoType, c.selectedDecorationColor || '');
         return { decoType, decoVariant: variant, photoId: null, decoText: '', decoColor, textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
       }
     } catch {}
@@ -1973,7 +1989,7 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     if (!config) return;
     const decoType = detectDecoType(config.selectedDecorationType || config.selectedDecoration || '');
-    const decoColor = detectDecoColor(config.selectedDecorationColor || '');
+    const decoColor = resolveInitDecoColor(decoType, config.selectedDecorationColor || '');
     const sizeKey = normalizeSizeKey(config.selectedSize || '20x20');
     const autoVariant = autoSelectVariant(decoType, sizeKey, config.selectedDecorationColor || '', config.selectedDecorationVariant || '');
     setCoverState(prev => ({ ...prev, decoType, decoVariant: autoVariant, decoColor }));

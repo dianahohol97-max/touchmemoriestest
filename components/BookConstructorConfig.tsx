@@ -234,6 +234,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
     const [selectedDecorationType, setSelectedDecorationType] = useState<string>(_saved?.selectedDecorationType || 'none');
     const [selectedDecorationVariant, setSelectedDecorationVariant] = useState<string>(_saved?.selectedDecorationVariant || '');
+    const [selectedDecorationColor, setSelectedDecorationColor] = useState<string>(_saved?.selectedDecorationColor || '');
 
     // Lamination state (for Друкована cover only)
     const [selectedLamination, setSelectedLamination] = useState<string>(_saved?.selectedLamination || '');
@@ -370,12 +371,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (typeof window === 'undefined') return;
         const state = {
             selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
-            enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
+            enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
             selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor,
         };
         sessionStorage.setItem(`bookConfig_${productSlug}`, JSON.stringify(state));
     }, [selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
-        enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant,
+        enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
         selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor, productSlug]);
 
     // Pre-fill from URL query params (when coming from catalog product page)
@@ -389,6 +390,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const cover = searchParams.get('cover');
         const decoration = searchParams.get('decoration');
         const decorationVariant = searchParams.get('decoration_variant');
+        const decorationColor = searchParams.get('decoration_color');
         const coverColorParam = searchParams.get('cover_color');
         const pageColor = searchParams.get('page_color');
         const textLayout = searchParams.get('text_layout');
@@ -469,6 +471,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             setSelectedDecorationType(decorationMap[decorationValue] || decorationValue);
         }
         if (decorationVariant) setSelectedDecorationVariant(decorationVariant);
+        if (decorationColor) setSelectedDecorationColor(decorationColor);
 
         // Cover color from URL (catalog passes "Колір велюру=Таупе" etc.)
         const coverColorFromUrl = coverColorParam || colorFromCatalog;
@@ -922,6 +925,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
+            selectedDecorationColor: (selectedDecorationType !== 'none' && selectedDecorationColor) ? selectedDecorationColor : null,
             decorationSurcharge: (() => {
                 if (selectedDecorationType === 'none' || !selectedDecorationVariant) return 0;
                 const v = decorationVariants.find(
@@ -987,6 +991,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (selectedLamination) params.set('lamination', selectedLamination);
         if (selectedDecorationType !== 'none') params.set('decoration', selectedDecorationType);
         if (selectedDecorationVariant) params.set('decoration_variant', selectedDecorationVariant);
+        if (selectedDecorationType !== 'none' && selectedDecorationColor) params.set('decoration_color', selectedDecorationColor);
         // Pass through any URL params from catalog page (like text_layout)
         const textLayout = searchParams.get('text_layout');
         if (textLayout) params.set('text_layout', textLayout);
