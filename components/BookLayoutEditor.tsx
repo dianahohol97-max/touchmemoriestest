@@ -2467,13 +2467,13 @@ export default function BookLayoutEditor() {
     }
 
     // Apply cover photos (front + back). The back cover used to be filled only
-    // when autoBuild returned a front coverPhotoId — but magazines often get
-    // their front photo from a cover template, leaving coverPhotoId null, so
-    // the back cover stayed blank (white) after «Магічна збірка». Now we fill
-    // the back whenever the product has a back cover and the user wanted auto
-    // cover photos, preferring an UNUSED photo (Diana: «ставить біле фото, хоча
-    // є вільні») and never clearing an existing front photo.
-    if (isPrinted && !isWishbook && (result.coverPhotoId || opts.coverPhoto)) {
+    // when autoBuild returned a front coverPhotoId — but printed photobooks and
+    // magazines often get their front from a cover template (coverPhotoId null),
+    // and the "cover photo" checkbox may be off, so the back stayed blank (white)
+    // after «Магічна збірка». A printed product always has a back cover, so we
+    // now ALWAYS enable + fill it with an UNUSED photo (Diana: back cover not
+    // set by magic build), and never clear an existing front photo.
+    if (isPrinted && !isWishbook && photos.length > 0) {
       const frontId = result.coverPhotoId || (coverState as any).photoId || photos[0]?.id || null;
       const usedIds = new Set<string>(result.pages.flatMap(p => p.photoIds));
       const freePhoto = photos.find(p => !usedIds.has(p.id) && p.id !== frontId);
