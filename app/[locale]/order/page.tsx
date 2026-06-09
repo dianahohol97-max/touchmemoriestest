@@ -602,9 +602,13 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
     //   • flex (друк кольором) / engraving — the decoration IS text, so the
     //     customer must be able to write the desired cover inscription.
     const cfg = savedConfig?.config || {};
-    const finishRaw = String(
-      cfg['Оздоблення'] ?? cfg['Тип оздоблення'] ?? cfg['finish'] ?? ''
-    ).toLowerCase();
+    // The config frequently carries BOTH keys — e.g. «Тип оздоблення»='Друк
+    // кольором' alongside a leftover «Оздоблення»='Без оздоблення'. Reading one
+    // with ?? would pick the empty leftover and miss the real decoration, so
+    // combine all candidates and match keywords across the lot.
+    const finishRaw = [cfg['Тип оздоблення'], cfg['Оздоблення'], cfg['finish'], cfg['decoration']]
+      .map((x: any) => String(x ?? '').toLowerCase())
+      .join(' ');
     const hasInsert =
       finishRaw.includes('acryl') || finishRaw.includes('акрил') ||
       finishRaw.includes('photovstavka') || finishRaw.includes('фотовставк');
@@ -1029,19 +1033,6 @@ function OrderForm() {
             const n = parseInt(String(raw ?? '').replace(/[^\d]/g, ''), 10);
             return Number.isFinite(n) && n > 0 ? n : undefined;
           })()} />}
-          {step === 1 && (() => {
-            const cap = getCoverCapability(savedConfig);
-            if (!cap.show) return null;
-            return (
-              <CoverBlock
-                allowInscription={cap.allowInscription}
-                inscription={formData.coverInscription}
-                coverPhoto={formData.coverPhoto}
-                onChange={update}
-                exampleUpload={cap.exampleUpload}
-              />
-            );
-          })()}
           {step === 2 && <CommentStep
             value={formData.comment}
             onChange={v => update('comment', v)}
@@ -1062,6 +1053,19 @@ function OrderForm() {
             kalkaText={formData.kalkaText}
             onKalkaTextChange={v => update('kalkaText', v)}
           />}
+          {step === 2 && (() => {
+            const cap = getCoverCapability(savedConfig);
+            if (!cap.show) return null;
+            return (
+              <CoverBlock
+                allowInscription={cap.allowInscription}
+                inscription={formData.coverInscription}
+                coverPhoto={formData.coverPhoto}
+                onChange={update}
+                exampleUpload={cap.exampleUpload}
+              />
+            );
+          })()}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
