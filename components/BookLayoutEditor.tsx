@@ -1101,7 +1101,7 @@ function computeFitZoom(el: HTMLElement | null, baseW: number, baseH: number): n
   const availW = el.clientWidth - padX;
   const availH = el.clientHeight - padY;
   if (availW <= 0 || availH <= 0) return null;
-  const fit = Math.floor(Math.min(availW / baseW, availH / baseH) * 100 * 0.93);
+  const fit = Math.floor(Math.min(availW / baseW, availH / baseH) * 100 * 0.96);
   return Math.max(20, Math.min(150, fit));
 }
 
@@ -1365,6 +1365,23 @@ export default function BookLayoutEditor() {
     });
     return () => cancelAnimationFrame(id);
   }, [config, pages.length, currentIdx, isMobile]);
+  // Robustness: the single rAF above can measure the viewport before the flex
+  // layout has settled (especially right after mount), yielding a too-small
+  // fit that then sticks. A ResizeObserver re-runs the fit whenever the canvas
+  // viewport actually changes size — including when it first gets its real
+  // dimensions — as long as the user hasn't taken manual control of the zoom.
+  useEffect(() => {
+    if (isMobile) return;
+    const el = canvasViewportRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      if (userZoomedRef.current) return;
+      const z = computeFitZoom(canvasViewportRef.current, dimsRef.current.baseW, dimsRef.current.baseH);
+      if (z != null) setZoom(z);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile, config, pages.length]);
   // On mobile, fit the spread to the viewport WIDTH (so it's never clipped off
   // the side) on first paint and whenever the spread changes, a panel opens, or
   // the screen rotates/resizes. Width-fit (not min(w,h)) guarantees the full
@@ -3817,6 +3834,7 @@ export default function BookLayoutEditor() {
             <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.max(20,z-10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
             <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.min(150,z+10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
+            {!isMobile && <input type="range" min={20} max={150} step={5} value={zoom} onChange={e=>{ userZoomedRef.current=true; setZoom(+e.target.value); }} title="Масштаб — перетягніть, щоб змінити розмір" aria-label="Масштаб" style={{ width:96, accentColor:'#1e2d7d', cursor:'pointer' }}/>}
             {isMobile && <button onPointerDown={()=>{ const el=canvasViewportRef.current; const bw=dimsRef.current.baseW; if(el&&bw>0){ const cs=getComputedStyle(el); const padX=(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0); const availW=el.clientWidth-padX; if(availW>0) setZoom(Math.max(20,Math.min(150,Math.floor(availW/bw*100)))); } }} title="Вмістити по ширині" style={{ padding:'6px 8px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:11, fontWeight:800, color:'#1e2d7d', touchAction:'manipulation' }}>↔</button>}
             {!isMobile && <button onPointerDown={fitToView} title="Вмістити весь розворот" style={{ padding:'6px 10px', border:'1px solid #c7d2fe', borderRadius:6, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:800, color:'#1e2d7d' }}>Вмістити</button>}
           </div>
