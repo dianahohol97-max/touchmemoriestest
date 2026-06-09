@@ -21,6 +21,7 @@ interface UploadedFile {
 interface OrderFormData {
   files: UploadedFile[]
   comment: string
+  ownText: string
   delivery: 'nova_poshta' | 'pickup' | ''
   city: string
   address: string
@@ -200,10 +201,29 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
   )
 }
 
-function CommentStep({ value, onChange }: { value: string, onChange: (v: string) => void }) {
+function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange }: {
+  value: string
+  onChange: (v: string) => void
+  showOwnText?: boolean
+  ownText?: string
+  onOwnTextChange?: (v: string) => void
+}) {
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 2: Коментар до замовлення</h2>
+      {showOwnText && (
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-[#1e2d7d] mb-2">Ваш текст для журналу</label>
+          <p className="text-gray-500 text-sm mb-3">Ви обрали «Власний текст» — впишіть сюди текст, який має бути у журналі (історія, підписи до розворотів, побажання тощо). Дизайнер оформить його за вашим макетом.</p>
+          <textarea
+            value={ownText || ''}
+            onChange={e => onOwnTextChange?.(e.target.value)}
+            rows={8}
+            placeholder="Вставте або напишіть текст для журналу. Можна розділяти по розворотах, наприклад: Розворот 1 — ...; Розворот 2 — ..."
+            className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
+          />
+        </div>
+      )}
       <p className="text-gray-500 text-sm mb-6">Розкажіть про ваші побажання: тематика, кольори, стиль, особливості.</p>
       <textarea
         value={value}
@@ -468,6 +488,12 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Фотографії</p>
           <p className="font-medium text-gray-800">{data.files.length} файл(ів) завантажено</p>
         </div>
+        {data.ownText && (
+          <div className="bg-[#f0f2f8] rounded-xl p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Текст для журналу</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{data.ownText}</p>
+          </div>
+        )}
         {data.comment && (
           <div className="bg-[#f0f2f8] rounded-xl p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Коментар</p>
@@ -656,7 +682,7 @@ function OrderForm() {
   )
 
   const [formData, setFormData] = useState<OrderFormData>({
-    files: [], comment: '', delivery: '', city: '', address: '',
+    files: [], comment: '', ownText: '', delivery: '', city: '', address: '',
     name: '', lastName: '', phone: '', contactChannel: '', contactHandle: '',
     coverInscription: '', coverPhoto: null,
   })
@@ -758,6 +784,7 @@ function OrderForm() {
           }],
           notes: [
             'Замовлення з дизайнером',
+            formData.ownText ? `Текст для журналу (власний текст клієнта):\n${formData.ownText}` : '',
             formData.comment ? `Коментар: ${formData.comment}` : '',
             `Доставка: ${deliveryText}`,
             formData.coverInscription ? `Надпис на обкладинці: ${formData.coverInscription}` : '',
@@ -773,6 +800,7 @@ function OrderForm() {
           },
           total: 0,
           text_brief: {
+            own_text: formData.ownText || null,
             cover: { inscription: formData.coverInscription, photo_path: coverPath },
             collected_at: new Date().toISOString(),
           },
@@ -956,7 +984,13 @@ function OrderForm() {
               />
             );
           })()}
-          {step === 2 && <CommentStep value={formData.comment} onChange={v => update('comment', v)} />}
+          {step === 2 && <CommentStep
+            value={formData.comment}
+            onChange={v => update('comment', v)}
+            showOwnText={String(savedConfig?.config?.['Верстка тексту'] || '') === 'own'}
+            ownText={formData.ownText}
+            onOwnTextChange={v => update('ownText', v)}
+          />}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
