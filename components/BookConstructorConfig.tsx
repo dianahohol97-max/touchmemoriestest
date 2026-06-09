@@ -1130,6 +1130,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const totalPrice = calculatePrice();
     const photoRec = getPhotoRecommendation();
     const productType = getProductType();
+    // Each photobook product is cover-type-specific: photobook-printed,
+    // photobook-velour, photobook-fabric, photobook-leatherette, graduation.
+    // The cover type is fixed by the product slug (resolved into
+    // selectedCoverType on mount), so the cover-type *selector* must NOT be
+    // shown — otherwise a customer on the printed photobook could switch to
+    // velour and unlock colours/decorations that this product doesn't offer.
+    const coverTypeLockedBySlug = /velour|velyur|leather|fabric|tkanina|printed|drukov|graduation|vypusk|випуск/i.test(productSlug);
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -1393,7 +1400,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Photobook: Cover type selector from cover_types  */}
-                    {productType === 'photobook' && coverTypes.length > 0 && (
+                    {productType === 'photobook' && coverTypes.length > 0 && !coverTypeLockedBySlug && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
