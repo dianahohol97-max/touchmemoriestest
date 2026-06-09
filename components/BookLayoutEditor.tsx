@@ -1125,7 +1125,12 @@ export default function BookLayoutEditor() {
   const { addItem, replaceItem } = useCartStore();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const designerOrderId = searchParams?.get('designer_order_id') || null;
-  const hasTextLayout = searchParams?.get('text_layout') === 'with';
+  // The configurator passes the chosen «Верстка тексту» variant as text_layout:
+  // own (Власний текст, +195 ₴) / we (Ми пишемо, +195 ₴) / none (Без тексту).
+  // Legacy links used 'with'. Any of own/we/with means the customer already
+  // chose (and is paying for) typesetting, so the editor must NOT show the
+  // "без верстки" notice or auto-add a second +195 ₴.
+  const hasTextLayout = ['with', 'own', 'we'].includes((searchParams?.get('text_layout') || '').toLowerCase());
   const [designerSaving, setDesignerSaving] = useState(false);
 
   const [config, setConfig] = useState<BookConfig | null>(null);
@@ -2717,7 +2722,7 @@ export default function BookLayoutEditor() {
   // beyond a small threshold). Used to suppress the click-to-edit that would
   // otherwise fire when releasing after dragging a text onto a photo.
   const txtDragMovedRef = React.useRef(false);
-  const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number) => {
+  const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number, containerW: number = pageW) => {
     e.stopPropagation();
     txtDragMovedRef.current = false;
     haptic.light();
@@ -2725,13 +2730,17 @@ export default function BookLayoutEditor() {
       (dx, dy) => {
         if (Math.abs(dx) > 4 || Math.abs(dy) > 4) txtDragMovedRef.current = true;
         const SNAP = 2; // snap threshold in %
-        let nx = Math.max(0, Math.min(95, tx + (dx / pageW) * 100));
+        // X must be divided by the SAME width the block is positioned against
+        // (left:%). In spread mode that is the full spread width, not a single
+        // page — otherwise the block moves twice as fast, races to the edge and
+        // the text wraps, which looks like the block is resizing while dragging.
+        let nx = Math.max(0, Math.min(95, tx + (dx / containerW) * 100));
         let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
         const gx: number[] = [];
         const gy: number[] = [];
         // Snap targets: 0%, 50%, 100% (edges + center)
         for (const target of [0, 50, 100]) {
-          if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * pageW); }
+          if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * containerW); }
           if (Math.abs(ny - target) < SNAP) { ny = target; gy.push(target / 100 * cH); }
         }
         setTextGuides({ x: gx, y: gy });
@@ -6333,7 +6342,7 @@ export default function BookLayoutEditor() {
                               setTFontSize(tb.fontSize||28); setTFontFamily(tb.fontFamily||'Open Sans');
                               setTColor(tb.color||'#000'); setTBold(!!tb.bold); setTItalic(!!tb.italic);
                             }
-                            startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx);
+                            startTxtDragForPage(e, tb.id, tb.x, tb.y, spreadPageIdx, cW);
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
