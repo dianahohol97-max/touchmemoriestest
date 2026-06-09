@@ -7,7 +7,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
 import { compressImageFile } from '@/lib/compress-upload-image'
 import { uploadImageToStorage } from '@/lib/storage-upload'
-import { generateOrderNumber } from '@/lib/order-number'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 import FlowHeader from '@/components/ui/FlowHeader'
 
@@ -740,10 +739,9 @@ function OrderForm() {
           // orders.order_number and orders.delivery_method are NOT NULL with no
           // default and no trigger — the regular checkout sets them server-side
           // (api/orders/submit). The designer flow inserts client-side, so it
-          // must supply both itself or the insert fails with a null violation
-          // (the "Сталася помилка" the customer saw on step 5). Match the
-          // server's TM-<ts>-<rand> order_number format.
-          order_number: generateOrderNumber(),
+          // order_number is assigned by the DB sequence default (TM-NNNNNN) and
+          // read back via .select('id, order_number'). delivery_method is still
+          // required (NOT NULL); the team confirms delivery afterwards.
           delivery_method: formData.delivery || 'pickup',
           customer_name: [formData.name, formData.lastName].filter(Boolean).join(' '),
           customer_first_name: formData.name,

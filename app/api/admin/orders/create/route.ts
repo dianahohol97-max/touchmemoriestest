@@ -51,17 +51,14 @@ export async function POST(request: Request) {
         }
 
         // 2. Generate unique Order Number Order PB-[YEAR]-[RANDOM]
-        const year = new Date().getFullYear();
-        const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
-        const orderNumber = `PB-${year}-${randomStr}`;
-
         // 3. Construct initial note with Instagram Handle (if provided) that won't get lost
         let orderNotes = customer.instagram ? ` Instagram замовлення (${customer.instagram})\n` : '';
         orderNotes += notes;
 
-        // 4. Create the Order
+        // 4. Create the Order — order_number is assigned by the DB sequence
+        // default (TM-NNNNNN), the same series as every other flow, read back
+        // from the insert below.
         const newOrderData = {
-            order_number: orderNumber,
             customer_id: customerId,
             customer_name: `${customer.first_name} ${customer.last_name}`.trim(),
             customer_first_name: customer.first_name,

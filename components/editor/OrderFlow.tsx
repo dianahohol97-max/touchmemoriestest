@@ -126,12 +126,11 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
 
       if (projectError) throw projectError
 
-      // 2. Create order
-      const orderNumber = `TM-${Date.now()}`
-      const { error: orderError } = await supabase
+      // 2. Create order — order_number is assigned by the DB sequence default
+      // (TM-NNNNNN) and read back below for the confirmation screen.
+      const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert({
-          order_number: orderNumber,
           customer_name: orderData.name,
           customer_phone: orderData.phone,
           customer_email: orderData.email,
@@ -155,10 +154,12 @@ export default function OrderFlow({ project, onClose }: OrderFlowProps) {
           status: 'pending',
           created_at: new Date().toISOString(),
         })
+        .select('order_number')
+        .single()
 
       if (orderError) throw orderError
 
-      setOrderNumber(orderNumber)
+      setOrderNumber(createdOrder?.order_number || '')
       setOrderSuccess(true)
     } catch (error) {
       console.error('Order submission error:', error)

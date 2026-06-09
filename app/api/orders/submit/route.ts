@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { generateOrderNumber } from '@/lib/order-number';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
 import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion, computeIntlShippingUah } from '@/lib/payment/pricing-region';
@@ -212,12 +211,12 @@ export async function POST(request: NextRequest) {
   }
 
   const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method, markedFullOnlyPortion);
-  const order_number = generateOrderNumber();
 
   const { data: inserted, error } = await admin
     .from('orders')
     .insert({
-      order_number,
+      // order_number is assigned by the DB sequence default (TM-NNNNNN) and read
+      // back below via .select — keeps numbering sequential across all flows.
       customer_id,
       customer_name: body.customer_name.trim(),
       customer_phone: body.customer_phone.trim(),

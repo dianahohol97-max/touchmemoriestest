@@ -113,7 +113,6 @@ export async function POST(request: NextRequest) {
 
   const productType = deriveProductType(productSlug);
   const payment_type = body.paymentMethod === 'split' ? 'split' : 'full';
-  const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
   const notes = [
     body.tripDestination && productSlug.toLowerCase().includes('travel')
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
   const { data: order, error: orderError } = await admin
     .from('orders')
     .insert({
-      order_number,
+      // order_number from DB sequence default (TM-NNNNNN), read back via .select.
       customer_first_name: firstName,
       customer_last_name: lastName,
       customer_phone: (body.phone || '').toString().trim(),

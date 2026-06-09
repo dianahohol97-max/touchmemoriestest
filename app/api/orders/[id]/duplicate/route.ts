@@ -28,14 +28,9 @@ export async function POST(
             return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
         }
 
-        // Generate new order number PB-[YEAR]-[RANDOM]
-        const year = new Date().getFullYear();
-        const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
-        const newOrderNumber = `PB-${year}-${randomStr}`;
-
-        // Create new order payload
+        // Create new order payload — order_number assigned by the DB sequence
+        // default (TM-NNNNNN), read back from the insert below.
         const newOrderData = {
-            order_number: newOrderNumber,
             customer_id: originalOrder.customer_id,
             customer_name: originalOrder.customer_name,
             customer_phone: originalOrder.customer_phone,
@@ -62,7 +57,7 @@ export async function POST(
 
         if (createError) throw createError;
 
-        return NextResponse.json({ success: true, newOrderId: newOrder.id, newOrderNumber });
+        return NextResponse.json({ success: true, newOrderId: newOrder.id, newOrderNumber: newOrder.order_number });
 
     } catch (error: any) {
         console.error('Error duplicating order:', error);

@@ -26,7 +26,6 @@ import { Upload, X, Check } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { downscaleImageIfLarge } from '@/lib/downscale-image';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
-import { generateOrderNumber } from '@/lib/order-number';
 
 type Package = 'basic' | 'premium';
 
@@ -340,10 +339,8 @@ function MagazineTextBriefContent() {
           customer_email: email || null,
           customer_telegram: telegram || null,
           with_designer: true,
-          // order_number + delivery_method are NOT NULL with no default/trigger;
-          // this client-side insert must supply them or it fails (same fix as
-          // the designer flow). Delivery is confirmed by the team afterwards.
-          order_number: generateOrderNumber(),
+          // order_number comes from the DB sequence default (TM-NNNNNN), read back
+          // via .select. delivery_method is still NOT NULL; team confirms later.
           delivery_method: 'pickup',
           items: [{
             product_slug: productSlug,
