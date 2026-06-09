@@ -73,6 +73,38 @@ interface KalkaState {
   imageUrl: string | null;
   imgCropX: number; imgCropY: number; imgZoom: number;
   imgScale: number; imgX: number; imgY: number;
+  calendarEnabled?: boolean; calendarYear?: number; calendarColor?: string; calendarScale?: number; calendarX?: number; calendarY?: number;
+}
+
+const PV_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+const PV_WD = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+function PreviewKalkaCalendar({ year, color, baseFont }: { year: number; color: string; baseFont: number }) {
+  const months = Array.from({ length: 12 }, (_, m) => {
+    const startDow = (new Date(year, m, 1).getDay() + 6) % 7;
+    const days = new Date(year, m + 1, 0).getDate();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (let d = 1; d <= days; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    return { name: PV_MONTHS[m], cells };
+  });
+  const f = Math.max(2.5, baseFont);
+  return (
+    <div style={{ width: '100%', color, fontFamily: 'Georgia, "Times New Roman", serif', textAlign: 'center' }}>
+      <div style={{ fontSize: f * 3.4, fontWeight: 700, letterSpacing: f * 0.3, marginBottom: f * 1.2, lineHeight: 1 }}>{year}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: `${f * 1.4}px ${f}px` }}>
+        {months.map((mo, mi) => (
+          <div key={mi}>
+            <div style={{ fontSize: f * 1.15, fontWeight: 700, marginBottom: f * 0.45 }}>{mo.name}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: f * 0.2, fontSize: f * 0.82, lineHeight: 1.45 }}>
+              {PV_WD.map((w, wi) => <div key={'w' + wi} style={{ fontWeight: 700, opacity: 0.6 }}>{w}</div>)}
+              {mo.cells.map((c, ci) => <div key={ci} style={{ opacity: c ? 0.95 : 0 }}>{c || '·'}</div>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 interface BookPreviewProps {
@@ -321,12 +353,17 @@ export function BookPreviewModal({
           <img src={kalkaState.imageUrl} alt="" style={{ width: '100%', objectFit: 'contain', transform: `scale(${kalkaState.imgZoom ?? 1})` }} draggable={false} />
         </div>
       )}
+      {kalkaState?.calendarEnabled && (
+        <div style={{ position: 'absolute', left: `${kalkaState.calendarX ?? 50}%`, top: `${kalkaState.calendarY ?? 50}%`, transform: 'translate(-50%,-50%)', width: `${kalkaState.calendarScale ?? 94}%`, opacity: 0.8, pointerEvents: 'none' }}>
+          <PreviewKalkaCalendar year={kalkaState.calendarYear ?? (new Date().getFullYear() + 1)} color={kalkaState.calendarColor || '#333'} baseFont={(cW * (kalkaState.calendarScale ?? 94) / 100) / 75} />
+        </div>
+      )}
       {kalkaState?.text && (
         <div style={{ position: 'absolute', left: `${kalkaState.textX ?? 50}%`, top: `${kalkaState.textY ?? 50}%`, transform: kalkaState.textAlign === 'left' ? 'translate(0,-50%)' : kalkaState.textAlign === 'right' ? 'translate(-100%,-50%)' : 'translate(-50%,-50%)', maxWidth: '90%', zIndex: 2, pointerEvents: 'none' }}>
           <span style={{ display: 'inline-block', fontSize: (kalkaState.fontSize || 24) * 0.85, fontFamily: kalkaState.fontFamily || 'Playfair Display', color: kalkaState.textColor || '#333', fontWeight: kalkaState.bold ? 700 : 400, fontStyle: kalkaState.italic ? 'italic' : 'normal', textAlign: kalkaState.textAlign || 'center', whiteSpace: 'pre-wrap', opacity: 0.85 }}>{kalkaState.text}</span>
         </div>
       )}
-      {!kalkaState?.text && !kalkaState?.imageUrl && (
+      {!kalkaState?.text && !kalkaState?.imageUrl && !kalkaState?.calendarEnabled && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ color: '#c7d2fe', fontSize: 11, fontWeight: 600 }}>КАЛЬКА</span>
         </div>
