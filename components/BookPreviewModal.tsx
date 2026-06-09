@@ -73,12 +73,42 @@ interface KalkaState {
   imageUrl: string | null;
   imgCropX: number; imgCropY: number; imgZoom: number;
   imgScale: number; imgX: number; imgY: number;
-  calendarEnabled?: boolean; calendarYear?: number; calendarColor?: string; calendarScale?: number; calendarX?: number; calendarY?: number;
+  calendarEnabled?: boolean; calendarMode?: 'year' | 'month'; calendarYear?: number; calendarMonth?: number; calendarColor?: string; calendarFont?: string; calendarScale?: number; calendarX?: number; calendarY?: number; calendarMarkedDays?: number[];
 }
 
 const PV_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const PV_WD = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
-function PreviewKalkaCalendar({ year, color, baseFont }: { year: number; color: string; baseFont: number }) {
+function PreviewKalkaCalendar({ mode = 'year', year, month = 0, color, font, baseFont, markedDays }: { mode?: 'year' | 'month'; year: number; month?: number; color: string; font?: string; baseFont: number; markedDays?: number[] }) {
+  const ff = font ? `"${font}", Georgia, serif` : 'Georgia, "Times New Roman", serif';
+  if (mode === 'month') {
+    const startDow = (new Date(year, month, 1).getDay() + 6) % 7;
+    const days = new Date(year, month + 1, 0).getDate();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (let d = 1; d <= days; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const f = Math.max(3.5, baseFont);
+    const ring = Math.max(1, f * 0.16);
+    return (
+      <div style={{ width: '100%', color, fontFamily: ff, textAlign: 'center' }}>
+        <div style={{ fontSize: f * 3.0, fontWeight: 700, letterSpacing: f * 0.15, lineHeight: 1 }}>{PV_MONTHS[month]}</div>
+        <div style={{ fontSize: f * 1.5, fontWeight: 600, opacity: 0.65, marginBottom: f * 1.6, letterSpacing: f * 0.4 }}>{year}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: f * 0.9, columnGap: f * 0.2, fontSize: f * 1.45, lineHeight: 1.15 }}>
+          {PV_WD.map((w, wi) => <div key={'w' + wi} style={{ fontWeight: 700, opacity: 0.5, fontSize: f * 1.05 }}>{w}</div>)}
+          {cells.map((c, ci) => {
+            if (!c) return <div key={ci} />;
+            const marked = !!markedDays?.includes(c);
+            return (
+              <div key={ci} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1' }}>
+                {marked && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '128%', height: '128%', border: `${ring}px solid ${color}`, borderRadius: '50%' }} />}
+                <span style={{ position: 'relative', opacity: 0.95 }}>{c}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
   const months = Array.from({ length: 12 }, (_, m) => {
     const startDow = (new Date(year, m, 1).getDay() + 6) % 7;
     const days = new Date(year, m + 1, 0).getDate();
@@ -90,7 +120,7 @@ function PreviewKalkaCalendar({ year, color, baseFont }: { year: number; color: 
   });
   const f = Math.max(2.5, baseFont);
   return (
-    <div style={{ width: '100%', color, fontFamily: 'Georgia, "Times New Roman", serif', textAlign: 'center' }}>
+    <div style={{ width: '100%', color, fontFamily: ff, textAlign: 'center' }}>
       <div style={{ fontSize: f * 3.4, fontWeight: 700, letterSpacing: f * 0.3, marginBottom: f * 1.2, lineHeight: 1 }}>{year}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: `${f * 1.4}px ${f}px` }}>
         {months.map((mo, mi) => (
@@ -355,7 +385,7 @@ export function BookPreviewModal({
       )}
       {kalkaState?.calendarEnabled && (
         <div style={{ position: 'absolute', left: `${kalkaState.calendarX ?? 50}%`, top: `${kalkaState.calendarY ?? 50}%`, transform: 'translate(-50%,-50%)', width: `${kalkaState.calendarScale ?? 94}%`, opacity: 0.8, pointerEvents: 'none' }}>
-          <PreviewKalkaCalendar year={kalkaState.calendarYear ?? (new Date().getFullYear() + 1)} color={kalkaState.calendarColor || '#333'} baseFont={(cW * (kalkaState.calendarScale ?? 94) / 100) / 75} />
+          <PreviewKalkaCalendar mode={kalkaState.calendarMode ?? 'year'} year={kalkaState.calendarYear ?? (new Date().getFullYear() + 1)} month={kalkaState.calendarMonth ?? 0} color={kalkaState.calendarColor || '#333'} font={kalkaState.calendarFont} markedDays={kalkaState.calendarMarkedDays} baseFont={(cW * (kalkaState.calendarScale ?? 94) / 100) / 75} />
         </div>
       )}
       {kalkaState?.text && (

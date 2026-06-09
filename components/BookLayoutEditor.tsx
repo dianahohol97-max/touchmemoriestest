@@ -1110,7 +1110,41 @@ function computeFitZoom(el: HTMLElement | null, baseW: number, baseH: number): n
 // like the kalka image/text. Ukrainian month names, Monday-first weeks.
 const KALKA_UA_MONTHS = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const KALKA_UA_WD = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
-function KalkaCalendar({ year, color, baseFont }: { year: number; color: string; baseFont: number }) {
+function KalkaCalendar({ mode = 'year', year, month = 0, color, font, baseFont, markedDays, onToggleDay }: { mode?: 'year' | 'month'; year: number; month?: number; color: string; font?: string; baseFont: number; markedDays?: number[]; onToggleDay?: (day: number) => void }) {
+  const ff = font ? `"${font}", Georgia, serif` : 'Georgia, "Times New Roman", serif';
+  // Single-month view — large, with optional circled dates.
+  if (mode === 'month') {
+    const startDow = (new Date(year, month, 1).getDay() + 6) % 7; // Mon = 0
+    const days = new Date(year, month + 1, 0).getDate();
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (let d = 1; d <= days; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const f = Math.max(3.5, baseFont);
+    const ring = Math.max(1, f * 0.16);
+    return (
+      <div style={{ width: '100%', color, fontFamily: ff, textAlign: 'center', userSelect: 'none' }}>
+        <div style={{ fontSize: f * 3.0, fontWeight: 700, letterSpacing: f * 0.15, lineHeight: 1 }}>{KALKA_UA_MONTHS[month]}</div>
+        <div style={{ fontSize: f * 1.5, fontWeight: 600, opacity: 0.65, marginBottom: f * 1.6, letterSpacing: f * 0.4 }}>{year}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', rowGap: f * 0.9, columnGap: f * 0.2, fontSize: f * 1.45, lineHeight: 1.15 }}>
+          {KALKA_UA_WD.map((w, wi) => <div key={'w' + wi} style={{ fontWeight: 700, opacity: 0.5, fontSize: f * 1.05 }}>{w}</div>)}
+          {cells.map((c, ci) => {
+            if (!c) return <div key={ci} />;
+            const marked = !!markedDays?.includes(c);
+            return (
+              <div key={ci}
+                onClick={onToggleDay ? (e) => { e.stopPropagation(); onToggleDay(c); } : undefined}
+                style={{ position: 'relative', cursor: onToggleDay ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1 / 1' }}>
+                {marked && <span style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '128%', height: '128%', border: `${ring}px solid ${color}`, borderRadius: '50%' }} />}
+                <span style={{ position: 'relative', opacity: 0.95 }}>{c}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  // Full-year view — 12 small months.
   const months = Array.from({ length: 12 }, (_, m) => {
     const startDow = (new Date(year, m, 1).getDay() + 6) % 7; // Mon = 0
     const days = new Date(year, m + 1, 0).getDate();
@@ -1122,7 +1156,7 @@ function KalkaCalendar({ year, color, baseFont }: { year: number; color: string;
   });
   const f = Math.max(2.5, baseFont);
   return (
-    <div style={{ width: '100%', color, fontFamily: 'Georgia, "Times New Roman", serif', textAlign: 'center', userSelect: 'none' }}>
+    <div style={{ width: '100%', color, fontFamily: ff, textAlign: 'center', userSelect: 'none' }}>
       <div style={{ fontSize: f * 3.4, fontWeight: 700, letterSpacing: f * 0.3, marginBottom: f * 1.2, lineHeight: 1 }}>{year}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: `${f * 1.4}px ${f}px` }}>
         {months.map((mo, mi) => (
@@ -1417,7 +1451,7 @@ export default function BookLayoutEditor() {
   const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Калька state: text, uploaded illustration
-  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; bold: boolean; italic: boolean; textAlign: 'left' | 'center' | 'right'; textX: number; textY: number; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; calendarEnabled: boolean; calendarYear: number; calendarColor: string; calendarScale: number; calendarX: number; calendarY: number; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', bold: false, italic: false, textAlign: 'center', textX: 50, textY: 50, imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50, calendarEnabled: false, calendarYear: new Date().getFullYear() + 1, calendarColor: '#333333', calendarScale: 94, calendarX: 50, calendarY: 50 });
+  const [kalkaState, setKalkaState] = useState<{ text: string; textColor: string; fontSize: number; fontFamily: string; bold: boolean; italic: boolean; textAlign: 'left' | 'center' | 'right'; textX: number; textY: number; imageUrl: string | null; imgCropX: number; imgCropY: number; imgZoom: number; imgScale: number; imgX: number; imgY: number; calendarEnabled: boolean; calendarMode: 'year' | 'month'; calendarYear: number; calendarMonth: number; calendarColor: string; calendarFont: string; calendarScale: number; calendarX: number; calendarY: number; calendarMarkedDays: number[]; }>({ text: '', textColor: '#333333', fontSize: 24, fontFamily: 'Playfair Display', bold: false, italic: false, textAlign: 'center', textX: 50, textY: 50, imageUrl: null, imgCropX: 50, imgCropY: 50, imgZoom: 1, imgScale: 80, imgX: 50, imgY: 50, calendarEnabled: false, calendarMode: 'month', calendarYear: new Date().getFullYear() + 1, calendarMonth: new Date().getMonth(), calendarColor: '#333333', calendarFont: 'Playfair Display', calendarScale: 94, calendarX: 50, calendarY: 50, calendarMarkedDays: [] });
   const kalkaImageInputRef = useRef<HTMLInputElement>(null);
   // Форзац state: each endpaper can have optional content (costs +100₴)
   const [endpaperState, setEndpaperState] = useState<{ first: { enabled: boolean; text: string; textColor: string; imageUrl: string | null }; last: { enabled: boolean; text: string; textColor: string; imageUrl: string | null } }>({
@@ -2795,6 +2829,9 @@ export default function BookLayoutEditor() {
   // beyond a small threshold). Used to suppress the click-to-edit that would
   // otherwise fire when releasing after dragging a text onto a photo.
   const txtDragMovedRef = React.useRef(false);
+  // Same idea for the kalka calendar: distinguish a tap on a day (circle it)
+  // from a drag that moves the whole calendar.
+  const calDragMovedRef = React.useRef(false);
   const startTxtDragForPage = (e: React.PointerEvent, id: string, tx: number, ty: number, pageIdx: number, containerW: number = pageW) => {
     e.stopPropagation();
     txtDragMovedRef.current = false;
@@ -4862,6 +4899,23 @@ export default function BookLayoutEditor() {
                   </div>
                   {kalkaState.calendarEnabled && (
                     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', gap:6 }}>
+                        {(['month','year'] as const).map(m => (
+                          <button key={m} onClick={()=>setKalkaState(p=>({...p,calendarMode:m}))}
+                            style={{ flex:1, padding:'5px 0', borderRadius:6, border:'1px solid '+(kalkaState.calendarMode===m?'#1e2d7d':'#e2e8f0'), background:kalkaState.calendarMode===m?'#1e2d7d':'#fff', color:kalkaState.calendarMode===m?'#fff':'#475569', cursor:'pointer', fontSize:11, fontWeight:700 }}>
+                            {m==='month'?'Місяць':'Рік'}
+                          </button>
+                        ))}
+                      </div>
+                      {kalkaState.calendarMode==='month' && (
+                        <div>
+                          <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Місяць</div>
+                          <select value={kalkaState.calendarMonth} onChange={e=>setKalkaState(p=>({...p,calendarMonth:+e.target.value,calendarMarkedDays:[]}))}
+                            style={{ width:'100%', padding:'6px 8px', borderRadius:6, border:'1px solid #e2e8f0', fontSize:13, color:'#1e2d7d', fontWeight:600, background:'#fff', cursor:'pointer' }}>
+                            {KALKA_UA_MONTHS.map((mn,mi)=><option key={mi} value={mi}>{mn}</option>)}
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Рік</div>
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -4869,6 +4923,10 @@ export default function BookLayoutEditor() {
                           <span style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{kalkaState.calendarYear}</span>
                           <button onClick={()=>setKalkaState(p=>({...p,calendarYear:p.calendarYear+1}))} style={{ width:30, height:30, borderRadius:6, border:'1px solid #e2e8f0', background:'#fff', cursor:'pointer', fontSize:18, fontWeight:700, color:'#1e2d7d', lineHeight:1 }}>+</button>
                         </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Шрифт</div>
+                        <FontPicker value={kalkaState.calendarFont} onChange={f=>setKalkaState(p=>({...p,calendarFont:f}))} />
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <span style={{ fontSize:10, color:'#64748b' }}>Колір</span>
@@ -4881,6 +4939,22 @@ export default function BookLayoutEditor() {
                         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>Розмір</span><span>{kalkaState.calendarScale}%</span></div>
                         <input type="range" min={40} max={100} value={kalkaState.calendarScale} onChange={e=>setKalkaState(p=>({...p,calendarScale:+e.target.value}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
                       </div>
+                      {kalkaState.calendarMode==='month' && (
+                        <div>
+                          <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Обведення дат</div>
+                          <div style={{ fontSize:10, color:'#94a3b8', lineHeight:1.4, marginBottom:6 }}>Натисніть на число в календарі, щоб обвести дату (наприклад, важливу).</div>
+                          {kalkaState.calendarMarkedDays.length>0 && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                              {kalkaState.calendarMarkedDays.slice().sort((a,b)=>a-b).map(d=>(
+                                <button key={d} onClick={()=>setKalkaState(p=>({...p,calendarMarkedDays:p.calendarMarkedDays.filter(x=>x!==d)}))}
+                                  style={{ padding:'2px 8px', borderRadius:999, border:'1px solid #c7d2fe', background:'#f0f3ff', color:'#1e2d7d', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                                  {d} ×
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <button onClick={()=>setKalkaState(p=>({...p,calendarX:50,calendarY:50,calendarScale:94}))}
                         style={{ padding:'4px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺ Скинути положення</button>
                       <div style={{ fontSize:10, color:'#94a3b8', lineHeight:1.4 }}>Перетягніть календар на сторінці, щоб змістити.</div>
@@ -5963,16 +6037,18 @@ export default function BookLayoutEditor() {
                     <div
                       onPointerDown={e => {
                         e.stopPropagation();
+                        calDragMovedRef.current = false;
                         const sx = kalkaState.calendarX;
                         const sy = kalkaState.calendarY;
                         startPointerDrag(e, (dx, dy) => {
+                          if (Math.abs(dx) > 4 || Math.abs(dy) > 4) calDragMovedRef.current = true;
                           const nx = Math.max(0, Math.min(100, sx + (dx / pageW) * 100));
                           const ny = Math.max(0, Math.min(100, sy + (dy / cH) * 100));
                           setKalkaState(p => ({ ...p, calendarX: nx, calendarY: ny }));
                         });
                       }}
                       style={{ position:'absolute', left:`${kalkaState.calendarX}%`, top:`${kalkaState.calendarY}%`, transform:'translate(-50%,-50%)', width:`${kalkaState.calendarScale}%`, opacity:0.8, cursor:'grab', touchAction:'none' }}>
-                      <KalkaCalendar year={kalkaState.calendarYear} color={kalkaState.calendarColor} baseFont={(pageW * kalkaState.calendarScale / 100) / 75} />
+                      <KalkaCalendar mode={kalkaState.calendarMode} year={kalkaState.calendarYear} month={kalkaState.calendarMonth} color={kalkaState.calendarColor} font={kalkaState.calendarFont} markedDays={kalkaState.calendarMarkedDays} baseFont={(pageW * kalkaState.calendarScale / 100) / 75} onToggleDay={day => { if (calDragMovedRef.current) { calDragMovedRef.current = false; return; } setKalkaState(p => ({ ...p, calendarMarkedDays: p.calendarMarkedDays.includes(day) ? p.calendarMarkedDays.filter(d => d !== day) : [...p.calendarMarkedDays, day] })); }} />
                     </div>
                   )}
                   {kalkaState.text && (
@@ -6656,16 +6732,18 @@ export default function BookLayoutEditor() {
                         <div
                           onPointerDown={e => {
                             e.stopPropagation();
+                            calDragMovedRef.current = false;
                             const sx = kalkaState.calendarX;
                             const sy = kalkaState.calendarY;
                             startPointerDrag(e, (dx, dy) => {
+                              if (Math.abs(dx) > 4 || Math.abs(dy) > 4) calDragMovedRef.current = true;
                               const nx = Math.max(0, Math.min(100, sx + (dx / pageW) * 100));
                               const ny = Math.max(0, Math.min(100, sy + (dy / cH) * 100));
                               setKalkaState(p => ({ ...p, calendarX: nx, calendarY: ny }));
                             });
                           }}
                           style={{ position:'absolute', left:`${kalkaState.calendarX}%`, top:`${kalkaState.calendarY}%`, transform:'translate(-50%,-50%)', width:`${kalkaState.calendarScale}%`, opacity:0.8, cursor:'grab', touchAction:'none' }}>
-                          <KalkaCalendar year={kalkaState.calendarYear} color={kalkaState.calendarColor} baseFont={(pageW * kalkaState.calendarScale / 100) / 75} />
+                          <KalkaCalendar mode={kalkaState.calendarMode} year={kalkaState.calendarYear} month={kalkaState.calendarMonth} color={kalkaState.calendarColor} font={kalkaState.calendarFont} markedDays={kalkaState.calendarMarkedDays} baseFont={(pageW * kalkaState.calendarScale / 100) / 75} onToggleDay={day => { if (calDragMovedRef.current) { calDragMovedRef.current = false; return; } setKalkaState(p => ({ ...p, calendarMarkedDays: p.calendarMarkedDays.includes(day) ? p.calendarMarkedDays.filter(d => d !== day) : [...p.calendarMarkedDays, day] })); }} />
                         </div>
                       )}
                       {/* Text */}
@@ -8898,6 +8976,23 @@ export default function BookLayoutEditor() {
                   </div>
                   {kalkaState.calendarEnabled && (
                     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      <div style={{ display:'flex', gap:6 }}>
+                        {(['month','year'] as const).map(m => (
+                          <button key={m} onClick={()=>setKalkaState(p=>({...p,calendarMode:m}))}
+                            style={{ flex:1, padding:'7px 0', borderRadius:6, border:'1px solid '+(kalkaState.calendarMode===m?'#1e2d7d':'#e2e8f0'), background:kalkaState.calendarMode===m?'#1e2d7d':'#fff', color:kalkaState.calendarMode===m?'#fff':'#475569', cursor:'pointer', fontSize:12, fontWeight:700 }}>
+                            {m==='month'?'Місяць':'Рік'}
+                          </button>
+                        ))}
+                      </div>
+                      {kalkaState.calendarMode==='month' && (
+                        <div>
+                          <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Місяць</div>
+                          <select value={kalkaState.calendarMonth} onChange={e=>setKalkaState(p=>({...p,calendarMonth:+e.target.value,calendarMarkedDays:[]}))}
+                            style={{ width:'100%', padding:'8px', borderRadius:6, border:'1px solid #e2e8f0', fontSize:14, color:'#1e2d7d', fontWeight:600, background:'#fff' }}>
+                            {KALKA_UA_MONTHS.map((mn,mi)=><option key={mi} value={mi}>{mn}</option>)}
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Рік</div>
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -8905,6 +9000,10 @@ export default function BookLayoutEditor() {
                           <span style={{ flex:1, textAlign:'center', fontSize:16, fontWeight:800, color:'#1e2d7d' }}>{kalkaState.calendarYear}</span>
                           <button onClick={()=>setKalkaState(p=>({...p,calendarYear:p.calendarYear+1}))} style={{ width:34, height:34, borderRadius:6, border:'1px solid #e2e8f0', background:'#fff', cursor:'pointer', fontSize:20, fontWeight:700, color:'#1e2d7d', lineHeight:1 }}>+</button>
                         </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Шрифт</div>
+                        <FontPicker value={kalkaState.calendarFont} onChange={f=>setKalkaState(p=>({...p,calendarFont:f}))} />
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <span style={{ fontSize:10, color:'#64748b' }}>Колір</span>
@@ -8917,6 +9016,22 @@ export default function BookLayoutEditor() {
                         <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'#64748b' }}><span>Розмір</span><span>{kalkaState.calendarScale}%</span></div>
                         <input type="range" min={40} max={100} value={kalkaState.calendarScale} onChange={e=>setKalkaState(p=>({...p,calendarScale:+e.target.value}))} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
                       </div>
+                      {kalkaState.calendarMode==='month' && (
+                        <div>
+                          <div style={{ fontSize:10, color:'#64748b', marginBottom:4 }}>Обведення дат</div>
+                          <div style={{ fontSize:10, color:'#94a3b8', lineHeight:1.4, marginBottom:6 }}>Натисніть на число в календарі, щоб обвести дату.</div>
+                          {kalkaState.calendarMarkedDays.length>0 && (
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                              {kalkaState.calendarMarkedDays.slice().sort((a,b)=>a-b).map(d=>(
+                                <button key={d} onClick={()=>setKalkaState(p=>({...p,calendarMarkedDays:p.calendarMarkedDays.filter(x=>x!==d)}))}
+                                  style={{ padding:'3px 10px', borderRadius:999, border:'1px solid #c7d2fe', background:'#f0f3ff', color:'#1e2d7d', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                                  {d} ×
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <button onClick={()=>setKalkaState(p=>({...p,calendarX:50,calendarY:50,calendarScale:94}))}
                         style={{ padding:'6px 0', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:11, color:'#64748b' }}>↺ Скинути положення</button>
                       <div style={{ fontSize:10, color:'#94a3b8', lineHeight:1.4 }}>Перетягніть календар на сторінці, щоб змістити.</div>
