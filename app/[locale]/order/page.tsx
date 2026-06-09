@@ -524,7 +524,7 @@ function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
         <Check className="w-10 h-10 text-[#1e2d7d]" />
       </div>
       <h2 className="text-2xl font-bold text-[#1e2d7d] mb-3">Замовлення відправлено!</h2>
-      <p className="text-gray-500 max-w-md mx-auto mb-2">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
+      <p className="text-gray-500 max-w-md mx-auto mb-2">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 24 годин для підтвердження деталей.</p>
       {orderNumber && <p className="text-gray-400 text-sm mb-8">Номер замовлення: <strong>{orderNumber}</strong></p>}
       {!orderNumber && <div className="mb-8" />}
       <div className="flex flex-col items-center gap-4">

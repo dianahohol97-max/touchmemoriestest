@@ -283,24 +283,32 @@ function MagazineTextBriefContent() {
       };
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        const normalized = await normalizeImageFile(photo.file);
-        const fileToUpload = await downscaleImageIfLarge(normalized);
-        const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
-        const { error } = await supabase.storage
-          .from('order-files')
-          .upload(path, fileToUpload, { upsert: true, contentType: safeCt(fileToUpload) });
-        if (error) {
-          console.error('upload error:', error);
-          toast.error(`Не вдалось завантажити ${photo.file.name}: ${(error as any)?.message || 'спробуйте ще раз'}`);
+        try {
+          const normalized = await normalizeImageFile(photo.file);
+          const fileToUpload = await downscaleImageIfLarge(normalized);
+          const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
+          const { error } = await supabase.storage
+            .from('order-files')
+            .upload(path, fileToUpload, { upsert: true, contentType: safeCt(fileToUpload) });
+          if (error) {
+            console.error('upload error:', error);
+            toast.error(`Не вдалось завантажити ${photo.file.name}: ${(error as any)?.message || 'спробуйте ще раз'}`);
+            continue;
+          }
+          uploadedItems.push({
+            path,
+            name: photo.file.name,
+            size: fileToUpload.size,
+            type: fileToUpload.type || 'image/jpeg',
+          });
+        } catch (e: any) {
+          // A single bad file (HEIC conversion / downscale failure) must not
+          // abort the whole order — skip it and keep going.
+          console.error('photo processing error:', e);
+          toast.error(`Не вдалось обробити ${photo.file.name}: ${e?.message || 'пропускаємо'}`);
           continue;
         }
-        uploadedItems.push({
-          path,
-          name: photo.file.name,
-          size: fileToUpload.size,
-          type: fileToUpload.type || 'image/jpeg',
-        });
       }
       if (uploadedItems.length === 0) {
         toast.error('Не вдалось завантажити жодного фото — спробуйте ще раз');
@@ -312,23 +320,29 @@ function MagazineTextBriefContent() {
       // the exact image the customer picked for the cover.
       let coverPhotoPath: string | null = null;
       if (coverPhoto) {
-        const coverToUpload = await downscaleImageIfLarge(await normalizeImageFile(coverPhoto.file));
-        const safeName = coverToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${sessionId}/cover_${safeName}`;
-        const { error } = await supabase.storage
-          .from('order-files')
-          .upload(path, coverToUpload, { upsert: true, contentType: safeCt(coverToUpload) });
-        if (error) {
-          console.error('cover upload error:', error);
-          toast.error(`Не вдалось завантажити обкладинку: ${(error as any)?.message || 'спробуйте ще раз'}`);
-        } else {
-          coverPhotoPath = path;
-          uploadedItems.push({
-            path,
-            name: `[ОБКЛАДИНКА] ${coverPhoto.file.name}`,
-            size: coverToUpload.size,
-            type: coverToUpload.type || 'image/jpeg',
-          });
+        try {
+          const coverToUpload = await downscaleImageIfLarge(await normalizeImageFile(coverPhoto.file));
+          const safeName = coverToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const path = `${sessionId}/cover_${safeName}`;
+          const { error } = await supabase.storage
+            .from('order-files')
+            .upload(path, coverToUpload, { upsert: true, contentType: safeCt(coverToUpload) });
+          if (error) {
+            console.error('cover upload error:', error);
+            toast.error(`Не вдалось завантажити обкладинку: ${(error as any)?.message || 'спробуйте ще раз'}`);
+          } else {
+            coverPhotoPath = path;
+            uploadedItems.push({
+              path,
+              name: `[ОБКЛАДИНКА] ${coverPhoto.file.name}`,
+              size: coverToUpload.size,
+              type: coverToUpload.type || 'image/jpeg',
+            });
+          }
+        } catch (e: any) {
+          // Cover photo is optional — never let it abort the order.
+          console.error('cover processing error:', e);
+          toast.error(`Не вдалось обробити обкладинку: ${e?.message || 'пропускаємо'}`);
         }
       }
 
@@ -394,9 +408,11 @@ function MagazineTextBriefContent() {
       if (orderError) throw orderError;
 
       // 3) Link photos to order with full metadata so /admin/orders/
-      //    [id]/files shows them with the journal badge.
+      //    [id]/files shows them with the journal badge. The order already
+      //    exists at this point — a linking failure must NOT surface as an
+      //    order error (that would make the customer retry and double-order).
       if (order && uploadedItems.length > 0) {
-        await supabase.from('order_files').insert(
+        const { error: filesErr } = await supabase.from('order_files').insert(
           uploadedItems.map((it, idx) => ({
             order_id: order.id,
             file_path: it.path,
@@ -410,6 +426,7 @@ function MagazineTextBriefContent() {
             page_number: idx + 1,
           }))
         );
+        if (filesErr) console.error('order_files link error (order still created):', filesErr);
       }
 
       setOrderId(order.id);
@@ -418,7 +435,8 @@ function MagazineTextBriefContent() {
       toast.success('Замовлення прийнято! Менеджер звʼяжеться з вами.');
     } catch (err: any) {
       console.error('order error:', err);
-      toast.error('Помилка при оформленні замовлення. Спробуйте ще раз.');
+      const reason = err?.message || err?.error_description || err?.hint || '';
+      toast.error(reason ? `Помилка при оформленні: ${reason}` : 'Помилка при оформленні замовлення. Спробуйте ще раз.');
     } finally {
       setSubmitting(false);
     }
