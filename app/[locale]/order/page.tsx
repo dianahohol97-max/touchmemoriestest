@@ -954,6 +954,8 @@ function OrderForm() {
                   'Тип ламінації':                 { 'none': 'Без ламінації' },
                   'Друк на форзаці':               { 'none': 'Без друку', 'with': 'З друком' },
                   'Терміновість':                  { 'none': 'Стандартна', 'standard': 'Стандартна', 'urgent': 'Термінова (до 5 робочих днів)' },
+                  'Колір напису':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
+                  'Колір флексу':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
                 };
 
                 const labelFor = (key: string, value: string): string => {
@@ -963,21 +965,41 @@ function OrderForm() {
                   return value;
                 };
 
-                // "Без оздоблення" / 'none' on the decoration field means the
-                // acryl/foto/metal sub-options are irrelevant — hide them
-                // so the summary doesn't show stray "acryl_100x100" that the
-                // customer never actually picked. Same logic as
-                // ProductOptionsSelector's conditional render.
-                const ozRaw = String(cfg['Тип оздоблення'] || cfg['Оздоблення'] || '').toLowerCase();
-                const noDecoration = !ozRaw || ozRaw === 'none' || ozRaw.includes('без оздоблення');
+                // The product options dump can contain contradictory / stray
+                // fields: a "Тип оздоблення=Фотовставка" alongside an unused
+                // "Оздоблення=Без оздоблення", variant sub-options for EVERY
+                // decoration (Варіант акрилу + Варіант фотовставки) when only
+                // one was chosen, a "Колір напису" that only matters for flex,
+                // and empty fields. Build a clean, non-contradictory summary.
+                const decoRaw = String(cfg['Тип оздоблення'] || cfg['Оздоблення'] || '').toLowerCase();
+                const noDecoration = !decoRaw || decoRaw === 'none' || decoRaw.includes('без оздоблення');
                 const subOptionKeys = ['Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки', 'Варіант тиснення', 'Варіант гравірування'];
+                // The single sub-option key that belongs to the chosen decoration.
+                const variantKeyFor = (d: string): string | null => {
+                  if (d.includes('акрил') || d.includes('acryl')) return 'Варіант акрилу';
+                  if (d.includes('фотовставк') || d.includes('foto') || d.includes('photo')) return 'Варіант фотовставки';
+                  if (d.includes('метал')) return 'Варіант металевої вставки';
+                  if (d.includes('тиснен')) return 'Варіант тиснення';
+                  if (d.includes('гравір') || d.includes('graviru')) return 'Варіант гравірування';
+                  return null;
+                };
+                const chosenVariantKey = noDecoration ? null : variantKeyFor(decoRaw);
+                const isFlex = !noDecoration && (decoRaw.includes('флекс') || decoRaw.includes('flex') || decoRaw.includes('друк кольор'));
+                // Redundant decoration group: when one of «Оздоблення» /
+                // «Тип оздоблення» carries the real decoration, drop the other
+                // one if it's just "Без оздоблення".
+                const ozdNone = (() => { const r = String(cfg['Оздоблення'] ?? '').toLowerCase(); return !r || r === 'none' || r.includes('без оздоблення'); })();
+                const typNone = (() => { const r = String(cfg['Тип оздоблення'] ?? '').toLowerCase(); return !r || r === 'none' || r.includes('без оздоблення'); })();
 
-                // Drop key/value pairs that shouldn't be surfaced:
-                //   - "Тип оздоблення=Без оздоблення" → hide all sub-options
-                //   - any raw 'none' (e.g. 'Калька=none' before label map)
-                //     stays but renders as "Без кальки" via valueLabels.
-                const entries = Object.entries(cfg).filter(([key]) => {
-                  if (noDecoration && subOptionKeys.includes(key)) return false;
+                const entries = Object.entries(cfg).filter(([key, value]) => {
+                  if (String(value ?? '').trim() === '') return false;       // hide empty fields
+                  if (subOptionKeys.includes(key)) {                          // only the chosen decoration's variant
+                    if (noDecoration) return false;
+                    return key === chosenVariantKey;
+                  }
+                  if (key === 'Колір напису' || key === 'Колір флексу') return isFlex; // inscription colour: flex only
+                  if (key === 'Оздоблення' && ozdNone && !typNone) return false;       // drop redundant "Без оздоблення"
+                  if (key === 'Тип оздоблення' && typNone && !ozdNone) return false;
                   return true;
                 });
 
