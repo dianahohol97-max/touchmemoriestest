@@ -908,7 +908,11 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
 
       {/* Cover Color Picker (velour uses hardcoded, others use DB) */}
       {hasColorAndDecoration && (() => {
-        const colors = isVelourProduct ? VELOUR_COLORS : coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx }));
+        const colors = isVelourProduct
+          ? (coverColors.length > 0
+              ? coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }))
+              : VELOUR_COLORS.map((c: any) => ({ ...c, photo_url: null })))
+          : coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }));
         const current = isVelourProduct ? selectedColor : selectedCoverColor;
         const colorLabel = isVelourProduct ? 'Колір велюру' : isLeatherProduct ? 'Колір шкірзамінника' : 'Колір тканини';
         if (colors.length === 0) return null;
@@ -933,12 +937,17 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     const price = calculatePrice(newOptions);
                     onChange(newOptions, price || undefined);
                   }}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
+                  className={`w-8 h-8 rounded-full border-2 overflow-hidden transition-all ${
                     current?.code === color.code ? 'border-[#1e2d7d] scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
                   }`}
                   style={{ backgroundColor: color.hex }}
                   aria-label={optValueLabel(color.name)}
-                />
+                >
+                  {color.photo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={color.photo_url} alt="" className="w-full h-full object-cover" draggable={false} />
+                  )}
+                </button>
               ))}
             </div>
           </div>
