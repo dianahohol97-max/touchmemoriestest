@@ -419,9 +419,12 @@ interface ProductOptionsSelectorProps {
   selectedOptions: Record<string, string | number>;
   onChange: (options: Record<string, string | number>, calculatedPrice?: number) => void;
   productOptions?: any[];
+  /** Fired when a cover colour with an uploaded photo is selected, so the
+   *  parent can show that fabric photo in the main product gallery. */
+  onColorImage?: (photoUrl: string | null) => void;
 }
 
-export function ProductOptionsSelector({ slug, selectedOptions, onChange }: ProductOptionsSelectorProps) {
+export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColorImage }: ProductOptionsSelectorProps) {
   const t = useT();
   const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
   const optValueLabel = (val: string | number) => {
@@ -936,18 +939,15 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange }: Prod
                     const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
                     const price = calculatePrice(newOptions);
                     onChange(newOptions, price || undefined);
+                    // Show this colour's fabric photo in the main gallery (if uploaded).
+                    onColorImage?.(color.photo_url || null);
                   }}
-                  className={`w-8 h-8 rounded-full border-2 overflow-hidden transition-all ${
+                  className={`w-8 h-8 rounded-full border-2 transition-all ${
                     current?.code === color.code ? 'border-[#1e2d7d] scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
                   }`}
                   style={{ backgroundColor: color.hex }}
                   aria-label={optValueLabel(color.name)}
-                >
-                  {color.photo_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={color.photo_url} alt="" className="w-full h-full object-cover" draggable={false} />
-                  )}
-                </button>
+                />
               ))}
             </div>
           </div>

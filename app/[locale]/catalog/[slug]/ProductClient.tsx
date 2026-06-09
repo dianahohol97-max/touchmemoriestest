@@ -1184,6 +1184,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             setCustomProductOptions(prev => ({ ...prev, ...options }));
                                             setDynamicPrice(calculatedPrice ?? null);
                                         }}
+                                        onColorImage={(url) => { if (url) { setMainImage(url); setMainVideo(''); } }}
                                     />
 
                                     {/* DB-only options not rendered by ProductOptionsSelector */}
