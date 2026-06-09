@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Package, Truck, CheckCircle2, Clock, MapPin, ExternalLink, ChevronRight, AlertCircle, ShoppingBag } from 'lucide-react';
 import { useT } from '@/lib/i18n/context';
@@ -20,6 +20,14 @@ export default function TrackPage() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Prefill the order number when arriving from a confirmation screen / account
+    // link (/track?order=TM-...). Read from window to avoid a useSearchParams
+    // Suspense boundary; the contact field still has to be entered for security.
+    useEffect(() => {
+        const fromUrl = new URLSearchParams(window.location.search).get('order');
+        if (fromUrl) setOrderNumber(fromUrl);
+    }, []);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,7 +57,9 @@ export default function TrackPage() {
 
     const getStatusIndex = (status: string) => {
         const order = ['pending', 'confirmed', 'in_production', 'shipped', 'delivered'];
-        return order.indexOf(status);
+        // Fresh orders are stored as 'new' — treat that as the first step so the
+        // timeline shows progress right after ordering.
+        return order.indexOf(status === 'new' ? 'pending' : status);
     };
 
     const getTimestamp = (key: string) => {

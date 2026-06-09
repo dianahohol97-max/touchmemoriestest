@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { generateOrderNumber } from '@/lib/order-number';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
 import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion, computeIntlShippingUah } from '@/lib/payment/pricing-region';
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
   }
 
   const amounts = computePaymentAmounts(markedTotal, payment_type, body.delivery_method, markedFullOnlyPortion);
-  const order_number = `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  const order_number = generateOrderNumber();
 
   const { data: inserted, error } = await admin
     .from('orders')

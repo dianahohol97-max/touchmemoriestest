@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, Mail, Phone, User } from 'lucide-react'
 import { compressImageFile } from '@/lib/compress-upload-image'
 import { uploadImageToStorage } from '@/lib/storage-upload'
+import { generateOrderNumber } from '@/lib/order-number'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 import FlowHeader from '@/components/ui/FlowHeader'
 
@@ -501,9 +502,16 @@ function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
       <p className="text-gray-500 max-w-md mx-auto mb-2">Дякуємо! Наш дизайнер зв'яжеться з вами протягом 1–2 годин для підтвердження деталей.</p>
       {orderNumber && <p className="text-gray-400 text-sm mb-8">Номер замовлення: <strong>{orderNumber}</strong></p>}
       {!orderNumber && <div className="mb-8" />}
-      <button onClick={() => router.push('/catalog')} className="bg-[#1e2d7d] hover:bg-[#263a99] text-white font-semibold px-8 py-3 rounded-lg transition-colors">
-        Повернутись до каталогу
-      </button>
+      <div className="flex flex-col items-center gap-4">
+        <button onClick={() => router.push('/catalog')} className="bg-[#1e2d7d] hover:bg-[#263a99] text-white font-semibold px-8 py-3 rounded-lg transition-colors">
+          Повернутись до каталогу
+        </button>
+        {orderNumber && (
+          <a href={`/track?order=${encodeURIComponent(orderNumber)}`} className="text-[#1e2d7d] text-sm font-semibold underline underline-offset-4 hover:text-[#263a99]">
+            Перевірити статус замовлення
+          </a>
+        )}
+      </div>
     </div>
   )
 }
@@ -735,7 +743,7 @@ function OrderForm() {
           // must supply both itself or the insert fails with a null violation
           // (the "Сталася помилка" the customer saw on step 5). Match the
           // server's TM-<ts>-<rand> order_number format.
-          order_number: `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          order_number: generateOrderNumber(),
           delivery_method: formData.delivery || 'pickup',
           customer_name: [formData.name, formData.lastName].filter(Boolean).join(' '),
           customer_first_name: formData.name,

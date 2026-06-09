@@ -26,6 +26,7 @@ import { Upload, X, Check } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { downscaleImageIfLarge } from '@/lib/downscale-image';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
+import { generateOrderNumber } from '@/lib/order-number';
 
 type Package = 'basic' | 'premium';
 
@@ -342,7 +343,7 @@ function MagazineTextBriefContent() {
           // order_number + delivery_method are NOT NULL with no default/trigger;
           // this client-side insert must supply them or it fails (same fix as
           // the designer flow). Delivery is confirmed by the team afterwards.
-          order_number: `TM-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          order_number: generateOrderNumber(),
           delivery_method: 'pickup',
           items: [{
             product_slug: productSlug,
@@ -441,10 +442,18 @@ function MagazineTextBriefContent() {
         {orderNumber && (
           <p style={{ color: '#94a3b8', fontSize: 14 }}>Номер замовлення: <strong>{orderNumber}</strong></p>
         )}
-        <button onClick={() => router.push('/uk')} style={{
-          marginTop: 32, padding: '12px 24px', background: '#1e2d7d', color: '#fff',
-          border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontWeight: 600,
-        }}>На головну</button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 32 }}>
+          <button onClick={() => router.push('/uk')} style={{
+            padding: '12px 24px', background: '#1e2d7d', color: '#fff',
+            border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontWeight: 600,
+          }}>На головну</button>
+          {orderNumber && (
+            <a href={`/track?order=${encodeURIComponent(orderNumber)}`}
+              style={{ color: '#1e2d7d', fontSize: 14, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 4 }}>
+              Перевірити статус замовлення
+            </a>
+          )}
+        </div>
       </div>
     );
   }
