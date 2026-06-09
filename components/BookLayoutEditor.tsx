@@ -2432,18 +2432,24 @@ export default function BookLayoutEditor() {
       result.pages = result.pages.slice(0, targetPages);
     }
 
-    // Apply cover photos (front + back). autoBuild only returns coverPhotoId
-    // when cover photos are enabled, so we gate the back cover on the same
-    // signal — when the user wanted an auto cover, fill BOTH sides, not just
-    // the front (previously the back cover was left empty after «Магічна збірка»).
-    if (result.coverPhotoId && isPrinted) {
-      const frontId = result.coverPhotoId;
-      // Prefer a different photo for the back so both covers aren't identical;
-      // fall back to the last/front photo when only one image is available.
-      const backId = photos.find(p => p.id !== frontId)?.id || photos[photos.length - 1]?.id || frontId;
+    // Apply cover photos (front + back). The back cover used to be filled only
+    // when autoBuild returned a front coverPhotoId — but magazines often get
+    // their front photo from a cover template, leaving coverPhotoId null, so
+    // the back cover stayed blank (white) after «Магічна збірка». Now we fill
+    // the back whenever the product has a back cover and the user wanted auto
+    // cover photos, preferring an UNUSED photo (Diana: «ставить біле фото, хоча
+    // є вільні») and never clearing an existing front photo.
+    if (isPrinted && !isWishbook && (result.coverPhotoId || opts.coverPhoto)) {
+      const frontId = result.coverPhotoId || (coverState as any).photoId || photos[0]?.id || null;
+      const usedIds = new Set<string>(result.pages.flatMap(p => p.photoIds));
+      const freePhoto = photos.find(p => !usedIds.has(p.id) && p.id !== frontId);
+      const backId = freePhoto?.id
+        || photos.find(p => p.id !== frontId)?.id
+        || photos[photos.length - 1]?.id
+        || frontId;
       setCoverState((prev: any) => ({
         ...prev,
-        photoId: frontId,
+        ...(result.coverPhotoId ? { photoId: result.coverPhotoId } : {}),
         backCoverEnabled: true,
         backCoverPhotoId: backId,
         backCoverSlot: prev.backCoverSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' },
