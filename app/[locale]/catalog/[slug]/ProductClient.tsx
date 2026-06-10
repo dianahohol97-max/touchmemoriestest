@@ -2228,7 +2228,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                 initialConfig={{
                     size: String(customProductOptions['Розмір'] || ''),
                     pageColor: String(customProductOptions['Колір сторінок'] || ''),
-                    coverType: String(customProductOptions['Вид обкладинки'] || customProductOptions['Тип обкладинки'] || ''),
+                    coverType: String(customProductOptions['Матеріал обкладинки'] || customProductOptions['Вид обкладинки'] || customProductOptions['Тип обкладинки'] || ''),
                     coverColor: String(customProductOptions['Колір обкладинки'] || ''),
                 }}
             />

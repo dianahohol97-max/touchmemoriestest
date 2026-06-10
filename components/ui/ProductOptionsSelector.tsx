@@ -299,7 +299,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['Білі', 'Чорні', 'Кремові'],
       required: true
     },
-    { name: 'Кількість сторінок', values: ['32'], type: 'text', required: false },
+    // Кількість сторінок = 32 (фіксовано) — comes from DB options, not hardcoded here to avoid duplicates
   ],
   photoprint_standard: [
     {
