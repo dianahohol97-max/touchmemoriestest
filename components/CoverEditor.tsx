@@ -815,19 +815,20 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           {config.decoType === 'flex' && (
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
-                cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
+                cursor:'move', userSelect:'none', zIndex:10, padding:'10px 16px',
                 border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
+                onPointerDown={e=>e.stopPropagation()}
                 style={{ color:flexHex, textShadow:'0 0 8px rgba(0,0,0,0.3)', fontSize:fontSize+'px',
                   fontFamily:fontFamily+',Playfair Display,Georgia,serif', fontWeight:700,
                   letterSpacing:'0.04em', outline:'none', cursor:'text', display:'block', textAlign:'center',
                   whiteSpace:'nowrap' }}>
                 {config.decoText||'Ваш текст'}
               </span>
-              <div style={{ position:'absolute', top:-8, right:-8, background:'rgba(0,0,0,0.4)', borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <Move size={8} color="#fff"/>
+              <div style={{ position:'absolute', top:-10, right:-10, background:'rgba(0,0,0,0.55)', borderRadius:'50%', width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', cursor:'move', touchAction:'none' }} title="Перетягнути">
+                <Move size={11} color="#fff"/>
               </div>
             </div>
           )}
@@ -836,19 +837,20 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           {config.decoType === 'graviruvannya' && (
             <div onPointerDown={handleTextMouseDown}
               style={{ position:'absolute', left:`${textX}%`, top:`${textY}%`, transform:'translate(-50%,-50%)',
-                cursor:'move', userSelect:'none', zIndex:10, padding:'4px 8px',
+                cursor:'move', userSelect:'none', zIndex:10, padding:'10px 16px',
                 border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
+                onPointerDown={e=>e.stopPropagation()}
                 style={{ color:darkenHex(bgColor, 50), textShadow:`0 1px 0 ${darkenHex(bgColor,80)},0 -1px 0 rgba(255,255,255,0.1)`,
                   fontSize:fontSize+'px', fontFamily:fontFamily+',Playfair Display,Georgia,serif',
                   fontWeight:600, letterSpacing:'0.06em', outline:'none', cursor:'text', display:'block',
                   textAlign:'center', whiteSpace:'nowrap' }}>
                 {config.decoText||'Ваш текст'}
               </span>
-              <div style={{ position:'absolute', top:-8, right:-8, background:'rgba(0,0,0,0.3)', borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                <Move size={8} color="#fff"/>
+              <div style={{ position:'absolute', top:-10, right:-10, background:'rgba(0,0,0,0.45)', borderRadius:'50%', width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', cursor:'move', touchAction:'none' }} title="Перетягнути">
+                <Move size={11} color="#fff"/>
               </div>
             </div>
           )}
@@ -875,7 +877,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 onChange({extraTexts: updated});
               });
             }}
-            style={{ position:'absolute', left:`${et.x}%`, top:`${et.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:20, padding:'3px 6px', border:'1px dashed rgba(255,255,255,0.25)', borderRadius:3 }}>
+            style={{ position:'absolute', left:`${et.x}%`, top:`${et.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:20, padding:'8px 12px', border:'1px dashed rgba(255,255,255,0.25)', borderRadius:3 }}>
             <span
               contentEditable suppressContentEditableWarning
               onBlur={e => {
@@ -884,6 +886,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               }}
               onClick={e=>e.stopPropagation()}
               onMouseDown={e=>e.stopPropagation()}
+              onPointerDown={e=>e.stopPropagation()}
               style={{ display:'block', fontSize:(et.fontSize||20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
               {et.text}
             </span>

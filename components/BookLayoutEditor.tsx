@@ -4568,6 +4568,10 @@ export default function BookLayoutEditor() {
                 {coverState.decoType==='flex' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
+                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                    </div>
+                    <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір флексу</div>
                       <div style={{ display:'flex', gap:6 }}>
                         {([{v:'gold',c:'#D4AF37',l:'Золотий'},{v:'silver',c:'#C0C0C0',l:'Срібний'},{v:'white',c:'#FFFFFF',l:'Білий'},{v:'black',c:'#1A1A1A',l:'Чорний'}]).map(fc => (
@@ -4589,6 +4593,10 @@ export default function BookLayoutEditor() {
                 {coverState.decoType==='graviruvannya' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
+                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                    </div>
+                    <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
                       <FontPicker value={coverState.textFontFamily || 'Marck Script'} onChange={v=>setCoverState(prev=>({...prev,textFontFamily:v}))} />
                     </div>
@@ -4600,6 +4608,10 @@ export default function BookLayoutEditor() {
                 )}
                 {coverState.decoType==='metal' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
+                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на вставці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                    </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт напису</div>
                       <FontPicker value={coverState.textFontFamily || 'Montserrat'} onChange={v=>setCoverState(prev=>({...prev,textFontFamily:v}))} />
@@ -4655,7 +4667,7 @@ export default function BookLayoutEditor() {
                   </button>
                   {(coverState.extraTexts||[]).map(et => (
                     <div key={et.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
-                      <span style={{ flex:1, fontSize:11, color:'#374151', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{et.text}</span>
+                      <input value={et.text} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,text:e.target.value}:t2)}))} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
                       <input type="color" value={et.color.startsWith('#')?et.color:'#ffffff'} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))} style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer' }}/>
                       <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
                     </div>
