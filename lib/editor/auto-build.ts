@@ -181,52 +181,46 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
   // runs out.
   const isSpreadMode = layouts.some(l => l.id.startsWith('sp-'));
 
-  // Step 3: Determine photos per page based on density
+  // Step 3 + 4: Group photos to FILL every available page while using EVERY
+  // photo. The page count is fixed by the order, so packing at a density that
+  // leaves pages blank (the old behaviour) is wrong — we spread the photos
+  // across the whole budget, giving each page at least one photo, and only
+  // leave pages empty when there are genuinely fewer photos than pages.
   const photosPerPage = density === 'sparse' ? [1, 2] : density === 'balanced' ? [2, 3] : [3, 4, 5];
-  const densityMin = photosPerPage[0];
   const densityMax = photosPerPage[photosPerPage.length - 1];
 
   // How many groups (single pages, or spreads) the ordered size allows.
   const groupBudget = maxPages
     ? Math.max(1, isSpreadMode ? Math.floor(maxPages / 2) : maxPages)
     : Infinity;
-  // Upper bound of photos per group we'll allow when packing denser to fit
-  // everything. Spread layouts exist up to 6 slots; single pages up to 4.
+  // Spread layouts exist up to 6 slots; single pages up to 4.
   const hardMax = isSpreadMode ? 6 : 4;
-  // Minimum photos per group needed so ALL photos land inside the budget. If
-  // this is higher than the chosen density, we pack a little denser rather
-  // than dropping the customer's photos.
-  const needPerGroup = Number.isFinite(groupBudget)
-    ? Math.ceil(remaining.length / (groupBudget as number))
-    : densityMax;
-  const lo = Math.min(hardMax, Math.max(densityMin, needPerGroup));
-  const hi = Math.min(hardMax, Math.max(densityMax, needPerGroup));
 
-  // Step 4: Group photos into pages
+  // Fill as many pages/spreads as we can: every budgeted page when there are
+  // at least that many photos, otherwise one page per photo (the rest stay
+  // empty because no page can hold zero photos).
+  const targetGroups = Number.isFinite(groupBudget)
+    ? Math.min(groupBudget as number, remaining.length)
+    : Math.max(1, Math.ceil(remaining.length / densityMax));
+
+  // Step 4: Distribute ALL photos as evenly as possible across targetGroups.
   const pageGroups: PhotoClassified[][] = [];
-  let idx = 0;
-  while (idx < remaining.length) {
-    const left = remaining.length - idx;
-    let target: number;
-    if (left <= lo) {
-      target = left;
-    } else {
-      target = lo + Math.floor(Math.random() * (hi - lo + 1));
-      if (left - target === 1 && target < hi) target++;
+  if (targetGroups > 0) {
+    const base = Math.floor(remaining.length / targetGroups);
+    let extra = remaining.length % targetGroups; // first `extra` groups get +1
+    let idx = 0;
+    for (let g = 0; g < targetGroups; g++) {
+      let size = base + (extra > 0 ? 1 : 0);
+      if (extra > 0) extra--;
+      size = Math.min(Math.max(1, size), hardMax);
+      pageGroups.push(remaining.slice(idx, idx + size));
+      idx += size;
     }
-    target = Math.min(target, left);
-    pageGroups.push(remaining.slice(idx, idx + target));
-    idx += target;
-
-    // Out of group budget but photos remain — distribute the leftovers across
-    // the groups we already have (round-robin) so nothing is dropped.
-    if (Number.isFinite(groupBudget) && pageGroups.length >= (groupBudget as number)) {
-      let gi = 0;
-      while (idx < remaining.length) {
-        pageGroups[gi % pageGroups.length].push(remaining[idx]);
-        idx++; gi++;
-      }
-      break;
+    // Any leftover from the hardMax clamp — round-robin so nothing is dropped.
+    let gi = 0;
+    while (idx < remaining.length) {
+      pageGroups[gi % pageGroups.length].push(remaining[idx]);
+      idx++; gi++;
     }
   }
 

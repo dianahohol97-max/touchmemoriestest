@@ -2457,6 +2457,16 @@ export default function BookLayoutEditor() {
   const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean; gapless?: boolean; avoidSpine?: boolean }) => {
     if (photos.length === 0) return;
     pushHistory();
+    // Pages reserved at the front and back that never hold layout photos:
+    // kalka tissue (2 each side) or the journal/travelbook endpaper/forzac
+    // (1 each side). Subtracting them from the budget is what lets «Магічна
+    // збірка» fill every remaining page AND keep the forzac empty — instead of
+    // packing photos into pages the endpaper then steals, which left blank
+    // spreads and dropped photos.
+    const frontReserve = hasKalka ? 2 : hasEndpaper ? 1 : 0;
+    const backReserve = hasKalka ? 2 : hasEndpaper ? 1 : 0;
+    const orderedContent = Math.max(minPageCount, pages.length - 1);
+    const photoBudget = Math.max(1, orderedContent - frontReserve - backReserve);
     const result: { pages: { layout: string; photoIds: string[] }[]; coverPhotoId: string | null; totalSpreads: number } = autoBuild({
       photos,
       layouts: LAYOUTS.filter(l => {
@@ -2467,9 +2477,8 @@ export default function BookLayoutEditor() {
       }),
       currentPageCount: pages.length,
       minPages: minPagesLen,
-      // maxPages = ordered content pages (pages[0]=cover, so content = pages.length-1)
-      // Must be even for spread pairing
-      maxPages: Math.max(minPageCount, pages.length - 1),
+      // Only the pages that actually take layout photos (forzac/kalka excluded)
+      maxPages: photoBudget,
       density: opts.density,
       variety: opts.variety,
       coverPhotoEnabled: opts.coverPhoto,
@@ -2512,9 +2521,9 @@ export default function BookLayoutEditor() {
     // Build new pages array: keep page 0 (cover), rebuild content pages
     const newPages: Page[] = [pages[0]]; // keep cover
     
-    // Add kalka/endpaper placeholder pages if needed
-    const startOffset = hasKalka ? 2 : hasEndpaper ? 1 : 0;
-    for (let i = 0; i < startOffset; i++) {
+    // Reserve the front kalka tissue / endpaper (forzac) page(s). Preserve any
+    // existing content on them; they never receive layout photos.
+    for (let i = 0; i < frontReserve; i++) {
       newPages.push(pages[i + 1] || { id: i + 1, label: `${i + 1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
@@ -2547,9 +2556,14 @@ export default function BookLayoutEditor() {
       });
     }
 
-    // Add kalka end pages if needed  
-    if (hasKalka) {
+    // Pad any unfilled photo pages (only happens when there are fewer photos
+    // than pages) up to where the back reserve begins.
+    const contentTarget = Math.max(frontReserve, targetPages - backReserve);
+    while (newPages.length - 1 < contentTarget) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
+    }
+    // Reserve the back kalka tissue / endpaper (forzac) page(s) — always empty.
+    for (let i = 0; i < backReserve; i++) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
 
@@ -2557,11 +2571,7 @@ export default function BookLayoutEditor() {
     while ((newPages.length - 1) % 2 !== 0 && newPages.length - 1 < targetPages) {
       newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
     }
-    // Ensure minimum pages for this product — but never exceed the originally ordered amount
-    while (newPages.length - 1 < Math.min(minPageCount, targetPages)) {
-      newPages.push({ id: newPages.length, label: `${newPages.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] });
-    }
-    // Final hard trim — if still over (e.g. kalka added extra), trim to targetPages
+    // Final hard trim — never exceed the originally ordered page count.
     if (newPages.length - 1 > targetPages) {
       newPages.splice(targetPages + 1);
     }
