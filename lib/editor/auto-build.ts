@@ -174,8 +174,33 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
     remaining = remaining.filter(p => p.id !== coverPhotoId);
   }
 
+  // Spread mode (photobooks) packs ONE group per spread = 2 content pages,
+  // so the number of groups we can keep is half the ordered content pages.
+  // Detecting it here (before grouping) lets us size the groups so every
+  // uploaded photo is placed instead of being dropped when the page budget
+  // runs out.
+  const isSpreadMode = layouts.some(l => l.id.startsWith('sp-'));
+
   // Step 3: Determine photos per page based on density
   const photosPerPage = density === 'sparse' ? [1, 2] : density === 'balanced' ? [2, 3] : [3, 4, 5];
+  const densityMin = photosPerPage[0];
+  const densityMax = photosPerPage[photosPerPage.length - 1];
+
+  // How many groups (single pages, or spreads) the ordered size allows.
+  const groupBudget = maxPages
+    ? Math.max(1, isSpreadMode ? Math.floor(maxPages / 2) : maxPages)
+    : Infinity;
+  // Upper bound of photos per group we'll allow when packing denser to fit
+  // everything. Spread layouts exist up to 6 slots; single pages up to 4.
+  const hardMax = isSpreadMode ? 6 : 4;
+  // Minimum photos per group needed so ALL photos land inside the budget. If
+  // this is higher than the chosen density, we pack a little denser rather
+  // than dropping the customer's photos.
+  const needPerGroup = Number.isFinite(groupBudget)
+    ? Math.ceil(remaining.length / (groupBudget as number))
+    : densityMax;
+  const lo = Math.min(hardMax, Math.max(densityMin, needPerGroup));
+  const hi = Math.min(hardMax, Math.max(densityMax, needPerGroup));
 
   // Step 4: Group photos into pages
   const pageGroups: PhotoClassified[][] = [];
@@ -183,27 +208,31 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
   while (idx < remaining.length) {
     const left = remaining.length - idx;
     let target: number;
-    if (left <= photosPerPage[0]) {
+    if (left <= lo) {
       target = left;
     } else {
-      const jitter = Math.floor(Math.random() * photosPerPage.length);
-      target = photosPerPage[Math.min(jitter, photosPerPage.length - 1)];
-      if (left - target === 1 && target < photosPerPage[photosPerPage.length - 1]) target++;
+      target = lo + Math.floor(Math.random() * (hi - lo + 1));
+      if (left - target === 1 && target < hi) target++;
     }
     target = Math.min(target, left);
     pageGroups.push(remaining.slice(idx, idx + target));
     idx += target;
 
-    // Stop if we've reached maxPages (cap to ordered page count)
-    if (maxPages && pageGroups.length >= maxPages) break;
+    // Out of group budget but photos remain — distribute the leftovers across
+    // the groups we already have (round-robin) so nothing is dropped.
+    if (Number.isFinite(groupBudget) && pageGroups.length >= (groupBudget as number)) {
+      let gi = 0;
+      while (idx < remaining.length) {
+        pageGroups[gi % pageGroups.length].push(remaining[idx]);
+        idx++; gi++;
+      }
+      break;
+    }
   }
 
   // Step 5: Build pages with optimal layouts
   const usedLayouts: string[] = [];
   const resultPages: { layout: string; photoIds: string[] }[] = [];
-
-  // Detect spread mode: if layouts contain sp- prefix layouts
-  const isSpreadMode = layouts.some(l => l.id.startsWith('sp-'));
 
   if (isSpreadMode) {
     // SPREAD MODE: each pageGroup = 1 spread page with spread layout
