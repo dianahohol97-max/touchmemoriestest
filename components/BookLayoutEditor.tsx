@@ -4658,7 +4658,7 @@ export default function BookLayoutEditor() {
                   );
                 })()}
 
-                {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya' || coverState.decoType === 'metal') && (
+                {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya') && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
                   <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
@@ -4675,8 +4675,10 @@ export default function BookLayoutEditor() {
                 </div>
                 )}
 
-                {/* Free photo on the cover — any material. Adds a draggable,
-                    resizable photo the customer can place anywhere (like text). */}
+                {/* Free photo on the cover — any material EXCEPT metal insert,
+                    which should stand alone (no extra cover photo/text). Adds a
+                    draggable, resizable photo the customer can place anywhere. */}
+                {coverState.decoType !== 'metal' && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
                   <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
@@ -4685,6 +4687,7 @@ export default function BookLayoutEditor() {
                   </button>
                   <div style={{ fontSize:10, color:'#94a3b8' }}>Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.</div>
                 </div>
+                )}
               </div>
             )}
             {/* BACKGROUND */}
@@ -8665,6 +8668,13 @@ export default function BookLayoutEditor() {
                             return (
                               <div style={{ padding:'10px 12px', background:'#fef3c7', border:'1px solid #fbbf24', borderRadius:10, fontSize:12, color:'#92400e' }}>
                                 Спершу оберіть тип оздоблення обкладинки. Напис — це додаткове оздоблення (+180 ₴).
+                              </div>
+                            );
+                          }
+                          if (coverState.decoType === 'metal') {
+                            return (
+                              <div style={{ padding:'10px 12px', background:'#f0f3ff', border:'1px solid #c7d2fe', borderRadius:10, fontSize:12, color:'#1e2d7d' }}>
+                                Металева вставка вже містить власний текст — впишіть його прямо на вставці. Додатковий напис тут не потрібен.
                               </div>
                             );
                           }

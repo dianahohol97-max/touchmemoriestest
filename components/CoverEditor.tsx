@@ -862,7 +862,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       )}
 
       {/* Extra text blocks — draggable on any cover type */}
-      {(config.extraTexts||[]).map(et => {
+      {config.decoType !== 'metal' && (config.extraTexts||[]).map(et => {
         const etDragRef = { current: null as {sx:number;sy:number;stx:number;sty:number}|null };
         return (
           <div key={et.id}
@@ -919,7 +919,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
       {/* Free draggable + resizable photos — work on ANY cover material.
           Container drag = move, corner handle = resize, wheel/toolbar = zoom.
           x/y/w/h are % of the cover so they scale to preview + print. */}
-      {(config.coverPhotos||[]).map(cp => {
+      {config.decoType !== 'metal' && (config.coverPhotos||[]).map(cp => {
         const ph = photos.find(p => p.id === cp.photoId);
         const radius = cp.shape==='circle' ? '50%' : cp.shape==='rounded' ? '10px' : '2px';
         const updateCP = (patch: Partial<NonNullable<CoverConfig['coverPhotos']>[number]>) =>
