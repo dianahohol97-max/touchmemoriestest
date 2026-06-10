@@ -392,6 +392,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const decorationVariant = searchParams.get('decoration_variant');
         const decorationColor = searchParams.get('decoration_color');
         const coverColorParam = searchParams.get('cover_color');
+        const pageLaminationParam = searchParams.get('page_lamination');
         const pageColor = searchParams.get('page_color');
         const textLayout = searchParams.get('text_layout');
         // Also read Ukrainian param names from catalog URL (legacy support)
@@ -458,6 +459,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         // Lamination (printed cover only)
         if (lamination) setSelectedLamination(lamination);
+
+        // Page lamination — carried from the product card (designer flow has no
+        // constructor, so the card is the only place it can be chosen).
+        if (pageLaminationParam) setSelectedPageLamination(pageLaminationParam);
 
         // Decoration type + variant (from URL or Ukrainian catalog name)
         const decorationValue = decoration || decorationFromCatalog;

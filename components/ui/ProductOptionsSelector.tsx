@@ -224,7 +224,7 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
   'photojournal-hard': [
     { name: 'Розмір', values: ['A4 (210×297 мм)'], type: 'text', required: false },
     {
-      name: 'Тип обкладинки',
+      name: 'Ламінація обкладинки',
       values: ['Глянцева', 'Матова'],
       required: true,
       note: 'Темні кольори не рекомендуємо для матових обкладинок'
@@ -241,11 +241,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true,
       note: '«Власний текст» — ви пишете самі в редакторі. «Ми пишемо» — після замовлення відкриється анкета, де ви оберете пакет і розкажете про події; наш редактор напише текст за вас.'
     },
-    // Ламінація сторінок is intentionally NOT offered here: hard photojournals
-    // route to the book constructor (/order/book), which already shows the
-    // "Ламінація сторінок" selector and is the screen whose choices actually
-    // reach the order. Listing it on the card too duplicated the selection and
-    // showed a price that the constructor then discarded.
+    {
+      name: 'Ламінація сторінок',
+      values: ['Без ламінації', 'З ламінацією (+7 ₴/стор)'],
+      required: false,
+    },
     {
       name: 'Терміновість',
       values: ['Стандартна (5–8 днів)', 'Термінова до 5 робочих днів (+30%)'],

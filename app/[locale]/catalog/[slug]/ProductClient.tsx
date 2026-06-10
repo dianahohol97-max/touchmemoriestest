@@ -1574,6 +1574,8 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         'Розмір': 'size',
                                                         'Кількість сторінок': 'pages',
                                                         'Тип ламінації': 'lamination',
+                                                        'Ламінація обкладинки': 'lamination',
+                                                        'Ламінація сторінок': 'page_lamination',
                                                         'Калька перед першою сторінкою': 'tracing',
                                                         'Тип обкладинки': 'cover',
                                                         'Матеріал обкладинки': 'cover',

@@ -1007,6 +1007,10 @@ function OrderForm() {
                   if (key === 'Колір напису' || key === 'Колір флексу') return isFlex; // inscription colour: flex only
                   if (key === 'Оздоблення' && ozdNone && !typNone) return false;       // drop redundant "Без оздоблення"
                   if (key === 'Тип оздоблення' && typNone && !ozdNone) return false;
+                  // Journals carry the cover finish as «Ламінація обкладинки».
+                  // A stray «Тип обкладинки» with the same glossy/matte value
+                  // (from an older session) is a duplicate — hide it.
+                  if (key === 'Тип обкладинки' && (cfg['Ламінація обкладинки'] || cfg['Тип ламінації'])) return false;
                   return true;
                 });
 
