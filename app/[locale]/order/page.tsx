@@ -974,6 +974,7 @@ function OrderForm() {
                   'Терміновість':                  { 'none': 'Стандартна', 'standard': 'Стандартна', 'urgent': 'Термінова (до 5 робочих днів)' },
                   'Колір напису':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
                   'Колір флексу':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
+                  'Комплектація':                  { 'no_stand': 'Без мольберта', 'with_stand': "З дерев'яним мольбертом" },
                 };
 
                 const labelFor = (key: string, value: string): string => {
@@ -1056,6 +1057,9 @@ function OrderForm() {
           {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} pageCount={(() => {
             // Pull the page count out of the saved product config (if any)
             // so the photo step can recommend a count and cap uploads.
+            const slug = (savedConfig?.slug || '').toLowerCase();
+            // Desk calendar: always 12 months = 12 photos
+            if (slug.includes('desk-calendar') || slug.includes('calendar-table') || slug.includes('calendar-desk')) return 12;
             const raw = savedConfig?.config?.['Кількість сторінок'] ?? savedConfig?.config?.['pages'] ?? savedConfig?.pages;
             const n = parseInt(String(raw ?? '').replace(/[^\d]/g, ''), 10);
             return Number.isFinite(n) && n > 0 ? n : undefined;
