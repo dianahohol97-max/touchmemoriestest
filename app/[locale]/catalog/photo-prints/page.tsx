@@ -1089,7 +1089,7 @@ export default function PhotoPrintsPage() {
             <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '6px' }}>
               <CheckCircle2 size={16} color="#16a34a" />
             </div>
-            Термін виготовлення: 2–3 робочих дні
+            Термін виготовлення: 2–4 робочих дні
           </div>
         </div>
       </main>
