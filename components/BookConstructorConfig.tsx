@@ -532,6 +532,19 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (!autoAdvance || loading || !product) return;
         const pt = getProductType();
         const timer = setTimeout(() => {
+            // For magazines/travelbooks: ensure selectedPageCount matches the
+            // URL param before auto-advancing. If _saved had a different page
+            // count (e.g. 12 from a previous order), the URL-param useEffect
+            // will update it, but that setState is async — the 150ms timer
+            // might fire while selectedPageCount still holds the stale value.
+            // Guard: compare against the raw URL param and bail if they differ;
+            // the dependency array re-triggers this effect once state catches up.
+            const urlPages = searchParams.get('pages');
+            if (urlPages && (pt === 'travelbook' || pt === 'magazine')) {
+                const urlPagesNum = parseInt(urlPages, 10);
+                const statePagesNum = parseInt((selectedPageCount || '').match(/\d+/)?.[0] || '0', 10);
+                if (statePagesNum !== urlPagesNum) return; // wait for state to sync
+            }
             // Photobooks need size + pages; wishbook needs size + cover; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
                 ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor) && photobookPrices.length > 0)

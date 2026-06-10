@@ -30,7 +30,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
-import { getMagazinePrice } from '@/lib/products';
+import { getMagazinePrice, getTravelBookPrice } from '@/lib/products';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
 import {
@@ -3779,6 +3779,20 @@ export default function BookLayoutEditor() {
     const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
     const surchargedOrdered = (isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered) + typesettingExtra;
     const surchargedCurrent = (isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent) + typesettingExtra;
+    baseDynamicPrice = surchargedCurrent;
+    basePriceDiff = surchargedCurrent - surchargedOrdered;
+  } else if (isTravel) {
+    // Travel Book prices come from getTravelBookPrice() — same source as the
+    // product configurator. Without this branch, travelbooks fell through to
+    // calculateDynamicPrice which queries the photobook_prices table (where
+    // travelbooks have no rows), returning a wrong/fallback price.
+    const orderedPages = parseInt((config.selectedPageCount || '20').match(/\d+/)?.[0] || '20', 10);
+    const baseOrdered = getTravelBookPrice(orderedPages);
+    const baseCurrent = getTravelBookPrice(currentPageCount);
+    const urgentRaw = (searchParams?.get('urgent') || '').toLowerCase();
+    const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
+    const surchargedOrdered = isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered;
+    const surchargedCurrent = isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent;
     baseDynamicPrice = surchargedCurrent;
     basePriceDiff = surchargedCurrent - surchargedOrdered;
   } else if (isScrapbook) {
