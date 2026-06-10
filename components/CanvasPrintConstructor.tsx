@@ -283,16 +283,31 @@ export default function CanvasPrintConstructor() {
                             onChange={e => handleFileSelect(e.target.files)} />
 
                         {photo ? (
-                            <div style={{ position: 'relative' }}>
-                                <img src={photo.preview} alt="preview"
-                                    style={{ maxHeight: 400, maxWidth: '100%', display: 'block', objectFit: 'contain' }} />
-                                <button onClick={e => { e.stopPropagation(); setPhoto(null); }}
-                                    style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                                    <X size={16} />
-                                </button>
-                                <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '4px 8px', borderRadius: 6 }}>
-                                    {photo.width} × {photo.height} px
-                                </div>
+                            <div style={{ position: 'relative', width: '100%' }}>
+                                {/* Aspect-ratio crop preview — shows exactly what will be printed */}
+                                {(() => {
+                                    const dims = selectedSize ? getSizeDims(selectedSize.value) : { w: 1, h: 1 };
+                                    const ar = dims.w / dims.h;
+                                    const maxW = 500;
+                                    const previewW = Math.min(maxW, typeof window !== 'undefined' ? window.innerWidth - 64 : maxW);
+                                    const previewH = Math.round(previewW / ar);
+                                    return (
+                                        <div style={{ position: 'relative', width: previewW, maxWidth: '100%', height: previewH, margin: '0 auto', overflow: 'hidden', borderRadius: 6 }}>
+                                            <img src={photo.preview} alt="preview"
+                                                style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover', objectPosition: '50% 50%' }} />
+                                            <button onClick={e => { e.stopPropagation(); setPhoto(null); }}
+                                                style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                                                <X size={16} />
+                                            </button>
+                                            <div style={{ position: 'absolute', bottom: 10, left: 10, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, padding: '4px 8px', borderRadius: 6 }}>
+                                                {photo.width} × {photo.height} px
+                                            </div>
+                                            <div style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(30,45,125,0.85)', color: '#fff', fontSize: 11, padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
+                                                {selectedSize?.label || ''} — так виглядатиме на полотні
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ) : (
                             <>
@@ -304,6 +319,12 @@ export default function CanvasPrintConstructor() {
                             </>
                         )}
                     </div>
+
+                    {photo && (
+                        <div style={{ marginBottom: 8, marginTop: -16, fontSize: 12, color: '#64748b', textAlign: 'center' }}>
+                            ⚠️ Прев'ю показує кадрування за пропорціями {selectedSize?.label || ''}. Фото обрізається по центру — перевірте що головний об'єкт у кадрі.
+                        </div>
+                    )}
 
                     {photo && (
                         <div style={{ marginBottom: 20 }}>
