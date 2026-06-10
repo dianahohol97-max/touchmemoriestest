@@ -1594,6 +1594,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         'Колір сторінок': 'page_color',
                                                         'Верстка тексту': 'text_layout',
                                                         'Терміновість': 'urgent',
+                                                        'Друк на форзаці': 'endpaper',
                                                     };
                                                     const url = new URL(base, 'http://x');
                                                     // For photobook products, size and pages live in

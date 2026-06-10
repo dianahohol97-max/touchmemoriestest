@@ -386,6 +386,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const size = searchParams.get('size');
         const pages = searchParams.get('pages');
         const tracing = searchParams.get('tracing');
+        const endpaper = searchParams.get('endpaper');
         const lamination = searchParams.get('lamination');
         const cover = searchParams.get('cover');
         const decoration = searchParams.get('decoration');
@@ -455,6 +456,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (tracing) {
             const tr = tracing.toLowerCase();
             setEnableKalka((tr === 'with' || tr === 'true' || tr === 'так' || tr.includes('калькою')) && !tr.includes('без'));
+        }
+
+        // Endpaper (Travel Book / hard-cover magazine). Treat the positive
+        // values from ProductOptionsSelector («З друком», «з друком (+100 ₴)»)
+        // as ON; anything with «без» or «none»/empty as OFF.
+        if (endpaper) {
+            const ep = endpaper.toLowerCase();
+            setEnableEndpaper(ep !== 'none' && ep !== '' && !ep.includes('без'));
         }
 
         // Lamination (printed cover only)
