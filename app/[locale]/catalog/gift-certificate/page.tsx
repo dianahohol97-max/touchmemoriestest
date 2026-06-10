@@ -348,6 +348,9 @@ export default function GiftCertificatePage() {
                     rows={4}
                     className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent resize-none"
                   />
+                  <p className="text-xs text-stone-400 mt-1.5">
+                    💌 Це повідомлення буде включено в лист із сертифікатом, який отримувач отримає на email
+                  </p>
                 </label>
               </div>
             </div>

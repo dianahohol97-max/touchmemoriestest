@@ -117,7 +117,8 @@ export default function CartPage() {
                                                 {(() => {
                                                     const imgSrc = item.image || (item.product_id ? catalogImages[item.product_id] : '') || '';
                                                     return imgSrc
-                                                        ? <Image src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }} />
+                                                        ? <Image src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }}
+                                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><ImageIcon size={24} /></div>;
                                                 })()}
                                             </div>
