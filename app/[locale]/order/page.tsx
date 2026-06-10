@@ -599,8 +599,9 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
     // Velour/fabric/leatherette covers have no printed photo. The cover
     // block is relevant in two cases:
     //   • acryl / photo-insert — the customer supplies a photo for the insert
-    //   • flex (друк кольором) / engraving — the decoration IS text, so the
-    //     customer must be able to write the desired cover inscription.
+    //   • flex (друк кольором) / engraving / metal insert — the decoration
+    //     carries text, so the customer must be able to write the desired
+    //     cover inscription.
     const cfg = savedConfig?.config || {};
     // The config frequently carries BOTH keys — e.g. «Тип оздоблення»='Друк
     // кольором' alongside a leftover «Оздоблення»='Без оздоблення'. Reading one
@@ -616,7 +617,9 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
       finishRaw.includes('flex') || finishRaw.includes('флекс') ||
       finishRaw.includes('друк кольор') ||
       finishRaw.includes('гравір') || finishRaw.includes('гравію') ||
-      finishRaw.includes('graviruvannya');
+      finishRaw.includes('graviruvannya') ||
+      // Metal insert is an engraved/printed metal plate — it carries text.
+      finishRaw.includes('метал') || finishRaw.includes('metal');
     return { show: hasInsert || hasText, allowInscription: hasText, exampleUpload: hasText && !hasInsert };
   }
 
