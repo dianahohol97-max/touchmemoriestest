@@ -575,7 +575,7 @@ function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
 //                                              Оздоблення = Акрил / Фотовставка
 //   • Everything else (and direct /order
 //     visits with no product) ............... no cover block
-function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean; exampleUpload?: boolean } {
+function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean; exampleUpload?: boolean; generatedCover?: boolean } {
   const slug = String(savedConfig?.slug || '').toLowerCase();
   if (!slug) return { show: false, allowInscription: false };
 
@@ -587,7 +587,12 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
                              slug.includes('leatherette') || slug.includes('shkir');
 
   if (isJournal) return { show: true, allowInscription: true };
-  if (isTravel) return { show: true, allowInscription: false };
+  // Travel Book covers are GENERATED country designs (e.g. «AUSTRIA 2025»),
+  // not customer-uploaded photos. So the designer needs the country + the
+  // inscription text, with an optional reference — not a «upload your own
+  // cover» slot. (The country picker over the generated covers will replace
+  // the free-text country field once those covers are added.)
+  if (isTravel) return { show: true, allowInscription: true, generatedCover: true };
   // Printed photobook: cover is printed, so the designer needs BOTH a
   // reference photo AND a description of what should appear / be written
   // on it (name, slogan, "best photo from the wedding day" — any of
@@ -626,13 +631,17 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
   return { show: false, allowInscription: false };
 }
 
-function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, exampleUpload }: {
+function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, exampleUpload, generatedCover }: {
   allowInscription: boolean,
   inscription: string,
   coverPhoto: UploadedFile | null,
   onChange: (field: string, value: any) => void,
   exampleUpload?: boolean,
+  generatedCover?: boolean,
 }) {
+  // The photo upload is an optional reference (not the actual cover) for both
+  // the example-design flow and the Travel Book generated-cover flow.
+  const optionalPhoto = exampleUpload || generatedCover;
   const coverRef = useRef<HTMLInputElement>(null)
 
   const pickCover = (fileList: FileList | null) => {
@@ -658,7 +667,9 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, examp
     <div className="mt-8 pt-6 border-t border-gray-200">
       <h3 className="text-base font-bold text-[#1e2d7d] mb-1">Обкладинка</h3>
       <p className="text-gray-500 text-sm mb-4">
-        {exampleUpload
+        {generatedCover
+          ? 'Обкладинка Travel Book — це готовий дизайн із назвою країни. Вкажіть країну та напис, які мають бути на обкладинці; за бажанням додайте референс.'
+          : exampleUpload
           ? 'Напишіть текст, який має бути на обкладинці, і за бажанням додайте приклад дизайну, який вам подобається — дизайнер орієнтуватиметься на нього.'
           : `Завантажте окреме фото для обкладинки${allowInscription ? ' і коротко опишіть, що має бути на ній зображено або написано' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.`}
       </p>
@@ -683,19 +694,19 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, examp
           className="w-full border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center gap-2 text-gray-500 hover:border-[#1e2d7d] hover:bg-[#f8f9fc] transition-colors mb-4"
         >
           <Upload className="w-6 h-6" />
-          <span className="font-semibold text-sm">{exampleUpload ? 'Додати приклад дизайну' : 'Завантажити фото обкладинки'}</span>
-          <span className="text-xs text-gray-400">{exampleUpload ? 'фото або скрін дизайну, який вам подобається (опційно)' : 'вертикальне фото, обличчя крупно'}</span>
+          <span className="font-semibold text-sm">{generatedCover ? 'Додати референс (опційно)' : exampleUpload ? 'Додати приклад дизайну' : 'Завантажити фото обкладинки'}</span>
+          <span className="text-xs text-gray-400">{optionalPhoto ? 'фото або приклад дизайну, який вам подобається (опційно)' : 'вертикальне фото, обличчя крупно'}</span>
         </button>
       )}
 
       {allowInscription && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{exampleUpload ? 'Бажаний текст на обкладинці (опційно)' : 'Що має бути на обкладинці (опційно)'}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{generatedCover ? 'Країна та напис на обкладинці' : exampleUpload ? 'Бажаний текст на обкладинці (опційно)' : 'Що має бути на обкладинці (опційно)'}</label>
           <textarea
             value={inscription}
             onChange={e => onChange('coverInscription', e.target.value)}
             rows={3}
-            placeholder={exampleUpload ? 'Напр.: «Наша історія 2024», ім&apos;я, дата чи цитата — те, що надрукувати на обкладинці.' : 'Опишіть, що хочете бачити на обкладинці: ім&apos;я, девіз, або яке фото — напр. "Книга про Марію", "наше весілля, фото з арки" або "найкраще спільне фото з відпустки"'}
+            placeholder={generatedCover ? 'Напр.: AUSTRIA 2025 · Diana & Adrian — вкажіть країну, рік та імена для обкладинки.' : exampleUpload ? 'Напр.: «Наша історія 2024», ім&apos;я, дата чи цитата — те, що надрукувати на обкладинці.' : 'Опишіть, що хочете бачити на обкладинці: ім&apos;я, девіз, або яке фото — напр. "Книга про Марію", "наше весілля, фото з арки" або "найкраще спільне фото з відпустки"'}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none font-sans"
           />
           <p className="text-xs text-gray-400 mt-1.5">Можна залишити порожнім — тоді дизайнер обере на власний розсуд.</p>
@@ -1079,6 +1090,7 @@ function OrderForm() {
                 coverPhoto={formData.coverPhoto}
                 onChange={update}
                 exampleUpload={cap.exampleUpload}
+                generatedCover={cap.generatedCover}
               />
             );
           })()}

@@ -266,9 +266,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['Глянцева', 'Матова'],
       required: true,
     },
-    // Ламінація сторінок is offered in the book constructor (/order/book), the
-    // screen whose choices reach the order — listing it here too duplicated the
-    // selection and priced an option the constructor then discarded.
+    {
+      name: 'Ламінація сторінок',
+      values: ['Без ламінації', 'З ламінацією (+7 ₴/стор)'],
+      required: false,
+    },
     {
       name: 'Друк на форзаці',
       values: ['Без друку', 'З друком (+100 ₴)'],
