@@ -1011,6 +1011,15 @@ function OrderForm() {
                   // A stray «Тип обкладинки» with the same glossy/matte value
                   // (from an older session) is a duplicate — hide it.
                   if (key === 'Тип обкладинки' && (cfg['Ламінація обкладинки'] || cfg['Тип ламінації'])) return false;
+                  // The same finish can also arrive under the constructor's
+                  // camelCase `coverType` key, which an older session left in
+                  // customProductOptions (its value becomes «Глянцева»/«Матова»).
+                  // Drop it only when it IS a glossy/matte finish — a real
+                  // material coverType (Велюр/Тканина/Друкована…) must stay.
+                  if (key === 'coverType' && (cfg['Ламінація обкладинки'] || cfg['Тип ламінації'])) {
+                    const cv = String(value ?? '').toLowerCase();
+                    if (cv.includes('глянц') || cv.includes('матов')) return false;
+                  }
                   return true;
                 });
 
