@@ -297,9 +297,19 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
     const canvas = canvasRef.current;
     if (!canvas) return;
     const myGen = ++drawGenRef.current;
-    canvas.width = W;
-    canvas.height = H;
+    // Scale canvas for retina/HiDPI screens so photos render crisp instead of
+    // blurry. The canvas pixel buffer is W×dpr by H×dpr; the CSS size stays
+    // W×H (set on the element). ctx.scale(dpr,dpr) then makes every drawing
+    // command work in logical pixels as before.
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
     const ctx = canvas.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     // Background
     ctx.fillStyle = config.bgColor;
