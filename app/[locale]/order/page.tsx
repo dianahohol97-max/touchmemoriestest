@@ -202,7 +202,7 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
   )
 }
 
-function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, showKalka, kalkaText, onKalkaTextChange }: {
+function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, showKalka, kalkaText, onKalkaTextChange, productSlug }: {
   value: string
   onChange: (v: string) => void
   showOwnText?: boolean
@@ -211,7 +211,20 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, s
   showKalka?: boolean
   kalkaText?: string
   onKalkaTextChange?: (v: string) => void
+  productSlug?: string
 }) {
+  const isDeskCalendar = (productSlug || '').toLowerCase().includes('desk-calendar') ||
+    (productSlug || '').toLowerCase().includes('calendar-table') ||
+    (productSlug || '').toLowerCase().includes('calendar-desk');
+
+  const commentPlaceholder = isDeskCalendar
+    ? 'Наприклад: фото хочу у такому ж порядку як завантажила; або фото 3 і 7 поміняти місцями; лютий — фото з днем народження...'
+    : 'Наприклад: хочу фотокнигу у теплих тонах, акцент на сімейні фото...';
+
+  const commentHint = isDeskCalendar
+    ? 'Якщо для вас важливий порядок фото — вкажіть це. Якщо є побажання щодо розташування конкретних фото по місяцях — опишіть або пронумеруйте. Решту дизайнер підбере сам.'
+    : 'Розкажіть про ваші побажання: тематика, кольори, стиль, особливості.';
+
   return (
     <div>
       <h2 className="text-xl font-bold text-[#1e2d7d] mb-2">Крок 2: Коментар до замовлення</h2>
@@ -241,12 +254,12 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, s
           />
         </div>
       )}
-      <p className="text-gray-500 text-sm mb-6">Розкажіть про ваші побажання: тематика, кольори, стиль, особливості.</p>
+      <p className="text-gray-500 text-sm mb-6">{commentHint}</p>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         rows={5}
-        placeholder="Наприклад: хочу фотокнигу у теплих тонах, акцент на сімейні фото..."
+        placeholder={commentPlaceholder}
         className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
       />
       <p className="text-xs text-gray-400 mt-2">Необов'язково — можна обговорити з дизайнером</p>
@@ -1083,6 +1096,7 @@ function OrderForm() {
             })()}
             kalkaText={formData.kalkaText}
             onKalkaTextChange={v => update('kalkaText', v)}
+            productSlug={savedConfig?.slug || ''}
           />}
           {step === 2 && (() => {
             const cap = getCoverCapability(savedConfig);

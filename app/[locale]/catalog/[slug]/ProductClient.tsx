@@ -253,6 +253,8 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return t('product_page.production_10');
         if (s.includes('print') || s.includes('photo-print') || s.includes('magnet') || ps.includes('polaroid') || ps.includes('photoprint') || ps.includes('photomagnet')) return t('product_page.production_2_4');
         if (s.includes('puzzle') || s.includes('canvas')) return t('product_page.production_5_7');
+        // Desk calendar / wall calendar: 2–4 days
+        if (ps.includes('desk-calendar') || ps.includes('calendar-table') || ps.includes('calendar-desk') || ps.includes('wall-calendar') || ps.includes('calendar')) return t('product_page.production_2_4');
         // Posters: 2–4 working days
         if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return t('product_page.production_2_4');
         return t('product_page.production_days');
