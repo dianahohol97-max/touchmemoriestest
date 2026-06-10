@@ -1801,14 +1801,28 @@ export default function BookLayoutEditor() {
 
   useEffect(() => {
     if (!config) return;
-    // Skip re-initialization if we restored a draft (pages already set)
+    const m = (config.selectedPageCount ?? '').match(/(\d+)/);
+    const total = m ? parseInt(m[0]) : 20;
+    // Skip re-initialization only if a restored draft actually matches the
+    // ordered page count. A leftover draft from an earlier attempt with a
+    // different size (e.g. an 8-page test) must NOT override the count the
+    // customer ordered now (e.g. 12) — otherwise the editor opens with the
+    // wrong number of pages and «Магічна збірка» runs on too small a canvas,
+    // leaving blank spreads. A reopened saved design is always authoritative.
     const initSlug = (config.productSlug || '').toLowerCase().trim();
     const draft = sessionStorage.getItem(initSlug ? `bookEditorDraft_${initSlug}` : 'bookEditorDraft');
     if (draft) {
-      try { const d = JSON.parse(draft); if (d.pages?.length) return; } catch {}
+      try {
+        const d = JSON.parse(draft);
+        if (d.pages?.length) {
+          const draftContent = d.pages.length - 1; // exclude cover
+          const isReopen = !!sessionStorage.getItem('bookReopenProjectId') || !!sessionStorage.getItem('bookEditCartItemId');
+          if (isReopen || Math.abs(draftContent - total) <= 2) return;
+          // Stale draft for a different page count — drop it and rebuild.
+          sessionStorage.removeItem(initSlug ? `bookEditorDraft_${initSlug}` : 'bookEditorDraft');
+        }
+      } catch {}
     }
-    const m = (config.selectedPageCount ?? '').match(/(\d+)/);
-    const total = m ? parseInt(m[0]) : 20;
     const hasKalka = !!(config.enableKalka) && (config.productSlug || '').toLowerCase().includes('photobook');
     const isPhotobook = (config.productSlug || '').toLowerCase().includes('photobook') || (config.productSlug || '').toLowerCase().includes('fotoknig') || (config.productName || '').toLowerCase().includes('фотокниг');
     const initLayout: LayoutType = isPhotobook ? 'sp-full' : 'p-full';
