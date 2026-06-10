@@ -69,10 +69,10 @@ const getConstructorUrl = (slug: string): string => {
   };
   if (posterMap[slug]) return posterMap[slug];
   if (s.includes('poster')) return '/order/poster';
-  // Wedding newspaper — dedicated questionnaire (design choice + per-design
-  // fields + photo upload), answers ride on the order for the designer.
+  // Wedding newspaper — designer-only flow via /order (photo upload + comment).
+  // No dedicated questionnaire constructor any more.
   if (s.includes('newspaper') || s.includes('газет'))
-    return '/order/wedding-newspaper';
+    return '/order';
   // Canvas print
   if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
     return '/order/canvas';
@@ -1513,6 +1513,42 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         const isWeWriteText = String(customProductOptions['Верстка тексту'] || '') === 'we'
                                             || String(customProductOptions['Верстка тексту'] || '') === 'we-basic'
                                             || String(customProductOptions['Верстка тексту'] || '') === 'we-premium';
+                                        // Wedding newspaper — designer-only: single «Замовити з дизайнером» button → /order
+                                        const isNewspaper = (product.slug || '').toLowerCase().includes('newspaper');
+                                        if (isNewspaper) {
+                                            return (
+                                                <button
+                                                    onClick={() => requireAuth(
+                                                        () => {
+                                                            try {
+                                                                sessionStorage.setItem('designerOrderConfig', JSON.stringify({
+                                                                    slug: product.slug || resolvedParams.slug,
+                                                                    productName: product.name || '',
+                                                                    config: customProductOptions,
+                                                                }));
+                                                            } catch {}
+                                                            router.push('/order');
+                                                        },
+                                                        'Щоб замовити — увійдіть в акаунт'
+                                                    )}
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '18px',
+                                                        backgroundColor: '#263a99',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        fontSize: '16px',
+                                                        fontWeight: 700,
+                                                        textAlign: 'center' as const,
+                                                        cursor: 'pointer',
+                                                        borderRadius: '6px',
+                                                    }}
+                                                    className="hover:bg-[#1a2966]"
+                                                >
+                                                    Замовити з дизайнером →
+                                                </button>
+                                            );
+                                        }
                                         if (isWeWriteText) {
                                             return (
                                                 <button

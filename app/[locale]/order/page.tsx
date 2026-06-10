@@ -218,12 +218,17 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, s
     (productSlug || '').toLowerCase().includes('calendar-desk') ||
     (productSlug || '').toLowerCase().includes('wall-calendar') ||
     (productSlug || '').toLowerCase().includes('calendar-wall');
+  const isNewspaper = (productSlug || '').toLowerCase().includes('newspaper');
 
-  const commentPlaceholder = isDeskCalendar
+  const commentPlaceholder = isNewspaper
+    ? 'Наприклад: стиль — ніжний, кольори — пудрові; хочу більше фото з церемонії; додати підписи під кожним фото...'
+    : isDeskCalendar
     ? 'Наприклад: фото хочу у такому ж порядку як завантажила; або фото 3 і 7 поміняти місцями; лютий — фото з днем народження...'
     : 'Наприклад: хочу фотокнигу у теплих тонах, акцент на сімейні фото...';
 
-  const commentHint = isDeskCalendar
+  const commentHint = isNewspaper
+    ? 'Опишіть побажання до дизайну: стиль, кольорова гама, які моменти виділити, чи потрібні підписи до фото. Дизайнер підготує макет і погодить його з вами.'
+    : isDeskCalendar
     ? 'Якщо для вас важливий порядок фото — вкажіть це. Якщо є побажання щодо розташування конкретних фото по місяцях — опишіть або пронумеруйте. Решту дизайнер підбере сам.'
     : 'Розкажіть про ваші побажання: тематика, кольори, стиль, особливості.';
 
