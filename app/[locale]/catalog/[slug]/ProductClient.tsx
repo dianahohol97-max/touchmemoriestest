@@ -252,7 +252,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return t('product_page.production_5_8');
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return t('product_page.production_10');
         if (s.includes('print') || s.includes('photo-print') || s.includes('magnet') || ps.includes('polaroid') || ps.includes('photoprint') || ps.includes('photomagnet')) return t('product_page.production_2_4');
-        if (s.includes('puzzle') || s.includes('canvas')) return t('product_page.production_5_7');
+        if (s.includes('puzzle') || s.includes('canvas') || ps.includes('puzzle') || ps.includes('pazl') || ps.includes('polotni') || ps.includes('canvas')) return t('product_page.production_2_5');
         // Desk calendar / wall calendar: 2–4 days
         if (ps.includes('desk-calendar') || ps.includes('calendar-table') || ps.includes('calendar-desk') || ps.includes('wall-calendar') || ps.includes('calendar')) return t('product_page.production_2_4');
         // Posters: 2–4 working days
@@ -604,7 +604,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         const isPhotoprintLike =
             slugLower.includes('photoprint') ||
             slugLower.includes('polaroid') ||
-            slugLower.includes('photomagnet');
+            slugLower.includes('photomagnet') ||
+            slugLower.includes('polotni') ||
+            slugLower.includes('canvas') ||
+            slugLower.includes('puzzle') ||
+            slugLower.includes('pazl');
         if (isPhotoprintLike) {
             const sizeOpt = product.options.find((o: any) => o.name === 'Розмір' || o.name === 'Формат');
             if (sizeOpt) {

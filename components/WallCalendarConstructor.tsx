@@ -215,7 +215,7 @@ const DEFAULT_COVER: CoverConfig = {
     printedBgColor: '#ffffff',
     printedPhotoSlot: { x: 0, y: 0, w: 100, h: 75, shape: 'rect' },
     printedTextBlocks: [
-        { id: 'title', text: 'Мій календар 2026', x: 50, y: 82, fontSize: 22, fontFamily: 'Playfair Display', color: '#0a0e1a', bold: true },
+        { id: 'title', text: 'Мій календар 2027', x: 50, y: 82, fontSize: 22, fontFamily: 'Playfair Display', color: '#0a0e1a', bold: true },
     ],
     printedOverlay: { type: 'gradient', color: '#000000', opacity: 50, gradient: 'linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.65) 100%)' },
 };
@@ -474,7 +474,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
     const buildMonthPages = (): MonthPage[] =>
         Array.from({length:12}, (_,i) => ({
-            id:`month-${i+1}`, month:i+1, year:2026, layout:'1-top' as Layout, slots:makeSlots(1),
+            id:`month-${i+1}`, month:i+1, year:2027, layout:'1-top' as Layout, slots:makeSlots(1),
         }));
 
     const startEditor = () => { setPages(buildMonthPages()); setCurrentIdx(0); setStep('editor'); };
@@ -524,7 +524,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         const cartPayload = {
             id: cartItemId,
             product_id: product?.id||'wall-calendar-2026',
-            name:`Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
+            name:`Настінний фотокалендар 2027 · ${SIZE_DIMS[size].label}`,
             price: basePrice, qty:1,
             image: photos[0]?.preview||'',
             options:{'Розмір':SIZE_DIMS[size].label},
@@ -633,7 +633,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 </div>
 
                 <div style={{background:'#f0f9ff',border:'1px solid #bae6fd',borderRadius:10,padding:'14px 18px',marginBottom:28,fontSize:13,color:'#0369a1'}}>
-                     <b>{t('wallcal.info_pages')}</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2026) зі слотами для фото і сіткою.
+                     <b>{t('wallcal.info_pages')}</b> обкладинка (повний редактор — фото, текст, шрифт, кольори) + 12 місяців (Січень–Грудень 2027) зі слотами для фото і сіткою.
                 </div>
 
                 <button onClick={startEditor} style={{width:'100%',padding:16,background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontSize:16,fontWeight:800,cursor:'pointer'}}>
@@ -726,7 +726,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     </div>
 
                     <div style={{fontSize:13,fontWeight:700,color:'#64748b',marginBottom:12}}>
-                        {isCover ? 'Обкладинка' : `${MONTHS_UK[(curMonth?.month||1)-1]} 2026`}
+                        {isCover ? 'Обкладинка' : `${MONTHS_UK[(curMonth?.month||1)-1]} 2027`}
                     </div>
 
                     {/* Canvas */}
@@ -814,7 +814,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                                     printedBgColor: tpl.bg,
                                                     printedOverlay: tpl.overlay || {type:'none',color:'#000',opacity:0,gradient:''},
                                                     printedTextBlocks: [{
-                                                        ...(prev.printedTextBlocks?.[0] || { id:'t1', text:'Мій календар 2026' }),
+                                                        ...(prev.printedTextBlocks?.[0] || { id:'t1', text:'Мій календар 2027' }),
                                                         x: tpl.textX, y: tpl.textY,
                                                         fontSize: tpl.fontSize,
                                                         color: tpl.textColor,
