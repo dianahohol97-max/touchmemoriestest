@@ -398,6 +398,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const coverFromCatalog = searchParams.get('Матеріал обкладинки') || searchParams.get('Матеріал+обкладинки');
         const colorFromCatalog = searchParams.get('Колір велюру') || searchParams.get('Колір+велюру')
             || searchParams.get('Колір тканини') || searchParams.get('Колір+тканини')
+            || searchParams.get('Колір шкірзамінника') || searchParams.get('Колір+шкірзамінника')
             || searchParams.get('Колір шкірзаміннику') || searchParams.get('Колір+шкірзаміннику');
         const decorationFromCatalog = searchParams.get('Тип оздоблення') || searchParams.get('Тип+оздоблення')
             || searchParams.get('Тип оздоблення обкладинки') || searchParams.get('Тип+оздоблення+обкладинки');
@@ -479,7 +480,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Cover color from URL (catalog passes "Колір велюру=Таупе" etc.)
         const coverColorFromUrl = coverColorParam || colorFromCatalog;
         if (coverColorFromUrl) {
-            setSelectedCoverColor(coverColorFromUrl);
+            // The product-page selector stores the value as «Назва (Код)»
+            // (e.g. «Фіолетовий яскравий (Ш-28)»), but the swatches here match
+            // on the bare name, so strip any trailing «(…)» before setting.
+            const colorName = coverColorFromUrl.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            setSelectedCoverColor(colorName || coverColorFromUrl);
         } else if (!selectedCoverColor) {
             // Fallback: slug-based default if nothing in URL
             const sl = productSlug.toLowerCase();

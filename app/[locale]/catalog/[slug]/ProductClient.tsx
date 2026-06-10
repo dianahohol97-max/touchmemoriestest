@@ -1586,6 +1586,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         'Колір велюру': 'cover_color',
                                                         'Колір обкладинки': 'cover_color',
                                                         'Колір тканини': 'cover_color',
+                                                        'Колір шкірзамінника': 'cover_color',
                                                         'Колір шкірзаміннику': 'cover_color',
                                                         'Колір шкіри': 'cover_color',
                                                         'Колір сторінок': 'page_color',
