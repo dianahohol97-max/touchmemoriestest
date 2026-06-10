@@ -7855,7 +7855,10 @@ export default function BookLayoutEditor() {
                       {!used && !isSel && (
                         <button
                           data-del-photo
+                          draggable={false}
                           title="Видалити фото з проєкту"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!confirm('Видалити це фото з проєкту?')) return;
