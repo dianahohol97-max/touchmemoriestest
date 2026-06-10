@@ -92,6 +92,26 @@ const getConstructorUrl = (slug: string): string => {
   return `/order/book?product=${slug}`;
 };
 
+// The kalka selector renders LABELS as its <option> values, so the value the
+// rest of the flow stores must be one of those labels — never the canonical DB
+// code ('none'/'with'), which would leave the dropdown with no matching option
+// and an ambiguous selected state. This rewrites whatever is in the kalka field
+// to the matching label, defaulting to «Без кальки» (OFF) so kalka is never
+// silently added when the customer didn't ask for it.
+function normalizeKalka(opts: Record<string, any>, options: any[]): void {
+  if (!Array.isArray(options)) return;
+  const kalkaOpt = options.find((o: any) => String(o?.name || '').includes('альк'));
+  if (!kalkaOpt) return;
+  const items = kalkaOpt.options || kalkaOpt.values || [];
+  const offLabel = items.find((i: any) => /без/i.test(i?.label || i || ''))?.label
+    || (typeof items[0] === 'string' ? items[0] : items[0]?.label) || 'Без кальки';
+  const onLabel = items.find((i: any) => /калькою/i.test(i?.label || i || ''))?.label
+    || 'З калькою (+300 грн)';
+  const cur = String(opts[kalkaOpt.name] ?? '').toLowerCase();
+  const isOn = (cur.includes('калькою') || cur === 'with' || cur === 'так' || cur === 'true') && !cur.includes('без');
+  opts[kalkaOpt.name] = isOn ? onLabel : offLabel;
+}
+
 const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, product: any, customOpts: Record<string, string | number> = {}): string => {
   // Posters → pass selected size to constructor
   if (slug.includes('poster')) {
@@ -427,6 +447,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     // product's options list provides a match.
                     if (Array.isArray(data.options)) {
                         data.options.forEach((opt: any) => {
+                            // Kalka is handled separately below — the selector
+                            // renders LABELS as its <option> values, so converting
+                            // the label back to the DB value ('none'/'with') here
+                            // would leave the dropdown with no matching option and
+                            // an ambiguous selected state (the bug where «без
+                            // кальки» silently became «з калькою»).
+                            if (String(opt.name || '').includes('альк')) return;
                             const savedVal = mergedOpts[opt.name];
                             if (typeof savedVal !== 'string') return;
                             const items = opt.options || [];
@@ -438,8 +465,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             }
                         });
                     }
+                    normalizeKalka(mergedOpts, data.options);
                     setCustomProductOptions(mergedOpts);
                 } else {
+                    normalizeKalka(defaultOptions, data.options);
                     setCustomProductOptions(defaultOptions);
                 }
 

@@ -447,9 +447,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             }
         }
 
-        // Kalka / tracing
+        // Kalka / tracing. Enable ONLY for an explicit positive value; treat
+        // anything carrying «без» (e.g. «Без кальки») or «none»/empty as OFF so
+        // kalka is never silently added.
         if (tracing) {
-            setEnableKalka(tracing === 'with' || tracing === 'true' || tracing.includes('калькою'));
+            const tr = tracing.toLowerCase();
+            setEnableKalka((tr === 'with' || tr === 'true' || tr === 'так' || tr.includes('калькою')) && !tr.includes('без'));
         }
 
         // Lamination (printed cover only)
