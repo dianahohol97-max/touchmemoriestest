@@ -474,11 +474,14 @@ export default function BookPhotoUpload() {
                             {config.selectedLamination && <p>• {t('photo_upload.lamination_cover')} {config.selectedLamination}</p>}
                             {config.selectedPageLamination && config.selectedPageLamination !== 'Без ламінації' && (() => {
                                 const pages = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '0');
-                                const lamCost = pages > 0 ? pages * 5 : 0;
+                                const lamCost = pages > 0 ? pages * 7 : 0;
                                 return <p>• {t('photo_upload.lamination_pages')} {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
                             })()}
                             {(config as any).enableKalka && (
                                 <p>• Калька перед першою сторінкою: <b>так</b> (+300 ₴)</p>
+                            )}
+                            {(config as any).enableEndpaper && (
+                                <p>• Друк на форзаці: <b>так</b> (+100 ₴)</p>
                             )}
                             {recommendedRange && (
                                 typeof recommendedRange === 'string'
