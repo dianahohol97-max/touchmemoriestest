@@ -325,7 +325,13 @@ function PhotoPreview({
 
   const sc = MAX_W / photoW;
   const canvasW = MAX_W; const canvasH = Math.round(photoH * sc);
-  const bPx = Math.round(((showBorder||isNonstandard)?3:0) * sc / 10);
+  // Border is 3 mm physical. sc scales cm→px based on the canvas width.
+  // For landscape photos sc is smaller (more cm fit in MAX_W) so bPx would be
+  // fewer pixels than portrait — the white frame looks thinner on horizontal
+  // prints even though it's the same physical size. Fix: derive bPx from the
+  // shorter physical dimension so the border looks visually consistent.
+  const scMin = MAX_W / Math.min(photoW, photoH);
+  const bPx = Math.round(((showBorder||isNonstandard)?3:0) * scMin / 10);
   const cmL = 10; const cmG = 4;
 
   // Cover-fit baseline. The img is rendered object-fit:contain (whole photo
