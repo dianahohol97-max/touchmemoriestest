@@ -651,9 +651,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             //   wrong: (525 + 195) × 1.3 = 936
             //   right:  525 × 1.3 + 195 = 878
             // This mirrors how the product detail page prices it.
+            // getProductType() returns 'magazine' for EVERY *zhurnal* slug, so
+            // the hard cover can't be told apart by productType. Detect it by
+            // slug: the hard journal shares Travel Book's higher scale (soft
+            // +100 ₴ at every page count) and is the only journal that offers
+            // per-page lamination. Without this the constructor priced the
+            // hard journal on the soft scale and dropped the +7 ₴/стор.
+            const isHardJournal = /tverd|hardcover|photojournal-hard/.test(productSlug);
             let basePrice: number;
             if (pageNum > 0) {
-                if (productType === 'photo-journal-hard') {
+                if (isHardJournal) {
                     basePrice = getPhotojournalHardPrice(pageNum);
                 } else {
                     // magazine + soft journal share the same scale.
@@ -668,7 +675,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
             // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
             // to hard journal and Travel Book per Diana's price list.
-            if ((productType === 'photo-journal-hard') && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
+            if (isHardJournal && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
                 magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
             }
 
