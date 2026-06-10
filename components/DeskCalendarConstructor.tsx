@@ -3,7 +3,7 @@
 import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 import { useState, useRef, useEffect } from 'react';
 import { useCartStore } from '@/store/cart-store';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart } from 'lucide-react';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
@@ -28,15 +28,9 @@ const DESIGNS: Design[] = [
   { id:'minimal', name:'Сучасний', bg:'#f8fafc', headerBg:'#0f172a', headerText:'#f8fafc', dayNameColor:'#64748b', dayColor:'#0f172a', sundayColor:'#e11d48', saturdayColor:'#3b82f6', gridLine:'#e2e8f0', font:'Montserrat', accentFont:'Montserrat' },
   // Ivory — кремовий, теплий, елегантний
   { id:'warm',    name:'Елегантний', bg:'#fdfaf5', headerBg:'#fdfaf5', headerText:'#1c1008', dayNameColor:'#b8956a', dayColor:'#1c1008', sundayColor:'#c0392b', saturdayColor:'#6b7280', gridLine:'#ede8df', font:'Lora', accentFont:'Cormorant Garamond' },
-  // Ink — чорний + контраст, editorial стиль
-  { id:'ink',     name:'Ink',     bg:'#0f0f10', headerBg:'#0f0f10', headerText:'#f0f0f0', dayNameColor:'#4b5563', dayColor:'#e2e8f0', sundayColor:'#f87171', saturdayColor:'#60a5fa', gridLine:'#1f2937', font:'Montserrat', accentFont:'Montserrat' },
-  // Sage — приглушений зелений, природній
-  { id:'sage',    name:'Sage',    bg:'#f4f7f4', headerBg:'#3d5a40', headerText:'#ffffff', dayNameColor:'#6b8f6b', dayColor:'#1c2e1c', sundayColor:'#dc2626', saturdayColor:'#2d6a4f', gridLine:'#d8e8d8', font:'Nunito', accentFont:'Nunito' },
-  // Blush — рожево-кремовий, трендовий
-  { id:'blush',   name:'Blush',   bg:'#fdf2f4', headerBg:'#fdf2f4', headerText:'#4a1028', dayNameColor:'#c084a0', dayColor:'#4a1028', sundayColor:'#be123c', saturdayColor:'#9d174d', gridLine:'#fce7eb', font:'Lora', accentFont:'Playfair Display' },
 ];
 
-type CollageId = 'single'|'two-h'|'two-v'|'three'|'four'|'five'|'six'|'seven'|'eight';
+type CollageId = 'single'|'two-h'|'two-v'|'three'|'four';
 interface CollageLayout { id:CollageId; name:string; slots:number; preview:React.ReactNode; getSlots:(x:number,y:number,w:number,h:number)=>{x:number;y:number;w:number;h:number}[]; }
 
 const COLLAGES: CollageLayout[] = [
@@ -45,10 +39,6 @@ const COLLAGES: CollageLayout[] = [
   { id:'two-v',  name:'2 вертик.', slots:2, preview:<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2,width:'100%',height:'100%'}}>{[0,1].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div>, getSlots:(x,y,w,h)=>{const g=3,ww=(w-g)/2;return [{x,y,w:ww,h},{x:x+ww+g,y,w:ww,h}];} },
   { id:'three',  name:'3 фото', slots:3, preview:<div style={{display:'grid',gridTemplateRows:'1.2fr 1fr',gap:2,width:'100%',height:'100%'}}><div style={{background:'#c7d2fe',borderRadius:2}}/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>{[0,1].map(i=><div key={i} style={{background:'#a5b4fc',borderRadius:2}}/>)}</div></div>, getSlots:(x,y,w,h)=>{const g=3,topH=Math.round((h-g)*0.55),botH=h-g-topH,ww=(w-g)/2;return [{x,y,w,h:topH},{x,y:y+topH+g,w:ww,h:botH},{x:x+ww+g,y:y+topH+g,w:ww,h:botH}];} },
   { id:'four',   name:'4 фото', slots:4, preview:<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',gap:2,width:'100%',height:'100%'}}>{[0,1,2,3].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div>, getSlots:(x,y,w,h)=>{const g=3,ww=(w-g)/2,hh=(h-g)/2;return [{x,y,w:ww,h:hh},{x:x+ww+g,y,w:ww,h:hh},{x,y:y+hh+g,w:ww,h:hh},{x:x+ww+g,y:y+hh+g,w:ww,h:hh}];} },
-  { id:'five',   name:'5 фото', slots:5, preview:<div style={{display:'grid',gridTemplateRows:'1.2fr 1fr',gap:2,width:'100%',height:'100%'}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>{[0,1].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:2}}>{[0,1,2].map(i=><div key={i} style={{background:'#a5b4fc',borderRadius:2}}/>)}</div></div>, getSlots:(x,y,w,h)=>{const g=3,topH=Math.round((h-g)*0.55),botH=h-g-topH,tw=(w-g)/2,bw=(w-2*g)/3;return [{x,y,w:tw,h:topH},{x:x+tw+g,y,w:tw,h:topH},{x,y:y+topH+g,w:bw,h:botH},{x:x+bw+g,y:y+topH+g,w:bw,h:botH},{x:x+2*(bw+g),y:y+topH+g,w:bw,h:botH}];} },
-  { id:'six',    name:'6 фото', slots:6, preview:<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gridTemplateRows:'1fr 1fr',gap:2,width:'100%',height:'100%'}}>{[0,1,2,3,4,5].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div>, getSlots:(x,y,w,h)=>{const g=3,ww=(w-2*g)/3,hh=(h-g)/2;return Array.from({length:6},(_,i)=>({x:x+(i%3)*(ww+g),y:y+Math.floor(i/3)*(hh+g),w:ww,h:hh}));} },
-  { id:'seven',  name:'7 фото', slots:7, preview:<div style={{display:'grid',gridTemplateRows:'1fr 1fr 1fr',gap:2,width:'100%',height:'100%'}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>{[0,1].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:2}}>{[0,1,2].map(i=><div key={i} style={{background:'#a5b4fc',borderRadius:2}}/>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:2}}>{[0,1].map(i=><div key={i} style={{background:'#818cf8',borderRadius:2}}/>)}</div></div>, getSlots:(x,y,w,h)=>{const g=3,rh=(h-2*g)/3,tw=(w-g)/2,tw3=(w-2*g)/3;return [{x,y,w:tw,h:rh},{x:x+tw+g,y,w:tw,h:rh},{x,y:y+rh+g,w:tw3,h:rh},{x:x+tw3+g,y:y+rh+g,w:tw3,h:rh},{x:x+2*(tw3+g),y:y+rh+g,w:tw3,h:rh},{x,y:y+2*(rh+g),w:tw,h:rh},{x:x+tw+g,y:y+2*(rh+g),w:tw,h:rh}];} },
-  { id:'eight',  name:'8 фото', slots:8, preview:<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr 1fr 1fr',gap:2,width:'100%',height:'100%'}}>{[0,1,2,3,4,5,6,7].map(i=><div key={i} style={{background:'#c7d2fe',borderRadius:2}}/>)}</div>, getSlots:(x,y,w,h)=>{const g=3,ww=(w-g)/2,hh=(h-3*g)/4;return Array.from({length:8},(_,i)=>({x:x+(i%2)*(ww+g),y:y+Math.floor(i/2)*(hh+g),w:ww,h:hh}));} },
 ];
 
 interface MarkedDate { day:number; shape:'circle'|'heart'; color:string; }
@@ -215,12 +205,20 @@ function MonthCanvas({month,year,design,lang,photos,collageId,W,H,marks}:{month:
 export default function DeskCalendarConstructor(){
     const t = useT();
   const router=useRouter();const {addItem}=useCartStore();
+  const searchParams=useSearchParams();
   const [showCartModal, setShowCartModal] = useState(false);
   const [design,setDesign]=useState<Design>(DESIGNS[0]);
   const [lang,setLang]=useState<LangCode>('uk');
   const [year,setYear]=useState(2026);
   const [active,setActive]=useState(1);
-  const [collageId,setCollageId]=useState<CollageId>('single');
+  // Per-month collage layout — each month can have its own photo slot layout
+  const [monthCollageIds,setMonthCollageIds]=useState<CollageId[]>(Array(12).fill('single'));
+  const setMonthCollageId=(m:number,id:CollageId)=>setMonthCollageIds(prev=>prev.map((v,i)=>i===m?id:v));
+  // URL params from product page
+  const standParam=searchParams.get('Комплектація')||searchParams.get('stand')||'with_stand';
+  const hasStand=standParam!=='no_stand';
+  const obvedParam=parseInt(searchParams.get('Обведення дат')||searchParams.get('obvedennya')||'0',10);
+  const paidMarkedDates=obvedParam>0;
   interface PhotoSlot { url:string|null; zoom:number; cropX:number; cropY:number; }
   const makeSlot=():PhotoSlot=>({url:null,zoom:1,cropX:50,cropY:50});
   const [monthPhotos,setMonthPhotos]=useState<PhotoSlot[][]>(Array.from({length:12},()=>Array(8).fill(null).map(makeSlot)));
@@ -245,16 +243,21 @@ export default function DeskCalendarConstructor(){
   const removeP=(m:number,s:number)=>setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]=makeSlot();return n;});
   const toggleMark=(day:number)=>{const key=`m${active}`;setMarks(prev=>{const ex=prev[key]||[];const idx=ex.findIndex(m=>m.day===day);if(idx>=0){const same=ex[idx].shape===markShape&&ex[idx].color===markColor;if(same)return{...prev,[key]:ex.filter((_,i)=>i!==idx)};return{...prev,[key]:ex.map((m,i)=>i===idx?{...m,shape:markShape,color:markColor}:m)};}return{...prev,[key]:[...ex,{day,shape:markShape,color:markColor}]};});};
   const loc=LOCALES[lang];
-  const collage=COLLAGES.find(c=>c.id===collageId)||COLLAGES[0];
+  // Per-month collage (active month index = active-1)
+  const curCollageId=monthCollageIds[active-1]||'single';
+  const collage=COLLAGES.find(c=>c.id===curCollageId)||COLLAGES[0];
   const curPhotos=monthPhotos[active-1];
   const curMarks=marks[`m${active}`]||[];
+  // Dynamic price: computed after marks state is available
+  const totalMarkedDates=Object.values(marks as Record<string,MarkedDate[]>).reduce((sum,arr:MarkedDate[])=>sum+arr.length,0);
+  const dynamicPrice=319+(hasStand?0:-50)+(paidMarkedDates?Math.min(totalMarkedDates,obvedParam)*10:0);
 
   const handleOrder = async () => {
     const cartItemId = `desk-cal-${Date.now()}`;
     const cartPayload = {
       id: cartItemId,
       name:`Настільний календар ${year}`,
-      price:325, qty:1,
+      price:dynamicPrice, qty:1,
       image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',
       options:{ 'Дизайн':design.name, 'Мова':lang, 'Рік':String(year) },
       personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
@@ -326,7 +329,7 @@ export default function DeskCalendarConstructor(){
           format: String(year),
           status: 'draft',
           name: `Настільний календар ${year}`,
-          pages_data: [{ year, lang, designName: design.name, collageId, monthPhotos, marks }],
+          pages_data: [{ year, lang, designName: design.name, monthCollageIds, monthPhotos, marks }],
           cart_payload: cartPayload,
           uploaded_photos: monthPhotos.flat().map(p=>p?.url).filter(Boolean),
           updated_at: new Date().toISOString(),
@@ -376,9 +379,9 @@ export default function DeskCalendarConstructor(){
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.collage_label')}</label>
             <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:4,gridTemplateRows:'auto auto'}}>
               {COLLAGES.map(c=>(
-                <button key={c.id} onClick={()=>setCollageId(c.id)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'5px 3px',border:collageId===c.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:6,background:collageId===c.id?'#f0f3ff':'#fff',cursor:'pointer'}}>
+                <button key={c.id} onClick={()=>setMonthCollageId(active-1,c.id as CollageId)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'5px 3px',border:curCollageId===c.id?'2px solid #1e2d7d':'1px solid #e2e8f0',borderRadius:6,background:curCollageId===c.id?'#f0f3ff':'#fff',cursor:'pointer'}}>
                   <div style={{width:'100%',height:28,padding:2}}>{c.preview}</div>
-                  <span style={{fontSize:7,fontWeight:700,color:collageId===c.id?'#1e2d7d':'#374151',textAlign:'center',lineHeight:1.2}}>{c.name}</span>
+                  <span style={{fontSize:7,fontWeight:700,color:curCollageId===c.id?'#1e2d7d':'#374151',textAlign:'center',lineHeight:1.2}}>{c.name}</span>
                 </button>
               ))}
             </div>
@@ -470,7 +473,7 @@ export default function DeskCalendarConstructor(){
               const {startOffset,daysInMonth}=getMonthDays(year,active);
               const cells:React.ReactNode[]=[];
               for(let i=0;i<startOffset;i++)cells.push(<div key={`e${i}`}/>);
-              for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>toggleMark(d)} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}></span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
+              for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>{if(!paidMarkedDates){toast.error('Обведення дат не включено у замовлення. Оберіть цю опцію на сторінці товару.');return;}toggleMark(d);}} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}></span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
               return(<div><div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:2,marginBottom:2}}>{loc.days.map(d=><div key={d} style={{fontSize:7,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}</div><div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:2}}>{cells}</div></div>);
             })()}
             {curMarks.length>0&&<button onClick={()=>setMarks(prev=>({...prev,[`m${active}`]:[]}))} style={{marginTop:5,fontSize:9,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>{t('deskcal.clear_marks')}</button>}
@@ -490,13 +493,13 @@ export default function DeskCalendarConstructor(){
         <div style={{padding:13,borderTop:'1px solid #f1f5f9'}}>
           <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
             <span style={{fontSize:12,color:'#64748b'}}>{t('deskcal.price_label')}</span>
-            <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>{t('deskcal.price_amount')}</span>
+            <span style={{fontSize:16,fontWeight:800,color:'#1e2d7d'}}>{dynamicPrice} ₴</span>
           </div>
           {/* QR Code Generator */}
           <div style={{ marginBottom: 12 }}><QRCodeGenerator compact label="QR-код до замовлення" /></div>
 
           <button onClick={handleOrder} style={{width:'100%',padding:'11px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:8,fontWeight:800,fontSize:13,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 4px 12px rgba(30,45,125,0.28)'}}>
-            <ShoppingCart size={14}/> Замовити — 325 ₴
+            <ShoppingCart size={14}/> Замовити — {dynamicPrice} ₴
           </button>
         </div>
       </div>
@@ -508,7 +511,7 @@ export default function DeskCalendarConstructor(){
             {loc.months[active-1]+' '+year}
           </div>
           <div style={{boxShadow:'0 6px 28px rgba(0,0,0,0.13)',borderRadius:8,overflow:'hidden'}}>
-            <MonthCanvas month={active} year={year} design={design} lang={lang} photos={curPhotos} collageId={collageId} W={PW} H={PH} marks={curMarks}/>
+            <MonthCanvas month={active} year={year} design={design} lang={lang} photos={curPhotos} collageId={curCollageId} W={PW} H={PH} marks={curMarks}/>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',marginTop:8}}>
             <button onClick={()=>setActive(m=>Math.max(1,m-1))} disabled={active===1} style={{padding:'5px 12px',border:'1px solid #e2e8f0',borderRadius:6,background:'#fff',cursor:active===1?'not-allowed':'pointer',color:active===1?'#cbd5e1':'#374151',fontWeight:700,fontSize:12}}>‹</button>
@@ -522,7 +525,7 @@ export default function DeskCalendarConstructor(){
           <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:5}}>
             {Array.from({length:12},(_,i)=>(
               <div key={i} onClick={()=>setActive(i+1)} style={{cursor:'pointer',borderRadius:5,overflow:'hidden',border:active===i+1?'2px solid #1e2d7d':'1px solid #e2e8f0',boxSizing:'border-box'}}>
-                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photos={monthPhotos[i]} collageId={collageId} W={100} H={Math.round(100*(21/15))} marks={marks[`m${i+1}`]||[]}/>
+                <MonthCanvas month={i+1} year={year} design={design} lang={lang} photos={monthPhotos[i]} collageId={monthCollageIds[i]||'single'} W={100} H={Math.round(100*(21/15))} marks={marks[`m${i+1}`]||[]}/>
                 <div style={{fontSize:7,textAlign:'center',padding:'2px 0',background:'#fff',color:'#64748b',fontWeight:600}}>{loc.months[i].slice(0,3)}</div>
               </div>
             ))}

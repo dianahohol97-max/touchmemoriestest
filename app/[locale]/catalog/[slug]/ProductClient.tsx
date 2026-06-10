@@ -1588,6 +1588,14 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     return;
                                                 }
                                                 let constructorUrl = base;
+                                                // Forward product options to desk-calendar constructor
+                                                if (base.includes('/order/desk-calendar') && Object.keys(customProductOptions).length > 0) {
+                                                    const url = new URL(base, 'http://x');
+                                                    Object.entries(customProductOptions).forEach(([key, val]) => {
+                                                        if (val !== undefined && val !== '') url.searchParams.set(key, String(val));
+                                                    });
+                                                    constructorUrl = url.pathname + '?' + url.searchParams.toString();
+                                                }
                                                 if (base.includes('/order/book') && (Object.keys(customProductOptions).length > 0 || photobookOptions)) {
                                                     const keyMap: Record<string, string> = {
                                                         'Розмір': 'size',
