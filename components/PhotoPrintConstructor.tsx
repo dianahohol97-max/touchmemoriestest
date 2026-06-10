@@ -257,6 +257,17 @@ function PhotoPreview({
     const bS = borderSide * sc; const bT = borderTop * sc; const bB = borderBottom * sc;
     const aW = photoW * sc; const aH = photoH * sc;
 
+    // Same cover-fit approach as the standard print editor: objectFit:contain
+    // scales the image to fit the frame, then scale(effScale) zooms it up to
+    // cover. transformOrigin at cropX/cropY lets the user pan in BOTH axes.
+    // The old approach (width/height % + objectPosition + translate(-50%,-50%))
+    // only moved the image horizontally because objectPosition has no effect
+    // when the element is already positioned via CSS transform.
+    const frameAR = aW / aH;
+    const imgAR = (photo.width && photo.height) ? (photo.width / photo.height) : frameAR;
+    const coverFactor = imgAR > frameAR ? (imgAR / frameAR) : (frameAR / imgAR);
+    const effScale = Math.max(1, (photo.zoom || 1)) * coverFactor;
+
     return (
       <div style={{ display:'inline-block' }}>
         <div style={{ width:canvasW, height:canvasH, position:'relative', background:'#fff',
@@ -265,10 +276,10 @@ function PhotoPreview({
           <div style={{ position:'absolute', left:bS, top:bT, width:aW, height:aH,
             overflow:'hidden', cursor:'grab', background:'#f0f0f0' }} onPointerDown={handleMouseDown}>
             <img src={displaySrc} draggable={false} decoding="async" style={{
-              width:`${(photo.zoom||1)*100}%`, height:`${(photo.zoom||1)*100}%`,
-              objectFit:'cover', objectPosition:`${photo.cropX}% ${photo.cropY}%`,
-              position:'absolute', top:'50%', left:'50%',
-              transform:`translate(-50%,-50%) rotate(${photo.rotation||0}deg)`,
+              position:'absolute', width:'100%', height:'100%', objectFit:'contain',
+              objectPosition:`${photo.cropX ?? 50}% ${photo.cropY ?? 50}%`, top:0, left:0,
+              transform:`scale(${effScale}) rotate(${photo.rotation||0}deg)`,
+              transformOrigin:`${photo.cropX ?? 50}% ${photo.cropY ?? 50}%`,
               userSelect:'none', pointerEvents:'none' }}/>
           </div>
           <div style={{ position:'absolute', left:0, top:0, width:canvasW, height:bT, background:'#fff', pointerEvents:'none' }}/>

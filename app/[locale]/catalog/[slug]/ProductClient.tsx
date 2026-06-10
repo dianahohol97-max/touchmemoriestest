@@ -251,7 +251,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return t('product_page.production_10_14');
         if (s.includes('magazine') || s.includes('journal') || s.includes('журнал') || s.includes('hlyantsevi') || s.includes('glyantsevy')) return t('product_page.production_5_8');
         if (s.includes('guestbook') || s.includes('photoalbum') || s.includes('wishbook')) return t('product_page.production_10');
-        if (s.includes('print') || s.includes('photo-print') || s.includes('magnet')) return t('product_page.production_2_3');
+        if (s.includes('print') || s.includes('photo-print') || s.includes('magnet') || ps.includes('polaroid') || ps.includes('photoprint') || ps.includes('photomagnet')) return t('product_page.production_2_4');
         if (s.includes('puzzle') || s.includes('canvas')) return t('product_page.production_5_7');
         // Posters: 2–4 working days
         if (ps.includes('poster') || s.includes('poster') || ps.includes('зодіак') || ps.includes('монограм') || ps.includes('диплом') || ps.includes('portrait') || ps.includes('birth')) return t('product_page.production_2_4');
