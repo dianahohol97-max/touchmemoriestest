@@ -614,7 +614,24 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                         i.label === sel || i.name === sel
                     );
                     if (match && typeof match === 'object' && match.price != null) {
-                        finalPrice = Number(match.price) || finalPrice;
+                        // For photoprint-standard the DB stores a SURCHARGE over
+                        // product.price (e.g. 13×18 → price:10, base:8 → total 18 ₴).
+                        // For polaroid / photomagnet the DB stores the FULL per-unit
+                        // price. Distinguish by checking dynamicPrice (ProductOptionsSelector
+                        // already computed the correct full price from the hardcoded table):
+                        // if dynamicPrice is set and positive, trust it; otherwise fall back
+                        // to base + surcharge from the DB.
+                        if (dynamicPrice !== null && dynamicPrice > 0) {
+                            finalPrice = dynamicPrice;
+                        } else {
+                            const baseProductPrice = Number(product.price || 0);
+                            const optionPrice = Number(match.price);
+                            // If option price > base price it's a full price (polaroid/magnet);
+                            // otherwise it's a surcharge (photoprint-standard).
+                            finalPrice = optionPrice > baseProductPrice
+                                ? optionPrice
+                                : baseProductPrice + optionPrice;
+                        }
                     }
                 }
             }
