@@ -215,7 +215,9 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, s
 }) {
   const isDeskCalendar = (productSlug || '').toLowerCase().includes('desk-calendar') ||
     (productSlug || '').toLowerCase().includes('calendar-table') ||
-    (productSlug || '').toLowerCase().includes('calendar-desk');
+    (productSlug || '').toLowerCase().includes('calendar-desk') ||
+    (productSlug || '').toLowerCase().includes('wall-calendar') ||
+    (productSlug || '').toLowerCase().includes('calendar-wall');
 
   const commentPlaceholder = isDeskCalendar
     ? 'Наприклад: фото хочу у такому ж порядку як завантажила; або фото 3 і 7 поміняти місцями; лютий — фото з днем народження...'
@@ -1072,7 +1074,7 @@ function OrderForm() {
             // so the photo step can recommend a count and cap uploads.
             const slug = (savedConfig?.slug || '').toLowerCase();
             // Desk calendar: always 12 months = 12 photos
-            if (slug.includes('desk-calendar') || slug.includes('calendar-table') || slug.includes('calendar-desk')) return 12;
+            if (slug.includes('desk-calendar') || slug.includes('calendar-table') || slug.includes('calendar-desk') || slug.includes('wall-calendar') || slug.includes('calendar-wall')) return 12;
             const raw = savedConfig?.config?.['Кількість сторінок'] ?? savedConfig?.config?.['pages'] ?? savedConfig?.pages;
             const n = parseInt(String(raw ?? '').replace(/[^\d]/g, ''), 10);
             return Number.isFinite(n) && n > 0 ? n : undefined;
