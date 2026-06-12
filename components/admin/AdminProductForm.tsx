@@ -282,7 +282,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         const updatedImages = [...images, ...newImagesBatch];
         setImages(updatedImages);
 
-        // If editing, update the products table immediately 
+        // If editing, update the products table via server API (bypasses RLS)
         if (isEditing && initialData?.id) {
             try {
                 // Get current images array from DB to avoid overwriting recent changes
@@ -295,16 +295,19 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                 const dbImages = product?.images || [];
                 const finalImages = [...dbImages, ...newImagesBatch].slice(0, MAX_IMAGES);
 
-                const { error: updateError } = await supabase
-                    .from('products')
-                    .update({ images: finalImages })
-                    .eq('id', initialData.id);
-
-                if (updateError) throw updateError;
+                const res = await fetch(`/api/admin/products/${initialData.id}/images`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ images: finalImages }),
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Update failed');
+                }
                 setImages(finalImages); // Sync state with DB
             } catch (err: any) {
                 console.error('Immediate update error:', err);
-                toast.error('Помилка синхронізації з базою даних');
+                toast.error('Помилка синхронізації з базою даних: ' + err.message);
             }
         }
 
@@ -639,14 +642,14 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                                                     const newImages = images.filter(img => img !== u);
                                                     setImages(newImages);
 
-                                                    // If editing, update database immediately
+                                                    // If editing, update database via server API
                                                     if (isEditing && initialData?.id) {
-                                                        const { error } = await supabase
-                                                            .from('products')
-                                                            .update({ images: newImages })
-                                                            .eq('id', initialData.id);
-
-                                                        if (error) {
+                                                        const res = await fetch(`/api/admin/products/${initialData.id}/images`, {
+                                                            method: 'PATCH',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ images: newImages }),
+                                                        });
+                                                        if (!res.ok) {
                                                             toast.error('Помилка при видаленні з бази');
                                                         }
                                                     }
