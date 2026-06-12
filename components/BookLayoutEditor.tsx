@@ -2390,14 +2390,17 @@ export default function BookLayoutEditor() {
         // Add blank pair page only when content count is odd AND queue is empty (last spread)
         if (queue.length === 0 && (newPages.length - 1) % 2 !== 0) {
           const pairId = newPages.length;
-          newPages = [...newPages, { id: pairId, label: `${pairId}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }];
+          // Use a text-only layout (slots:0) so the padding page doesn't
+          // show as an empty photo slot — the customer sees a blank page
+          // for text/decoration instead of a grey unfilled photo frame.
+          newPages = [...newPages, { id: pairId, label: `${pairId}`, layout: 'p-text' as LayoutType, slots: [], textBlocks: [] }];
         }
       }
 
-      // Enforce minimum page count
+      // Enforce minimum page count — also use text layout for padding
       while (newPages.length - 1 < minPageCount) {
         const padId = newPages.length;
-        newPages = [...newPages, { id: padId, label: `${padId}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] }];
+        newPages = [...newPages, { id: padId, label: `${padId}`, layout: 'p-text' as LayoutType, slots: [], textBlocks: [] }];
       }
 
       return newPages;
@@ -3117,6 +3120,10 @@ export default function BookLayoutEditor() {
         // first content page. Only available on photobooks.
         if (config.enableKalka || hasKalka) {
           opts['Калька перед першою сторінкою'] = 'З калькою';
+          // kalka_text — what the customer wants printed on the tracing paper.
+          const kalkaTextRaw = searchParams?.get('kalka_text') || (config as any).kalkaText || '';
+          const kalkaTextDecoded = kalkaTextRaw ? decodeURIComponent(kalkaTextRaw) : '';
+          if (kalkaTextDecoded) opts['Що надрукувати на кальці'] = kalkaTextDecoded;
         }
         // Endpaper — separately purchased forzac printing for travelbook /
         // magazine / journal. endpaperUnlocked tracks whether the

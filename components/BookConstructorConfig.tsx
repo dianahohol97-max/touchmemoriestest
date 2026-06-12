@@ -219,6 +219,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedPageColor, setSelectedPageColor] = useState<string>(_saved?.selectedPageColor || 'Білі');
     const [enableEndpaper, setEnableEndpaper] = useState(_saved?.enableEndpaper || false);
     const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
+    const [kalkaText, setKalkaText] = useState<string>(_saved?.kalkaText || '');
 
     // Travel Book cover selector state
     const [showCoverSelector, setShowCoverSelector] = useState(false);
@@ -961,6 +962,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             selectedCopies,
             enableEndpaper,
             enableKalka,
+            kalkaText: enableKalka ? (kalkaText || null) : null,
             selectedLamination: selectedLamination || null,
             selectedPageLamination: selectedPageLamination || null,
             selectedPageColor: selectedPageColor || 'Білі',
@@ -1030,6 +1032,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (selectedPageCount) params.set('pages', selectedPageCount.replace(/[^\d]/g, ''));
         if (selectedCoverType) params.set('cover', selectedCoverType);
         if (enableKalka) params.set('tracing', 'with');
+        if (enableKalka && kalkaText) params.set('kalka_text', encodeURIComponent(kalkaText));
         if (selectedLamination) params.set('lamination', selectedLamination);
         if (selectedDecorationType !== 'none') params.set('decoration', selectedDecorationType);
         if (selectedDecorationVariant) params.set('decoration_variant', selectedDecorationVariant);
@@ -1760,6 +1763,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                     </p>
                                 </div>
                             </div>
+                            {enableKalka && (
+                                <div style={{ marginTop: 12 }}>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                                        Що розмістити на кальці? <span className="text-gray-400 font-normal">(необов'язково)</span>
+                                    </label>
+                                    <textarea
+                                        value={kalkaText}
+                                        onChange={e => setKalkaText(e.target.value)}
+                                        rows={3}
+                                        placeholder="Наприклад: по центру напис «Наша історія 2024» курсивом; або легкий рослинний візерунок по краях."
+                                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
 
