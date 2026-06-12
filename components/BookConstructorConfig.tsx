@@ -1530,6 +1530,31 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                         </div>
                     )}
 
+                    {/*  Photojournal hard cover: Lamination — always shown (cover is always printed)  */}
+                    {productType === 'photojournal-hard' && (
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                {t('book_config.lamination_type')} <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {['Глянцева', 'Матова'].map((lam) => (
+                                    <button
+                                        key={lam}
+                                        type="button"
+                                        onClick={() => setSelectedLamination(lam)}
+                                        className={`p-4 rounded-lg border-2 text-center transition-all ${
+                                            selectedLamination === lam
+                                                ? 'border-[#1e2d7d] bg-[#f0f3ff] text-[#1e2d7d]'
+                                                : 'border-gray-200 hover:border-gray-400 text-gray-700'
+                                        }`}
+                                    >
+                                        <span className="block text-base font-bold">{lam}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/*  Photobook: Decoration selector (not for Друкована)  */}
                     {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
                         <div>

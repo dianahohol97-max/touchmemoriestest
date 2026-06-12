@@ -3077,6 +3077,9 @@ export default function BookLayoutEditor() {
         // leatherette). For printed photo covers this is just blank.
         const coverColor = config.selectedCoverColor || coverColorOverride || '';
         if (coverColor) opts['Колір обкладинки'] = coverColor;
+        // Cover lamination (printed cover — Глянцева / Матова). Set from
+        // config.selectedLamination which is passed by BookConstructorConfig.
+        if (config.selectedLamination) opts['Ламінація обкладинки'] = config.selectedLamination;
         // Cover decoration — show whatever soft-cover decoration the
         // customer set up in the editor (acryl, photo insert, metal
         // plate, flex, gravirovka). decoType 'none' means no decoration.
