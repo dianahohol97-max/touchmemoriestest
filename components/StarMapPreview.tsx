@@ -471,7 +471,20 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             if(config.headline){
                 ctx.font=`bold ${Math.round(32*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.95;
                 ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=14;
-                ctx.fillText(config.headline,W/2,62*s); ctx.shadowBlur=0; ctx.globalAlpha=1;
+                // Word-wrap so long headlines don't overflow the poster edges.
+                const maxW = W * 0.82;
+                const words = config.headline.split(' ');
+                let line = '', lineY = 62*s;
+                const lineH = 36*s;
+                for(let i=0;i<words.length;i++){
+                    const t = line + words[i] + ' ';
+                    if(ctx.measureText(t).width > maxW && i > 0){
+                        ctx.fillText(line.trim(), W/2, lineY);
+                        line = words[i]+' '; lineY += lineH;
+                    } else line = t;
+                }
+                ctx.fillText(line.trim(), W/2, lineY);
+                ctx.shadowBlur=0; ctx.globalAlpha=1;
             }
         } else {
             const textZoneTop = mapH;
