@@ -338,20 +338,6 @@ export default function GiftCertificatePage() {
                     />
                   </label>
                 )}
-
-                <label className="block">
-                  <span className="text-sm font-medium text-stone-700 mb-2 block">{t('gift_certificate.message_label')}</span>
-                  <textarea
-                    value={config.message}
-                    onChange={(e) => setConfig({ ...config, message: e.target.value })}
-                    placeholder={t('gift_certificate.message_placeholder')}
-                    rows={4}
-                    className="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-transparent resize-none"
-                  />
-                  <p className="text-xs text-stone-400 mt-1.5">
-                    💌 Це повідомлення буде включено в лист із сертифікатом, який отримувач отримає на email
-                  </p>
-                </label>
               </div>
             </div>
           </motion.div>
