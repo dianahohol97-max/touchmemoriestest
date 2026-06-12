@@ -22,7 +22,7 @@ import { useCartStore } from '@/store/cart-store';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
-import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType } from '@/components/ui/ProductOptionsSelector';
+import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType, getCalculatedPrice } from '@/components/ui/ProductOptionsSelector';
 import InscriptionDesigner, { INSCRIPTION_KEYS } from '@/components/ui/InscriptionDesigner';
 import VelourSwatchPicker from '@/components/ui/VelourSwatchPicker';
 import WishlistButton from '@/components/WishlistButton';
@@ -629,13 +629,22 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                         if (dynamicPrice !== null && dynamicPrice > 0) {
                             finalPrice = dynamicPrice;
                         } else {
-                            const baseProductPrice = Number(product.price || 0);
-                            const optionPrice = Number(match.price);
-                            // If option price > base price it's a full price (polaroid/magnet);
-                            // otherwise it's a surcharge (photoprint-standard).
-                            finalPrice = optionPrice > baseProductPrice
-                                ? optionPrice
-                                : baseProductPrice + optionPrice;
+                            // dynamicPrice not yet set on initial render — use getCalculatedPrice
+                            // so we show correct per-unit price instead of base+surcharge from DB
+                            // (e.g. nonstandard 9x9: 7.5 base + 8 surcharge = 15 was wrong; correct = 8).
+                            const calcPrice = getCalculatedPrice(
+                                product.slug || '',
+                                customProductOptions as Record<string, string | number>
+                            );
+                            if (calcPrice !== null && calcPrice > 0) {
+                                finalPrice = calcPrice;
+                            } else {
+                                const baseProductPrice = Number(product.price || 0);
+                                const optionPrice = Number(match.price);
+                                finalPrice = optionPrice > baseProductPrice
+                                    ? optionPrice
+                                    : baseProductPrice + optionPrice;
+                            }
                         }
                     }
                 }

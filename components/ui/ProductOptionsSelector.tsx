@@ -70,11 +70,11 @@ const PHOTOPRINT_STANDARD_PRICES: Record<string, number> = {
 };
 
 const PHOTOPRINT_NONSTANDARD_PRICES: Record<string, number> = {
-  '5х7.5': 7.5,
-  '6х9': 7.5,
-  '7.5х10': 7.5,
-  '9х9': 8,
-  '10х10': 8,
+  '5х7.5': 7.5, '5x7.5': 7.5,
+  '6х9': 7.5,   '6x9': 7.5,
+  '7.5х10': 7.5, '7.5x10': 7.5,
+  '9х9': 8,     '9x9': 8,
+  '10х10': 8,   '10x10': 8,
 };
 
 const POLAROID_PRICES: Record<string, number> = {
