@@ -1551,6 +1551,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         }
                                         if (isWeWriteText) {
                                             return (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                                                 <button
                                                     onClick={() => {
                                                         const slug = product.slug || resolvedParams.slug;
@@ -1559,8 +1560,6 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                             ? `/order/magazine-text-brief?product=${slug}`
                                                             : `/order/magazine-text-brief?product=${slug}&package=${textLayout === 'we-premium' ? 'premium' : 'basic'}`;
                                                         const url = new URL(briefUrl, 'http://x');
-                                                        // Carry the other selected options (pages, urgency)
-                                                        // so the brief page can show an accurate total.
                                                         Object.entries(customProductOptions).forEach(([key, val]) => {
                                                             if (val !== undefined && val !== '' && key !== 'Верстка тексту') {
                                                                 url.searchParams.set(key, String(val));
@@ -1577,7 +1576,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         border: 'none',
                                                         fontSize: '16px',
                                                         fontWeight: 700,
-                                                        textAlign: 'center',
+                                                        textAlign: 'center' as const,
                                                         transition: 'background-color 0.2s',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -1587,8 +1586,12 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     }}
                                                     className="hover:bg-[#1a2966]"
                                                 >
-                                                    Замовити
+                                                    Замовити з нашим редактором →
                                                 </button>
+                                                <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
+                                                    ✏️ Ви обрали «Ми пишемо» — конструктор не запускається. Після оплати наш редактор зв'яжеться з вами та напише текст. Щоб відкрити конструктор самостійно — оберіть «Власний текст».
+                                                </p>
+                                                </div>
                                             );
                                         }
                                         return (
