@@ -69,10 +69,9 @@ const getConstructorUrl = (slug: string): string => {
   };
   if (posterMap[slug]) return posterMap[slug];
   if (s.includes('poster')) return '/order/poster';
-  // Wedding newspaper — designer-only flow via /order (photo upload + comment).
-  // No dedicated questionnaire constructor any more.
+  // Wedding newspaper → dedicated per-design questionnaire constructor.
   if (s.includes('newspaper') || s.includes('газет'))
-    return '/order';
+    return '/order/wedding-newspaper';
   // Canvas print
   if (s.includes('polotni') || s.includes('canvas') || s.includes('полотн'))
     return '/order/canvas';
@@ -1513,22 +1512,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         const isWeWriteText = String(customProductOptions['Верстка тексту'] || '') === 'we'
                                             || String(customProductOptions['Верстка тексту'] || '') === 'we-basic'
                                             || String(customProductOptions['Верстка тексту'] || '') === 'we-premium';
-                                        // Wedding newspaper — designer-only: single «Замовити з дизайнером» button → /order
+                                        // Wedding newspaper — single «Замовити» button → constructor
                                         const isNewspaper = (product.slug || '').toLowerCase().includes('newspaper');
                                         if (isNewspaper) {
                                             return (
                                                 <button
                                                     onClick={() => requireAuth(
-                                                        () => {
-                                                            try {
-                                                                sessionStorage.setItem('designerOrderConfig', JSON.stringify({
-                                                                    slug: product.slug || resolvedParams.slug,
-                                                                    productName: product.name || '',
-                                                                    config: customProductOptions,
-                                                                }));
-                                                            } catch {}
-                                                            router.push('/order');
-                                                        },
+                                                        () => router.push('/order/wedding-newspaper'),
                                                         'Щоб замовити — увійдіть в акаунт'
                                                     )}
                                                     style={{
@@ -1545,7 +1535,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     }}
                                                     className="hover:bg-[#1a2966]"
                                                 >
-                                                    Замовити з дизайнером →
+                                                    Замовити →
                                                 </button>
                                             );
                                         }
