@@ -965,6 +965,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : mainImage ? (
                                 <Image src={mainImage} alt={getLocalized(product, locale, 'name')} fill
+                                    priority
+                                    fetchPriority="high"
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 55vw, 600px"
+                                    quality={80}
                                     style={{ objectFit: 'cover' }} />
                             ) : (
                                 <ImageIcon size={64} className="text-slate-300" />
@@ -1019,7 +1023,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             border: mainImage === src && !mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
                                             cursor: 'pointer', background: '#f8fafc', padding: 0, transition: 'border-color 0.15s',
                                         }}>
-                                        <Image src={src} alt={`фото ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                                        <Image src={src} alt={`фото ${idx + 1}`} fill
+                                            sizes="72px"
+                                            quality={60}
+                                            style={{ objectFit: 'cover' }} />
                                     </button>
                                 ))}
                                 {product.video_url && (

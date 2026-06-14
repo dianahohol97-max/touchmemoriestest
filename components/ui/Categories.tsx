@@ -3,6 +3,7 @@ import { useT } from '@/lib/i18n/context';
 import { motion } from 'framer-motion';
 import styles from './Categories.module.css';
 import { useInView } from 'react-intersection-observer';
+import Image from 'next/image';
 import { useTheme } from '@/components/providers/ThemeProvider';
 
 export function Categories({ blockName = 'categories' }: { blockName?: string }) {
@@ -68,12 +69,14 @@ export function Categories({ blockName = 'categories' }: { blockName?: string })
                                 className="w-full h-full"
                             />
                         ) : image ? (
-                            <img
+                            <Image
                                 src={image}
                                 alt={title}
+                                fill
                                 loading="lazy"
-                                decoding="async"
-                                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                quality={75}
+                                className="object-cover transition-transform duration-700 hover:scale-105"
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">

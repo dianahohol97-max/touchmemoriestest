@@ -94,6 +94,8 @@ export function WeddingSectionClient({ weddingImages }: { weddingImages?: Weddin
                                                     src={product.image}
                                                     alt={product.name}
                                                     fill
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
+                                                    quality={75}
                                                     className="object-cover transition-transform duration-1000 group-hover:scale-110"
                                                 />
                                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-primary/5 transition-colors duration-500" />

@@ -18,15 +18,17 @@ import { getBaseUrl } from '@/lib/seo/locales';
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin", "cyrillic"],
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['600', '700', '800', '900'],
   display: 'swap',
+  preload: true,
 });
 
 const openSans = Open_Sans({
   variable: "--font-open-sans",
   subsets: ["latin", "cyrillic"],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  preload: false, // secondary font — don't block LCP
 });
 
 export const metadata: Metadata = {
@@ -120,6 +122,11 @@ export default function RootLayout({
   return (
     <html lang="uk" suppressHydrationWarning className={`${montserrat.variable} ${openSans.variable}`}>
       <head>
+        {/* Preconnect to external origins used on every page — reduces DNS+TLS
+            handshake latency for LCP images (Supabase storage) and fonts. */}
+        <link rel="preconnect" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(globalJsonLd) }}
