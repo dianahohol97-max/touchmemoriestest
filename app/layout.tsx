@@ -127,6 +127,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* dns-prefetch as fallback for browsers that don't support preconnect */}
+        <link rel="dns-prefetch" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(globalJsonLd) }}

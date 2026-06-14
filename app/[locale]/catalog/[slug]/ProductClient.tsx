@@ -28,6 +28,7 @@ import VelourSwatchPicker from '@/components/ui/VelourSwatchPicker';
 import WishlistButton from '@/components/WishlistButton';
 import GuestBookConfigModal from '@/components/GuestBookConfigModal';
 import { useAuthModal } from '@/lib/auth-modal-context';
+import { imgProduct, imgThumbnail } from '@/lib/supabaseImage';
 
 const getConstructorUrl = (slug: string): string => {
   const s = slug.toLowerCase();
@@ -964,7 +965,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                 <video src={mainVideo} controls autoPlay muted playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : mainImage ? (
-                                <Image src={mainImage} alt={getLocalized(product, locale, 'name')} fill
+                                <Image src={imgProduct(mainImage)} alt={getLocalized(product, locale, 'name')} fill
                                     priority
                                     fetchPriority="high"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 55vw, 600px"
@@ -1023,7 +1024,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             border: mainImage === src && !mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
                                             cursor: 'pointer', background: '#f8fafc', padding: 0, transition: 'border-color 0.15s',
                                         }}>
-                                        <Image src={src} alt={`фото ${idx + 1}`} fill
+                                        <Image src={imgThumbnail(src)} alt={`фото ${idx + 1}`} fill
                                             sizes="72px"
                                             quality={60}
                                             style={{ objectFit: 'cover' }} />

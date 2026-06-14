@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import styles from './Categories.module.css';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
+import { imgCategory } from '@/lib/supabaseImage';
 import { useTheme } from '@/components/providers/ThemeProvider';
 
 export function Categories({ blockName = 'categories' }: { blockName?: string }) {
@@ -70,7 +71,7 @@ export function Categories({ blockName = 'categories' }: { blockName?: string })
                             />
                         ) : image ? (
                             <Image
-                                src={image}
+                                src={imgCategory(image)}
                                 alt={title}
                                 fill
                                 loading="lazy"

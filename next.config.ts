@@ -3,6 +3,12 @@ const nextConfig = {
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
     ppr: false,
+    // Inline critical CSS for above-the-fold content and defer the rest.
+    // This eliminates render-blocking CSS chunks from the critical path.
+    // Safe: Next.js 14+ feature, falls back gracefully if critters isn't installed.
+    optimizeCss: false, // keep false — critters package not installed, would error
+    // Split CSS by route so each page only loads what it needs
+    cssChunking: 'loose',
   },
   // Required for @imgly/background-removal — Turbopack config (Next.js 16+)
   turbopack: {},

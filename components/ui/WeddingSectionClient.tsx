@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Image from 'next/image';
 import Link from 'next/link';
+import { imgProduct } from '@/lib/supabaseImage';
 
 export interface WeddingImages {
     guestbook?: string;
@@ -91,7 +92,7 @@ export function WeddingSectionClient({ weddingImages }: { weddingImages?: Weddin
                                         <Link href={product.href} className="block">
                                             <div className="relative aspect-[4/5] rounded-xl overflow-hidden shadow-[var(--card-shadow)] bg-gray-50 group-hover:shadow-[var(--card-shadow-hover)] transition-all duration-500">
                                                 <Image
-                                                    src={product.image}
+                                                    src={imgProduct(product.image)}
                                                     alt={product.name}
                                                     fill
                                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
