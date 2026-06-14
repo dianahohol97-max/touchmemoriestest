@@ -444,7 +444,7 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
 function ContactsStep({ name, lastName, phone, channel, handle, onChange }: { name: string, lastName: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
   const channels = [
     { val: 'telegram', label: 'Telegram', desc: "Рекомендовано — найшвидший зв'язок", icon: MessageCircle, badge: true },
-    { val: 'email', label: 'Email', desc: 'touch.memories3@gmail.com', icon: Mail, badge: false },
+    { val: 'email', label: 'Email', desc: 'Вкажіть свій email нижче', icon: Mail, badge: false },
   ]
   return (
     <div>
