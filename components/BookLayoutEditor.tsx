@@ -1460,6 +1460,7 @@ export default function BookLayoutEditor() {
     first: { enabled: false, text: '', textColor: '#333333', imageUrl: null },
     last:  { enabled: false, text: '', textColor: '#333333', imageUrl: null },
   });
+  const [endpaperBannerDismissed, setEndpaperBannerDismissed] = useState(false);
   const endpaperImageRef = useRef<{ first: HTMLInputElement | null; last: HTMLInputElement | null }>({ first: null, last: null });
   const [showTooltips, setShowTooltips] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -4012,10 +4013,15 @@ export default function BookLayoutEditor() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', flexDirection: isMobile ? 'column' : 'row', position:'relative' }}>
 
         {/* Форзац pricing notice — for magazines and travelbooks */}
-        {hasEndpaper && (
+        {hasEndpaper && !endpaperBannerDismissed && (
           <div style={{ position:'absolute', top:0, left:72, right:0, zIndex:50, background:'linear-gradient(90deg,#fef3c7,#fde68a)', padding:'6px 16px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, borderBottom:'1px solid #fcd34d', fontSize:12, color:'#92400e', fontWeight:600 }}>
             <span></span>
             <span>Друк на форзаці — <b>+{endpaperSurcharge} ₴</b> (фіксована ціна за обидва). Налаштуйте у вкладці <b>«ФЗ Форзац»</b></span>
+            <button
+              onClick={() => setEndpaperBannerDismissed(true)}
+              style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#92400e', fontSize:16, lineHeight:1, padding:'0 4px', opacity:0.7, flexShrink:0 }}
+              title="Закрити"
+            >×</button>
           </div>
         )}
 
@@ -5822,10 +5828,11 @@ export default function BookLayoutEditor() {
           </div>
 
           {/* Форзац surcharge notice for magazines/travelbooks */}
-          {hasEndpaper && (
+          {hasEndpaper && !endpaperBannerDismissed && (
             <div style={{ background:'#fef3c7', border:'1px solid #fde68a', borderRadius:10, padding:'8px 14px', fontSize:12, color:'#92400e', marginBottom:10, maxWidth: cW, textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
               <span style={{ fontSize:16 }}></span>
               <span>Форзац — перша та остання сторінка. Друк на форзаці <b>+{endpaperSurcharge} ₴</b> (фіксована за обидва). Натисніть <b>«ФЗ»</b> для налаштування.</span>
+              <button onClick={() => setEndpaperBannerDismissed(true)} style={{ background:'none', border:'none', cursor:'pointer', color:'#92400e', fontSize:16, lineHeight:1, padding:'0 2px', opacity:0.7, flexShrink:0 }}>×</button>
             </div>
           )}
 
