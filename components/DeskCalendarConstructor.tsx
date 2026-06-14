@@ -453,7 +453,7 @@ export default function DeskCalendarConstructor(){
                   </div>
                 ):(
                   <button key={si} onClick={()=>openUp(active-1,si)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files?.[0];if(f)setMonthSlotFile(active-1,si,f);}} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
-                    <Upload size={11}/><span style={{fontSize:8,fontWeight:700}}>{collage.slots>1?`Фото ${si+1}`:'Фото'}</span>
+                    <Upload size={11}/><span style={{fontSize:8,fontWeight:700}}>{collage.slots>1?`Фото ${si+1}`:t('constructor.photo')}</span>
                   </button>
                 );
               })}

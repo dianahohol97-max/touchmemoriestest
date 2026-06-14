@@ -2863,7 +2863,7 @@ export default function BookLayoutEditor() {
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
     pushHistory();
-    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(currentIdx) }] }));
+    setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: t('constructor.text'), x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(currentIdx) }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
 
@@ -2876,7 +2876,7 @@ export default function BookLayoutEditor() {
     const id = 'txt-' + Date.now();
     const cW = rect.width; // actual canvas width (pageW for page mode, spreadW for spread mode)
     pushHistory();
-    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: 'Текст', x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(pageIdx) }] }));
+    setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: t('constructor.text'), x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(pageIdx) }] }));
     setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
@@ -2976,7 +2976,7 @@ export default function BookLayoutEditor() {
         body: JSON.stringify({
           order_id: designerOrderId,
           action,
-          title: config?.productName || 'Макет',
+          title: config?.productName || t('constructor.layout'),
           format: config?.selectedSize || '',
           cover_type: config?.selectedCoverType || '',
           page_count: pages.length - 1,
@@ -3087,9 +3087,9 @@ export default function BookLayoutEditor() {
         // hasKalka, hasEndpaper, plus the URL searchParams that carried
         // lamination / urgent / spine / etc. from the catalog page).
         const opts: Record<string, string> = {};
-        if (config.selectedSize) opts['Розмір'] = config.selectedSize;
+        if (config.selectedSize) opts[t('constructor.size')] = config.selectedSize;
         opts['Сторінок'] = `${contentPages} сторінок`;
-        if (config.selectedCoverType) opts['Обкладинка'] = config.selectedCoverType;
+        if (config.selectedCoverType) opts[t('constructor.cover')] = config.selectedCoverType;
         // Cover colour — only present for soft covers (velour / fabric /
         // leatherette). For printed photo covers this is just blank.
         const coverColor = config.selectedCoverColor || coverColorOverride || '';
@@ -3106,7 +3106,7 @@ export default function BookLayoutEditor() {
             'photovstavka': 'Фотовставка',
             'metal': 'Металева вставка',
             'flex': 'Флекс (друк кольором)',
-            'graviruvannya': 'Гравірування',
+            'graviruvannya': t('constructor.engraving'),
           };
           opts['Декорація обкладинки'] = decoLabel[coverState.decoType] || coverState.decoType;
           if (coverState.decoVariant) opts['Варіант декорації'] = coverState.decoVariant;
@@ -3118,7 +3118,7 @@ export default function BookLayoutEditor() {
         // that sits directly on the velour / leatherette / fabric.
         if ((coverState.extraTexts || []).length > 0 && coverState.inscriptionMethod) {
           opts['Спосіб напису на обкладинці'] =
-            coverState.inscriptionMethod === 'flex' ? 'Друк кольором' : 'Гравірування';
+            coverState.inscriptionMethod === 'flex' ? t('constructor.color_print') : t('constructor.engraving');
           const allText = (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ');
           if (allText) opts['Текст на обкладинці'] = allText;
         }
@@ -3157,9 +3157,9 @@ export default function BookLayoutEditor() {
           const urlOpts: Array<[string, string]> = [
             ['lamination', 'Ламінація'],
             ['cover-lamination', 'Ламінація обкладинки'],
-            ['page-lamination', 'Ламінація сторінок'],
+            ['page-lamination', t('constructor.page_lamination')],
             ['spine', 'Корінець'],
-            ['urgent', 'Терміновість'],
+            ['urgent', t('constructor.urgency')],
             ['page_color', 'Колір сторінок'],
           ];
           for (const [key, label] of urlOpts) {
@@ -3830,7 +3830,7 @@ export default function BookLayoutEditor() {
   } else {
     const result = calculateDynamicPrice(
       priceTable,
-      config.selectedCoverType || 'Велюр',
+      config.selectedCoverType || t('constructor.velour'),
       config.selectedSize || '20x20',
       currentPageCount,
       config.selectedPageCount || '20',
@@ -3970,7 +3970,7 @@ export default function BookLayoutEditor() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
-              <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? 'Тільки обкладинка' : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
+              <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? t('constructor.cover_only') : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
               {isGraduation && (
                 <div style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>Мінімум {GRADUATION_MIN_QTY} шт · {dynamicPrice * GRADUATION_MIN_QTY} ₴ за {GRADUATION_MIN_QTY}</div>
               )}
@@ -4031,9 +4031,9 @@ export default function BookLayoutEditor() {
         {!isMobile && <div style={{ width: 72, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, borderRight: '1px solid #f1f5f9', flexShrink: 0 }}>
           {((() => {
             const allTabs: [string, React.ReactNode, string, boolean?][] = [
-              ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, 'Шаблон'] as [string, React.ReactNode, string]] : []),
-              ['photos', <ImageIcon key="ph" size={20}/>, 'Фото'],
-              ['text', <Type key="t" size={20}/>, 'Текст'],
+              ...(!isWishbook ? [['layouts', <LayoutGrid key="l" size={20}/>, t('constructor.layout_tab')] as [string, React.ReactNode, string]] : []),
+              ['photos', <ImageIcon key="ph" size={20}/>, t('constructor.photo')],
+              ['text', <Type key="t" size={20}/>, t('constructor.text')],
               ['bg', <Palette key="bg" size={20}/>, 'Фон'],
               ['shapes', <Square key="sh" size={20}/>, 'Фігури'],
               ['stickers', <Sticker key="stk" size={20}/>, 'Стікери'],
@@ -4226,7 +4226,7 @@ export default function BookLayoutEditor() {
                 {/* Layout groups — spread layouts for photobooks, page layouts for magazines */}
                 {(isSpreadMode
                   ? [t('constructor.spread_group_1'), t('constructor.spread_group_2'), t('constructor.spread_group_3'), t('constructor.spread_group_4'), t('constructor.spread_group_5')]
-                  : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7 фото', '8 фото', '9 фото', 'Текст']
+                  : ['1 фото', '2 фото', '3 фото', '4 фото', '5 фото', '6 фото', '7 фото', '8 фото', '9 фото', t('constructor.text')]
                 ).map(group => {
                   const gl = LAYOUTS.filter(l => l.group === group);
                   return (
@@ -4435,7 +4435,7 @@ export default function BookLayoutEditor() {
                       {/* Add text */}
                       <div>
                         <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Текст на обкладинці</div>
-                        <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:'Ваш текст',x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
+                        <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:t('constructor.your_text'),x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
                           style={{ width:'100%', padding:'7px 10px', border:'1px dashed #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:12, fontWeight:700, color:'#1e2d7d' }}>
                           + Додати текст
                         </button>
@@ -4578,7 +4578,7 @@ export default function BookLayoutEditor() {
                   )}
 
                   {/* Cover color picker */}
-                  {config?.selectedCoverType && config.selectedCoverType !== 'Друкована' && (() => {
+                  {config?.selectedCoverType && config.selectedCoverType !== t('constructor.printed') && (() => {
                     const mat = config.selectedCoverType?.toLowerCase() || '';
                     const colors = mat.includes('шкір') ? LEATHERETTE_COLORS : mat.includes('тканин') ? FABRIC_COLORS : VELOUR_COLORS;
                     return (
@@ -4605,7 +4605,7 @@ export default function BookLayoutEditor() {
                   <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6, display: isPrinted ? 'none' : 'block' }}>ОЗДОБЛЕННЯ</div>
                   <div style={{ display: isPrinted ? 'none' : 'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
                     <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
-                      {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[coverState.decoType] || 'Без'}
+                      {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':t('constructor.flex_print'),'graviruvannya':t('constructor.engraving')} as Record<string,string>)[coverState.decoType] || 'Без'}
                       {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
                     </span>
                     <button onClick={() => setShowDecoList(v=>!v)} style={{ fontSize:11, fontWeight:700, color:'#1e2d7d', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>
@@ -4626,7 +4626,7 @@ export default function BookLayoutEditor() {
                           setShowDecoList(false);
                         }}
                           style={{ padding:'7px 12px', border:coverState.decoType===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:coverState.decoType===id?'#f0f3ff':'#fff', cursor:'pointer', fontWeight:600, fontSize:12, color:coverState.decoType===id?'#1e2d7d':'#374151', textAlign:'left' }}>
-                          {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':'Флекс','graviruvannya':'Гравірування'} as Record<string,string>)[id]}
+                          {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':'Фотовставка','metal':'Металева вставка','flex':t('constructor.flex_print'),'graviruvannya':t('constructor.engraving')} as Record<string,string>)[id]}
                         </button>
                       ))}
                     </div>
@@ -5552,7 +5552,7 @@ export default function BookLayoutEditor() {
                         <button onClick={() => {
                           pushHistory();
                           setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
-                            id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                            id: 'ptxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                             fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                           }]}));
                           toast.success('Текст додано на обкладинку');
@@ -5568,7 +5568,7 @@ export default function BookLayoutEditor() {
                         <button onClick={() => {
                           pushHistory();
                           setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
-                            id: 'btxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                            id: 'btxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                             fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                           }]} as any));
                           toast.success('Текст додано на задню обкладинку');
@@ -5658,7 +5658,7 @@ export default function BookLayoutEditor() {
                               <div style={{ marginTop:6, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc' }}>
                                 <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
                                 <div style={{ display:'flex', gap:6 }}>
-                                  {([['graviruvannya','Гравірування'],['flex','Друк кольором']] as const).map(([id,label]) => (
+                                  {([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const).map(([id,label]) => (
                                     <button key={id} type="button"
                                       onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
                                       style={{ flex:1, padding:'7px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
@@ -5679,7 +5679,7 @@ export default function BookLayoutEditor() {
                 ) : (
                   <button onClick={() => setTextTool(t => !t)}
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', border: textTool ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 8, background: textTool ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: textTool ? '#1e2d7d' : '#374151' }}>
-                    <Type size={15} /> {textTool ? '↖ Клікніть на сторінку' : 'Додати текст'}
+                    <Type size={15} /> {textTool ? '↖ ' + t('constructor.click_page') : t('constructor.add_text')}
                   </button>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -6784,7 +6784,7 @@ export default function BookLayoutEditor() {
                     </svg>
                     {/* Trim line label — corner badge, small and translucent */}
                     <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
-                      обрізка
+                      t('constructor.crop_zone_short')
                     </div>
                   </div>
                 );
@@ -7542,7 +7542,7 @@ export default function BookLayoutEditor() {
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
                     <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
-                      обрізка
+                      t('constructor.crop_zone_short')
                     </div>
                   </>
                 )}
@@ -8293,9 +8293,9 @@ export default function BookLayoutEditor() {
           {/* Tool buttons row */}
           <div style={{ display:'flex', alignItems:'stretch' }}>
             {([
-              ...(!isWishbook ? [['photos', <ImageIcon size={19}/>, 'Фото']] : []),
-              ...(!isWishbook ? [['layouts', <LayoutGrid size={19}/>, 'Макет']] : []),
-              ['text', <Type size={19}/>, 'Текст'],
+              ...(!isWishbook ? [['photos', <ImageIcon size={19}/>, t('constructor.photo')]] : []),
+              ...(!isWishbook ? [['layouts', <LayoutGrid size={19}/>, t('constructor.layout')]] : []),
+              ['text', <Type size={19}/>, t('constructor.text')],
               ['bg', <Palette size={19}/>, 'Фон'],
               ['stickers', <Sticker size={19}/>, 'Стікер'],
               ...(currentIdx===0 || isWishbook ? [['cover', <BookOpen size={19}/>, 'Обкл.']] : [['frames', <Frame size={19}/>, 'Рамки']]) as any,
@@ -8624,7 +8624,7 @@ export default function BookLayoutEditor() {
                       <div>
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
                           <div style={{ fontSize:12, fontWeight:700, color:'#64748b' }}>Текст на обкладинці</div>
-                          <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:'Ваш текст',x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
+                          <button onClick={()=>setCoverState(p=>({...p,printedTextBlocks:[...(p.printedTextBlocks||[]),{id:'ptxt-'+Date.now(),text:t('constructor.your_text'),x:50,y:50,fontSize:24,fontFamily:'Playfair Display',color:'#ffffff',bold:true}]}))}
                             style={{ padding:'6px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer' }}>
                             + Додати текст
                           </button>
@@ -8716,7 +8716,7 @@ export default function BookLayoutEditor() {
                           <button onClick={() => {
                             pushHistory();
                             setCoverState(p => ({...p, printedTextBlocks: [...(p.printedTextBlocks || []), {
-                              id: 'ptxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                              id: 'ptxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                               fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                             }]}));
                             toast.success('Текст додано на обкладинку');
@@ -8727,7 +8727,7 @@ export default function BookLayoutEditor() {
                           <button onClick={() => {
                             pushHistory();
                             setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
-                              id: 'btxt-' + Date.now(), text: 'Ваш текст', x: 50, y: 50,
+                              id: 'btxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                               fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                             }]} as any));
                             toast.success('Текст додано на задню обкладинку');
@@ -8776,7 +8776,7 @@ export default function BookLayoutEditor() {
                                 <div style={{ marginTop:4, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:10, background:'#f8fafc' }}>
                                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
                                   <div style={{ display:'flex', gap:6 }}>
-                                    {([['graviruvannya','Гравірування'],['flex','Друк кольором']] as const).map(([id,label]) => (
+                                    {([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const).map(([id,label]) => (
                                       <button key={id} type="button"
                                         onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
                                         style={{ flex:1, padding:'8px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:12, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
@@ -8801,7 +8801,7 @@ export default function BookLayoutEditor() {
                       setPages(prev => prev.map((p, i) => i !== currentIdx ? p : {
                         ...p,
                         textBlocks: [...p.textBlocks, {
-                          id, text: 'Текст', x: 50, y: 50,
+                          id, text: t('constructor.text'), x: 50, y: 50,
                           fontSize: tFontSize, fontFamily: tFontFamily,
                           color: tColor, bold: tBold, italic: tItalic,
                           zOrder: nextOverlayZ(currentIdx),

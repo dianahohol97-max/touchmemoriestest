@@ -54,7 +54,7 @@ export default function CanvasPrintConstructor() {
             if (data) {
                 setProduct(data);
                 const opts = (data.options || []);
-                const sizeOpt = opts.find((o: any) => o.name === 'Розмір');
+                const sizeOpt = opts.find((o: any) => o.name === t('constructor.size'));
                 if (sizeOpt?.options) {
                     setSizeOptions(sizeOpt.options.map((o: any) => ({
                         label: o.label,
@@ -72,7 +72,7 @@ export default function CanvasPrintConstructor() {
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
         const file = files[0];
-        if (!file.type.startsWith('image/')) { toast.error('Оберіть зображення'); return; }
+        if (!file.type.startsWith('image/')) { toast.error(t('constructor.choose_image')); return; }
         const preview = URL.createObjectURL(file);
         const img = await new Promise<HTMLImageElement>((res, rej) => {
             const im = new window.Image(); im.onload = () => res(im); im.onerror = rej; im.src = preview;
@@ -147,10 +147,10 @@ export default function CanvasPrintConstructor() {
             {/* Header */}
             <div style={{ marginBottom: 32 }}>
                 <h1 style={{ fontSize: 28, fontWeight: 900, color: '#1e2d7d', marginBottom: 6 }}>
-                    {product?.name || 'Друк на полотні'}
+                    {product?.name || t('constructor.canvas_print')}
                 </h1>
                 <p style={{ color: '#64748b', fontSize: 15 }}>
-                    {product?.short_description || 'Фотографія на якісному художньому полотні'}
+                    {product?.short_description || t('constructor.canvas_print_desc')}
                 </p>
             </div>
 

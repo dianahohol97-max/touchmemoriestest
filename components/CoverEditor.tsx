@@ -868,7 +868,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:(config.textFontSize || Math.max(10,Math.min(boxW/8,22)))+'px',
                   fontFamily:(config.textFontFamily || 'Montserrat')+',sans-serif', fontWeight:700, letterSpacing:'0.05em',
                   outline:'none', cursor:'text', textAlign:'center', padding:'0 6px', maxWidth:'90%', wordBreak:'break-word' }}>
-                {config.decoText||'Ваш текст'}
+                {config.decoText||t('constructor.your_text')}
               </span>
             </div>
           )}
@@ -887,7 +887,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   fontFamily:fontFamily+',Playfair Display,Georgia,serif', fontWeight:700,
                   letterSpacing:'0.04em', outline:'none', cursor:'text', display:'block', textAlign:'center',
                   whiteSpace:'nowrap' }}>
-                {config.decoText||'Ваш текст'}
+                {config.decoText||t('constructor.your_text')}
               </span>
               <div style={{ position:'absolute', top:-10, right:-10, background:'rgba(0,0,0,0.55)', borderRadius:'50%', width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', cursor:'move', touchAction:'none' }} title="Перетягнути">
                 <Move size={11} color="#fff"/>
@@ -909,7 +909,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   fontSize:fontSize+'px', fontFamily:fontFamily+',Playfair Display,Georgia,serif',
                   fontWeight:600, letterSpacing:'0.06em', outline:'none', cursor:'text', display:'block',
                   textAlign:'center', whiteSpace:'nowrap' }}>
-                {config.decoText||'Ваш текст'}
+                {config.decoText||t('constructor.your_text')}
               </span>
               <div style={{ position:'absolute', top:-10, right:-10, background:'rgba(0,0,0,0.45)', borderRadius:'50%', width:22, height:22, display:'flex', alignItems:'center', justifyContent:'center', cursor:'move', touchAction:'none' }} title="Перетягнути">
                 <Move size={11} color="#fff"/>

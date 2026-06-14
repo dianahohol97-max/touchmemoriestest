@@ -216,7 +216,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [selectedPageCount, setSelectedPageCount] = useState<string>(_saved?.selectedPageCount || '');
     const [selectedCopies, setSelectedCopies] = useState<string>(_saved?.selectedCopies || '');
     const [selectedPageLamination, setSelectedPageLamination] = useState<string>(_saved?.selectedPageLamination || '');
-    const [selectedPageColor, setSelectedPageColor] = useState<string>(_saved?.selectedPageColor || 'Білі');
+    const [selectedPageColor, setSelectedPageColor] = useState<string>(_saved?.selectedPageColor || t('constructor.color_white_pl'));
     const [enableEndpaper, setEnableEndpaper] = useState(_saved?.enableEndpaper || false);
     const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
     const [kalkaText, setKalkaText] = useState<string>(_saved?.kalkaText || '');
@@ -277,11 +277,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     options.forEach((option) => {
                         const vals = getOptionValues(option);
                         if (vals.length > 0) {
-                            if (option.name === 'Тип обкладинки') {
+                            if (option.name === t('constructor.cover_type')) {
                                 setSelectedCoverType(vals[0].name);
-                            } else if (option.name === 'Кількість сторінок') {
+                            } else if (option.name === t('constructor.page_count')) {
                                 setSelectedPageCount(vals[0].name);
-                            } else if (option.name === 'Кількість примірників') {
+                            } else if (option.name === t('constructor.copies_count')) {
                                 setSelectedCopies(vals[0].name);
                             }
                         }
@@ -424,30 +424,30 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (coverValue) {
             // Map Ukrainian catalog names to internal names
             const coverMap: Record<string, string> = {
-                'Велюрова': 'Велюр',
-                'Велюр': 'Велюр',
-                'Шкірзамінник': 'Шкірзамінник',
-                'Тканинна': 'Тканина',
-                'Тканина': 'Тканина',
-                'З тканини': 'Тканина',
-                'Друкована': 'Друкована',
-                'Друкована тверда': 'Друкована',
+                'Велюрова': 'velour',
+                'Велюр': 'velour',
+                'Шкірзамінник': 'leatherette',
+                'Тканинна': 'fabric',
+                'Тканина': 'fabric',
+                'З тканини': 'fabric',
+                'Друкована': 'printed',
+                'Друкована тверда': 'printed',
             };
             setSelectedCoverType(coverMap[coverValue] || coverValue);
         } else {
             if (pt === 'photobook' || pt === 'wishbook') {
                 const sl = productSlug.toLowerCase();
-                if (sl.includes('velour') || sl.includes('velyur') || sl.includes('Велюр')) setSelectedCoverType('Велюр');
-                else if (sl.includes('leather')) setSelectedCoverType('Шкірзамінник');
-                else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverType('Тканина');
-                else if (sl.includes('printed') || sl.includes('drukov')) setSelectedCoverType('Друкована');
+                if (sl.includes('velour') || sl.includes('velyur') || sl.includes(t('constructor.velour'))) setSelectedCoverType(t('constructor.velour'));
+                else if (sl.includes('leather')) setSelectedCoverType(t('constructor.faux_leather'));
+                else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverType(t('constructor.fabric'));
+                else if (sl.includes('printed') || sl.includes('drukov')) setSelectedCoverType(t('constructor.printed'));
                 // Graduation photobooks are produced only with a printed hard
                 // cover (no velour/fabric variant). Use the canonical
                 // «Випускна» cover type: that is the cover_type the
                 // photobook_prices matrix is keyed by for graduation books, so
                 // the editor price lookup matches the catalog card. The editor
                 // treats «Випускна» as a printed cover (see isPrinted).
-                else if (sl.includes('graduation') || sl.includes('vypusk') || sl.includes('випуск')) setSelectedCoverType('Випускна');
+                else if (sl.includes('graduation') || sl.includes('vypusk') || sl.includes('випуск')) setSelectedCoverType(t('constructor.graduation'));
             }
         }
 
@@ -548,9 +548,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             }
             // Photobooks need size + pages; wishbook needs size + cover; magazines/travelbooks need just pages
             const canAdvance = pt === 'photobook'
-                ? (selectedSize && selectedPageCount && (selectedCoverType === 'Друкована' || selectedCoverColor) && photobookPrices.length > 0)
+                ? (selectedSize && selectedPageCount && (selectedCoverType === t('constructor.printed') || selectedCoverColor) && photobookPrices.length > 0)
                 : pt === 'wishbook'
-                ? (selectedSize && selectedCoverType && (selectedCoverType === 'Друкована' || selectedCoverColor))
+                ? (selectedSize && selectedCoverType && (selectedCoverType === t('constructor.printed') || selectedCoverColor))
                 : selectedPageCount;
             if (canAdvance) {
                 handleContinue();
@@ -651,7 +651,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             //   'we' / 'we-basic'/'we-premium' — we write it (these normally go
             //                                  to the brief, but guard anyway)
             //   'none'                      — no text
-            //   'З текстом (+195 ₴)' / label — verbatim label from an old card
+            //   t('constructor.with_text') / label — verbatim label from an old card
             //   '' / null                   — option not selected (no text)
             // Any value that means "there is text" must add the typesetting
             // surcharge. Previously only 'with' / 'текстом' / 'верстк' matched,
@@ -698,13 +698,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
             // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
             // to hard journal and Travel Book per Diana's price list.
-            if (isHardJournal && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
+            if (isHardJournal && selectedPageLamination && selectedPageLamination !== t('constructor.no_lamination')) {
                 magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
             }
 
             // Urgent production surcharge (+30%). The product detail page
             // sends this either as the canonical value ('standard' / 'urgent')
-            // or as the verbatim label ('Термінова 1–3 дні (+30%)') depending
+            // or as the verbatim label (t('constructor.express_delivery')) depending
             // on whether the option was just chosen (canonical) or hydrated
             // from sessionStorage (label). isUrgent must be true only when
             // the value is explicitly urgent — anything else (empty, '0',
@@ -755,8 +755,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             // Black/Cream pages use thicker stock → higher price.
 
             const sizeKey = selectedSize || '30×20';
-            const coverKey = selectedCoverType || 'Велюр';
-            const colorKey = selectedPageColor || 'Білі';
+            const coverKey = selectedCoverType || t('constructor.velour');
+            const colorKey = selectedPageColor || t('constructor.color_white_pl');
             let total = getWishbookPrice(coverKey, colorKey, sizeKey);
 
             if (!total) {
@@ -800,11 +800,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             options.forEach((option) => {
                 let selectedValue = '';
 
-                if (option.name === 'Тип обкладинки') {
+                if (option.name === t('constructor.cover_type')) {
                     selectedValue = selectedCoverType;
-                } else if (option.name === 'Кількість сторінок') {
+                } else if (option.name === t('constructor.page_count')) {
                     selectedValue = selectedPageCount;
-                } else if (option.name === 'Кількість примірників') {
+                } else if (option.name === t('constructor.copies_count')) {
                     selectedValue = selectedCopies;
                 }
 
@@ -824,7 +824,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Page lamination — flat per-page surcharge (7 ₴/стор per Diana's
         // May 2026 price list). Applies to Travel Book; hard journal handles
         // it in the magazine/journal branch above.
-        if (productType === 'travelbook' && selectedPageLamination && selectedPageLamination !== 'Без ламінації') {
+        if (productType === 'travelbook' && selectedPageLamination && selectedPageLamination !== t('constructor.no_lamination')) {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
             if (pageNum > 0) total += pageNum * LAMINATION_PRICE_PER_PAGE;
         }
@@ -834,7 +834,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             total += 100; // Друк на форзаці для Travel Book
         }
 
-        if (productType === 'magazine' && selectedCoverType.includes('Тверда') && enableEndpaper) {
+        if (productType === 'magazine' && selectedCoverType.includes(t('constructor.hardcover')) && enableEndpaper) {
             total += 100; // Друк на форзаці для журналу з твердою обкладинкою
         }
 
@@ -924,7 +924,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (productType === 'travelbook') return true;
 
         // Magazine with hard cover has endpapers
-        if (productType === 'magazine' && selectedCoverType.includes('Тверда')) return true;
+        if (productType === 'magazine' && selectedCoverType.includes(t('constructor.hardcover'))) return true;
 
         return false;
     };
@@ -947,7 +947,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // a colour the product doesn't have.
         const productType = getProductType();
         const isPhotobookProduct = productType === 'photobook';
-        if (isPhotobookProduct && selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) {
+        if (isPhotobookProduct && selectedCoverType && selectedCoverType !== t('constructor.printed') && !selectedCoverColor) {
             alert(t('book_config.choose_cover_color_alert'));
             return;
         }
@@ -965,7 +965,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             kalkaText: enableKalka ? (kalkaText || null) : null,
             selectedLamination: selectedLamination || null,
             selectedPageLamination: selectedPageLamination || null,
-            selectedPageColor: selectedPageColor || 'Білі',
+            selectedPageColor: selectedPageColor || t('constructor.color_white_pl'),
             selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,
             selectedDecorationVariant: selectedDecorationVariant || null,
@@ -1041,7 +1041,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const textLayout = searchParams.get('text_layout');
         if (textLayout) params.set('text_layout', textLayout);
         // Forward urgent flag (magazine only — passed by ProductClient via
-        // keyMap['Терміновість']='urgent'). The editor reads it the same
+        // keyMap[t('constructor.urgency')]='urgent'). The editor reads it the same
         // way we did above to apply the +30% surcharge in its own price
         // display.
         const urgent = searchParams.get('urgent');
@@ -1068,9 +1068,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const isFabricCover = coverLc.includes('ткан') || coverLc.includes('fabric');
         // Leatherette: no flex print / engraving. Fabric: no engraving. Velour: all.
         const blocked = isLeatherCover
-            ? ['Друк кольором', 'Гравірування']
+            ? [t('constructor.color_print'), t('constructor.engraving')]
             : isFabricCover
-                ? ['Гравірування']
+                ? [t('constructor.engraving')]
                 : [];
         return decorationTypes.filter((dt: any) => !blocked.includes(dt.name));
     };
@@ -1092,9 +1092,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedSize) return false;
             if (!selectedCoverType) return false;
             if (!selectedPageCount) return false;
-            if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
+            if (selectedCoverType === t('constructor.printed') && !selectedLamination) return false;
             if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) return false;
-            if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
+            if (selectedCoverType !== t('constructor.printed') && !selectedCoverColor) return false;
             return true;
         }
 
@@ -1102,8 +1102,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (pt === 'wishbook') {
             if (!selectedSize) return false;
             if (!selectedCoverType) return false;
-            if (selectedCoverType !== 'Друкована' && !selectedCoverColor) return false;
-            if (selectedCoverType === 'Друкована' && !selectedLamination) return false;
+            if (selectedCoverType !== t('constructor.printed') && !selectedCoverColor) return false;
+            if (selectedCoverType === t('constructor.printed') && !selectedLamination) return false;
             if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) return false;
             return true;
         }
@@ -1113,9 +1113,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         if (product?.options) {
             const options = product.options as ProductOption[];
-            const requiredCoverType = options.some(o => o.name === 'Тип обкладинки');
+            const requiredCoverType = options.some(o => o.name === t('constructor.cover_type'));
             if (requiredCoverType && !selectedCoverType) return false;
-            const requiredPageCount = options.some(o => o.name === 'Кількість сторінок');
+            const requiredPageCount = options.some(o => o.name === t('constructor.page_count'));
             if (requiredPageCount && !selectedPageCount) return false;
         }
 
@@ -1134,24 +1134,24 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             if (!selectedSize) out.push(t('book_config.size_label'));
             if (!selectedCoverType) out.push(t('book_config.cover_type'));
             if (!selectedPageCount) out.push(t('book_config.page_count'));
-            if (selectedCoverType === 'Друкована' && !selectedLamination) out.push(t('book_config.lamination_type'));
+            if (selectedCoverType === t('constructor.printed') && !selectedLamination) out.push(t('book_config.lamination_type'));
             if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) out.push(t('book_config.decoration'));
-            if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) out.push(t('book_config.cover_color'));
+            if (selectedCoverType && selectedCoverType !== t('constructor.printed') && !selectedCoverColor) out.push(t('book_config.cover_color'));
             return out;
         }
         if (pt === 'wishbook') {
             if (!selectedSize) out.push(t('book_config.size_label'));
             if (!selectedCoverType) out.push(t('book_config.cover_type'));
-            if (selectedCoverType && selectedCoverType !== 'Друкована' && !selectedCoverColor) out.push(t('book_config.cover_color'));
-            if (selectedCoverType === 'Друкована' && !selectedLamination) out.push(t('book_config.lamination_type'));
+            if (selectedCoverType && selectedCoverType !== t('constructor.printed') && !selectedCoverColor) out.push(t('book_config.cover_color'));
+            if (selectedCoverType === t('constructor.printed') && !selectedLamination) out.push(t('book_config.lamination_type'));
             if (selectedDecorationRequiresVariant() && !selectedDecorationVariant) out.push(t('book_config.decoration'));
             return out;
         }
         if (product?.variants && product.variants.length > 0 && !selectedSize) out.push(t('book_config.size_label'));
         if (product?.options) {
             const options = product.options as ProductOption[];
-            if (options.some(o => o.name === 'Тип обкладинки') && !selectedCoverType) out.push(t('book_config.cover_type'));
-            if (options.some(o => o.name === 'Кількість сторінок') && !selectedPageCount) out.push(t('book_config.page_count'));
+            if (options.some(o => o.name === t('constructor.cover_type')) && !selectedCoverType) out.push(t('book_config.cover_type'));
+            if (options.some(o => o.name === t('constructor.page_count')) && !selectedPageCount) out.push(t('book_config.page_count'));
         }
         return out;
     };
@@ -1233,10 +1233,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     {/*  Wishbook: Cover type — identical to photobook  */}
                     {productType === 'wishbook' && (() => {
                         const types = coverTypes.length > 0 ? coverTypes : [
-                            { id: 'w1', name: 'Велюр', sort_order: 1 },
-                            { id: 'w2', name: 'Шкірзамінник', sort_order: 2 },
-                            { id: 'w3', name: 'Тканина', sort_order: 3 },
-                            { id: 'w4', name: 'Друкована', sort_order: 4 },
+                            { id: 'w1', name: t('constructor.velour'), sort_order: 1 },
+                            { id: 'w2', name: t('constructor.faux_leather'), sort_order: 2 },
+                            { id: 'w3', name: t('constructor.fabric'), sort_order: 3 },
+                            { id: 'w4', name: t('constructor.printed'), sort_order: 4 },
                         ];
                         return (
                         <div>
@@ -1244,7 +1244,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {types.filter((c: any) => c.name !== 'Випускна' && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {types.filter((c: any) => c.name !== t('constructor.graduation') && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button key={cover.id} type="button"
                                         onClick={() => { setSelectedCoverType(cover.name); setSelectedDecorationType('none'); setSelectedDecorationVariant(''); setSelectedLamination(''); setSelectedPageCount(''); setSelectedCoverColor(''); }}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
@@ -1261,9 +1261,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     ); })()}
 
                     {/*  Wishbook: Color swatches — identical to photobook  */}
-                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
-                        const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
-                            : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
+                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== t('constructor.printed') && (() => {
+                        const colors = selectedCoverType === t('constructor.faux_leather') ? LEATHERETTE_BOOK_COLORS
+                            : selectedCoverType === t('constructor.fabric') ? FABRIC_BOOK_COLORS
                             : VELOUR_COLORS;
                         return (
                             <div>
@@ -1294,13 +1294,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     })()}
 
                     {/*  Wishbook: Lamination for Друкована — identical to photobook  */}
-                    {productType === 'wishbook' && selectedCoverType === 'Друкована' && (
+                    {productType === 'wishbook' && selectedCoverType === t('constructor.printed') && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 {t('book_config.lamination_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
-                                {['Глянцева', 'Матова'].map(lam => (
+                                {[t('constructor.glossy'), t('constructor.matte')].map(lam => (
                                     <button key={lam} type="button"
                                         onClick={() => setSelectedLamination(lam)}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
@@ -1322,7 +1322,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 Колір сторінок <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-3 gap-3">
-                                {(['Білі', 'Чорні', 'Кремові'] as const).map(color => (
+                                {([t('constructor.color_white_pl'), t('constructor.color_black_pl'), t('constructor.color_cream')] as const).map(color => (
                                     <button key={color} type="button"
                                         onClick={() => setSelectedPageColor(color)}
                                         className={`p-4 rounded-lg border-2 text-center transition-all ${
@@ -1331,7 +1331,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                                 : 'border-gray-200 hover:border-gray-400 text-gray-700'
                                         }`}>
                                         <span className="block text-base font-bold">{color}</span>
-                                        {color !== 'Білі' && <span className="block text-xs text-gray-500 mt-1">+300–380 ₴</span>}
+                                        {color !== t('constructor.color_white_pl') && <span className="block text-xs text-gray-500 mt-1">+300–380 ₴</span>}
                                     </button>
                                 ))}
                             </div>
@@ -1339,7 +1339,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Wishbook: Decoration types — identical to photobook  */}
-                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
+                    {productType === 'wishbook' && selectedCoverType && selectedCoverType !== t('constructor.printed') && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 {t('book_config.decoration')}
@@ -1373,7 +1373,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Wishbook: Decoration variant — identical to photobook  */}
-                    {productType === 'wishbook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== 'Друкована' && selectedSize && (() => {
+                    {productType === 'wishbook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== t('constructor.printed') && selectedSize && (() => {
                         const variants = decorationVariants.filter(
                             (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
                             dv.cover_type?.name === selectedCoverType &&
@@ -1451,7 +1451,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.cover_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {coverTypes.filter((c: any) => c.name !== 'Випускна' && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
+                                {coverTypes.filter((c: any) => c.name !== t('constructor.graduation') && !c.name.includes('файлик')).sort((a: any, b: any) => a.sort_order - b.sort_order).map((cover: any) => (
                                     <button
                                         key={cover.id}
                                         type="button"
@@ -1473,9 +1473,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Cover color picker for soft covers  */}
-                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && (() => {
-                        const colors = selectedCoverType === 'Шкірзамінник' ? LEATHERETTE_BOOK_COLORS
-                            : selectedCoverType === 'Тканина' ? FABRIC_BOOK_COLORS
+                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== t('constructor.printed') && (() => {
+                        const colors = selectedCoverType === t('constructor.faux_leather') ? LEATHERETTE_BOOK_COLORS
+                            : selectedCoverType === t('constructor.fabric') ? FABRIC_BOOK_COLORS
                             : VELOUR_COLORS;
                         return (
                             <div>
@@ -1509,13 +1509,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     })()}
 
                     {/*  Photobook: Lamination for Друкована cover  */}
-                    {productType === 'photobook' && selectedCoverType === 'Друкована' && (
+                    {productType === 'photobook' && selectedCoverType === t('constructor.printed') && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 {t('book_config.lamination_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
-                                {['Глянцева', 'Матова'].map((lam) => (
+                                {[t('constructor.glossy'), t('constructor.matte')].map((lam) => (
                                     <button
                                         key={lam}
                                         type="button"
@@ -1540,7 +1540,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {t('book_config.lamination_type')} <span className="text-red-500">*</span>
                             </label>
                             <div className="grid grid-cols-2 gap-3">
-                                {['Глянцева', 'Матова'].map((lam) => (
+                                {[t('constructor.glossy'), t('constructor.matte')].map((lam) => (
                                     <button
                                         key={lam}
                                         type="button"
@@ -1559,7 +1559,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Photobook: Decoration selector (not for Друкована)  */}
-                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== 'Друкована' && decorationTypes.length > 0 && (
+                    {productType === 'photobook' && selectedCoverType && selectedCoverType !== t('constructor.printed') && decorationTypes.length > 0 && (
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">
                                 {t('book_config.decoration')}
@@ -1598,7 +1598,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     )}
 
                     {/*  Photobook: Decoration variant sub-options  */}
-                    {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== 'Друкована' && selectedSize && (() => {
+                    {productType === 'photobook' && selectedDecorationType !== 'none' && selectedCoverType && selectedCoverType !== t('constructor.printed') && selectedSize && (() => {
                         const variants = decorationVariants.filter(
                             (dv: any) => dv.decoration_type?.name === selectedDecorationType &&
                             dv.cover_type?.name === selectedCoverType &&
@@ -1710,21 +1710,21 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </label>
                             <select
                                 value={
-                                    option.name === 'Тип обкладинки' ? selectedCoverType :
-                                    option.name === 'Кількість сторінок' ? selectedPageCount :
-                                    option.name === 'Кількість примірників' ? selectedCopies :
-                                    option.name === 'Ламінація сторінок' ? selectedPageLamination :
+                                    option.name === t('constructor.cover_type') ? selectedCoverType :
+                                    option.name === t('constructor.page_count') ? selectedPageCount :
+                                    option.name === t('constructor.copies_count') ? selectedCopies :
+                                    option.name === t('constructor.page_lamination') ? selectedPageLamination :
                                     ''
                                 }
                                 onChange={(e) => {
-                                    if (option.name === 'Тип обкладинки') {
+                                    if (option.name === t('constructor.cover_type')) {
                                         setSelectedCoverType(e.target.value);
                                         setSelectedPageCount(''); // reset — different cover types have different min pages
-                                    } else if (option.name === 'Кількість сторінок') {
+                                    } else if (option.name === t('constructor.page_count')) {
                                         setSelectedPageCount(e.target.value);
-                                    } else if (option.name === 'Кількість примірників') {
+                                    } else if (option.name === t('constructor.copies_count')) {
                                         setSelectedCopies(e.target.value);
-                                    } else if (option.name === 'Ламінація сторінок') {
+                                    } else if (option.name === t('constructor.page_lamination')) {
                                         setSelectedPageLamination(e.target.value);
                                     }
                                 }}
@@ -1733,7 +1733,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {getOptionValues(option).map((value) => (
                                     <option key={value.name} value={value.name}>
                                         {value.name}
-                                        {option.name !== 'Кількість сторінок' && value.priceModifier !== undefined && value.priceModifier !== 0 &&
+                                        {option.name !== t('constructor.page_count') && value.priceModifier !== undefined && value.priceModifier !== 0 &&
                                             ` (+${value.priceModifier} ₴)`
                                         }
                                     </option>

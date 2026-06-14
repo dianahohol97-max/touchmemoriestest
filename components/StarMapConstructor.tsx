@@ -76,12 +76,12 @@ export default function StarMapConstructor() {
         // Step 1 defaults
         date: new Date().toISOString().split('T')[0],
         time: '00:00',
-        location: 'Київ, Україна',
+        location: t('constructor.kyiv_ukraine'),
         latitude: 50.4501,
         longitude: 30.5234,
 
         // Step 2 defaults
-        headline: 'Ніч, коли ми зустрілись',
+        headline: t('constructor.night_we_met'),
         subtitle: '',
         dedication: '',
 
@@ -297,7 +297,7 @@ export default function StarMapConstructor() {
                                 <h1 className="text-2xl font-bold text-[#1e2d7d]">{t('starmap.product_name')}</h1>
                                 <p className="text-sm text-gray-600 mt-1">
                                     Крок {currentStep} з 3: {
-                                        currentStep === 1 ? 'Момент' :
+                                        currentStep === 1 ? t('constructor.moment') :
                                         currentStep === 2 ? 'Персоналізація' :
                                         'Дизайн'
                                     }
@@ -322,8 +322,8 @@ export default function StarMapConstructor() {
                     {/* Step Tabs — clickable */}
                     <div className="flex gap-1 mt-4">
                         {[
-                            { n: 1, label: 'Момент' },
-                            { n: 2, label: 'Текст' },
+                            { n: 1, label: t('constructor.moment') },
+                            { n: 2, label: t('constructor.text') },
                             { n: 3, label: 'Дизайн' },
                         ].map(({ n, label }) => (
                             <button
@@ -752,9 +752,9 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                     {[
                         { key: 'showConstellations',     label: "Лінії сузір'їв", default: true },
                         { key: 'showConstellationNames', label: "Назви сузір'їв", default: true },
-                        { key: 'showMilkyWay',           label: 'Чумацький Шлях', default: true },
-                        { key: 'showStarNames',          label: 'Назви зірок', default: true },
-                        { key: 'showGrid',               label: 'Координатна сітка', default: false },
+                        { key: 'showMilkyWay',           label: t('constructor.milky_way'), default: true },
+                        { key: 'showStarNames',          label: t('constructor.star_names'), default: true },
+                        { key: 'showGrid',               label: t('constructor.coord_grid'), default: false },
                     ].map(({ key, label }) => {
                         const val = (config as any)[key] !== false;
                         return (

@@ -811,10 +811,10 @@ export default function PosterConstructor() {
         console.error('Saving poster project failed (non-blocking):', e);
       }
 
-      toast.success(' Постер додано до кошика!');
+      toast.success(t('constructor.poster_added'));
       setShowCartModal(true);
     } catch (err) {
-      toast.error('Помилка при оформленні');
+      toast.error(t('constructor.order_error'));
     } finally {
       setIsOrdering(false);
     }
@@ -920,7 +920,7 @@ export default function PosterConstructor() {
                       setConfig(prev => ({ ...prev, photos: [...prev.photos.slice(0, layout.slots-1), newPhoto] }));
                       setHasAiPortrait(true);
                       setShowPixar(false);
-                      toast.success(' AI портрет додано! +75 ₴');
+                      toast.success(t('constructor.ai_portrait_added'));
                     }}/>
                   </div>
                 )}
@@ -1135,7 +1135,7 @@ export default function PosterConstructor() {
                   border:'none', borderRadius:12, fontWeight:800, fontSize:15, cursor: isPosterEmpty ? 'not-allowed' : 'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: !isPosterEmpty ? '0 4px 20px rgba(30,45,125,0.3)' : 'none' }}>
                 <ShoppingCart size={18}/>
-                {isOrdering ? 'Оформлюємо...' : isPosterEmpty ? 'Додайте фото або текст' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
+                {isOrdering ? t('constructor.processing') : isPosterEmpty ? 'Додайте фото або текст' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
               </button>
             </div>
           )}
