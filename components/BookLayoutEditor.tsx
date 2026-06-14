@@ -2870,6 +2870,8 @@ export default function BookLayoutEditor() {
   // Per-page text helpers for spread view
   const onCanvasClickForPage = (e: React.MouseEvent<HTMLDivElement>, pageIdx: number) => {
     if (!textTool) return;
+    const targetPage = pages[pageIdx];
+    if (!targetPage) return; // page doesn't exist (e.g. odd page count, right side empty)
     const rect = e.currentTarget.getBoundingClientRect();
     const id = 'txt-' + Date.now();
     const cW = rect.width; // actual canvas width (pageW for page mode, spreadW for spread mode)
@@ -6780,9 +6782,9 @@ export default function BookLayoutEditor() {
                       <line x1={spreadW/2} y1={cH*bleed.top} x2={spreadW/2} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
-                    {/* Trim line label — corner badge */}
-                    <div style={{position:'absolute',top:6,left:6,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
-                      Зона обрізки
+                    {/* Trim line label — corner badge, small and translucent */}
+                    <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
+                      обрізка
                     </div>
                   </div>
                 );
@@ -7020,7 +7022,7 @@ export default function BookLayoutEditor() {
                         toast.success('Фото додано на сторінку');
                       }}
                       style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-'))) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
-                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && page) onCanvasClickForPage(e, pageIdx); }}
+                      onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
@@ -7539,8 +7541,8 @@ export default function BookLayoutEditor() {
                       <line x1={pageW} y1={cH*bleed.top} x2={pageW} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
-                    <div style={{position:'absolute',top:6,left:6,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
-                      Зона обрізки
+                    <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
+                      обрізка
                     </div>
                   </>
                 )}
