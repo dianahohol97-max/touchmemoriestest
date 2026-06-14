@@ -209,25 +209,22 @@ function FitText({
  * untouched.
  */
 function ClampedTextWrapper({
-  tb, safeX, safeY, canvasW, canvasH, maxWidthPx, children,
+  tb, safeX, safeY, canvasW, canvasH, maxWidthPx, children, onFontSizeChange,
 }: {
   tb: { id: string; x: number; y: number };
   safeX: number; safeY: number;
   canvasW: number; canvasH: number;
   maxWidthPx: number;
   children: React.ReactNode;
+  onFontSizeChange?: (delta: number) => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  // Inset matches the safe zone used by FitText (~6% of canvas, see comment
-  // there). Keep clamp here in sync with that — if the print bleed changes,
-  // update both.
   const safeInsetPx = Math.max(8, canvasW * 0.06);
 
   useEffect(() => {
     const el = wrapRef.current;
     if (!el || canvasW <= 0) return;
-    // Measure on next frame so FitText has applied its font-size adjustment.
     const measure = () => {
       if (!el.parentElement) return;
       const parentRect = el.parentElement.getBoundingClientRect();
@@ -241,14 +238,43 @@ function ClampedTextWrapper({
       else if (right > canvasW - safeInsetPx) dx = (canvasW - safeInsetPx) - right;
       if (top < safeInsetPx) dy = safeInsetPx - top;
       else if (bottom > canvasH - safeInsetPx) dy = (canvasH - safeInsetPx) - bottom;
-      // Only update if it actually changed to avoid render loops.
       setOffset(prev => (prev.x === dx && prev.y === dy) ? prev : { x: dx, y: dy });
     };
-    // First measure synchronously, then one more on rAF after FitText settles.
     measure();
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
   }, [tb.x, tb.y, canvasW, canvasH, maxWidthPx, safeInsetPx]);
+
+  // Resize handle: drag vertically to change font size
+  const startResizeDrag = (e: React.PointerEvent) => {
+    e.stopPropagation(); e.preventDefault();
+    const startY = e.clientY;
+    let accumulated = 0;
+    const move = (pe: PointerEvent) => {
+      const dy = startY - pe.clientY; // drag up = bigger
+      const newAcc = Math.round(dy / 4); // 4px per 1px font size
+      const delta = newAcc - accumulated;
+      if (delta !== 0 && onFontSizeChange) {
+        onFontSizeChange(delta);
+        accumulated = newAcc;
+      }
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+    };
+    try { (e.target as Element).setPointerCapture(e.pointerId); } catch {}
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+  };
+
+  const handleStyle: React.CSSProperties = {
+    position: 'absolute', bottom: -8, width: 16, height: 16,
+    borderRadius: '50%', background: '#fff', border: '2px solid #1e2d7d',
+    cursor: 'ns-resize', zIndex: 20, touchAction: 'none',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+  };
 
   return (
     <div ref={wrapRef}
@@ -266,6 +292,31 @@ function ClampedTextWrapper({
       }}
     >
       {children}
+      {/* Font-size resize handles — drag up/down to make text bigger/smaller */}
+      {onFontSizeChange && (
+        <>
+          <div
+            onPointerDown={startResizeDrag}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ ...handleStyle, left: -8 }}
+            title="Тягни вгору/вниз щоб змінити розмір"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <path d="M4 1v6M1 4l3-3 3 3" stroke="#1e2d7d" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div
+            onPointerDown={startResizeDrag}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ ...handleStyle, right: -8 }}
+            title="Тягни вгору/вниз щоб змінити розмір"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+              <path d="M4 1v6M1 4l3-3 3 3" stroke="#1e2d7d" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -647,7 +698,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               return (
               <ClampedTextWrapper key={tb.id}
                 tb={tb} safeX={safeX} safeY={safeY}
-                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}>
+                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}
+                onFontSizeChange={(delta) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, fontSize: Math.max(8, Math.min(120, (t.fontSize||24) + delta))} : t) })}>
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
@@ -683,7 +735,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               return (
               <ClampedTextWrapper key={tb.id}
                 tb={tb} safeX={safeX} safeY={safeY}
-                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}>
+                canvasW={canvasW} canvasH={canvasH} maxWidthPx={safeBoxW}
+                onFontSizeChange={(delta) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, fontSize: Math.max(8, Math.min(120, (t.fontSize||24) + delta))} : t) })}>
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
