@@ -1349,6 +1349,8 @@ export default function BookLayoutEditor() {
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [hoveredSpreadSlot, setHoveredSpreadSlot] = useState<number | null>(null);
   const [editSlotKey, setEditSlotKey] = useState<string | null>(null); // "spread-pageIdx-slotIdx" when editing slot size/position
+  // Tracks the last slot the user interacted with so Delete/Backspace can clear it.
+  const activeSlotRef = useRef<{ pageIdx: number; slotIdx: number } | null>(null);
   // Active snap-to-align guide lines while a slot is being moved/resized.
   // Cleared on pointer up. Each entry is a coordinate in canvas-space.
   const [snapGuides, setSnapGuides] = useState<{ v: number[]; h: number[] }>({ v: [], h: [] });
@@ -1523,13 +1525,22 @@ export default function BookLayoutEditor() {
         e.preventDefault();
         setCurrentIdx(i => Math.min(Math.ceil((pages.length - 1) / 2), i + 1));
       }
-      // Delete/Backspace — remove selected shape
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapeId) {
-        e.preventDefault();
-        const pi = getActivePageIdx();
-        const curShapes = getCurShapes(pi);
-        setPageShapes((prev: any) => ({ ...prev, [pi]: curShapes.filter((s: any) => s.id !== selectedShapeId) }));
-        setSelectedShapeId(null);
+      // Delete/Backspace — remove selected shape OR clear active slot photo
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't intercept while typing in an input / contentEditable
+        const tag = (document.activeElement as HTMLElement)?.tagName;
+        const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable;
+        if (isEditing) return;
+        if (selectedShapeId) {
+          e.preventDefault();
+          const pi = getActivePageIdx();
+          const curShapes = getCurShapes(pi);
+          setPageShapes((prev: any) => ({ ...prev, [pi]: curShapes.filter((s: any) => s.id !== selectedShapeId) }));
+          setSelectedShapeId(null);
+        } else if (activeSlotRef.current) {
+          e.preventDefault();
+          clearSlot(activeSlotRef.current.pageIdx, activeSlotRef.current.slotIdx);
+        }
       }
     };
     window.addEventListener('keydown', handler);
@@ -5895,7 +5906,7 @@ export default function BookLayoutEditor() {
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                               </div>
                               {/* Delete photo */}
-                              <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20 }} onMouseDown={e=>e.stopPropagation()}>×</button>
+                              <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',fontSize:14,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)' }} onMouseDown={e=>e.stopPropagation()}>×</button>
                               {/* Move handle — always visible drag grip */}
                               <div onPointerDown={e => { e.stopPropagation(); startBackSlotDrag(e, 'move'); }}
                                 style={{position:'absolute',top:4,left:4,width:22,height:22,cursor:'move',zIndex:25,
@@ -6519,9 +6530,12 @@ export default function BookLayoutEditor() {
                                   <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.8)'}}/>
                                 </div>
                               )}
-                              {/* Delete button — visible on hover */}
-                              {hoveredSpreadSlot === i && (
-                                <button onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setEditSlotKey(null);}} style={{position:'absolute',top:4,right:4,width:24,height:24,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:12}}>×</button>
+                              {/* Delete button — always visible on touch, hover on desktop */}
+                              {slot?.photoId && (
+                                <button
+                                  onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setEditSlotKey(null);activeSlotRef.current=null;}}
+                                  onPointerDown={e=>{ e.stopPropagation(); activeSlotRef.current = { pageIdx: spreadPageIdx, slotIdx: i }; }}
+                                  style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:14,fontWeight:700,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>×</button>
                               )}
                               {/* DPI warning */}
                               {(() => {
@@ -7184,8 +7198,10 @@ export default function BookLayoutEditor() {
                                   );
                                   })()}
                                 </div>
-                                <button onClick={()=>clearSlot(pageIdx,i)} style={{position:'absolute',top:4,right:4,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.55)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity 0.15s'}} className="del-btn"><Trash2 size={10}/></button>
-                                <style>{`.del-btn{opacity:0!important}div:hover>.del-btn{opacity:1!important}`}</style>
+                                <button
+                                  onClick={()=>{ clearSlot(pageIdx,i); activeSlotRef.current=null; }}
+                                  onPointerDown={e=>{ e.stopPropagation(); activeSlotRef.current = { pageIdx, slotIdx: i }; }}
+                                  style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)',fontSize:14,fontWeight:700}}>×</button>
                                 {/* DPI warning */}
                                 {(() => {
                                   const slotW = Number(s.width) || pageW;
