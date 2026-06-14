@@ -514,12 +514,20 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 ? <>
                     <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
                     onPointerDown={e => {
-                      // Drag always repositions photo inside slot
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
                       const cx = config.photoCropX ?? 50;
                       const cy = config.photoCropY ?? 50;
                       const zm = config.photoZoom ?? 1;
+                      // If photo is at default position (no pan, zoom=1) — drag moves the SLOT
+                      // so the user can reposition it on the page. Once they've zoomed in
+                      // or panned the photo inside the slot, drag pans the crop instead.
+                      const isDefault = zm <= 1.01 && Math.abs(cx - 50) < 1 && Math.abs(cy - 50) < 1;
+                      if (isDefault) {
+                        // Delegate to slot move
+                        startSlotDrag(e, 'move');
+                        return;
+                      }
                       const sensitivity = 1.5 / Math.max(1, zm);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({
@@ -566,11 +574,12 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                     </div>
                   </div>
-                    {/* Move handle — always visible drag grip in top-left corner */}
+                    {/* Move handle — drag grip in top-left corner, made bigger for touch */}
                     <div onPointerDown={e => { e.stopPropagation(); startSlotDrag(e, 'move'); }}
-                      style={{ position:'absolute', top:4, left:4, width:22, height:22, cursor:'move', zIndex:30,
+                      style={{ position:'absolute', top:4, left:4, width:30, height:30, cursor:'move', zIndex:30,
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        background:'rgba(0,0,0,0.55)', borderRadius:6, touchAction:'manipulation' }}
+                        background:'rgba(30,45,125,0.75)', borderRadius:8, touchAction:'manipulation',
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}
                       title="Перетягнути слот">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                         <path d="M6 1v10M1 6h10M6 1L4 3M6 1l2 2M6 11l-2-2M6 11l2-2M1 6l2-2M1 6l2 2M11 6l-2-2M11 6l-2 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
