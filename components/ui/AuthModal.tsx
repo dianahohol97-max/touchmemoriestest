@@ -64,19 +64,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
     };
 
     const handleGoogle = async () => {
+        if (googleLoading) return; // prevent double-click
         setGoogleLoading(true);
+        setError('');
         // Store a flag so after OAuth redirect we call the callback
-        sessionStorage.setItem('authModalPendingCallback', '1');
+        try { sessionStorage.setItem('authModalPendingCallback', '1'); } catch {}
         // Always redirect to the canonical production URL to avoid 404s on
         // Vercel preview deployments (window.location.href would capture the
         // ephemeral preview URL which gets deleted after new deploys).
         const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
         const redirectTo = `${canonicalOrigin}${window.location.pathname}`;
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo },
-        });
-        if (error) { setError(translateError(error.message)); setGoogleLoading(false); }
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo, queryParams: { prompt: 'select_account' } },
+            });
+            if (error) {
+                setError(translateError(error.message));
+                setGoogleLoading(false);
+            }
+            // If no error, browser is redirecting — loading stays true
+            // but add safety timeout in case redirect never fires
+            else {
+                setTimeout(() => setGoogleLoading(false), 10000);
+            }
+        } catch (e: any) {
+            setError(translateError(e?.message || 'Помилка входу через Google'));
+            setGoogleLoading(false);
+        }
     };
 
     const titleMap: Record<Mode, string> = {
