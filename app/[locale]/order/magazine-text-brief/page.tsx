@@ -19,7 +19,7 @@
 // view shows everything in one place.
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { toast, Toaster } from 'react-hot-toast';
 import { Upload, X, Check } from 'lucide-react';
@@ -129,6 +129,9 @@ const COVER_STYLE_SUGGESTIONS = ['Fashion / мода', 'Glamour', 'Модель 
 function MagazineTextBriefContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const localeMatch = pathname.match(/^\/(uk|en|ro|pl|de)\//);
+  const currentLocale = localeMatch ? localeMatch[1] : 'uk';
   const productSlug = searchParams.get('product') || 'personalized-glossy-magazine';
   // Package is now chosen ON this page (the product card only commits the
   // customer to "Ми пишемо"). If a package arrived in the URL (legacy
@@ -464,7 +467,7 @@ function MagazineTextBriefContent() {
           <p style={{ color: '#94a3b8', fontSize: 14 }}>Номер замовлення: <strong>{orderNumber}</strong></p>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, marginTop: 32 }}>
-          <button onClick={() => router.push('/uk')} style={{
+          <button onClick={() => router.push(`/${currentLocale}`)} style={{
             padding: '12px 24px', background: '#1e2d7d', color: '#fff',
             border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontWeight: 600,
           }}>На головну</button>

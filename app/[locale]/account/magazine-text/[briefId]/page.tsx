@@ -85,7 +85,7 @@ export default function MagazineTextPage() {
   if (!brief) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
       <p style={{ fontSize: 18, color: '#6b7280' }}>Анкету не знайдено</p>
-      <button onClick={() => router.push('/uk/account')} style={{ padding: '10px 24px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>До кабінету</button>
+      <button onClick={() => router.push(`/${params?.locale || 'uk'}/account`)} style={{ padding: '10px 24px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>До кабінету</button>
     </div>
   );
 
@@ -205,7 +205,7 @@ export default function MagazineTextPage() {
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '24px', textAlign: 'center' }}>
             <p style={{ fontSize: 16, color: '#166534', fontWeight: 700, marginBottom: 8 }}>✅ Текст підтверджено і додано до журналу!</p>
             <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>Дизайнер вже бачить ваш текст і додасть його в макет</p>
-            <button onClick={() => router.push('/uk/account')}
+            <button onClick={() => router.push(`/${params?.locale || 'uk'}/account`)}
               style={{ padding: '10px 24px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>
               До кабінету
             </button>

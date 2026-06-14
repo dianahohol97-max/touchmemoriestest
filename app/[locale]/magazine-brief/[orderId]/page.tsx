@@ -118,7 +118,7 @@ export default function MagazineBriefPage() {
         <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 40 }}>
           Текст не відправляється вночі — якщо ви заповнили анкету після 19:00, очікуйте листа вранці після 8:00.
         </p>
-        <button onClick={() => router.push('/uk/account')}
+        <button onClick={() => router.push(`/${params.locale || 'uk'}/account`)}
           style={{ padding: '14px 32px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
           Перейти до кабінету
         </button>

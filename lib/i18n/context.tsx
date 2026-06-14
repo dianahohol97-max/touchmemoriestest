@@ -58,7 +58,16 @@ export function I18nProvider({
             setLocaleState(initialLocale);
             return;
         }
-        // Fallback: detect from localStorage if no initialLocale
+        // Detect locale from current URL path (e.g. /en/catalog → 'en')
+        if (typeof window !== 'undefined') {
+            const m = window.location.pathname.match(/^\/(uk|en|ro|pl|de)(\/|$)/);
+            if (m) {
+                const urlLocale = m[1] as Locale;
+                if (urlLocale !== locale) setLocaleState(urlLocale);
+                return;
+            }
+        }
+        // Last resort: localStorage
         const saved = localStorage.getItem('tm_locale') as Locale | null;
         if (saved && LOCALES.find(l => l.code === saved)) {
             setLocaleState(saved);

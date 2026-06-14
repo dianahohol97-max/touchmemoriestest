@@ -8,6 +8,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { localePath } from '@/lib/i18n/path';
 import { cn } from '@/lib/utils';
 import { useT, useTranslation, LOCALES, Locale } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -150,7 +151,7 @@ export function Navigation() {
       isScrolled ? 'bg-white/95 shadow-sm backdrop-blur-md' : 'bg-white border-b border-border'
     )}>
       <div className="flex justify-between items-center w-full px-4 gap-4">
-        <Link href="/" className="font-heading font-extrabold text-[17px] tracking-[0.08em] text-primary no-underline transition-opacity hover:opacity-90 shrink-0 whitespace-nowrap min-w-fit">
+        <Link href={localePath(locale, '/')} className="font-heading font-extrabold text-[17px] tracking-[0.08em] text-primary no-underline transition-opacity hover:opacity-90 shrink-0 whitespace-nowrap min-w-fit">
           TOUCH.MEMORIES
         </Link>
 
@@ -187,11 +188,11 @@ export function Navigation() {
                 );
               }
               return (
-                <Link key={link.id} href={link.href}
+                <Link key={link.id} href={localePath(locale, link.href)}
                   className={cn('text-primary no-underline transition-opacity relative whitespace-nowrap',
-                    pathname === link.href ? 'opacity-100' : 'opacity-80 hover:opacity-100')}>
+                    pathname === localePath(locale, link.href) ? 'opacity-100' : 'opacity-80 hover:opacity-100')}>
                   {link.name}
-                  {pathname === link.href && (
+                  {pathname === localePath(locale, link.href) && (
                     <motion.div layoutId="nav-underline"
                       className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-brand" />
                   )}
@@ -243,7 +244,7 @@ export function Navigation() {
                   <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} transition={{ duration:0.2 }}
                     className="absolute top-full left-0 mt-6 w-56 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-primary/5 rounded-brand py-3 z-100">
                     {aboutItems.map(item => (
-                      <Link key={item.href} href={item.href}
+                      <Link key={item.href} href={localePath(locale, item.href)}
                         className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors hover:bg-primary/5">
                         {item.name}
                       </Link>
@@ -263,7 +264,7 @@ export function Navigation() {
             <LanguageSwitcher />
             {/* Wishlist link — heart icon with item count, mirrors cart UX.
                 Hidden until store is mounted so SSR/CSR counts don't diverge. */}
-            <Link href="/wishlist" aria-label="Wishlist"
+            <Link href={localePath(locale, '/wishlist')} aria-label="Wishlist"
               className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-inherit hover:opacity-70 transition-opacity no-underline">
               <Heart size={20} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
               {wishlistMounted && wishlistItems.length > 0 && (
@@ -281,7 +282,7 @@ export function Navigation() {
         {/* Mobile */}
         <div className={cn('mobile-only flex items-center gap-4 text-primary', styles.navFlexMobile)}>
           <UserAuthIcon />
-          <Link href="/wishlist" aria-label="Wishlist"
+          <Link href={localePath(locale, '/wishlist')} aria-label="Wishlist"
             className="flex items-center gap-1 shrink-0 bg-transparent border-none cursor-pointer text-inherit p-0 no-underline">
             <Heart size={20} fill={wishlistMounted && wishlistItems.length > 0 ? 'currentColor' : 'none'} />
             {wishlistMounted && wishlistItems.length > 0 && (
@@ -323,10 +324,10 @@ export function Navigation() {
                 // labels win and the unique DB entries (Книга побажань, Фотомагніти…)
                 // still appear once.
                 const seen = new Set<string>();
-                return [...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:'/catalog' }, ...aboutItems]
+                return [...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:`/${locale}/catalog` }, ...aboutItems]
                   .filter(link => { if (!link.href || seen.has(link.href)) return !link.href; seen.add(link.href); return true; });
               })().map(link => (
-                <Link key={link.id || link.href} href={link.href} onClick={() => setIsMobileMenuOpen(false)}
+                <Link key={link.id || link.href} href={localePath(locale, link.href)} onClick={() => setIsMobileMenuOpen(false)}
                   className="py-4 text-base font-bold text-primary no-underline border-b border-primary/5 block">
                   {link.name}
                 </Link>
@@ -426,6 +427,7 @@ function UserAuthIcon() {
   const supabase = createClient();
   const [status, setStatus] = useState<{ isLoggedIn: boolean; avatar?: string } | null>(null);
   const [avatarError, setAvatarError] = useState(false);
+  const { locale } = useTranslation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -443,7 +445,7 @@ function UserAuthIcon() {
 
   if (status?.isLoggedIn) {
     return (
-      <Link href="/account" aria-label="Account" className="flex items-center shrink-0 text-inherit hover:opacity-70 transition-opacity">
+      <Link href={localePath(locale, '/account')} aria-label="Account" className="flex items-center shrink-0 text-inherit hover:opacity-70 transition-opacity">
         {status.avatar && !avatarError
           ? <img src={status.avatar} alt="" referrerPolicy="no-referrer" onError={() => setAvatarError(true)}
               style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
@@ -452,7 +454,7 @@ function UserAuthIcon() {
     );
   }
   return (
-    <Link href="/login" aria-label="User account" className="text-inherit hover:opacity-70 transition-opacity">
+    <Link href={localePath(locale, '/login')} aria-label="User account" className="text-inherit hover:opacity-70 transition-opacity">
       <User size={22} />
     </Link>
   );

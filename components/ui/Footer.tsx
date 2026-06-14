@@ -1,5 +1,6 @@
 'use client';
 import { useT, useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 import { useState, useEffect } from 'react';
 import styles from './Footer.module.css';
 import { useInView } from 'react-intersection-observer';
@@ -218,7 +219,7 @@ export function Footer({ categories = [] }: FooterProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-16">
                     {/* Brand Section */}
                     <div className="lg:col-span-2 flex flex-col gap-6 lg:pr-12">
-                        <Link href="/" className="inline-block group">
+                        <Link href={localePath(locale, '/')} className="inline-block group">
                             <h2 className="font-heading font-black text-[22px] tracking-[0.2em] text-primary uppercase leading-tight m-0 transition-transform group-hover:scale-105 origin-left">
                                 {content['footer_brand_name'] || 'Touch.Memories'}
                             </h2>
