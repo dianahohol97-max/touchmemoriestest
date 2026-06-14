@@ -1424,6 +1424,92 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         </div>
                     </div>
 
+                    {/* ===== TEXT BRIEF / MAGAZINE QUESTIONNAIRE ===== */}
+                    {order?.text_brief && (
+                        <div style={cardStyle}>
+                            <div style={cardHeaderStyle}>
+                                <h3 style={cardTitleStyle}><FileText size={20} /> Анкета журналу</h3>
+                                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: order.text_brief.package === 'premium' ? '#7c3aed22' : '#1e2d7d22', color: order.text_brief.package === 'premium' ? '#7c3aed' : '#1e2d7d' }}>
+                                    {order.text_brief.package === 'premium' ? 'Преміум пакет' : 'Базовий пакет'}
+                                </span>
+                            </div>
+
+                            {/* Cover photo */}
+                            {order.text_brief.cover?.photo_path && (() => {
+                                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yivfsicvaoewxrtkrfxr.supabase.co';
+                                const photoUrl = `${supabaseUrl}/storage/v1/object/public/order-files/${order.text_brief.cover.photo_path}`;
+                                return (
+                                    <div style={{ marginBottom: 16 }}>
+                                        <label style={smallLabelStyle}>Фото на обкладинку</label>
+                                        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 6 }}>
+                                            <a href={photoUrl} target="_blank" rel="noopener noreferrer"
+                                                style={{ display: 'block', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '2px solid #7c3aed', flexShrink: 0 }}>
+                                                <img src={photoUrl} alt="Фото на обкладинку" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            </a>
+                                            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+                                                <div><b>Ім'я:</b> {order.text_brief.cover.name}</div>
+                                                <div><b>Дата:</b> {order.text_brief.cover.date}</div>
+                                                <div><b>Стиль:</b> {order.text_brief.cover.style}</div>
+                                                {order.text_brief.cover.inscription && <div><b>Надпис:</b> {order.text_brief.cover.inscription}</div>}
+                                                {order.text_brief.cover.era && <div><b>Епоха/настрій:</b> {order.text_brief.cover.era}</div>}
+                                                {order.text_brief.cover.photo_note && <div style={{ color: '#f59e0b', fontWeight: 600 }}><b>Примітка до фото:</b> {order.text_brief.cover.photo_note}</div>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Cover data without photo */}
+                            {!order.text_brief.cover?.photo_path && order.text_brief.cover && (
+                                <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f8fafc', borderRadius: 8, fontSize: 12 }}>
+                                    <label style={{ ...smallLabelStyle, marginBottom: 6 }}>Обкладинка</label>
+                                    {order.text_brief.cover.name && <div><b>Ім'я:</b> {order.text_brief.cover.name}</div>}
+                                    {order.text_brief.cover.date && <div><b>Дата:</b> {order.text_brief.cover.date}</div>}
+                                    {order.text_brief.cover.style && <div><b>Стиль:</b> {order.text_brief.cover.style}</div>}
+                                    {order.text_brief.cover.inscription && <div><b>Надпис:</b> {order.text_brief.cover.inscription}</div>}
+                                    {order.text_brief.cover.era && <div><b>Епоха:</b> {order.text_brief.cover.era}</div>}
+                                </div>
+                            )}
+
+                            {/* Questionnaire answers */}
+                            {order.text_brief.answers && Object.keys(order.text_brief.answers).length > 0 && (
+                                <div>
+                                    <label style={{ ...smallLabelStyle, marginBottom: 8 }}>Відповіді на анкету</label>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {Object.entries(order.text_brief.answers).map(([key, value]: [string, any]) => {
+                                            if (!value) return null;
+                                            const labels: Record<string, string> = {
+                                                recipient_name: "Ім'я отримувача",
+                                                from: 'Від кого',
+                                                birth_date: 'Дата народження',
+                                                birth_place: 'Місце народження',
+                                                sections: 'Розділи',
+                                                habit: 'Звичка/риса',
+                                                things_list: 'Список речей/спогадів',
+                                                favourite_things: 'Улюблені речі',
+                                                superpower_basic: 'Суперсила',
+                                                superpower_premium: 'Суперсила (преміум)',
+                                                childhood: 'Дитинство',
+                                                values: 'Цінності',
+                                                dreams: 'Мрії',
+                                                fun_facts: 'Цікаві факти',
+                                                love_story: 'Романтична історія',
+                                            };
+                                            return (
+                                                <div key={key} style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12 }}>
+                                                    <div style={{ fontWeight: 700, color: '#1e2d7d', marginBottom: 2, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        {labels[key] || key}
+                                                    </div>
+                                                    <div style={{ color: '#374151', lineHeight: 1.5 }}>{String(value)}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}><History size={20} /> Історія</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
