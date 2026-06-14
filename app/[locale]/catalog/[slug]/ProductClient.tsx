@@ -1811,7 +1811,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                     })()}
                                     {!(String(customProductOptions['Верстка тексту'] || '').startsWith('we')) && (
                                         <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
-                                            {t('product_page.designer_order_hint')}
+                                            Завантажте фото — наш дизайнер сам зверстає та узгодить макет з вами
                                         </p>
                                     )}
                                 </div>
