@@ -293,7 +293,9 @@ export default function OrdersPage() {
                         ) : filteredOrders.length === 0 ? (
                             <tr><td colSpan={8} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Замовлень не знайдено</td></tr>
                         ) : filteredOrders.map(order => (
-                            <tr key={order.id} style={trStyle}>
+                            <tr key={order.id}
+                                style={{ ...trStyle, cursor: 'pointer' }}
+                                onClick={() => window.location.href = `/admin/orders/${order.id}`}>
                                 <td style={tdStyle}>
                                     <div style={{ fontWeight: 800, color: '#263A99' }}>{order.order_number}</div>
                                     <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>{formatDateTime(order.created_at)}</div>
@@ -375,8 +377,11 @@ export default function OrdersPage() {
                                     </div>
                                 </td>
                                 <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                    <Link href={`/admin/orders/${order.id}`} style={actionBtnStyle}>
-                                        <Eye size={18} />
+                                    <Link
+                                        href={`/admin/orders/${order.id}`}
+                                        onClick={e => e.stopPropagation()}
+                                        style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                        <Eye size={15} /> Відкрити
                                     </Link>
                                 </td>
                             </tr>
