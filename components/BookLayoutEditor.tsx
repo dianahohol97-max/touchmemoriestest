@@ -3783,7 +3783,9 @@ export default function BookLayoutEditor() {
     // what the customer originally ordered (basis for the +X₴ diff).
     const orderedPages = parseInt((config.selectedPageCount || '8').match(/\d+/)?.[0] || '8', 10);
     const baseOrdered = getMagazinePrice(orderedPages, false);
-    const baseCurrent = getMagazinePrice(currentPageCount, false);
+    // Fallback to orderedPages if currentPageCount not yet computed (0 on first render)
+    const effectiveMagPages = currentPageCount > 0 ? currentPageCount : orderedPages;
+    const baseCurrent = getMagazinePrice(effectiveMagPages, false);
     // Apply per-customer add-ons that arrive via URL params from the
     // configurator step. These multiply/add on top of both the ordered
     // and current totals so the displayed price and the +X₴ diff for
@@ -3812,7 +3814,10 @@ export default function BookLayoutEditor() {
     // travelbooks have no rows), returning a wrong/fallback price.
     const orderedPages = parseInt((config.selectedPageCount || '20').match(/\d+/)?.[0] || '20', 10);
     const baseOrdered = getTravelBookPrice(orderedPages);
-    const baseCurrent = getTravelBookPrice(currentPageCount);
+    // Use currentPageCount if available, otherwise fall back to orderedPages
+    // (currentPageCount can be 0 on first render before pages array is populated)
+    const effectivePages = currentPageCount > 0 ? currentPageCount : orderedPages;
+    const baseCurrent = getTravelBookPrice(effectivePages);
     const urgentRaw = (searchParams?.get('urgent') || '').toLowerCase();
     const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
     const surchargedOrdered = isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered;
