@@ -300,6 +300,12 @@ export default function CheckoutPage() {
                 toast.error(t('checkout.fill_contacts'));
                 return;
             }
+            // Validate phone format client-side
+            const cleanedPhone = formData.phone.trim().replace(/[\s\-\(\)\+\.]/g, '');
+            if (!/^[0-9]{7,15}$/.test(cleanedPhone)) {
+                toast.error('Введіть коректний номер телефону (наприклад +380501234567)');
+                return;
+            }
             setCurrentStep('shipping');
         } else if (currentStep === 'shipping') {
             if (isIntl) {
@@ -429,7 +435,16 @@ export default function CheckoutPage() {
             });
             const submitData = await submitRes.json();
             if (!submitRes.ok || !submitData.order_id) {
-                throw new Error(submitData?.error || 'Не вдалося створити замовлення');
+                const errCode = submitData?.error || '';
+                const friendlyError =
+                    errCode === 'customer_phone invalid'
+                        ? 'Введіть коректний номер телефону (наприклад +380501234567)'
+                        : errCode === 'customer_name required'
+                        ? 'Вкажіть ваше ім\'я'
+                        : errCode === 'customer_email invalid'
+                        ? 'Введіть коректний email'
+                        : 'Не вдалося створити замовлення';
+                throw new Error(friendlyError);
             }
             const orderId = submitData.order_id;
             // submitData.payment_type is authoritative (may have been downgraded server-side)

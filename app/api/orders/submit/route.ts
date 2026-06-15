@@ -59,7 +59,10 @@ interface OrderPayload {
 }
 
 function isValidPhone(s: unknown): s is string {
-  return typeof s === 'string' && /^\+?[0-9\s\-\(\)]{7,20}$/.test(s.trim());
+  if (typeof s !== 'string') return false;
+  const cleaned = s.trim().replace(/[\s\-\(\)\+\.]/g, '');
+  // After stripping formatting chars, must have 7–15 digits
+  return /^[0-9]{7,15}$/.test(cleaned);
 }
 function isValidEmail(s: unknown): s is string {
   return typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
