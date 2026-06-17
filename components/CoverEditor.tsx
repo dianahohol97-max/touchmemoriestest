@@ -113,6 +113,8 @@ export interface CoverConfig {
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
+  // Ready-made full-cover background image (travel book ready covers).
+  printedBgImage?: string | null;
   // Free, draggable + resizable photos placed anywhere on the cover (works on
   // any material — printed or soft). Independent of the template photo slots.
   // x/y/w/h are percentages of the cover (0–100) so they scale identically in
@@ -504,6 +506,13 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     <div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={handleDrop}
       style={{ position:'relative', width:canvasW, height:canvasH, borderRadius:4, overflow:'hidden',
         boxShadow:'0 8px 32px rgba(0,0,0,0.18)', flexShrink:0, background:bgColor }}>
+      {/* Ready-made cover background image (travel book) — full bleed, under everything */}
+      {config.printedBgImage && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={config.printedBgImage} alt=""
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}
+          draggable={false}/>
+      )}
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
       {/* Snap guide lines overlay — shown while dragging */}

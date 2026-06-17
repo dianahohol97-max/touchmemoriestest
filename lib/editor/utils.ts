@@ -213,6 +213,7 @@ export function buildCoverEditorProps(
     printedTextBlocks: coverState.printedTextBlocks,
     printedOverlay: coverState.printedOverlay,
     printedBgColor: coverState.printedBgColor,
+    printedBgImage: (coverState as any).printedBgImage,
     printedPhotoSlots: (coverState as any).printedPhotoSlots,
     coverPhotos: (coverState as any).coverPhotos,
   };
