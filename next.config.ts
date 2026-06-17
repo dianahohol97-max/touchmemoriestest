@@ -101,6 +101,95 @@ const nextConfig = {
       { source: '/order/calendar/desk', destination: '/order/desk-calendar', permanent: true },
       // Legacy sitemap filename → canonical sitemap
       { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
+
+      // ── OLD SITE /shop/* → NEW SITE (301 permanent) ──────────────────────
+      // These were indexed by Google from the old Хорошоп/Prom platform.
+      // Mapping them prevents 404 penalties and passes link equity to new URLs.
+
+      // Category pages
+      { source: '/shop',                    destination: '/uk',                              permanent: true },
+      { source: '/shop/cat/albomi',         destination: '/uk/category/photoalbomy-failykovi', permanent: true },
+      { source: '/shop/cat/fotozhurnal',    destination: '/uk/category/hlyantsevi-zhurnaly',  permanent: true },
+      { source: '/shop/cat/fotoknyhy',      destination: '/uk/category/photobooks',           permanent: true },
+      { source: '/shop/cat/fotodruk',       destination: '/uk/category/prints',               permanent: true },
+      { source: '/shop/cat/postory',        destination: '/uk/category/posters',              permanent: true },
+      { source: '/shop/cat/kalendari',      destination: '/uk/category/calendars',            permanent: true },
+      { source: '/shop/cat/magnity',        destination: '/uk/category/photomagnets',         permanent: true },
+      { source: '/shop/cat/knyha-pobazhan', destination: '/uk/category/guestbooks',           permanent: true },
+      { source: '/shop/cat/vypuskni',       destination: '/uk/category/graduation-books',     permanent: true },
+
+      // Velour albums 200
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-blakitnogo-koloru', destination: '/uk/catalog/velour-album-200', permanent: true },
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-rozhevogo-koloru',  destination: '/uk/catalog/velour-album-200', permanent: true },
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-siroho-koloru',     destination: '/uk/catalog/velour-album-200', permanent: true },
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-biloho-koloru',     destination: '/uk/catalog/velour-album-200', permanent: true },
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto',                   destination: '/uk/catalog/velour-album-200', permanent: true },
+
+      // Wishbooks
+      { source: '/shop/kniga-pobazhan-na-vesilla',  destination: '/uk/catalog/wishbook', permanent: true },
+      { source: '/shop/knyga-pobajan',              destination: '/uk/catalog/wishbook', permanent: true },
+      { source: '/shop/knyha-pobazhan',             destination: '/uk/catalog/wishbook', permanent: true },
+      { source: '/shop/knyha-pobazhan-na-vesilla',  destination: '/uk/catalog/wishbook', permanent: true },
+
+      // Albums 800
+      { source: '/shop/albom-na-800-foto-chornij-photos', destination: '/uk/catalog/album-800', permanent: true },
+      { source: '/shop/albom-na-800-foto',                destination: '/uk/catalog/album-800', permanent: true },
+
+      // Photobooks
+      { source: '/shop/fotoknyha-z-velyurovoyu-obkladynkoyu', destination: '/uk/catalog/photobook-velour',     permanent: true },
+      { source: '/shop/fotoknyha-z-drukovanoyu-obkladynkoyu', destination: '/uk/catalog/photobook-printed',    permanent: true },
+      { source: '/shop/fotoknyha-z-tkanynnoyu-obkladynkoyu',  destination: '/uk/catalog/photobook-fabric',     permanent: true },
+      { source: '/shop/fotoknyha-zi-shkirzaminnykom',         destination: '/uk/catalog/photobook-leatherette', permanent: true },
+
+      // Journals/magazines
+      { source: '/shop/hlyancevyj-zhurnal',                  destination: '/uk/catalog/personalized-glossy-magazine', permanent: true },
+      { source: '/shop/glyancevyj-zhurnal-m-yakoyu-obkladynkoyu', destination: '/uk/catalog/personalized-glossy-magazine', permanent: true },
+      { source: '/shop/fotozhurnal-tverda-obkladynka',       destination: '/uk/catalog/fotozhurnal-tverd-obkladynka', permanent: true },
+
+      // Photo print
+      { source: '/shop/fotodruk-standartni-rozmiry',         destination: '/uk/catalog/photoprint-standard',    permanent: true },
+      { source: '/shop/fotodruk-nestandartni-rozmiry',       destination: '/uk/catalog/photoprint-nonstandard', permanent: true },
+      { source: '/shop/druk-na-polotni',                     destination: '/uk/catalog/druk-na-polotni',        permanent: true },
+
+      // Calendars
+      { source: '/shop/nastilnyj-fotoklendar',               destination: '/uk/catalog/desk-calendar-2026', permanent: true },
+      { source: '/shop/nastinnyj-fotoklendar',               destination: '/uk/catalog/wall-calendar-2026', permanent: true },
+      { source: '/shop/nastilnyj-fotokalendar-2026',         destination: '/uk/catalog/desk-calendar-2026', permanent: true },
+
+      // Magnets
+      { source: '/shop/fotomahnyty',                         destination: '/uk/catalog/photomagnets', permanent: true },
+      { source: '/shop/fotomagnity',                         destination: '/uk/catalog/photomagnets', permanent: true },
+
+      // Posters
+      { source: '/shop/poster',                              destination: '/uk/catalog/poster',           permanent: true },
+      { source: '/shop/poster-zoryanogo-neba',               destination: '/uk/catalog/poster-star-map',  permanent: true },
+
+      // Travelbook
+      { source: '/shop/travelbook',                          destination: '/uk/catalog/travelbook-20x30', permanent: true },
+      { source: '/shop/trevel-buk',                         destination: '/uk/catalog/travelbook-20x30', permanent: true },
+
+      // Puzzles
+      { source: '/shop/fotopazl-a4',                        destination: '/uk/catalog/puzzle-20x30', permanent: true },
+      { source: '/shop/fotopazl-a5',                        destination: '/uk/catalog/puzzle-a5',    permanent: true },
+
+      // Scrapbook
+      { source: '/shop/albom-dlya-vkleyuvannya-foto',        destination: '/uk/catalog/scrapbook-white-pages', permanent: true },
+
+      // Baby album
+      { source: '/shop/pershyj-albom-malyuka',               destination: '/uk/catalog/baby-first-album', permanent: true },
+
+      // Wedding newspaper
+      { source: '/shop/vesil-na-hazeta',                     destination: '/uk/catalog/wedding-newspaper', permanent: true },
+
+      // Gift certificate
+      { source: '/shop/podarunkovyj-sertyfikat',             destination: '/uk/catalog/gift-certificate', permanent: true },
+
+      // Catch-all: any remaining /shop/ path → home
+      { source: '/shop/:path*',                              destination: '/uk', permanent: true },
+
+      // Old root paths without /shop/ prefix (some indexed without it)
+      { source: '/&',  destination: '/uk', permanent: true },
+      { source: '/$',  destination: '/uk', permanent: true },
     ];
   },
   async headers() {
