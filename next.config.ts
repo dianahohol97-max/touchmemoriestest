@@ -102,7 +102,19 @@ const nextConfig = {
       // Legacy sitemap filename → canonical sitemap
       { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
 
-      // ── CATALOG ?category= query params → clean /category/ URLs ─────────
+      // Legacy category slugs (old Ukrainian names → new English slugs)
+      { source: '/:locale(uk|en|ro|de|pl)/category/postery',           destination: '/:locale/category/posters',              permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/fotoknyhy',         destination: '/:locale/category/photobooks',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/fotodruk',          destination: '/:locale/category/prints',               permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/zhurnaly',          destination: '/:locale/category/hlyantsevi-zhurnaly',  permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/knyha-pobazhan',    destination: '/:locale/category/guestbooks',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/albomy',            destination: '/:locale/category/photoalbomy-failykovi', permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/kalendari',         destination: '/:locale/category/calendars',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/magnity',           destination: '/:locale/category/photomagnets',         permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/pazly',             destination: '/:locale/category/puzzles',              permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/travelbuky',        destination: '/:locale/category/travelbooks',          permanent: true },
+
+
       // Google found these as alternate pages. Redirect to canonical clean URL.
       { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photomagnets' }],    destination: '/:locale/category/photomagnets',         permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'kids' }],            destination: '/:locale/category/kids',                 permanent: true },
