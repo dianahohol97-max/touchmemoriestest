@@ -24,6 +24,14 @@ export async function GET() {
         .order('sort_order', { ascending: true }),
     ]);
 
+    // Filter out categories that have no active products — they'd show as empty pages
+    const { data: productCounts } = await supabase
+      .from('products')
+      .select('category_id')
+      .eq('is_active', true);
+    const slugsWithProducts = new Set((productCounts || []).map((p: any) => p.category_id));
+    const filteredCategories = (categories || []).filter((c: any) => slugsWithProducts.has(c.id));
+
     // Build tree in JS — no extra DB round-trips
     const parents = (allLinks || []).filter((l: any) => !l.parent_id);
     const children = (allLinks || []).filter((l: any) => l.parent_id);
@@ -44,7 +52,7 @@ export async function GET() {
     }));
 
     return NextResponse.json(
-      { links, categories: categories || [] },
+      { links, categories: filteredCategories },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
