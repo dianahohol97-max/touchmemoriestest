@@ -102,7 +102,29 @@ const nextConfig = {
       // Legacy sitemap filename → canonical sitemap
       { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
 
-      // ── OLD SITE /shop/* → NEW SITE (301 permanent) ──────────────────────
+      // ── CATALOG ?category= query params → clean /category/ URLs ─────────
+      // Google found these as alternate pages. Redirect to canonical clean URL.
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photomagnets' }],    destination: '/:locale/category/photomagnets',         permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'kids' }],            destination: '/:locale/category/kids',                 permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'prints' }],          destination: '/:locale/category/prints',               permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'accessories' }],     destination: '/:locale/category/accessories',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'scrapbook-albums' }], destination: '/:locale/category/scrapbook-albums',     permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photobooks' }],      destination: '/:locale/category/photobooks',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'calendars' }],       destination: '/:locale/category/calendars',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'guestbooks' }],      destination: '/:locale/category/guestbooks',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'travelbooks' }],     destination: '/:locale/category/travelbooks',          permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'posters' }],         destination: '/:locale/category/posters',              permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'puzzles' }],         destination: '/:locale/category/puzzles',              permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'hlyantsevi-zhurnaly' }], destination: '/:locale/category/hlyantsevi-zhurnaly', permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photoalbomy-failykovi' }], destination: '/:locale/category/photoalbomy-failykovi', permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'graduation-books' }], destination: '/:locale/category/graduation-books',   permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'gifts' }],           destination: '/:locale/category/gifts',                permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'certificates' }],    destination: '/:locale/category/certificates',         permanent: true },
+
+      // ── BLOG ?category= query params → /blog (no separate category pages) ─
+      { source: '/:locale(uk|en|ro|de|pl)/blog', has: [{ type: 'query', key: 'category' }], destination: '/:locale/blog', permanent: true },
+
+
       // These were indexed by Google from the old Хорошоп/Prom platform.
       // Mapping them prevents 404 penalties and passes link equity to new URLs.
 
@@ -226,6 +248,20 @@ const nextConfig = {
         source: '/:locale(uk|en|ro|de|pl)',
         headers: [
           { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=60' },
+        ],
+      },
+      {
+        // Wishlist and track — personal pages, no SEO value
+        source: '/:locale(uk|en|ro|de|pl)/:path(wishlist|track)',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+        ],
+      },
+      {
+        // Blog tag pages — thin content
+        source: '/:locale(uk|en|ro|de|pl)/blog/tag/:tag*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, follow' },
         ],
       },
       {

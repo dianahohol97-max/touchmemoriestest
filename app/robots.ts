@@ -22,6 +22,15 @@ export default function robots(): MetadataRoute.Robots {
           '/*/order',
           '/*/review',
           '/*/dyakuiemo',
+          // Wishlist and order tracking — personal, no SEO value
+          '/*/wishlist',
+          '/*/track',
+          // Catalog/blog with query params — canonical already handles these,
+          // but disallowing prevents Google spending crawl budget on duplicates
+          '/*/catalog?*',
+          '/*/blog?*',
+          // Blog tag pages — thin content, no direct SEO value
+          '/*/blog/tag/*',
         ],
       },
     ],
