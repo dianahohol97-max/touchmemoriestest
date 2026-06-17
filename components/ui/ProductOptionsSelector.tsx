@@ -491,7 +491,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   const showDecoration = hasColorAndDecoration && !isPrintedMaterialSelected;
 
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
-  const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string}|null>(null);
+  const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string;photo_url?:string|null}|null>(null);
+  const [wishbookCoverColors, setWishbookCoverColors] = useState<{[material:string]: any[]}>({});
   const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
   const [selectedDecorationVariant, setSelectedDecorationVariant] = useState('');
   const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
@@ -541,9 +542,32 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPhotobookProduct, hasColorAndDecoration, coverTypeName]);
 
-  if (!productType) {
-    return null;
-  }
+  // Fetch cover colors from DB for wishbook when material changes
+  const wishbookMaterial = productType === 'wishbook' ? String(selectedOptions['Матеріал обкладинки'] || '') : '';
+  useEffect(() => {
+    if (!wishbookMaterial) return;
+    const matLower = wishbookMaterial.toLowerCase();
+    if (matLower.includes('друков') || matLower.includes('printed') || matLower.includes('тверда')) return;
+    if (wishbookCoverColors[wishbookMaterial]) return; // already loaded
+    const wbCoverTypeName = matLower.includes('велюр') ? 'Велюр'
+      : matLower.includes('шкір') || matLower.includes('leather') ? 'Шкірзамінник'
+      : matLower.includes('ткан') || matLower.includes('fabric') ? 'Тканина' : '';
+    if (!wbCoverTypeName) return;
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    supabase.from('cover_colors')
+      .select('id, code, name, hex_approx, photo_url, cover_type:cover_types(id, name)')
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => {
+        if (!data) return;
+        const filtered = data.filter((c: any) => c.cover_type?.name === wbCoverTypeName);
+        setWishbookCoverColors(prev => ({ ...prev, [wishbookMaterial]: filtered }));
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wishbookMaterial]);
 
   const options = PRODUCT_OPTIONS[productType];
 
@@ -870,7 +894,11 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         if (isPrintedMaterial) return null;
         const isVelour = String(material).toLowerCase().includes('велюр');
         const isLeather = String(material).toLowerCase().includes('ткан') || String(material).toLowerCase().includes('fabric');
-        const colors = isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
+        // Use DB colors if loaded, fallback to hardcoded
+        const dbColors = wishbookCoverColors[material] || [];
+        const colors = dbColors.length > 0
+          ? dbColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }))
+          : isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
         const colorLabel = isVelour ? optLabel('Колір велюру') : isLeather ? optLabel('Колір тканини') : optLabel('Колір шкірзамінника');
         const colorLabelKey = isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника';
         const current = selectedWishbookColor;
@@ -902,9 +930,16 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                     boxShadow: current?.code === color.code ? '0 0 0 2px #fff, 0 0 0 4px #1e2d7d' : 'none',
                     transition: 'all 0.15s',
                     flexShrink: 0,
+                    overflow: 'hidden',
+                    position: 'relative',
                   }}
                   aria-label={color.name}
-                />
+                >
+                  {color.photo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={color.photo_url} alt={color.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }} />
+                  )}
+                </button>
               ))}
             </div>
           </div>
