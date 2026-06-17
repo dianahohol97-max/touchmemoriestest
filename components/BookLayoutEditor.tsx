@@ -8,6 +8,7 @@ import { autoBuild } from '@/lib/editor/auto-build';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
+import { ReadyCoversPicker } from './editor/ReadyCoversPicker';
 import { PageTemplatesPicker } from './editor/PageTemplatesPicker';
 import { PageTemplate, PAGE_TEMPLATES } from '@/lib/editor/page-templates';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
@@ -88,6 +89,10 @@ interface CoverState {
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
   printedBgColor?: string;
+  // Ready-made full-cover background image (travel book ready covers).
+  // When set, the front cover renders this image full-bleed; the customer
+  // can still add text on top. Mutually informative with printedBgColor.
+  printedBgImage?: string | null;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
   backCoverCropX?: number;
@@ -4346,6 +4351,30 @@ export default function BookLayoutEditor() {
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* READY-MADE TRAVEL COVERS — travel book only */}
+                {isPrinted && _slug.includes('travelbook') && (
+                  <>
+                    <ReadyCoversPicker
+                      locale={typeof window !== 'undefined' ? (document.documentElement.lang || 'uk') : 'uk'}
+                      onApply={(cover) => {
+                        pushHistory();
+                        setCoverState(p => ({
+                          ...p,
+                          printedBgImage: cover.image_url,
+                          // Clear photo slots so the ready cover shows full-bleed;
+                          // customer can still add text blocks on top.
+                          printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
+                          printedPhotoSlots: undefined,
+                          printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
+                        }));
+                      }}
+                    />
+                    <div style={{ height: 1, background: '#e2e8f0', margin: '4px 0' }} />
+                    <div style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.4 }}>
+                      Або зробіть власну обкладинку нижче ↓
+                    </div>
+                  </>
+                )}
                 {/* COVER TEMPLATES PICKER — hidden for scrapbook (album для вклейки фото) */}
                 {isPrinted && !isScrapbook && (
                   <CoverTemplatesPicker productType={isWishbook?'wishbook':_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
@@ -7586,6 +7615,10 @@ export default function BookLayoutEditor() {
                     </div>
                     {/* Front cover (right) */}
                     <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : '#d4b896' }}>
+                      {/* Ready-made cover background (travel book) — full bleed */}
+                      {coverState.printedBgImage && (
+                        <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
+                      )}
                       {frontPhoto && (
                         <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
                           <img src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
