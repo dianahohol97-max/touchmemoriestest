@@ -569,6 +569,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wishbookMaterial]);
 
+  if (!productType) return null;
+
   const options = PRODUCT_OPTIONS[productType];
 
   const calculatePrice = (opts: Record<string, string | number>): number | null => {
