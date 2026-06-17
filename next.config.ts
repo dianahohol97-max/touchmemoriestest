@@ -218,6 +218,25 @@ const nextConfig = {
       // Gift certificate
       { source: '/shop/podarunkovyj-sertyfikat',             destination: '/uk/catalog/gift-certificate', permanent: true },
 
+      // Additional old /shop/ products found in "Crawled — not indexed"
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-sinogo-koloru',  destination: '/uk/catalog/velour-album-200',    permanent: true },
+      { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-sinioho-koloru', destination: '/uk/catalog/velour-album-200',    permanent: true },
+      { source: '/shop/photomagnity',                        destination: '/uk/catalog/photomagnets',           permanent: true },
+      { source: '/shop/albom-dlya-fotografij-na-200-foto-fotografhs-sirij',     destination: '/uk/catalog/velour-album-200',    permanent: true },
+      { source: '/shop/fotoalbom-na-200-foto-10x15-kvitkovui', destination: '/uk/catalog/velour-album-200',    permanent: true },
+      { source: '/shop/cat/keyboards',                       destination: '/uk',                                permanent: true },
+      { source: '/shop/videoramka',                          destination: '/uk/catalog/tsyfrova-fotoramka',     permanent: true },
+      { source: '/shop/ckotch-dvostoronij',                  destination: '/uk',                                permanent: true },
+      { source: '/shop/fotodruk-9h9',                        destination: '/uk/catalog/photoprint-nonstandard', permanent: true },
+      { source: '/shop/kniga-pobazhan-na-vesillya',          destination: '/uk/catalog/wishbook',               permanent: true },
+
+      // /blog, /catalog, /category without locale → /uk/...
+      { source: '/blog',          destination: '/uk/blog',           permanent: true },
+      { source: '/blog/:slug*',   destination: '/uk/blog/:slug*',    permanent: true },
+      { source: '/catalog',       destination: '/uk/catalog',        permanent: true },
+      { source: '/catalog/:slug*', destination: '/uk/catalog/:slug*', permanent: true },
+      { source: '/category/:slug*', destination: '/uk/category/:slug*', permanent: true },
+
       // Catch-all: any remaining /shop/ path → home
       { source: '/shop/:path*',                              destination: '/uk', permanent: true },
 
