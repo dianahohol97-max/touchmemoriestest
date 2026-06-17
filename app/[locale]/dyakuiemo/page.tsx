@@ -58,7 +58,8 @@ function DyakuiemoContent() {
     }, [order]);
 
     const isPaid = order?.payment_status === 'paid';
-    const isPending = !order || order.payment_status === 'pending';
+    const isFailed = order?.payment_status === 'failed' || order?.payment_status === 'cancelled';
+    const isPending = !isFailed && (!order || order.payment_status === 'pending');
 
     return (
         <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '140px 20px 80px' }}>
@@ -70,19 +71,25 @@ function DyakuiemoContent() {
                 {/* Icon */}
                 <div style={{
                     width: 96, height: 96, borderRadius: '50%',
-                    background: isPaid ? '#dcfce7' : '#fef9c3',
+                    background: isPaid ? '#dcfce7' : isFailed ? '#fee2e2' : '#fef9c3',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     margin: '0 auto 28px'
                 }}>
                     {isPaid
                         ? <CheckCircle2 size={48} color="#16a34a" />
-                        : <Clock size={48} color="#ca8a04" />
+                        : isFailed
+                            ? <XCircle size={48} color="#dc2626" />
+                            : <Clock size={48} color="#ca8a04" />
                     }
                 </div>
 
                 {/* Title */}
                 <h1 style={{ fontSize: 36, fontWeight: 950, color: '#1e2d7d', marginBottom: 12 }}>
-                    {isPaid ? t('thankyou.paid_title') : t('thankyou.pending_title')}
+                    {isPaid
+                        ? t('thankyou.paid_title')
+                        : isFailed
+                            ? 'Оплата не пройшла'
+                            : t('thankyou.pending_title')}
                 </h1>
 
                 {/* Order number */}
@@ -97,22 +104,35 @@ function DyakuiemoContent() {
 
                 {/* Message */}
                 <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.65, marginBottom: 32 }}>
-                    {isPaid ? t('thankyou.paid_msg') : t('thankyou.pending_msg')}
+                    {isPaid
+                        ? t('thankyou.paid_msg')
+                        : isFailed
+                            ? 'На жаль, платіж не вдалося провести. Замовлення скасовано. Ви можете оформити нове замовлення — усі ваші продукти нікуди не ділися.'
+                            : t('thankyou.pending_msg')}
                 </p>
 
                 {/* Status badge */}
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
                     padding: '10px 20px', borderRadius: 8,
-                    background: isPaid ? '#dcfce7' : '#fef9c3',
-                    color: isPaid ? '#15803d' : '#854d0e',
+                    background: isPaid ? '#dcfce7' : isFailed ? '#fee2e2' : '#fef9c3',
+                    color: isPaid ? '#15803d' : isFailed ? '#dc2626' : '#854d0e',
                     fontSize: 14, fontWeight: 700, marginBottom: 36
                 }}>
-                    {isPaid ? <CheckCircle2 size={16} /> : <Clock size={16} />}
-                    {isPaid ? t('thankyou.status_paid') : t('thankyou.status_pending')}
+                    {isPaid
+                        ? <CheckCircle2 size={16} />
+                        : isFailed
+                            ? <XCircle size={16} />
+                            : <Clock size={16} />}
+                    {isPaid
+                        ? t('thankyou.status_paid')
+                        : isFailed
+                            ? 'Платіж відхилено'
+                            : t('thankyou.status_pending')}
                 </div>
 
-                {/* What's next */}
+                {/* What's next — only for paid */}
+                {isPaid && (
                 <div style={{
                     background: '#f8fafc', borderRadius: 12, padding: '24px 28px',
                     textAlign: 'left', marginBottom: 36, border: '1px solid #e2e8f0'
@@ -132,6 +152,7 @@ function DyakuiemoContent() {
                         </div>
                     ))}
                 </div>
+                )}
 
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -143,8 +164,9 @@ function DyakuiemoContent() {
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8
                         }}
                     >
-                        <ShoppingBag size={18} /> {t('thankyou.continue_shopping')}
+                        <ShoppingBag size={18} /> {isFailed ? 'Перейти до каталогу' : t('thankyou.continue_shopping')}
                     </button>
+                    {!isFailed && (
                     <a
                         href="tel:+380970000000"
                         style={{
@@ -156,6 +178,7 @@ function DyakuiemoContent() {
                     >
                         <Phone size={18} /> {t('thankyou.call_us')}
                     </a>
+                    )}
                 </div>
             </motion.div>
         </main>
