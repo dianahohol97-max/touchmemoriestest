@@ -177,16 +177,16 @@ export async function proxy(request: NextRequest) {
         const existingLocale = request.cookies.get('tm_locale')?.value;
         const localeChanged = existingLocale !== locale;
 
-        if (isPublicPage && !localeChanged && !refCode) {
-            // Nothing to do — return without touching cookies so Vercel can cache
+        if (isPublicPage && !refCode) {
+            // Public pages never need a session or locale cookie —
+            // locale is persisted via localStorage on the client.
+            // Returning without Set-Cookie keeps Cache-Control: public
+            // so Vercel CDN and Google can cache these pages.
             return NextResponse.next({ request });
         }
 
-        const response = isPublicPage ? NextResponse.next({ request }) : await updateSession(request);
-
-        // Only set cookie when value actually changes — setting on every request
-        // causes Vercel to emit Cache-Control: private, no-store which prevents
-        // Google from indexing the page.
+        // Non-public pages (account, checkout, order, etc.) — refresh session
+        const response = await updateSession(request);
         if (localeChanged) {
             response.cookies.set('tm_locale', locale, { maxAge: 60 * 60 * 24 * 365 });
         }

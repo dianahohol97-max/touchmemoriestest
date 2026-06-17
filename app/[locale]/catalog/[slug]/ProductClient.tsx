@@ -3,6 +3,7 @@ import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
 import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
+import { localePath } from '@/lib/i18n/path';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -946,7 +947,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     <span>→</span>
                     {product.categories && (
                         <>
-                            <Link href={`/catalog?category=${product.categories.slug}`} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{getLocalized(product.categories, locale, 'name')}</Link>
+                            <Link href={localePath(locale, `/category/${product.categories.slug}`)} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{getLocalized(product.categories, locale, 'name')}</Link>
                             <span>→</span>
                         </>
                     )}
