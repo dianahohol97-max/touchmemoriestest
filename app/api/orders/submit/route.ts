@@ -124,7 +124,47 @@ export async function POST(request: NextRequest) {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Server-side payment_type validation
+  // Server-side price floor check.
+  //   Fetch base price for each product slug and verify the client's
+  //   subtotal is >= sum of (product.price × quantity). This prevents
+  //   a tampered client from submitting subtotal=0 or subtotal=1
+  //   on products that cost hundreds of UAH.
+  //   We do NOT recompute the full option-driven price server-side
+  //   (that logic lives in ProductOptionsSelector and is complex) —
+  //   instead we reject orders where subtotal < 80% of the sum of
+  //   base prices. The 20% buffer allows for legitimate discounts
+  //   (promo codes, split-payment rounding). Options can only add to
+  //   the base price, never subtract below it, so this is a safe floor.
+  // ──────────────────────────────────────────────────────────────
+  {
+    const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
+    if (slugs.length > 0) {
+      const priceAdmin = getAdminClient();
+      const { data: productPrices } = await priceAdmin
+        .from('products')
+        .select('slug, price')
+        .in('slug', slugs);
+      if (productPrices && productPrices.length > 0) {
+        const priceBySlug = new Map<string, number>();
+        productPrices.forEach(p => priceBySlug.set(p.slug, Number(p.price) || 0));
+        const baseFloor = body.items.reduce((sum, item) => {
+          const base = priceBySlug.get(item.slug || '') || 0;
+          return sum + base * (Number(item.quantity) || 1);
+        }, 0);
+        // Allow up to 20% below base (promo discounts), but never less than 1₴
+        const floor = Math.max(1, Math.round(baseFloor * 0.80));
+        if (subtotal < floor) {
+          console.warn(`orders/submit: subtotal ${subtotal} < floor ${floor} (base ${baseFloor}) for slugs [${slugs.join(', ')}]`);
+          return NextResponse.json(
+            { error: 'subtotal_too_low', detail: `Subtotal ${subtotal} is below the minimum expected price for these products.` },
+            { status: 422 }
+          );
+        }
+      }
+    }
+  }
+
+
   //   - Look up payment_mode for every item slug
   //   - Re-compute allowSplit; if client requested 'split' but it's not allowed → force 'full'
   // ──────────────────────────────────────────────────────────────
