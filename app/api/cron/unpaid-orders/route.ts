@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     // no reminder sent yet.
     const remindAfter = new Date(now.getTime() - REMIND_AFTER_HOURS * 3600_000);
     const remindBefore = new Date(now.getTime() - CANCEL_AFTER_HOURS * 3600_000);
+    const remindFloor = new Date(now.getTime() - 7 * 24 * 3600_000);
 
     const { data: remindCandidates } = await supabase
         .from('orders')
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
         .is('payment_reminder_sent_at', null)
         .lt('created_at', remindAfter.toISOString())
         .gt('created_at', remindBefore.toISOString())
+        .gt('created_at', remindFloor.toISOString())
         .limit(50);
 
     for (const order of remindCandidates || []) {
@@ -92,8 +94,11 @@ export async function GET(request: Request) {
     }
 
     // ── Steps 1 + 2: Cancel overdue + email ──────────────────────────────────
-    // Orders pending for more than 24 hours.
+    // Orders pending between 24 hours and 7 days old. The 7-day lower bound
+    // prevents the cron from cancelling old/historical/test orders on its first
+    // run — only genuinely recent unpaid orders are auto-cancelled.
     const cancelBefore = new Date(now.getTime() - CANCEL_AFTER_HOURS * 3600_000);
+    const cancelAfter = new Date(now.getTime() - 7 * 24 * 3600_000);
 
     const { data: cancelCandidates } = await supabase
         .from('orders')
@@ -101,6 +106,7 @@ export async function GET(request: Request) {
         .eq('payment_status', 'pending')
         .eq('order_status', 'new')
         .lt('created_at', cancelBefore.toISOString())
+        .gt('created_at', cancelAfter.toISOString())
         .limit(100);
 
     for (const order of cancelCandidates || []) {
