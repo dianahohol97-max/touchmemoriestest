@@ -336,7 +336,7 @@ export default function ProductsAdminPage() {
         const ext = file.name.split('.').pop();
         const path = `products/videos/${Date.now()}.${ext}`;
         const supabaseClient = createClient();
-        const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true });
+        const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true, cacheControl: '31536000' });
         if (error) { toast.error('Помилка: ' + error.message, { id: 'video-upload' }); return; }
         const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
         upd('video_url', publicUrl);

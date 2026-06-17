@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Play } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useRef } from 'react';
 import DesignerConfigModal from '../DesignerConfigModal';
 
@@ -36,16 +37,20 @@ interface ConstructorSelectionClientProps {
 }
 
 // Video that respects an optional [start, end] trim window and loops within it.
+// Lazy: the heavy video source is only attached once the element scrolls into
+// view, so it never blocks the initial page load (these clips are 4–9 MB each).
 function TrimmedVideo({ src, poster, start, end }: { src: string; poster?: string; start?: number | null; end?: number | null }) {
     const ref = useRef<HTMLVideoElement>(null);
+    const { ref: inViewRef, inView } = useInView({ triggerOnce: true, rootMargin: '200px' });
     const s = Number(start) > 0 ? Number(start) : 0;
     const e = Number(end) > 0 ? Number(end) : 0;
     const managed = s > 0 || e > 0;
     return (
         <video
-            ref={ref}
+            ref={(node) => { ref.current = node; inViewRef(node as any); }}
             autoPlay muted playsInline
             loop={!managed}
+            preload="none"
             poster={poster || undefined}
             className="w-full h-full object-cover"
             onLoadedMetadata={() => { const v = ref.current; if (v && s > 0) { try { v.currentTime = s; } catch {} } }}
@@ -56,7 +61,7 @@ function TrimmedVideo({ src, poster, start, end }: { src: string; poster?: strin
             }}
             onEnded={() => { const v = ref.current; if (v) { try { v.currentTime = s; v.play(); } catch {} } }}
         >
-            <source src={src} type="video/mp4" />
+            {inView && <source src={src} type="video/mp4" />}
         </video>
     );
 }
@@ -143,8 +148,8 @@ export function ConstructorSelectionClient({
 
                             {/* Constructor visualization — photobook editor: real uploaded screenshot when set, else the drawn mockup */}
                             {sectionContent?.metadata?.photobooks?.mockup_image_url ? (
-                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340]" style={{background:'#f4f6fb'}}>
-                                <img src={sectionContent.metadata.photobooks.mockup_image_url} alt={photobooksHeading} className="w-full h-full object-cover" style={{ objectPosition: sectionContent.metadata.photobooks.mockup_image_position || '50% 50%' }} />
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340] relative" style={{background:'#f4f6fb'}}>
+                                <Image src={sectionContent.metadata.photobooks.mockup_image_url} alt={photobooksHeading} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" style={{ objectPosition: sectionContent.metadata.photobooks.mockup_image_position || '50% 50%' }} />
                             </div>
                             ) : (
                             <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>
@@ -302,8 +307,8 @@ export function ConstructorSelectionClient({
 
                             {/* Constructor visualization — magazine editor: real uploaded screenshot when set, else the drawn mockup */}
                             {sectionContent?.metadata?.magazines?.mockup_image_url ? (
-                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340]" style={{background:'#f4f6fb'}}>
-                                <img src={sectionContent.metadata.magazines.mockup_image_url} alt={magazinesHeading} className="w-full h-full object-cover" style={{ objectPosition: sectionContent.metadata.magazines.mockup_image_position || '50% 50%' }} />
+                            <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md aspect-[600/340] relative" style={{background:'#f4f6fb'}}>
+                                <Image src={sectionContent.metadata.magazines.mockup_image_url} alt={magazinesHeading} fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" style={{ objectPosition: sectionContent.metadata.magazines.mockup_image_position || '50% 50%' }} />
                             </div>
                             ) : (
                             <div className="rounded-xl overflow-hidden border border-[#263a99]/15 shadow-md" style={{background:'#f4f6fb'}}>

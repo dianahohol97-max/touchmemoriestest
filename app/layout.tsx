@@ -123,10 +123,9 @@ export default function RootLayout({
     <html lang="uk" suppressHydrationWarning className={`${montserrat.variable} ${openSans.variable}`}>
       <head>
         {/* Preconnect to external origins used on every page — reduces DNS+TLS
-            handshake latency for LCP images (Supabase storage) and fonts. */}
+            handshake latency for LCP images (Supabase storage). Fonts are
+            self-hosted by next/font, so no Google Fonts preconnect is needed. */}
         <link rel="preconnect" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* dns-prefetch as fallback for browsers that don't support preconnect */}
         <link rel="dns-prefetch" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
         <script

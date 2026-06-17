@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { localePath } from '@/lib/i18n/path';
 import { cn } from '@/lib/utils';
@@ -391,7 +392,7 @@ export function Navigation() {
                         onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
                         className="flex gap-4 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name}
+                          <Image src={product.images[0]} alt={product.name} width={64} height={64}
                             className="w-16 h-16 object-cover rounded-md flex-shrink-0" loading="lazy" />
                         ) : (
                           <div className="w-16 h-16 bg-gray-100 rounded-md flex-shrink-0 flex items-center justify-center">
