@@ -7,7 +7,8 @@ import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart, X, ChevronLeft } from 'lucide-react';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
-import { useT } from '@/lib/i18n/context';
+import { useT, useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 
 interface SizeOption {
     label: string;
@@ -27,6 +28,7 @@ const STEP_LABELS = ['Розмір', 'Фото', 'Замовлення'];
 
 export default function CanvasPrintConstructor() {
     const t = useT();
+  const { locale } = useTranslation();
     const { addItem } = useCartStore();
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -379,7 +381,7 @@ export default function CanvasPrintConstructor() {
                             style={{ padding: '14px 32px', background: '#1e2d7d', color: '#fff', borderRadius: 10, fontWeight: 800, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
                             Оформити замовлення →
                         </a>
-                        <a href="/catalog"
+                        <a href={localePath(locale, '/catalog')}
                             style={{ padding: '14px 32px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 10, fontWeight: 800, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
                             ← Продовжити покупки
                         </a>

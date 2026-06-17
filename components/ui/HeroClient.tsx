@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 import Image from 'next/image';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useT } from '@/lib/i18n/context';
@@ -51,6 +53,7 @@ const REFERENCE_PILLS = [
 export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroClientProps) {
   const { content } = useTheme();
   const t = useT();
+  const { locale } = useTranslation();
 
   // Category pills — localized defaults; used only when admin hasn't set buttons in the DB
   const localizedPills = [
@@ -168,7 +171,7 @@ export function HeroClient({ heroContent, heroButtons, siteContent = {} }: HeroC
           transition={{ duration: 0.6, ease: easing, delay: 0.4 }}
         >
           <Link
-            href="/catalog"
+            href={localePath(locale, '/catalog')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

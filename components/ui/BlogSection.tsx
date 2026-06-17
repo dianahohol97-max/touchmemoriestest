@@ -2,6 +2,8 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import Link from 'next/link';
+import { useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 import Image from 'next/image';
 import { ArrowRight, BookOpen } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
@@ -30,6 +32,7 @@ interface BlogSectionProps {
 export function BlogSection({ posts = [] }: BlogSectionProps) {
     const { content } = useTheme();
     const t = useT();
+    const { locale } = useTranslation();
     const { ref, inView } = useInView({
         triggerOnce: true,
         threshold: 0.1,
@@ -111,7 +114,7 @@ export function BlogSection({ posts = [] }: BlogSectionProps) {
                     className="mt-20 text-center"
                 >
                     <Link
-                        href="/blog"
+                        href={localePath(locale, '/blog')}
                         className="btn-secondary"
                     >
                         {t('blog.read_all')}

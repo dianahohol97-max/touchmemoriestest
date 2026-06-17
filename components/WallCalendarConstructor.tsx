@@ -14,7 +14,8 @@ import {
     ChevronLeft, ChevronRight, ShoppingCart,
     Upload, ZoomIn, ZoomOut, Image as ImageIcon
 } from 'lucide-react';
-import { useT } from '@/lib/i18n/context';
+import { useT, useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 
 //  Types 
 interface Photo { id: string; preview: string; width: number; height: number; name: string; file?: File; }
@@ -286,6 +287,7 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
     { slot: Slot; photo: Photo|null; W: number; H: number;
       onDrop:(id:string)=>void; onCropChange:(x:number,y:number,z:number)=>void }) {
     const t = useT();
+  const { locale } = useTranslation();
     const drag = useRef<{sx:number;sy:number;cx:number;cy:number}|null>(null);
     const handleMD = (e: React.PointerEvent) => {
         if (!photo) return; e.preventDefault();
@@ -447,6 +449,7 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
 //  Main constructor 
 export default function WallCalendarConstructor({ initialSize='A4' }: { initialSize?: string }) {
     const t = useT();
+  const { locale } = useTranslation();
     const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
     const { addItem } = useCartStore();
 
@@ -598,7 +601,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         <div style={{minHeight:'100vh', fontFamily:'var(--font-primary, sans-serif)'}}>
             <Navigation/>
             <main style={{maxWidth:660, margin:'0 auto', padding:'80px 16px 60px'}}>
-                <a href="/catalog/wall-calendar-2026" style={{display:'inline-flex',alignItems:'center',gap:6,color:'#64748b',textDecoration:'none',fontSize:13,marginBottom:20,opacity:0.8}}>
+                <a href={localePath(locale, '/catalog/wall-calendar-2026')} style={{display:'inline-flex',alignItems:'center',gap:6,color:'#64748b',textDecoration:'none',fontSize:13,marginBottom:20,opacity:0.8}}>
                   ← Назад до каталогу
                 </a>
                 <h1 style={{fontSize:28,fontWeight:900,color:'#1e2d7d',marginBottom:6}}>{t('wallcal.title')}</h1>
