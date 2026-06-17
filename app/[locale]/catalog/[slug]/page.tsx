@@ -133,7 +133,7 @@ export default async function ProductPage({ params }: Props) {
     const desc = (tr.meta_description || (isUk ? product.meta_description : '')
       || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '').toString().slice(0, 300);
     const image = product.og_image || (product.images && (product.images as any[])[0]) || `${base}/og-image.jpg`;
-    const price = Number(product.price_from || product.price || 0);
+    const price = Number(product.price || 0);
     const category = (product.categories as any) || null;
 
     jsonLdProduct = {

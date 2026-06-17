@@ -4,6 +4,7 @@ import { getLocalized } from '@/lib/i18n/localize';
 import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { localePath } from '@/lib/i18n/path';
+import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -941,13 +942,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
 
                 {/* Breadcrumbs */}
                 <div className={styles.breadcrumbs} style={{ fontSize: '14px', color: '#888', marginBottom: '32px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    <Link href="/" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.home')}</Link>
+                    <Link href={localePath(locale, '/')} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.home')}</Link>
                     <span>→</span>
-                    <Link href="/catalog" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.catalog')}</Link>
+                    <Link href={localePath(locale, '/catalog')} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{t('product_page.catalog')}</Link>
                     <span>→</span>
                     {product.categories && (
                         <>
-                            <Link href={localePath(locale, `/category/${product.categories.slug}`)} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{getLocalized(product.categories, locale, 'name')}</Link>
+                            <Link href={localePath(locale, `/category/${toPublicCategorySlug(product.categories.slug)}`)} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', whiteSpace: 'nowrap' }} className="hover:text-slate-600">{getLocalized(product.categories, locale, 'name')}</Link>
                             <span>→</span>
                         </>
                     )}
