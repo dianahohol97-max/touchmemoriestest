@@ -156,8 +156,40 @@ export async function proxy(request: NextRequest) {
 
     if (hasLocale) {
         const locale = pathname.split('/')[1];
-        const response = await updateSession(request);
-        response.cookies.set('tm_locale', locale, { maxAge: 60 * 60 * 24 * 365 });
+        const pathWithoutLocale = pathname.slice(locale.length + 1) || '/';
+
+        // Public pages (catalog, category, blog, home) don't need session refresh.
+        // Calling updateSession on these sets Supabase cookies → Vercel adds
+        // Cache-Control: private, no-store → Google cannot index the page.
+        const isPublicPage =
+            pathWithoutLocale === '/' ||
+            pathWithoutLocale.startsWith('/catalog') ||
+            pathWithoutLocale.startsWith('/category') ||
+            pathWithoutLocale.startsWith('/blog') ||
+            pathWithoutLocale.startsWith('/kontakty') ||
+            pathWithoutLocale.startsWith('/about') ||
+            pathWithoutLocale.startsWith('/faq') ||
+            pathWithoutLocale.startsWith('/privacy') ||
+            pathWithoutLocale.startsWith('/terms') ||
+            pathWithoutLocale.startsWith('/cookies') ||
+            pathWithoutLocale.startsWith('/refund');
+
+        const existingLocale = request.cookies.get('tm_locale')?.value;
+        const localeChanged = existingLocale !== locale;
+
+        if (isPublicPage && !localeChanged && !refCode) {
+            // Nothing to do — return without touching cookies so Vercel can cache
+            return NextResponse.next({ request });
+        }
+
+        const response = isPublicPage ? NextResponse.next({ request }) : await updateSession(request);
+
+        // Only set cookie when value actually changes — setting on every request
+        // causes Vercel to emit Cache-Control: private, no-store which prevents
+        // Google from indexing the page.
+        if (localeChanged) {
+            response.cookies.set('tm_locale', locale, { maxAge: 60 * 60 * 24 * 365 });
+        }
         if (refCode) response.cookies.set('tm_ref', refCode, { maxAge: 60 * 60 * 24 * 30 });
         return response;
     }

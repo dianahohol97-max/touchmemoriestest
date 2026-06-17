@@ -126,6 +126,20 @@ const nextConfig = {
         ],
       },
       {
+        // Public catalog and category pages — allow CDN + Google caching
+        source: '/:locale(uk|en|ro|de|pl)/:path(catalog|category|blog)/:rest*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=60' },
+        ],
+      },
+      {
+        // Home page per locale
+        source: '/:locale(uk|en|ro|de|pl)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=60' },
+        ],
+      },
+      {
         // Admin must never be cached at the CDN edge. Belt-and-braces alongside
         // the experimental.ppr=false above.
         source: '/admin/:path*',
