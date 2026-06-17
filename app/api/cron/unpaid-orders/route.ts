@@ -10,9 +10,10 @@ export const dynamic = 'force-dynamic';
 // How long (in hours) before an unpaid order is cancelled.
 const CANCEL_AFTER_HOURS = 24;
 
-// When to send a payment reminder before cancellation.
-const REMIND_AFTER_HOURS = 3;   // send reminder ~3h after order created
-const REMIND_WINDOW_HOURS = 1;  // run cron hourly, so ±1h window
+// Send a reminder to pending orders at least this old (but not yet cancelled).
+// Cron runs once daily (Hobby plan limit), so we remind any pending order
+// between REMIND_AFTER_HOURS and CANCEL_AFTER_HOURS old that hasn't been reminded.
+const REMIND_AFTER_HOURS = 3;
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua';
 
@@ -29,9 +30,10 @@ export async function GET(request: Request) {
     const stats = { reminded: 0, cancelled: 0, errors: 0 };
 
     // ── Step 3: Payment reminder ──────────────────────────────────────────────
-    // Orders created 3–4 hours ago, still pending, no reminder sent yet.
+    // Pending orders between REMIND_AFTER_HOURS and CANCEL_AFTER_HOURS old,
+    // no reminder sent yet.
     const remindAfter = new Date(now.getTime() - REMIND_AFTER_HOURS * 3600_000);
-    const remindBefore = new Date(now.getTime() - (REMIND_AFTER_HOURS + REMIND_WINDOW_HOURS) * 3600_000);
+    const remindBefore = new Date(now.getTime() - CANCEL_AFTER_HOURS * 3600_000);
 
     const { data: remindCandidates } = await supabase
         .from('orders')
