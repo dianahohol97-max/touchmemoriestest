@@ -2211,8 +2211,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             {initialReviews.map((r: any) => (
                                 <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
                                     {r.image_url && (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={r.image_url} alt={r.author || 'Відгук'} loading="lazy" style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
+                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5' }}>
+                                            <Image src={r.image_url} alt={r.author || 'Відгук'} fill loading="lazy" sizes="(max-width: 768px) 50vw, 220px" style={{ objectFit: 'cover', display: 'block' }} />
+                                        </div>
                                     )}
                                     <div style={{ padding: '12px 14px' }}>
                                         {r.rating ? (
