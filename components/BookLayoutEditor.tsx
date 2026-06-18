@@ -700,7 +700,10 @@ function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): { i
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
   const w4 = (W - 3 * g) / 4, h4 = (H - 3 * g) / 4;
-  const b: React.CSSProperties = { position: 'absolute', overflow: 'hidden', borderRadius: 3 };
+  // Rounded corners look good WITH a gap, but at gap=0 they leave tiny white
+  // notches between touching photos — defeating "без білих ліній між фото".
+  // Square the corners when the layout is gapless.
+  const b: React.CSSProperties = { position: 'absolute', overflow: 'hidden', borderRadius: gap > 0 ? 3 : 0 };
 
   const S = (i: number, x: number, y: number, w: number, h: number, extra?: React.CSSProperties) =>
     ({ i, s: { ...b, left: x, top: y, width: w, height: h, ...extra } });
