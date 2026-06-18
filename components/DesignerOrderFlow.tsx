@@ -51,6 +51,7 @@ export default function DesignerOrderFlow() {
     const color = searchParams.get('color') || '';
     const decoration = searchParams.get('decoration') || '';
     const decorationVariant = searchParams.get('decoration_variant') || '';
+    const priceParam = searchParams.get('price') || '';
 
     const pageCount = parseInt(pages) || 20;
     // Photo count bounds for designer-flow uploads.
@@ -225,6 +226,7 @@ export default function DesignerOrderFlow() {
                     email: email || null, telegram: telegram || null,
                     productSlug, size, pages, cover, tracing, color,
                     decoration, decorationVariant,
+                    price: priceParam || undefined,
                     tripDestination, orderComment, coverComment,
                     deliveryMethod, city, branch,
                     paymentMethod, contactMethod,

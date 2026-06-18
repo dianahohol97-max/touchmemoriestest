@@ -41,6 +41,7 @@ interface DesignerBriefPayload {
   color?: string;
   decoration?: string;
   decorationVariant?: string;
+  price?: number | string;
   tripDestination?: string;
   orderComment?: string;
   coverComment?: string;
@@ -114,6 +115,11 @@ export async function POST(request: NextRequest) {
   const productType = deriveProductType(productSlug);
   const payment_type = body.paymentMethod === 'split' ? 'split' : 'full';
 
+  // Price the customer saw in the configurator (carried via the ?price= param).
+  // Lands the designer order with the SAME price as the constructor instead of 0;
+  // the manager can still adjust it after the designer lays the book out.
+  const estPrice = Math.max(0, Math.round(Number(body.price) || 0));
+
   const notes = [
     body.tripDestination && productSlug.toLowerCase().includes('travel')
       ? `Країна/місце подорожі: ${body.tripDestination}` : '',
@@ -137,6 +143,7 @@ export async function POST(request: NextRequest) {
         product_name: productName,
         size: body.size, pages: body.pages, cover: body.cover, tracing: body.tracing,
         color: body.color, decoration: body.decoration, decoration_variant: body.decorationVariant,
+        price: estPrice,
         quantity: 1,
       }],
       notes: notes || null,
@@ -148,7 +155,8 @@ export async function POST(request: NextRequest) {
       order_status: 'new',
       payment_status: 'pending',
       custom_attributes: { contact_method: body.contactMethod || null },
-      total: 0, // priced by admin after the designer lays it out
+      total: estPrice,    // carried from the configurator; manager may adjust
+      subtotal: estPrice,
     })
     .select('id, order_number')
     .single();

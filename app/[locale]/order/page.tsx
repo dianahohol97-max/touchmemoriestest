@@ -826,6 +826,11 @@ function OrderForm() {
       const productName = savedConfig?.productName
         || (productSlug ? productSlug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Замовлення з дизайнером')
 
+      // Price the customer saw on the product page (carried from the constructor
+      // price calc). If present, the designer order lands with that price instead
+      // of 0; the manager can still adjust it after the designer lays it out.
+      const estPrice = Math.max(0, Math.round(Number(savedConfig?.price) || 0))
+
       const deliveryText = formData.delivery === 'pickup'
         ? 'Самовивіз — Тернопіль, вул. Омеляна Польового 4а'
         : `Нова Пошта — ${formData.city}${formData.address ? ', ' + formData.address : ''}`
@@ -851,6 +856,7 @@ function OrderForm() {
             product_slug: productSlug,
             product_name: productName,
             quantity: 1,
+            price: estPrice,
             options: savedConfig?.config || {},
           }],
           notes: [
@@ -870,7 +876,8 @@ function OrderForm() {
             city: formData.city,
             address: formData.address,
           },
-          total: 0,
+          total: estPrice,
+          subtotal: estPrice,
           text_brief: {
             own_text: formData.ownText || null,
             kalka_text: formData.kalkaText || null,

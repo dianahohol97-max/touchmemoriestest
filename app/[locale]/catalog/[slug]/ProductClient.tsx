@@ -1787,6 +1787,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                             slug: product.slug || resolvedParams.slug,
                                                             productName: product.name || '',
                                                             config: customProductOptions,
+                                                            // The price the customer is looking at right now (base +
+                                                            // page/lamination/urgency surcharges, or photobook matrix).
+                                                            // Carried into the designer order so it lands with the SAME
+                                                            // price as the constructor instead of 0.
+                                                            price: finalPrice,
                                                         }));
                                                     } catch {}
                                                     router.push('/order');

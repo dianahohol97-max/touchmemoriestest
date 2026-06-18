@@ -174,6 +174,7 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
     if (selectedColor) params.set('color', selectedColor.code);
     if (selectedDeco !== 'none') params.set('decoration', selectedDeco);
     if (selectedDecoVariant) params.set('decoration_variant', selectedDecoVariant);
+    if (totalPrice > 0) params.set('price', String(totalPrice));
 
     sessionStorage.setItem('designerOrderConfig', JSON.stringify({
       productType, productName: dbProduct?.name || productName, slug, config,
