@@ -186,7 +186,11 @@ export default function TeamPage() {
                 body: JSON.stringify(formData)
             });
 
-            if (!res.ok) throw new Error('Помилка збереження');
+            if (!res.ok) {
+                let msg = 'Помилка збереження';
+                try { const j = await res.json(); if (j?.error) msg = j.error; } catch { /* keep generic */ }
+                throw new Error(msg);
+            }
 
             toast.success('Співробітника збережено');
             setIsFormOpen(false);
