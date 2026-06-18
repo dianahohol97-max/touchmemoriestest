@@ -299,7 +299,7 @@ export function BookPreviewModal({
           width: '100%', height: '100%', objectFit: 'cover',
           objectPosition: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
           transform: `scale(${slot.zoom || 1})`,
-          transformOrigin: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
+          transformOrigin: 'center',
           display: 'block',
         }} />
       </div>
