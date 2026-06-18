@@ -478,11 +478,17 @@ export default function CheckoutPage() {
             const invoiceData = await invoiceRes.json();
 
             if (!invoiceRes.ok || !invoiceData.pageUrl) {
-                // Monobank not configured — show success page anyway
+                // Payment link could NOT be created (Monobank error / 0-amount /
+                // token issue). The order was saved server-side, but we must NOT
+                // clear the cart or show a "complete" screen — doing so loses the
+                // customer's cart AND hides the failure (they think they paid).
+                // Keep the cart intact, surface the real error, and stay on this
+                // step so they can retry or contact us.
                 console.warn('Monobank invoice failed:', invoiceData.error);
                 toast.dismiss();
-                clearCart();
-                setCurrentStep('complete');
+                toast.error(
+                    'Замовлення збережено, але не вдалося створити посилання на оплату. Спробуйте ще раз або напишіть нам — ваш кошик не втрачено.'
+                );
                 return;
             }
 

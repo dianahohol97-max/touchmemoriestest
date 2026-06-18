@@ -76,6 +76,18 @@ export async function POST(req: Request) {
             : Number(order.total);
         const amountInKopecks = Math.round(chargeAmount * 100);
 
+        // A 0 (or negative) amount can never be invoiced — Monobank rejects it
+        // with a cryptic error that the checkout then mistakes for "payment not
+        // configured". Fail loudly and clearly instead. This also catches
+        // designer/quote-later orders (total=0) that should never reach online
+        // payment in the first place.
+        if (!Number.isFinite(amountInKopecks) || amountInKopecks <= 0) {
+            return NextResponse.json(
+                { error: `Сума замовлення дорівнює 0 — оплату онлайн неможливо створити. Перевірте ціну позицій або зверніться до менеджера.` },
+                { status: 400 }
+            );
+        }
+
         // Runtime host (NOT the SEO/brand domain): the webhook + redirect must
         // hit a host that is actually serving this deployment, or payments
         // silently never confirm. See lib/runtimeUrl.
