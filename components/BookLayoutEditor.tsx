@@ -7808,7 +7808,12 @@ export default function BookLayoutEditor() {
                     {renderThumbPage(pgR, 'right')}
                   </div>
                   <span style={{ fontSize: 9, fontWeight: 700, color: active ? '#1e2d7d' : '#64748b' }}>
-                    {pgL?.label?.replace('Стор. ', '')}{pgR ? `–${pgR.label?.replace('Стор. ', '')}` : ''}
+                    {/* Number from position (leftIdx/rightIdx), NOT the stored
+                        pg.label — labels are assigned at page creation and go
+                        stale when kalka/forzac pages shift the order, which
+                        showed duplicate/out-of-sequence numbers (5–6, 3–4, 5–6).
+                        This matches the top-nav numbering. */}
+                    {leftIdx}{pgR ? `–${rightIdx}` : ''}
                   </span>
                   {hasEndpaper && (leftIdx === endpaperFirstIdx || rightIdx === endpaperLastIdx || leftIdx === endpaperLastIdx || rightIdx === endpaperFirstIdx) && (
                     <span style={{ display:'block', fontSize:8, fontWeight:700, color:'#059669', letterSpacing:0.3 }}>
