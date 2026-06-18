@@ -2322,6 +2322,18 @@ export default function BookLayoutEditor() {
   }, [photos]);
 
   // Detect focal point using Canvas saliency — FREE, no API, runs in browser ~5ms
+  // Focal-point detection runs for every uploaded photo and used to call
+  // setPhotos once PER photo — 50 photos = 50 full re-renders of the editor on
+  // load, each also retriggering the autosave + photo-persistence effects.
+  // Buffer the results and flush them in a single batched state update.
+  const focalBufferRef = useRef<Record<string, { focalX: number; focalY: number }>>({});
+  const focalFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushFocalBuffer = () => {
+    const buf = focalBufferRef.current;
+    focalBufferRef.current = {};
+    if (Object.keys(buf).length === 0) return;
+    setPhotos(prev => prev.map(p => buf[p.id] ? { ...p, focalX: buf[p.id].focalX, focalY: buf[p.id].focalY, hasFace: false } : p));
+  };
   const detectFocalPoint = (previewDataUrl: string, photoId: string) => {
     const img = new window.Image();
     img.onload = () => {
@@ -2371,7 +2383,9 @@ export default function BookLayoutEditor() {
         if (totalWeight > 0) {
           const focalX = Math.round(Math.max(20, Math.min(80, (sumX / totalWeight / SIZE) * 100)));
           const focalY = Math.round(Math.max(15, Math.min(75, (sumY / totalWeight / SIZE) * 100)));
-          setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, focalX, focalY, hasFace: false } : p));
+          focalBufferRef.current[photoId] = { focalX, focalY };
+          if (focalFlushTimerRef.current) clearTimeout(focalFlushTimerRef.current);
+          focalFlushTimerRef.current = setTimeout(flushFocalBuffer, 180);
         }
       } catch {
         // Silent fail
