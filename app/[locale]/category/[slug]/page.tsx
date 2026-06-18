@@ -39,7 +39,11 @@ async function getProducts(categoryId: string) {
     .select('id, name, slug, price, price_from, short_description, images, translations')
     .eq('category_id', categoryId)
     .eq('is_active', true)
-    .order('sort_order', { nullsFirst: false });
+    // products has no sort_order column — ordering by it made PostgREST return
+    // an error, so `data` came back null and EVERY category page rendered empty
+    // ("Товари з'являться незабаром") despite having active products. Order by
+    // a column that exists.
+    .order('created_at', { ascending: true });
   return (data as any[]) || [];
 }
 
