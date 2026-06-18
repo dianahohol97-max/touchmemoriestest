@@ -28,13 +28,17 @@ export function AutoBuildModal({ open, onClose, photoCount, existingPages, minSp
   if (!open) return null;
 
   const photosForPages = coverPhoto ? Math.max(0, photoCount - 1) : photoCount;
-  const avgPerPage = density === 'sparse' ? 1.5 : density === 'balanced' ? 2.5 : 4;
-  const rawPages = Math.max(2, Math.ceil(photosForPages / avgPerPage));
-  const evenPages = rawPages % 2 === 0 ? rawPages : rawPages + 1;
-  // Never go below minimum spreads for this product
-  const estSpreads = Math.max(minSpreads, evenPages / 2);
-  const estPages = estSpreads * 2;
   const existingSpreads = Math.floor((existingPages - 1) / 2);
+  // «Магічна збірка» fills the ordered page budget and distributes ALL photos
+  // across every existing spread — it does NOT shrink the book to a photo-
+  // density estimate. The spread count stays at the book's existing spreads
+  // when there are enough photos to cover them, and drops only when there
+  // genuinely aren't enough (one per spread, never below the product minimum).
+  // Density changes photos-PER-PAGE within the fixed page count, not the number
+  // of pages. The old density formula (photos ÷ 2.5 ÷ 2) wrongly warned
+  // «буде 10» for a 13-spread book, scaring users that pages would be lost.
+  const estSpreads = Math.max(minSpreads, Math.min(existingSpreads, Math.max(1, photosForPages)));
+  const estPages = estSpreads * 2;
 
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
