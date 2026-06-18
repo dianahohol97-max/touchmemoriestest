@@ -5932,13 +5932,13 @@ export default function BookLayoutEditor() {
                                     }));
                                   });
                                 }}
-                                onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(1, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
-                                <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:`${bCropX}% ${bCropY}%`, userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                                onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.3, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
+                                <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
                               <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                                 style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
-                                <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(1,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
+                                <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(0.3,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
                                 <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.min(4,(p.backCoverZoom??1)+0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>+</button>
                                 <div style={{width:1,height:10,background:'rgba(255,255,255,0.3)',margin:'0 1px'}}/>
