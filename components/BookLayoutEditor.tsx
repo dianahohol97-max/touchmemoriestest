@@ -180,7 +180,7 @@ type LayoutType =
   // Колаж зі стовпцями-парами (велике + пара фото стопкою)
   'sp-6-pairs' | 'sp-4-pairs-center';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; fit?: 'cover' | 'contain'; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -6456,7 +6456,7 @@ export default function BookLayoutEditor() {
                                 <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
                                   onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                  style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
+                                  style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
                                 {/* Zoom hint + badge */}
                                 {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                   <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
@@ -6530,6 +6530,13 @@ export default function BookLayoutEditor() {
                                         style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
                                         <Crop size={11}/>
                                         <span style={{fontSize:9,fontWeight:700}}>Слот</span>
+                                      </button>
+                                      <button
+                                        onClick={e=>e.stopPropagation()}
+                                        onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:(sl.fit==='contain'?{...sl,fit:'cover'}:{...sl,fit:'contain',zoom:1,cropX:50,cropY:50}))}));}}
+                                        title="Показати фото повністю, без обрізки під форму слота"
+                                        style={{background:(slot!.fit==='contain'?'rgba(34,197,94,0.9)':'rgba(255,255,255,0.15)'),border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                        <span style={{fontSize:9,fontWeight:700}}>{slot!.fit==='contain'?'Повністю':'Без обрізки'}</span>
                                       </button>
                                     </div>
                                   </div>
@@ -7158,7 +7165,7 @@ export default function BookLayoutEditor() {
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                    style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                    style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
                                   {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                     <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
@@ -7235,6 +7242,13 @@ export default function BookLayoutEditor() {
                                           style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
                                           <Crop size={11}/>
                                           <span style={{fontSize:9,fontWeight:700}}>Слот</span>
+                                        </button>
+                                        <button
+                                          onClick={e=>e.stopPropagation()}
+                                          onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:(sl.fit==='contain'?{...sl,fit:'cover'}:{...sl,fit:'contain',zoom:1,cropX:50,cropY:50}))}));}}
+                                          title="Показати фото повністю, без обрізки під форму слота"
+                                          style={{background:(slot!.fit==='contain'?'rgba(34,197,94,0.9)':'rgba(255,255,255,0.15)'),border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
+                                          <span style={{fontSize:9,fontWeight:700}}>{slot!.fit==='contain'?'Повністю':'Без обрізки'}</span>
                                         </button>
                                       </div>
                                     </div>

@@ -40,7 +40,7 @@ function PreviewCoverText({ tb, maxWidthPx }: { tb: { text: string; fontSize: nu
 
 interface SlotData {
   photoId: string | null;
-  cropX: number; cropY: number; zoom: number;
+  cropX: number; cropY: number; zoom: number; fit?: 'cover' | 'contain';
   rotation?: number;
   shape?: 'rect' | 'rounded' | 'circle' | 'heart';
   customX?: number; customY?: number; customW?: number; customH?: number;
@@ -296,7 +296,7 @@ export function BookPreviewModal({
         transform: slot.rotation ? `rotate(${slot.rotation}deg)` : undefined,
       }}>
         <img src={photo.preview} alt="" draggable={false} style={{
-          width: '100%', height: '100%', objectFit: 'cover',
+          width: '100%', height: '100%', objectFit: (slot.fit || 'cover'),
           objectPosition: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
           transform: `scale(${slot.zoom || 1})`,
           transformOrigin: 'center',
@@ -421,7 +421,7 @@ export function BookPreviewModal({
             <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
           </div>
         ) : backPhoto ? (
-          <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} draggable={false} />
+          <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, objectPosition: `${(coverState as any)?.backCoverCropX ?? 50}% ${(coverState as any)?.backCoverCropY ?? 50}%`, transform: `scale(${(coverState as any)?.backCoverZoom ?? 1})`, transformOrigin: 'center' }} draggable={false} />
         ) : null}
         {/* Free-positioned back cover text. Read-only in preview; the
             same x/y/fontSize/fontFamily/color/bold shape as the editor
