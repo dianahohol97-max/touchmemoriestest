@@ -844,14 +844,17 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         const itemOptions: Record<string, string> = {};
         const missing: string[] = [];
 
-        if (isPhotobook) {
-            if (photobookOptions && photobookOptions.size && photobookOptions.pages) {
-                itemOptions['Розмір'] = photobookOptions.size;
-                itemOptions['Кількість сторінок'] = `${photobookOptions.pages} сторінок`;
-                if (photobookOptions.calca) itemOptions['Калька'] = 'Так';
-            } else {
-                missing.push('розмір та кількість сторінок');
-            }
+        // Variant-based photobooks (PhotobookOptions component) carry size +
+        // pages on the product page — lock those into the certificate. But
+        // some photobook products (e.g. photobook-printed) defer size/pages to
+        // the editor and only expose DB options here, so photobookOptions stays
+        // null. For those we fall through to the DB-options branch below — same
+        // as handleAddToCart — instead of demanding a size/page selection that
+        // doesn't exist on the page.
+        if (isPhotobook && photobookOptions) {
+            itemOptions['Розмір'] = photobookOptions.size;
+            itemOptions['Кількість сторінок'] = `${photobookOptions.pages} сторінок`;
+            if (photobookOptions.calca) itemOptions['Калька'] = 'Так';
         } else if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
                 if (opt.type === 'velour_swatches') {
