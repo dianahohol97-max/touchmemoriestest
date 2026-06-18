@@ -193,8 +193,14 @@ export default function CheckoutPage() {
     const hasMixedFullOnly = fullOnlyBase > 0 && fullOnlyBase < total;
 
     const checkoutTracked = useRef(false);
+    // Set while we are intentionally sending the buyer to the Monobank payment
+    // page. clearCart() empties the cart right before that redirect, which would
+    // otherwise trip the "empty cart → /catalog" effect below and hijack the
+    // navigation (buyer lands on the catalog instead of the payment page — the
+    // "оплата не з'явилась" bug). The guard lets the payment redirect win.
+    const redirectingToPaymentRef = useRef(false);
     useEffect(() => {
-        if (items.length === 0 && currentStep !== 'complete') {
+        if (items.length === 0 && currentStep !== 'complete' && !redirectingToPaymentRef.current) {
             router.push('/catalog');
         }
         if (items.length > 0 && !checkoutTracked.current) {
@@ -492,6 +498,10 @@ export default function CheckoutPage() {
                 return;
             }
 
+            // Mark that we're leaving for the payment page BEFORE clearing the
+            // cart, so the "empty cart → /catalog" effect can't hijack the
+            // navigation and the buyer actually reaches Monobank.
+            redirectingToPaymentRef.current = true;
             clearCart();
             toast.dismiss();
             window.location.href = invoiceData.pageUrl;
