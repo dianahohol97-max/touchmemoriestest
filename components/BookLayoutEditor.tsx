@@ -2552,7 +2552,15 @@ export default function BookLayoutEditor() {
       maxPages: photoBudget,
       density: opts.density,
       variety: opts.variety,
-      coverPhotoEnabled: opts.coverPhoto,
+      // Only reserve a photo for the cover when the cover can actually DISPLAY
+      // one. Printed photo covers do; material covers (velour / leatherette /
+      // fabric → isPrinted=false), wishbook cover-only flows, and hard-cover
+      // journals (isPrinted=true but no photo slot) do NOT. The cover-photo
+      // APPLICATION below is gated by `isPrinted && !isWishbook`, so reserving
+      // a cover photo for any other product removed it from the inner-page pool
+      // without ever placing it — one uploaded photo silently vanished
+      // ("13 фото · використано 12" on a leatherette cover). Match the gate.
+      coverPhotoEnabled: opts.coverPhoto && isPrinted && !isWishbook && !isHardCoverJournal,
       hasKalka: hasKalka,
       hasEndpaper: hasEndpaper,
     });
