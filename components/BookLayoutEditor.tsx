@@ -4270,7 +4270,7 @@ export default function BookLayoutEditor() {
                         onClick={(e) => { if(e.ctrlKey||e.metaKey){ if(!used){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
                         style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', opacity: used ? 0.6 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : used ? '1px solid #10b981' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
-                          <img src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                          <img loading="lazy" src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}></div>}
                           {used && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents:'none' }}><span style={{fontSize:9,fontWeight:800,color:'#1d4ed8',background:'rgba(255,255,255,0.9)',padding:'2px 6px',borderRadius:6}}>для заміни</span></div>}
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
@@ -4682,7 +4682,7 @@ export default function BookLayoutEditor() {
                               draggable
                               onDragStart={e => { e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                               style={{ aspectRatio:'1', borderRadius:4, overflow:'hidden', cursor:'grab', border: coverState.photoId===ph.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0' }}>
-                              <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                              <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                             </div>
                           ))}
                         </div>
@@ -7776,7 +7776,7 @@ export default function BookLayoutEditor() {
                         };
                         return (
                           <div key={i} style={ss}>
-                            {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                            {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                           </div>
                         );
                       })}
@@ -7807,7 +7807,7 @@ export default function BookLayoutEditor() {
                       };
                       return (
                         <div key={i} style={ss}>
-                          {ph && <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                          {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                         </div>
                       );
                     })}
@@ -7919,7 +7919,7 @@ export default function BookLayoutEditor() {
                     }
                   }}
                   style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isSel ? '2.5px solid #7c3aed' : isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
-                  <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                  <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                   {isSel && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:22, height:22, borderRadius:999, background:'#7c3aed', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{selOrder}</span></div>}
                   {!isSel && isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
                   {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
@@ -8064,7 +8064,7 @@ export default function BookLayoutEditor() {
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}
                          onMouseEnter={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x && !used) x.style.opacity = '1'; }}
                          onMouseLeave={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x) x.style.opacity = '0'; }}>
-                      <img src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                      <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
