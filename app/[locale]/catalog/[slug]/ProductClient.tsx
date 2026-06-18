@@ -1749,7 +1749,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         >
                                             {isFillableAlbum ? 'Додати в кошик' : t('product_page.open_editor')}
                                         </button>
-                                        {!isFillableAlbum && (isWishbookProduct(product.slug || resolvedParams.slug) ? (
+                                        {!isFillableAlbum && product.has_designer_option && (isWishbookProduct(product.slug || resolvedParams.slug) ? (
                                             <button
                                                 onClick={() => requireAuth(
                                                     () => setGuestbookModalOpen(true),
