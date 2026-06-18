@@ -5,6 +5,37 @@ export interface SlotDef {
   s: React.CSSProperties;
 }
 
+// Slots can carry a manual resize override (free-resize handles in the editor).
+// New overrides are stored as PERCENT of the slot's container (customPct === true)
+// so they resolve to identical geometry at any resolution — the editor canvas,
+// the preview modal, and the html2canvas print snapshot all agree. Legacy
+// overrides (no customPct flag) were stored as raw px against the editor canvas
+// size; we pass those through unchanged so existing drafts render exactly as
+// before. resolveCustomSlot is the single place that interprets either form.
+export interface CustomSlotGeom {
+  customX?: number; customY?: number; customW?: number; customH?: number;
+  customPct?: boolean;
+}
+
+export function resolveCustomSlot(
+  slot: CustomSlotGeom | null | undefined,
+  W: number,
+  H: number,
+): { left: number; top: number; width: number; height: number } | null {
+  if (!slot || slot.customX === undefined || slot.customY === undefined
+      || slot.customW === undefined || slot.customH === undefined) return null;
+  if (slot.customPct) {
+    return {
+      left: (slot.customX / 100) * W,
+      top: (slot.customY / 100) * H,
+      width: (slot.customW / 100) * W,
+      height: (slot.customH / 100) * H,
+    };
+  }
+  // Legacy px override — render as authored (no reference dims to scale by).
+  return { left: slot.customX, top: slot.customY, width: slot.customW, height: slot.customH };
+}
+
 // SINGLE SOURCE OF TRUTH for photo-slot geometry.
 // This file is kept byte-for-byte in sync with the layout math used by the
 // editor canvas (which is what html2canvas snapshots for print). The preview

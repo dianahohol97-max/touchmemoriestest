@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getSlotDefs } from '@/lib/editor/slot-defs';
+import { getSlotDefs, resolveCustomSlot } from '@/lib/editor/slot-defs';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
@@ -43,7 +43,7 @@ interface SlotData {
   cropX: number; cropY: number; zoom: number; fit?: 'cover' | 'contain';
   rotation?: number;
   shape?: 'rect' | 'rounded' | 'circle' | 'heart';
-  customX?: number; customY?: number; customW?: number; customH?: number;
+  customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean;
 }
 
 interface TextBlock {
@@ -328,8 +328,9 @@ export function BookPreviewModal({
           const slot = page.slots[i];
           if (!slot) return null;
           const photo = getPhoto(slot.photoId);
-          const ss: React.CSSProperties = slot.customX !== undefined
-            ? { ...s, left: slot.customX, top: slot.customY, width: slot.customW, height: slot.customH }
+          const customGeom = resolveCustomSlot(slot, cW, cH);
+          const ss: React.CSSProperties = customGeom
+            ? { ...s, left: customGeom.left, top: customGeom.top, width: customGeom.width, height: customGeom.height }
             : s;
           if (!photo) return <div key={i} style={{ ...ss, background: 'rgba(241,245,249,0.6)', borderRadius: 3 }} />;
           return <React.Fragment key={i}>{renderSlotPhoto(slot, ss)}</React.Fragment>;

@@ -11,6 +11,7 @@ import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
 import { ReadyCoversPicker } from './editor/ReadyCoversPicker';
 import { PageTemplatesPicker } from './editor/PageTemplatesPicker';
 import { PageTemplate, PAGE_TEMPLATES } from '@/lib/editor/page-templates';
+import { resolveCustomSlot } from '@/lib/editor/slot-defs';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
@@ -180,7 +181,7 @@ type LayoutType =
   // Колаж зі стовпцями-парами (велике + пара фото стопкою)
   'sp-6-pairs' | 'sp-4-pairs-center';
 
-interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; fit?: 'cover' | 'contain'; }
+interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean; fit?: 'cover' | 'contain'; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
@@ -6313,10 +6314,14 @@ export default function BookLayoutEditor() {
                       const photo = slot ? getPhoto(slot.photoId) : null;
                       const key = `spread-${spreadPageIdx}-${i}`;
                       const isOver = dropTarget === key;
-                      // Custom overrides: if slot has customX/Y/W/H, use those instead of layout defaults
-                      const hasCustom = slot?.customX !== undefined;
-                      const slotStyle: React.CSSProperties = hasCustom ? {
-                        ...s, left: slot!.customX, top: slot!.customY, width: slot!.customW, height: slot!.customH
+                      // Custom overrides: stored as % of the spread (customPct) so the
+                      // editor canvas, preview modal and html2canvas print snapshot resolve
+                      // to identical geometry at any size. resolveCustomSlot also passes
+                      // legacy px overrides through unchanged.
+                      const customGeom = resolveCustomSlot(slot, spreadW, cH);
+                      const hasCustom = customGeom !== null;
+                      const slotStyle: React.CSSProperties = customGeom ? {
+                        ...s, left: customGeom.left, top: customGeom.top, width: customGeom.width, height: customGeom.height
                       } : s;
                       // Slot drag for repositioning/resizing
                       const startSpreadSlotDrag = (e2: React.PointerEvent, type: 'move'|'se'|'sw'|'ne'|'nw') => {
@@ -6331,11 +6336,8 @@ export default function BookLayoutEditor() {
                           .filter(({ i: idx }) => idx !== i)
                           .map(({ i: idx, s: ss }) => {
                             const otherSlot = spreadPage?.slots[idx];
-                            const oCustom = otherSlot?.customX !== undefined;
-                            return oCustom ? {
-                              left: otherSlot!.customX!, top: otherSlot!.customY!,
-                              width: otherSlot!.customW!, height: otherSlot!.customH!,
-                            } : {
+                            const oGeom = resolveCustomSlot(otherSlot, spreadW, cH);
+                            return oGeom ? oGeom : {
                               left: Number(ss.left)||0, top: Number(ss.top)||0,
                               width: Number(ss.width)||0, height: Number(ss.height)||0,
                             };
@@ -6359,7 +6361,7 @@ export default function BookLayoutEditor() {
                           nw = Math.min(nw, spreadW - nx);
                           nh = Math.min(nh, cH - ny);
                           setSnapGuides({ v: snapped.guidesV, h: snapped.guidesH });
-                          setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
+                          setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: (nx/spreadW)*100, customY: (ny/cH)*100, customW: (nw/spreadW)*100, customH: (nh/cH)*100, customPct: true }) }));
                         }, () => {
                           // Drag end — clear snap guides
                           setSnapGuides({ v: [], h: [] });
@@ -7096,9 +7098,10 @@ export default function BookLayoutEditor() {
                         // Custom slot geometry (free resize in journals): if the slot has
                         // customX/Y/W/H, those override the layout defaults — same model the
                         // photobook spread editor uses. Coordinates are page-space px (pageW×cH).
-                        const hasCustom = slot?.customX !== undefined;
-                        const slotStyle: React.CSSProperties = hasCustom
-                          ? { ...s, left: slot!.customX, top: slot!.customY, width: slot!.customW, height: slot!.customH }
+                        const customGeom = resolveCustomSlot(slot, pageW, cH);
+                        const hasCustom = customGeom !== null;
+                        const slotStyle: React.CSSProperties = customGeom
+                          ? { ...s, left: customGeom.left, top: customGeom.top, width: customGeom.width, height: customGeom.height }
                           : s;
                         const startPageSlotDrag = (e2: React.PointerEvent, type: 'move'|'se'|'sw'|'ne'|'nw') => {
                           e2.stopPropagation(); e2.preventDefault();
@@ -7119,7 +7122,7 @@ export default function BookLayoutEditor() {
                             ny = Math.max(0, Math.min(cH - nh, ny));
                             nw = Math.min(nw, pageW - nx);
                             nh = Math.min(nh, cH - ny);
-                            setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: nx, customY: ny, customW: nw, customH: nh }) }));
+                            setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: (nx/pageW)*100, customY: (ny/cH)*100, customW: (nw/pageW)*100, customH: (nh/cH)*100, customPct: true }) }));
                           });
                         };
                         return (
