@@ -6813,7 +6813,7 @@ export default function BookLayoutEditor() {
                         Margins come from BLEED_MARGINS keyed by sizeKey — real values from
                         the print partner, not a generic percentage. Editor-only overlay,
                         does NOT affect saved/exported files. */}
-                    <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${spreadW} ${cH}`} preserveAspectRatio="none">
+                    <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${spreadW} ${cH}`} preserveAspectRatio="none">
                       <rect x={spreadW*bleed.left}
                             y={cH*bleed.top}
                             width={spreadW*(1 - bleed.left - bleed.right)}
@@ -6824,8 +6824,8 @@ export default function BookLayoutEditor() {
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
                     {/* Trim line label — corner badge, small and translucent */}
-                    <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
-                      t('constructor.crop_zone_short')
+                    <div data-html2canvas-ignore="true" style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
+                      {t('constructor.crop_zone_short')}
                     </div>
                   </div>
                 );
@@ -7580,7 +7580,7 @@ export default function BookLayoutEditor() {
                     since neither page is a normal photo page. */}
                 {!(hasKalka && currentIdx === 1) && (
                   <>
-                    <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${pageW*2} ${cH}`} preserveAspectRatio="none">
+                    <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${pageW*2} ${cH}`} preserveAspectRatio="none">
                       <rect x={pageW*2*bleed.left}
                             y={cH*bleed.top}
                             width={pageW*2*(1 - bleed.left - bleed.right)}
@@ -7589,8 +7589,8 @@ export default function BookLayoutEditor() {
                       <line x1={pageW} y1={cH*bleed.top} x2={pageW} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
-                    <div style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
-                      t('constructor.crop_zone_short')
+                    <div data-html2canvas-ignore="true" style={{position:'absolute',top:4,left:4,zIndex:16,pointerEvents:'none',background:'rgba(239,68,68,0.6)',color:'#fff',fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:4,letterSpacing:0.2,opacity:0.75}}>
+                      {t('constructor.crop_zone_short')}
                     </div>
                   </>
                 )}
