@@ -1664,7 +1664,15 @@ export default function BookLayoutEditor() {
           // authoritative design (it may include endpapers/forzac that make the
           // raw page count differ), so never discard it on the count heuristic.
           const isReopen = !!sessionStorage.getItem('bookReopenProjectId') || !!sessionStorage.getItem('bookEditCartItemId');
-          if (!isReopen && (Math.abs(draftContent - expectedTotal) > 2 || magazineMinTooLow)) {
+          // Keep the draft only when it has AT LEAST the ordered content pages
+          // (the +0..+4 headroom absorbs the kalka/forzac extras). A draft that
+          // is SHORTER than the order is stale/incomplete — e.g. a 10-page draft
+          // restored for a 12-page order — and must rebuild to the ordered count
+          // instead of silently dropping pages the customer paid for. Previously
+          // abs(diff) <= 2 kept a short draft, so the editor opened with fewer
+          // pages than ordered.
+          const draftCountMismatch = draftContent < expectedTotal || draftContent - expectedTotal > 4;
+          if (!isReopen && (draftCountMismatch || magazineMinTooLow)) {
             // Draft is from a different order — discard it
             sessionStorage.removeItem(draftKey);
           } else {
@@ -1838,7 +1846,10 @@ export default function BookLayoutEditor() {
         if (d.pages?.length) {
           const draftContent = d.pages.length - 1; // exclude cover
           const isReopen = !!sessionStorage.getItem('bookReopenProjectId') || !!sessionStorage.getItem('bookEditCartItemId');
-          if (isReopen || Math.abs(draftContent - total) <= 2) return;
+          // Keep the draft only if it has at least the ordered pages (kalka adds
+          // up to +4). A short draft is stale → fall through and rebuild to the
+          // ordered count. Mirrors the restore-effect rule above.
+          if (isReopen || (draftContent >= total && draftContent - total <= 4)) return;
           // Stale draft for a different page count — drop it and rebuild.
           sessionStorage.removeItem(initSlug ? `bookEditorDraft_${initSlug}` : 'bookEditorDraft');
         }
