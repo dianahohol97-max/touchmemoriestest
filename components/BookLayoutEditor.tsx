@@ -2087,6 +2087,42 @@ export default function BookLayoutEditor() {
     if (z != null) setZoom(z);
   };
 
+  // ── One-time migration: legacy custom slot geometry (raw px) → percent ──
+  // Manually-resized slots used to be stored as raw editor-canvas px, which are
+  // resolution-dependent: they render fine on the big editor canvas but drift
+  // (white gaps) in the much-smaller preview modal and can mis-scale on the
+  // print snapshot. resolveCustomSlot now reads percent overrides (customPct);
+  // here we convert any pre-existing px overrides in an opened draft to percent
+  // of the current container, then flag them so every renderer agrees. Guarded
+  // by a ref so it runs at most once per opened book.
+  const legacyCustomMigratedRef = React.useRef(false);
+  useEffect(() => {
+    if (legacyCustomMigratedRef.current) return;
+    if (!Array.isArray(pages) || pages.length === 0) return;
+    const W = isSpreadMode ? cW : pageW;
+    const H = cH;
+    if (!(W > 0) || !(H > 0)) return; // dimensions not ready yet — retry next render
+    const needs = pages.some(p =>
+      (p?.slots || []).some((s: SlotData) => s && s.customX !== undefined && !s.customPct)
+    );
+    if (!needs) { legacyCustomMigratedRef.current = true; return; }
+    legacyCustomMigratedRef.current = true;
+    setPages(prev => prev.map(p => ({
+      ...p,
+      slots: (p.slots || []).map((s: SlotData) => {
+        if (!s || s.customX === undefined || s.customPct) return s;
+        return {
+          ...s,
+          customX: (Number(s.customX) / W) * 100,
+          customY: (Number(s.customY) / H) * 100,
+          customW: (Number(s.customW) / W) * 100,
+          customH: (Number(s.customH) / H) * 100,
+          customPct: true,
+        };
+      }),
+    })));
+  }, [pages, isSpreadMode, cW, pageW, cH]);
+
   // Init cover state from config
   useEffect(() => {
     if (!config) return;
