@@ -52,10 +52,10 @@ const DIRECT_CONSTRUCTOR_ROUTES: Partial<Record<ProductType, string>> = {
 
 // Products that go directly to a simple order form (no visual constructor)
 const DIRECT_ORDER_ROUTES: Partial<Record<ProductType, string>> = {
-  'prints':   '/order/prints',
-  'magnets':  '/order/magnets',
+  'prints':   '/order/photoprint',
+  'magnets':  '/order/photomagnets',
   'puzzles':  '/order/puzzles',
-  'posters':  '/editor/poster',
+  'posters':  '/order/poster',
 };
 
 // Constructor URLs used by the wizard after mode selection

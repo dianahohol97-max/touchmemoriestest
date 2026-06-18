@@ -1,12 +1,9 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-import dynamicImport from 'next/dynamic';
-
-const PosterEditor = dynamicImport(
-  () => import('@/components/PosterEditor'), { ssr: false });
-
+// The live poster flow is /order/poster (PosterConstructor), which attaches the
+// composed poster + photos to the order via an export descriptor. The older
+// PosterEditor here added to cart WITHOUT that descriptor, so poster orders made
+// through it lost their design. Redirect to the working flow.
 export default function PosterEditorPage() {
-  return <PosterEditor />;
+  redirect('/order/poster');
 }

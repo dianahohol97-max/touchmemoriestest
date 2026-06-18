@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ConstructorPage() {
-  redirect('/order/book?product=photoalbum')
+  redirect('/catalog') // no single "photoalbum" product — let the customer pick an album
 }
