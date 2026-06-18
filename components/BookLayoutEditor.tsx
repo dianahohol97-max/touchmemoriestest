@@ -1723,8 +1723,20 @@ export default function BookLayoutEditor() {
     if (!photos.length) return;
     if (photosTimerRef.current) clearTimeout(photosTimerRef.current);
     photosTimerRef.current = setTimeout(() => {
+      // Full base64 previews can't fit sessionStorage's ~5MB quota beyond a
+      // few photos. Estimate the payload size FIRST and skip the full-base64
+      // attempt when it can't possibly fit — that giant (100MB+) main-thread
+      // JSON.stringify was freezing the editor on load (focal detection updates
+      // each photo → re-runs here) and getting heavier as more photos/edits
+      // piled up, while ALWAYS failing the quota and falling back to meta
+      // anyway. The editor keeps full previews in memory for the session;
+      // sessionStorage is only for refresh-recovery (re-prompts upload).
+      const approxPreviewBytes = photos.reduce((n, p) => n + (p.preview?.length || 0), 0);
+      const previewsFit = approxPreviewBytes < 3_500_000;
       try {
-        const data = photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }));
+        const data = previewsFit
+          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }))
+          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }));
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
         // sessionStorage quota exceeded. We can't fit full-size data URLs in
