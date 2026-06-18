@@ -1,6 +1,6 @@
 'use client';
 import { useTranslation } from '@/lib/i18n/context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
@@ -9,12 +9,13 @@ import Image from 'next/image';
 import { Trash2, Plus, Minus, ChevronRight, ImageIcon, Pencil } from 'lucide-react';
 import { logCartEvent } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
+import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { useRouter } from 'next/navigation';
 
 
 export default function CartPage() {
     const { t, locale } = useTranslation();
-    const { items, removeItem, updateQuantity, getTotal, getDuplicateDiscount } = useCartStore();
+    const { items, removeItem, updateQuantity } = useCartStore();
     const router = useRouter();
 
     // Which cart items have a re-openable design snapshot (saved by the editor
@@ -30,6 +31,36 @@ export default function CartPage() {
         }
         setEditableIds(ids);
     }, [items]);
+
+    // Which items the customer wants to order RIGHT NOW. Defaults to all. The
+    // customer can uncheck items to leave them in the cart for a separate order
+    // (e.g. a different delivery address or a later date). Checkout reads this
+    // selection and processes only the chosen items; the rest stay in the cart.
+    const prevItemIdsRef = useRef<Set<string>>(new Set());
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        setSelectedIds((prev) => {
+            const next = new Set<string>();
+            for (const it of items) {
+                // keep previous choice; brand-new items default to selected
+                if (prev.size === 0 || prev.has(it.id) || !prevItemIdsRef.current.has(it.id)) next.add(it.id);
+            }
+            prevItemIdsRef.current = new Set(items.map((i) => i.id));
+            return next;
+        });
+    }, [items]);
+
+    const toggleSelected = (id: string) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+    const allSelected = items.length > 0 && items.every((i) => selectedIds.has(i.id));
+    const toggleSelectAll = () => {
+        setSelectedIds(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+    };
 
     const editCartItem = (item: { id: string }) => {
         try {
@@ -53,13 +84,18 @@ export default function CartPage() {
     }, [items.length]);
 
     const goToCheckout = () => {
-        if (items.length === 0) return;
+        const ids = items.filter((i) => selectedIds.has(i.id)).map((i) => i.id);
+        if (ids.length === 0) return;
+        try { sessionStorage.setItem('tmCheckoutItemIds', JSON.stringify(ids)); } catch { /* ignore */ }
         router.push(`/${locale}/checkout`);
     };
 
-    const total = getTotal();
-    const dupDiscount = getDuplicateDiscount();
+    // Summary reflects only the SELECTED items (what will be ordered now).
+    const selItems = items.filter((i) => selectedIds.has(i.id));
+    const total = selItems.reduce((s, i) => s + i.price * i.qty, 0);
+    const dupDiscount = duplicateDiscountForCart(selItems as any);
     const netTotal = Math.max(0, total - dupDiscount);
+    const selectedCount = selItems.length;
 
     // Some items (built in the constructor) are added without an image. Fall back
     // to the product's catalog image so the cart always shows an illustration.
@@ -109,10 +145,22 @@ export default function CartPage() {
 
                             {/* Items List */}
                             <div style={cardStyle}>
-                                <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px' }}>Товари ({items.length})</h2>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', gap: 12, flexWrap: 'wrap' }}>
+                                    <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>Товари ({items.length})</h2>
+                                    {items.length > 1 && (
+                                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b', cursor: 'pointer', userSelect: 'none' }}>
+                                            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll}
+                                                style={{ width: 18, height: 18, accentColor: '#263a99', cursor: 'pointer' }} />
+                                            Обрати всі
+                                        </label>
+                                    )}
+                                </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                                     {items.map((item) => (
-                                        <div key={item.id} style={{ display: 'flex', gap: '20px', alignItems: 'center', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0' }}>
+                                        <div key={item.id} style={{ display: 'flex', gap: '20px', alignItems: 'center', paddingBottom: '24px', borderBottom: '1px solid #f0f0f0', opacity: selectedIds.has(item.id) ? 1 : 0.5, transition: 'opacity 0.15s' }}>
+                                            <input type="checkbox" aria-label="Обрати товар для замовлення"
+                                                checked={selectedIds.has(item.id)} onChange={() => toggleSelected(item.id)}
+                                                style={{ width: 20, height: 20, accentColor: '#263a99', cursor: 'pointer', flexShrink: 0 }} />
                                             <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', position: 'relative', background: '#f1f5f9' }}>
                                                 {(() => {
                                                     const imgSrc = item.image || (item.product_id ? catalogImages[item.product_id] : '') || '';
@@ -189,11 +237,17 @@ export default function CartPage() {
 
                                 <button
                                     onClick={goToCheckout}
-                                    style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', width: '100%' }}
+                                    disabled={selectedCount === 0}
+                                    style={{ ...actionBtnStyle, backgroundColor: 'white', color: 'var(--primary)', width: '100%', opacity: selectedCount === 0 ? 0.5 : 1, cursor: selectedCount === 0 ? 'not-allowed' : 'pointer' }}
                                     className="hover-lift"
                                 >
-                                    <ChevronRight size={20} /> {t('cart.checkout') || 'Оформити замовлення'}
+                                    <ChevronRight size={20} /> {(t('cart.checkout') || 'Оформити замовлення')}{items.length > 1 ? ` (${selectedCount})` : ''}
                                 </button>
+                                {items.length > 1 && selectedCount > 0 && selectedCount < items.length && (
+                                    <p style={{ margin: '12px 0 0', fontSize: 12, opacity: 0.8, textAlign: 'center' }}>
+                                        Замовиш {selectedCount} з {items.length}. Решта лишиться в кошику для окремого замовлення.
+                                    </p>
+                                )}
                             </div>
                         </aside>
 

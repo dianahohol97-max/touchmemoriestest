@@ -32,6 +32,9 @@ interface CartState {
     addItems: (items: CartItem[]) => void;
     replaceItem: (item: CartItem) => void;
     removeItem: (id: string | number) => void;
+    /** Remove several items at once (e.g. after a partial checkout where only
+     * the selected items were paid for — the rest stay in the cart). */
+    removeItems: (ids: Array<string | number>) => void;
     updateQuantity: (id: string | number, qty: number) => void;
     clearCart: () => void;
     getTotal: () => number;
@@ -89,6 +92,10 @@ export const useCartStore = create<CartState>()(
             removeItem: (id) => set((state) => ({
                 items: state.items.filter((i) => i.id !== id),
             })),
+            removeItems: (ids) => set((state) => {
+                const drop = new Set(ids.map((x) => String(x)));
+                return { items: state.items.filter((i) => !drop.has(String(i.id))) };
+            }),
             updateQuantity: (id, qty) => set((state) => ({
                 items: state.items.map((i) =>
                     i.id === id ? { ...i, qty: Math.max(i.min_qty ?? 1, qty) } : i

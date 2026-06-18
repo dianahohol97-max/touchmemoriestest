@@ -4,6 +4,7 @@ import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { useCartStore } from '@/store/cart-store';
+import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { getAvailablePaymentOptions, computePaymentAmounts } from '@/lib/payment/options';
 import { resolvePriceMultiplier, defaultShipRegion, computeIntlShippingUah, DEFAULT_INTL_SHIPPING, type ShipRegion } from '@/lib/payment/pricing-region';
 import { formatPrice, type Currency } from '@/lib/i18n/currency';
@@ -31,14 +32,29 @@ import Image from 'next/image';
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
 export default function CheckoutPage() {
-    const { items, getTotal, getDuplicateDiscount, clearCart } = useCartStore();
+    const { items: allItems, removeItems } = useCartStore();
     const router = useRouter();
     const { t, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const rawTotal = getTotal();
-    const dupDiscount = getDuplicateDiscount();
+
+    // Partial checkout: the cart page stores which items to order now. Filter to
+    // those; fall back to the whole cart if the selection is missing/stale, so a
+    // direct visit or an invalid selection never renders an empty checkout. Read
+    // once on mount (not cleared until success) so a mid-flow refresh keeps it.
+    const [checkoutSelIds] = useState<string[] | null>(() => {
+        if (typeof window === 'undefined') return null;
+        try { const raw = sessionStorage.getItem('tmCheckoutItemIds'); return raw ? JSON.parse(raw) : null; } catch { return null; }
+    });
+    const items = (() => {
+        if (!checkoutSelIds || checkoutSelIds.length === 0) return allItems;
+        const sel = new Set(checkoutSelIds.map(String));
+        const filtered = allItems.filter((i: any) => sel.has(String(i.id)));
+        return filtered.length > 0 ? filtered : allItems;
+    })();
+
+    const rawTotal = items.reduce((s: number, it: any) => s + it.price * it.qty, 0);
+    const dupDiscount = duplicateDiscountForCart(items as any);
     const [promoCode, setPromoCode] = useState('');
     const [promoInput, setPromoInput] = useState('');
     const [promoDiscount, setPromoDiscount] = useState(0);
@@ -222,12 +238,12 @@ export default function CheckoutPage() {
                 body: JSON.stringify({
                     email,
                     items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, image: it.image })),
-                    total: getTotal(),
+                    total: rawTotal,
                 }),
             }).catch(() => {});
         }, 1500);
         return () => clearTimeout(t);
-    }, [formData.email, items, getTotal]);
+    }, [formData.email, items, rawTotal]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -502,7 +518,10 @@ export default function CheckoutPage() {
             // cart, so the "empty cart → /catalog" effect can't hijack the
             // navigation and the buyer actually reaches Monobank.
             redirectingToPaymentRef.current = true;
-            clearCart();
+            // Partial checkout: drop only the items being paid for now; anything
+            // the customer left unchecked stays in the cart for a separate order.
+            removeItems(cartItemIds);
+            try { sessionStorage.removeItem('tmCheckoutItemIds'); } catch { /* ignore */ }
             toast.dismiss();
             window.location.href = invoiceData.pageUrl;
 
