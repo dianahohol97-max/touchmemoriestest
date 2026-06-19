@@ -198,13 +198,13 @@ export default function TeamPage() {
             let saved: any = null;
             try { saved = await res.json(); } catch { /* ignore */ }
             const login = saved?._login;
-            if (login?.created && login?.emailed) {
-                toast.success('Співробітника збережено. Лист із паролем надіслано на email.');
-            } else if (login?.created && login?.tempPassword) {
-                toast.success('Співробітника збережено. Акаунт створено.');
-                alert(`Акаунт створено, але лист не надіслався.\n\nПередайте дані для входу вручну:\nEmail: ${formData.email}\nТимчасовий пароль: ${login.tempPassword}\n\nВхід: /admin/login`);
-            } else if (login?.note === 'account-exists') {
-                toast.success('Співробітника збережено. Обліковий запис із таким email уже існує — пароль не змінювали.');
+            if ((login?.created || login?.reset) && login?.emailed) {
+                toast.success('Співробітника збережено. Лист із паролем для входу надіслано на email.');
+            } else if ((login?.created || login?.reset) && login?.tempPassword) {
+                toast.success('Співробітника збережено. Доступ налаштовано.');
+                alert(`Доступ налаштовано, але лист не надіслався.\n\nПередайте дані для входу вручну:\nEmail: ${formData.email}\nТимчасовий пароль: ${login.tempPassword}\n\nВхід: /admin/login`);
+            } else if (login?.note === 'account-exists-has-password') {
+                toast.success('Співробітника збережено. Цей email уже має робочий пароль — не змінювали.');
             } else {
                 toast.success('Співробітника збережено');
             }

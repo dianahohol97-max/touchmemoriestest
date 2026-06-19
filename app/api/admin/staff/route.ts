@@ -46,25 +46,55 @@ async function provisionStaffLogin(
     supabase: SB,
     email: string | null | undefined,
     name: string | null | undefined,
-): Promise<{ created: boolean; emailed: boolean; tempPassword?: string; note?: string }> {
+): Promise<{ created: boolean; reset: boolean; emailed: boolean; tempPassword?: string; note?: string }> {
     const addr = (email || '').trim().toLowerCase();
     if (!addr || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
-        return { created: false, emailed: false, note: 'no-valid-email' };
+        return { created: false, reset: false, emailed: false, note: 'no-valid-email' };
     }
 
     const tempPassword = genTempPassword();
+    let action: 'created' | 'reset' | null = null;
+    let note: string | undefined;
+
     const { data: created, error: createErr } = await supabase.auth.admin.createUser({
         email: addr,
         password: tempPassword,
         email_confirm: true,
     });
 
-    if (createErr || !created?.user) {
-        // Most common reason: the email already has an account (customer or a
-        // previously-created login). Don't reset their password — just skip.
+    if (!createErr && created?.user) {
+        action = 'created';
+    } else {
         const msg = (createErr?.message || '').toLowerCase();
-        const exists = /already|registered|exist/.test(msg);
-        return { created: false, emailed: false, note: exists ? 'account-exists' : (createErr?.message || 'create-failed') };
+        if (/already|registered|exist/.test(msg)) {
+            // Account already exists. If it has NO email+password credential
+            // (e.g. it was created via Google sign-in), set the temp password so
+            // the teammate can use the email+password admin login. If it already
+            // has a working password, leave it untouched.
+            let row: any = null;
+            try {
+                const { data: look } = await supabase.rpc('staff_auth_lookup', { p_email: addr });
+                row = Array.isArray(look) ? look[0] : look;
+            } catch (e) {
+                console.error('staff_auth_lookup failed:', e);
+            }
+            if (row?.uid && row.has_password === false) {
+                const { error: updErr } = await supabase.auth.admin.updateUserById(row.uid, {
+                    password: tempPassword,
+                    email_confirm: true,
+                });
+                if (!updErr) action = 'reset';
+                else note = 'set-password-failed';
+            } else {
+                note = 'account-exists-has-password';
+            }
+        } else {
+            note = createErr?.message || 'create-failed';
+        }
+    }
+
+    if (!action) {
+        return { created: false, reset: false, emailed: false, note };
     }
 
     const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
@@ -84,7 +114,7 @@ async function provisionStaffLogin(
 
     // Return the temp password so the admin UI can show it as a fallback if the
     // email failed to send.
-    return { created: true, emailed, tempPassword };
+    return { created: action === 'created', reset: action === 'reset', emailed, tempPassword };
 }
 
 // Some staff columns (e.g. daily_base_rate / commission_percentage / piece_rate)
