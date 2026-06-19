@@ -262,14 +262,14 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       required: true
     },
     {
-      name: 'Ламінація обкладинки',
-      values: ['Глянцева', 'Матова'],
-      required: true,
-    },
-    {
       name: 'Ламінація сторінок',
       values: ['Без ламінації', 'З ламінацією (+7 ₴/стор)'],
       required: false,
+    },
+    {
+      name: 'Ламінація обкладинки',
+      values: ['Глянцева', 'Матова'],
+      required: true,
     },
     {
       name: 'Друк на форзаці',
