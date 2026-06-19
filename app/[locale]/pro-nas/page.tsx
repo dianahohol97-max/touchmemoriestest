@@ -95,13 +95,6 @@ export default function ProNasPage() {
               >
                 Перейти до каталогу
               </Link>
-              <Link
-                href="/order/book?product=photobook-velour"
-                className="inline-block border-2 border-white px-8 py-4 rounded-lg font-bold hover:bg-white hover:text-[#1e2d7d] transition-all text-center"
-                style={{ color: '#ffffff' }}
-              >
-                Створити зараз
-              </Link>
             </div>
           </section>
         </div>
