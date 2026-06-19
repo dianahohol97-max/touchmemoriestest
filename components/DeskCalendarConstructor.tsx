@@ -228,6 +228,11 @@ export default function DeskCalendarConstructor(){
   const [marks,setMarks]=useState<Record<string,MarkedDate[]>>({});
   const [markShape,setMarkShape]=useState<'circle'|'heart'>('circle');
   const [markColor,setMarkColor]=useState('#1e2d7d');
+  // Shared photo library — upload once, drag to any month slot
+  const [libPhotos,setLibPhotos]=useState<{id:string;url:string}[]>([]);
+  const libFileRef=useRef<HTMLInputElement>(null);
+  const addToLib=(files:FileList|null)=>{if(!files)return;Array.from(files).forEach(f=>{if(!f.type.startsWith('image/'))return;const url=URL.createObjectURL(f);setLibPhotos(prev=>[...prev,{id:`lib_${Date.now()}_${Math.random()}`,url}]);});};
+  const removeFromLib=(id:string)=>setLibPhotos(prev=>prev.filter(p=>p.id!==id));
   const fileRef=useRef<HTMLInputElement>(null);
   const upTarget=useRef<{m:number;s:number;isCover?:boolean}>({m:0,s:0});
   const coverFileRef=useRef<HTMLInputElement>(null);
@@ -403,6 +408,30 @@ export default function DeskCalendarConstructor(){
             </div>
           </div>
 
+          {/* Photo Library */}
+          <div style={{borderRadius:8,border:'1px solid #e2e8f0',background:'#f8faff',padding:'8px 10px'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+              <span style={{fontSize:11,fontWeight:800,color:'#1e2d7d'}}>Бібліотека фото</span>
+              <button onClick={()=>libFileRef.current?.click()} style={{padding:'3px 8px',border:'1px solid #c7d2fe',borderRadius:6,background:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,color:'#1e2d7d'}}>+ Додати</button>
+            </div>
+            <input ref={libFileRef} type="file" accept="image/*" multiple style={{display:'none'}} onChange={e=>addToLib(e.target.files)}/>
+            {libPhotos.length===0 ? (
+              <p style={{fontSize:9,color:'#94a3b8',margin:0,textAlign:'center',padding:'6px 0'}}>Завантажте фото — потім тягніть на місяці</p>
+            ) : (
+              <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
+                {libPhotos.map(p=>(
+                  <div key={p.id} draggable
+                    onDragStart={e=>e.dataTransfer.setData('desk-photo-id',p.id)}
+                    style={{position:'relative',width:46,height:46,borderRadius:5,overflow:'hidden',border:'1.5px solid #c7d2fe',cursor:'grab',flexShrink:0}}>
+                    <img src={p.url} style={{width:'100%',height:'100%',objectFit:'cover'}} draggable={false}/>
+                    <button onClick={e=>{e.stopPropagation();removeFromLib(p.id);}}
+                      style={{position:'absolute',top:1,right:1,width:13,height:13,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:9,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/*  MONTH EDITOR  */}
           <>
           <div>
@@ -452,7 +481,12 @@ export default function DeskCalendarConstructor(){
                     )}
                   </div>
                 ):(
-                  <button key={si} onClick={()=>openUp(active-1,si)} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files?.[0];if(f)setMonthSlotFile(active-1,si,f);}} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+                  <button key={si} onClick={()=>openUp(active-1,si)} onDragOver={e=>e.preventDefault()}
+                  onDrop={e=>{e.preventDefault();
+                    const photoId=e.dataTransfer.getData('desk-photo-id');
+                    if(photoId){const lp=libPhotos.find(p=>p.id===photoId);if(lp){setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[active-1][si]={url:lp.url,zoom:1,cropX:50,cropY:50};return n;});return;}}
+                    const f=e.dataTransfer.files?.[0];if(f)setMonthSlotFile(active-1,si,f);
+                  }} style={{height:52,border:'2px dashed #c7d2fe',borderRadius:6,background:'#f8faff',color:'#1e2d7d',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
                     <Upload size={11}/><span style={{fontSize:8,fontWeight:700}}>{collage.slots>1?`Фото ${si+1}`:t('constructor.photo')}</span>
                   </button>
                 );
