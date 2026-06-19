@@ -1071,7 +1071,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           {activePhoto ? (
             <div>
               <PhotoPreview photo={activePhoto} sizeKey={sizeKey||'10x15'} showBorder={!isMagnet && (isNonstandard || (!isPolaroid && activePhoto.border))}
-                isPolaroid={polaroidActive} isNonstandard={isNonstandard}
+                isPolaroid={polaroidActive} isNonstandard={isNonstandard || isMagnet}
                 onCropChange={updateCrop} onTextChange={polaroidActive?updateText:undefined}
                 polaroidFont={polaroidFont} polaroidColor={polaroidColor}/>
               {photos.length>1 && (
