@@ -24,7 +24,7 @@ interface WelcomeEmailProps {
 
 export default function WelcomeEmail({
     firstName = '',
-    promoCode = 'WELCOME7',
+    promoCode = 'WELCOME5',
     discount = '7%',
     appUrl = 'https://touchmemories.com.ua',
     body,
@@ -56,7 +56,7 @@ export default function WelcomeEmail({
                                 <BodyParagraphs text={body} className="text-[16px] leading-[26px] text-[#475569] mb-[24px]" />
                             ) : (
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[24px]">
-                                Дякуємо, що приєдналися до нашої спільноти! Ми обожнюємо зберігати важливі моменти у вигляді естетичних фотокниг.
+                                Дякуємо, що приєдналися до нашої спільноти! Ми обожнюємо зберігати важливі моменти — у фотокнигах, журналах, постерах, альбомах та інших красивих речах, які залишаються назавжди.
                                 Тепер ви першими дізнаватиметеся про наші новинки, натхнення та закриті розпродажі.
                             </Text>
                             )}
