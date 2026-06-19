@@ -192,7 +192,22 @@ export default function TeamPage() {
                 throw new Error(msg);
             }
 
-            toast.success('Співробітника збережено');
+            // Surface the login-provisioning result (auto-created account + emailed
+            // temp password). If the email didn't send, show the password so it
+            // can be passed on manually.
+            let saved: any = null;
+            try { saved = await res.json(); } catch { /* ignore */ }
+            const login = saved?._login;
+            if (login?.created && login?.emailed) {
+                toast.success('Співробітника збережено. Лист із паролем надіслано на email.');
+            } else if (login?.created && login?.tempPassword) {
+                toast.success('Співробітника збережено. Акаунт створено.');
+                alert(`Акаунт створено, але лист не надіслався.\n\nПередайте дані для входу вручну:\nEmail: ${formData.email}\nТимчасовий пароль: ${login.tempPassword}\n\nВхід: /admin/login`);
+            } else if (login?.note === 'account-exists') {
+                toast.success('Співробітника збережено. Обліковий запис із таким email уже існує — пароль не змінювали.');
+            } else {
+                toast.success('Співробітника збережено');
+            }
             setIsFormOpen(false);
             resetForm();
             await fetchData();
