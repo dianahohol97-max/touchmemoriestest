@@ -46,6 +46,7 @@ async function provisionStaffLogin(
     supabase: SB,
     email: string | null | undefined,
     name: string | null | undefined,
+    opts: { force?: boolean } = {},
 ): Promise<{ created: boolean; reset: boolean; emailed: boolean; tempPassword?: string; note?: string }> {
     const addr = (email || '').trim().toLowerCase();
     if (!addr || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) {
@@ -78,7 +79,7 @@ async function provisionStaffLogin(
             } catch (e) {
                 console.error('staff_auth_lookup failed:', e);
             }
-            if (row?.uid && row.has_password === false) {
+            if (row?.uid && (opts.force || row.has_password === false)) {
                 const { error: updErr } = await supabase.auth.admin.updateUserById(row.uid, {
                     password: tempPassword,
                     email_confirm: true,
@@ -177,6 +178,19 @@ export async function POST(req: Request) {
     const supabase = getAdminClient();
     try {
         const body = await req.json();
+
+        // Explicit "send login credentials" action from the team page: force a
+        // password reset on the teammate's account and email them the new temp
+        // password — even if they already had a working password.
+        if (body.action === 'send_login' && body.id) {
+            const { data: st, error: stErr } = await supabase
+                .from('staff').select('email, name').eq('id', body.id).single();
+            if (stErr || !st?.email) {
+                return NextResponse.json({ error: 'Співробітника не знайдено або відсутній email' }, { status: 404 });
+            }
+            const login = await provisionStaffLogin(supabase, st.email, st.name, { force: true });
+            return NextResponse.json({ _login: login });
+        }
 
         // Empty-string UUID/FK values must become null, not '' (invalid uuid).
         if (body.role_id === '') body.role_id = null;

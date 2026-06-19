@@ -22,7 +22,8 @@ import {
     Loader2,
     ExternalLink,
     Star,
-    Award
+    Award,
+    KeyRound
 } from 'lucide-react';
 import Link from 'next/link';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
@@ -232,6 +233,30 @@ export default function TeamPage() {
                 member.is_active ? 'Співробітника деактивовано' : 'Співробітника активовано'
             );
             await fetchData();
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    const sendLogin = async (member: Staff) => {
+        if (!member.email) { toast.error('У співробітника не вказано email'); return; }
+        if (!confirm(`Надіслати дані для входу на ${member.email}?\n\nЯкщо акаунт уже існує — пароль буде скинуто на новий.`)) return;
+        try {
+            const res = await fetch('/api/admin/staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'send_login', id: member.id }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data?.error || 'Не вдалося надіслати');
+            const login = data?._login;
+            if ((login?.created || login?.reset) && login?.emailed) {
+                toast.success(`Дані для входу надіслано на ${member.email}.`);
+            } else if ((login?.created || login?.reset) && login?.tempPassword) {
+                alert(`Пароль встановлено, але лист не надіслався.\n\nПередайте вручну:\nEmail: ${member.email}\nТимчасовий пароль: ${login.tempPassword}\n\nВхід: /admin/login`);
+            } else {
+                toast.error(`Не вдалося налаштувати доступ${login?.note ? `: ${login.note}` : ''}`);
+            }
         } catch (error: any) {
             toast.error(error.message);
         }
@@ -525,6 +550,9 @@ export default function TeamPage() {
                                     </button>
                                     <button onClick={() => toggleStatus(member)} style={actionBtnSecondary}>
                                         {member.is_active ? <UserX size={16} /> : <UserCheck size={16} />}
+                                    </button>
+                                    <button onClick={() => sendLogin(member)} style={actionBtnSecondary} title="Надіслати дані для входу">
+                                        <KeyRound size={16} />
                                     </button>
                                     <Link
                                         href={`/admin/salary?staff_id=${member.id}`}
