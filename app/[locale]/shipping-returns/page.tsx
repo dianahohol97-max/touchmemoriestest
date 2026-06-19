@@ -64,14 +64,6 @@ export default function ShippingReturnsPage() {
                                         <span className="text-emerald-600 font-bold">•</span>
                                         <span><strong>Передоплата</strong><br />Всі замовлення виконуються за передоплатою. Оскільки кожен продукт виготовляється індивідуально під ваше замовлення, ми не можемо розпочати роботу без підтвердження оплати.</span>
                                     </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-emerald-600 font-bold">•</span>
-                                        <span><strong>Оплата при отриманні</strong><br />Для постійних клієнтів або при попередньому узгодженні можлива оплата накладеним платежем через Нову Пошту.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-emerald-600 font-bold">•</span>
-                                        <span>Реквізити для оплати надсилаються після підтвердження замовлення менеджером.</span>
-                                    </li>
                                 </ul>
                             </div>
                         </div>
