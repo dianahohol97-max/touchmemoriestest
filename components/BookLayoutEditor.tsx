@@ -7882,16 +7882,34 @@ export default function BookLayoutEditor() {
                       {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
                     {/* Front cover (right) */}
-                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : '#d4b896' }}>
+                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {/* Ready-made cover background (travel book) — full bleed */}
                       {coverState.printedBgImage && (
                         <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
                       )}
-                      {frontPhoto && (
+                      {isPrinted && frontPhoto && (
                         <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
                           <img src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
                         </div>
                       )}
+                      {!isPrinted && coverState.photoId && frontPhoto && (() => {
+                        // Acryl / photovstavka insert — centred box scaled from variant mm
+                        const dv = coverState.decoVariant || '100×100 мм';
+                        const dims = dv.startsWith('Ø')
+                          ? (() => { const d = parseFloat(dv.replace('Ø','').replace(/\s*мм.*/,'')); return { w:d, h:d, round:true }; })()
+                          : (() => { const m = dv.match(/(\d+)[×x](\d+)/); return m ? { w:+m[1], h:+m[2], round:false } : { w:100, h:100, round:false }; })();
+                        // Thumbnail half-width in px is ~64px; use ratio from prop
+                        const thumbHalfW = 64; const thumbH = thumbHalfW * prop.h / prop.w;
+                        const mmToPx = thumbHalfW / (prop.w * 10);
+                        let bW = dims.w * mmToPx, bH = dims.h * mmToPx;
+                        const k = Math.min(1, thumbHalfW * 0.96 / bW, thumbH * 0.96 / bH);
+                        bW *= k; bH *= k;
+                        return (
+                          <div style={{ position:'absolute', left:`calc(50% - ${bW/2}px)`, top:`calc(50% - ${bH/2}px)`, width:bW, height:bH, borderRadius:dims.round?'50%':2, overflow:'hidden', border:'1px solid rgba(255,255,255,0.5)' }}>
+                            <img src={frontPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                          </div>
+                        );
+                      })()}
                       {ov.type === 'color' && <div style={{ position: 'absolute', inset: 0, background: ov.color, opacity: (ov.opacity || 0) / 100 }}/>}
                       {ov.type === 'gradient' && ov.gradient && <div style={{ position: 'absolute', inset: 0, background: ov.gradient }}/>}
                       {pt.map((tb: any) => (

@@ -490,6 +490,25 @@ export function BookPreviewModal({
                 </div>
               );
             }
+            if (decoType === 'acryl' || decoType === 'photovstavka') {
+              // Mirror CoverEditor's acryl/photovstavka slot rendering
+              const dims = parseDims(coverState?.decoVariant || '100×100 мм');
+              const scale = pageW / (Math.max(1, propW) * 10);
+              let bW = dims.w * scale, bH = dims.h * scale;
+              const minW = pageW * 0.12, maxW = pageW * 0.96, maxH = pageH * 0.96;
+              let k = 1;
+              if (bW > maxW || bH > maxH) k = Math.min(maxW / bW, maxH / bH);
+              else if (bW > 0 && bW < minW) k = minW / bW;
+              bW *= k; bH *= k;
+              const acrylPhoto = coverState?.photoId ? getPhoto(coverState.photoId) : null;
+              return (
+                <div style={{ position: 'absolute', left: (pageW - bW) / 2, top: (pageH - bH) / 2, width: bW, height: bH, borderRadius: dims.round ? '50%' : 5, overflow: 'hidden', pointerEvents: 'none', boxShadow: '0 2px 16px rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.5)' }}>
+                  {acrylPhoto
+                    ? <img src={acrylPhoto.preview} draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState?.photoCropX ?? 50}% ${coverState?.photoCropY ?? 50}%`, transform: `scale(${coverState?.photoZoom ?? 1}) rotate(${coverState?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} />
+                    : <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.15)' }} />}
+                </div>
+              );
+            }
             if (decoText) {
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
