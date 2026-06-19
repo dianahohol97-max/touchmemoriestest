@@ -15,10 +15,10 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 // key: category slug, value: subcategory definitions
 const SUBCATEGORIES: Record<string, { label: string; match: string }[]> = {
     'photoalbomy-failykovi': [
-        { label: 'на 200 фото', match: '200' },
-        { label: 'на 300 фото', match: '300' },
-        { label: 'на 500 фото', match: '500' },
-        { label: 'на 800 фото', match: '800' },
+        { label: 'Фотоальбоми на 200 фото', match: 'на 200 фото' },
+        { label: 'Фотоальбоми на 300 фото', match: 'на 300 фото' },
+        { label: 'Фотоальбоми на 500 фото', match: 'на 500 фото' },
+        { label: 'Фотоальбоми на 800 фото', match: 'на 800 фото' },
     ],
 };
 
