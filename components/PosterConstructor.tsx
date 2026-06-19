@@ -990,8 +990,13 @@ export default function PosterConstructor() {
                         <button onClick={() => deletePhoto(photo.id)}
                           style={{ padding:'2px 7px', border:'none', borderRadius:5, background:'#fee2e2', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}></button>
                       </div>
-                      {/* Photo editor */}
-                      <div style={{ padding:'0 12px 10px' }}>
+                      {/* Photo editor — stop pointer events from bubbling to the
+                          draggable card so range sliders work without triggering a card drag */}
+                      <div style={{ padding:'0 12px 10px' }}
+                        onPointerDown={e => e.stopPropagation()}
+                        onMouseDown={e => e.stopPropagation()}
+                        draggable={false}
+                      >
                         <PhotoSlotEditor slot={photo} index={i}
                           onUpdate={updatePhoto} onDelete={deletePhoto}
                           slotRect={{ x: sl.x/PREVIEW_W*100, y: sl.y/posterH*100, w: sl.w/PREVIEW_W*100, h: sl.h/posterH*100 }}
