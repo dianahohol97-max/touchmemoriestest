@@ -524,11 +524,20 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         }
         // The variant can arrive as a generic key OR under its Ukrainian option
         // name — that's how the product page forwards the customer's choice.
+        // NOTE: product.options values include the decoration-type prefix (e.g.
+        // "Акрил Ø145 мм", "Фотовставка 100×100 мм") but decoration_variants
+        // DB rows store variant_name WITHOUT prefix ("Ø145 мм", "100×100 мм").
+        // Strip the prefix before setting so the dropdown pre-selection works.
         const variantFromCatalog = decorationVariant
             || searchParams.get('Варіант металевої вставки') || searchParams.get('Варіант+металевої+вставки')
             || searchParams.get('Варіант акрилу') || searchParams.get('Варіант+акрилу')
             || searchParams.get('Варіант фотовставки') || searchParams.get('Варіант+фотовставки');
-        if (variantFromCatalog) setSelectedDecorationVariant(variantFromCatalog);
+        if (variantFromCatalog) {
+            const strippedVariant = variantFromCatalog
+                .replace(/^(Акрил|Acryl|Фотовставка|Photo\s*insert|Photo\s*вставка)\s+/i, '')
+                .trim();
+            setSelectedDecorationVariant(strippedVariant || variantFromCatalog);
+        }
         if (decorationColor) setSelectedDecorationColor(decorationColor);
 
         // Page color (wishbook only)
