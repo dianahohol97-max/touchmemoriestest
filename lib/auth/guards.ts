@@ -55,16 +55,20 @@ export async function requireAdmin(): Promise<Guard> {
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .eq('email', email)
+            .ilike('email', email)
             .maybeSingle();
         if (adminRow) return { ok: true, userId: user.id };
 
+        // owner is treated as a full admin (same as PermissionsContext, which
+        // marks both 'admin' and 'owner' as superAdmin). Matching admin-only,
+        // not the scoped roles (designer/manager/marketer/production).
         const { data: staffRow } = await admin
             .from('staff')
             .select('id, role')
-            .eq('email', email)
+            .ilike('email', email)
             .maybeSingle();
-        if (staffRow && (staffRow as any).role === 'admin') {
+        const staffRole = (staffRow as any)?.role;
+        if (staffRow && (staffRole === 'admin' || staffRole === 'owner')) {
             return { ok: true, userId: user.id };
         }
     }
@@ -90,7 +94,7 @@ export async function requireOwnerOrAdmin(customerId: string | null): Promise<Gu
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .eq('email', email)
+            .ilike('email', email)
             .maybeSingle();
         if (adminRow) return { ok: true, userId: user.id };
     }

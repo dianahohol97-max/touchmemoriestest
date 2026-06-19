@@ -55,7 +55,7 @@ async function isUserAdmin(userEmail: string | null | undefined): Promise<boolea
     // match by email, the same way the is_admin() DB function and the
     // requireAdmin guard do. Matching by user.id silently fails for every
     // real admin and would lock Diana out of the admin panel.
-    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=eq.${encodeURIComponent(userEmail)}`;
+    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=ilike.${encodeURIComponent(userEmail)}`;
     try {
         const res = await fetch(adminCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -67,7 +67,11 @@ async function isUserAdmin(userEmail: string | null | undefined): Promise<boolea
         }
     } catch { /* fall through to staff check */ }
 
-    const staffCheckUrl = `${url}/rest/v1/staff?select=role&email=eq.${encodeURIComponent(userEmail)}`;
+    // Any ACTIVE staff member may enter /admin. What they actually see inside
+    // is decided by the permission system (PermissionsContext + per-section
+    // route protection); admin-only API routes stay guarded by requireAdmin.
+    // Clients (no staff row) are not allowed — they get bounced to /admin/login.
+    const staffCheckUrl = `${url}/rest/v1/staff?select=role,is_active&email=ilike.${encodeURIComponent(userEmail)}`;
     try {
         const res = await fetch(staffCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -76,8 +80,7 @@ async function isUserAdmin(userEmail: string | null | undefined): Promise<boolea
         if (res.ok) {
             const rows = await res.json();
             if (Array.isArray(rows) && rows.length > 0) {
-                const role = rows[0]?.role;
-                return role === 'admin' || role === 'owner';
+                return rows[0]?.is_active !== false;
             }
         }
     } catch { /* deny on error */ }

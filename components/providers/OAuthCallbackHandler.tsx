@@ -19,6 +19,10 @@ export function OAuthCallbackHandler() {
         const code = searchParams.get('code');
         if (!code) return;
 
+        // The admin login page handles its own OAuth code exchange and routes
+        // into /admin (gated by proxy.ts). Don't hijack it to /account.
+        if (pathname?.startsWith('/admin')) return;
+
         const supabase = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
