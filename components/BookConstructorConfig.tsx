@@ -477,19 +477,29 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Decoration type + variant (from URL or Ukrainian catalog name)
         const decorationValue = decoration || decorationFromCatalog;
         if (decorationValue) {
-            // Map Ukrainian decoration labels to internal IDs (used by editor)
+            // Normalise any incoming form (internal id, short or full Ukrainian
+            // label) to the DB decoration_types.name — the tiles AND the variant
+            // filter below compare against that exact name, so mapping to an
+            // internal id like 'metal' left the tile unselected and hid the
+            // variant selector. (The editor re-detects the internal type from
+            // this Ukrainian name via detectDecoType.)
             const decorationMap: Record<string, string> = {
-                'Без оздоблення': 'none',
-                'Акрил': 'acryl',
-                'Фотовставка': 'photovstavka',
-                'Метал': 'metal',
-                'Металева вставка': 'metal',
-                'Флекс': 'flex',
-                'Гравірування': 'graviruvannya',
+                'Без оздоблення': 'none', 'none': 'none',
+                'Акрил': 'Акрил', 'acryl': 'Акрил',
+                'Фотовставка': 'Фотовставка', 'photovstavka': 'Фотовставка', 'photo_insert': 'Фотовставка',
+                'Метал': 'Металева вставка', 'Металева вставка': 'Металева вставка', 'metal': 'Металева вставка',
+                'Друк кольором': 'Друк кольором', 'Флекс': 'Друк кольором', 'flex': 'Друк кольором',
+                'Гравірування': 'Гравірування', 'graviruvannya': 'Гравірування',
             };
             setSelectedDecorationType(decorationMap[decorationValue] || decorationValue);
         }
-        if (decorationVariant) setSelectedDecorationVariant(decorationVariant);
+        // The variant can arrive as a generic key OR under its Ukrainian option
+        // name — that's how the product page forwards the customer's choice.
+        const variantFromCatalog = decorationVariant
+            || searchParams.get('Варіант металевої вставки') || searchParams.get('Варіант+металевої+вставки')
+            || searchParams.get('Варіант акрилу') || searchParams.get('Варіант+акрилу')
+            || searchParams.get('Варіант фотовставки') || searchParams.get('Варіант+фотовставки');
+        if (variantFromCatalog) setSelectedDecorationVariant(variantFromCatalog);
         if (decorationColor) setSelectedDecorationColor(decorationColor);
 
         // Cover color from URL (catalog passes "Колір велюру=Таупе" etc.)
