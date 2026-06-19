@@ -800,7 +800,10 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:dims.round?'50%':5,
               overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px solid rgba(255,255,255,0.5)', boxShadow:'0 2px 16px rgba(0,0,0,0.25)',
               background:photo?'transparent':dragOver?'rgba(96,165,250,0.25)':'rgba(255,255,255,0.12)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
-              {photo ? <><div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+              {photo ? <>
+                {/* Photo fills the slot via absolute positioning — do NOT use width/height:100%
+                    inside a flex container as browsers may compute height as 0. */}
+                <div style={{ position:'absolute', inset:0, overflow:'hidden', cursor:'grab' }}
                     onPointerDown={e => {
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
@@ -811,8 +814,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
-                  </div>
+                    <img src={photo.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
+                </div>
                 {/* Zoom + rotation toolbar */}
                 <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                   style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
@@ -832,8 +836,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50, photoRotation:0 } as any);}}
                     style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                 </div>
-                <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
-                <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
+                <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', zIndex:31 }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>{t('constructor.drag_photo_acrylic').replace('\n','')}<br/>{t('constructor.drag_photo_acrylic').split('\n')[1] || 'to acrylic'}</span></div>}
             </div>
           )}
@@ -847,7 +850,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               style={{ position:'absolute', left:boxL, top:boxT, width:boxW, height:boxH, borderRadius:3,
               overflow:'hidden', border:dragOver?'3px dashed #60a5fa':'2px dashed rgba(255,255,255,0.5)', background:photo?'transparent':dragOver?'rgba(96,165,250,0.2)':'rgba(255,255,255,0.1)',
               display:'flex', alignItems:'center', justifyContent:'center', cursor:'copy', zIndex:5 }}>
-              {photo ? <><div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor:'grab' }}
+              {photo ? <>
+                <div style={{ position:'absolute', inset:0, overflow:'hidden', cursor:'grab' }}
                     onPointerDown={e => {
                       e.stopPropagation(); e.preventDefault();
                       haptic.light();
@@ -858,8 +862,8 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       });
                     }}
                     onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
-                    <img src={photo.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
-                  </div>
+                    <img src={photo.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
+                </div>
                 {/* Zoom + rotation toolbar */}
                 <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                   style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3,
@@ -879,7 +883,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   <button onClick={e=>{e.stopPropagation(); onChange({ photoZoom:1, photoCropX:50, photoCropY:50, photoRotation:0 } as any);}}
                     style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                 </div>
-                <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button></>
+                <button onClick={()=>onChange({photoId:null})} style={{ position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, display:'flex', alignItems:'center', justifyContent:'center', zIndex:31 }}>×</button></>
               : <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, color:'rgba(255,255,255,0.7)', textAlign:'center', padding:'0 8px' }}><ImageIcon size={22}/><span style={{ fontSize:10, fontWeight:700, textAlign:'center' }}>{t('constructor.drag_photo_insert').replace('\n','')}<br/>{t('constructor.drag_photo_insert').split('\n')[1] || 'to insert'}</span></div>}
             </div>
           )}
@@ -946,9 +950,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
         </div>
       )}
 
-      {isSoft && config.decoType!=='none' && config.decoVariant && (
-        <div style={{ position:'absolute', bottom:5, right:7, fontSize:9, color:'rgba(255,255,255,0.3)', fontWeight:600, zIndex:3, letterSpacing:'0.05em' }}>{config.decoVariant}</div>
-      )}
+      {/* variant label removed — was showing internal codes like 'foto_100x100' */}
 
       {/* Extra text blocks — draggable on any cover type */}
       {config.decoType !== 'metal' && (config.extraTexts||[]).map(et => {
