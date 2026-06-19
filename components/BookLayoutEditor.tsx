@@ -6821,6 +6821,7 @@ export default function BookLayoutEditor() {
                               {/* Move handle — visible in slot edit mode */}
                               {editSlotKey === key && (
                                 <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
+                                  onClick={e => e.stopPropagation()}
                                   style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'60%',height:16,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.8)'}}>
                                   <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.8)'}}/>
                                 </div>
@@ -7552,6 +7553,7 @@ export default function BookLayoutEditor() {
                                 <div style={{position:'absolute',inset:0,border:'2px solid #3b82f6',borderRadius:4,zIndex:55,pointerEvents:'none'}}/>
                                 {/* Move handle (top bar) */}
                                 <div onPointerDown={e=>{e.stopPropagation();startPageSlotDrag(e,'move');}}
+                                  onClick={e=>e.stopPropagation()}
                                   style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:90,height:16,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.9)',touchAction:'none'}}>
                                   <div style={{width:20,height:3,borderRadius:2,background:'#fff'}}/>
                                 </div>
