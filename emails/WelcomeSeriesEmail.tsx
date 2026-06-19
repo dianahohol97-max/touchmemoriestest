@@ -25,8 +25,8 @@ interface WelcomeSeriesEmailProps {
 export default function WelcomeSeriesEmail({
     firstName = '',
     variant = 'ideas',
-    promoCode = 'WELCOME7',
-    discount = '-7%',
+    promoCode = 'WELCOME5',
+    discount = '-5%',
     appUrl = 'https://touchmemories.com.ua',
     body,
 }: WelcomeSeriesEmailProps) {
