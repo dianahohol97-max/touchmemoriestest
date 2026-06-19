@@ -1303,8 +1303,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               </div>
             )}
 
-            {/* Finish */}
-            {finishOptions.length>0 && (
+            {/* Finish — hidden for magnets (always matte) */}
+            {finishOptions.length>0 && !isMagnet && (
               <div style={{ marginBottom:16 }}>
                 <label style={{ display:'block', fontWeight:700, fontSize:13, color:'#374151', marginBottom:6 }}>{t('photo_print.finish_label')}</label>
                 <div style={{ display:'flex', gap:6 }}>
