@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
+import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
@@ -3298,8 +3299,14 @@ export default function BookLayoutEditor() {
         photos: sessionStorage.getItem('bookConstructorPhotos') || '[]',
         draft: { productSlug: (config?.productSlug || '').toLowerCase().trim(), pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount },
       };
-      sessionStorage.setItem('tmCartEdit_' + cartPayload.id, JSON.stringify(snap));
-    } catch { /* storage full — skip; item still orders, just not re-editable */ }
+      // Durable: survives the session and isn't bound by the ~5 MB sessionStorage
+      // quota, so every book in the cart stays editable no matter how many or how
+      // large. Fire-and-forget; add-to-cart shows a modal (no immediate nav).
+      void saveCartEditSnapshot(cartPayload.id, snap);
+      // Best-effort fast path for the current session (separate try so a quota
+      // failure here never prevents the IndexedDB save above).
+      try { sessionStorage.setItem('tmCartEdit_' + cartPayload.id, JSON.stringify(snap)); } catch { /* quota — IndexedDB still holds it */ }
+    } catch { /* snapshot skipped; item still orders, just not re-editable */ }
 
     if (editingCartItemId) {
       replaceItem(cartPayload as any);

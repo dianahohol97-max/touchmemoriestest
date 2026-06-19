@@ -10,6 +10,7 @@ import { Trash2, Plus, Minus, ChevronRight, ImageIcon, Pencil } from 'lucide-rea
 import { logCartEvent } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
 import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
+import { listCartEditSnapshotIds, getCartEditSnapshot, deleteCartEditSnapshot } from '@/lib/cart-edit-store';
 import { useRouter } from 'next/navigation';
 
 
@@ -25,11 +26,23 @@ export default function CartPage() {
     const [editableIds, setEditableIds] = useState<Set<string>>(new Set());
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const ids = new Set<string>();
-        for (const it of items) {
-            try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
-        }
-        setEditableIds(ids);
+        let cancelled = false;
+        (async () => {
+            const ids = new Set<string>();
+            const cartIds = new Set(items.map((i) => i.id));
+            // Durable snapshots (survive sessions / large books).
+            try {
+                for (const id of await listCartEditSnapshotIds()) {
+                    if (cartIds.has(id)) ids.add(id);
+                }
+            } catch { /* ignore */ }
+            // Same-session fast-path snapshots (items added before this deploy).
+            for (const it of items) {
+                try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
+            }
+            if (!cancelled) setEditableIds(ids);
+        })();
+        return () => { cancelled = true; };
     }, [items]);
 
     // Which items the customer wants to order RIGHT NOW. Defaults to all. The
@@ -62,11 +75,14 @@ export default function CartPage() {
         setSelectedIds(allSelected ? new Set() : new Set(items.map((i) => i.id)));
     };
 
-    const editCartItem = (item: { id: string }) => {
+    const editCartItem = async (item: { id: string }) => {
         try {
-            const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
-            if (!raw) return;
-            const snap = JSON.parse(raw);
+            let snap = await getCartEditSnapshot(item.id);
+            if (!snap) {
+                const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
+                if (!raw) return;
+                snap = JSON.parse(raw);
+            }
             sessionStorage.setItem('bookConstructorConfig', JSON.stringify(snap.config));
             sessionStorage.setItem('bookConstructorPhotos', snap.photos || '[]');
             const slug = (snap.config?.productSlug || '').toLowerCase().trim();
@@ -74,6 +90,12 @@ export default function CartPage() {
             sessionStorage.setItem('bookEditCartItemId', item.id);
             router.push(`/${locale}/editor/book/layout`);
         } catch { /* ignore */ }
+    };
+
+    const removeCartItem = (id: string) => {
+        removeItem(id);
+        try { sessionStorage.removeItem('tmCartEdit_' + id); } catch { /* ignore */ }
+        void deleteCartEditSnapshot(id);
     };
 
     // Track checkout initiation
@@ -200,7 +222,7 @@ export default function CartPage() {
                                             <div style={{ fontWeight: 800, fontSize: '16px', minWidth: '80px', textAlign: 'right' }}>
                                                 {item.price * item.qty} ₴
                                             </div>
-                                            <button onClick={() => removeItem(item.id)} style={{ padding: '8px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#ff4d4d' }}>
+                                            <button onClick={() => removeCartItem(item.id)} style={{ padding: '8px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#ff4d4d' }}>
                                                 <Trash2 size={20} />
                                             </button>
                                         </div>

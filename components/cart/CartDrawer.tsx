@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useT, useLocale } from '@/lib/i18n/context';
+import { listCartEditSnapshotIds, getCartEditSnapshot } from '@/lib/cart-edit-store';
 
 export default function CartDrawer() {
     const t = useT();
@@ -27,18 +28,31 @@ export default function CartDrawer() {
     const [editableIds, setEditableIds] = useState<Set<string>>(new Set());
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        const ids = new Set<string>();
-        for (const it of items) {
-            try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
-        }
-        setEditableIds(ids);
+        let cancelled = false;
+        (async () => {
+            const ids = new Set<string>();
+            const cartIds = new Set(items.map((i) => i.id));
+            try {
+                for (const id of await listCartEditSnapshotIds()) {
+                    if (cartIds.has(id)) ids.add(id);
+                }
+            } catch { /* ignore */ }
+            for (const it of items) {
+                try { if (sessionStorage.getItem('tmCartEdit_' + it.id)) ids.add(it.id); } catch { /* ignore */ }
+            }
+            if (!cancelled) setEditableIds(ids);
+        })();
+        return () => { cancelled = true; };
     }, [items, isDrawerOpen]);
 
-    const editCartItem = (item: { id: string }) => {
+    const editCartItem = async (item: { id: string }) => {
         try {
-            const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
-            if (!raw) return;
-            const snap = JSON.parse(raw);
+            let snap = await getCartEditSnapshot(item.id);
+            if (!snap) {
+                const raw = sessionStorage.getItem('tmCartEdit_' + item.id);
+                if (!raw) return;
+                snap = JSON.parse(raw);
+            }
             sessionStorage.setItem('bookConstructorConfig', JSON.stringify(snap.config));
             sessionStorage.setItem('bookConstructorPhotos', snap.photos || '[]');
             const slug = (snap.config?.productSlug || '').toLowerCase().trim();
