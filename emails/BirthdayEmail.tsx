@@ -26,9 +26,9 @@ interface BirthdayEmailProps {
 
 export default function BirthdayEmail({
     firstName = 'Клієнт',
-    promoCode = 'HAPPY-BDAY-20',
-    validUntil = '7 днів',
-    discountValue = '-7%',
+    promoCode = 'HAPPY-BDAY-10',
+    validUntil = '3 дні',
+    discountValue = '-10%',
     appUrl = 'https://touchmemories.com.ua',
     body,
 }: BirthdayEmailProps) {
@@ -52,16 +52,16 @@ export default function BirthdayEmail({
                             {body ? (
                                 <>
                                     <Text className="text-[18px] leading-[26px] mb-[8px]">
-                                        Іменнику/Іменниці <strong>{firstName}</strong>,
+                                        Привіт, <strong>{firstName}</strong>!
                                     </Text>
                                     <BodyParagraphs text={body} className="text-[18px] leading-[26px] mb-[24px]" />
                                 </>
                             ) : (
                             <Text className="text-[18px] leading-[26px] mb-[24px]">
-                                Іменнику/Іменниці <strong>{firstName}</strong>,
+                                Привіт, <strong>{firstName}</strong>!
                                 <br /><br />
-                                Від щирого серця вітаємо вас! Бажаємо безліч яскравих моментів, збережених у пам'яті.
-                                Щоб зробити цей день ще особливішим, ми підготували для вас подарунок!
+                                Від щирого серця вітаємо з Днем Народження! Бажаємо безліч яскравих моментів, збережених у пам'яті.
+                                Щоб зробити цей день ще особливішим, ми підготували для вас подарунок 🎁
                             </Text>
                             )}
 
@@ -82,7 +82,7 @@ export default function BirthdayEmail({
                                     </Text>
                                 </div>
                                 <Text className="text-[12px] text-[#94a3b8] mt-[16px] mb-0">
-                                    *Діє до {validUntil} при замовленні від 500 грн
+                                    *Діє до {validUntil} при замовленні від 750 грн
                                 </Text>
                             </Section>
 
@@ -92,7 +92,7 @@ export default function BirthdayEmail({
                                     href={`${appUrl}`}
                                     className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline"
                                 >
-                                    Створити фотокнигу зі знижкою →
+                                    Зробити замовлення зі знижкою →
                                 </Button>
                             </Section>
 

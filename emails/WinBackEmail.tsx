@@ -35,7 +35,7 @@ export default function WinBackEmail({
     return (
         <Html>
             <Head />
-            <Preview>Ми скучили! Ваша знижка на наступну фотокнигу всередині</Preview>
+            <Preview>Ми скучили! Ваша знижка на наступне замовлення всередині 💙</Preview>
             <Tailwind>
                 <Body className="bg-[#f1f5f9] font-sans text-[#263A99] m-0 p-0">
                     <Container className="bg-white mx-auto my-[40px] max-w-[600px] overflow-hidden shadow-sm border border-[#e2e8f0]">
@@ -62,8 +62,7 @@ export default function WinBackEmail({
                             )}
 
                             <Text className="text-[16px] leading-[26px] text-[#475569] mb-[32px]">
-                                Щоб повернутися було приємніше, даруємо вам знижку <strong>{discount}</strong> на
-                                наступне замовлення:
+                                Щоб повернутися було приємніше, даруємо вам знижку <strong>{discount}</strong> на наступне замовлення:
                             </Text>
 
                             <Section className="bg-[#f1f5f9] border border-[#c7d2fe] rounded-[3px] text-center py-[24px] mb-[32px]">
@@ -80,7 +79,7 @@ export default function WinBackEmail({
                                     href={appUrl}
                                     className="bg-[#263A99] text-white font-bold text-[16px] px-[32px] py-[14px] rounded-[3px] no-underline"
                                 >
-                                    Обрати фотокнигу
+                                    Обрати подарунок
                                 </Button>
                             </Section>
 
