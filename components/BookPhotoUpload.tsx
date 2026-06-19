@@ -704,32 +704,24 @@ export default function BookPhotoUpload() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-4">
                 <button
                     onClick={() => {
-                        // Restore bookConfig draft so configurator shows previous selections
+                        // Navigate back to Step 1 (/order/book) with the product param so
+                        // BookConstructorConfig loads with all saved selections. Since
+                        // bookConstructorConfig exists in sessionStorage (set when the user
+                        // arrived here), the config page will NOT auto-advance again —
+                        // the user can review/modify their options before proceeding.
                         const cfg = sessionStorage.getItem('bookConstructorConfig');
+                        let slug = '';
                         if (cfg) {
-                            try {
-                                const c = JSON.parse(cfg);
-                                const slug = c.productSlug;
-                                if (slug) {
-                                    // Restore the config draft so selections are preserved
-                                    sessionStorage.setItem(`bookConfig_${slug}`, JSON.stringify({
-                                        selectedSize: c.selectedSize,
-                                        selectedCoverType: c.selectedCoverType,
-                                        selectedPageCount: c.selectedPageCount,
-                                        selectedCopies: c.selectedCopies,
-                                        enableEndpaper: c.enableEndpaper,
-                                        enableKalka: c.enableKalka,
-                                        selectedDecorationType: c.selectedDecorationType,
-                                        selectedDecorationVariant: c.selectedDecorationVariant,
-                                        selectedLamination: c.selectedLamination,
-                                        selectedCoverColor: c.selectedCoverColor,
-                                    }));
-                                    router.push(`/catalog/${slug}`);
-                                    return;
-                                }
-                            } catch {}
+                            try { slug = JSON.parse(cfg).productSlug || ''; } catch {}
                         }
-                        router.back();
+                        // Mark that user explicitly went back — prevents auto-advance
+                        // even when bookConstructorConfig is present in sessionStorage.
+                        sessionStorage.setItem('bookConfigBackNav', '1');
+                        if (slug) {
+                            router.push(`/order/book?product=${slug}`);
+                        } else {
+                            router.back();
+                        }
                     }}
                     className="w-full sm:flex-1 px-6 py-3 sm:py-4 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-base sm:text-lg"
                 >

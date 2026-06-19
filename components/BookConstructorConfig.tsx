@@ -564,6 +564,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (typeof window !== 'undefined' && sessionStorage.getItem('bookConstructorConfig')) {
             return;
         }
+        // Also don't auto-advance if the user explicitly pressed "Назад"
+        // from the upload step — they want to review/change options.
+        if (typeof window !== 'undefined' && sessionStorage.getItem('bookConfigBackNav')) {
+            sessionStorage.removeItem('bookConfigBackNav');
+            return;
+        }
         setAutoAdvance(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loading, product, photobookSizes.length]);
