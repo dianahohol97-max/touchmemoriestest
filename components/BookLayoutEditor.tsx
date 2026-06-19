@@ -1384,6 +1384,9 @@ export default function BookLayoutEditor() {
   // generation — see the QR section near the price calculation below.
   const [qrOverlays, setQrOverlays] = useState<Record<number, QROverlay[]>>({});
   const [generatedQRCount, setGeneratedQRCount] = useState(0);
+  // Drag-to-reorder spreads in the right-hand rail.
+  const [spreadDragSrc, setSpreadDragSrc] = useState<number | null>(null);
+  const [spreadDragOver, setSpreadDragOver] = useState<number | null>(null);
   // Sidebar QR composer state
   const [qrText, setQrText] = useState('');
   const [qrPreview, setQrPreview] = useState<string | null>(null); // data URL after pressing Generate
@@ -2211,6 +2214,47 @@ export default function BookLayoutEditor() {
     setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
     setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 3) / 2))));
     toast.success(t('constructor.spread_deleted'));
+  };
+
+  // Move a content spread to another position in the rail. Reorders the pages
+  // array AND every page-index-keyed map (free slots, shapes, stickers, QR,
+  // backgrounds, frames) by the same permutation so a spread's photos, text,
+  // overlays and background all travel together. The cover (page 0) is pinned.
+  const moveSpread = (fromSpread: number, toSpread: number) => {
+    if (fromSpread === toSpread || fromSpread < 1 || toSpread < 1) return;
+    const totalSpreads = Math.ceil((pages.length - 1) / 2);
+    if (fromSpread > totalSpreads || toSpread > totalSpreads) return;
+    pushHistory();
+
+    // Group content page indices into spreads (last spread may be a single page).
+    const groups: number[][] = [];
+    for (let s = 1; s <= totalSpreads; s++) {
+      const l = (s - 1) * 2 + 1;
+      const r = l + 1;
+      groups.push(r < pages.length ? [l, r] : [l]);
+    }
+    const moved = groups.splice(fromSpread - 1, 1)[0];
+    if (!moved) return;
+    groups.splice(toSpread - 1, 0, moved);
+
+    // Full page-index permutation: cover (0) stays first, then the reordered
+    // content pages. order[newIdx] = oldIdx.
+    const order = [0, ...groups.flat()];
+
+    setPages(prev => order.map(i => prev[i]).filter(Boolean));
+    const remap = <T,>(m: Record<number, T>): Record<number, T> => {
+      const out: Record<number, T> = {};
+      order.forEach((oldIdx, newIdx) => { if (m[oldIdx] !== undefined) out[newIdx] = m[oldIdx]; });
+      return out;
+    };
+    setFreeSlots(prev => remap(prev));
+    setPageShapes(prev => remap(prev));
+    setPageStickers(prev => remap(prev));
+    setQrOverlays(prev => remap(prev));
+    setPageBgs(prev => remap(prev));
+    setPageFrames(prev => remap(prev));
+
+    setCurrentIdx(toSpread);
   };
 
   const getCurBg = (idx: number): PageBackground => pageBgs[idx] || DEFAULT_BG;
@@ -7847,8 +7891,24 @@ export default function BookLayoutEditor() {
               };
               return (
                 <button key={spreadIdx} onClick={() => setCurrentIdx(spreadIdx)}
-                  onDragOver={e => { if (crossPageDragShapeId) e.preventDefault(); }}
+                  draggable
+                  onDragStart={e => { e.dataTransfer.setData('spread-reorder', String(spreadIdx)); e.dataTransfer.effectAllowed = 'move'; setSpreadDragSrc(spreadIdx); }}
+                  onDragEnd={() => { setSpreadDragSrc(null); setSpreadDragOver(null); }}
+                  onDragOver={e => {
+                    if (spreadDragSrc !== null) { e.preventDefault(); if (spreadDragOver !== spreadIdx) setSpreadDragOver(spreadIdx); }
+                    else if (crossPageDragShapeId) e.preventDefault();
+                  }}
+                  onDragLeave={() => { if (spreadDragSrc !== null && spreadDragOver === spreadIdx) setSpreadDragOver(null); }}
                   onDrop={e => {
+                    // Spread reorder takes priority over shape cross-page drop.
+                    const reorder = e.dataTransfer.getData('spread-reorder');
+                    if (reorder !== '') {
+                      e.preventDefault();
+                      const src = Number(reorder);
+                      setSpreadDragSrc(null); setSpreadDragOver(null);
+                      if (Number.isFinite(src) && src !== spreadIdx) moveSpread(src, spreadIdx);
+                      return;
+                    }
                     const shapeId = e.dataTransfer.getData('shape-id');
                     if (!shapeId) return;
                     let sourceIdx = -1; let movedShape: any = null;
@@ -7870,7 +7930,21 @@ export default function BookLayoutEditor() {
                     }
                     setCrossPageDragShapeId(null);
                   }}
-                  style={{ width: '100%', padding: '4px', border: crossPageDragShapeId ? '2px dashed #3b82f6' : (active ? '2px solid #1e2d7d' : '1px solid #e2e8f0'), borderRadius: 6, background: crossPageDragShapeId ? 'rgba(59,130,246,0.05)' : (active ? '#f0f3ff' : '#fff'), cursor: crossPageDragShapeId ? 'copy' : 'pointer', textAlign: 'center' }}>
+                  title="Перетягніть, щоб поміняти розворот місцями"
+                  style={{ width: '100%', padding: '4px',
+                    border: (spreadDragSrc !== null && spreadDragOver === spreadIdx && spreadDragSrc !== spreadIdx) ? '2px solid #6366f1'
+                          : crossPageDragShapeId ? '2px dashed #3b82f6'
+                          : (active ? '2px solid #1e2d7d' : '1px solid #e2e8f0'),
+                    borderRadius: 6,
+                    background: crossPageDragShapeId ? 'rgba(59,130,246,0.05)' : (active ? '#f0f3ff' : '#fff'),
+                    cursor: spreadDragSrc !== null ? 'grabbing' : (crossPageDragShapeId ? 'copy' : 'grab'),
+                    opacity: spreadDragSrc === spreadIdx ? 0.4 : 1,
+                    textAlign: 'center' }}>
+                  {spreadDragSrc !== null && spreadDragOver === spreadIdx && spreadDragSrc !== spreadIdx && (
+                    <div style={{ height: 0, position: 'relative' }}>
+                      <div style={{ position: 'absolute', left: 0, right: 0, top: -6, height: 3, background: '#6366f1', borderRadius: 2 }} />
+                    </div>
+                  )}
                   <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display:'flex', borderRadius: 3, marginBottom: 3, overflow:'hidden' }}>
                     {renderThumbPage(pgL, 'left')}
                     {renderThumbPage(pgR, 'right')}
