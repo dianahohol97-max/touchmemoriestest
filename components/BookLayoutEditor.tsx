@@ -2613,14 +2613,14 @@ export default function BookLayoutEditor() {
   const runAutoBuild = (opts: { density: 'sparse'|'balanced'|'dense'; variety: 'min'|'medium'|'max'; coverPhoto: boolean; gapless?: boolean; avoidSpine?: boolean }) => {
     if (photos.length === 0) return;
     pushHistory();
-    // Pages reserved at the front and back that never hold layout photos:
-    // kalka tissue (2 each side) or the journal/travelbook endpaper/forzac
-    // (1 each side). Subtracting them from the budget is what lets «Магічна
-    // збірка» fill every remaining page AND keep the forzac empty — instead of
-    // packing photos into pages the endpaper then steals, which left blank
-    // spreads and dropped photos.
+    // Pages reserved that never hold layout photos. Kalka is FRONT matter only —
+    // the first spread is the blank forзац (page 1) + the kalka tissue (page 2),
+    // and there is NO back kalka. The journal/travelbook endpaper (forзац) reserves
+    // one page at each end. Reserving back pages for kalka was wrong: it shrank the
+    // photo budget by a whole spread, so «Магічна збірка» packed the photos into
+    // fewer spreads and left a blank spread at the very end.
     const frontReserve = hasKalka ? 2 : hasEndpaper ? 1 : 0;
-    const backReserve = hasKalka ? 2 : hasEndpaper ? 1 : 0;
+    const backReserve = hasEndpaper ? 1 : 0;
     const orderedContent = Math.max(minPageCount, pages.length - 1);
     const photoBudget = Math.max(1, orderedContent - frontReserve - backReserve);
     const result: { pages: { layout: string; photoIds: string[] }[]; coverPhotoId: string | null; totalSpreads: number } = autoBuild({
