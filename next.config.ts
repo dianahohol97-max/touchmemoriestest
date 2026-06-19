@@ -103,15 +103,12 @@ const nextConfig = {
       { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
 
       // Legacy category slugs (old Ukrainian names → new English slugs)
-      { source: '/:locale(uk|en|ro|de|pl)/category/postery',           destination: '/:locale/category/posters',              permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/fotoknyhy',         destination: '/:locale/category/photobooks',           permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/fotodruk',          destination: '/:locale/category/prints',               permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/zhurnaly',          destination: '/:locale/category/hlyantsevi-zhurnaly',  permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/knyha-pobazhan',    destination: '/:locale/category/guestbooks',           permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/albomy',            destination: '/:locale/category/photoalbomy-failykovi', permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/kalendari',         destination: '/:locale/category/calendars',            permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/magnity',           destination: '/:locale/category/photomagnets',         permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/pazly',             destination: '/:locale/category/puzzles',              permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/travelbuky',        destination: '/:locale/category/travelbooks',          permanent: true },
 
 
