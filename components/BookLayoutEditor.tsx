@@ -3524,19 +3524,28 @@ export default function BookLayoutEditor() {
         try {
           // Use the first snapshot's aspect to set PDF page size in mm.
           // 1 px @ 96 DPI = 0.264583 mm.
+          // The html2canvas snapshots are scaled to 300 DPI (mmToPx300), so a
+          // pixel is 25.4/300 mm. The previous /(96*2) assumed a fixed 2× scale
+          // and declared pages ~1.56× too large — the lab printed oversized.
+          // Size each page from ITS OWN canvas, since the cover and the split
+          // inner pages don't share a width/aspect.
+          const pxToMm300 = (px: number) => (px * 25.4) / 300;
           const first = snapshots[0].canvas;
-          const widthMm = (first.width * 25.4) / (96 * 2); // /2 because we scaled 2×
-          const heightMm = (first.height * 25.4) / (96 * 2);
+          const firstWmm = pxToMm300(first.width);
+          const firstHmm = pxToMm300(first.height);
           const pdf = new jsPDFCtor({
-            orientation: widthMm > heightMm ? 'landscape' : 'portrait',
+            orientation: firstWmm > firstHmm ? 'landscape' : 'portrait',
             unit: 'mm',
-            format: [widthMm, heightMm],
+            format: [firstWmm, firstHmm],
             compress: true,
           });
           for (let i = 0; i < snapshots.length; i++) {
-            if (i > 0) pdf.addPage([widthMm, heightMm], widthMm > heightMm ? 'landscape' : 'portrait');
-            const dataUrl = snapshots[i].canvas.toDataURL('image/jpeg', 0.9);
-            pdf.addImage(dataUrl, 'JPEG', 0, 0, widthMm, heightMm, undefined, 'FAST');
+            const c = snapshots[i].canvas;
+            const wMm = pxToMm300(c.width);
+            const hMm = pxToMm300(c.height);
+            if (i > 0) pdf.addPage([wMm, hMm], wMm > hMm ? 'landscape' : 'portrait');
+            const dataUrl = c.toDataURL('image/jpeg', 0.92);
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, wMm, hMm, undefined, 'FAST');
           }
           const blob: Blob = pdf.output('blob');
           const path = `${userKey}/${orderId}/book_layout.pdf`;
