@@ -2577,6 +2577,52 @@ export default function BookLayoutEditor() {
     toast.success(` Розкладено ${unused.length} фото на сторінки!`);
   };
 
+  // Shuffle placed photos — keeps layouts and page structure intact, but
+  // randomises WHICH photo sits in WHICH slot. Useful after Магічна збірка:
+  // the auto-build places photos in upload order, so all portraits may end up
+  // together; a single shuffle gives instant variety without manual swapping.
+  const shufflePhotos = () => {
+    // Collect positions and photo IDs of all filled slots
+    const positions: Array<{ pi: number; si: number }> = [];
+    const ids: string[] = [];
+    pages.forEach((p, pi) => {
+      p.slots.forEach((s, si) => {
+        if (s.photoId) {
+          positions.push({ pi, si });
+          ids.push(s.photoId);
+        }
+      });
+    });
+
+    if (ids.length < 2) {
+      toast('Немає що перемішувати — розмісти фото спочатку', { duration: 1800 });
+      return;
+    }
+
+    // Fisher-Yates shuffle
+    const shuffled = [...ids];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // Build position→newId lookup
+    const newMap = new Map<string, string>(
+      positions.map((pos, i) => [`${pos.pi}_${pos.si}`, shuffled[i]])
+    );
+
+    pushHistory();
+    setPages(prev => prev.map((p, pi) => ({
+      ...p,
+      slots: p.slots.map((s, si) => {
+        const newId = newMap.get(`${pi}_${si}`);
+        if (!newId || newId === s.photoId) return s;
+        return { ...s, photoId: newId, ...getFocalCrop(newId) };
+      }),
+    })));
+    toast.success('Фото перемішано! 🎲 Не сподобалось — натисни ще раз або Undo', { duration: 2500 });
+  };
+
   // Auto-collage: drop N photos onto a page → pick best layout + assign
   const autoCollage = (photoIds: string[], pageIdx: number) => {
     if (photoIds.length === 0) return;
@@ -4159,6 +4205,15 @@ export default function BookLayoutEditor() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
             <button onClick={()=>setShowAutoBuild(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}><Wand2 size={14}/> Магічна збірка</button>
+            {pages.some(p => p.slots.some(s => s.photoId)) && (
+              <button
+                onClick={shufflePhotos}
+                title="Перемішати фото в слотах — лишає шаблони, змінює порядок фото"
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}
+              >
+                🔀
+              </button>
+            )}
             <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
             <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.max(20,z-10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
