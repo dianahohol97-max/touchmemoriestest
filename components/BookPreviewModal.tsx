@@ -610,12 +610,14 @@ export function BookPreviewModal({
 
     if (isSpread) {
       return (
-        <div style={{ display: 'flex', width: spreadW + spineW, height: pageH }}>
+        <div style={{ display: 'flex', width: spreadW, height: pageH }}>
           <div style={{ width: spreadW, height: pageH, position: 'relative', overflow: 'hidden' }}>
             {renderContentPage(leftPI, spreadW, pageH)}
+            {/* Centre gutter crease only — a full-spread photo bleeds across the
+               whole spread, so there is no solid spine band on the side (that
+               trailing band showed up as a white stripe at the right edge). */}
             <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: '100%', background: 'rgba(0,0,0,0.06)', zIndex: 50, pointerEvents: 'none' }} />
           </div>
-          <div style={{ width: spineW, height: pageH, flexShrink: 0, background: 'linear-gradient(to right, #e8e4de, #f5f2ed, #e8e4de)', boxShadow: '0 0 6px rgba(0,0,0,0.1)' }} />
         </div>
       );
     }
@@ -665,7 +667,7 @@ export function BookPreviewModal({
         <div style={{ perspective: 1200 }}>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
             {spread === 0 && <div style={{ width: spineW, height: pageH, flexShrink: 0, background: 'linear-gradient(to right, #8b7355, #a08b6e)', borderRadius: '3px 0 0 3px', boxShadow: 'inset -1px 0 3px rgba(0,0,0,0.3)' }} />}
-            <div style={{ position: 'relative', width: spreadW + spineW, height: pageH, overflow: 'visible' }}>
+            <div style={{ position: 'relative', width: spreadW + spineW, height: pageH, overflow: 'visible', display: 'flex', justifyContent: 'center' }}>
               {renderSpread(spread)}
               <div style={{ position: 'absolute', bottom: -5, left: '8%', right: '8%', height: 10, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.2), transparent)', borderRadius: '50%', filter: 'blur(3px)', pointerEvents: 'none' }} />
             </div>
