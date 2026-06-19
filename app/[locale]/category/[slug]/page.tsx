@@ -125,6 +125,13 @@ export default async function CategoryPage({
   const products = await getProducts(cat.id);
   const subcategories = await getSubcategories(cat.slug);
 
+  // If the category has no active products, redirect to catalog instead of
+  // showing an empty "coming soon" page. The category becomes visible again
+  // automatically once products are added.
+  if (products.length === 0) {
+    permanentRedirect(`/${locale}/catalog`);
+  }
+
   const name = getLocalized(cat, locale, 'name') || cat.name;
   const description = (getLocalized(cat, locale, 'description') || cat.description || '').trim();
 

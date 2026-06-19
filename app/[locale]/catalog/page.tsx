@@ -48,6 +48,10 @@ export default async function CatalogPage() {
       ]);
       initialCategories = cats || [];
       initialProducts = prods || [];
+      // Hide categories that have no active products — they'll appear automatically
+      // once a product is assigned to them.
+      const activeCatIds = new Set((prods || []).map((p: any) => p.category_id).filter(Boolean));
+      initialCategories = initialCategories.filter((c: any) => activeCatIds.has(c.id));
     }
   } catch {}
 
