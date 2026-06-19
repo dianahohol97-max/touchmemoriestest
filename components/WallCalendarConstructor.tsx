@@ -961,6 +961,37 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                                 ))}
                             </div>
 
+                            {/* Photo crop/zoom controls — appear when a slot is active */}
+                            {activeSlot !== null && curMonth && (() => {
+                                const slot = curMonth.slots[activeSlot] || {photoId:null,cropX:50,cropY:50,zoom:1};
+                                const hasPhoto = !!slot.photoId;
+                                if (!hasPhoto) return null;
+                                const z = slot.zoom || 1;
+                                return (
+                                    <div style={{marginTop:12,padding:'10px 8px',background:'#f0f3ff',borderRadius:8,border:'1px solid #c7d2fe'}}>
+                                        <div style={{fontSize:10,fontWeight:800,color:'#1e2d7d',marginBottom:8,textTransform:'uppercase',letterSpacing:'0.06em'}}>Фото: кадрування</div>
+                                        <div style={{display:'flex',alignItems:'center',gap:4,marginBottom:6}}>
+                                            <button onClick={()=>onCropChange(activeSlot,slot.cropX,slot.cropY,Math.max(0.5,z-0.1))}
+                                                style={{padding:'4px 8px',border:'1px solid #c7d2fe',borderRadius:6,background:'#fff',cursor:'pointer',fontSize:14,lineHeight:1,fontWeight:700,color:'#1e2d7d'}}>−</button>
+                                            <span style={{fontSize:11,fontWeight:700,color:'#475569',flex:1,textAlign:'center'}}>{Math.round(z*100)}%</span>
+                                            <button onClick={()=>onCropChange(activeSlot,slot.cropX,slot.cropY,Math.min(3,z+0.1))}
+                                                style={{padding:'4px 8px',border:'1px solid #c7d2fe',borderRadius:6,background:'#fff',cursor:'pointer',fontSize:14,lineHeight:1,fontWeight:700,color:'#1e2d7d'}}>+</button>
+                                        </div>
+                                        <input type="range" min={50} max={300} step={5}
+                                            value={Math.round(z*100)}
+                                            onChange={e=>onCropChange(activeSlot,slot.cropX,slot.cropY,+e.target.value/100)}
+                                            style={{width:'100%',accentColor:'#1e2d7d',marginBottom:6}}/>
+                                        <button onClick={()=>onCropChange(activeSlot,50,50,1)}
+                                            style={{width:'100%',padding:'4px',border:'1px solid #c7d2fe',borderRadius:6,background:'#fff',cursor:'pointer',fontSize:9,fontWeight:700,color:'#64748b'}}>
+                                            ↺ Скинути кадрування
+                                        </button>
+                                        <p style={{fontSize:9,color:'#94a3b8',textAlign:'center',marginTop:6,marginBottom:0,lineHeight:1.4}}>
+                                            Тягніть фото · коліщатко для масштабу
+                                        </p>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Marked dates */}
                             <div style={{marginTop:12,height:1,background:'#f1f5f9'}}/>
                             <div style={{fontSize:11,fontWeight:800,color:'#94a3b8',letterSpacing:'0.08em',textTransform:'uppercase',margin:'12px 0 6px'}}>{t('wallcal.marked_dates_label')}</div>
