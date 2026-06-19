@@ -93,7 +93,7 @@ export function ConstructorSelectionClient({
     const photobooksHeading = sectionContent?.metadata?.photobooks?.heading || t('constructor_sel.photobooks_heading');
     const photobooksDescription = sectionContent?.metadata?.photobooks?.description ||
         t('constructor_sel.photobooks_desc');
-    const photobooksConstructorUrl = sectionContent?.metadata?.photobooks?.constructor_url || '/order/book?product=photobook-velour';
+    const photobooksConstructorUrl = sectionContent?.metadata?.photobooks?.constructor_url || '/catalog?category=photobooks';
     const photobooksConstructorButtonText = sectionContent?.metadata?.photobooks?.constructor_button_text || t('constructor_sel.open_constructor');
     const photobooksDesignerButtonText = sectionContent?.metadata?.photobooks?.designer_button_text || t('constructor_sel.order_designer');
 
