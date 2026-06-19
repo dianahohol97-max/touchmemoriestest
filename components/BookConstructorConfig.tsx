@@ -407,6 +407,28 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             || searchParams.get('Тип оздоблення обкладинки') || searchParams.get('Тип+оздоблення+обкладинки');
 
         const pt = getProductType();
+
+        // Cover color is applied BEFORE the pages guard because for dedicated
+        // soft-cover slugs (photobook-leatherette, photobook-velour, photobook-fabric)
+        // photobookOptions may not have initialized yet when the customer clicks
+        // 'Відкрити редактор', so the URL may carry cover_color but not pages.
+        // Without this early read the guard below exits the effect and the stale
+        // sessionStorage color persists into the configurator.
+        const coverColorEarly = coverColorParam || colorFromCatalog;
+        if (coverColorEarly) {
+            const colorNameEarly = coverColorEarly.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            setSelectedCoverColor(colorNameEarly || coverColorEarly);
+        } else {
+            // No color from URL — always reset to slug default so a stale old
+            // session color never leaks through on a fresh catalog entry.
+            // Back-navigation is safe: bookConstructorConfig early-return (below)
+            // fires before this branch is reached.
+            const sl = productSlug.toLowerCase();
+            if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');
+            else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverColor('Бежевий/пісочний');
+        }
+
         if (!pages && pt !== 'wishbook') return; // Need at least pages to pre-fill (except wishbook)
 
         // Size (photobooks have size, magazines don't)
@@ -508,28 +530,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             || searchParams.get('Варіант фотовставки') || searchParams.get('Варіант+фотовставки');
         if (variantFromCatalog) setSelectedDecorationVariant(variantFromCatalog);
         if (decorationColor) setSelectedDecorationColor(decorationColor);
-
-        // Cover color from URL (catalog passes "Колір велюру=Таупе" etc.)
-        const coverColorFromUrl = coverColorParam || colorFromCatalog;
-        if (coverColorFromUrl) {
-            // The product-page selector stores the value as «Назва (Код)»
-            // (e.g. «Фіолетовий яскравий (Ш-28)»), but the swatches here match
-            // on the bare name, so strip any trailing «(…)» before setting.
-            const colorName = coverColorFromUrl.replace(/\s*\([^)]*\)\s*$/, '').trim();
-            setSelectedCoverColor(colorName || coverColorFromUrl);
-        } else {
-            // Fallback: slug-based default — always applied so a stale
-            // sessionStorage color (e.g. olive from a previous order) never
-            // overrides the first-color default on a fresh entry from the
-            // catalog. Back-navigation is safe: when the user returns from the
-            // editor, bookConstructorConfig is set → the early-return above
-            // fires before we ever reach this branch.
-            const sl = productSlug.toLowerCase();
-            if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
-            else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');
-            else if (sl.includes('fabric') || sl.includes('tkanina')) setSelectedCoverColor('Бежевий/пісочний');
-            // Друкована doesn't need color
-        }
 
         // Page color (wishbook only)
         if (pageColor) {
