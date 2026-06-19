@@ -6164,9 +6164,9 @@ export default function BookLayoutEditor() {
                           onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
                           onClick={() => { if (!backPhoto && photos.length > 0) setCoverState(p=>({...p,backCoverPhotoId:photos[0].id})); }}
                           style={{ position:'absolute', left:bSlotPx.x, top:bSlotPx.y, width:bSlotPx.w, height:bSlotPx.h,
-                            borderRadius:bBr, overflow:'hidden', cursor: backPhoto ? 'move' : 'pointer', zIndex:2,
-                            border: backPhoto ? 'none' : '2px dashed rgba(148,163,184,0.8)',
-                            background: backPhoto ? 'transparent' : '#f1f5f9' }}>
+                            borderRadius:bBr, overflow:'hidden', cursor: backPhoto ? 'move' : 'default', zIndex:2,
+                            border: backPhoto ? 'none' : 'none',
+                            background: 'transparent' }}>
                           {backPhoto ? (
                             <>
                               <div style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative', cursor: photoEditSlot==='backcover' ? 'grab' : 'pointer' }}
@@ -6212,8 +6212,16 @@ export default function BookLayoutEditor() {
                               </div>
                             </>
                           ) : (
-                            <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, color:'#94a3b8' }}>
-                              <ImageIcon size={isMobile?26:22}/><span style={{ fontSize: isMobile?11:9, fontWeight:600 }}>{isMobile ? (tapSelectedPhotoId ? t('constructor.tap_to_insert') : 'Торкніться, щоб додати фото') : t('constructor.drag_photo')}</span>
+                            /* No photo yet — show tiny floating hint, NOT a full-bleed placeholder.
+                               The cover colour (backBg) shows through the transparent background,
+                               so the customer sees exactly what the back cover will look like. */
+                            <div style={{ position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)',
+                              background:'rgba(0,0,0,0.38)', borderRadius:20, padding:'5px 12px',
+                              display:'flex', alignItems:'center', gap:5, pointerEvents:'none', whiteSpace:'nowrap' }}>
+                              <ImageIcon size={11} color="#fff"/>
+                              <span style={{ fontSize:9, fontWeight:600, color:'#fff' }}>
+                                {isMobile ? 'Торкніться або перетягніть фото' : 'Перетягніть фото сюди'}
+                              </span>
                             </div>
                           )}
                         </div>
