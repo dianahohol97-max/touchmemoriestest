@@ -101,7 +101,7 @@ export function ConstructorSelectionClient({
     const magazinesHeading = sectionContent?.metadata?.magazines?.heading || t('constructor_sel.magazines_heading');
     const magazinesDescription = sectionContent?.metadata?.magazines?.description ||
         t('constructor_sel.magazines_desc');
-    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/order/book?product=personalized-glossy-magazine';
+    const magazinesConstructorUrl = sectionContent?.metadata?.magazines?.constructor_url || '/catalog?category=hlyantsevi-zhurnaly';
     const magazinesConstructorButtonText = sectionContent?.metadata?.magazines?.constructor_button_text || t('constructor_sel.open_constructor');
     const magazinesDesignerButtonText = sectionContent?.metadata?.magazines?.designer_button_text || t('constructor_sel.order_designer');
 
