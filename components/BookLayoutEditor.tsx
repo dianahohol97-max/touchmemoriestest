@@ -7924,18 +7924,22 @@ export default function BookLayoutEditor() {
                 if (!pg) return <div style={{ flex:1, height:'100%', background:'#f1f5f9' }}/>;
                 // In spread mode, left page has the spread layout — render full width
                 if (isSpreadMode && side === 'left') {
-                  const defs = getSlotDefs(pg.layout, TW, TW * prop.h / (prop.w * 2), Math.max(1, slotGap * TW / (pageW * 2)));
+                  const tThumbW = TW; const tThumbH = TW * prop.h / (prop.w * 2);
+                  const defs = getSlotDefs(pg.layout, tThumbW, tThumbH, Math.max(1, slotGap * tThumbW / (pageW * 2)));
                   return (
                     <div style={{ width:'100%', height:'100%', position:'relative', overflow:'hidden', background:'#fff' }}>
                       {defs.map(({i, s}) => {
                         const slot = pg.slots[i];
                         const ph = slot ? getPhoto(slot.photoId) : null;
+                        // Apply custom geometry if the slot was manually resized/moved
+                        const cg = resolveCustomSlot(slot, tThumbW, tThumbH);
+                        const sl = cg ?? s;
                         const ss: React.CSSProperties = {
                           position: 'absolute',
-                          left: `${((s.left as number)||0) / TW * 100}%`,
-                          top: `${((s.top as number)||0) / (TW * prop.h / (prop.w * 2)) * 100}%`,
-                          width: `${((s.width as number)||TW) / TW * 100}%`,
-                          height: `${((s.height as number)||TW) / (TW * prop.h / (prop.w * 2)) * 100}%`,
+                          left: `${((sl.left as number)||0) / tThumbW * 100}%`,
+                          top: `${((sl.top as number)||0) / tThumbH * 100}%`,
+                          width: `${((sl.width as number)||tThumbW) / tThumbW * 100}%`,
+                          height: `${((sl.height as number)||tThumbH) / tThumbH * 100}%`,
                           overflow: 'hidden',
                           background: ph ? 'transparent' : 'rgba(240,242,255,0.65)',
                           border: ph ? 'none' : '1px dashed #c7d2fe',
@@ -7953,20 +7957,23 @@ export default function BookLayoutEditor() {
                   );
                 }
                 if (isSpreadMode && side === 'right') return null; // right page hidden in spread mode
-                const defs = getSlotDefs(pg.layout, TW/2, TW * prop.h / prop.w / 1);
+                const pThumbW = TW/2; const pThumbH = TW * prop.h / prop.w;
+                const defs = getSlotDefs(pg.layout, pThumbW, pThumbH);
                 return (
                   <div style={{ flex:1, height:'100%', position:'relative', overflow:'hidden', background:'#fff',
                     borderLeft: side==='right' ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
                     {defs.map(({i, s}) => {
                       const slot = pg.slots[i];
                       const ph = slot ? getPhoto(slot.photoId) : null;
-                      const scale = (TW/2) / (cW/2);
+                      // Apply custom geometry if the slot was manually resized/moved
+                      const cg = resolveCustomSlot(slot, pThumbW, pThumbH);
+                      const sl = cg ?? s;
                       const ss: React.CSSProperties = {
                         position: 'absolute',
-                        left: `${((s.left as number)||0) / (cW/2) * 100}%`,
-                        top: `${((s.top as number)||0) / cH * 100}%`,
-                        width: `${((s.width as number)||cW/2) / (cW/2) * 100}%`,
-                        height: `${((s.height as number)||cH) / cH * 100}%`,
+                        left: `${((sl.left as number)||0) / pThumbW * 100}%`,
+                        top: `${((sl.top as number)||0) / pThumbH * 100}%`,
+                        width: `${((sl.width as number)||pThumbW) / pThumbW * 100}%`,
+                        height: `${((sl.height as number)||pThumbH) / pThumbH * 100}%`,
                         overflow: 'hidden',
                         background: ph ? 'transparent' : '#f0f2ff',
                         border: ph ? 'none' : '1px dashed #a5b4fc',
