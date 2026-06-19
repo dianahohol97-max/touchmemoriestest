@@ -451,12 +451,27 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     ? 'repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0px,rgba(255,255,255,0.06) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(0deg,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 1px,transparent 1px,transparent 4px)'
     : 'none';
 
-  const pageWidthMM = parseInt(sizeValue.split('x')[0]) * 10;
+  // Cover width in mm. Sizes are stored in cm (e.g. "25x25" → 250 mm). Guard
+  // against a malformed or mm-form size (e.g. "250x250") that would otherwise
+  // make `scale` ~10× too small and shrink the decoration plate to a dot.
+  let pageWidthCm = parseInt(sizeValue.split('x')[0]);
+  if (!Number.isFinite(pageWidthCm) || pageWidthCm < 15 || pageWidthCm > 40) pageWidthCm = 20;
+  const pageWidthMM = pageWidthCm * 10;
   const scale = canvasW / pageWidthMM;
 
   const dims = parseVariantDims(config.decoVariant || '100×100 мм');
-  const boxW = dims.w * scale;
-  const boxH = dims.h * scale;
+  let boxW = dims.w * scale;
+  let boxH = dims.h * scale;
+  // Defensive clamp: a decoration plate is always a meaningful fraction of the
+  // cover — never a dot, never overflowing the cover — even if size/variant data
+  // is off. Scale both sides by the same factor to keep the aspect ratio.
+  {
+    const minW = canvasW * 0.12, maxW = canvasW * 0.96, maxH = canvasH * 0.96;
+    let k = 1;
+    if (boxW > maxW || boxH > maxH) k = Math.min(maxW / boxW, maxH / boxH);
+    else if (boxW > 0 && boxW < minW) k = minW / boxW;
+    boxW *= k; boxH *= k;
+  }
   const boxL = (canvasW - boxW) / 2;
   const boxT = (canvasH - boxH) / 2;
 
@@ -506,8 +521,11 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
     <div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={handleDrop}
       style={{ position:'relative', width:canvasW, height:canvasH, borderRadius:4, overflow:'hidden',
         boxShadow:'0 8px 32px rgba(0,0,0,0.18)', flexShrink:0, background:bgColor }}>
-      {/* Ready-made cover background image (travel book) — full bleed, under everything */}
-      {config.printedBgImage && (
+      {/* Ready-made cover background image (travel book) — full bleed, under
+          everything. Only for printed covers: a soft material cover (velour /
+          leatherette / fabric) must never show a printed background image, even
+          if one lingers in stale state. */}
+      {!isSoft && config.printedBgImage && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={config.printedBgImage} alt=""
           style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}
