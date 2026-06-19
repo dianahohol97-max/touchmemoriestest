@@ -90,7 +90,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     mode: 'photo',
     photoUrl: null,
     cropX: 50, cropY: 50, zoom: 1,
-    text: 'Ваш текст',
+    text: '',
     textColor: '#1a1a1a',
     bgColor: '#f5ecd7',
     fontFamily: 'Playfair Display',
@@ -320,8 +320,8 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
               )}
 
               {config.mode === 'text' && (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(18, previewW * 0.09) * config.fontScale, color: config.textColor, fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
-                  {config.text}
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, textAlign: 'center', fontFamily: config.fontFamily + ', serif', fontSize: Math.max(18, previewW * 0.09) * config.fontScale, color: config.text ? config.textColor : 'rgba(150,150,150,0.6)', fontWeight: 700, wordWrap: 'break-word', lineHeight: 1.2 }}>
+                  {config.text || 'Ваш текст'}
                 </div>
               )}
 
@@ -407,10 +407,13 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
               <div style={{ fontSize: 12, fontWeight: 800, color: '#1e2d7d', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {config.mode === 'qr' ? t('puzzle.caption') : t('puzzle.yourText')}
               </div>
-              <textarea value={config.text} onChange={e => update({ text: e.target.value })}
-                placeholder={config.mode === 'qr' ? t('puzzle.qrCaption') : t('puzzle.textPlaceholder')}
-                rows={3}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, resize: 'vertical', fontFamily: 'inherit' }} />
+              <textarea
+                value={config.text}
+                onChange={e => update({ text: e.target.value })}
+                placeholder={config.mode === 'qr' ? t('puzzle.qrCaption') : 'Введіть текст для пазла'}
+                rows={4}
+                autoFocus={config.mode === 'text'}
+                style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #c7d2fe', borderRadius: 6, fontSize: 14, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', lineHeight: 1.5 }} />
             </div>
           )}
 
