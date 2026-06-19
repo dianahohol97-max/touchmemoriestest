@@ -492,6 +492,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 'Гравірування': 'Гравірування', 'graviruvannya': 'Гравірування',
             };
             setSelectedDecorationType(decorationMap[decorationValue] || decorationValue);
+        } else {
+            // No decoration param in URL → reset to none so a stale session
+            // value (e.g. 'Друк кольором' from a previous order) never surfaces
+            // as the selected decoration on a fresh entry from the catalog.
+            // Back-navigation is protected by the early-return a few lines below.
+            setSelectedDecorationType('none');
+            setSelectedDecorationVariant('');
         }
         // The variant can arrive as a generic key OR under its Ukrainian option
         // name — that's how the product page forwards the customer's choice.
@@ -510,8 +517,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             // on the bare name, so strip any trailing «(…)» before setting.
             const colorName = coverColorFromUrl.replace(/\s*\([^)]*\)\s*$/, '').trim();
             setSelectedCoverColor(colorName || coverColorFromUrl);
-        } else if (!selectedCoverColor) {
-            // Fallback: slug-based default if nothing in URL
+        } else {
+            // Fallback: slug-based default — always applied so a stale
+            // sessionStorage color (e.g. olive from a previous order) never
+            // overrides the first-color default on a fresh entry from the
+            // catalog. Back-navigation is safe: when the user returns from the
+            // editor, bookConstructorConfig is set → the early-return above
+            // fires before we ever reach this branch.
             const sl = productSlug.toLowerCase();
             if (sl.includes('velour') || sl.includes('velyur')) setSelectedCoverColor('Бежевий');
             else if (sl.includes('leather')) setSelectedCoverColor('Бежевий');

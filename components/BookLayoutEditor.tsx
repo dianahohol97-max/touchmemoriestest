@@ -1696,7 +1696,36 @@ export default function BookLayoutEditor() {
             if (d.pageStickers) setPageStickers(d.pageStickers);
             if (d.pageShapes) setPageShapes(d.pageShapes);
             if (d.pageBgs) setPageBgs(d.pageBgs);
-            if (d.coverState) setCoverState(d.coverState);
+            if (d.coverState) {
+              if (isReopen) {
+                // Reopen: draft is authoritative — restore coverState as-is.
+                setCoverState(d.coverState);
+              } else {
+                // Normal entry: pages/stickers/shapes come from the draft, but
+                // decoType + decoVariant come from the FRESH bookConstructorConfig
+                // (the configurator step the customer just completed). Without
+                // this merge, a draft saved with 'flex' decoration would silently
+                // override a configurator that now says 'none', making the editor
+                // show the old decoration even after the customer changed it.
+                let mergedCoverState = { ...d.coverState };
+                const freshRaw = sessionStorage.getItem('bookConstructorConfig');
+                if (freshRaw) {
+                  try {
+                    const fc = JSON.parse(freshRaw);
+                    mergedCoverState.decoType = detectDecoType(
+                      fc.selectedDecorationType || fc.selectedDecoration || ''
+                    );
+                    mergedCoverState.decoVariant = fc.selectedDecorationVariant || '';
+                    if (fc.selectedDecorationColor) {
+                      mergedCoverState.decoColor = resolveInitDecoColor(
+                        mergedCoverState.decoType, fc.selectedDecorationColor
+                      );
+                    }
+                  } catch { /* ignore, keep draft values */ }
+                }
+                setCoverState(mergedCoverState);
+              }
+            }
             if (d.qrOverlays) setQrOverlays(d.qrOverlays);
             if (typeof d.generatedQRCount === 'number') setGeneratedQRCount(d.generatedQRCount);
           }

@@ -493,7 +493,16 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string;photo_url?:string|null}|null>(null);
   const [wishbookCoverColors, setWishbookCoverColors] = useState<{[material:string]: any[]}>({});
-  const [selectedOzdoblennya, setSelectedOzdoblennya] = useState('none');
+  // Initialise from parent state so the decoration pill and the URL value
+  // are always in sync. Without this, local state hard-codes 'none' even
+  // when the parent sessionStorage-restored customProductOptions already
+  // carries a previous selection (e.g. 'Друк кольором'), causing the pill
+  // to show 'Без оздоблення' visually while the URL carries the stale
+  // decoration — the configurator then opens to the wrong decoration.
+  const [selectedOzdoblennya, setSelectedOzdoblennya] = useState<string>(() => {
+    const label = String(selectedOptions['Тип оздоблення'] || '');
+    return VELOUR_OZDOBLENNYA.find(o => o.label === label)?.value || 'none';
+  });
   const [selectedDecorationVariant, setSelectedDecorationVariant] = useState('');
   const [decorationVariants, setDecorationVariants] = useState<any[]>([]);
   const [coverColors, setCoverColors] = useState<any[]>([]);
