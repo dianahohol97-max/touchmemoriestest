@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSlotDefs, resolveCustomSlot } from '@/lib/editor/slot-defs';
+import { resolveCoverColor } from '@/lib/editor/utils';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
@@ -165,7 +166,7 @@ interface BookPreviewProps {
 export function BookPreviewModal({
   pages, photos, propW, propH, onClose,
   freeSlots = {},
-  coverState, isPrinted, effectiveCoverColor,
+  coverState, isPrinted, effectiveCoverColor, selectedCoverType,
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
@@ -411,7 +412,7 @@ export function BookPreviewModal({
 
   //  Cover back 
   const renderCoverBack = () => {
-    const backBg = isPrinted ? (coverState?.backCoverBgColor || '#f1f5f9') : (effectiveCoverColor || '#e8ecf4');
+    const backBg = isPrinted ? (coverState?.backCoverBgColor || '#f1f5f9') : resolveCoverColor(selectedCoverType || '', effectiveCoverColor || '');
     const backPhoto = isPrinted && coverState?.backCoverPhotoId ? getPhoto(coverState.backCoverPhotoId) : null;
     const backSlot = coverState?.backCoverSlot;
     const backTexts: any[] = isPrinted ? ((coverState as any)?.backCoverTexts || []) : [];
@@ -458,7 +459,7 @@ export function BookPreviewModal({
   //  Cover front 
   const renderCoverFront = () => {
     if (!isPrinted) {
-      const bg = effectiveCoverColor || '#8b7355';
+      const bg = resolveCoverColor(selectedCoverType || '', effectiveCoverColor || '');
       return (
         <div style={{ width: pageW, height: pageH, background: bg, flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {(() => {
