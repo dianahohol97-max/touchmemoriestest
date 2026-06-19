@@ -1181,7 +1181,7 @@ export default function PosterConstructor() {
             const slots = layout.getSlots(PREVIEW_W, posterH, config.padding);
             // Scale factor: canvas renders at PREVIEW_W, overlay div is 100% of container
             return (
-              <div style={{ position:'absolute', inset:0, borderRadius:8, overflow:'hidden' }}
+              <div style={{ position:'absolute', inset:0, borderRadius:8, overflow:'visible' }}
                 // Click on canvas to deselect crop
                 onClick={() => setCropSlotIdx(null)}
               >
@@ -1206,14 +1206,18 @@ export default function PosterConstructor() {
                       }}
                       onClick={e => { e.stopPropagation(); if (photo) setCropSlotIdx(isCrop ? null : i); }}
                     >
-                      {/* Crop mode toolbar */}
+                      {/* Crop mode toolbar — flips below when slot is in top 35% */}
                       {isCrop && photo && (
                         <div
                           style={{
-                            position:'absolute', bottom:'100%', left:'50%', transform:'translateX(-50%)',
+                            position:'absolute',
+                            ...(slot.y * scaleY < 35
+                              ? { top:'100%', marginTop:4 }
+                              : { bottom:'100%', marginBottom:4 }),
+                            left:'50%', transform:'translateX(-50%)',
                             background:'rgba(15,23,42,0.92)', borderRadius:10, padding:'6px 10px',
                             display:'flex', gap:8, alignItems:'center', zIndex:30,
-                            boxShadow:'0 4px 16px rgba(0,0,0,0.35)', whiteSpace:'nowrap', marginBottom:4,
+                            boxShadow:'0 4px 16px rgba(0,0,0,0.35)', whiteSpace:'nowrap',
                           }}
                           onClick={e => e.stopPropagation()}
                         >
