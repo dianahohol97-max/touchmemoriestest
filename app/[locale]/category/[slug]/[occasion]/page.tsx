@@ -35,6 +35,32 @@ async function getLanding(categorySlug: string, occasion: string) {
 async function getLandingProducts(lp: any) {
   const supabase = getAdminClient();
   if (!supabase) return [];
+
+  // Size-based subcategory pages ("200-foto", "300-foto", "500-foto", "800-foto")
+  // list EVERY active album of that size in the category automatically — the size
+  // is the number in the occasion and in each album's name. No manual product_slugs
+  // to keep in sync: a new album shows up here as soon as it's active in the right
+  // category. (Any curated product_slugs on these pages are intentionally ignored.)
+  const sizeMatch = /^(\d+)-foto$/.exec(lp.occasion || '');
+  if (sizeMatch) {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', lp.category_slug)
+      .maybeSingle();
+    if (!cat) return [];
+    const { data } = await supabase
+      .from('products')
+      .select(PRODUCT_CARD_FIELDS)
+      .eq('category_id', (cat as any).id)
+      .eq('is_active', true);
+    // Match the size as a standalone number so "200" never catches "1200".
+    const re = new RegExp(`(^|[^0-9])${sizeMatch[1]}([^0-9]|$)`);
+    const arr = ((data as any[]) || []).filter((p) => re.test(p.name || ''));
+    arr.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'uk'));
+    return arr;
+  }
+
   if (Array.isArray(lp.product_slugs) && lp.product_slugs.length > 0) {
     const { data } = await supabase
       .from('products')
@@ -57,7 +83,7 @@ async function getLandingProducts(lp: any) {
     .select(PRODUCT_CARD_FIELDS)
     .eq('category_id', (cat as any).id)
     .eq('is_active', true)
-    .order('sort_order', { nullsFirst: false });
+    .order('created_at', { nullsFirst: false });
   return (data as any[]) || [];
 }
 
