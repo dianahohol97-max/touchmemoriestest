@@ -86,7 +86,7 @@ const DESIGNS: DesignDef[] = [
   },
 ];
 
-interface SlotState { file?: File; previewUrl?: string; path?: string; fileName?: string; size?: number; uploading?: boolean; }
+interface SlotState { file?: File; previewUrl?: string; path?: string; fileName?: string; size?: number; uploading?: boolean; error?: string; }
 
 const BTN = (active: boolean): React.CSSProperties => ({
   padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -174,8 +174,9 @@ export default function WeddingNewspaperConstructor() {
       if (error) throw error;
       setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], path, fileName, size: up.size, uploading: false } }));
     } catch (e: any) {
-      toast.error(`Помилка завантаження: ${e?.message || 'спробуйте ще раз'}`);
-      setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], uploading: false } }));
+      const errMsg = e?.message || 'невідома помилка';
+      toast.error(`Помилка завантаження: ${errMsg}`, { duration: 6000 });
+      setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], uploading: false, error: errMsg } }));
     }
   };
 
@@ -348,6 +349,7 @@ export default function WeddingNewspaperConstructor() {
                       : <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8', gap: 4 }}><Upload size={20} /><span style={{ fontSize: 11 }}>Додати фото</span></div>}
                     {st?.uploading && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e2d7d', fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.4)' }}>Завантаження…</div>}
                     {st?.path && !st.uploading && <div style={{ position: 'absolute', top: 4, left: 4, background: '#10b981', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={12} /></div>}
+                    {st?.error && !st.uploading && !st.path && <div title={st.error} style={{ position: 'absolute', bottom: 4, left: 4, right: 4, background: 'rgba(220,38,38,0.92)', color: '#fff', borderRadius: 6, padding: '2px 6px', fontSize: 10, fontWeight: 700, textAlign: 'center', cursor: 'help' }}>⚠ Помилка — тисни знову</div>}
                     {st && <button onClick={e => { e.stopPropagation(); removeSlot(s.key); }} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={12} /></button>}
                   </div>
                   {s.caption && (
