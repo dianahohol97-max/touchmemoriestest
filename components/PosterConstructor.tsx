@@ -900,6 +900,15 @@ export default function PosterConstructor() {
 
               {config.photos.length < layout.slots && (<>
                 <button onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#1e2d7d'; }}
+                  onDragLeave={e => { e.currentTarget.style.background = '#f8faff'; e.currentTarget.style.borderColor = '#c7d2fe'; }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.currentTarget.style.background = '#f8faff';
+                    e.currentTarget.style.borderColor = '#c7d2fe';
+                    const files = e.dataTransfer.files;
+                    if (files?.length) handleFileSelect({ target: { files } } as any);
+                  }}
                   style={{ width:'100%', padding:'14px', border:'2px dashed #c7d2fe', borderRadius:10,
                     background:'#f8faff', color:'#1e2d7d', fontWeight:700, fontSize:13,
                     cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:6 }}>
