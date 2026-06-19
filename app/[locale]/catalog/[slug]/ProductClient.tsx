@@ -2247,7 +2247,12 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             ))}
                         </div>
                     )}
-                    <ReviewForm productId={product?.id} />
+                    {/* Verified-purchase note — review form is sent via email after order delivery */}
+                    <div style={{ background: '#f5f7ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '20px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+                        <div style={{ fontSize: 22, marginBottom: 8 }}>✉️</div>
+                        <p style={{ fontSize: 14, color: '#1e2d7d', fontWeight: 700, margin: '0 0 6px' }}>Залишити відгук можуть покупці</p>
+                        <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.6 }}>Після отримання замовлення ми надішлемо вам листа з персональним посиланням для відгуку.</p>
+                    </div>
                 </div>
 
             </main>
