@@ -3380,7 +3380,7 @@ export default function BookLayoutEditor() {
     // detect whether a captured page is one of the endpapers (forсаç).
     // For the cover, pageIdx = 0; for spreads, the left page is
     // pageIdx = (idx-1)*2 + 1 and the right page is pageIdx = (idx-1)*2 + 2.
-    const snapshots: { canvas: HTMLCanvasElement; idx: number; side: 'cover' | 'left' | 'right'; pageIdx: number }[] = [];
+    const snapshots: { canvas: HTMLCanvasElement; idx: number; side: 'cover' | 'left' | 'right' | 'spread'; pageIdx: number }[] = [];
     let captured = 0;
     let failed = 0;
 
@@ -3430,27 +3430,42 @@ export default function BookLayoutEditor() {
             // 470×328 mm sheet with the spine in the middle.
             snapshots.push({ canvas, idx: i, side: 'cover', pageIdx: 0 });
           } else {
-            // Spread → split down the middle into left + right pages.
-            // The print shop wants each page as its own file.
-            const halfW = Math.floor(canvas.width / 2);
-            const fullH = canvas.height;
-            const makeHalf = (sx: number): HTMLCanvasElement => {
-              const c = document.createElement('canvas');
-              c.width = halfW;
-              c.height = fullH;
-              const ctx = c.getContext('2d');
-              if (ctx) {
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(canvas, sx, 0, halfW, fullH, 0, 0, halfW, fullH);
-              }
-              return c;
-            };
-            // Spread idx=k shows pages[(k-1)*2 + 1] (left) and (k-1)*2 + 2 (right).
             const leftPageIdx  = (i - 1) * 2 + 1;
             const rightPageIdx = (i - 1) * 2 + 2;
-            snapshots.push({ canvas: makeHalf(0),     idx: i, side: 'left',  pageIdx: leftPageIdx });
-            snapshots.push({ canvas: makeHalf(halfW), idx: i, side: 'right', pageIdx: rightPageIdx });
+            // Photobooks are lay-flat: a content spread is printed as ONE
+            // continuous sheet (a photo can run across the gutter), so it must
+            // be exported WHOLE, never split into two pages. The only exception
+            // is the kalka (tracing-paper) page + its blank forzac, and the
+            // back forzac — those are separate physical sheets and still need
+            // to come out as individual files.
+            const isKalkaForzacSpread = hasKalka && (
+              leftPageIdx === kalkaForzatsIdx ||
+              rightPageIdx === kalkaPageIdx ||
+              (kalkaEndPageIdxStart > 0 && (leftPageIdx >= kalkaEndPageIdxStart || rightPageIdx >= kalkaEndPageIdxStart))
+            );
+            if (isSpreadMode && !isKalkaForzacSpread) {
+              // Whole lay-flat spread → a single file.
+              snapshots.push({ canvas, idx: i, side: 'spread', pageIdx: leftPageIdx });
+            } else {
+              // Page-mode products (magazine / journal / travelbook) and the
+              // kalka/forzac sheets → split down the middle into left + right.
+              const halfW = Math.floor(canvas.width / 2);
+              const fullH = canvas.height;
+              const makeHalf = (sx: number): HTMLCanvasElement => {
+                const c = document.createElement('canvas');
+                c.width = halfW;
+                c.height = fullH;
+                const ctx = c.getContext('2d');
+                if (ctx) {
+                  ctx.imageSmoothingEnabled = true;
+                  ctx.imageSmoothingQuality = 'high';
+                  ctx.drawImage(canvas, sx, 0, halfW, fullH, 0, 0, halfW, fullH);
+                }
+                return c;
+              };
+              snapshots.push({ canvas: makeHalf(0),     idx: i, side: 'left',  pageIdx: leftPageIdx });
+              snapshots.push({ canvas: makeHalf(halfW), idx: i, side: 'right', pageIdx: rightPageIdx });
+            }
           }
           captured++;
         } catch (e) {
