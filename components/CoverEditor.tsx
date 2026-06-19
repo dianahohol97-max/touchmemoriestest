@@ -222,6 +222,7 @@ function ClampedTextWrapper({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [toolbarAbove, setToolbarAbove] = useState(false);
   const safeInsetPx = Math.max(8, canvasW * 0.06);
 
   useEffect(() => {
@@ -241,6 +242,8 @@ function ClampedTextWrapper({
       if (top < safeInsetPx) dy = safeInsetPx - top;
       else if (bottom > canvasH - safeInsetPx) dy = (canvasH - safeInsetPx) - bottom;
       setOffset(prev => (prev.x === dx && prev.y === dy) ? prev : { x: dx, y: dy });
+      // Flip toolbar above when element bottom is in the lower 30% of canvas
+      setToolbarAbove(bottom > canvasH * 0.72);
     };
     measure();
     const raf = requestAnimationFrame(measure);
@@ -294,13 +297,15 @@ function ClampedTextWrapper({
       }}
     >
       {children}
-      {/* Font-size buttons — A- / size / A+ below the text block */}
+      {/* Font-size buttons — flip above when text is in lower 30% of canvas */}
       {onFontSizeChange && (
         <div
           onMouseDown={e => e.stopPropagation()}
           onPointerDown={e => e.stopPropagation()}
           style={{
-            position: 'absolute', bottom: -26, left: '50%',
+            position: 'absolute',
+            ...(toolbarAbove ? { bottom: '100%', marginBottom: 4 } : { top: '100%', marginTop: 4 }),
+            left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center', gap: 3,
             background: 'rgba(30,45,125,0.88)', borderRadius: 20,
