@@ -2940,8 +2940,8 @@ export default function BookLayoutEditor() {
     startPointerDrag(e,
       (dx, dy) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
-          ...sl, cropX: Math.max(0,Math.min(100, cx - dx/sensitivity)),
-                cropY: Math.max(0,Math.min(100, cy - dy/sensitivity))
+          ...sl, cropX: Math.max(0,Math.min(100, cx + dx/sensitivity)),
+                cropY: Math.max(0,Math.min(100, cy + dy/sensitivity))
         })
       })); }
     );

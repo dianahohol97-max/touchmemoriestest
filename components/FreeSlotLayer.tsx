@@ -113,8 +113,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
         y = Math.max(0, Math.min(canvasH - h, origSlot.y + dy));
         onChange(slots.map(s => s.id === id ? { ...s, x, y } : s));
       } else if (type === 'crop') {
-        const nx = Math.max(0, Math.min(100, origSlot.cropX - dx / 3));
-        const ny = Math.max(0, Math.min(100, origSlot.cropY - dy / 3));
+        const nx = Math.max(0, Math.min(100, origSlot.cropX + dx / 3));
+        const ny = Math.max(0, Math.min(100, origSlot.cropY + dy / 3));
         onChange(slots.map(s => s.id === id ? { ...s, cropX: nx, cropY: ny } : s));
       } else {
         const hStr = type as string;
@@ -200,7 +200,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
         setGuides({ x: gx, y: gy });
         update(id, { x: nx, y: ny });
       } else if (type === 'crop') {
-        update(id, { cropX: Math.max(0,Math.min(100, origSlot.cropX-dx/3)), cropY: Math.max(0,Math.min(100, origSlot.cropY-dy/3)) });
+        update(id, { cropX: Math.max(0,Math.min(100, origSlot.cropX+dx/3)), cropY: Math.max(0,Math.min(100, origSlot.cropY+dy/3)) });
       } else {
         if (type.includes('e')) w = Math.max(MIN_SIZE, origSlot.w+dx);
         if (type.includes('s')) h = Math.max(MIN_SIZE, origSlot.h+dy);
@@ -345,8 +345,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       } else if (e.touches.length === 1 && inCrop && tr.slotId === slot.id) {
                         e.preventDefault();
                         update(slot.id, {
-                          cropX: Math.max(0, Math.min(100, tr.origCropX - (e.touches[0].clientX - tr.startX) / 3)),
-                          cropY: Math.max(0, Math.min(100, tr.origCropY - (e.touches[0].clientY - tr.startY) / 3)),
+                          cropX: Math.max(0, Math.min(100, tr.origCropX + (e.touches[0].clientX - tr.startX) / 3)),
+                          cropY: Math.max(0, Math.min(100, tr.origCropY + (e.touches[0].clientY - tr.startY) / 3)),
                         });
                       }
                     }}
