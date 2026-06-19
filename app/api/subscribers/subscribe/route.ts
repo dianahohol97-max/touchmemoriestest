@@ -73,7 +73,7 @@ export async function POST(request: Request) {
             const htmlMessage = await render(
                 WelcomeEmail({
                     firstName: name,
-                    promoCode: welcomeCfg?.promo_code || 'WELCOME7',
+                    promoCode: welcomeCfg?.promo_code || 'WELCOME5',
                     appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
                     body: welcomeCfg?.body || undefined,
                 })
