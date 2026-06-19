@@ -2892,16 +2892,20 @@ export default function BookLayoutEditor() {
           //
           // Original File is stored in `originalFile` either way, so the
           // print pipeline always has the untouched master to work with.
-          const MAX = 5000;
+          // DISPLAY preview is capped at 1600px — enough for any screen and
+          // keeps JS heap usage low (30 × phone photo at 5000px ≈ 240 MB;
+          // at 1600px ≈ 25 MB). Print quality is unaffected because the
+          // original File is always stored in `originalFile` and used for
+          // the actual upload to Supabase Storage.
+          const PREVIEW_MAX = 1600;
           const { width: ow, height: oh } = img;
-          const needsDownscale = ow > MAX || oh > MAX;
+          const needsDownscale = ow > PREVIEW_MAX || oh > PREVIEW_MAX;
 
           let preview: string;
-          if (!needsDownscale) {
-            // Use the original — no quality loss
-            preview = originalDataUrl;
-          } else {
-            const ratio = ow >= oh ? MAX / ow : MAX / oh;
+          {
+            const ratio = needsDownscale
+              ? (ow >= oh ? PREVIEW_MAX / ow : PREVIEW_MAX / oh)
+              : 1;
             const w = Math.round(ow * ratio);
             const h = Math.round(oh * ratio);
             const canvas = document.createElement('canvas');
@@ -2911,11 +2915,13 @@ export default function BookLayoutEditor() {
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, w, h);
-            // PNG for non-photographic sources, JPEG for photos
             const isPng = (file.type || '').toLowerCase() === 'image/png';
             preview = isPng
               ? canvas.toDataURL('image/png')
               : canvas.toDataURL('image/jpeg', 0.92);
+            // Release canvas GPU/memory immediately after extracting data URL
+            canvas.width = 0;
+            canvas.height = 0;
           }
 
           const photo: PhotoData = {
