@@ -8,6 +8,7 @@ import { ArrowLeft, Gift, Mail, Package, Check, Calendar, Info } from 'lucide-re
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
+import Navigation from '@/components/Navigation';
 
 interface CertificateConfig {
   amount: number;
@@ -167,7 +168,8 @@ export default function GiftCertificatePage() {
 
   return (
     <div className="min-h-screen bg-stone-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <Navigation />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ paddingTop: '80px' }}>
         {/* Back button */}
         <Link
           href="/catalog"
