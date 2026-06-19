@@ -7900,11 +7900,14 @@ export default function BookLayoutEditor() {
                   style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
                   <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display: 'flex', borderRadius: 3, marginBottom: 3, overflow: 'hidden' }}>
                     {/* Back cover (left) */}
-                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : '#c4a882', borderRight: '1px solid rgba(0,0,0,0.12)' }}>
+                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
+                      {!isPrinted && <div style={{ position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 5px)', pointerEvents:'none' }}/>}
                       {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
+                    {/* Spine */}
+                    <div style={{ width: 2, height: '100%', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}/>
                     {/* Front cover (right) */}
-                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
+                    <div style={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {/* Ready-made cover background (travel book) — full bleed */}
                       {coverState.printedBgImage && (
                         <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
