@@ -294,30 +294,38 @@ function ClampedTextWrapper({
       }}
     >
       {children}
-      {/* Font-size resize handles — drag up/down to make text bigger/smaller */}
+      {/* Font-size buttons — A- / size / A+ below the text block */}
       {onFontSizeChange && (
-        <>
-          <div
-            onPointerDown={startResizeDrag}
-            onMouseDown={e => e.stopPropagation()}
-            style={{ ...handleStyle, left: -8 }}
-            title="Тягни вгору/вниз щоб змінити розмір"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-              <path d="M4 1v6M1 4l3-3 3 3" stroke="#1e2d7d" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <div
-            onPointerDown={startResizeDrag}
-            onMouseDown={e => e.stopPropagation()}
-            style={{ ...handleStyle, right: -8 }}
-            title="Тягни вгору/вниз щоб змінити розмір"
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-              <path d="M4 1v6M1 4l3-3 3 3" stroke="#1e2d7d" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </div>
-        </>
+        <div
+          onMouseDown={e => e.stopPropagation()}
+          onPointerDown={e => e.stopPropagation()}
+          style={{
+            position: 'absolute', bottom: -26, left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex', alignItems: 'center', gap: 3,
+            background: 'rgba(30,45,125,0.88)', borderRadius: 20,
+            padding: '3px 8px', zIndex: 30, whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+          }}
+        >
+          <button
+            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onFontSizeChange(-2); }}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, padding: '0 4px', lineHeight: 1 }}
+            title="Зменшити шрифт"
+          >A−</button>
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 8, minWidth: 20, textAlign: 'center' }}>
+            {tb && 'fontSize' in tb ? (tb as any).fontSize : ''}
+          </span>
+          <button
+            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onFontSizeChange(2); }}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, padding: '0 4px', lineHeight: 1 }}
+            title="Збільшити шрифт"
+          >A+</button>
+        </div>
       )}
     </div>
   );
