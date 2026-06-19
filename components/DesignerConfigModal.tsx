@@ -274,8 +274,21 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
           <p className="text-gray-600 mb-6">Оберіть параметри. Після підтвердження наш дизайнер створить макет для вас.</p>
 
           <div className="space-y-6">
-            {/* Dynamic options from DB */}
-            {options.filter((opt: any) => (opt.options?.length > 0 || opt.values?.length > 0)).map((opt: any) => {
+            {/* Dynamic options from DB — skip decoration fields handled below by the hardcoded UI */}
+            {options.filter((opt: any) => {
+              if (!(opt.options?.length > 0 || opt.values?.length > 0)) return false;
+              // When the color+decoration section is shown (non-printed covers),
+              // skip options that are already rendered there to avoid duplicates.
+              if (showColorAndDeco) {
+                const decoNames = new Set([
+                  'Оздоблення', 'Варіант акрилу', 'Варіант фотовставки',
+                  'Варіант металевої вставки', 'Варіант тиснення', 'Варіант гравірування',
+                  'Тип ламінації', 'Корінець',
+                ]);
+                if (decoNames.has(opt.name)) return false;
+              }
+              return true;
+            }).map((opt: any) => {
               const items = opt.options || opt.values || [];
               return (
                 <div key={opt.name}>
