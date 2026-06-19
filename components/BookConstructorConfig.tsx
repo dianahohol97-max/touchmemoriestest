@@ -445,16 +445,25 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const coverValue = cover || coverFromCatalog;
         if (coverValue) {
             // Map Ukrainian catalog names to internal names
+            // IMPORTANT: map to the same localized t() values the rest of the
+            // component uses for comparisons (color picker, decoration variant
+            // filter). Internal codes like 'leatherette'/'velour' break those
+            // comparisons since they compare against t('constructor.*') strings.
             const coverMap: Record<string, string> = {
-                'Велюрова': 'velour',
-                'Велюр': 'velour',
-                'Шкірзамінник': 'leatherette',
-                'Тканинна': 'fabric',
-                'Тканина': 'fabric',
-                'З тканини': 'fabric',
-                'Друкована': 'printed',
-                'Друкована тверда': 'printed',
+                'Велюрова': t('constructor.velour'),
+                'Велюр': t('constructor.velour'),
+                'velour': t('constructor.velour'),
+                'Тканинна': t('constructor.fabric'),
+                'Тканина': t('constructor.fabric'),
+                'З тканини': t('constructor.fabric'),
+                'fabric': t('constructor.fabric'),
+                'leatherette': t('constructor.faux_leather'),
+                'Друкована': t('constructor.printed'),
+                'Друкована тверда': t('constructor.printed'),
+                'printed': t('constructor.printed'),
             };
+            // 'Шкірзамінник' not in map → falls through to || coverValue
+            // which is already the correct localized name.
             setSelectedCoverType(coverMap[coverValue] || coverValue);
         } else {
             if (pt === 'photobook' || pt === 'wishbook') {
