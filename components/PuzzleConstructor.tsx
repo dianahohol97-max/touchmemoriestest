@@ -98,6 +98,8 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     qrValue: 'https://touch.memories',
   });
   const [showCartModal, setShowCartModal] = useState(false);
+  // Track uploaded image natural dimensions for proper cover+pan math
+  const [imgDims, setImgDims] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
   // Defensive: never let an unknown formatId blow up the page again.
   const format = PUZZLE_FORMATS.find(f => f.id === config.formatId) ?? PUZZLE_FORMATS[0];
@@ -115,6 +117,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     const reader = new FileReader();
     reader.onload = (e) => {
       update({ photoUrl: e.target?.result as string, cropX: 50, cropY: 50, zoom: 1 });
+      setImgDims({ w: 0, h: 0 }); // reset until onLoad fires
       toast.success(t('puzzle.uploadPhoto'));
     };
     reader.readAsDataURL(file);
@@ -276,7 +279,32 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
             }}>
               {(config.mode === 'photo' || config.mode === 'photo-text') && (
                 config.photoUrl ? (
-                  <img src={config.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${config.cropX}% ${config.cropY}%`, transform: `scale(${config.zoom})` }} />
+                  (() => {
+                    // Cover + pan: measure natural dimensions on load, then compute
+                    // pixel-perfect position so BOTH X and Y panning always work
+                    // regardless of image / container aspect ratio.
+                    if (imgDims.w > 0 && imgDims.h > 0) {
+                      const coverS = Math.max(previewW / imgDims.w, previewH / imgDims.h) * config.zoom;
+                      const sw = imgDims.w * coverS;
+                      const sh = imgDims.h * coverS;
+                      const left = (previewW - sw) * config.cropX / 100;
+                      const top  = (previewH - sh) * config.cropY / 100;
+                      return (
+                        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                          <img src={config.photoUrl!} alt=""
+                            onLoad={e => { const el = e.currentTarget; setImgDims({ w: el.naturalWidth, h: el.naturalHeight }); }}
+                            style={{ position: 'absolute', width: sw, height: sh, left, top, objectFit: 'none', userSelect: 'none', pointerEvents: 'none' }} />
+                        </div>
+                      );
+                    }
+                    // Dimensions not yet known — render with objectFit:cover as fallback
+                    // and trigger the onLoad measurement.
+                    return (
+                      <img src={config.photoUrl!} alt=""
+                        onLoad={e => { const el = e.currentTarget; setImgDims({ w: el.naturalWidth, h: el.naturalHeight }); }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${config.cropX}% ${config.cropY}%` }} />
+                    );
+                  })()
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', gap: 8 }}>
                     <ImageIcon size={40} color="#cbd5e1" />
