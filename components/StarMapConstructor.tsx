@@ -72,7 +72,21 @@ export default function StarMapConstructor() {
         : urlSize.includes('30') ? '30×40 см'
         : 'A4 (21×29.7 см)';
 
-    const [config, setConfig] = useState<StarMapConfig>({
+    // Restore config if user clicked "Редагувати" from the cart
+    const [config, setConfig] = useState<StarMapConfig>(() => {
+        if (typeof window !== 'undefined') {
+            const editId = sessionStorage.getItem('starmapEditItemId');
+            if (editId) {
+                try {
+                    const saved = sessionStorage.getItem(`starmapConfig_${editId}`);
+                    if (saved) {
+                        sessionStorage.removeItem('starmapEditItemId');
+                        return JSON.parse(saved) as StarMapConfig;
+                    }
+                } catch { /* ignore */ }
+            }
+        }
+        return {
         // Step 1 defaults
         date: new Date().toISOString().split('T')[0],
         time: '00:00',
@@ -114,6 +128,7 @@ export default function StarMapConstructor() {
         qrY: 90,
         qrSize: 12,
         qrBgColor: '#ffffff'
+        };
     });
 
     const supabase = createBrowserClient(
@@ -229,6 +244,11 @@ export default function StarMapConstructor() {
             slug: product.slug,
             personalization_note: `Заголовок: ${config.headline}\nПідзаголовок: ${config.subtitle}\nПрисвята: ${config.dedication}`
         };
+
+        // Save full config so "Редагувати" in cart can restore all settings
+        try {
+            sessionStorage.setItem(`starmapConfig_${cartItemId}`, JSON.stringify(config));
+        } catch { /* quota exceeded — edit button simply won't appear */ }
 
         addItem(cartPayload);
 

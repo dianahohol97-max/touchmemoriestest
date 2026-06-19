@@ -213,6 +213,27 @@ export default function CartPage() {
                                                         <Pencil size={13} /> Редагувати
                                                     </button>
                                                 )}
+                                                {/* Star map poster — edit button uses sessionStorage config */}
+                                                {!editableIds.has(item.id) && (() => {
+                                                    const isStarmap = item.id?.startsWith('starmap_') ||
+                                                        (item.name || '').toLowerCase().includes('зоряного') ||
+                                                        (item.options && 'Дата' in item.options && 'Локація' in item.options);
+                                                    if (!isStarmap) return null;
+                                                    const hasConfig = (() => {
+                                                        try { return !!sessionStorage.getItem(`starmapConfig_${item.id}`); } catch { return false; }
+                                                    })();
+                                                    if (!hasConfig) return null;
+                                                    return (
+                                                        <button
+                                                            onClick={() => {
+                                                                try { sessionStorage.setItem('starmapEditItemId', item.id); } catch { /* ignore */ }
+                                                                router.push(`/${locale}/order/starmap`);
+                                                            }}
+                                                            style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1.5px solid #1e2d7d', background: '#fff', color: '#1e2d7d', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                            <Pencil size={13} /> Редагувати
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '6px', borderRadius: "3px" }}>
                                                 <button onClick={() => updateQuantity(item.id, item.qty - 1)} style={qtyBtnStyle}><Minus size={14} /></button>
