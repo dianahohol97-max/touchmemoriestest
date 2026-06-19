@@ -1621,14 +1621,25 @@ export default function BookLayoutEditor() {
           // size cap — they survive only as long as the File object
           // on __bookPhotoOriginals does, which is fine for a single
           // session.
-          const valid = parsed.filter(p => {
-            if (!p.preview || p.width <= 0 || p.height <= 0) return false;
-            if (p.preview.startsWith('blob:')) return true;
-            return p.preview.startsWith('data:image') &&
-                   p.preview.length > 100 &&
-                   p.preview.length < 8_000_000;
-          });
+          // Keep ALL photos that have valid dimensions, even if preview is ''
+          // (happens when sessionStorage quota was exceeded). The slot-cleanup
+          // below (validIds) then keeps their photoId assignments so the book
+          // layout is preserved. A toast guides the user to re-upload.
+          const valid = parsed.filter(p => p.width > 0 && p.height > 0);
+          const withoutPreview = valid.filter(p =>
+            !p.preview || (!p.preview.startsWith('data:image') && !p.preview.startsWith('blob:'))
+          );
           setPhotos(valid);
+          if (withoutPreview.length > 0) {
+            setTimeout(() => {
+              try {
+                toast(
+                  `Фото не збереглись у браузері (${withoutPreview.length} шт.). Завантаж ті самі файли — вони стануть на свої місця за назвою.`,
+                  { duration: 15000 }
+                );
+              } catch {}
+            }, 800);
+          }
         } catch {}
       }
     }
@@ -1681,8 +1692,11 @@ export default function BookLayoutEditor() {
             sessionStorage.removeItem(draftKey);
           } else {
             // Get valid photo IDs from restored photos to clear dangling refs
+            // Include photos with empty preview in validIds — they still occupy
+            // slots and will be re-filled when the user re-uploads by filename.
+            // Filtering them out would erase all slot assignments (blank book).
             const validIds = new Set((JSON.parse(sessionStorage.getItem('bookConstructorPhotos') || '[]') as PhotoData[])
-              .filter(p => p.preview && p.preview.length < 8_000_000 && p.width > 0 && p.height > 0)
+              .filter(p => p.width > 0 && p.height > 0)
               .map(p => p.id));
             const cleanPages = d.pages.map((p: any) => ({
               ...p,
