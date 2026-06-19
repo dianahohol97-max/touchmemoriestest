@@ -1343,7 +1343,16 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         })() : (
                                                         <select
                                                             value={customProductOptions[opt.name] || ''}
-                                                            onChange={(e) => setCustomProductOptions(prev => ({ ...prev, [opt.name]: e.target.value }))}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setCustomProductOptions(prev => ({ ...prev, [opt.name]: val }));
+                                                                // Switch main image when option has imageUrl (e.g. album design variants)
+                                                                const selectedItem = items.find((it: any) => (it.value || it.name || it) === val);
+                                                                if (selectedItem?.imageUrl) {
+                                                                    setMainImage(selectedItem.imageUrl);
+                                                                    setMainVideo('');
+                                                                }
+                                                            }}
                                                             style={{
                                                                 width: '100%', padding: '10px 14px',
                                                                 border: customProductOptions[opt.name] ? '2px solid #1e2d7d' : '1px solid #d1d5db',
