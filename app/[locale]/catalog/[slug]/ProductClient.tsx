@@ -2219,41 +2219,34 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     </div>
                 )}
 
-                {/* Product reviews + submission form. Listed reviews back the
-                    AggregateRating schema; the form feeds the moderation queue. */}
+                {/* Product reviews — only shown when there are approved reviews */}
+                {Array.isArray(initialReviews) && initialReviews.length > 0 && (
                 <div style={{ paddingTop: '60px' }}>
                     <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '32px', textAlign: 'center' }}>
                         Відгуки
                     </h2>
-                    {Array.isArray(initialReviews) && initialReviews.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: 40 }}>
-                            {initialReviews.map((r: any) => (
-                                <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
-                                    {r.image_url && (
-                                        <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5' }}>
-                                            <Image src={r.image_url} alt={r.author || 'Відгук'} fill loading="lazy" sizes="(max-width: 768px) 50vw, 220px" style={{ objectFit: 'cover', display: 'block' }} />
-                                        </div>
-                                    )}
-                                    <div style={{ padding: '12px 14px' }}>
-                                        {r.rating ? (
-                                            <div style={{ color: '#f0a500', fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>
-                                                {'★'.repeat(Math.round(r.rating))}{'☆'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
-                                            </div>
-                                        ) : null}
-                                        {r.caption && <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 6px' }}>{r.caption}</p>}
-                                        {r.author && <div style={{ fontSize: 12, fontWeight: 600, color: '#1e2d7d' }}>{r.author}</div>}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: 40 }}>
+                        {initialReviews.map((r: any) => (
+                            <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
+                                {r.image_url && (
+                                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5' }}>
+                                        <Image src={r.image_url} alt={r.author || 'Відгук'} fill loading="lazy" sizes="(max-width: 768px) 50vw, 220px" style={{ objectFit: 'cover', display: 'block' }} />
                                     </div>
+                                )}
+                                <div style={{ padding: '12px 14px' }}>
+                                    {r.rating ? (
+                                        <div style={{ color: '#f0a500', fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>
+                                            {'★'.repeat(Math.round(r.rating))}{'☆'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
+                                        </div>
+                                    ) : null}
+                                    {r.caption && <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 6px' }}>{r.caption}</p>}
+                                    {r.author && <div style={{ fontSize: 12, fontWeight: 600, color: '#1e2d7d' }}>{r.author}</div>}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                    {/* Verified-purchase note — review form is sent via email after order delivery */}
-                    <div style={{ background: '#f5f7ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '20px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-                        <div style={{ fontSize: 22, marginBottom: 8 }}>✉️</div>
-                        <p style={{ fontSize: 14, color: '#1e2d7d', fontWeight: 700, margin: '0 0 6px' }}>Залишити відгук можуть покупці</p>
-                        <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.6 }}>Після отримання замовлення ми надішлемо вам листа з персональним посиланням для відгуку.</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
+                )}
 
             </main>
 
