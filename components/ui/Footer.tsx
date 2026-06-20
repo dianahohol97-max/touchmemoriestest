@@ -62,7 +62,7 @@ function NewsletterFormFooter() {
     return (
         <div className="flex flex-col gap-8">
             <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/30 m-0">
-                Newsletter
+                Підписка на розсилку
             </h4>
             <div className="flex flex-col gap-4">
                 {subscribed ? (
