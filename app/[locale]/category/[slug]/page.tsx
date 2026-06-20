@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { ProductCard } from '@/components/ui/ProductCard';
 import { notFound } from 'next/navigation';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
@@ -221,57 +221,24 @@ export default async function CategoryPage({
         {products.length === 0 ? (
           <p style={{ color: '#64748b', fontSize: 16 }}>{t.empty}</p>
         ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: 24,
-            }}
-          >
-            {products.map((p) => {
-              const pName = getLocalized(p, locale, 'name') || p.name;
-              const img = Array.isArray(p.images) ? p.images[0] : undefined;
-              const priceLabel =
-                p.price != null
-                  ? `${p.price_from ? t.from + ' ' : ''}${Number(p.price).toLocaleString('uk-UA')} ₴`
-                  : '';
-              return (
-                <Link
-                  key={p.id}
-                  href={`/${locale}/catalog/${p.slug}`}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                    background: '#fff',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
-                >
-                  <div style={{ aspectRatio: '1 / 1', background: '#f1f3fb', overflow: 'hidden' }}>
-                    {img && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={img}
-                        alt={pName}
-                        loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                    )}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 24,
+          }} className="category-product-grid">
+            {products.map((p) => (
+              <div key={p.id} style={{ position: 'relative' }}>
+                {p.is_popular && (
+                  <div style={{ position:'absolute', top:16, left:16, zIndex:20, display:'flex', alignItems:'center', gap:4, background:'rgba(30,45,125,0.1)', color:'#1e2d7d', padding:'4px 12px', borderRadius:6, fontSize:12, fontWeight:700 }}>
+                    Популярне
                   </div>
-                  <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 600, color: '#1e2d7d', lineHeight: 1.35, margin: 0 }}>
-                      {pName}
-                    </h3>
-                    {priceLabel && (
-                      <div style={{ fontSize: 15, fontWeight: 700, color: '#263A99' }}>{priceLabel}</div>
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
+                )}
+                <ProductCard
+                  product={p}
+                  primaryAction={p.fulfillment_type === 'in_stock' ? 'cart' : 'details'}
+                />
+              </div>
+            ))}
           </div>
         )}
       </main>
