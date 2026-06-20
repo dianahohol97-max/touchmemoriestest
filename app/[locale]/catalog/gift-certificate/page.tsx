@@ -8,7 +8,7 @@ import { ArrowLeft, Gift, Mail, Package, Check, Calendar, Info } from 'lucide-re
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { useT } from '@/lib/i18n/context';
-import Navigation from '@/components/ui/Navigation';
+import { Navigation } from '@/components/ui/Navigation';
 
 interface CertificateConfig {
   amount: number;
