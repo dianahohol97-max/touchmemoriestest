@@ -75,10 +75,10 @@ export function SizeVisualizer({ sizes, selected, onSelect, prices, productCateg
     <div>
       <div style={{
         display: 'flex',
-        flexWrap: 'nowrap',
+        flexWrap: wrap ? 'wrap' : 'nowrap',
         gap: 10,
         padding: '10px 0 8px',
-        overflowX: 'auto',
+        overflowX: wrap ? 'visible' : 'auto',
         WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',

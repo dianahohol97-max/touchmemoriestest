@@ -799,7 +799,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                       selected={selectedValue ?? null}
                       onSelect={(size) => handleOptionChange(option.name, size)}
                       prices={option.prices as Record<string, number> | undefined}
-                      wrap={sizes.length > 5}
+                      wrap={sizes.length > 4}
                     />
                   );
                 })()}
