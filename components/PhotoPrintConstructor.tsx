@@ -1085,10 +1085,11 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               )}
             </div>
           ) : (
+            <div style={{ display:'flex', justifyContent:'center', width:'100%' }}>
             <div onDrop={async e=>{e.preventDefault();setDragging(false);await handleFileSelect(e.dataTransfer.files);}}
               onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)}
               onClick={()=>fileInputRef.current?.click()}
-              style={{ width:320, height:280, border:`2px dashed ${dragging?'#1e2d7d':'#cbd5e1'}`, borderRadius:12,
+              style={{ width:'min(320px, 100%)', height:280, border:`2px dashed ${dragging?'#1e2d7d':'#cbd5e1'}`, borderRadius:12,
                 background:dragging?'#dbeafe':'#f8fafc', display:'flex', flexDirection:'column',
                 alignItems:'center', justifyContent:'center', gap:12, cursor:'pointer', transition:'all 0.2s' }}>
               <Upload size={40} color="#1e2d7d"/>
@@ -1099,6 +1100,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               <button style={{ padding:'8px 20px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, fontWeight:700, fontSize:13, cursor:'pointer' }}>
                 {t('photo_print.select_photos_btn')}
               </button>
+            </div>
             </div>
           )}
 
