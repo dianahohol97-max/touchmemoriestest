@@ -18,15 +18,16 @@ import { getBaseUrl } from '@/lib/seo/locales';
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin", "cyrillic"],
-  weight: ['600', '700', '800', '900'],
+  weight: ['700', '900'],          // reduced from ['600','700','800','900'] — 700 for body, 900 for headings
   display: 'swap',
   preload: true,
+  fallback: ['Arial', 'Helvetica', 'sans-serif'],  // instant fallback while font loads
 });
 
 const openSans = Open_Sans({
   variable: "--font-open-sans",
   subsets: ["latin", "cyrillic"],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '600'],          // reduced from ['400','500','600','700']
   display: 'swap',
   preload: false, // secondary font — don't block LCP
 });
