@@ -186,10 +186,17 @@ function PhotoPreview({
     const sensitivity = 0.12 / Math.max(1, photo.zoom || 1);
     const startCropX = photo.cropX ?? 50;
     const startCropY = photo.cropY ?? 50;
+    const rotation = ((photo.rotation || 0) % 360 + 360) % 360;
     startPointerDrag(e, (dx, dy) => {
+      // When the photo is CSS-rotated, the visual X/Y axes differ from the
+      // pointer coordinate axes → swap/negate to match what the user sees.
+      let ex = dx, ey = dy;
+      if (rotation === 90)  { ex =  dy; ey = -dx; }
+      if (rotation === 180) { ex = -dx; ey = -dy; }
+      if (rotation === 270) { ex = -dy; ey =  dx; }
       onCropChange(photo.id,
-        Math.max(0, Math.min(100, startCropX - dx * sensitivity)),
-        Math.max(0, Math.min(100, startCropY - dy * sensitivity)),
+        Math.max(0, Math.min(100, startCropX - ex * sensitivity)),
+        Math.max(0, Math.min(100, startCropY - ey * sensitivity)),
         photo.zoom);
     });
   };
