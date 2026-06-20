@@ -7,8 +7,9 @@ const nextConfig = {
     // This eliminates render-blocking CSS chunks from the critical path.
     // Safe: Next.js 14+ feature, falls back gracefully if critters isn't installed.
     optimizeCss: true, // critters installed — inlines critical CSS, removes render-blocking chunks
-    // Split CSS by route so each page only loads what it needs
-    cssChunking: 'loose',
+    // Disable CSS chunking — merge into fewer larger files loaded in parallel
+    // rather than a chain (chunk1 → chunk2 → chunk3) that blocks LCP
+    cssChunking: false,
   },
   // Required for @imgly/background-removal — Turbopack config (Next.js 16+)
   turbopack: {},
