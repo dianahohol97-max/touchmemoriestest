@@ -280,29 +280,25 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
               {(config.mode === 'photo' || config.mode === 'photo-text') && (
                 config.photoUrl ? (
                   (() => {
-                    // Cover + pan: measure natural dimensions on load, then compute
-                    // pixel-perfect position so BOTH X and Y panning always work
-                    // regardless of image / container aspect ratio.
-                    if (imgDims.w > 0 && imgDims.h > 0) {
-                      const coverS = Math.max(previewW / imgDims.w, previewH / imgDims.h) * config.zoom;
-                      const sw = imgDims.w * coverS;
-                      const sh = imgDims.h * coverS;
-                      const left = (previewW - sw) * config.cropX / 100;
-                      const top  = (previewH - sh) * config.cropY / 100;
-                      return (
-                        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-                          <img src={config.photoUrl!} alt=""
-                            onLoad={e => { const el = e.currentTarget; setImgDims({ w: el.naturalWidth, h: el.naturalHeight }); }}
-                            style={{ position: 'absolute', width: sw, height: sh, left, top, objectFit: 'fill', userSelect: 'none', pointerEvents: 'none' }} />
-                        </div>
-                      );
-                    }
-                    // Dimensions not yet known — render with objectFit:cover as fallback
-                    // and trigger the onLoad measurement.
+                    // objectFit:cover lets the browser handle EXIF rotation correctly.
+                    // iPhone landscape photos store rotation=90° in EXIF, so manual pixel
+                    // math with naturalWidth/Height breaks (those are pre-rotation values)
+                    // and over-scales the image. objectPosition pans X/Y; transform:scale
+                    // adds zoom on top of the cover fit.
+                    const zoom = Math.max(1, config.zoom ?? 1);
                     return (
-                      <img src={config.photoUrl!} alt=""
-                        onLoad={e => { const el = e.currentTarget; setImgDims({ w: el.naturalWidth, h: el.naturalHeight }); }}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${config.cropX}% ${config.cropY}%` }} />
+                      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                        <img src={config.photoUrl!} alt=""
+                          style={{
+                            position: 'absolute', inset: 0,
+                            width: '100%', height: '100%',
+                            objectFit: 'cover',
+                            objectPosition: `${config.cropX}% ${config.cropY}%`,
+                            transform: `scale(${zoom})`,
+                            transformOrigin: `${config.cropX}% ${config.cropY}%`,
+                            userSelect: 'none', pointerEvents: 'none',
+                          }} />
+                      </div>
                     );
                   })()
                 ) : (
