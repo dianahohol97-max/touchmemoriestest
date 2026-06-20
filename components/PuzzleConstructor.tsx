@@ -293,7 +293,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
                         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
                           <img src={config.photoUrl!} alt=""
                             onLoad={e => { const el = e.currentTarget; setImgDims({ w: el.naturalWidth, h: el.naturalHeight }); }}
-                            style={{ position: 'absolute', width: sw, height: sh, left, top, objectFit: 'none', userSelect: 'none', pointerEvents: 'none' }} />
+                            style={{ position: 'absolute', width: sw, height: sh, left, top, objectFit: 'fill', userSelect: 'none', pointerEvents: 'none' }} />
                         </div>
                       );
                     }
