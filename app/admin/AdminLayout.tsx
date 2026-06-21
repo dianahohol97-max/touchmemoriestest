@@ -9,7 +9,7 @@ import {
     Tags, Mail, Palette, DollarSign, Bot,
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
-    Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2
+    Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -73,6 +73,7 @@ const menuItems = [
     { name: 'Нова Пошта', href: '/admin/settings/delivery/nova-poshta', icon: <Truck size={20} />, section: 'settings' },
     { name: 'Міжнародна доставка', href: '/admin/settings/delivery/international', icon: <Globe size={20} />, section: 'settings' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing' },
+    { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing' },
     { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing' },
