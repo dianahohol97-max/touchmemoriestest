@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
 
   // If the caller is authenticated, attach customer_id.
   let customer_id: string | null = null;
+  let customerBonusBalance = 0;
   try {
     const userClient = await createClient();
     const { data: { user } } = await userClient.auth.getUser();
@@ -116,13 +117,23 @@ export async function POST(request: NextRequest) {
       const admin0 = getAdminClient();
       const { data: customer } = await admin0
         .from('customers')
-        .select('id')
-        .eq('auth_user_id', user.id)
+        .select('id, bonus_balance')
+        .or(`auth_user_id.eq.${user.id},id.eq.${user.id}`)
         .maybeSingle();
       customer_id = customer?.id || null;
+      customerBonusBalance = Number(customer?.bonus_balance || 0);
     }
   } catch (e) {
     console.warn('orders/submit: customer lookup failed, falling back to guest', e);
+  }
+
+  // Validate the requested bonus redemption server-side: only logged-in
+  // customers, never more than their balance, never more than 50% of the total.
+  const requestedBonus = Number((body as any).bonus_redeemed) || 0;
+  let bonusToRedeem = 0;
+  if (customer_id && requestedBonus > 0) {
+    const maxByRate = Math.floor(total * 0.5);
+    bonusToRedeem = Math.max(0, Math.min(requestedBonus, customerBonusBalance, maxByRate));
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -259,7 +270,13 @@ export async function POST(request: NextRequest) {
     intlShipping = computeIntlShippingUah(markedSubtotal, eurRate ?? 0, shipCfg);
   }
   const finalDeliveryCost = shipRegion === 'INTL' ? intlShipping : delivery_cost;
-  const markedTotal = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
+  const markedTotalBeforeBonus = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
+
+  // Re-clamp the bonus against the authoritative server total (≤50%, ≤balance).
+  // bonusToRedeem was already bounded by the client-reported total above; this
+  // re-bounds it to the real marked total so it's always correct.
+  const bonusApplied = Math.max(0, Math.min(bonusToRedeem, customerBonusBalance, Math.floor(markedTotalBeforeBonus * 0.5)));
+  const markedTotal = Math.max(1, markedTotalBeforeBonus - bonusApplied);
 
   // For a split order, full_only items must be charged 100% up front; only the
   // splittable items (+ delivery − discount) are split 50/50. Sum the marked
@@ -327,6 +344,35 @@ export async function POST(request: NextRequest) {
       ? `Замовлення створено через checkout (50% передоплата = ${amounts.prepaid_amount} ₴, ${amounts.cod_amount > 0 ? `накладений ${amounts.cod_amount} ₴` : `при отриманні ${amounts.pickup_unpaid_balance} ₴`})`
       : `Замовлення створено через checkout (повна оплата онлайн)`,
   });
+
+  // Debit redeemed bonus from the customer's balance and log it. Done after the
+  // order row exists so a failed insert never burns bonuses. Re-reads the
+  // current balance and clamps again to avoid races / double-spend.
+  if (customer_id && bonusApplied > 0) {
+    try {
+      const { data: fresh } = await admin
+        .from('customers')
+        .select('bonus_balance')
+        .eq('id', customer_id)
+        .maybeSingle();
+      const liveBalance = Number(fresh?.bonus_balance || 0);
+      const debit = Math.min(bonusApplied, liveBalance);
+      if (debit > 0) {
+        await admin.from('customers')
+          .update({ bonus_balance: liveBalance - debit })
+          .eq('id', customer_id);
+        await admin.from('bonus_transactions').insert({
+          customer_id,
+          amount: -debit,
+          kind: 'order_redemption',
+          order_id: inserted.id,
+          note: `Списання бонусів на замовлення ${inserted.order_number}`,
+        });
+      }
+    } catch (e) {
+      console.error('orders/submit: bonus debit failed (order still created):', e);
+    }
+  }
 
   return NextResponse.json({
     success: true,

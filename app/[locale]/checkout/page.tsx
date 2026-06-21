@@ -60,6 +60,10 @@ export default function CheckoutPage() {
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoError, setPromoError] = useState('');
+    // Referral bonus redemption (up to 50% of order). bonusBalance loaded from
+    // /api/referral/me; bonusToRedeem is what the user chose to spend.
+    const [bonusBalance, setBonusBalance] = useState(0);
+    const [useBonus, setUseBonus] = useState(false);
     const total = rawTotal - promoDiscount - dupDiscount;
 
     // ── Display currency + intl markup ──────────────────────────────
@@ -90,10 +94,24 @@ export default function CheckoutPage() {
         return () => { cancelled = true; };
     }, []);
 
+    // Load the user's referral bonus balance (0 for guests / non-logged-in).
+    useEffect(() => {
+        let cancelled = false;
+        fetch('/api/referral/me')
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (!cancelled && d && typeof d.bonusBalance === 'number') setBonusBalance(d.bonusBalance); })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, []);
+
     const intlShippingUah = (isIntl && intlCfg.rate > 0)
         ? computeIntlShippingUah(markedSubtotal, intlCfg.rate, { freeThresholdEur: intlCfg.freeThresholdEur, flatFeeEur: intlCfg.flatFeeEur })
         : 0;
-    const markedTotal = Math.max(0, markedSubtotal - promoDiscount - dupDiscount + intlShippingUah);
+    const markedTotalBeforeBonus = Math.max(0, markedSubtotal - promoDiscount - dupDiscount + intlShippingUah);
+    // Bonus can cover up to 50% of the order total, capped by the user's balance.
+    const maxBonusRedeem = Math.floor(markedTotalBeforeBonus * 0.5);
+    const bonusRedeemed = useBonus ? Math.min(bonusBalance, maxBonusRedeem) : 0;
+    const markedTotal = Math.max(0, markedTotalBeforeBonus - bonusRedeemed);
     // Charge currency is always UAH (Monobank); this only formats what's shown.
     const money = (uah: number) => formatPrice(uah, displayCurrency);
 
@@ -442,6 +460,7 @@ export default function CheckoutPage() {
                     subtotal: rawTotal,
                     delivery_cost: 0,
                     total,
+                    bonus_redeemed: bonusRedeemed,
                     delivery_method: isIntl ? 'international' : 'nova_poshta',
                     delivery_address: isIntl
                         ? { country: formData.country, city: formData.city, postal: formData.postal, address: formData.addressLine }
@@ -983,6 +1002,28 @@ export default function CheckoutPage() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
                                         <span>🏷️ Знижка ({promoCode}):</span>
                                         <span>-{money(promoDiscount)}</span>
+                                    </div>
+                                )}
+                                {bonusBalance > 0 && (
+                                    <div style={{ marginBottom: 12, padding: '12px 14px', background: '#f5f7ff', border: '1px solid #c7d2fe', borderRadius: 10 }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                                            <input type="checkbox" checked={useBonus} onChange={e => setUseBonus(e.target.checked)} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                                            <span style={{ fontSize: 14, fontWeight: 600, color: '#1e2d7d' }}>
+                                                Списати бонуси
+                                            </span>
+                                            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#64748b' }}>
+                                                Баланс: {bonusBalance} ₴
+                                            </span>
+                                        </label>
+                                        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, paddingLeft: 28 }}>
+                                            Можна оплатити до 50% замовлення ({maxBonusRedeem} ₴)
+                                        </div>
+                                    </div>
+                                )}
+                                {bonusRedeemed > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
+                                        <span>🎁 Бонуси:</span>
+                                        <span>-{money(bonusRedeemed)}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '20px', fontWeight: 900, color: 'var(--primary)' }}>
