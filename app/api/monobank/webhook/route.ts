@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 import { processReferralReward } from '@/lib/referral/referral';
+import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 
 export const dynamic = 'force-dynamic';
 
@@ -221,7 +222,7 @@ export async function POST(req: Request) {
         //     keypair situation.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, customer_id, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items')
+            .select('id, total, customer_id, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items, certificate_code, certificate_applied, certificate_redeemed')
             .eq('id', reference)
             .single();
 
@@ -360,6 +361,21 @@ export async function POST(req: Request) {
                         orderTotal: Number(existingOrder.total) || 0,
                     });
                 } catch (e) { console.error('processReferralReward failed (payment still confirmed):', e); }
+
+                // Certificate redemption: if this order was paid (partly) with a
+                // gift certificate, mark the certificate redeemed now and credit
+                // any leftover to the buyer's bonus balance. Idempotent via the
+                // certificate_redeemed flag + redeemed check. Never breaks payment.
+                if (existingOrder.certificate_code && !existingOrder.certificate_redeemed) {
+                    try {
+                        await redeemOrderCertificate(supabase, {
+                            orderId: reference,
+                            code: existingOrder.certificate_code,
+                            applied: Number(existingOrder.certificate_applied) || 0,
+                            customerId: existingOrder.customer_id ?? null,
+                        });
+                    } catch (e) { console.error('certificate redemption failed (payment still confirmed):', e); }
+                }
             }
 
             // Optional: Auto-confirm order

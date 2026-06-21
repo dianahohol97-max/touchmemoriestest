@@ -6,6 +6,7 @@ import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, sh
 import { getEurRate, getIntlShippingConfig } from '@/lib/i18n/exchangeRate';
 import { getB2bSession } from '@/lib/b2b/session';
 import { getRoleConfig } from '@/lib/b2b/config';
+import { checkCertificateForPayment } from '@/lib/certificates/redeemCertificate';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -270,7 +271,28 @@ export async function POST(request: NextRequest) {
     intlShipping = computeIntlShippingUah(markedSubtotal, eurRate ?? 0, shipCfg);
   }
   const finalDeliveryCost = shipRegion === 'INTL' ? intlShipping : delivery_cost;
-  const markedTotalBeforeBonus = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
+  const orderTotalBeforeCredits = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
+
+  // Certificate payment (applied first, before bonuses). Validate the code
+  // server-side; the certificate covers up to the order total, any leftover is
+  // credited to the buyer's bonus balance AFTER payment (handled in the webhook).
+  let certApplied = 0;
+  let certId: string | null = null;
+  let certCode: string | null = null;
+  const requestedCertCode = typeof (body as any).certificate_code === 'string'
+    ? (body as any).certificate_code.trim().toUpperCase() : null;
+  if (requestedCertCode) {
+    const check = await checkCertificateForPayment(admin, requestedCertCode);
+    if (check.valid && check.id) {
+      certApplied = Math.min(check.amount || 0, orderTotalBeforeCredits);
+      certId = check.id;
+      certCode = requestedCertCode;
+    }
+    // If invalid, we silently ignore it here (client already validated and
+    // shows errors); the order proceeds without certificate coverage.
+  }
+
+  const markedTotalBeforeBonus = Math.max(0, orderTotalBeforeCredits - certApplied);
 
   // Re-clamp the bonus against the authoritative server total (≤50%, ≤balance).
   // bonusToRedeem was already bounded by the client-reported total above; this
@@ -308,6 +330,9 @@ export async function POST(request: NextRequest) {
       subtotal: markedSubtotal,
       delivery_cost: finalDeliveryCost,
       total: markedTotal,
+      certificate_code: certCode,
+      certificate_applied: certApplied,
+      certificate_redeemed: false,
       ship_region: shipRegion,
       payment_region: paymentRegion,
       price_multiplier: priceMultiplier,

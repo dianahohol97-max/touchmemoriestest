@@ -62,6 +62,12 @@ export default function CheckoutPage() {
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoError, setPromoError] = useState('');
+    // Gift certificate payment
+    const [certInput, setCertInput] = useState('');
+    const [certCode, setCertCode] = useState('');
+    const [certAmount, setCertAmount] = useState(0);
+    const [certLoading, setCertLoading] = useState(false);
+    const [certError, setCertError] = useState('');
     // Referral bonus redemption (up to 50% of order). bonusBalance loaded from
     // /api/referral/me; bonusToRedeem is what the user chose to spend.
     const [bonusBalance, setBonusBalance] = useState(0);
@@ -109,7 +115,10 @@ export default function CheckoutPage() {
     const intlShippingUah = (isIntl && intlCfg.rate > 0)
         ? computeIntlShippingUah(markedSubtotal, intlCfg.rate, { freeThresholdEur: intlCfg.freeThresholdEur, flatFeeEur: intlCfg.flatFeeEur })
         : 0;
-    const markedTotalBeforeBonus = Math.max(0, markedSubtotal - promoDiscount - dupDiscount + intlShippingUah);
+    const orderTotalBeforeCredits = Math.max(0, markedSubtotal - promoDiscount - dupDiscount + intlShippingUah);
+    // Certificate applies first (covers up to the total); any leftover later → bonuses.
+    const certApplied = certCode ? Math.min(certAmount, orderTotalBeforeCredits) : 0;
+    const markedTotalBeforeBonus = Math.max(0, orderTotalBeforeCredits - certApplied);
     // Bonus can cover up to 50% of the order total, capped by the user's balance.
     const maxBonusRedeem = Math.floor(markedTotalBeforeBonus * 0.5);
     const bonusRedeemed = useBonus ? Math.min(bonusBalance, maxBonusRedeem) : 0;
@@ -151,6 +160,38 @@ export default function CheckoutPage() {
             console.error('Promo validation error:', err);
             setPromoLoading(false);
             setPromoError('Помилка перевірки промокоду');
+        }
+    };
+
+    const applyCertificate = async () => {
+        if (!certInput.trim()) return;
+        setCertLoading(true);
+        setCertError('');
+        const code = certInput.trim().toUpperCase();
+        try {
+            const res = await fetch('/api/certificates/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code }),
+            });
+            const result = await res.json();
+            setCertLoading(false);
+            if (!result.valid) {
+                const reasons: Record<string, string> = {
+                    not_found: 'Сертифікат не знайдено',
+                    redeemed: 'Сертифікат вже використано',
+                    expired: 'Термін дії сертифіката минув',
+                    invalid_format: 'Невірний формат коду',
+                };
+                setCertError(reasons[result.reason] || 'Сертифікат недійсний');
+                return;
+            }
+            setCertAmount(Number(result.amount) || 0);
+            setCertCode(code);
+        } catch (err) {
+            console.error('Certificate validation error:', err);
+            setCertLoading(false);
+            setCertError('Помилка перевірки сертифіката');
         }
     };
 
@@ -471,6 +512,7 @@ export default function CheckoutPage() {
                     bonus_redeemed: bonusRedeemed,
                     promo_id: promoId,
                     promo_code: promoCode || undefined,
+                    certificate_code: certCode || undefined,
                     delivery_method: isIntl ? 'international' : 'nova_poshta',
                     delivery_address: isIntl
                         ? { country: formData.country, city: formData.city, postal: formData.postal, address: formData.addressLine }
@@ -990,9 +1032,42 @@ export default function CheckoutPage() {
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#666' }}>
-                                    <span>Вартість товарів:</span>
-                                    <span>{money(markedSubtotal)}</span>
+                                {/* Gift certificate */}
+                                <div style={{ marginBottom: 16 }}>
+                                    {!certCode ? (
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>🎟️ Маєте подарунковий сертифікат?</div>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <input
+                                                    value={certInput}
+                                                    onChange={e => setCertInput(e.target.value.toUpperCase())}
+                                                    onKeyDown={e => e.key === 'Enter' && applyCertificate()}
+                                                    placeholder="Код сертифіката"
+                                                    style={{ flex: 1, padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, outline: 'none' }}
+                                                />
+                                                <button type="button" onClick={applyCertificate} disabled={certLoading}
+                                                    style={{ padding: '9px 16px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: certLoading ? 0.7 : 1 }}>
+                                                    {certLoading ? '...' : 'Застосувати'}
+                                                </button>
+                                            </div>
+                                            {certError && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 5 }}>{certError}</div>}
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
+                                                    ✓ Сертифікат <b>{certCode}</b> на {certAmount} ₴
+                                                </div>
+                                                <button type="button" onClick={() => { setCertCode(''); setCertAmount(0); setCertInput(''); }}
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>×</button>
+                                            </div>
+                                            {certAmount > orderTotalBeforeCredits && (
+                                                <div style={{ fontSize: 12, color: '#166534', marginTop: 4 }}>
+                                                    Залишок {certAmount - orderTotalBeforeCredits} ₴ буде зараховано на ваш бонусний рахунок
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
                                     <span>{t('checkout.delivery_cost')}:</span>
@@ -1028,6 +1103,12 @@ export default function CheckoutPage() {
                                         <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6, paddingLeft: 28 }}>
                                             Можна оплатити до 50% замовлення ({maxBonusRedeem} ₴)
                                         </div>
+                                    </div>
+                                )}
+                                {certApplied > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
+                                        <span>🎟️ Сертифікат:</span>
+                                        <span>-{money(certApplied)}</span>
                                     </div>
                                 )}
                                 {bonusRedeemed > 0 && (
