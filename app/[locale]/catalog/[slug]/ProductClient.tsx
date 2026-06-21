@@ -5,11 +5,11 @@ import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { localePath } from '@/lib/i18n/path';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
+import { useB2b } from '@/lib/b2b/useB2b';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import ReviewForm from '@/components/ReviewForm';
 import { notFound, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { ProductCard } from '@/components/ui/ProductCard';
@@ -195,6 +195,7 @@ function counterValueLabel(opt: any, n: number): string {
 export default function ProductPage({ params, initialProduct, initialReviews }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[] }) {
   const t = useT();
     const locale = useLocale();
+    const b2b = useB2b();
     const displayCurrency = detectCurrency(locale);
     // Format a base-UAH amount in the visitor's currency, applying the same
     // (locale × default ship region) markup the storefront cards use — so the
@@ -818,11 +819,15 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             .join('|');
         const cartItemId = optionsKey ? `${product.id}_${optionsKey}` : product.id;
 
+        const b2bCatSlug = product.categories?.slug || '';
+        const b2bCartPct = b2b.discountFor(b2bCatSlug);
+        const cartPrice = b2bCartPct ? Math.round(finalPrice * (1 - b2bCartPct / 100)) : finalPrice;
+
         addItem({
             id: cartItemId,
             product_id: product.id,
             name: product.name,
-            price: finalPrice,
+            price: cartPrice,
             qty: quantity,
             image: mainImage,
             options: itemOptions,
@@ -1087,20 +1092,41 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                             </p>
                         )}
 
+                        {(() => {
+                            const catSlug = product.categories?.slug || '';
+                            const b2bPct = b2b.discountFor(catSlug);
+                            const isPolaroid = product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд');
+                            const baseShown = isPolaroid ? product.price : finalPrice;
+                            const discounted = b2bPct ? Math.round(baseShown * (1 - b2bPct / 100)) : baseShown;
+                            return (
+                                <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
                             <div className={styles.priceContainer} style={{ fontSize: '28px', fontWeight: 900, color: 'var(--primary)' }}>
-                                {product.slug?.includes('polaroid') || product.slug?.includes('поляроїд') || product.slug?.includes('полароїд')
-                                    ? `${t('product_page.from_price')} ${showPrice(product.price)}/шт`
+                                {isPolaroid
+                                    ? `${t('product_page.from_price')} ${showPrice(b2bPct ? discounted : product.price)}/шт`
                                     : product.slug?.includes('photoprint')
-                                        ? `${showPrice(finalPrice)}`
-                                        : `${product.price_from ? t('product_page.from_price') + ' ' : ''}${showPrice(finalPrice)}`}
+                                        ? `${showPrice(discounted)}`
+                                        : `${product.price_from ? t('product_page.from_price') + ' ' : ''}${showPrice(discounted)}`}
                             </div>
-                            {product.sale_price && (
+                            {b2bPct > 0 ? (
+                                <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
+                                    {showPrice(baseShown)}
+                                </div>
+                            ) : product.sale_price && (
                                 <div style={{ fontSize: '20px', fontWeight: 600, color: '#94a3b8', textDecoration: 'line-through' }}>
                                     {showPrice(product.sale_price)}
                                 </div>
                             )}
                         </div>
+                        {b2bPct > 0 && b2b.label && (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eef3ff', color: '#3d56d6', fontSize: 13, fontWeight: 700, padding: '5px 12px', borderRadius: 20, marginBottom: 16 }}>
+                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3d56d6' }} />
+                                {b2b.label} −{b2bPct}%
+                            </div>
+                        )}
+                                </>
+                            );
+                        })()}
 
                         {product.is_personalized && (
                             <div className="inline-flex items-center gap-2 bg-[#dbeafe] text-[#1e2d7d] text-sm font-medium px-3 py-1 rounded-full" style={{ marginBottom: '24px' }}>

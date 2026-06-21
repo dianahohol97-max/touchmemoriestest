@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
 import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion, computeIntlShippingUah } from '@/lib/payment/pricing-region';
 import { getEurRate, getIntlShippingConfig } from '@/lib/i18n/exchangeRate';
+import { getB2bSession } from '@/lib/b2b/session';
+import { getRoleConfig } from '@/lib/b2b/config';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -142,16 +144,36 @@ export async function POST(request: NextRequest) {
       const priceAdmin = getAdminClient();
       const { data: productPrices } = await priceAdmin
         .from('products')
-        .select('slug, price')
+        .select('slug, price, categories(slug)')
         .in('slug', slugs);
       if (productPrices && productPrices.length > 0) {
+        // Resolve the buyer's B2B session once. If they are a verified partner,
+        // lower the floor for their discounted categories so a legitimate 10%
+        // partner discount is never rejected.
+        const b2b = await getB2bSession();
+        const b2bCfg = getRoleConfig(b2b.role);
+        const b2bCats = (b2b.isB2b && b2bCfg) ? new Set(b2bCfg.categorySlugs) : new Set<string>();
+        const b2bPct = (b2b.isB2b && b2bCfg) ? b2bCfg.discountPercent : 0;
+
         const priceBySlug = new Map<string, number>();
-        productPrices.forEach(p => priceBySlug.set(p.slug, Number(p.price) || 0));
+        const catBySlug = new Map<string, string>();
+        productPrices.forEach((p: any) => {
+          priceBySlug.set(p.slug, Number(p.price) || 0);
+          const cat = Array.isArray(p.categories) ? p.categories[0]?.slug : (p.categories as any)?.slug;
+          if (cat) catBySlug.set(p.slug, cat);
+        });
+
         const baseFloor = body.items.reduce((sum, item) => {
           const base = priceBySlug.get(item.slug || '') || 0;
-          return sum + base * (Number(item.quantity) || 1);
+          const qty = Number(item.quantity) || 1;
+          const cat = catBySlug.get(item.slug || '');
+          // Standard floor allows the 20% promo buffer; for verified B2B
+          // categories also subtract their discount so the floor matches what
+          // the partner legitimately pays.
+          const b2bFactor = (cat && b2bCats.has(cat)) ? (1 - b2bPct / 100) : 1;
+          return sum + base * qty * b2bFactor;
         }, 0);
-        // Allow up to 20% below base (promo discounts), but never less than 1₴
+        // Allow up to 20% below the (B2B-adjusted) base, but never less than 1₴
         const floor = Math.max(1, Math.round(baseFloor * 0.80));
         if (subtotal < floor) {
           console.warn(`orders/submit: subtotal ${subtotal} < floor ${floor} (base ${baseFloor}) for slugs [${slugs.join(', ')}]`);

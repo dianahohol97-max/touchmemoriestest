@@ -10,6 +10,7 @@ import { Trash2, Plus, Minus, ChevronRight, ImageIcon, Pencil } from 'lucide-rea
 import { logCartEvent } from '@/lib/analytics';
 import { createClient } from '@/lib/supabase/client';
 import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
+import { useB2b } from '@/lib/b2b/useB2b';
 import { listCartEditSnapshotIds, getCartEditSnapshot, deleteCartEditSnapshot } from '@/lib/cart-edit-store';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +19,7 @@ export default function CartPage() {
     const { t, locale } = useTranslation();
     const { items, removeItem, updateQuantity } = useCartStore();
     const router = useRouter();
+    const b2b = useB2b();
 
     // Which cart items have a re-openable design snapshot (saved by the editor
     // when the item was added). Only those show an "Редагувати" button — the
@@ -257,6 +259,12 @@ export default function CartPage() {
                         <aside style={{ position: 'sticky', top: '120px', height: 'fit-content' }}>
                             <div style={{ ...cardStyle, backgroundColor: 'var(--primary)', color: 'white' }}>
                                 <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '32px' }}>{t('cart.total')}</h2>
+                                {b2b.isB2b && b2b.label && (
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 13, fontWeight: 700, padding: '6px 12px', borderRadius: 20, marginBottom: 20 }}>
+                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fff' }} />
+                                        {b2b.label} −{b2b.discountPercent}% враховано
+                                    </div>
+                                )}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
                                         <span>Проміжна сума</span>
