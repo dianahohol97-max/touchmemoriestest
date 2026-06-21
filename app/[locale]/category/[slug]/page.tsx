@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { notFound } from 'next/navigation';
 import { getAdminClient } from '@/lib/supabase/admin';
