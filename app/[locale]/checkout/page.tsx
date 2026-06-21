@@ -237,7 +237,7 @@ export default function CheckoutPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email,
-                    items: items.map((it: any) => ({ name: it.name, qty: it.qty, price: it.price, image: it.image })),
+                    items: items.map((it: any) => ({ product_id: it.product_id || it.id, name: it.name, qty: it.qty, price: it.price, image: it.image })),
                     total: rawTotal,
                 }),
             }).catch(() => {});

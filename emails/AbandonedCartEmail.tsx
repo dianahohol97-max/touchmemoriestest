@@ -17,10 +17,15 @@ import { BodyParagraphs } from './BodyParagraphs';
 
 
 interface CartItem {
-    name: string;
+    name?: string;
+    title?: string;
+    productName?: string;
     qty?: number;
+    quantity?: number;
     price?: number;
+    unitPrice?: number;
     image?: string;
+    imageUrl?: string;
 }
 
 interface AbandonedCartEmailProps {
@@ -75,21 +80,27 @@ export default function AbandonedCartEmail({
                             )}
 
                             <Section className="border border-[#c7d2fe] rounded-[3px] mb-[28px]">
-                                {items.slice(0, 8).map((it, idx) => (
+                                {items.slice(0, 8).map((it, idx) => {
+                                    const itemName = it.name || it.title || it.productName || 'Товар';
+                                    const itemImage = it.image || it.imageUrl || '';
+                                    const itemQty = it.qty || it.quantity || 1;
+                                    const itemPrice = it.price ?? it.unitPrice ?? 0;
+                                    return (
                                     <Row key={idx} className={idx > 0 ? 'border-t border-[#e2e8f0]' : ''}>
-                                        {it.image ? (
+                                        {itemImage ? (
                                             <Column className="w-[64px] p-[10px]">
-                                                <Img src={it.image} width="56" height="56" alt={it.name} className="rounded-[3px] object-cover" />
+                                                <Img src={itemImage} width="56" height="56" alt={itemName} className="rounded-[3px] object-cover" />
                                             </Column>
                                         ) : null}
                                         <Column className="p-[10px]">
-                                            <Text className="text-[14px] font-semibold text-[#263A99] m-0">{it.name}</Text>
+                                            <Text className="text-[14px] font-semibold text-[#263A99] m-0">{itemName}</Text>
                                             <Text className="text-[13px] text-[#94a3b8] m-0">
-                                                {(it.qty || 1)} × {Math.round(it.price || 0)} {cur}
+                                                {itemQty} × {Math.round(itemPrice)} {cur}
                                             </Text>
                                         </Column>
                                     </Row>
-                                ))}
+                                    );
+                                })}
                             </Section>
 
                             {total > 0 ? (

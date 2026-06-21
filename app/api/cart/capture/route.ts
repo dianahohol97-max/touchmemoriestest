@@ -22,15 +22,37 @@ export async function POST(req: Request) {
 
     const rawItems = Array.isArray(body?.items) ? body.items.slice(0, 50) : [];
     const items = rawItems.map((it: any) => ({
-        name: String(it?.name || '').slice(0, 200),
-        qty: Number(it?.qty) || 1,
-        price: Number(it?.price) || 0,
-        image: typeof it?.image === 'string' ? it.image.slice(0, 500) : undefined,
+        product_id: it?.product_id || it?.id || undefined,
+        name: String(it?.name || it?.title || '').slice(0, 200),
+        qty: Number(it?.qty ?? it?.quantity) || 1,
+        price: Number(it?.price ?? it?.unitPrice) || 0,
+        image: typeof (it?.image || it?.imageUrl) === 'string' ? String(it.image || it.imageUrl).slice(0, 500) : undefined,
     }));
-    const total = Number(body?.total) || 0;
-    const currency = typeof body?.currency === 'string' ? body.currency.slice(0, 8) : 'UAH';
 
     const admin = getAdminClient();
+
+    // Backfill any item missing name/price/image from the products table so the
+    // abandoned-cart email always shows a real product (never "Товар · 0 ₴").
+    const needsBackfill = items.some((it: any) => (!it.name || !it.price || !it.image) && it.product_id);
+    if (needsBackfill) {
+        const ids = Array.from(new Set(items.map((it: any) => it.product_id).filter(Boolean)));
+        const { data: prods } = await admin
+            .from('products')
+            .select('id, name, price, images')
+            .in('id', ids);
+        const byId = new Map((prods || []).map((p: any) => [p.id, p]));
+        for (const it of items) {
+            const p = it.product_id ? byId.get(it.product_id) : null;
+            if (!p) continue;
+            if (!it.name) it.name = String(p.name || '').slice(0, 200);
+            if (!it.price) it.price = Number(p.price) || 0;
+            if (!it.image && Array.isArray(p.images) && p.images[0]) it.image = String(p.images[0]).slice(0, 500);
+        }
+    }
+
+    // Total: trust the client value, else sum the (possibly backfilled) items.
+    const total = Number(body?.total) || items.reduce((s: number, it: any) => s + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
+    const currency = typeof body?.currency === 'string' ? body.currency.slice(0, 8) : 'UAH';
     try {
         if (items.length === 0) {
             // Cart emptied — drop any stored snapshot for this email.
