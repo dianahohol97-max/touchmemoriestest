@@ -1,4 +1,5 @@
 'use client';
+import type React from 'react';
 import { useState, useEffect } from 'react';
 import styles from './promo-form.module.css';
 import { useRouter } from 'next/navigation';
@@ -41,6 +42,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
         applies_to: initialData?.applies_to || 'all',
         max_uses: initialData?.max_uses || null,
         is_single_use_per_customer: initialData?.is_single_use_per_customer ?? true,
+        requires_email_match: initialData?.requires_email_match ?? false,
         valid_from: initialData?.valid_from ? new Date(initialData.valid_from).toISOString().split('T')[0] : '',
         valid_until: initialData?.valid_until ? new Date(initialData.valid_until).toISOString().split('T')[0] : '',
         is_active: initialData?.is_active ?? true,
@@ -205,6 +207,22 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                                 />
                                 <label htmlFor="single_use" style={{ fontSize: '14px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
                                     Лише один раз для кожного клієнта
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="email_match"
+                                    checked={formData.requires_email_match}
+                                    onChange={e => setFormData({ ...formData, requires_email_match: e.target.checked })}
+                                    style={{ width: '18px', height: '18px', marginTop: '2px' }}
+                                />
+                                <label htmlFor="email_match" style={{ fontSize: '14px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                                    Персональний код (перевіряти email)
+                                    <span style={{ display: 'block', fontSize: '12px', fontWeight: 400, color: '#94a3b8', marginTop: '2px' }}>
+                                        Код спрацює лише для пошти, на яку він був надісланий через розсилку. Для загальних акційних кодів залиште вимкненим.
+                                    </span>
                                 </label>
                             </div>
                         </div>
