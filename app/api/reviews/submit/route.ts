@@ -39,13 +39,13 @@ export async function POST(request: Request) {
         const productId = Array.isArray(order.items) && order.items[0]?.product_id
             ? order.items[0].product_id : null;
 
-        await supabase!.from('product_reviews').insert({
+        await supabase!.from('reviews').insert({
             product_id: productId,
-            order_id: orderId,
             rating: Number(rating),
             caption: text.trim(),
             author: name?.trim() || null,
-            is_approved: false, // goes to moderation queue
+            status: 'pending',   // moderation queue
+            is_active: false,    // hidden until admin approves
         });
 
         return NextResponse.json({ ok: true });
