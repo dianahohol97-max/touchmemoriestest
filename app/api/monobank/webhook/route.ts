@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 import { processReferralReward } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
+import { startBabybookForPaidOrder } from '@/lib/babybook/orchestrate';
 
 export const dynamic = 'force-dynamic';
 
@@ -376,6 +377,13 @@ export async function POST(req: Request) {
                         });
                     } catch (e) { console.error('certificate redemption failed (payment still confirmed):', e); }
                 }
+
+                // Babybook (personalized story): start generation for a paid
+                // story order. Safe no-op for non-babybook orders and while the
+                // engine isn't configured. Never breaks payment confirmation.
+                try {
+                    await startBabybookForPaidOrder(supabase, reference);
+                } catch (e) { console.error('startBabybookForPaidOrder failed (payment still confirmed):', e); }
             }
 
             // Optional: Auto-confirm order

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Download, Eye } from 'lucide-react';
 import type { PhotoMetadata } from '@/lib/types/designer-service';
+import BabybookAdminCard from '@/components/admin/babybook/BabybookAdminCard';
 
 interface PageProps {
   params: Promise<{
@@ -113,6 +114,9 @@ export default async function DesignOrderDetailPage({ params }: PageProps) {
               )}
             </div>
           </div>
+
+          {/* Babybook (personalized story) — renders only for babybook orders */}
+          {order?.id && <BabybookAdminCard orderId={order.id} />}
 
           {/* Brief Information */}
           <div className="bg-white rounded-[3px] shadow p-6">
