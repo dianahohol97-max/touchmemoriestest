@@ -11,7 +11,7 @@ import {
     Trash2, Package, ChevronRight, RotateCw, Pencil,
     ExternalLink, Clock, CheckCircle2, Truck, Star,
     MapPin, Phone, Mail, Calendar, FileText, Layers,
-    ShoppingCart, AlertCircle, XCircle, Loader2
+    ShoppingCart, AlertCircle, XCircle, Loader2, Gift, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -20,7 +20,7 @@ import { useCartStore } from '@/store/cart-store';
 
 //  Types 
 
-type Tab = 'orders' | 'designs' | 'wishlist' | 'profile';
+type Tab = 'orders' | 'designs' | 'wishlist' | 'profile' | 'referral';
 
 interface Order {
     id: string;
@@ -110,6 +110,9 @@ export default function AccountPage() {
     const [orders, setOrders] = useState<Order[]>([]);
     const [designs, setDesigns] = useState<Design[]>([]);
     const [wishlist, setWishlist] = useState<any[]>([]);
+    const [referral, setReferral] = useState<any>(null);
+    const [referralLoading, setReferralLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [repeatingId, setRepeatingId] = useState<string | null>(null);
@@ -381,11 +384,31 @@ export default function AccountPage() {
     const initials = (displayName[0] || 'U').toUpperCase();
     const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
+    // Load referral data lazily when the tab is first opened
+    useEffect(() => {
+        if (tab !== 'referral' || referral || referralLoading) return;
+        setReferralLoading(true);
+        fetch('/api/referral/me')
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) setReferral(d); })
+            .catch(() => {})
+            .finally(() => setReferralLoading(false));
+    }, [tab, referral, referralLoading]);
+
+    const copyReferralLink = () => {
+        if (!referral?.link) return;
+        navigator.clipboard.writeText(referral.link).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
     const TABS: { id: Tab; icon: React.ReactNode; label: string; count?: number }[] = [
         { id: 'orders',  icon: <ShoppingBag size={17}/>, label: 'Замовлення', count: orders.length },
         { id: 'designs', icon: <FileText size={17}/>,    label: 'Мої дизайни', count: designs.length },
         { id: 'wishlist',icon: <Heart size={17}/>,       label: 'Вішлист',    count: wishlist.length },
         { id: 'profile', icon: <User size={17}/>,        label: 'Профіль' },
+        { id: 'referral',icon: <Gift size={17}/>,        label: 'Запросити друга' },
     ];
 
     //  Render 
@@ -868,6 +891,56 @@ export default function AccountPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/*  REFERRAL  */}
+                        {tab === 'referral' && (
+                            <div>
+                                <SectionHeader icon={<Gift size={20}/>} title="Запросити друга" sub="Діліться посиланням і отримуйте бонуси" />
+
+                                {referralLoading && !referral ? (
+                                    <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
+                                        <Loader2 size={24} style={{ animation: 'spin 0.8s linear infinite' }} />
+                                    </div>
+                                ) : referral ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {/* How it works */}
+                                        <div style={{ background: 'linear-gradient(135deg,#263A99,#1a2a73)', borderRadius: 14, padding: 28, color: 'white' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Як це працює</div>
+                                            <p style={{ fontSize: 14, lineHeight: 1.7, opacity: 0.92, margin: 0 }}>
+                                                Поділіться своїм посиланням із друзями. Коли друг зареєструється та зробить перше замовлення від {referral.minOrder} ₴, ви отримаєте <strong>{referral.reward} ₴</strong> на бонусний рахунок. Бонусами можна оплатити до 50% наступних замовлень.
+                                            </p>
+                                        </div>
+
+                                        {/* Bonus balance + stats */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                                            <StatCard label="Бонусний баланс" value={`${referral.bonusBalance} ₴`} highlight />
+                                            <StatCard label="Запрошено друзів" value={referral.invitedCount} />
+                                            <StatCard label="Зароблено бонусів" value={`${referral.earned} ₴`} />
+                                        </div>
+
+                                        {/* Referral link */}
+                                        <div style={{ background: 'white', borderRadius: 14, padding: 28, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #e9edf5' }}>
+                                            <div style={{ fontSize: 13, fontWeight: 800, color: '#263a99', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Ваше посилання</div>
+                                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                                <input readOnly value={referral.link || ''}
+                                                    style={{ flex: 1, minWidth: 220, padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 14, background: '#f8fafc', color: '#475569' }} />
+                                                <button onClick={copyReferralLink}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 20px', background: copied ? '#16a34a' : '#263a99', color: 'white', borderRadius: 10, border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, whiteSpace: 'nowrap' }}>
+                                                    {copied ? <><CheckCircle2 size={16}/> Скопійовано</> : <><Copy size={16}/> Копіювати</>}
+                                                </button>
+                                            </div>
+                                            {referral.code && (
+                                                <div style={{ marginTop: 14, fontSize: 13, color: '#64748b' }}>
+                                                    Ваш код: <strong style={{ color: '#263a99', letterSpacing: '0.05em' }}>{referral.code}</strong>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Не вдалося завантажити дані</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>
@@ -878,6 +951,15 @@ export default function AccountPage() {
 }
 
 //  Sub-components 
+
+function StatCard({ label, value, highlight }: { label: string; value: React.ReactNode; highlight?: boolean }) {
+    return (
+        <div style={{ background: highlight ? '#eff3ff' : 'white', borderRadius: 14, padding: '20px 18px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: highlight ? '1px solid #c7d2fe' : '1px solid #e9edf5', textAlign: 'center' }}>
+            <div style={{ fontSize: 24, fontWeight: 900, color: '#263a99', marginBottom: 4 }}>{value}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{label}</div>
+        </div>
+    );
+}
 
 function SectionHeader({ icon, title, sub }: { icon: React.ReactNode; title: string; sub: string }) {
     return (
