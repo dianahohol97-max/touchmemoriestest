@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
+import { processReferralReward } from '@/lib/referral/referral';
 
 export const dynamic = 'force-dynamic';
 
@@ -220,7 +221,7 @@ export async function POST(req: Request) {
         //     keypair situation.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items')
+            .select('id, total, customer_id, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items')
             .eq('id', reference)
             .single();
 
@@ -347,6 +348,18 @@ export async function POST(req: Request) {
             if (existingOrder.payment_status !== 'paid') {
                 try { await deductInventory(supabase, existingOrder.items); }
                 catch (e) { console.error('deductInventory failed (payment still confirmed):', e); }
+
+                // Referral reward: if this buyer was referred and this is their
+                // first paid order ≥1000₴, credit 50₴ to the referrer. Idempotent
+                // and guarded inside the first-transition-to-paid block, so it
+                // runs at most once per order. Never breaks payment confirmation.
+                try {
+                    await processReferralReward(supabase, {
+                        orderId: reference,
+                        customerId: existingOrder.customer_id ?? null,
+                        orderTotal: Number(existingOrder.total) || 0,
+                    });
+                } catch (e) { console.error('processReferralReward failed (payment still confirmed):', e); }
             }
 
             // Optional: Auto-confirm order

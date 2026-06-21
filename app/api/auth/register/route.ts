@@ -47,7 +47,8 @@ export async function POST(request: Request) {
             phone,
             birthday_day,
             birthday_month,
-            birthday_year
+            birthday_year,
+            referralCode
         } = await request.json();
 
         // Validate required fields
@@ -117,6 +118,33 @@ export async function POST(request: Request) {
                 { error: 'Failed to create customer profile' },
                 { status: 500 }
             );
+        }
+
+        // 2b. Referral capture: if a valid referral code was provided, link the
+        // new customer to the referrer and create a pending referral record.
+        // The reward is only granted later, when this friend's first paid order
+        // reaches ≥1000₴ (handled in the Monobank webhook). Self-referral and
+        // unknown codes are ignored silently.
+        if (typeof referralCode === 'string' && referralCode.trim()) {
+            try {
+                const code = referralCode.trim().toUpperCase();
+                const { data: referrer } = await supabase
+                    .from('customers')
+                    .select('id, email')
+                    .eq('referral_code', code)
+                    .maybeSingle();
+                if (referrer && referrer.id !== userId && referrer.email?.toLowerCase() !== email.toLowerCase()) {
+                    await supabase.from('customers').update({ referred_by: referrer.id }).eq('id', userId);
+                    await supabase.from('referrals').insert({
+                        referrer_id: referrer.id,
+                        referred_id: userId,
+                        referred_email: email,
+                        status: 'pending',
+                    });
+                }
+            } catch (e) {
+                console.error('Referral capture failed (registration still succeeded):', e);
+            }
         }
 
         // 3. Sync birthday to subscribers table if they are already a subscriber
