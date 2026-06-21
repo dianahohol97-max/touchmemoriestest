@@ -1,4 +1,5 @@
 'use client';
+import type React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -56,6 +57,7 @@ export default function CheckoutPage() {
     const rawTotal = items.reduce((s: number, it: any) => s + it.price * it.qty, 0);
     const dupDiscount = duplicateDiscountForCart(items as any);
     const [promoCode, setPromoCode] = useState('');
+    const [promoId, setPromoId] = useState<string | null>(null);
     const [promoInput, setPromoInput] = useState('');
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoLoading, setPromoLoading] = useState(false);
@@ -126,7 +128,12 @@ export default function CheckoutPage() {
             const res = await fetch('/api/promo/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, cart_total: rawTotal }),
+                body: JSON.stringify({
+                    code,
+                    cart_total: rawTotal,
+                    email: formData.email || undefined,
+                    items: items.map((it: any) => ({ product_id: it.product_id })),
+                }),
             });
             const result = await res.json();
             setPromoLoading(false);
@@ -139,6 +146,7 @@ export default function CheckoutPage() {
                 : 0;
             setPromoDiscount(Math.min(discount, rawTotal));
             setPromoCode(code);
+            setPromoId(result.promo_id || null);
         } catch (err) {
             console.error('Promo validation error:', err);
             setPromoLoading(false);
@@ -461,6 +469,8 @@ export default function CheckoutPage() {
                     delivery_cost: 0,
                     total,
                     bonus_redeemed: bonusRedeemed,
+                    promo_id: promoId,
+                    promo_code: promoCode || undefined,
                     delivery_method: isIntl ? 'international' : 'nova_poshta',
                     delivery_address: isIntl
                         ? { country: formData.country, city: formData.city, postal: formData.postal, address: formData.addressLine }

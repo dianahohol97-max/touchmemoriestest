@@ -374,6 +374,44 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Record promo-code usage so single-use / max_uses actually work. Written
+  // once per order, after the order row exists. Dedupe key is (promo_code_id,
+  // customer_id|email). A failure here never breaks order creation.
+  const promoId = (body as any).promo_id;
+  if (promoId && typeof promoId === 'string') {
+    try {
+      const buyerEmail = body.customer_email?.trim().toLowerCase() || null;
+      // Guard against double-insert (e.g. retry): skip if a usage row already
+      // exists for this exact order.
+      const { data: already } = await admin
+        .from('promo_code_usages')
+        .select('id')
+        .eq('promo_code_id', promoId)
+        .eq('order_id', inserted.id)
+        .limit(1);
+      if (!already || already.length === 0) {
+        await admin.from('promo_code_usages').insert({
+          promo_code_id: promoId,
+          customer_id: customer_id || null,
+          email: buyerEmail,
+          order_id: inserted.id,
+          discount_amount: Math.max(0, subtotal - total),
+        });
+        // Increment uses_count via a fresh read (no atomic rpc available).
+        const { data: pc } = await admin
+          .from('promo_codes')
+          .select('uses_count')
+          .eq('id', promoId)
+          .maybeSingle();
+        await admin.from('promo_codes')
+          .update({ uses_count: Number(pc?.uses_count || 0) + 1 })
+          .eq('id', promoId);
+      }
+    } catch (e) {
+      console.error('orders/submit: promo usage recording failed (order still created):', e);
+    }
+  }
+
   return NextResponse.json({
     success: true,
     order_id: inserted.id,
