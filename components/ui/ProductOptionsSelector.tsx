@@ -483,12 +483,25 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   // engraving etc.), so the decoration selector must be hidden whenever the
   // *selected* material is a printed/hard one — not only when the slug says
   // so (slug check alone missed products like guestbook-wedding).
-  const selectedCoverMaterial = String(selectedOptions['Матеріал обкладинки'] || '').toLowerCase();
+  // The dropdown shows the first material value by default, but selectedOptions
+  // may not carry it until the user explicitly picks one. Treat the first value
+  // as the effective selection so a printed-by-default cover hides the
+  // colour/decoration blocks on first render (not only after interaction).
+  const materialOption = (productType ? (PRODUCT_OPTIONS[productType] || []) : []).find((o: any) => o.name === 'Матеріал обкладинки');
+  const effectiveCoverMaterial = String(
+    selectedOptions['Матеріал обкладинки'] || materialOption?.values?.[0] || ''
+  ).toLowerCase();
+  const selectedCoverMaterial = effectiveCoverMaterial;
   const isPrintedMaterialSelected =
     selectedCoverMaterial.includes('друков') ||
     selectedCoverMaterial.includes('printed') ||
     selectedCoverMaterial.includes('тверда');
   const showDecoration = hasColorAndDecoration && !isPrintedMaterialSelected;
+  // Cover-colour swatches (leatherette/velour/fabric) make no sense for a
+  // printed hard cover, so hide them whenever a printed/hard material is the
+  // *selected* one — symmetric with showDecoration. The slug-based
+  // hasColorAndDecoration alone missed the runtime "Друкована тверда" choice.
+  const showCoverColor = hasColorAndDecoration && !isPrintedMaterialSelected;
 
   const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
   const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string;photo_url?:string|null}|null>(null);
@@ -709,6 +722,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         delete newOptions['Варіант оздоблення'];
         setSelectedOzdoblennya('none');
         setSelectedDecorationVariant('');
+        // Printed hard covers have no leatherette/velour/fabric colour, so drop
+        // any cover-colour value selected while a soft cover was active.
+        delete newOptions['Колір шкірзамінника'];
+        delete newOptions['Колір велюру'];
+        delete newOptions['Колір тканини'];
+        setSelectedCoverColor(null);
+        setSelectedWishbookColor(null);
       }
     }
     // When the customer switches Розмір, the new size's min_pages may
@@ -957,8 +977,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         );
       })()}
 
-      {/* Cover Color Picker (velour uses hardcoded, others use DB) */}
-      {hasColorAndDecoration && (() => {
+      {/* Cover Color Picker (velour uses hardcoded, others use DB).
+          Hidden when a printed/hard cover material is selected. */}
+      {showCoverColor && (() => {
         const colors = isVelourProduct
           ? (coverColors.length > 0
               ? coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }))
