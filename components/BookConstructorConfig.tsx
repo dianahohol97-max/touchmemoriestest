@@ -1077,6 +1077,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (selectedSize) params.set('size', selectedSize);
         if (selectedPageCount) params.set('pages', selectedPageCount.replace(/[^\d]/g, ''));
         if (selectedCoverType) params.set('cover', selectedCoverType);
+        if (selectedPageColor) params.set('page_color', selectedPageColor);
         if (enableKalka) params.set('tracing', 'with');
         if (enableKalka && kalkaText) params.set('kalka_text', encodeURIComponent(kalkaText));
         if (selectedLamination) params.set('lamination', selectedLamination);

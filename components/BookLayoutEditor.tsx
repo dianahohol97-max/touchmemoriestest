@@ -66,7 +66,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; }
-interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
+interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -3235,7 +3235,7 @@ export default function BookLayoutEditor() {
       const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
       if (user) {
-        const contentPages = pages.length - 1;
+        const contentPages = isWishbook ? 32 : (pages.length - 1);
         const sizeLabel = config?.selectedSize || '';
         const name = `${config?.productName || t('constructor.photobooktype')} ${sizeLabel} · ${contentPages} стор.`;
         const { error } = await sb.from('projects').insert({
@@ -3281,7 +3281,10 @@ export default function BookLayoutEditor() {
 
   const addToCart = async () => {
     if (!config) return;
-    const contentPages = pages.length - 1;
+    // Wishbook (книга побажань) is always a fixed 32-page block regardless of
+    // how many spreads the cover editor shows — the inner pages aren't designed
+    // here, only the cover. Other books use the actual content page count.
+    const contentPages = isWishbook ? 32 : (pages.length - 1);
     const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
     const orderId = `pb-${Date.now()}`;
 
@@ -3320,6 +3323,12 @@ export default function BookLayoutEditor() {
         if (config.selectedSize) opts[t('constructor.size')] = config.selectedSize;
         opts[t('constructor.page_count')] = `${contentPages} сторінок`;
         if (config.selectedCoverType) opts[t('constructor.cover')] = config.selectedCoverType;
+        // Page colour (white / black / cream). Comes from config (set in the
+        // constructor) with the URL param as a fallback. Previously this was
+        // only read from the URL, so when the editor was opened without the
+        // page_color param the customer's choice silently dropped from the cart.
+        const pageColorFromConfig = config.selectedPageColor || searchParams?.get('page_color') || '';
+        if (pageColorFromConfig) opts[t('constructor.page_color')] = pageColorFromConfig;
         // Cover colour — only present for soft covers (velour / fabric /
         // leatherette). For printed photo covers this is just blank.
         const coverColor = config.selectedCoverColor || coverColorOverride || '';
@@ -3390,7 +3399,6 @@ export default function BookLayoutEditor() {
             ['page-lamination', t('constructor.page_lamination')],
             ['spine', t('constructor.spine')],
             ['urgent', t('constructor.urgency')],
-            ['page_color', t('constructor.page_color')],
           ];
           for (const [key, label] of urlOpts) {
             const v = searchParams.get(key);
