@@ -2040,6 +2040,21 @@ export default function BookLayoutEditor() {
     (config?.productName || '').toLowerCase().includes('побажань') ||
     (config?.productName || '').toLowerCase().includes('випускн');
 
+  // A real soft-material cover (велюр / тканина / шкірзамінник) is one physical
+  // piece of fabric/leather, so the front AND back are the SAME colour — there
+  // is no separate printed back. Wishbook is slug-flagged isPrinted=true even
+  // for velour, so we detect the actual chosen material here to override the
+  // back-cover fill: for soft materials the back must use the material colour,
+  // not the (white) printed background.
+  const _coverTypeLower = (config?.selectedCoverType || '').toLowerCase();
+  const isSoftMaterialCover =
+    _coverTypeLower.includes('велюр') || _coverTypeLower.includes('velour') ||
+    _coverTypeLower.includes('тканин') || _coverTypeLower.includes('fabric') ||
+    _coverTypeLower.includes('шкір') || _coverTypeLower.includes('leather');
+  // The cover background should be treated as printed only when it's NOT a soft
+  // material — this is the correct flag for the back-cover fill decision.
+  const isPrintedBack = isPrinted && !isSoftMaterialCover;
+
   // Wishbook + scrapbook share cover-only flow with fixed page count
   const isScrapbook = _slug.includes('scrapbook');
   const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') || isScrapbook ||
@@ -4783,8 +4798,11 @@ export default function BookLayoutEditor() {
                   );
                 })()}
 
-                {/* Printed cover — back cover controls */}
-                {isPrinted && (
+                {/* Printed cover — back cover controls. Soft-material covers
+                    (велюр/тканина/шкірзамінник) have no separate back fill — the
+                    back is the same material colour as the front — so this block
+                    is hidden for them. */}
+                {isPrintedBack && (
                   <div style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Задня обкладинка</div>
@@ -5238,7 +5256,7 @@ export default function BookLayoutEditor() {
                 </>
                 )}
                 {/* Back cover bg */}
-                {currentIdx === 0 && isPrinted && (
+                {currentIdx === 0 && isPrintedBack && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
@@ -6178,8 +6196,8 @@ export default function BookLayoutEditor() {
             <div data-spread-snapshot="root" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — editable */}
                 {(() => {
-                  const backBg = isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
-                  const backPhoto = isPrinted ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
+                  const backBg = isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
+                  const backPhoto = isPrintedBack ? getPhoto(coverState.backCoverPhotoId ?? null) : null;
                   const bCropX = coverState.backCoverCropX ?? 50;
                   const bCropY = coverState.backCoverCropY ?? 50;
                   const bZoom = coverState.backCoverZoom ?? 1;
@@ -7932,7 +7950,7 @@ export default function BookLayoutEditor() {
                   style={{ width: '100%', padding: '4px', border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: active ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'center' }}>
                   <div style={{ width: '100%', aspectRatio: `${prop.w*2}/${prop.h}`, display: 'flex', borderRadius: 3, marginBottom: 3, overflow: 'hidden' }}>
                     {/* Back cover (left) */}
-                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
+                    <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {!isPrinted && <div style={{ position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 5px)', pointerEvents:'none' }}/>}
                       {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
@@ -8997,7 +9015,7 @@ export default function BookLayoutEditor() {
 
             {/* MOBILE COVER PANEL */}
             {leftTab === 'cover' && (() => {
-              const isPrintedMobile = isPrinted; // use same logic as desktop
+              const isPrintedMobile = isPrintedBack; // soft materials → material UI, not printed
               const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
               const pt = coverState.printedTextBlocks ?? [];
               const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
@@ -9445,7 +9463,7 @@ export default function BookLayoutEditor() {
                 />
                 )}
                 {/* Back cover bg */}
-                {currentIdx === 0 && isPrinted && (
+                {currentIdx === 0 && isPrintedBack && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
                     <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
