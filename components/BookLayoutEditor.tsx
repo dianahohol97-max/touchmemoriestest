@@ -4623,6 +4623,14 @@ export default function BookLayoutEditor() {
             {/* COVER */}
             {leftTab === 'cover' && (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {/* When a metal insert is already applied, surface a notice at the
+                    very top of the cover tab so the customer doesn't have to
+                    scroll past templates + back-cover to find its controls. */}
+                {coverState.decoType === 'metal' && (
+                  <div style={{ padding:'10px 12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, fontSize:11.5, color:'#92400e', lineHeight:1.5 }}>
+                    <b>Металева вставка застосована.</b> Її текст, шрифт, розмір і колір металу змінюються у блоці «Тип оздоблення обкладинки» нижче ↓ Вставка завжди розміщується по центру передньої обкладинки — її положення фіксоване.
+                  </div>
+                )}
                 {/* READY-MADE TRAVEL COVERS — travel book only */}
                 {isPrinted && _slug.includes('travelbook') && (
                   <>
@@ -4994,6 +5002,9 @@ export default function BookLayoutEditor() {
                 )}
                 {coverState.decoType==='metal' && (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    <div style={{ padding:'8px 10px', background:'#f0f3ff', border:'1px solid #c7d2fe', borderRadius:8, fontSize:11, color:'#475569', lineHeight:1.5 }}>
+                      Металева вставка — це фізична табличка, яку ми кріпимо по центру <b>передньої</b> обкладинки. Її положення фіксоване, але ви можете змінити текст, шрифт, розмір тексту, колір металу та розмір вставки нижче.
+                    </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
                       <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на вставці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
