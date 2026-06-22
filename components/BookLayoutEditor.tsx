@@ -4793,6 +4793,19 @@ export default function BookLayoutEditor() {
                         <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                           style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                       </div>
+                      {/* One-click colour presets — fill the back cover instantly */}
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                        {['#ffffff','#f1f5f9','#e8deff','#fff8f0','#1e2d7d','#000000','#7b5fcc','#d4a373','#2d3748','#f8d7da'].map(c => (
+                          <button key={c} type="button" title={c}
+                            onClick={()=>setCoverState(p=>({...p,backCoverBgColor:c}))}
+                            style={{ width:24, height:24, borderRadius:'50%', background:c, cursor:'pointer',
+                              border: (coverState.backCoverBgColor||'#f1f5f9').toLowerCase()===c.toLowerCase() ? '3px solid #1e2d7d' : '1px solid #cbd5e1',
+                              boxShadow: (coverState.backCoverBgColor||'#f1f5f9').toLowerCase()===c.toLowerCase() ? '0 0 0 2px #fff inset' : 'none' }}/>
+                        ))}
+                      </div>
+                      <p style={{ fontSize:10, color:'#94a3b8', margin:'0 0 4px', lineHeight:1.4 }}>
+                        Оберіть колір вище або клікніть на кружечок палітри. Колір заллє всю задню обкладинку.
+                      </p>
 
                       {/* Opt-in toggle for back cover photo */}
                       {!(coverState as any).backCoverEnabled ? (
