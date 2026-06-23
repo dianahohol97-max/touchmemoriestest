@@ -2054,6 +2054,12 @@ export default function BookLayoutEditor() {
   // The cover background should be treated as printed only when it's NOT a soft
   // material — this is the correct flag for the back-cover fill decision.
   const isPrintedBack = isPrinted && !isSoftMaterialCover;
+  // Printing on the cover (full-cover photo, cover templates, printed text
+  // blocks) only makes sense on a genuinely printed cover. On soft materials
+  // (велюр/тканина/шкірзамінник) nothing is printed on the cover itself — the
+  // decoration is a physical action on the material (metal plate, engraving,
+  // acrylic/photo insert, flex). So gate all print-on-cover UI behind this.
+  const isPrintedCover = isPrintedBack;
 
   // Wishbook + scrapbook share cover-only flow with fixed page count
   const isScrapbook = _slug.includes('scrapbook');
@@ -4671,7 +4677,11 @@ export default function BookLayoutEditor() {
                   </>
                 )}
                 {/* COVER TEMPLATES PICKER — hidden for scrapbook (album для вклейки фото) */}
-                {isPrinted && !isScrapbook && (
+                {/* COVER TEMPLATES — only for printed covers. Soft materials
+                    (велюр/тканина/шкірзамінник) are decorated physically (metal
+                    plate / engraving / insert), nothing is printed on them, so
+                    print templates don't apply. */}
+                {isPrintedCover && !isScrapbook && (
                   <CoverTemplatesPicker productType={isWishbook?'wishbook':_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')?'magazine':_slug.includes('travelbook')?'travelbook':'photobook'} onApply={(tmpl: CoverTemplate) => {
                     pushHistory();
                     setCoverState(p => ({
@@ -4694,7 +4704,10 @@ export default function BookLayoutEditor() {
                 )}
 
                 {/* PRINTED COVER CONTROLS — for all printed/soft-cover products */}
-                {isPrinted && (() => {
+                {/* Printed front-cover controls (photo slot, overlay, printed
+                    text, bg) — only for genuinely printed covers, not soft
+                    materials. */}
+                {isPrintedCover && (() => {
                   const pt = coverState.printedTextBlocks ?? [];
                   const ov = coverState.printedOverlay ?? { type:'none', color:'#000000', opacity:40, gradient:'linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6) 100%)' };
                   const ps = coverState.printedPhotoSlot ?? { x:0, y:0, w:100, h:100, shape:'rect' };
@@ -4947,8 +4960,8 @@ export default function BookLayoutEditor() {
                       </div>
                     );
                   })()}
-                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6, display: isPrinted ? 'none' : 'block' }}>ОЗДОБЛЕННЯ</div>
-                  <div style={{ display: isPrinted ? 'none' : 'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6, display: isPrintedCover ? 'none' : 'block' }}>ОЗДОБЛЕННЯ</div>
+                  <div style={{ display: isPrintedCover ? 'none' : 'flex', alignItems:'center', justifyContent:'space-between', padding:'9px 12px', border:'2px solid #1e2d7d', borderRadius:8, background:'#f0f3ff' }}>
                     <span style={{ fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
                       {({'none':'Без оздоблення','acryl':'Акрил','photovstavka':t('constructor.photo_insert'),'metal':t('constructor.metal_insert'),'flex':t('constructor.flex_print'),'graviruvannya':t('constructor.engraving')} as Record<string,string>)[coverState.decoType] || 'Без'}
                       {coverState.decoVariant ? <span style={{ fontWeight:400, color:'#64748b', marginLeft:6, fontSize:11 }}>{coverState.decoVariant}</span> : null}
@@ -4957,7 +4970,7 @@ export default function BookLayoutEditor() {
                       {showDecoList ? t('constructor.hide') : t('constructor.change')}
                     </button>
                   </div>
-                  {showDecoList && !isPrinted && (
+                  {showDecoList && !isPrintedCover && (
                     <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:4 }}>
                       {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[]).map(id => (
                         <button key={id} onClick={() => {
