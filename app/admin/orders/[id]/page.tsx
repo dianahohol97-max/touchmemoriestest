@@ -1267,6 +1267,37 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                 {/* Right Side */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                    {/* Team assignment first — it's the first action on a new order. */}
+                    <div style={cardStyle}>
+                        <h3 style={cardTitleStyle}><Settings size={20} /> Відповідальні</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={smallLabelStyle}>Менеджер</label>
+                                <select value={order.manager_id || ''} onChange={e => handleAssign('manager_id', e.target.value)} style={staffSelectStyle}>
+                                    <option value="">Не призначено</option>
+                                    {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label style={smallLabelStyle}>Дизайнер</label>
+                                <select value={order.designer_id || ''} onChange={e => handleAssign('designer_id', e.target.value)} style={staffSelectStyle}>
+                                    <option value="">Не призначено</option>
+                                    {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                            {order.creator && (
+                                <div style={{ paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                                    <label style={smallLabelStyle}>Додав замовлення</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: order.creator.color || '#1e2d7d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                                            {order.creator.initials || order.creator.name?.charAt(0)}
+                                        </div>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{order.creator.name}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     <PrintSheetsCard orderId={order.id} />
                     <div style={cardStyle}>
                         <h3 style={cardTitleStyle}><User size={20} /> Клієнт</h3>
@@ -1305,37 +1336,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             )}
 
                             <button onClick={() => setShowReplyModal(true)} style={{ ...contactLinkStyle, border: 'none', cursor: 'pointer', backgroundColor: '#eff6ff', color: '#263A99', width: '100%', textAlign: 'left' }}><MessageSquare size={16} /> Написати клієнту</button>
-                        </div>
-                    </div>
-
-                    <div style={cardStyle}>
-                        <h3 style={cardTitleStyle}><Settings size={20} /> Відповідальні</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div>
-                                <label style={smallLabelStyle}>Менеджер</label>
-                                <select value={order.manager_id || ''} onChange={e => handleAssign('manager_id', e.target.value)} style={staffSelectStyle}>
-                                    <option value="">Не призначено</option>
-                                    {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label style={smallLabelStyle}>Дизайнер</label>
-                                <select value={order.designer_id || ''} onChange={e => handleAssign('designer_id', e.target.value)} style={staffSelectStyle}>
-                                    <option value="">Не призначено</option>
-                                    {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
-                            </div>
-                            {order.creator && (
-                                <div style={{ paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
-                                    <label style={smallLabelStyle}>Додав замовлення</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: order.creator.color || '#1e2d7d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                                            {order.creator.initials || order.creator.name?.charAt(0)}
-                                        </div>
-                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{order.creator.name}</span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
 
