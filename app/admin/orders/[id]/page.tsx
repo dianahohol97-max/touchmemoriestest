@@ -971,6 +971,43 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 )}
                             </div>
 
+                            {/* Domestic Nova Poshta — city + branch / address. This was
+                                only rendered for international orders before, so for
+                                Ukrainian Нова Пошта orders the manager couldn't see where
+                                to ship (city + warehouse). */}
+                            {!isIntl && (addr.city || addr.branch || addr.warehouse || addr.address) && (
+                                <div style={{ marginTop: 16, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Truck size={15} /> Куди доставити
+                                    </div>
+                                    {(() => {
+                                        const rows: [string, string][] = [
+                                            ['Отримувач', order.customer_name || ''],
+                                            ['Телефон', order.customer_phone || ''],
+                                            ['Місто', addr.city || ''],
+                                            ['Відділення / адреса', addr.branch || addr.warehouse || addr.address || ''],
+                                        ].filter(([, v]) => v) as [string, string][];
+                                        const block = rows.map(([k, v]) => `${k}: ${v}`).join('\n');
+                                        return (
+                                            <div>
+                                                {rows.map(([k, v]) => (
+                                                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, padding: '4px 0', borderBottom: '1px solid #eef2f7' }}>
+                                                        <span style={{ color: '#94a3b8' }}>{k}</span>
+                                                        <span style={{ fontWeight: 600, textAlign: 'right', wordBreak: 'break-word' }}>{v || '—'}</span>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => { navigator.clipboard.writeText(block); toast.success('Дані доставки скопійовано'); }}
+                                                    style={{ marginTop: 10, padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: 7, background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                                                >
+                                                    <Copy size={13} /> Скопіювати дані доставки
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+
                             {isIntl && (
                                 <div style={{ marginTop: 16, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                                     <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
