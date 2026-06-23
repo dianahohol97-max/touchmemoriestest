@@ -21,6 +21,7 @@ import {
     Phone,
     Calendar,
     FileText,
+    MessageSquare,
     Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -56,6 +57,36 @@ export default function OrdersPage() {
 
     const [availableTags, setAvailableTags] = useState<any[]>([]);
     const [tagFilter, setTagFilter] = useState('all');
+
+    // Quick order-comment editor (opened from the list, saved to orders.notes)
+    const [commentOrder, setCommentOrder] = useState<any | null>(null);
+    const [commentText, setCommentText] = useState('');
+    const [commentSaving, setCommentSaving] = useState(false);
+
+    const openCommentModal = (order: any) => {
+        setCommentOrder(order);
+        setCommentText(order.notes || '');
+    };
+    const saveComment = async () => {
+        if (!commentOrder) return;
+        setCommentSaving(true);
+        try {
+            const res = await fetch(`/api/admin/orders/${commentOrder.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: commentText }),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            // reflect locally
+            setOrders(prev => prev.map(o => o.id === commentOrder.id ? { ...o, notes: commentText } : o));
+            toast.success('Коментар збережено');
+            setCommentOrder(null);
+        } catch (err) {
+            console.error('Save comment failed:', err);
+            toast.error('Не вдалося зберегти коментар');
+        }
+        setCommentSaving(false);
+    };
 
     useEffect(() => {
         fetchOrders();
@@ -430,18 +461,63 @@ export default function OrdersPage() {
                                     </div>
                                 </td>
                                 <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                    <Link
-                                        href={`/admin/orders/${order.id}`}
-                                        onClick={e => e.stopPropagation()}
-                                        style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                                        <Eye size={15} /> Відкрити
-                                    </Link>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => openCommentModal(order)}
+                                            title={order.notes ? `Коментар: ${order.notes}` : 'Додати коментар'}
+                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 6, cursor: 'pointer', border: '1px solid', position: 'relative',
+                                                background: order.notes ? '#eff6ff' : '#fff',
+                                                borderColor: order.notes ? '#bfdbfe' : '#e2e8f0',
+                                                color: order.notes ? '#263A99' : '#94a3b8' }}>
+                                            <MessageSquare size={16} />
+                                            {order.notes && <span style={{ position: 'absolute', top: -3, right: -3, width: 9, height: 9, borderRadius: '50%', background: '#16a34a', border: '2px solid #fff' }} />}
+                                        </button>
+                                        <Link
+                                            href={`/admin/orders/${order.id}`}
+                                            onClick={e => e.stopPropagation()}
+                                            style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                            <Eye size={15} /> Відкрити
+                                        </Link>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+
+            {/* Quick comment modal */}
+            {commentOrder && (
+                <div onClick={() => !commentSaving && setCommentOrder(null)}
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                    <div onClick={e => e.stopPropagation()}
+                        style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 460 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Коментар до замовлення</h3>
+                            <button onClick={() => setCommentOrder(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 22, lineHeight: 1 }}>×</button>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 14 }}>{commentOrder.order_number}</div>
+                        <textarea
+                            value={commentText}
+                            onChange={e => setCommentText(e.target.value)}
+                            placeholder="Внутрішній коментар для команди…"
+                            rows={5}
+                            autoFocus
+                            style={{ width: '100%', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 14, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+                            <button onClick={() => setCommentOrder(null)} disabled={commentSaving}
+                                style={{ padding: '10px 18px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontWeight: 600, fontSize: 14, color: '#475569', cursor: 'pointer' }}>
+                                Скасувати
+                            </button>
+                            <button onClick={saveComment} disabled={commentSaving}
+                                style={{ padding: '10px 18px', background: '#263A99', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, color: '#fff', cursor: commentSaving ? 'not-allowed' : 'pointer', opacity: commentSaving ? 0.7 : 1 }}>
+                                {commentSaving ? 'Збереження…' : 'Зберегти'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }
