@@ -340,8 +340,11 @@ export default function OrdersPage() {
                     <thead>
                         <tr style={{ borderBottom: '1.5px solid #f1f5f9' }}>
                             <th style={thStyle}>№ Замовлення</th>
+                            <th style={thStyle}>Теги</th>
                             <th style={thStyle}>Клієнт</th>
-                            <th style={thStyle}>Команда</th>
+                            <th style={thStyle}>Коментар</th>
+                            <th style={thStyle}>Менеджер</th>
+                            <th style={thStyle}>Відповідальні</th>
                             <th style={thStyle}>Товари</th>
                             <th style={thStyle}>Оплата</th>
                             <th style={{ ...thStyle, textAlign: 'right' }}>Дії</th>
@@ -349,9 +352,9 @@ export default function OrdersPage() {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Завантаження...</td></tr>
+                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Завантаження...</td></tr>
                         ) : filteredOrders.length === 0 ? (
-                            <tr><td colSpan={8} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Замовлень не знайдено</td></tr>
+                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Замовлень не знайдено</td></tr>
                         ) : filteredOrders.map(order => (
                             <tr key={order.id}
                                 style={{ ...trStyle, cursor: 'pointer' }}
@@ -367,22 +370,24 @@ export default function OrdersPage() {
                                              {order.delivery_status}
                                         </div>
                                     )}
-                                    {order.order_tag_assignments?.length > 0 && (
-                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                </td>
+                                {/* Tags — names + icons */}
+                                <td style={{ ...tdStyle, maxWidth: 160 }}>
+                                    {order.order_tag_assignments?.length > 0 ? (
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                             {order.order_tag_assignments.map((assignment: any) => {
                                                 const tag = assignment.order_tags;
                                                 if (!tag) return null;
                                                 return (
-                                                    <div
-                                                        key={tag.id}
-                                                        title={tag.name}
-                                                        style={{ width: '22px', height: '22px', borderRadius: "3px", backgroundColor: `${tag.color}15`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${tag.color}40`, fontSize: '13px', cursor: 'help' }}
-                                                    >
-                                                        {tag.icon}
-                                                    </div>
+                                                    <span key={tag.id} title={tag.name}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 12, backgroundColor: `${tag.color}15`, border: `1px solid ${tag.color}40`, fontSize: 11, fontWeight: 700, color: tag.color || '#475569', whiteSpace: 'nowrap' }}>
+                                                        {tag.icon && <span>{tag.icon}</span>}{tag.name}
+                                                    </span>
                                                 );
                                             })}
                                         </div>
+                                    ) : (
+                                        <span style={{ fontSize: 12, color: '#cbd5e1' }}>—</span>
                                     )}
                                 </td>
                                 <td style={tdStyle}>
@@ -397,44 +402,55 @@ export default function OrdersPage() {
                                         </div>
                                     </div>
                                 </td>
-                                <td style={{ ...tdStyle, width: '200px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} onClick={e => e.stopPropagation()}>
-                                        {/* Manager — inline assign */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
-                                                {order.manager?.initials || <User size={12} />}
-                                            </div>
-                                            <select
-                                                value={order.manager_id || ''}
-                                                onChange={e => assignRole(order, 'manager', e.target.value)}
-                                                style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.manager ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
-                                                onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
-                                                onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
-                                            >
-                                                <option value="">Менеджер</option>
-                                                {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                                ))}
-                                            </select>
+                                {/* Comment — inline preview + click to edit */}
+                                <td style={{ ...tdStyle, maxWidth: 200 }} onClick={e => e.stopPropagation()}>
+                                    <button onClick={() => openCommentModal(order)}
+                                        title={order.notes ? 'Редагувати коментар' : 'Додати коментар'}
+                                        style={{ width: '100%', textAlign: 'left', background: order.notes ? '#f8fafc' : 'transparent', border: order.notes ? '1px solid #e2e8f0' : '1px dashed #e2e8f0', borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                                        <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: order.notes ? '#263A99' : '#cbd5e1' }} />
+                                        <span style={{ fontSize: 12, color: order.notes ? '#475569' : '#cbd5e1', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            {order.notes || 'Додати коментар'}
+                                        </span>
+                                    </button>
+                                </td>
+                                {/* Manager — inline assign */}
+                                <td style={{ ...tdStyle, width: '150px' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                        <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
+                                            {order.manager?.initials || <User size={12} />}
                                         </div>
-                                        {/* Designer — inline assign */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
-                                                {order.designer?.initials || <User size={12} />}
-                                            </div>
-                                            <select
-                                                value={order.designer_id || ''}
-                                                onChange={e => assignRole(order, 'designer', e.target.value)}
-                                                style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.designer ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
-                                                onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
-                                                onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
-                                            >
-                                                <option value="">Дизайнер</option>
-                                                {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name}</option>
-                                                ))}
-                                            </select>
+                                        <select
+                                            value={order.manager_id || ''}
+                                            onChange={e => assignRole(order, 'manager', e.target.value)}
+                                            style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.manager ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
+                                            onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
+                                            onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
+                                        >
+                                            <option value="">Не призначено</option>
+                                            {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </td>
+                                {/* Designer / responsible — inline assign */}
+                                <td style={{ ...tdStyle, width: '150px' }} onClick={e => e.stopPropagation()}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                        <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
+                                            {order.designer?.initials || <User size={12} />}
                                         </div>
+                                        <select
+                                            value={order.designer_id || ''}
+                                            onChange={e => assignRole(order, 'designer', e.target.value)}
+                                            style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.designer ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
+                                            onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
+                                            onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
+                                        >
+                                            <option value="">Не призначено</option>
+                                            {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </td>
                                 <td style={tdStyle}>
@@ -461,24 +477,12 @@ export default function OrdersPage() {
                                     </div>
                                 </td>
                                 <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} onClick={e => e.stopPropagation()}>
-                                        <button
-                                            onClick={() => openCommentModal(order)}
-                                            title={order.notes ? `Коментар: ${order.notes}` : 'Додати коментар'}
-                                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 6, cursor: 'pointer', border: '1px solid', position: 'relative',
-                                                background: order.notes ? '#eff6ff' : '#fff',
-                                                borderColor: order.notes ? '#bfdbfe' : '#e2e8f0',
-                                                color: order.notes ? '#263A99' : '#94a3b8' }}>
-                                            <MessageSquare size={16} />
-                                            {order.notes && <span style={{ position: 'absolute', top: -3, right: -3, width: 9, height: 9, borderRadius: '50%', background: '#16a34a', border: '2px solid #fff' }} />}
-                                        </button>
-                                        <Link
-                                            href={`/admin/orders/${order.id}`}
-                                            onClick={e => e.stopPropagation()}
-                                            style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                                            <Eye size={15} /> Відкрити
-                                        </Link>
-                                    </div>
+                                    <Link
+                                        href={`/admin/orders/${order.id}`}
+                                        onClick={e => e.stopPropagation()}
+                                        style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                        <Eye size={15} /> Відкрити
+                                    </Link>
                                 </td>
                             </tr>
                         ))}
