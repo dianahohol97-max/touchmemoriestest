@@ -236,7 +236,7 @@ export default function CartDrawer() {
                                                 const isWishbook = /wish|guest|pobazhan/i.test(slug) || /побажан/i.test(String(item.name || ''));
                                                 return item.options && Object.entries(item.options).map(([key, value]: [string, any]) => {
                                                     let display = typeof value === 'object' ? value.name : value;
-                                                    if (isWishbook && /сторінок|сторінки|page/i.test(key)) {
+                                                    if (isWishbook && /сторінок|сторінки|page/i.test(key) && !/колір|color/i.test(key)) {
                                                         display = '32 сторінки';
                                                     }
                                                     return (

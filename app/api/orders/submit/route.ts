@@ -102,13 +102,19 @@ export async function POST(request: NextRequest) {
     const slug = String(it?.slug || '');
     const isWishbook = /wish|guest|pobazhan/i.test(slug) || /побажан/i.test(String(it?.product_name || it?.name || ''));
     if (isWishbook && it?.options && typeof it.options === 'object') {
+      // Force the fixed 32-page count. Important: only touch the page-COUNT
+      // line, not "Колір сторінок" (which also contains the word "сторінок").
+      // The previous broad regex overwrote the page colour with "32 сторінки",
+      // which is why the colour never reached the admin order.
+      const isPageCountKey = (k: string) =>
+        /сторінок|сторінки|page/i.test(k) && !/колір|color/i.test(k);
       for (const key of Object.keys(it.options)) {
-        if (/сторінок|сторінки|page/i.test(key)) {
+        if (isPageCountKey(key)) {
           it.options[key] = '32 сторінки';
         }
       }
       // If the page-count line is missing entirely, add it.
-      const hasPageLine = Object.keys(it.options).some(k => /сторінок|сторінки|page/i.test(k));
+      const hasPageLine = Object.keys(it.options).some(isPageCountKey);
       if (!hasPageLine) it.options['Сторінок'] = '32 сторінки';
     }
   }

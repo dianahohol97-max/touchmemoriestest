@@ -747,7 +747,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     if (!_isWishbook) return obj;
                                     const out: Record<string, any> = { ...obj };
                                     for (const k of Object.keys(out)) {
-                                        if (/сторінок|сторінки|page/i.test(k)) out[k] = '32 сторінки';
+                                        if (/сторінок|сторінки|page/i.test(k) && !/колір|color/i.test(k)) out[k] = '32 сторінки';
                                     }
                                     return out;
                                 };

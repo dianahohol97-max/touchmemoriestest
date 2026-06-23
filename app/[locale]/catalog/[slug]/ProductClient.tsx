@@ -1742,6 +1742,18 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                             url.searchParams.set(keyMap[key] || key, outVal);
                                                         }
                                                     });
+                                                    // Guarantee the page colour reaches the constructor (and
+                                                    // therefore the cart + admin). It's a required wishbook
+                                                    // option but, depending on how it was rendered, it could
+                                                    // sit in customProductOptions under a couple of label
+                                                    // variants — set page_color explicitly if we have it.
+                                                    {
+                                                        const pc = String(
+                                                            customProductOptions['Колір сторінок'] ??
+                                                            customProductOptions['Колір сторінок книги'] ?? ''
+                                                        ).trim();
+                                                        if (pc) url.searchParams.set('page_color', pc);
+                                                    }
                                                     // Final guard: make sure the pages param respects the
                                                     // selected size's min_pages, in case state somehow still
                                                     // holds a stale value below the minimum (e.g. size came

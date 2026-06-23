@@ -3348,10 +3348,20 @@ export default function BookLayoutEditor() {
         opts[t('constructor.page_count')] = `${contentPages} сторінок`;
         if (config.selectedCoverType) opts[t('constructor.cover')] = config.selectedCoverType;
         // Page colour (white / black / cream). Comes from config (set in the
-        // constructor) with the URL param as a fallback. Previously this was
-        // only read from the URL, so when the editor was opened without the
-        // page_color param the customer's choice silently dropped from the cart.
-        const pageColorFromConfig = config.selectedPageColor || searchParams?.get('page_color') || '';
+        // constructor) with the URL param as a fallback. It can arrive as a
+        // human label ("Кремові") or as a code ("cream") depending on the path
+        // (product page vs designer modal), so normalise any code to the label
+        // — otherwise the admin order showed "cream" or nothing at all.
+        const rawPageColor = config.selectedPageColor || searchParams?.get('page_color') || '';
+        const normalizePageColorLabel = (v: string): string => {
+          const s = (v || '').toLowerCase().trim();
+          if (!s) return '';
+          if (s === 'white' || s.includes('біл')) return t('constructor.color_white_pl');
+          if (s === 'black' || s.includes('чорн')) return t('constructor.color_black_pl');
+          if (s === 'cream' || s.includes('крем')) return t('constructor.color_cream');
+          return v; // already a label we don't recognise — pass through
+        };
+        const pageColorFromConfig = normalizePageColorLabel(rawPageColor);
         if (pageColorFromConfig) opts[t('constructor.page_color')] = pageColorFromConfig;
         // Cover colour — only present for soft covers (velour / fabric /
         // leatherette). For printed photo covers this is just blank.
