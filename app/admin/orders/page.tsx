@@ -336,7 +336,7 @@ export default function OrdersPage() {
 
             {/* Table */}
             <div style={tableCardStyle}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1.5px solid #f1f5f9' }}>
                             <th style={thStyle}>№ Замовлення</th>
@@ -535,7 +535,7 @@ const searchWrapperStyle = { position: 'relative' as any, display: 'flex', align
 const searchInputStyle = { border: 'none', padding: '12px 0', outline: 'none', width: '100%', fontSize: '14px', fontWeight: 500 };
 const dateInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '8px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white' };
 const selectInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '10px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white', fontWeight: 600, cursor: 'pointer' };
-const tableCardStyle = { backgroundColor: 'white', borderRadius: "3px", boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9', overflow: 'hidden' };
+const tableCardStyle = { backgroundColor: 'white', borderRadius: "3px", boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9', overflowX: 'auto' as any, overflowY: 'visible' as any };
 const thStyle = { textAlign: 'left' as any, padding: '20px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
 const tdStyle = { padding: '20px', verticalAlign: 'middle' };
 const trStyle = { borderBottom: '1px solid #f8fafc', transition: 'background 0.1s' };
