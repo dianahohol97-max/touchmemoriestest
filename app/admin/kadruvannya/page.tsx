@@ -98,6 +98,9 @@ export default function KadruvannyaPage() {
   const [gapMm, setGapMm] = useState(0);
   const [marginMm, setMarginMm] = useState(5);
   const [borderMm, setBorderMm] = useState(0);
+  // Polaroid-style frame: a white border around the photo with a wider strip at
+  // the bottom (the classic polaroid look). Independent of the plain borderMm.
+  const [polaroidFrame, setPolaroidFrame] = useState(true);
   const [cutLines, setCutLines] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -107,6 +110,7 @@ export default function KadruvannyaPage() {
   const previewRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   const preset = SIZE_PRESETS.find(p => p.id === presetId)!;
+  const isPolaroid = !useCustom && preset.group === 'polaroid';
 
   // Active cell + count (preset or custom).
   const cell = useMemo(() => {
@@ -157,19 +161,42 @@ export default function KadruvannyaPage() {
       const c = i % cols, r = Math.floor(i / cols);
       const cellX = offX + c * (cell.w + gapMm);
       const cellY = offY + r * (cell.h + gapMm);
-      drawCover(
-        ctx, p.img,
-        (cellX + borderMm) * pxmm, (cellY + borderMm) * pxmm,
-        (cell.w - 2 * borderMm) * pxmm, (cell.h - 2 * borderMm) * pxmm,
-        autoRotate,
-      );
+
+      if (isPolaroid && polaroidFrame) {
+        // Classic polaroid: even white border on top/left/right, wider strip at
+        // the bottom. The cell is filled white (frame), the photo sits inside
+        // the inner window. Border sizes scale with the cell so it looks right
+        // on both polaroid sizes.
+        const side = Math.max(2, Math.min(cell.w, cell.h) * 0.09); // ~9% even border
+        const bottom = side * 2.6;                                  // wider bottom strip
+        // White frame background for this cell
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cellX * pxmm, cellY * pxmm, cell.w * pxmm, cell.h * pxmm);
+        // Photo window
+        const winX = cellX + side;
+        const winY = cellY + side;
+        const winW = cell.w - 2 * side;
+        const winH = cell.h - side - bottom;
+        drawCover(ctx, p.img, winX * pxmm, winY * pxmm, winW * pxmm, winH * pxmm, autoRotate);
+        // Subtle inner edge so the photo window reads cleanly against the white
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.lineWidth = Math.max(1, 0.15 * pxmm);
+        ctx.strokeRect(winX * pxmm, winY * pxmm, winW * pxmm, winH * pxmm);
+      } else {
+        drawCover(
+          ctx, p.img,
+          (cellX + borderMm) * pxmm, (cellY + borderMm) * pxmm,
+          (cell.w - 2 * borderMm) * pxmm, (cell.h - 2 * borderMm) * pxmm,
+          autoRotate,
+        );
+      }
       if (cutLines) {
         ctx.strokeStyle = 'rgba(120,120,120,0.6)';
         ctx.lineWidth = Math.max(1, 0.2 * pxmm);
         ctx.strokeRect(cellX * pxmm, cellY * pxmm, cell.w * pxmm, cell.h * pxmm);
       }
     });
-  }, [layout, cell, gapMm, borderMm, cutLines, autoRotate]);
+  }, [layout, cell, gapMm, borderMm, cutLines, autoRotate, isPolaroid, polaroidFrame]);
 
   // Render previews whenever inputs change.
   useEffect(() => {
@@ -334,7 +361,15 @@ export default function KadruvannyaPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
               <div><label style={label}>Відступ між фото, мм</label><input type="number" min={0} max={20} value={gapMm} onChange={e => setGapMm(Math.max(0, +e.target.value))} style={inputS} /></div>
               <div><label style={label}>Поле аркуша, мм</label><input type="number" min={0} max={30} value={marginMm} onChange={e => setMarginMm(Math.max(0, +e.target.value))} style={inputS} /></div>
-              <div><label style={label}>Біла рамка, мм</label><input type="number" min={0} max={10} step={0.5} value={borderMm} onChange={e => setBorderMm(Math.max(0, +e.target.value))} style={inputS} /></div>
+              {isPolaroid ? (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={polaroidFrame} onChange={e => setPolaroidFrame(e.target.checked)} /> Полароїдна рамка (біла, ширша смуга знизу)
+                  </label>
+                </div>
+              ) : (
+                <div><label style={label}>Біла рамка, мм</label><input type="number" min={0} max={10} step={0.5} value={borderMm} onChange={e => setBorderMm(Math.max(0, +e.target.value))} style={inputS} /></div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 8, paddingBottom: 6 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
                   <input type="checkbox" checked={autoRotate} onChange={e => setAutoRotate(e.target.checked)} /> Авто-поворот
