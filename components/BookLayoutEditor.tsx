@@ -3301,7 +3301,10 @@ export default function BookLayoutEditor() {
   }, [uploadState?.active]);
 
   const addToCart = async () => {
-    if (!config) return;
+    if (!config) {
+      try { toast.error(t('constructor.price_error')); } catch {}
+      return;
+    }
     // Wishbook (книга побажань) is always a fixed 32-page block regardless of
     // how many spreads the cover editor shows — the inner pages aren't designed
     // here, only the cover. Other books use the actual content page count.

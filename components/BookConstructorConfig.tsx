@@ -1035,7 +1035,15 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 image_url: selectedCover.image_url,
                 background_color: selectedCover.background_color
             } : null,
-            totalPrice: calculatePrice(),
+            totalPrice: (() => {
+                const computed = calculatePrice();
+                if (computed && computed > 0) return computed;
+                // Safety net: if local pricing couldn't resolve (e.g. designer
+                // flow combos), use the price passed in the URL so the editor
+                // never lands on 0 and refuses to add to cart.
+                const urlPrice = parseInt(searchParams.get('price') || '0', 10);
+                return urlPrice > 0 ? urlPrice : computed;
+            })(),
             photoRecommendation: getPhotoRecommendation(),
             minPageCount: (() => {
                 // Minimum pages varies by product type.

@@ -95,6 +95,17 @@ function normalizeCoverType(v?: string): string {
   if (s.includes('тканин') || s === 'fabric') return 'fabric';
   return 'velour';
 }
+// Code → the cover-type NAME used in photobook_prices / the constructor. The
+// constructor looks up the price by cover-type name ("Велюр"), not by the
+// modal's internal code ("velour"). Passing the code made the price lookup miss
+// → price 0 → the editor's "Зберегти та замовити" silently bailed and nothing
+// was added to the cart (the designer-flow bug).
+const COVER_CODE_TO_NAME: Record<string, string> = {
+  printed: 'Друкована',
+  velour: 'Велюр',
+  leatherette: 'Шкірзамінник',
+  fabric: 'Тканина',
+};
 
 interface CoverColor {
   id: string;
@@ -211,6 +222,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
     if (currentStep === 'form') {
       setCurrentStep('summary');
     } else {
+      const coverName = COVER_CODE_TO_NAME[config.coverType] || 'Велюр';
       const params = new URLSearchParams({
         product: 'wishbook',
         size: config.size,
@@ -219,6 +231,21 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
         cover_color: config.coverColor,
         text_color: config.textColor,
       });
+      // The constructor finds the price by cover-type NAME, so also pass the
+      // catalog-style param it reads ("Матеріал обкладинки"). Without this the
+      // price came out 0 and the editor refused to add to cart.
+      params.set('Матеріал обкладинки', coverName);
+      if (config.coverColor) {
+        // Soft covers — the constructor reads the colour from a material-named param.
+        const colorParam = config.coverType === 'fabric' ? 'Колір тканини'
+          : config.coverType === 'leatherette' ? 'Колір шкірзамінника'
+          : 'Колір велюру';
+        params.set(colorParam, config.coverColor);
+      }
+      // Carry the live price so the editor lands with the right total instead of 0.
+      if (livePrice && livePrice > 0) params.set('price', String(livePrice));
+      // Mark this as the designer-assisted flow.
+      params.set('designer', '1');
       if (config.addNames && config.names)         params.set('names', config.names);
       if (config.addDate && config.date)           params.set('date', config.date);
       if (config.addOtherText && config.otherText) params.set('other_text', config.otherText);
