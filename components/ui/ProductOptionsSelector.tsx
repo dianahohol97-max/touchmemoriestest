@@ -966,7 +966,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                   }}
                   aria-label={color.name}
                 >
-                  {color.photo_url && (
+                  {color.photo_url && !/\.(heic|heif)(\?|$)/i.test(color.photo_url) && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={color.photo_url} alt={color.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }} />
                   )}
@@ -1008,8 +1008,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                     const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
                     const price = calculatePrice(newOptions);
                     onChange(newOptions, price || undefined);
-                    // Show this colour's fabric photo in the main gallery (if uploaded).
-                    onColorImage?.(color.photo_url || null);
+                    // Show this colour's fabric photo in the main gallery (if
+                    // uploaded and browser-renderable — HEIC can't be shown).
+                    onColorImage?.(color.photo_url && !/\.(heic|heif)(\?|$)/i.test(color.photo_url) ? color.photo_url : null);
                   }}
                   className={`w-8 h-8 rounded-full border-2 transition-all ${
                     current?.code === color.code ? 'border-[#1e2d7d] scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
