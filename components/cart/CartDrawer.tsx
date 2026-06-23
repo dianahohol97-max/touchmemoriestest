@@ -226,12 +226,26 @@ export default function CartDrawer() {
                                                 </button>
                                             </div>
 
-                                            {/* Options labels */}
-                                            {item.options && Object.entries(item.options).map(([key, value]: [string, any]) => (
-                                                <span key={key} style={{ fontSize: '11px', color: '#888', fontWeight: 500 }}>
-                                                    {key}: {typeof value === 'object' ? value.name : value}
-                                                </span>
-                                            ))}
+                                            {/* Options labels. For книга побажань the page
+                                                count is a fixed 32 — older cart items saved
+                                                before that was enforced may carry a wrong value
+                                                (e.g. "20 сторінок"), so we normalise the display
+                                                here regardless of what was stored. */}
+                                            {(() => {
+                                                const slug = String((item as any).slug || '');
+                                                const isWishbook = /wish|guest|pobazhan/i.test(slug) || /побажан/i.test(String(item.name || ''));
+                                                return item.options && Object.entries(item.options).map(([key, value]: [string, any]) => {
+                                                    let display = typeof value === 'object' ? value.name : value;
+                                                    if (isWishbook && /сторінок|сторінки|page/i.test(key)) {
+                                                        display = '32 сторінки';
+                                                    }
+                                                    return (
+                                                        <span key={key} style={{ fontSize: '11px', color: '#888', fontWeight: 500 }}>
+                                                            {key}: {display}
+                                                        </span>
+                                                    );
+                                                });
+                                            })()}
 
                                             {editableIds.has(item.id) && (
                                                 <button onClick={() => editCartItem(item)}
