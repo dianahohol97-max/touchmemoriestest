@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Save, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import InscriptionExamplesAdmin from '@/components/admin/InscriptionExamplesAdmin';
+import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 
 interface CoverType { id: string; name: string; }
 interface CoverColor {
@@ -98,6 +99,9 @@ export default function VelourColorsPage() {
 
     async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
         try {
+            // iPhone photos arrive as HEIC, which browsers can't render in <img>.
+            // Convert to JPEG before upload so the thumbnail actually shows.
+            file = await normalizeImageFile(file);
             const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
             const signRes = await fetch('/api/admin/signed-upload', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -154,10 +158,16 @@ export default function VelourColorsPage() {
                             {list.map(c => (
                                 <div key={c.id} style={{ border: c.active ? '1px solid #e2e8f0' : '1px dashed #cbd5e1', borderRadius: 12, padding: 12, background: c.active ? '#fff' : '#f8fafc', display: 'flex', flexDirection: 'column', gap: 8 }}>
                                     <div style={{ display: 'flex', gap: 10 }}>
-                                        <span style={{ width: 56, height: 56, borderRadius: 8, flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: c.hex_approx || '#e2e8f0' }}>
-                                            {c.photo_url && (
+                                        <span style={{ width: 56, height: 56, borderRadius: 8, flexShrink: 0, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: c.hex_approx || '#e2e8f0', position: 'relative' }}>
+                                            {c.photo_url && !/\.(heic|heif)(\?|$)/i.test(c.photo_url) && (
                                                 // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={c.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                            )}
+                                            {c.photo_url && /\.(heic|heif)(\?|$)/i.test(c.photo_url) && (
+                                                <span title="Це фото у форматі HEIC — браузер його не показує. Перезавантажте фото, воно автоматично перетвориться на JPEG."
+                                                    style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, color: '#b45309', background: '#fffbeb', textAlign: 'center', lineHeight: 1.2, padding: 2 }}>
+                                                    HEIC — перезавантажте
+                                                </span>
                                             )}
                                         </span>
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
