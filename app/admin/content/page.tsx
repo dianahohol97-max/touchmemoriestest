@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { normalizeImageFile } from '@/lib/heic-to-jpeg';
+import { normalizeImageFile, HeicConversionError } from '@/lib/heic-to-jpeg';
 import { SectionLivePreview } from '@/components/admin/SectionLivePreview';
 import { toast } from 'sonner';
 import {
@@ -95,7 +95,15 @@ export default function ContentManagementPage() {
     // as a fallback for tiny files in case signed upload is unavailable.
     async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
         // iPhone HEIC photos can't render in <img> — convert to JPEG first.
-        file = await normalizeImageFile(file);
+        // If conversion fails, abort instead of uploading a broken HEIC.
+        try {
+            file = await normalizeImageFile(file);
+        } catch (convErr: any) {
+            toast.error(convErr instanceof HeicConversionError
+                ? 'Не вдалося обробити HEIC-фото. Збережіть як JPG і завантажте знову.'
+                : 'Не вдалося обробити фото.');
+            return null;
+        }
         // 1) Preferred path: signed upload URL → direct browser → Storage.
         try {
             const ext = (file.name.split('.').pop() || 'bin').toLowerCase();

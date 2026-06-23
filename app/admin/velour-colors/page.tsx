@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Save, Image as ImageIcon, Eye, EyeOff } from 'lucide-react';
 import InscriptionExamplesAdmin from '@/components/admin/InscriptionExamplesAdmin';
-import { normalizeImageFile } from '@/lib/heic-to-jpeg';
+import { normalizeImageFile, HeicConversionError } from '@/lib/heic-to-jpeg';
 
 interface CoverType { id: string; name: string; }
 interface CoverColor {
@@ -98,10 +98,20 @@ export default function VelourColorsPage() {
     }
 
     async function uploadToStorage(file: File, bucket: string, folder: string): Promise<string | null> {
+        // iPhone photos arrive as HEIC, which browsers can't render in <img>.
+        // Convert to JPEG FIRST. If conversion fails, abort — never upload the
+        // raw HEIC, or it'll look fine in the picker but show as broken later.
         try {
-            // iPhone photos arrive as HEIC, which browsers can't render in <img>.
-            // Convert to JPEG before upload so the thumbnail actually shows.
             file = await normalizeImageFile(file);
+        } catch (convErr: any) {
+            if (convErr instanceof HeicConversionError) {
+                toast.error('Не вдалося обробити HEIC-фото. Збережіть його як JPG (на iPhone: Налаштування → Камера → Формати → «Найсумісніший») і завантажте знову.');
+            } else {
+                toast.error('Не вдалося обробити фото — спробуйте інший файл.');
+            }
+            return null;
+        }
+        try {
             const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
             const signRes = await fetch('/api/admin/signed-upload', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
