@@ -3,12 +3,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { useCartStore } from '@/store/cart-store';
+import { toast } from 'sonner';
 
 interface GuestBookConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
+  productId?: string;
+  productName?: string;
+  productSlug?: string;
   initialConfig?: {
     size?: string;        // '23x23' | '20x30' | '30x20'
     pageColor?: string;   // 'white' | 'black' | 'cream'
@@ -122,8 +126,8 @@ interface WishbookPriceRow {
   price: number;
 }
 
-export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }: GuestBookConfigModalProps) {
-  const router = useRouter();
+export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, productId, productName, productSlug }: GuestBookConfigModalProps) {
+  const addItem = useCartStore((s) => s.addItem);
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   ), []);
@@ -221,37 +225,67 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
   const handleContinue = () => {
     if (currentStep === 'form') {
       setCurrentStep('summary');
-    } else {
-      const coverName = COVER_CODE_TO_NAME[config.coverType] || 'Велюр';
-      const params = new URLSearchParams({
-        product: 'wishbook',
-        size: config.size,
-        cover: config.coverType,
-        page_color: config.pageColor,
-        cover_color: config.coverColor,
-        text_color: config.textColor,
-      });
-      // The constructor finds the price by cover-type NAME, so also pass the
-      // catalog-style param it reads ("Матеріал обкладинки"). Without this the
-      // price came out 0 and the editor refused to add to cart.
-      params.set('Матеріал обкладинки', coverName);
-      if (config.coverColor) {
-        // Soft covers — the constructor reads the colour from a material-named param.
-        const colorParam = config.coverType === 'fabric' ? 'Колір тканини'
-          : config.coverType === 'leatherette' ? 'Колір шкірзамінника'
-          : 'Колір велюру';
-        params.set(colorParam, config.coverColor);
-      }
-      // Carry the live price so the editor lands with the right total instead of 0.
-      if (livePrice && livePrice > 0) params.set('price', String(livePrice));
-      // Mark this as the designer-assisted flow.
-      params.set('designer', '1');
-      if (config.addNames && config.names)         params.set('names', config.names);
-      if (config.addDate && config.date)           params.set('date', config.date);
-      if (config.addOtherText && config.otherText) params.set('other_text', config.otherText);
-      router.push(`/order/book?${params.toString()}`);
-      onClose();
+      return;
     }
+    // Designer flow (Варіант Б): the customer picks the cover params + the
+    // inscription that physically goes on the cover (names + date, or free
+    // text). We add the book straight to the cart — our designer builds the
+    // layout afterwards. No editor/constructor step. Designer service is free.
+    const coverName = COVER_CODE_TO_NAME[config.coverType] || 'Велюр';
+    const sizeLabel = SIZE_LABELS[config.size] || config.size;
+    const pageColorLabel = PAGE_COLOR_LABELS[config.pageColor] || config.pageColor;
+
+    // Build the inscription text the designer will put on the cover.
+    const inscriptionParts: string[] = [];
+    if (config.addNames && config.names.trim())       inscriptionParts.push(config.names.trim());
+    if (config.addDate && config.date.trim())         inscriptionParts.push(config.date.trim());
+    if (config.addOtherText && config.otherText.trim()) inscriptionParts.push(config.otherText.trim());
+    const inscription = inscriptionParts.join(' · ');
+
+    const options: Record<string, string> = {
+      'Розмір': sizeLabel,
+      'Сторінок': '32 сторінки',
+      'Колір сторінок': pageColorLabel,
+      'Матеріал обкладинки': coverName,
+    };
+    if (config.coverColor) options['Колір обкладинки'] = config.coverColor;
+    if (inscription) {
+      options['Напис на обкладинку'] = inscription;
+      options['Колір напису'] = config.textColor;
+    }
+    // Mark clearly that this is the designer-assisted flow.
+    options['Оформлення'] = 'Макет робить дизайнер';
+
+    const price = (livePrice && livePrice > 0) ? livePrice : 0;
+    if (!(price > 0)) {
+      toast.error('Не вдалося визначити ціну. Спробуйте інші параметри або зверніться до нас.');
+      return;
+    }
+
+    addItem({
+      id: `wishbook-designer-${Date.now()}`,
+      product_id: productId,
+      slug: productSlug || 'wishbook',
+      name: productName || 'Книга побажань',
+      price,
+      qty: 1,
+      options,
+      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription} (${config.textColor})` : ''}`,
+      metadata: {
+        designer_flow: true,
+        wishbook: {
+          size: config.size,
+          page_color: config.pageColor,
+          cover_type: config.coverType,
+          cover_color: config.coverColor || null,
+          inscription: inscription || null,
+          inscription_color: inscription ? config.textColor : null,
+        },
+      },
+    } as any);
+
+    toast.success('Додано в кошик');
+    onClose();
   };
 
   const handleBack = () => {
@@ -520,7 +554,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig }:
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-[#1e2d7d] text-white hover:bg-[#263a99]'
             }`}>
-            {currentStep === 'form' ? 'Переглянути підсумок →' : 'Продовжити →'}
+            {currentStep === 'form' ? 'Переглянути підсумок →' : 'Додати в кошик'}
           </button>
         </div>
       </div>

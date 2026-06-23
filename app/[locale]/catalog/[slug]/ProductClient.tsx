@@ -2293,6 +2293,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             <GuestBookConfigModal
                 isOpen={guestbookModalOpen}
                 onClose={() => setGuestbookModalOpen(false)}
+                productId={product.id}
+                productName={product.name || 'Книга побажань'}
+                productSlug={product.slug || resolvedParams.slug}
                 initialConfig={{
                     size: String(customProductOptions['Розмір'] || ''),
                     pageColor: String(customProductOptions['Колір сторінок'] || ''),
