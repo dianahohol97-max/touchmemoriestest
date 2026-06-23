@@ -92,6 +92,26 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {
     return NextResponse.json({ error: 'items must be a non-empty array (max 50)' }, { status: 400 });
   }
+
+  // Normalise книга побажань items before they're persisted into the order.
+  // The page count is a fixed 32, but older cart items (saved before that was
+  // enforced) may carry a wrong value like "20 сторінок" and these flow
+  // straight into the order. Force the correct count at submit time so the
+  // admin order always shows 32 regardless of what the cart sent.
+  for (const it of body.items as any[]) {
+    const slug = String(it?.slug || '');
+    const isWishbook = /wish|guest|pobazhan/i.test(slug) || /побажан/i.test(String(it?.product_name || it?.name || ''));
+    if (isWishbook && it?.options && typeof it.options === 'object') {
+      for (const key of Object.keys(it.options)) {
+        if (/сторінок|сторінки|page/i.test(key)) {
+          it.options[key] = '32 сторінки';
+        }
+      }
+      // If the page-count line is missing entirely, add it.
+      const hasPageLine = Object.keys(it.options).some(k => /сторінок|сторінки|page/i.test(k));
+      if (!hasPageLine) it.options['Сторінок'] = '32 сторінки';
+    }
+  }
   const subtotal = Number(body.subtotal);
   const delivery_cost = Number(body.delivery_cost);
   const total = Number(body.total);

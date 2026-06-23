@@ -725,7 +725,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>{order.items?.length || 0} позицій</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            {order.items?.map((item: any, idx: number) => (
+                            {order.items?.map((item: any, idx: number) => {
+                                // Книга побажань: page count is a fixed 32. Older orders
+                                // saved before this was enforced may carry "20 сторінок"
+                                // (or lack the line). Normalise for display so the manager
+                                // always sees the correct count.
+                                const _isWishbook = /wish|guest|pobazhan/i.test(String(item.slug || '')) || /побажан/i.test(String(item.name || item.product_name || ''));
+                                const normalizeOpts = (obj: Record<string, any> | undefined) => {
+                                    if (!obj) return obj;
+                                    if (!_isWishbook) return obj;
+                                    const out: Record<string, any> = { ...obj };
+                                    for (const k of Object.keys(out)) {
+                                        if (/сторінок|сторінки|page/i.test(k)) out[k] = '32 сторінки';
+                                    }
+                                    return out;
+                                };
+                                const _selOpts = normalizeOpts(item.selected_options);
+                                const _opts = normalizeOpts(item.options);
+                                return (
                                 <div key={idx} style={itemRowStyle}>
                                     <div style={itemThumbStyle}>
                                         {item.image ? <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={24} color="#cbd5e1" />}
@@ -738,11 +755,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </div>
                                                 <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
                                                     {/* selected_options — human readable */}
-                                                    {item.selected_options && Object.keys(item.selected_options).length > 0
-                                                        ? Object.entries(item.selected_options).map(([k, v]) => `${k}: ${v}`).join(' • ')
+                                                    {_selOpts && Object.keys(_selOpts).length > 0
+                                                        ? Object.entries(_selOpts).map(([k, v]) => `${k}: ${v}`).join(' • ')
                                                         : item.format
                                                         ? item.format
-                                                        : Object.entries(item.options || {})
+                                                        : Object.entries(_opts || {})
                                                             .filter(([k]) => !['Tier'].includes(k))
                                                             .map(([k, v]) => `${k}: ${v}`).join(' • ')
                                                     }
@@ -776,7 +793,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div style={totalsSectionStyle}>
