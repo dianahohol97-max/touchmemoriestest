@@ -103,6 +103,35 @@ export default function OrdersPage() {
         }
     };
 
+    // Assign manager/designer straight from the list. The assign API rewrites
+    // both fields, so we send the current value for the field we're NOT
+    // changing to avoid wiping it. We optimistically patch local state so the
+    // row updates instantly without a full refetch.
+    const assignRole = async (order: any, role: 'manager' | 'designer', staffId: string) => {
+        const payload = {
+            manager_id: role === 'manager' ? (staffId || null) : (order.manager_id || null),
+            designer_id: role === 'designer' ? (staffId || null) : (order.designer_id || null),
+        };
+        // Optimistic update
+        const picked = staff.find(s => s.id === staffId) || null;
+        setOrders(prev => prev.map(o => o.id === order.id
+            ? { ...o, [`${role}_id`]: staffId || null, [role]: picked }
+            : o));
+        try {
+            const res = await fetch(`/api/admin/orders/${order.id}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            toast.success(role === 'manager' ? 'Менеджера призначено' : 'Дизайнера призначено');
+        } catch (err) {
+            console.error('Assign failed:', err);
+            toast.error('Не вдалося призначити — оновлюю список');
+            fetchOrders();
+        }
+    };
+
     const getDeliveryStatusColor = (status: string) => {
         const statusColors: Record<string, { bg: string, text: string }> = {
             'Відправлено': { bg: '#dbeafe', text: '#1e40af' },
@@ -338,18 +367,42 @@ export default function OrdersPage() {
                                     </div>
                                 </td>
                                 <td style={{ ...tdStyle, width: '200px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} onClick={e => e.stopPropagation()}>
+                                        {/* Manager — inline assign */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
+                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
                                                 {order.manager?.initials || <User size={12} />}
                                             </div>
-                                            <span style={{ color: order.manager ? '#475569' : '#94a3b8', fontWeight: 600 }}>{order.manager?.name || 'Менеджер'}</span>
+                                            <select
+                                                value={order.manager_id || ''}
+                                                onChange={e => assignRole(order, 'manager', e.target.value)}
+                                                style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.manager ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
+                                                onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
+                                                onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
+                                            >
+                                                <option value="">Менеджер</option>
+                                                {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
+                                        {/* Designer — inline assign */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px' }}>
+                                            <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
                                                 {order.designer?.initials || <User size={12} />}
                                             </div>
-                                            <span style={{ color: order.designer ? '#475569' : '#94a3b8', fontWeight: 600 }}>{order.designer?.name || 'Дизайнер'}</span>
+                                            <select
+                                                value={order.designer_id || ''}
+                                                onChange={e => assignRole(order, 'designer', e.target.value)}
+                                                style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.designer ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
+                                                onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
+                                                onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
+                                            >
+                                                <option value="">Дизайнер</option>
+                                                {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </td>
