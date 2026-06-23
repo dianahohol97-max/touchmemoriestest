@@ -384,26 +384,37 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const handleAddTag = async (tagId: string) => {
         setShowTagDropdown(false);
-        const { error } = await supabase
-            .from('order_tag_assignments')
-            .insert({ order_id: id, tag_id: tagId });
-
-        if (!error) {
+        try {
+            const res = await fetch(`/api/admin/orders/${id}/tags`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag_id: tagId }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || `API ${res.status}`);
+            }
             toast.success('Тег додано');
             fetchOrder();
-        } else toast.error('Помилка');
+        } catch (err) {
+            console.error('Add tag failed:', err);
+            toast.error('Помилка');
+        }
     };
 
     const handleRemoveTag = async (tagId: string) => {
-        const { error } = await supabase
-            .from('order_tag_assignments')
-            .delete()
-            .eq('order_id', id)
-            .eq('tag_id', tagId);
-
-        if (!error) {
+        try {
+            const res = await fetch(`/api/admin/orders/${id}/tags`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag_id: tagId }),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
             toast.success('Тег видалено');
             fetchOrder();
+        } catch (err) {
+            console.error('Remove tag failed:', err);
+            toast.error('Помилка');
         }
     };
 
