@@ -3532,6 +3532,21 @@ export default function BookLayoutEditor() {
 
     setUploadState({ active: true, done: 0, total: totalViews, failed: 0, orderId });
 
+    // Clear every selection/edit state BEFORE snapshotting. Selection frames,
+    // delete (×) buttons, z-order toolbars, resize handles and the text editor
+    // outline only render while something is selected/edited — if a slot or
+    // text box is still selected when html2canvas runs, those controls bake
+    // into the print JPG. Resetting here guarantees a clean print surface.
+    setSelectedFreeSlotId(null);
+    setSelectedPhotoIds(new Set());
+    setSelectedShapeId(null);
+    setSelectedStickerId(null);
+    setSelectedQrId(null);
+    setSelectedTextId(null);
+    setEditingTextId(null);
+    setEditSlotKey(null);
+    setPhotoEditSlot(null);
+
     // Lazy-load the renderer libs so the editor itself stays light.
     let html2canvas: any = null;
     let jsPDFCtor: any = null;
@@ -3604,6 +3619,22 @@ export default function BookLayoutEditor() {
           const canvas: HTMLCanvasElement = await html2canvas(root, {
             backgroundColor: '#ffffff',
             useCORS: true,
+            // Drop every editor-only control from the print snapshot. Selection
+            // handles, delete (×) buttons, zoom bars, text-size sliders, move
+            // grips and the spread divider live inside the snapshot root; if
+            // they're captured they bake into the print JPG (the bug Diana hit:
+            // red × buttons, a white centre column, "52/37" sliders and the
+            // spread seam printed onto the page). We filter by data-attribute
+            // and by the common control signatures so nothing UI ends up on the
+            // printed sheet.
+            ignoreElements: (el: Element) => {
+              const h = el as HTMLElement;
+              if (h.getAttribute?.('data-export-ignore') === 'true') return true;
+              if (h.getAttribute?.('data-html2canvas-ignore') === 'true') return true;
+              const cls = (h.className && typeof h.className === 'string') ? h.className : '';
+              if (/(\bcontrol\b|handle|toolbar|slider|zoom|export-ignore)/i.test(cls)) return true;
+              return false;
+            },
             // Dynamic scale so the exported canvas hits 300 DPI exactly.
             // For an A4 magazine spread that's typically scale ≈ 5–6,
             // depending on the customer's monitor zoom. Memory pressure
@@ -6434,7 +6465,7 @@ export default function BookLayoutEditor() {
                     Anything outside this rectangle wraps around the inside of the board and won't
                     be visible from the front. Customers should keep important content INSIDE this line.
                     Margins from COVER_BLEED_MARGINS by sizeKey (partner-supplied values). */}
-                <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
+                <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
                   <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
                     <rect x={cW*coverBleed.left}
                           y={cH*coverBleed.top}
@@ -7103,7 +7134,7 @@ export default function BookLayoutEditor() {
                               onSendToBack={() => zOrderAction('text', tb.id, spreadPageIdx, 'back')}
                             />
                           )}
-                          {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                          {isSel&&!isEd&&<button data-export-ignore="true" onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                         </div>
                       );
                     })}
