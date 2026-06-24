@@ -372,9 +372,9 @@ export default function AnalyticsPage() {
     return (
         <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+                    <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
                         Бізнес Аналітика
                     </h1>
                     <p style={{ color: '#64748b', fontSize: '16px' }}>
@@ -407,7 +407,7 @@ export default function AnalyticsPage() {
             <div style={{
                 display: 'flex',
                 gap: '12px',
-                marginBottom: '32px',
+                marginBottom: '20px',
                 padding: '20px',
                 backgroundColor: 'white',
                 borderRadius: '3px',
@@ -474,33 +474,33 @@ export default function AnalyticsPage() {
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(5, 1fr)',
-                gap: '20px',
-                marginBottom: '32px'
+                gap: '14px',
+                marginBottom: '20px'
             }}>
                 {/* Total Revenue */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '3px',
                             backgroundColor: '#eef0fb',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <DollarSign size={24} color="#263A99" />
+                            <DollarSign size={20} color="#263A99" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', fontWeight: 500 }}>
                                 Виручка
                             </p>
-                            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                                 ₴{metrics.revenue.value.toLocaleString('uk-UA', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
@@ -510,28 +510,28 @@ export default function AnalyticsPage() {
 
                 {/* Orders Count */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '3px',
                             backgroundColor: '#d1fae5',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <ShoppingCart size={24} color="#22c55e" />
+                            <ShoppingCart size={20} color="#22c55e" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', fontWeight: 500 }}>
                                 Замовлень
                             </p>
-                            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                                 {metrics.orders.value}
                             </p>
                         </div>
@@ -541,28 +541,28 @@ export default function AnalyticsPage() {
 
                 {/* New Clients */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '3px',
                             backgroundColor: '#fef3c7',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <Users size={24} color="#f59e0b" />
+                            <Users size={20} color="#f59e0b" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', fontWeight: 500 }}>
                                 Нові клієнти
                             </p>
-                            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                                 {metrics.newClients.value}
                             </p>
                         </div>
@@ -572,28 +572,28 @@ export default function AnalyticsPage() {
 
                 {/* Avg Order Value */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '3px',
                             backgroundColor: '#e0e7ff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <TrendingUp size={24} color="#6366f1" />
+                            <TrendingUp size={20} color="#6366f1" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', fontWeight: 500 }}>
                                 Середній чек
                             </p>
-                            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                                 ₴{metrics.avgOrderValue.value.toLocaleString('uk-UA', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
@@ -603,28 +603,28 @@ export default function AnalyticsPage() {
 
                 {/* Conversion Rate */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '40px',
+                            height: '40px',
                             borderRadius: '3px',
                             backgroundColor: '#fce7f3',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <Activity size={24} color="#ec4899" />
+                            <Activity size={20} color="#ec4899" />
                         </div>
                         <div style={{ flex: 1 }}>
                             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px', fontWeight: 500 }}>
                                 Конверсія
                             </p>
-                            <p style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                            <p style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
                                 {metrics.conversionRate.value.toFixed(1)}%
                             </p>
                         </div>
@@ -634,10 +634,10 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Charts Row 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px', marginBottom: '20px' }}>
                 {/* Revenue Over Time */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -645,7 +645,7 @@ export default function AnalyticsPage() {
                     <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
                         Виручка за період
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={230}>
                         <LineChart data={revenueChart}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="date" stroke="#94a3b8" style={{ fontSize: '12px' }} />
@@ -673,7 +673,7 @@ export default function AnalyticsPage() {
 
                 {/* Orders by Status */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -681,7 +681,7 @@ export default function AnalyticsPage() {
                     <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
                         Замовлення по статусах
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={230}>
                         <PieChart>
                             <Pie
                                 data={statusChart}
@@ -704,10 +704,10 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Charts Row 2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
                 {/* Orders by Source */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -715,7 +715,7 @@ export default function AnalyticsPage() {
                     <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
                         Джерела замовлень
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={230}>
                         <BarChart data={sourceChart}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="name" stroke="#94a3b8" style={{ fontSize: '12px' }} />
@@ -735,7 +735,7 @@ export default function AnalyticsPage() {
 
                 {/* Orders by Manager */}
                 <div style={{
-                    padding: '24px',
+                    padding: '16px',
                     backgroundColor: 'white',
                     borderRadius: '3px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
@@ -743,7 +743,7 @@ export default function AnalyticsPage() {
                     <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
                         Замовлення по менеджерах
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={230}>
                         <BarChart data={managerChart} layout="horizontal">
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis type="number" stroke="#94a3b8" style={{ fontSize: '12px' }} />
@@ -764,7 +764,7 @@ export default function AnalyticsPage() {
 
             {/* Top Products Chart */}
             <div style={{
-                padding: '24px',
+                padding: '16px',
                 backgroundColor: 'white',
                 borderRadius: '3px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
@@ -773,7 +773,7 @@ export default function AnalyticsPage() {
                 <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', marginBottom: '20px' }}>
                     Топ 10 продуктів по виручці
                 </h3>
-                <ResponsiveContainer width="100%" height={400}>
+                <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={topProducts} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis type="number" stroke="#94a3b8" style={{ fontSize: '12px' }} />
@@ -794,7 +794,7 @@ export default function AnalyticsPage() {
 
             {/* Top 10 Clients Table */}
             <div style={{
-                padding: '24px',
+                padding: '16px',
                 backgroundColor: 'white',
                 borderRadius: '3px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
