@@ -232,14 +232,30 @@ export async function POST(request: NextRequest) {
 
   let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
   const modeBySlug = new Map<string, string>();
+  const costBySlug = new Map<string, number>();
   {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
       const { data: prodRows } = await admin
         .from('products')
-        .select('slug, payment_mode')
+        .select('slug, payment_mode, cost_price')
         .in('slug', slugs);
-      (prodRows || []).forEach(r => modeBySlug.set(r.slug, r.payment_mode));
+      (prodRows || []).forEach(r => {
+        modeBySlug.set(r.slug, r.payment_mode);
+        // Snapshot the product's cost price onto the order so the admin
+        // profit/cost column isn't 0. Stored per-item at order time so later
+        // cost changes don't rewrite historical orders.
+        costBySlug.set(r.slug, Number((r as any).cost_price) || 0);
+      });
+    }
+  }
+  // Attach the cost snapshot to each item (only if the cart didn't already
+  // carry one). cost_price is per single unit, matching the admin's
+  // cost_price × qty calculation.
+  for (const it of body.items as any[]) {
+    if (it && (it.cost_price === undefined || it.cost_price === null || Number(it.cost_price) === 0)) {
+      const c = costBySlug.get(it.slug || '');
+      if (c && c > 0) it.cost_price = c;
     }
   }
   if (payment_type === 'split') {
