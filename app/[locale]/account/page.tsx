@@ -247,7 +247,7 @@ export default function AccountPage() {
                 supabase.from('customers').select('*').eq('email', email).single(),
                 supabase.from('orders')
                     .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number')
-                    .or(`customer_email.eq.${email},customer_id.eq.${uid}`)
+                    .or(`customer_email.eq."${email}",customer_id.eq.${uid}`)
                     .order('created_at', { ascending: false }),
                 supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
@@ -300,6 +300,21 @@ export default function AccountPage() {
         };
         init();
     }, []);
+
+    // Load referral data lazily when the tab is first opened.
+    // MUST stay above the `if (isLoading) return` guard below — placing a hook
+    // after a conditional return changes the hook count between renders and
+    // throws React error #310 ("rendered fewer hooks than expected"), which is
+    // what made /account fail to load entirely.
+    useEffect(() => {
+        if (tab !== 'referral' || referral || referralLoading) return;
+        setReferralLoading(true);
+        fetch('/api/referral/me')
+            .then(r => r.ok ? r.json() : null)
+            .then(d => { if (d) setReferral(d); })
+            .catch(() => {})
+            .finally(() => setReferralLoading(false));
+    }, [tab, referral, referralLoading]);
 
     const logout = async () => {
         await supabase.auth.signOut();
@@ -383,17 +398,6 @@ export default function AccountPage() {
     const displayName = formData.first_name || user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Друже';
     const initials = (displayName[0] || 'U').toUpperCase();
     const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
-
-    // Load referral data lazily when the tab is first opened
-    useEffect(() => {
-        if (tab !== 'referral' || referral || referralLoading) return;
-        setReferralLoading(true);
-        fetch('/api/referral/me')
-            .then(r => r.ok ? r.json() : null)
-            .then(d => { if (d) setReferral(d); })
-            .catch(() => {})
-            .finally(() => setReferralLoading(false));
-    }, [tab, referral, referralLoading]);
 
     const copyReferralLink = () => {
         if (!referral?.link) return;
