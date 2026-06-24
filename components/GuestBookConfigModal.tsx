@@ -18,6 +18,7 @@ interface GuestBookConfigModalProps {
     pageColor?: string;   // 'white' | 'black' | 'cream'
     coverType?: string;   // 'printed' | 'velour' | 'leatherette' | 'fabric'
     coverColor?: string;  // color name from DB (e.g. 'Молочний')
+    decoType?: string;    // 'none' | 'flex' | 'acryl' | 'photovstavka' | 'metal' | 'graviruvannya'
   };
 }
 
@@ -99,6 +100,20 @@ function normalizeCoverType(v?: string): string {
   if (s.includes('тканин') || s === 'fabric') return 'fabric';
   return 'velour';
 }
+// Decoration types that support a custom text inscription on the cover.
+// acryl / photovstavka / metal / graviruvannya all have their own fixed
+// design — asking the customer for names/date/text makes no sense there.
+const INSCRIPTION_DECO_TYPES = new Set(['none', 'flex', '']);
+function normalizeDecoType(v?: string): string {
+  if (!v) return 'none';
+  const s = v.toLowerCase();
+  if (s.includes('flex') || s.includes('друк кольором')) return 'flex';
+  if (s.includes('acryl') || s.includes('акрил')) return 'acryl';
+  if (s.includes('photo') || s.includes('фото')) return 'photovstavka';
+  if (s.includes('metal') || s.includes('метал')) return 'metal';
+  if (s.includes('gravir') || s.includes('гравір')) return 'graviruvannya';
+  return 'none';
+}
 // Code → the cover-type NAME used in photobook_prices / the constructor. The
 // constructor looks up the price by cover-type name ("Велюр"), not by the
 // modal's internal code ("velour"). Passing the code made the price lookup miss
@@ -141,6 +156,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     pageColor:   normalizePageColor(initialConfig?.pageColor),
     coverType:   normalizeCoverType(initialConfig?.coverType),
     coverColor:  initialConfig?.coverColor || '',
+    decoType:    normalizeDecoType(initialConfig?.decoType),
     addNames:    false, names:     '',
     addDate:     false, date:      '',
     addOtherText:false, otherText: '',
@@ -164,6 +180,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
         pageColor:   normalizePageColor(initialConfig?.pageColor),
         coverType:   normalizeCoverType(initialConfig?.coverType),
         coverColor:  initialConfig?.coverColor || '',
+        decoType:    normalizeDecoType(initialConfig?.decoType),
         addNames:    false, names:     '',
         addDate:     false, date:      '',
         addOtherText:false, otherText: '',
@@ -427,6 +444,10 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                 </div>
               )}
 
+              {/* Names / date / text — only for flex (foil embossing) or no decoration.
+                  Acryl, photovstavka, metal, graviruvannya have their own fixed design. */}
+              {INSCRIPTION_DECO_TYPES.has(config.decoType) && (<>
+
               {/* Add Names */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Чи додавати імена?</label>
@@ -517,6 +538,8 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                   </div>
                 </div>
               )}
+
+              </>)}
 
               {/* Live Price */}
               {livePrice !== null && (

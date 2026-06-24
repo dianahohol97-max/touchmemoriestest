@@ -2301,6 +2301,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     pageColor: String(customProductOptions['Колір сторінок'] || ''),
                     coverType: String(customProductOptions['Матеріал обкладинки'] || customProductOptions['Вид обкладинки'] || customProductOptions['Тип обкладинки'] || ''),
                     coverColor: String(customProductOptions['Колір обкладинки'] || ''),
+                    decoType: String(customProductOptions['Тип оздоблення'] || ''),
                 }}
             />
 
