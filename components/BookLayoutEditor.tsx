@@ -34,6 +34,7 @@ import {
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
 import { getMagazinePrice, getTravelBookPrice } from '@/lib/products';
+import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
 import {
@@ -4134,6 +4135,20 @@ export default function BookLayoutEditor() {
     // (a 30×20 / 32pp would land on ~2075 ₴ instead of the real 525 ₴).
     baseDynamicPrice = config.totalPrice || 0;
     basePriceDiff = 0;
+  } else if (isWishbook) {
+    // Wishbooks use the wishbook_prices table (cover_category × page_color × size),
+    // not photobook_prices. Falling through to calculateDynamicPrice picks up
+    // a photobook row of the same size/pages and shows ~2075₴ instead of ~1509₴.
+    const coverKey = config.selectedCoverType || 'Велюр';
+    const pageColorRaw = config.selectedPageColor || searchParams?.get('page_color') || 'white';
+    // Normalise page_color code → label used in WISHBOOK_PRICES
+    const pageColorLabel = pageColorRaw.includes('чорн') || pageColorRaw === 'black' ? 'Чорні'
+      : pageColorRaw.includes('кремов') || pageColorRaw === 'cream' ? 'Кремові'
+      : 'Білі';
+    const sizeKey = config.selectedSize || '23x23';
+    const wishbookPriceLookup = getWishbookPrice(coverKey, pageColorLabel, sizeKey);
+    baseDynamicPrice = wishbookPriceLookup ?? config.totalPrice ?? 0;
+    basePriceDiff = 0; // fixed price, no page-count variable
   } else {
     const result = calculateDynamicPrice(
       priceTable,
