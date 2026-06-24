@@ -20,6 +20,7 @@ interface DesignDef {
   id: 'wedding-times' | 'wedding-post';
   name: string;
   tagline: string;
+  preview: string;
   fields: FieldDef[];
   slots: SlotDef[];
 }
@@ -29,6 +30,7 @@ const DESIGNS: DesignDef[] = [
     id: 'wedding-times',
     name: 'Дизайн 1 — The Wedding Times',
     tagline: 'Класична газета, акцент на фото — 11 фото',
+    preview: 'https://yivfsicvaoewxrtkrfxr.supabase.co/storage/v1/object/public/touch-memories-assets/products/1780568680541-tddrkv.jpg',
     fields: [
       { key: 'names',          label: 'Імена пари',                       type: 'text',     placeholder: 'Адріан & Діана', required: true },
       { key: 'city',           label: 'Місто весілля',                    type: 'text',     placeholder: 'Київ',           required: true },
@@ -56,6 +58,7 @@ const DESIGNS: DesignDef[] = [
     id: 'wedding-post',
     name: 'Дизайн 2 — Wedding Post',
     tagline: 'Елегантна газета, історія + цифри — 6 фото',
+    preview: 'https://yivfsicvaoewxrtkrfxr.supabase.co/storage/v1/object/public/touch-memories-assets/products/1780568685879-duvchm.jpg',
     fields: [
       { key: 'names',         label: 'Імена пари',             type: 'text',     placeholder: 'Тетяна & Євген',          required: true },
       { key: 'date',          label: 'Дата весілля',           type: 'text',     placeholder: 'Субота, 23 серпня 2025',  required: true },
@@ -265,12 +268,18 @@ export default function WeddingNewspaperConstructor() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, marginBottom: 24 }}>
             {DESIGNS.map(d => (
               <button key={d.id} onClick={() => setDesignId(d.id)}
-                style={{ textAlign: 'left', padding: 16, borderRadius: 10, cursor: 'pointer',
+                style={{ textAlign: 'left', padding: 0, borderRadius: 10, cursor: 'pointer', overflow: 'hidden',
                   border: designId === d.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
                   background: designId === d.id ? '#f0f3ff' : '#fff', transition: 'all 0.15s' }}>
-                <div style={{ fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{d.name}</div>
-                <div style={{ fontSize: 13, color: '#64748b' }}>{d.tagline}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>{d.slots.length} фото · {d.fields.filter(f => f.required).length} полів анкети</div>
+                <div style={{ width: '100%', aspectRatio: '3/4', background: '#f1f5f9', overflow: 'hidden' }}>
+                  <img src={d.preview} alt={d.name} loading="lazy"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+                <div style={{ padding: 16 }}>
+                  <div style={{ fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>{d.name}</div>
+                  <div style={{ fontSize: 13, color: '#64748b' }}>{d.tagline}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>{d.slots.length} фото · {d.fields.filter(f => f.required).length} полів анкети</div>
+                </div>
               </button>
             ))}
           </div>
