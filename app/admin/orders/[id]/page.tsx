@@ -1406,8 +1406,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             />
                         </div>
                         {uploadedFiles.length > 0 && (() => {
-                            const covers = uploadedFiles.filter((f: any) => f.isCover);
-                            const photos = uploadedFiles.filter((f: any) => !f.isCover);
+                            const exportFiles = uploadedFiles.filter((f: any) => f.isExport);
+                            const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);
+                            const photos = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover);
                             const thumb = (f: any, big = false) => (
                                 <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
                                     title={f.name}
@@ -1420,13 +1421,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             return (
                                 <div style={{ marginBottom: '12px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                                        <label style={{ ...smallLabelStyle, margin: 0 }}>Завантажені клієнтом ({uploadedFiles.length})</label>
+                                        <label style={{ ...smallLabelStyle, margin: 0 }}>Файли замовлення ({uploadedFiles.length})</label>
                                         <button onClick={downloadAllAsZip} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                                             {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
                                         </button>
                                     </div>
+
+                                    {exportFiles.length > 0 && (
+                                        <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <Printer size={13} /> Макет для друку ({exportFiles.length}) · готовий
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                {exportFiles.map((f: any) => thumb(f, true))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {covers.length > 0 && (
                                         <div style={{ marginBottom: 12 }}>
@@ -1446,7 +1458,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     )}
 
-                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>Клік по фото — відкрити/завантажити оригінал. Ці фото також автоматично підтягуються в конструктор.</div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>Клік по файлу — відкрити/завантажити оригінал. Фото клієнта також підтягуються в конструктор.</div>
                                 </div>
                             );
                         })()}

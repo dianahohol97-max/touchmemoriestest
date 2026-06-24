@@ -58,9 +58,9 @@ export async function GET(req: NextRequest) {
 
     const { data: files, error } = await admin
         .from('order_files')
-        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type')
+        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type')
         .eq('order_id', orderId)
-        .eq('file_type', 'upload')
+        .in('file_type', ['upload', 'export'])
         .order('page_number', { ascending: true, nullsFirst: true })
         .order('file_name', { ascending: true });
 
@@ -86,6 +86,7 @@ export async function GET(req: NextRequest) {
         url: string | null;
         category: string | null;
         isCover: boolean;
+        isExport: boolean;
         page_number: number | null;
         mime_type: string | null;
     }> = [];
@@ -102,15 +103,16 @@ export async function GET(req: NextRequest) {
                 url: s?.signedUrl || null,
                 category: f.file_category,
                 isCover: (f.file_category || '').toLowerCase().includes('cover'),
+                isExport: f.file_type === 'export',
                 page_number: f.page_number,
                 mime_type: f.mime_type,
             });
         });
     }
 
-    // Covers first so they're easy to spot in the admin grid; the constructor
-    // ignores ordering (it builds its own pool).
-    photos.sort((a, b) => Number(b.isCover) - Number(a.isCover));
+    // Export (print-ready) files first, then covers, so staff see the final
+    // layout at the top of the grid; raw customer uploads follow.
+    photos.sort((a, b) => (Number(b.isExport) - Number(a.isExport)) || (Number(b.isCover) - Number(a.isCover)));
 
     return NextResponse.json({ photos });
 }
