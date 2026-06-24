@@ -13,6 +13,7 @@ import { localePath } from '@/lib/i18n/path';
 import { cn } from '@/lib/utils';
 import { useT, useTranslation, LOCALES, Locale } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { FlagIcon } from './FlagIcon';
 
 // ─── Module-level cache so re-renders don't re-fetch ──────────────────────────
 let _navCache: { links: any[]; categories: any[] } | null = null;
@@ -341,10 +342,10 @@ export function Navigation() {
                     <button key={l.code}
                       onClick={() => { setLocale(l.code as Locale); setIsMobileMenuOpen(false); }}
                       className={cn(
-                        'px-4 py-2 rounded-lg text-sm font-bold border transition-colors',
+                        'px-4 py-2 rounded-lg text-sm font-bold border transition-colors inline-flex items-center gap-1.5',
                         l.code === locale ? 'bg-primary text-white border-primary' : 'bg-white text-primary border-primary/20'
                       )}>
-                      <span className="mr-1.5">{l.flag}</span>{l.label}
+                      <FlagIcon code={l.code as Locale} size={16} />{l.label}
                     </button>
                   ))}
                 </div>

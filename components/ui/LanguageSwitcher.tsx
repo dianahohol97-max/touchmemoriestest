@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation, LOCALES, Locale } from '@/lib/i18n/context';
+import { FlagIcon } from './FlagIcon';
 
 export function LanguageSwitcher() {
     const { locale, setLocale } = useTranslation();
@@ -35,7 +36,7 @@ export function LanguageSwitcher() {
                 onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
                 title="Change language"
             >
-                <span style={{ fontSize: 16 }}>{current.flag}</span>
+                <FlagIcon code={current.code} size={16} />
                 <span>{current.label}</span>
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor" style={{ opacity: 0.7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
                     <path d="M0 0l5 6 5-6z"/>
@@ -66,7 +67,7 @@ export function LanguageSwitcher() {
                             onMouseEnter={e => { if (l.code !== locale) e.currentTarget.style.background = '#f9fafb'; }}
                             onMouseLeave={e => { if (l.code !== locale) e.currentTarget.style.background = '#fff'; }}
                         >
-                            <span style={{ fontSize: 18 }}>{l.flag}</span>
+                            <FlagIcon code={l.code as Locale} size={18} />
                             <span>{l.label}</span>
                             {l.code === locale && <span style={{ marginLeft: 'auto', color: '#1e2d7d' }}></span>}
                         </button>
