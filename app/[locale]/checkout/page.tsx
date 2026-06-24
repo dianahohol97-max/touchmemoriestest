@@ -478,7 +478,17 @@ export default function CheckoutPage() {
         // sessionStorage export_{id} keys must still be resolvable by id.
         const cartItemIds = items.map((it: any) => it.id);
         try {
-            const needsDesigner = items.some((item: any) => item.with_designer || item.options?.with_designer);
+            const needsDesigner = items.some((item: any) =>
+                item.with_designer ||
+                item.options?.with_designer ||
+                // Wishbook (and any future) designer flow that adds straight to
+                // cart marks itself via metadata.designer_flow / the option
+                // label, not the with_designer flag. Catch those too, otherwise
+                // the order never becomes a designer order and never shows up in
+                // the designers' "Вільні" queue.
+                item.metadata?.designer_flow ||
+                item.options?.['Оформлення'] === 'Макет робить дизайнер'
+            );
             const paymentType: 'full' | 'split' = formData.paymentChoice === 'split_50_50' ? 'split' : 'full';
 
             // 1. Create order via validated server endpoint.

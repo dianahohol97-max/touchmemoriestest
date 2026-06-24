@@ -383,7 +383,9 @@ export async function POST(request: NextRequest) {
       delivery_method: body.delivery_method,
       delivery_address: body.delivery_address || null,
       notes: body.notes?.toString().slice(0, 5000) || null,
-      with_designer: !!body.with_designer,
+      with_designer: !!body.with_designer || (body.items as any[]).some(it =>
+        it?.metadata?.designer_flow || it?.options?.['Оформлення'] === 'Макет робить дизайнер'
+      ),
       designer_service_fee: body.with_designer ? (Number(body.designer_service_fee) || 0) : 0,
       order_status: 'new',
       payment_status: 'pending',
