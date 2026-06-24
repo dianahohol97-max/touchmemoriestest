@@ -251,7 +251,10 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     if (config.coverColor) options['Колір обкладинки'] = config.coverColor;
     if (inscription) {
       options['Напис на обкладинку'] = inscription;
-      options['Колір напису'] = config.textColor;
+      // Printed covers have no foil embossing — inscription colour is irrelevant
+      if (config.coverType !== 'printed') {
+        options['Колір напису'] = config.textColor;
+      }
     }
     // Mark clearly that this is the designer-assisted flow.
     options['Оформлення'] = 'Макет робить дизайнер';
@@ -270,7 +273,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       price,
       qty: 1,
       options,
-      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription} (${config.textColor})` : ''}`,
+      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription}${config.coverType !== 'printed' ? ` (${config.textColor})` : ''}` : ''}`,
       metadata: {
         designer_flow: true,
         wishbook: {
@@ -279,7 +282,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
           cover_type: config.coverType,
           cover_color: config.coverColor || null,
           inscription: inscription || null,
-          inscription_color: inscription ? config.textColor : null,
+          inscription_color: (inscription && config.coverType !== 'printed') ? config.textColor : null,
         },
       },
     } as any);
