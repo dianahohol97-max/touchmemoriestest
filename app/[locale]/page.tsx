@@ -236,7 +236,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
                         {/* Photo overlay */}
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
                         <img
-                          src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80"
+                          src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80"
                           alt="Travel Book Preview"
                           loading="lazy"
                           decoding="async"
