@@ -230,28 +230,16 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
                       {/* Book cover */}
                       <div
-                        className="relative bg-gradient-to-br from-stone-700 to-stone-900 rounded-sm overflow-hidden shadow-2xl"
+                        className="relative rounded-sm overflow-hidden shadow-2xl"
                         style={{ aspectRatio: '210/297' }}
                       >
-                        {/* Photo overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
                         <img
-                          src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80"
-                          alt="Travel Book Preview"
+                          src="/images/travelbooks-hero.jpg"
+                          alt="Тревелбуки touch.memories — Austria, Italy, France, Czech, Greece"
                           loading="lazy"
                           decoding="async"
-                          className="absolute inset-0 w-full h-full object-cover opacity-70"
+                          className="absolute inset-0 w-full h-full object-cover"
                         />
-
-                        {/* Cover text overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-6">
-                          <p className="text-white text-xl leading-tight font-serif italic">
-                            Моя подорож<br />до Карпат
-                          </p>
-                          <p className="text-[#4a5cc7]/80 text-xs tracking-widest mt-2">
-                            48°N · 24°E · 2025
-                          </p>
-                        </div>
                       </div>
                     </div>
                   </div>
