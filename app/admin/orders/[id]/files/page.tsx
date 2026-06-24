@@ -13,7 +13,8 @@ import {
     Archive,
     ExternalLink,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    User
 } from 'lucide-react';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
@@ -284,6 +285,74 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
                     </button>
                 </div>
             </div>
+
+            {/* Client contacts + questionnaire — everything a designer working
+                in an external tool needs in one place, above the files. */}
+            {order && (() => {
+                const items = (order.items || []) as any[];
+                const ig = (order.customer_instagram || '').replace('@', '');
+                const tg = (order.customer_telegram || '').replace('@', '');
+                const contactRow = (label: string, value: any, href?: string) => value ? (
+                    <div style={{ display: 'flex', gap: 8, fontSize: 14, marginBottom: 6 }}>
+                        <span style={{ color: '#94a3b8', minWidth: 90, fontWeight: 600 }}>{label}</span>
+                        {href
+                            ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#263A99', fontWeight: 600, textDecoration: 'none' }}>{value}</a>
+                            : <span style={{ color: '#374151', fontWeight: 600 }}>{value}</span>}
+                    </div>
+                ) : null;
+                return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 40 }}>
+                        {/* Contacts */}
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px' }}>
+                            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <User size={18} /> Контакти клієнта
+                            </h2>
+                            {contactRow('Імʼя', order.customer_name)}
+                            {contactRow('Телефон', order.customer_phone, order.customer_phone ? `tel:${order.customer_phone}` : undefined)}
+                            {contactRow('Email', order.customer_email, order.customer_email ? `mailto:${order.customer_email}` : undefined)}
+                            {contactRow('Instagram', ig ? `@${ig}` : null, ig ? `https://instagram.com/${ig}` : undefined)}
+                            {contactRow('Telegram', tg ? `@${tg}` : null, tg ? `https://t.me/${tg}` : undefined)}
+                        </div>
+
+                        {/* Questionnaire / options per item */}
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px' }}>
+                            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <FileText size={18} /> Анкета та параметри
+                            </h2>
+                            {items.map((it: any, idx: number) => {
+                                const opts = it.options && typeof it.options === 'object' ? it.options : {};
+                                const entries = Object.entries(opts).filter(([, v]) => v != null && String(v).trim() !== '');
+                                return (
+                                    <div key={idx} style={{ marginBottom: idx < items.length - 1 ? 16 : 0 }}>
+                                        <div style={{ fontWeight: 700, color: '#374151', fontSize: 14, marginBottom: 8 }}>{it.name || it.product_name || 'Товар'}</div>
+                                        {it.personalization_note && (
+                                            <div style={{ fontSize: 13, color: '#475569', background: '#f8fafc', borderRadius: 8, padding: '8px 10px', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{it.personalization_note}</div>
+                                        )}
+                                        {entries.length > 0 ? (
+                                            <div style={{ display: 'grid', gap: 4 }}>
+                                                {entries.map(([k, v]) => (
+                                                    <div key={k} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
+                                                        <span style={{ color: '#94a3b8', fontWeight: 600, minWidth: 130 }}>{k}</span>
+                                                        <span style={{ color: '#374151', whiteSpace: 'pre-wrap' }}>{String(v)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: 13, color: '#94a3b8' }}>Параметрів не вказано</div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            {order.comment && (
+                                <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Коментар клієнта</div>
+                                    <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{order.comment}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Empty State */}
             {files.length === 0 && (
