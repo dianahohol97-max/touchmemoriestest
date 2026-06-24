@@ -367,9 +367,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const handleAssign = async (role: 'manager_id' | 'designer_id', staffId: string) => {
         setUpdatingAssignment(true);
         try {
+            const patch: Record<string, any> = { [role]: staffId || null };
+            // Keep the two paths in sync: the designer cabinet only lists orders
+            // where with_designer = true AND designer_id = me. So when a manager
+            // assigns a designer here, also mark the order as a designer order —
+            // otherwise the assigned designer would never see it in their
+            // cabinet. (We don't clear with_designer when un-assigning, since the
+            // order may have been a designer order from the start.)
+            if (role === 'designer_id' && staffId) {
+                patch.with_designer = true;
+            }
             const { error } = await supabase
                 .from('orders')
-                .update({ [role]: staffId || null })
+                .update(patch)
                 .eq('id', id);
 
             if (error) throw error;

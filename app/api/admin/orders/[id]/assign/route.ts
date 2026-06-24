@@ -21,13 +21,22 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         // We will do sequenced promises instead for this MVP.
 
         // 1. Update the order table
+        const orderPatch: Record<string, any> = {
+            manager_id: manager_id || null,
+            designer_id: designer_id || null,
+            assigned_at
+        };
+        // Keep the assignment in sync with the designer cabinet, which only
+        // shows orders where with_designer = true AND designer_id = me. When a
+        // designer is assigned here, mark the order as a designer order so it
+        // appears for them. (Not cleared on un-assign — it may have been a
+        // designer order originally.)
+        if (designer_id) {
+            orderPatch.with_designer = true;
+        }
         const { data: orderUpdate, error: orderError } = await supabase
             .from('orders')
-            .update({
-                manager_id: manager_id || null,
-                designer_id: designer_id || null,
-                assigned_at
-            })
+            .update(orderPatch)
             .eq('id', params.id)
             .select()
             .single();

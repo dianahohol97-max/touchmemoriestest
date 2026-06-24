@@ -38,6 +38,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await req.json();
 
+    // Keep order assignment in sync with the designer cabinet: it only lists
+    // orders where with_designer = true AND designer_id = me. So whenever a
+    // designer is set (here this covers a designer claiming a free order, or a
+    // manager assigning one), ensure with_designer is true too. Not cleared on
+    // un-assign.
+    if (body && body.designer_id && body.with_designer === undefined) {
+        body.with_designer = true;
+    }
+
     const { data, error } = await supabase
         .from('orders')
         .update(body)
