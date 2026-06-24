@@ -19,6 +19,7 @@ interface GuestBookConfigModalProps {
     coverType?: string;   // 'printed' | 'velour' | 'leatherette' | 'fabric'
     coverColor?: string;  // color name from DB (e.g. 'Молочний')
     decoType?: string;    // 'none' | 'flex' | 'acryl' | 'photovstavka' | 'metal' | 'graviruvannya'
+    decoVariant?: string; // variant_name from decoration_variants (e.g. '90×50 срібний')
   };
 }
 
@@ -128,6 +129,15 @@ const COVER_CODE_TO_NAME: Record<string, string> = {
   fabric: 'Тканина',
 };
 
+// decoration code → decoration_type.name in decoration_variants table
+const DECO_CODE_TO_NAME: Record<string, string> = {
+  flex: 'Друк кольором',
+  acryl: 'Акрил',
+  photovstavka: 'Фотовставка',
+  metal: 'Металева вставка',
+  graviruvannya: 'Гравірування',
+};
+
 interface CoverColor {
   id: string;
   code: string;
@@ -143,6 +153,14 @@ interface WishbookPriceRow {
   price: number;
 }
 
+interface DecoVariantRow {
+  variant_name: string;
+  surcharge: number;
+  decoration_type: { name: string } | null;
+  cover_type: { name: string } | null;
+  size: { name: string } | null;
+}
+
 export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, productId, productName, productSlug }: GuestBookConfigModalProps) {
   const addItem = useCartStore((s) => s.addItem);
   const supabase = useMemo(() => createBrowserClient(
@@ -152,6 +170,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
   const [currentStep, setCurrentStep] = useState<'form' | 'summary'>('form');
   const [coverColors, setCoverColors] = useState<CoverColor[]>([]);
   const [prices, setPrices] = useState<WishbookPriceRow[]>([]);
+  const [decoVariants, setDecoVariants] = useState<DecoVariantRow[]>([]);
 
   const [config, setConfig] = useState({
     size:        normalizeSize(initialConfig?.size),
@@ -159,6 +178,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     coverType:   normalizeCoverType(initialConfig?.coverType),
     coverColor:  initialConfig?.coverColor || '',
     decoType:    normalizeDecoType(initialConfig?.decoType),
+    decoVariant: initialConfig?.decoVariant || '',
     addNames:    false, names:     '',
     addDate:     false, date:      '',
     addOtherText:false, otherText: '',
@@ -183,6 +203,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
         coverType:   normalizeCoverType(initialConfig?.coverType),
         coverColor:  initialConfig?.coverColor || '',
         decoType:    normalizeDecoType(initialConfig?.decoType),
+        decoVariant: initialConfig?.decoVariant || '',
         addNames:    false, names:     '',
         addDate:     false, date:      '',
         addOtherText:false, otherText: '',
@@ -192,7 +213,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     }
   }, [isOpen]);
 
-  // Fetch cover_colors and wishbook_prices once
+  // Fetch cover_colors, wishbook_prices, and decoration_variants once
   useEffect(() => {
     if (!isOpen) return;
     supabase.from('cover_colors').select('id, code, name, hex_approx, cover_type_id').eq('active', true)
@@ -200,6 +221,10 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       .then(({ data }) => { if (data) setCoverColors(data as CoverColor[]); });
     supabase.from('wishbook_prices').select('cover_category, page_color, size_code, price')
       .then(({ data }) => { if (data) setPrices(data as WishbookPriceRow[]); });
+    supabase.from('decoration_variants')
+      .select('variant_name, surcharge, decoration_type:decoration_types(name), cover_type:cover_types(name), size:photobook_sizes(name)')
+      .eq('active', true)
+      .then(({ data }) => { if (data) setDecoVariants(data as unknown as DecoVariantRow[]); });
   }, [isOpen, supabase]);
 
   // Colors filtered by selected material
@@ -220,7 +245,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     }
   }, [config.coverType, currentColors]);
 
-  // Live price
+  // Live price = base (wishbook_prices) + decoration surcharge (decoration_variants)
   const livePrice = useMemo(() => {
     const cat = MATERIAL_TO_CATEGORY[config.coverType];
     const row = prices.find(p =>
@@ -228,8 +253,26 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       p.page_color === config.pageColor &&
       p.size_code === config.size
     );
-    return row?.price ?? null;
-  }, [prices, config.coverType, config.pageColor, config.size]);
+    if (!row) return null;
+    let total = row.price;
+
+    // Add decoration surcharge if a specific variant was pre-selected from the product page
+    const decoTypeName = DECO_CODE_TO_NAME[config.decoType];
+    const coverTypeName = COVER_CODE_TO_NAME[config.coverType];
+    // size_code uses 'x', decoration_variants.size.name uses '×' — normalise both to '×'
+    const sizeNorm = config.size.replace('x', '×');
+    if (decoTypeName && config.decoVariant && decoVariants.length > 0) {
+      const decRow = decoVariants.find(dv =>
+        dv.decoration_type?.name === decoTypeName &&
+        dv.variant_name === config.decoVariant &&
+        dv.cover_type?.name === coverTypeName &&
+        (dv.size?.name === sizeNorm || dv.size?.name === config.size)
+      );
+      if (decRow) total += Number(decRow.surcharge) || 0;
+    }
+
+    return total;
+  }, [prices, decoVariants, config.coverType, config.pageColor, config.size, config.decoType, config.decoVariant]);
 
   const handleChange = (field: string, value: any) =>
     setConfig(prev => ({ ...prev, [field]: value }));
