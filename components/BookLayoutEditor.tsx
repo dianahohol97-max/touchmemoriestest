@@ -3974,13 +3974,28 @@ export default function BookLayoutEditor() {
       } catch (e) {
         console.warn('Could not persist export list for cart linking:', e);
       }
-    } else if (snapshots.length > 0) {
-      // Snapshots rendered but nothing uploaded — without this the customer's
-      // photos would silently be missing from the order (the old behaviour).
-      // Tell them loudly so they retry or contact us instead of paying for an
-      // order with no print files.
-      toast.error(`Не вдалося завантажити фото для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам.${uploadErrDetail ? ` (деталі: ${uploadErrDetail})` : ''}`, { duration: 9000 });
-      if (uploadErrDetail) console.error('[print-upload] all uploads failed:', uploadErrDetail);
+    } else {
+      // No print files were produced — either html2canvas captured nothing
+      // (snapshots empty, e.g. the cover DOM node wasn't ready) OR snapshots
+      // rendered but every upload failed. EITHER way a book/journal/wishbook
+      // needs print files, so the customer must not silently pay for an order
+      // we can't print. Warn loudly and flag the cart item so the order page
+      // surfaces "файли не завантажились" to the manager.
+      const needsPrintFiles = isWishbook || isMagazine || isTravel || isScrapbook ||
+        _slug.includes('photobook') || _slug.includes('fotoknig') || _slug.includes('journal') ||
+        _slug.includes('zhurnal') || _slug.includes('planner');
+      if (needsPrintFiles) {
+        try {
+          // Mark the cart item so checkout writes the flag onto the order and
+          // the admin order page can show a clear warning badge.
+          sessionStorage.setItem(`export_failed_${orderId}`, '1');
+        } catch { /* ignore quota */ }
+        toast.error(
+          `Не вдалося підготувати файли для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам — інакше замовлення прийде без макета.${uploadErrDetail ? ` (деталі: ${uploadErrDetail})` : ''}`,
+          { duration: 12000 }
+        );
+        console.error('[print-upload] no files produced', { orderId, snapshots: snapshots.length, uploadErrDetail });
+      }
     }
     setUploadState(prev => prev ? { ...prev, active: false } : null);
 

@@ -463,6 +463,27 @@ export default function CheckoutPage() {
             } catch { /* skip malformed entries */ }
         }
 
+        // Collect any items whose constructor export failed (no print files
+        // produced). The editor sets export_failed_{itemId} when html2canvas
+        // captured nothing OR every upload failed. We surface this on the order
+        // so a manager doesn't ship a wishbook/photobook with no design file.
+        const failedItemIds = cartItemIds.filter(id => {
+            try { return sessionStorage.getItem(`export_failed_${id}`) === '1'; }
+            catch { return false; }
+        });
+        failedItemIds.forEach(id => { try { sessionStorage.removeItem(`export_failed_${id}`); } catch { /* ignore */ } });
+        if (failedItemIds.length > 0) {
+            try {
+                await fetch(`/api/orders/${orderId}/flag-export-failed`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count: failedItemIds.length }),
+                });
+            } catch (err) {
+                console.error('Failed to flag export-failed order:', err);
+            }
+        }
+
         if (records.length > 0) {
             try {
                 await createOrderFileRecords(records);
