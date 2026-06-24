@@ -145,6 +145,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
     addDate:     false, date:      '',
     addOtherText:false, otherText: '',
     textColor:   'Золотий',
+    coverDesignNote: '',
   });
 
   // Fields already provided via initialConfig — hide them in form
@@ -167,6 +168,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
         addDate:     false, date:      '',
         addOtherText:false, otherText: '',
         textColor:   'Золотий',
+        coverDesignNote: '',
       });
     }
   }, [isOpen]);
@@ -216,6 +218,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
   const isFormValid = () => {
     if (!config.size || !config.pageColor || !config.coverType) return false;
     if (config.coverType !== 'printed' && !config.coverColor) return false;
+    if (config.coverType === 'printed' && !config.coverDesignNote.trim()) return false;
     if (config.addNames && !config.names.trim()) return false;
     if (config.addDate && !config.date.trim()) return false;
     if (config.addOtherText && !config.otherText.trim()) return false;
@@ -249,6 +252,9 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       'Матеріал обкладинки': coverName,
     };
     if (config.coverColor) options['Колір обкладинки'] = config.coverColor;
+    if (config.coverType === 'printed' && config.coverDesignNote.trim()) {
+      options['Побажання до обкладинки'] = config.coverDesignNote.trim();
+    }
     if (inscription) {
       options['Напис на обкладинку'] = inscription;
       // Printed covers have no foil embossing — inscription colour is irrelevant
@@ -273,7 +279,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       price,
       qty: 1,
       options,
-      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription}${config.coverType !== 'printed' ? ` (${config.textColor})` : ''}` : ''}`,
+      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''}${config.coverType === 'printed' && config.coverDesignNote.trim() ? ` · дизайн: ${config.coverDesignNote.trim()}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription}${config.coverType !== 'printed' ? ` (${config.textColor})` : ''}` : ''}`,
       metadata: {
         designer_flow: true,
         wishbook: {
@@ -281,6 +287,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
           page_color: config.pageColor,
           cover_type: config.coverType,
           cover_color: config.coverColor || null,
+          cover_design_note: (config.coverType === 'printed' && config.coverDesignNote.trim()) ? config.coverDesignNote.trim() : null,
           inscription: inscription || null,
           inscription_color: (inscription && config.coverType !== 'printed') ? config.textColor : null,
         },
@@ -398,6 +405,25 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                   <p className="text-sm text-[#1e2d7d]">
                     На друкованій обкладинці буде ваше фото або дизайн. Колір обирати не потрібно — друк повнокольоровий.
                   </p>
+                </div>
+              )}
+
+              {/* Cover design note — only for printed */}
+              {config.coverType === 'printed' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Побажання щодо дизайну обкладинки <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Опишіть фото, кольори, стиль або надішліть посилання — дизайнер врахує всі деталі.
+                  </p>
+                  <textarea
+                    rows={3}
+                    value={config.coverDesignNote}
+                    onChange={e => handleChange('coverDesignNote', e.target.value)}
+                    placeholder="Наприклад: фото пари на заході сонця, пастельні тони, без тексту на обкладинці..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d] resize-none text-sm"
+                  />
                 </div>
               )}
 
@@ -522,6 +548,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                   ['Колір сторінок', PAGE_COLOR_LABELS[config.pageColor]],
                   ['Матеріал обкладинки', MATERIAL_LABELS[config.coverType]],
                   config.coverType !== 'printed' ? ['Колір обкладинки', config.coverColor] : null,
+                  config.coverType === 'printed' && config.coverDesignNote.trim() ? ['Побажання до обкладинки', config.coverDesignNote.trim()] : null,
                   ['Кількість сторінок', '32'],
                   config.addNames     ? ['Імена', config.names] : null,
                   config.addDate      ? ['Дата', config.date] : null,
