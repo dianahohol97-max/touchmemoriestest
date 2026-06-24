@@ -98,7 +98,7 @@ export default async function ProductPage({ params }: Props) {
   if (product) {
     const { data: revs } = await supabase
       .from('reviews')
-      .select('id, image_url, author, caption, rating, created_at')
+      .select('id, image_url, video_url, media_type, author, caption, rating, created_at')
       .eq('product_id', (product as any).id)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });

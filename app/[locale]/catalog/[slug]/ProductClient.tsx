@@ -2266,11 +2266,15 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: 40 }}>
                         {initialReviews.map((r: any) => (
                             <div key={r.id} style={{ border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden', background: '#fff' }}>
-                                {r.image_url && (
+                                {r.media_type === 'video' && r.video_url ? (
+                                    <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5', background: '#000' }}>
+                                        <video src={r.video_url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                    </div>
+                                ) : r.image_url ? (
                                     <div style={{ position: 'relative', width: '100%', aspectRatio: '4/5' }}>
                                         <Image src={r.image_url} alt={r.author || 'Відгук'} fill loading="lazy" sizes="(max-width: 768px) 50vw, 220px" style={{ objectFit: 'cover', display: 'block' }} />
                                     </div>
-                                )}
+                                ) : null}
                                 <div style={{ padding: '12px 14px' }}>
                                     {r.rating ? (
                                         <div style={{ color: '#f0a500', fontSize: 14, letterSpacing: 2, marginBottom: 4 }}>
