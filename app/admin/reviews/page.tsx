@@ -20,6 +20,8 @@ import Image from 'next/image';
 interface Review {
     id: string;
     image_url: string;
+    video_url?: string | null;
+    media_type?: 'image' | 'video';
     caption: string | null;
     author: string | null;
     category: string | null;
@@ -42,6 +44,8 @@ export default function ReviewsAdminPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         image_url: '',
+        video_url: '',
+        media_type: 'image' as 'image' | 'video',
         caption: '',
         author: '',
         category: '',
@@ -119,6 +123,8 @@ export default function ReviewsAdminPage() {
         setEditingId(null);
         setFormData({
             image_url: '',
+            video_url: '',
+            media_type: 'image',
             caption: '',
             author: '',
             category: '',
@@ -134,6 +140,8 @@ export default function ReviewsAdminPage() {
         setEditingId(review.id);
         setFormData({
             image_url: review.image_url,
+            video_url: review.video_url || '',
+            media_type: review.media_type || 'image',
             caption: review.caption || '',
             author: review.author || '',
             category: review.category || '',
@@ -149,15 +157,18 @@ export default function ReviewsAdminPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            toast.error('Оберіть файл зображення');
+        const isVideo = file.type.startsWith('video/');
+        const isImage = file.type.startsWith('image/');
+
+        if (!isImage && !isVideo) {
+            toast.error('Оберіть зображення або відео');
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Файл занадто великий (макс. 5MB)');
+        // 50MB for images, 100MB for video
+        const maxSize = isVideo ? 100 * 1024 * 1024 : 50 * 1024 * 1024;
+        if (file.size > maxSize) {
+            toast.error(`Файл занадто великий (макс. ${isVideo ? '100' : '50'}MB)`);
             return;
         }
 
@@ -165,45 +176,47 @@ export default function ReviewsAdminPage() {
         setUploading(true);
 
         try {
-            // Upload to Supabase Storage
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `reviews/${fileName}`;
 
-            const { data, error } = await supabase.storage
-                .from('public')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
-                });
+            const { error } = await supabase.storage
+                .from('review-media')
+                .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
             if (error) throw error;
 
-            // Get public URL
             const { data: { publicUrl } } = supabase.storage
-                .from('public')
+                .from('review-media')
                 .getPublicUrl(filePath);
 
-            setFormData({ ...formData, image_url: publicUrl });
-            toast.success('Зображення завантажено');
-        } catch (error: any) {
-            console.error('Upload error:', error);
-            toast.error(error.message || 'Помилка завантаження');
+            if (isVideo) {
+                setFormData(prev => ({ ...prev, video_url: publicUrl, media_type: 'video' }));
+            } else {
+                setFormData(prev => ({ ...prev, image_url: publicUrl, media_type: 'image' }));
+            }
+            toast.success(isVideo ? 'Відео завантажено' : 'Зображення завантажено');
+        } catch (err: any) {
+            console.error('Upload error:', err);
+            toast.error(err.message || 'Помилка завантаження');
         } finally {
             setUploading(false);
         }
     };
 
     const handleSave = async () => {
-        if (!formData.image_url) {
-            toast.error('Завантажте зображення');
+        const hasMedia = formData.media_type === 'video' ? !!formData.video_url : !!formData.image_url;
+        if (!hasMedia) {
+            toast.error('Завантажте зображення або відео');
             return;
         }
 
         const tid = toast.loading(editingId ? 'Оновлення...' : 'Створення...');
 
         const payload = {
-            image_url: formData.image_url,
+            image_url: formData.image_url || formData.video_url || '',
+            video_url: formData.video_url || null,
+            media_type: formData.media_type,
             caption: formData.caption || null,
             author: formData.author || null,
             category: formData.category || null,
@@ -455,14 +468,32 @@ export default function ReviewsAdminPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                         {reviews.filter(r => r.status !== 'pending').map((review, index) => (
                             <div key={review.id} className="relative group">
-                                {/* 9:16 Image Container */}
+                                {/* 9:16 Media Container */}
                                 <div className="relative aspect-[9/16] rounded-xl overflow-hidden bg-stone-100 border-2 border-stone-200">
-                                    <Image
-                                        src={review.image_url}
-                                        alt={review.author || 'Review'}
-                                        fill
-                                        className="object-cover"
-                                    />
+                                    {review.media_type === 'video' && review.video_url ? (
+                                        <>
+                                            <video
+                                                src={review.video_url}
+                                                className="w-full h-full object-cover"
+                                                muted
+                                                playsInline
+                                                preload="metadata"
+                                            />
+                                            {/* Video play badge */}
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="white"><path d="M4 3l10 5-10 5V3z"/></svg>
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <Image
+                                            src={review.image_url}
+                                            alt={review.author || 'Review'}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    )}
                                     {/* Gradient Overlay */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                                     {/* Author */}
@@ -475,6 +506,7 @@ export default function ReviewsAdminPage() {
                                                 {review.category}
                                             </p>
                                         )}
+
                                     </div>
                                     {/* Active Status Badge */}
                                     <div className={`absolute top-2 right-2 w-2 h-2 rounded-full ${review.is_active ? 'bg-green-500' : 'bg-stone-400'}`} />
@@ -557,44 +589,57 @@ export default function ReviewsAdminPage() {
                                 </button>
                             </div>
 
-                            {/* Image Upload */}
+                            {/* Media Upload — image or video */}
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-stone-700 mb-3">
-                                    Зображення (9:16 - Instagram Story) <span className="text-red-500">*</span>
+                                    Фото або відео (9:16 — Instagram Story) <span className="text-red-500">*</span>
                                 </label>
 
-                                {formData.image_url ? (
+                                {(formData.media_type === 'video' ? formData.video_url : formData.image_url) ? (
                                     <div className="relative max-w-xs mx-auto">
-                                        <div className="aspect-[9/16] rounded-xl overflow-hidden border-2 border-stone-200">
-                                            <Image
-                                                src={formData.image_url}
-                                                alt="Preview"
-                                                fill
-                                                className="object-cover"
-                                            />
+                                        <div className="aspect-[9/16] rounded-xl overflow-hidden border-2 border-stone-200 bg-black">
+                                            {formData.media_type === 'video' ? (
+                                                <video
+                                                    src={formData.video_url}
+                                                    className="w-full h-full object-cover"
+                                                    controls
+                                                    muted
+                                                    playsInline
+                                                />
+                                            ) : (
+                                                <Image
+                                                    src={formData.image_url}
+                                                    alt="Preview"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            )}
                                         </div>
                                         <button
-                                            onClick={() => setFormData({ ...formData, image_url: '' })}
+                                            onClick={() => setFormData(prev => ({ ...prev, image_url: '', video_url: '', media_type: 'image' }))}
                                             className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                                         >
                                             <X size={16} />
                                         </button>
                                     </div>
                                 ) : (
-                                    <label className="block border-2 border-dashed border-stone-300 rounded-xl p-12 text-center cursor-pointer hover:border-amber-500 hover:bg-amber-50/50 transition-all">
+                                    <label className={`block border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${uploading ? 'border-amber-400 bg-amber-50/50' : 'border-stone-300 hover:border-amber-500 hover:bg-amber-50/50'}`}>
                                         <input
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/*,video/mp4,video/quicktime,video/webm"
                                             onChange={handleFileSelect}
                                             className="hidden"
                                             disabled={uploading}
                                         />
                                         <Upload size={48} className="mx-auto mb-4 text-stone-400" />
                                         <p className="text-stone-600 font-semibold mb-1">
-                                            {uploading ? 'Завантаження...' : 'Оберіть зображення'}
+                                            {uploading ? 'Завантаження...' : 'Оберіть фото або відео'}
                                         </p>
                                         <p className="text-stone-500 text-sm">
-                                            Рекомендований розмір: 1080×1920px (макс. 5MB)
+                                            Фото: JPG, PNG, WEBP (макс. 50MB) · Відео: MP4, MOV (макс. 100MB)
+                                        </p>
+                                        <p className="text-stone-400 text-xs mt-1">
+                                            Рекомендований розмір: 1080×1920px / 9:16
                                         </p>
                                     </label>
                                 )}
