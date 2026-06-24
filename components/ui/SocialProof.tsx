@@ -17,6 +17,8 @@ const supabase = createClient(
 interface Review {
     id: string;
     image_url: string;
+    video_url?: string | null;
+    media_type?: string | null;
     author: string | null;
     category: string | null;
     rating?: number | null;
@@ -74,9 +76,9 @@ export function SocialProof() {
             try {
                 const { data, error } = await supabase
                     .from('reviews')
-                    .select('id, image_url, author, category, rating')
+                    .select('id, image_url, video_url, media_type, author, category, rating')
                     .eq('is_active', true)
-                    .not('image_url', 'is', null)
+                    .or('image_url.not.is.null,video_url.not.is.null')
                     .order('sort_order', { ascending: true });
 
                 if (data && data.length > 0) {
@@ -148,11 +150,23 @@ export function SocialProof() {
                                 key={review.id}
                                 className="flex-none w-[min(65vw,280px)] aspect-[9/16] snap-center overflow-hidden rounded-[3px] cursor-pointer relative group bg-gray-100 shadow-[var(--shadow-premium)] border border-white/20"
                             >
-                                <img
-                                    src={review.image_url}
-                                    alt={`Customer photo by ${review.author || 'customer'}`}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                />
+                                {review.media_type === 'video' && review.video_url ? (
+                                    <video
+                                        src={review.video_url}
+                                        muted
+                                        loop
+                                        playsInline
+                                        autoPlay
+                                        preload="metadata"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                ) : (
+                                    <img
+                                        src={review.image_url}
+                                        alt={`Customer photo by ${review.author || 'customer'}`}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                )}
                                 {/* Gradient Overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300" />
 
