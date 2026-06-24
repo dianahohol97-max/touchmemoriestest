@@ -404,14 +404,19 @@ export default function OrdersPage() {
                                 </td>
                                 {/* Comment — inline preview + click to edit */}
                                 <td style={{ ...tdStyle, maxWidth: 200 }} onClick={e => e.stopPropagation()}>
+                                    {(() => {
+                                        const isPrintWarning = (order.notes || '').includes('файли для друку не завантажились');
+                                        return (
                                     <button onClick={() => openCommentModal(order)}
                                         title={order.notes ? 'Редагувати коментар' : 'Додати коментар'}
-                                        style={{ width: '100%', textAlign: 'left', background: order.notes ? '#f8fafc' : 'transparent', border: order.notes ? '1px solid #e2e8f0' : '1px dashed #e2e8f0', borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                                        <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: order.notes ? '#263A99' : '#cbd5e1' }} />
-                                        <span style={{ fontSize: 12, color: order.notes ? '#475569' : '#cbd5e1', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                        style={{ width: '100%', textAlign: 'left', background: isPrintWarning ? '#fef2f2' : (order.notes ? '#f8fafc' : 'transparent'), border: isPrintWarning ? '1px solid #fca5a5' : (order.notes ? '1px solid #e2e8f0' : '1px dashed #e2e8f0'), borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                                        <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: isPrintWarning ? '#dc2626' : (order.notes ? '#263A99' : '#cbd5e1') }} />
+                                        <span style={{ fontSize: 12, color: isPrintWarning ? '#b91c1c' : (order.notes ? '#475569' : '#cbd5e1'), fontWeight: isPrintWarning ? 600 : 400, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                             {order.notes || 'Додати коментар'}
                                         </span>
                                     </button>
+                                        );
+                                    })()}
                                 </td>
                                 {/* Manager — inline assign */}
                                 <td style={{ ...tdStyle, width: '150px' }} onClick={e => e.stopPropagation()}>
