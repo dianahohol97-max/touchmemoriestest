@@ -52,7 +52,7 @@ export async function GET(request: Request) {
   const floor = new Date(now - 72 * 3600_000).toISOString(); // 72h ago
   const ceiling = new Date(now - 1 * 3600_000).toISOString(); // 1h ago
 
-  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, errors: 0 };
+  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0 };
 
   const { data: orders, error } = await admin
     .from('orders')
@@ -89,6 +89,22 @@ export async function GET(request: Request) {
     if ((count ?? 0) > 0) {
       stats.ok++;
       continue;
+    }
+
+    // Zero files on an order that needs them. For a wishbook we can generate
+    // the cover server-side from the order options — try that FIRST and only
+    // flag if it fails. For other products (photobooks etc.) we can't
+    // regenerate without the customer's photos, so we flag for manual follow-up.
+    const isWishbook = items.some((it: any) => {
+      const s = `${it?.slug || ''} ${it?.product_type || ''} ${it?.product_name || it?.name || ''}`.toLowerCase();
+      return s.includes('wish') || s.includes('pobazhan') || s.includes('guest') || s.includes('побажан');
+    });
+    if (isWishbook) {
+      try {
+        const base = process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua';
+        const res = await fetch(`${base}/api/orders/${order.id}/generate-wishbook-cover`, { method: 'POST' });
+        if (res.ok) { stats.generated++; continue; }
+      } catch { /* fall through to flagging */ }
     }
 
     // Zero files on an order that needs them → flag it.

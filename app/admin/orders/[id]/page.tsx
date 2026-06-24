@@ -192,6 +192,31 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [printProfiles, setPrintProfiles] = useState<any[]>([]);
     const [selectedPrintProfile, setSelectedPrintProfile] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isGenCover, setIsGenCover] = useState(false);
+
+    // Generate (or regenerate) the wishbook cover.jpg fully server-side from the
+    // order options. Lets staff produce/fix the print cover for a книга побажань
+    // without depending on the customer's browser export.
+    const generateWishbookCover = async (force = false) => {
+        if (!order?.id) return;
+        setIsGenCover(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}/generate-wishbook-cover${force ? '?force=1' : ''}`, { method: 'POST' });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                toast.success(data.skipped ? 'Обкладинка вже існує' : 'Обкладинку згенеровано');
+                const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
+                if (pr.ok) { const { photos } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); }
+                fetchOrder();
+            } else {
+                toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
+            }
+        } catch (e: any) {
+            toast.error(`Помилка: ${e?.message || e}`);
+        } finally {
+            setIsGenCover(false);
+        }
+    };
     const [genProgress, setGenProgress] = useState(0);
 
     // Templates
@@ -1395,6 +1420,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <h3 style={cardTitleStyle}><FileText size={20} /> Файли</h3>
                             <button onClick={saveNotes} style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer' }}><Save size={18} /></button>
                         </div>
+                        {(() => {
+                            const orderIsWishbook = Array.isArray(order?.items) && order.items.some((it: any) =>
+                                /wish|guest|pobazhan/i.test(String(it.slug || '')) || /побажан/i.test(String(it.name || it.product_name || '')));
+                            if (!orderIsWishbook) return null;
+                            const hasCover = uploadedFiles.some((f: any) => f.isCover || /cover\.jpg/i.test(String(f.name || '')));
+                            return (
+                                <div style={{ marginBottom: '12px', padding: '12px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+                                    <div style={{ fontSize: '12px', color: '#6b21a8', marginBottom: '8px', fontWeight: 600 }}>
+                                        Обкладинка книги побажань генерується на сервері з параметрів замовлення.
+                                    </div>
+                                    <button onClick={() => generateWishbookCover(hasCover)} disabled={isGenCover}
+                                        style={{ padding: '10px 18px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', opacity: isGenCover ? 0.6 : 1, fontSize: '13px' }}>
+                                        {isGenCover ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                        {hasCover ? 'Перегенерувати обкладинку' : 'Згенерувати обкладинку'}
+                                    </button>
+                                </div>
+                            );
+                        })()}
                         <div style={{ marginBottom: '12px' }}>
                             <label style={smallLabelStyle}>Посилання на Google Drive/Фото</label>
                             <input

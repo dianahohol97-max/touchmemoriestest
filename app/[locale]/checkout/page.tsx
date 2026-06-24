@@ -590,6 +590,19 @@ export default function CheckoutPage() {
                 if (hasPrintables) fetch(`/api/orders/${orderId}/print-sheets`, { method: 'POST' }).catch(() => {});
             } catch { /* ignore */ }
 
+            // Fire-and-forget: generate the wishbook cover.jpg fully server-side.
+            // A книга побажань has no customer photos — its whole design lives in
+            // the order options — so the server can always produce the print file,
+            // independent of the browser export. Guarantees a wishbook never ships
+            // without a cover. Idempotent + non-blocking.
+            try {
+                const hasWishbook = items.some((it: any) => {
+                    const s = `${it.slug || ''} ${it.category_slug || ''} ${it.name || ''}`.toLowerCase();
+                    return s.includes('wish') || s.includes('pobazhan') || s.includes('guest') || s.includes('побажан');
+                });
+                if (hasWishbook) fetch(`/api/orders/${orderId}/generate-wishbook-cover`, { method: 'POST' }).catch(() => {});
+            } catch { /* ignore */ }
+
             // 2. ALWAYS create Monobank invoice — invoice is 100% if 'full', 50% if 'split'.
             toast.loading(actualPaymentType === 'split'
                 ? `Створюємо посилання на передоплату ${prepaidAmount} ₴...`
