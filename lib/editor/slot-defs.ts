@@ -37,15 +37,20 @@ export function resolveCustomSlot(
 }
 
 // SINGLE SOURCE OF TRUTH for photo-slot geometry.
-// This file is kept byte-for-byte in sync with the layout math used by the
-// editor canvas (which is what html2canvas snapshots for print). The preview
-// modal and LayoutSVG import from here, so preview == editor == print.
+// This file is the SINGLE SOURCE OF TRUTH for photo-slot geometry. The editor
+// canvas (BookLayoutEditor), the preview modal, LayoutSVG, and the print
+// renderer all import getSlotDefs from here — so preview == editor == print by
+// construction. Do NOT re-implement this math anywhere else; if a layout needs
+// changing, change it here only.
 export function getSlotDefs(layout: string, W: number, H: number, gap: number = 4): SlotDef[] {
   const g = gap;
   const w2 = (W - g) / 2, h2 = (H - g) / 2;
   const w3 = (W - 2 * g) / 3, h3 = (H - 2 * g) / 3;
   const w4 = (W - 3 * g) / 4, h4 = (H - 3 * g) / 4;
-  const b: React.CSSProperties = { position: 'absolute', overflow: 'hidden', borderRadius: 3 };
+  // Rounded corners look good WITH a gap, but at gap=0 they leave tiny white
+  // notches between touching photos — defeating "без білих ліній між фото".
+  // Square the corners when the layout is gapless.
+  const b: React.CSSProperties = { position: 'absolute', overflow: 'hidden', borderRadius: gap > 0 ? 3 : 0 };
 
   const S = (i: number, x: number, y: number, w: number, h: number, extra?: React.CSSProperties) =>
     ({ i, s: { ...b, left: x, top: y, width: w, height: h, ...extra } });
