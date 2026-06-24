@@ -8481,8 +8481,8 @@ export default function BookLayoutEditor() {
 
         // ---- Step 1: Photos ----
         const photos = variant === 'wishbook' ? {
-          title: t('constructor.step_cover_photo'),
-          body: <>У панелі <b>«Фото»</b> завантажте фото для обкладинки. Перетягніть на слот обкладинки — або скористайтесь готовим шаблоном без фото.</>,
+          title: t('constructor.step_cover_design'),
+          body: <>У панелі <b>«Обкладинка»</b> оберіть колір та оздоблення обкладинки. Фото на обкладинці книги побажань не передбачено — лише колір тканини / велюру та декор.</>,
           tip: null as React.ReactNode,
         } : variant === 'magazine' ? {
           title: t('constructor.step_upload'),
