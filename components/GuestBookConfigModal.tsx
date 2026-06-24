@@ -104,6 +104,8 @@ function normalizeCoverType(v?: string): string {
 // acryl / photovstavka / metal / graviruvannya all have their own fixed
 // design — asking the customer for names/date/text makes no sense there.
 const INSCRIPTION_DECO_TYPES = new Set(['none', 'flex', '']);
+// Decoration types that support flex-colour choice (foil embossing only).
+const FLEX_COLOR_DECO_TYPES = new Set(['flex']);
 function normalizeDecoType(v?: string): string {
   if (!v) return 'none';
   const s = v.toLowerCase();
@@ -276,7 +278,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       options['Напис на обкладинку'] = inscription;
       // Printed covers have no foil embossing — inscription colour is irrelevant
       if (config.coverType !== 'printed') {
-        options['Колір напису'] = config.textColor;
+        if (FLEX_COLOR_DECO_TYPES.has(config.decoType)) options['Колір напису'] = config.textColor;
       }
     }
     // Mark clearly that this is the designer-assisted flow.
@@ -296,7 +298,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
       price,
       qty: 1,
       options,
-      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''}${config.coverType === 'printed' && config.coverDesignNote.trim() ? ` · дизайн: ${config.coverDesignNote.trim()}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription}${config.coverType !== 'printed' ? ` (${config.textColor})` : ''}` : ''}`,
+      personalization_note: `Книга побажань (з дизайнером) · ${coverName}${config.coverColor ? ` · ${config.coverColor}` : ''}${config.coverType === 'printed' && config.coverDesignNote.trim() ? ` · дизайн: ${config.coverDesignNote.trim()}` : ''} · ${pageColorLabel}${inscription ? ` · напис: ${inscription}${FLEX_COLOR_DECO_TYPES.has(config.decoType) && config.coverType !== 'printed' ? ` (${config.textColor})` : ''}` : ''}`,
       metadata: {
         designer_flow: true,
         wishbook: {
@@ -306,7 +308,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
           cover_color: config.coverColor || null,
           cover_design_note: (config.coverType === 'printed' && config.coverDesignNote.trim()) ? config.coverDesignNote.trim() : null,
           inscription: inscription || null,
-          inscription_color: (inscription && config.coverType !== 'printed') ? config.textColor : null,
+          inscription_color: (inscription && FLEX_COLOR_DECO_TYPES.has(config.decoType) && config.coverType !== 'printed') ? config.textColor : null,
         },
       },
     } as any);
@@ -510,8 +512,8 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                 )}
               </div>
 
-              {/* Text Color — only show if there's any text */}
-              {(config.addNames || config.addDate || config.addOtherText) && config.coverType !== 'printed' && (
+              {/* Text Color — only for flex foil embossing */}
+              {(config.addNames || config.addDate || config.addOtherText) && FLEX_COLOR_DECO_TYPES.has(config.decoType) && config.coverType !== 'printed' && (
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">Колір надписів <span className="text-red-500">*</span></label>
                   <p className="text-xs text-gray-500 mb-3">Флекс-плівка для тиснення на тканинній обкладинці</p>
@@ -576,7 +578,7 @@ export default function GuestBookConfigModal({ isOpen, onClose, initialConfig, p
                   config.addNames     ? ['Імена', config.names] : null,
                   config.addDate      ? ['Дата', config.date] : null,
                   config.addOtherText ? ['Текст', config.otherText] : null,
-                  (config.addNames || config.addDate || config.addOtherText) && config.coverType !== 'printed'
+                  (config.addNames || config.addDate || config.addOtherText) && FLEX_COLOR_DECO_TYPES.has(config.decoType) && config.coverType !== 'printed'
                     ? ['Колір надписів', config.textColor] : null,
                 ].filter((x): x is [string, string] => Array.isArray(x)).map(([label, val]) => (
                   <div key={label} className="flex justify-between py-1.5 border-b border-gray-200 last:border-0">
