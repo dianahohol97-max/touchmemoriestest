@@ -1080,6 +1080,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                     'Тип оздоблення': opt.label,
                     'Варіант оздоблення': ''
                   };
+                  // Flex colour makes no sense for non-flex decorations — drop it
+                  if (opt.value !== 'flex') delete newOptions['Колір напису'];
                   const price = calculatePrice(newOptions);
                   onChange(newOptions, price || undefined);
                 }}
