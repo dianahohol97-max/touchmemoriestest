@@ -37,7 +37,13 @@ export function startPointerDrag(
     window.removeEventListener('pointerup', end);
     window.removeEventListener('pointercancel', end);
     window.removeEventListener('touchmove', blockTouch);
-    try { (window as any).__tmObjectDragging = false; } catch {}
+    // Keep the dragging flag set through the synthetic click that fires right
+    // after pointerup, so a control sitting under the release point (e.g. the
+    // cover photo's × delete button) can ignore that click. Without this delay
+    // the flag is already false by the time the click handler runs, and
+    // releasing a slot-move over the delete button wiped the photo.
+    try { (window as any).__tmJustDragged = true; } catch {}
+    setTimeout(() => { try { (window as any).__tmObjectDragging = false; (window as any).__tmJustDragged = false; } catch {} }, 50);
     onEnd?.();
   };
   // passive:false required so preventDefault() works on iOS Safari
