@@ -610,15 +610,14 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                       const cx = config.photoCropX ?? 50;
                       const cy = config.photoCropY ?? 50;
                       const zm = config.photoZoom ?? 1;
-                      // If photo is at default position (no pan, zoom=1) — drag moves the SLOT
-                      // so the user can reposition it on the page. Once they've zoomed in
-                      // or panned the photo inside the slot, drag pans the crop instead.
-                      const isDefault = zm <= 1.01 && Math.abs(cx - 50) < 1 && Math.abs(cy - 50) < 1;
-                      if (isDefault) {
-                        // Delegate to slot move
-                        startSlotDrag(e, 'move');
-                        return;
-                      }
+                      // Dragging the photo ALWAYS pans the crop (moves the image
+                      // inside its slot up/down/left/right). Slot repositioning is
+                      // done with the dedicated move handle (top-left grip) and the
+                      // resize corners — keeping the two gestures separate avoids the
+                      // confusing "sometimes it moves the frame, sometimes the photo"
+                      // behaviour. (Previously a default-position photo delegated the
+                      // drag to slot-move, so panning a freshly placed cover photo did
+                      // nothing — the bug Diana hit.)
                       const sensitivity = 1.5 / Math.max(1, zm);
                       startPointerDrag(e, (dx, dy) => {
                         onChange({
