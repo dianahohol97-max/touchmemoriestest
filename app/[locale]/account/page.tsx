@@ -33,6 +33,7 @@ interface Order {
     customer_name?: string;
     delivery_address?: string;
     tracking_number?: string;
+    monobank_payment_url?: string | null;
 }
 
 interface Design {
@@ -242,12 +243,27 @@ export default function AccountPage() {
             const email = session.user.email!;
             const uid = session.user.id;
 
+            // Resolve this auth user's customer row first — orders are keyed by
+            // customers.id (customer_id), NOT the auth uid. The previous query
+            // compared customer_id to the auth uid (different ID spaces, never
+            // matched) and quoted the email inside .or() which PostgREST mis-parsed,
+            // so pending orders like TM-001021 never showed in the account.
+            const myCustomer = (await supabase.from('customers').select('id').eq('auth_user_id', uid).maybeSingle()).data
+                || (await supabase.from('customers').select('id').eq('email', email).maybeSingle()).data;
+            const myCustomerId = myCustomer?.id || null;
+
+            // Build an OR filter that matches by customer_id (when known) or by
+            // email. RLS still restricts the result to this user's own orders.
+            const orderFilter = myCustomerId
+                ? `customer_id.eq.${myCustomerId},customer_email.eq.${email}`
+                : `customer_email.eq.${email}`;
+
             // Fetch all data in parallel
             const [custRes, ordersRes, editorRes, designerRes] = await Promise.all([
                 supabase.from('customers').select('*').eq('email', email).single(),
                 supabase.from('orders')
-                    .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number')
-                    .or(`customer_email.eq."${email}",customer_id.eq.${uid}`)
+                    .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number,monobank_payment_url')
+                    .or(orderFilter)
                     .order('created_at', { ascending: false }),
                 supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
@@ -586,6 +602,12 @@ export default function AccountPage() {
 
                                                             {/* Actions */}
                                                             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                                                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (order as any).monobank_payment_url && (
+                                                                    <a href={(order as any).monobank_payment_url} target="_blank" rel="noopener noreferrer"
+                                                                        style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', border: 'none', borderRadius: 8, color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 13, background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.3)' }}>
+                                                                        💳 Оплатити {order.total} ₴
+                                                                    </a>
+                                                                )}
                                                                 <Link href={`/track?order=${order.order_number}`}
                                                                     style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', border: '1.5px solid #263a99', borderRadius: 8, color: '#263a99', textDecoration: 'none', fontWeight: 700, fontSize: 13, background: 'white' }}>
                                                                     <MapPin size={14}/> Відстежити
