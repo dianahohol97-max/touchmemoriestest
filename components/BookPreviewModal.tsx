@@ -294,12 +294,16 @@ export function BookPreviewModal({
         border: pageBorder.width > 0 ? `${pageBorder.width}px solid ${pageBorder.color}` : 'none',
         boxSizing: 'border-box',
         padding: pageGap > 0 ? pageGap : 0,
-        transform: slot.rotation ? `rotate(${slot.rotation}deg)` : undefined,
       }}>
+        {/* scale AND rotate together on the img, transformOrigin center —
+            byte-for-byte identical to the editor (BookLayoutEditor slot img),
+            so a photo that was both zoomed and rotated lands in print exactly
+            where the customer placed it. Splitting rotate onto the wrapper
+            (previous behaviour) shifted combined zoom+rotate photos. */}
         <img src={photo.preview} alt="" draggable={false} style={{
           width: '100%', height: '100%', objectFit: (slot.fit || 'cover'),
           objectPosition: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
-          transform: `scale(${slot.zoom || 1})`,
+          transform: `scale(${slot.zoom || 1}) rotate(${slot.rotation || 0}deg)`,
           transformOrigin: 'center',
           display: 'block',
         }} />
