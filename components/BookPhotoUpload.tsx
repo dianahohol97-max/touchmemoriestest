@@ -217,20 +217,21 @@ export default function BookPhotoUpload() {
             toast.error(t('photo_upload.add_photo_first'));
             return;
         }
-        // Block the customer from moving to the editor with fewer photos
-        // than the journal has pages. The editor places one photo per
-        // page slot by default, so going in with 5 photos for a 12-page
-        // journal would leave half the journal blank. Better to stop
-        // them here with a clear message than to let them discover the
-        // problem in the editor.
+        // Photo count vs page count: the editor places one photo per page
+        // slot by default, so going in with fewer photos than pages leaves
+        // some pages without a photo. That's now ALLOWED on purpose — a
+        // customer may want text-only pages (inscriptions, quotes, dates)
+        // with no photo. We surface a gentle, non-blocking notice so someone
+        // who simply forgot photos is reminded, but we never stop them: they
+        // can add text to the empty pages in the editor.
         const pageCountFromConfig = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
         if (pageCountFromConfig > 0 && photos.length < pageCountFromConfig) {
             const missing = pageCountFromConfig - photos.length;
-            toast.error(
-                `Завантажте ще щонайменше ${missing} фото — для ${pageCountFromConfig} сторінок потрібно мінімум ${pageCountFromConfig} фото, інакше частина сторінок буде порожня`,
-                { duration: 6000 }
+            toast(
+                `Завантажено ${photos.length} з ${pageCountFromConfig} фото. ${missing} ${missing === 1 ? 'сторінка залишиться' : 'сторінок залишаться'} без фото — там можна додати написи в редакторі.`,
+                { duration: 5000, icon: 'ℹ️' }
             );
-            return;
+            // no return — let the customer continue
         }
         if (processing) return; // prevent double-fire from impatient clicking
 
@@ -526,26 +527,20 @@ export default function BookPhotoUpload() {
                 const pageCountReq = parseInt(config?.selectedPageCount?.match(/\d+/)?.[0] || '0', 10);
                 const meetsMinimum = pageCountReq > 0 ? photos.length >= pageCountReq : photos.length > 0;
                 const remaining = pageCountReq > 0 ? Math.max(0, pageCountReq - photos.length) : 0;
-                // Product-aware noun so a photobook doesn't read "журналу".
-                const slugLc = (config?.productSlug || '').toLowerCase();
-                const productNoun = /magazine|zhurnal|journal/.test(slugLc)
-                    ? 'журналу'
-                    : /travel/.test(slugLc)
-                        ? 'тревелбука'
-                        : 'фотокниги';
-                // Two meaningful states in the constructor: short of the
-                // page-count minimum (red), or at/above it (green). There is
-                // NO upper cap here — the customer lays the book out
-                // themselves and may upload as many photos as they like.
+                // Two states in the constructor: at/above the page count
+                // (green — every page can have a photo), or below it (blue
+                // informational — fewer photos is ALLOWED; the extra pages
+                // just become text-only). There is NO upper cap. Below-count
+                // is no longer an error — text-only pages are a valid choice.
                 const bg = photos.length === 0
                     ? 'bg-orange-50 border-orange-200'
                     : !meetsMinimum
-                        ? 'bg-red-50 border-red-200'
+                        ? 'bg-blue-50 border-blue-200'
                         : 'bg-green-50 border-green-200';
                 const counterText = photos.length === 0
                     ? 'Завантажте свої фото'
                     : !meetsMinimum
-                        ? `Завантажено ${photos.length} з ${pageCountReq} — потрібно ще ${remaining} ${remaining === 1 ? 'фото' : 'фото'}`
+                        ? `Завантажено ${photos.length} з ${pageCountReq} фото`
                         : `Завантажено ${photos.length} фото${pageCountReq ? ` (мінімум ${pageCountReq})` : ''}`;
                 return (
                     <div className={`mb-6 p-4 rounded-lg border ${bg}`}>
@@ -561,11 +556,11 @@ export default function BookPhotoUpload() {
                             )}
                         </div>
                         {!meetsMinimum && photos.length > 0 && pageCountReq > 0 && (
-                            // Explanation of why we require minimum=pages.
-                            // Customers expect to fill every page with at least
-                            // one photo, so we tell them upfront here.
-                            <div className="text-xs text-red-700 mt-2">
-                                Для {productNoun} на {pageCountReq} сторінок потрібно мінімум {pageCountReq} фото, інакше частина сторінок буде порожня.
+                            // Fewer photos than pages is fine — the remaining
+                            // pages can hold text (inscriptions, quotes, dates).
+                            // Framed as a choice, not a blocker.
+                            <div className="text-xs text-blue-700 mt-2">
+                                {remaining} {remaining === 1 ? 'сторінка залишиться' : 'сторінок залишаться'} без фото — там можна додати написи в редакторі. Можете продовжити або додати ще фото.
                             </div>
                         )}
                     </div>
