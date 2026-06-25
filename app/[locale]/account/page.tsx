@@ -244,27 +244,35 @@ export default function AccountPage() {
             const uid = session.user.id;
 
             // Resolve this auth user's customer row first — orders are keyed by
-            // customers.id (customer_id), NOT the auth uid. The previous query
-            // compared customer_id to the auth uid (different ID spaces, never
-            // matched) and quoted the email inside .or() which PostgREST mis-parsed,
-            // so pending orders like TM-001021 never showed in the account.
+            // customers.id (customer_id), NOT the auth uid.
             const myCustomer = (await supabase.from('customers').select('id').eq('auth_user_id', uid).maybeSingle()).data
                 || (await supabase.from('customers').select('id').eq('email', email).maybeSingle()).data;
             const myCustomerId = myCustomer?.id || null;
 
-            // Build an OR filter that matches by customer_id (when known) or by
-            // email. RLS still restricts the result to this user's own orders.
-            const orderFilter = myCustomerId
-                ? `customer_id.eq.${myCustomerId},customer_email.eq.${email}`
-                : `customer_email.eq.${email}`;
+            // Fetch orders with TWO separate, robust queries (by customer_id and by
+            // email) instead of a single .or() — PostgREST .or() with an email value
+            // silently returned nothing, so the pending order never showed. Merge +
+            // dedupe by id. RLS still scopes each query to the user's own orders.
+            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number,monobank_payment_url';
+            const [byId, byEmail] = await Promise.all([
+                myCustomerId
+                    ? supabase.from('orders').select(orderCols).eq('customer_id', myCustomerId).order('created_at', { ascending: false })
+                    : Promise.resolve({ data: [] as any[] }),
+                supabase.from('orders').select(orderCols).eq('customer_email', email).order('created_at', { ascending: false }),
+            ]);
+            const mergedOrders = (() => {
+                const seen = new Set<string>();
+                const out: any[] = [];
+                for (const row of [...(byId.data || []), ...(byEmail.data || [])]) {
+                    if (row && !seen.has(row.id)) { seen.add(row.id); out.push(row); }
+                }
+                out.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                return out;
+            })();
 
-            // Fetch all data in parallel
-            const [custRes, ordersRes, editorRes, designerRes] = await Promise.all([
-                supabase.from('customers').select('*').eq('email', email).single(),
-                supabase.from('orders')
-                    .select('id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number,monobank_payment_url')
-                    .or(orderFilter)
-                    .order('created_at', { ascending: false }),
+            // Fetch the rest in parallel
+            const [custRes, editorRes, designerRes] = await Promise.all([
+                supabase.from('customers').select('*').eq('email', email).maybeSingle(),
                 supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
                     .in('customer_id', (await supabase.from('customers').select('id').eq('email', email)).data?.map((c: any) => c.id) || [])
@@ -294,7 +302,7 @@ export default function AccountPage() {
                 });
             }
 
-            if (ordersRes.data) setOrders(ordersRes.data);
+            if (mergedOrders.length) setOrders(mergedOrders);
             if (wishRes.data) setWishlist(wishRes.data);
 
             // Merge editor + designer projects
