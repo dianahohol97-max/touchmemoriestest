@@ -9422,7 +9422,19 @@ export default function BookLayoutEditor() {
                   <><span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid #fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/> Збереження...</>
                 ) : '💾 Зберегти макет і вийти'}
               </button>
-              <button onClick={() => { setShowExitModal(false); router.back(); }}
+              <button onClick={() => {
+                // Exit without saving must also drop the autosaved sessionStorage
+                // draft — otherwise the cover colour / slot positions the user just
+                // chose to discard come back when they reopen the editor. Clear the
+                // per-product draft, the legacy key, and the in-progress config.
+                try {
+                  const clearSlug = (config?.productSlug || '').toLowerCase().trim();
+                  if (clearSlug) sessionStorage.removeItem(`bookEditorDraft_${clearSlug}`);
+                  sessionStorage.removeItem('bookEditorDraft');
+                } catch {}
+                setShowExitModal(false);
+                router.back();
+              }}
                 style={{ width:'100%', padding:'13px', background:'#fff', color:'#ef4444',
                   borderRadius:10, fontWeight:700, fontSize:14, border:'1px solid #fee2e2', cursor:'pointer' }}>
                 Вийти без збереження
