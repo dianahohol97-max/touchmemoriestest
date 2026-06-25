@@ -2712,8 +2712,11 @@ export default function BookLayoutEditor() {
     startPointerDrag(e,
       (dx, dy) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pi ? p : {
         ...p, slots: p.slots.map((sl, j) => j !== si ? sl : {
-          ...sl, cropX: Math.max(0,Math.min(100, cx + dx/sensitivity)),
-                cropY: Math.max(0,Math.min(100, cy + dy/sensitivity))
+          // Minus sign matches the cover (CoverEditor) so the photo pans in the
+          // SAME direction on spreads as on the cover: drag the image left and it
+          // moves left, not right. Previously spreads used + which inverted it.
+          ...sl, cropX: Math.max(0,Math.min(100, cx - dx/sensitivity)),
+                cropY: Math.max(0,Math.min(100, cy - dy/sensitivity))
         })
       })); }
     );
