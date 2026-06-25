@@ -46,5 +46,24 @@ export async function GET(
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ project: data });
+  // Resolve each photo's storage path into a signed URL so the /print page can
+  // render the real customer photos (not placeholders). Paths were saved into
+  // uploaded_photos[i].path at checkout. Signed URLs are valid for 1 hour, long
+  // enough for the render service to screenshot every page.
+  const photos = Array.isArray(data.uploaded_photos) ? data.uploaded_photos : [];
+  const withUrls = await Promise.all(
+    photos.map(async (p: any) => {
+      if (!p?.path) return { ...p, preview: '' };
+      try {
+        const { data: signed } = await supabase.storage
+          .from('photobook-uploads')
+          .createSignedUrl(p.path, 3600);
+        return { ...p, preview: signed?.signedUrl || '' };
+      } catch {
+        return { ...p, preview: '' };
+      }
+    }),
+  );
+
+  return NextResponse.json({ project: { ...data, uploaded_photos: withUrls } });
 }
