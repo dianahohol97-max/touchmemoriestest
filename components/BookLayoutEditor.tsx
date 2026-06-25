@@ -3700,6 +3700,31 @@ export default function BookLayoutEditor() {
         config,
       };
 
+      // Upload the ORIGINAL customer photos to storage so a server-side renderer
+      // (the /print page + render service) can rebuild each page from the saved
+      // JSON. Originals otherwise live only as browser blobs and vanish after
+      // checkout. Stored at {userId}/{orderId}/originals/{photoId}.jpg; the path
+      // is written into each uploaded_photos entry so /print resolves photos by id.
+      // Best-effort and non-blocking: a failed upload just omits that path.
+      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> =
+        photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
+      if (orderId) {
+        for (let i = 0; i < photos.length; i++) {
+          const ph = photos[i];
+          const file = (ph as any).originalFile as File | undefined;
+          if (!file) continue;
+          const oPath = `${user.id}/${orderId}/originals/${ph.id}.jpg`;
+          try {
+            const { error: oErr } = await sb.storage
+              .from('photobook-uploads')
+              .upload(oPath, file, { cacheControl: '31536000', upsert: true, contentType: file.type || 'image/jpeg' });
+            if (!oErr) uploadedPhotosMeta[i].path = oPath;
+          } catch (e) {
+            console.warn('original photo upload failed', ph.id, e);
+          }
+        }
+      }
+
       const { error } = await sb.from('projects').insert({
         user_id: user.id,
         name,
@@ -3712,7 +3737,7 @@ export default function BookLayoutEditor() {
         cover_data: coverState,
         overlays_data: overlaysData,
         cart_payload: cartPayload ?? null,
-        uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
+        uploaded_photos: uploadedPhotosMeta,
         updated_at: new Date().toISOString(),
       });
 
