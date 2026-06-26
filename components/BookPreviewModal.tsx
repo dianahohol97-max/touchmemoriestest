@@ -159,6 +159,12 @@ interface BookPreviewProps {
   kalkaState?: KalkaState;
   isSpreadMode?: boolean;
   hasKalka?: boolean;
+  // Print mode: when set, render ONLY this spread, statically, with no modal
+  // chrome / navigation / keyboard / flip animation — the clean surface the
+  // render service screenshots. printPageW lets the caller fix the exact pixel
+  // width (e.g. print size at 300dpi) instead of the viewport-derived preview size.
+  printSpreadIndex?: number;
+  printPageW?: number;
 }
 
 //  Component 
@@ -170,9 +176,11 @@ export function BookPreviewModal({
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
+  printSpreadIndex, printPageW,
 }: BookPreviewProps) {
 
-  const [spread, setSpread] = useState(0);
+  const isPrint = typeof printSpreadIndex === 'number';
+  const [spread, setSpread] = useState(isPrint ? printSpreadIndex : 0);
   const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
 
   const navigate = useCallback((dir: 'next' | 'prev') => {
@@ -182,6 +190,7 @@ export function BookPreviewModal({
   }, [spread, spreadCount]);
 
   useEffect(() => {
+    if (isPrint) return; // no keyboard navigation on the static print surface
     const h = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') navigate('next');
       if (e.key === 'ArrowLeft') navigate('prev');
@@ -189,14 +198,16 @@ export function BookPreviewModal({
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, [navigate, onClose]);
+  }, [navigate, onClose, isPrint]);
 
   const touchRef = useRef<{ startX: number } | null>(null);
   const aspect = propH > 0 ? propW / propH : 1;
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const maxW = typeof window !== 'undefined' ? window.innerWidth * 0.92 - 8 : 800;
   const maxH = typeof window !== 'undefined' ? window.innerHeight * 0.5 : 400;
-  const pageW = Math.min(Math.floor(maxW / 2), Math.round(maxH * aspect), isMobile ? 999 : 380);
+  const pageW = isPrint && printPageW
+    ? printPageW
+    : Math.min(Math.floor(maxW / 2), Math.round(maxH * aspect), isMobile ? 999 : 380);
   const pageH = Math.round(pageW / aspect);
   const spineW = Math.max(4, Math.min(12, Math.round(pages.length * 0.4)));
   const spreadW = pageW * 2;
@@ -665,6 +676,20 @@ export function BookPreviewModal({
   const spreadLabel = spread === 0
     ? 'Обкладинка'
     : (hasKalka && spread === 1 ? 'Форзац / Калька' : `Розворот ${spread} / ${spreadCount - 1}`);
+
+  // PRINT MODE: a single spread, static, on white, at the exact size — no modal
+  // backdrop, no header, no nav arrows, no flip animation, no decorative spine
+  // gradients or shadows. This is what the render service screenshots, and it's
+  // what fixed both the "jumping" photos (animation) and chrome bleeding in.
+  if (isPrint) {
+    return (
+      <div data-print-spread={spread} style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff' }}>
+        <div style={{ position: 'relative', width: spreadW + (spread === 0 ? spineW * 2 : 0), height: pageH, display: 'flex', justifyContent: 'center', background: '#fff' }}>
+          {renderSpread(spread)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
