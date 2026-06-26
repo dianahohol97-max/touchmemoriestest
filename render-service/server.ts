@@ -41,15 +41,43 @@ const DPI = 300;
 const mmToPx = (mm: number) => Math.round((mm * DPI) / 25.4);
 
 // Spread/cover dimensions in millimetres per size key. Mirrors PRINT_DIMS_MM in
-// the app (components/BookLayoutEditor.tsx). Keep these two in sync.
+// the app (components/BookLayoutEditor.tsx). Keep these two in sync — including
+// the Cyrillic × variants and the magazine / travelbook keys.
 const PRINT_DIMS_MM: Record<string, { spread: { w: number; h: number }; cover: { w: number; h: number } }> = {
-  '20x20': { spread: { w: 405, h: 203 }, cover: { w: 457, h: 243 } },
-  '25x25': { spread: { w: 500, h: 254 }, cover: { w: 566, h: 293 } },
-  '20x30': { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
-  '30x20': { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
-  '30x30': { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
-  '23x23': { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
+  '20x20':       { spread: { w: 405, h: 203 }, cover: { w: 457, h: 243 } },
+  '20×20':       { spread: { w: 405, h: 203 }, cover: { w: 457, h: 243 } },
+  '25x25':       { spread: { w: 500, h: 254 }, cover: { w: 566, h: 293 } },
+  '25×25':       { spread: { w: 500, h: 254 }, cover: { w: 566, h: 293 } },
+  '20x30':       { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '20×30':       { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '30x20':       { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
+  '30×20':       { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
+  '30x30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
+  '30×30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
+  // A4 hard-cover magazine — spread 420×307 mm, cover 470×328 mm.
+  'A4':          { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
+  'magazine-A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
+  // Travel Book — 20×30 cm portrait pages.
+  'travelbook':  { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  '23x23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
+  '23×23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
 };
+
+// Pick the size key the same way the app's getSizeKeyForProduct does: by product
+// slug first (travel → 20x30, wishbook → selectedSize, magazine → A4), then fall
+// back to the explicit selectedSize. Mirrors BookLayoutEditor so the render uses
+// the exact same dimensions the customer designed against.
+function resolveSizeKey(config: any): string {
+  const slug = String(config?.productSlug || '').toLowerCase();
+  if (slug.includes('travel')) return '20x30';
+  if (slug.includes('wish') || slug.includes('guest') || slug.includes('pobazhan')) {
+    return String(config?.selectedSize || '20x30').replace(/×/g, 'x');
+  }
+  if (slug.includes('magazine') || slug.includes('journal') || slug.includes('zhurnal') || slug.includes('fotozhurnal')) {
+    return 'magazine-A4';
+  }
+  return String(config?.selectedSize || 'A4').replace(/×/g, 'x');
+}
 
 const app = express();
 app.use(express.json());
@@ -106,8 +134,8 @@ app.post('/render', async (req, res) => {
     }
     const { project } = await metaRes.json();
     const config = project?.overlays_data?.config || {};
-    const sizeKey = String(config.selectedSize || '20x20').replace(/[×х]/g, 'x').replace(/\s*см.*/i, '').trim();
-    const dims = PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['20x20'];
+    const sizeKey = resolveSizeKey(config).replace(/\s*см.*/i, '').trim();
+    const dims = PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4'];
 
     const pages = project?.pages_data || [];
     const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads

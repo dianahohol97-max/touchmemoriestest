@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   // items, there can be multiple projects — render them all.
   const { data: projects, error } = await admin
     .from('projects')
-    .select('id, name')
+    .select('id, name, product_type')
     .eq('order_id', orderId);
 
   if (error) {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
             file_name: fileName,
             file_type: 'export',
             file_category: isCover ? 'book-cover' : 'book-spread',
-            product_type: 'photobook',
+            product_type: project.product_type || 'photobook',
             bucket_name: 'photobook-uploads',
             mime_type: 'image/jpeg',
             page_number: pageNumber,
