@@ -1,7 +1,8 @@
 # Official Playwright image ships Chromium + all system libs it needs — this is
-# the reliable way to run headless Chrome on Railway. Pin the version to match
-# the playwright dependency in package.json.
-FROM mcr.microsoft.com/playwright:v1.48.0-jammy
+# the reliable way to run headless Chrome on Railway. The image tag MUST match
+# the exact playwright version pinned in package.json (1.61.1), otherwise the
+# bundled Chromium and the playwright client disagree and launch fails.
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 WORKDIR /app
 
