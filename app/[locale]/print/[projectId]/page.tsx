@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
+import CalendarPrintPage from '@/components/CalendarPrintPage';
 
 /**
  * /print/[projectId] — clean, controls-free render of a saved book design.
@@ -66,6 +67,39 @@ export default function PrintPage() {
 
   // Unpack the saved design into the shape BookPreviewModal expects.
   const pages = project.pages_data || [];
+
+  // ── Wall calendar branch ────────────────────────────────────────────────
+  // Calendars are an HTML/SVG composition, not book spreads. Render one page
+  // (cover or a month) per [data-print-page] using the saved config + signed
+  // photo URLs, sized to the exact print pixels the render service requests.
+  if (project.product_type === 'wall-calendar') {
+    const cfg = Array.isArray(pages) ? pages[0] : pages;
+    const calPhotos = (project.uploaded_photos || []).map((p: any) => ({
+      id: p.id, preview: p.preview || '', width: p.width || 0, height: p.height || 0,
+    }));
+    const monthCount = Array.isArray(cfg?.pages) ? cfg.pages.length : 12;
+    const totalPages = monthCount + 1; // cover + months
+    const fmt = String(project.format || '').toLowerCase();
+    const isA3 = fmt.includes('a3') || fmt.includes('29.7×42') || fmt.includes('29,7');
+    const aspect = isA3 ? 297 / 420 : 210 / 297;
+
+    const pageParam = search.get('page');
+    const single = pageParam !== null ? parseInt(pageParam, 10) : null;
+    const wParam = search.get('w');
+    const printW = wParam ? parseInt(wParam, 10) : 1240;
+    const printH = Math.round(printW / aspect);
+    const toRender = single !== null ? [single] : Array.from({ length: totalPages }, (_, i) => i);
+
+    return (
+      <div style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: single !== null ? 0 : 24 }}>
+        <style>{`[class*="cookie" i],[class*="newsletter" i],[class*="toast" i],[aria-label*="Notification" i]{display:none!important;}`}</style>
+        {toRender.map((idx) => (
+          <CalendarPrintPage key={idx} config={cfg} photos={calPhotos} W={printW} H={printH} pageIndex={idx} />
+        ))}
+      </div>
+    );
+  }
+
   const coverState = project.cover_data || {};
   const overlays = project.overlays_data || {};
   const config = overlays.config || {};

@@ -47,23 +47,51 @@ export async function GET(
   }
 
   // Resolve each photo's storage path into a signed URL so the /print page can
-  // render the real customer photos (not placeholders). Paths were saved into
-  // uploaded_photos[i].path at checkout. Signed URLs are valid for 1 hour, long
-  // enough for the render service to screenshot every page.
+  // render the real customer photos (not placeholders). Books store paths under
+  // photobook-uploads; calendars/other products store them in order-files, so we
+  // sign per the photo's own bucket (defaulting to photobook-uploads).
   const photos = Array.isArray(data.uploaded_photos) ? data.uploaded_photos : [];
   const withUrls = await Promise.all(
     photos.map(async (p: any) => {
-      if (!p?.path) return { ...p, preview: '' };
+      if (!p?.path) return { ...p, preview: p?.preview || '' };
       try {
         const { data: signed } = await supabase.storage
-          .from('photobook-uploads')
+          .from(p.bucket || 'photobook-uploads')
           .createSignedUrl(p.path, 3600);
-        return { ...p, preview: signed?.signedUrl || '' };
+        return { ...p, preview: signed?.signedUrl || p?.preview || '' };
       } catch {
-        return { ...p, preview: '' };
+        return { ...p, preview: p?.preview || '' };
       }
     }),
   );
 
-  return NextResponse.json({ project: { ...data, uploaded_photos: withUrls } });
+  // printSpec tells the render service how to screenshot this project without
+  // hardcoding book logic: how many pages, each page's print size in mm, and the
+  // DOM selector to capture. Books keep their existing behaviour (no printSpec →
+  // service uses spread math); calendars describe themselves explicitly.
+  const printSpec = buildPrintSpec(data);
+
+  return NextResponse.json({ project: { ...data, uploaded_photos: withUrls }, printSpec });
+}
+
+// Physical print sizes (mm) for non-book products that render via /print.
+function buildPrintSpec(data: any): {
+  productType: string;
+  selector: string;
+  pages: { w: number; h: number }[];
+} | null {
+  const pt = String(data.product_type || '').toLowerCase();
+
+  if (pt === 'wall-calendar') {
+    // A4 (210×297) or A3 (297×420) portrait. cover + 12 months.
+    const fmt = String(data.format || '').toLowerCase();
+    const isA3 = fmt.includes('a3') || fmt.includes('29.7×42') || fmt.includes('29,7');
+    const page = isA3 ? { w: 297, h: 420 } : { w: 210, h: 297 };
+    const cfg = Array.isArray(data.pages_data) ? data.pages_data[0] : null;
+    const monthCount = Array.isArray(cfg?.pages) ? cfg.pages.length : 12;
+    const pages = Array.from({ length: monthCount + 1 }, () => ({ ...page }));
+    return { productType: 'wall-calendar', selector: '[data-print-page]', pages };
+  }
+
+  return null;
 }

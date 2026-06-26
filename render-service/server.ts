@@ -132,21 +132,80 @@ app.post('/render', async (req, res) => {
       const body = await metaRes.text();
       return res.status(502).json({ error: `print API ${metaRes.status}`, body });
     }
-    const { project } = await metaRes.json();
+    const { project, printSpec } = await metaRes.json();
     const config = project?.overlays_data?.config || {};
-    const sizeKey = resolveSizeKey(config).replace(/\s*см.*/i, '').trim();
-    const dims = PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4'];
 
-    const pages = project?.pages_data || [];
-    const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
-
-    // Derive the user/order path so we store next to the originals.
+    // Derive the user/order path so we store next to the originals. Books store
+    // under .../originals/...; calendars store originals in order-files under
+    // {user}/{cartItemId}/... — handle both so output lands in a sane folder.
     const firstPath: string | undefined = project?.uploaded_photos?.find((p: any) => p?.path)?.path;
-    // firstPath looks like {userId}/{orderId}/originals/{photoId}.jpg
-    const orderPrefix = firstPath ? firstPath.split('/originals/')[0] : `unknown/${projectId}`;
+    let orderPrefix: string;
+    if (firstPath && firstPath.includes('/originals/')) {
+      orderPrefix = firstPath.split('/originals/')[0];
+    } else if (firstPath) {
+      orderPrefix = firstPath.split('/').slice(0, 2).join('/');
+    } else {
+      orderPrefix = `unknown/${projectId}`;
+    }
 
     const b = await getBrowser();
     const uploaded: string[] = [];
+
+    // Two render modes:
+    //   • printSpec present (calendars, future products): one full page per
+    //     [data-print-page], sized to printSpec.pages[i] mm, captured whole.
+    //   • no printSpec (books): cover + spreads via [data-print-spread].
+    if (printSpec && Array.isArray(printSpec.pages) && printSpec.pages.length) {
+      const selector = printSpec.selector || '[data-print-page]';
+      for (let i = 0; i < printSpec.pages.length; i++) {
+        const mm = printSpec.pages[i];
+        const pxW = mmToPx(mm.w);
+        const pxH = mmToPx(mm.h);
+        const page = await b.newPage({
+          viewport: { width: pxW + 40, height: pxH + 40 },
+          deviceScaleFactor: 1,
+        });
+        try {
+          const url = `${APP_BASE_URL}/uk/print/${projectId}?token=${encodeURIComponent(PRINT_RENDER_TOKEN)}&page=${i}&w=${pxW}`;
+          await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+          await page.waitForSelector(selector, { timeout: 30000 });
+          await page.evaluate(async () => {
+            await (document as any).fonts?.ready;
+            const imgs = Array.from(document.images);
+            await Promise.all(imgs.map(img => img.complete && img.naturalWidth > 0
+              ? Promise.resolve()
+              : new Promise(r => { img.onload = r; img.onerror = r; })));
+          });
+          await page.waitForTimeout(300);
+          const el = await page.$(selector);
+          if (!el) throw new Error(`no print page element for page ${i}`);
+          const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
+          const probe = await sharp(raw).metadata();
+          console.log(`[render] ${printSpec.productType} page ${i}: captured ${probe.width}x${probe.height}, target ${pxW}x${pxH}`);
+          const jpeg = await sharp(raw)
+            .resize(pxW, pxH, { fit: 'fill' })
+            .withMetadata({ density: DPI })
+            .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+            .toBuffer();
+          const fileName = i === 0 ? '00_cover.jpg' : `${String(i).padStart(2, '0')}_page.jpg`;
+          const storagePath = `${orderPrefix}/print/${fileName}`;
+          const { error: upErr } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(storagePath, jpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+          if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
+          uploaded.push(storagePath);
+        } finally {
+          await page.close();
+        }
+      }
+      return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded });
+    }
+
+    // ── Book path (spreads) ─────────────────────────────────────────────────
+    const sizeKey = resolveSizeKey(config).replace(/\s*см.*/i, '').trim();
+    const dims = PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4'];
+    const pages = project?.pages_data || [];
+    const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
 
     // 2. Render each spread (0 = cover) at the exact print pixel size.
     for (let spread = 0; spread < spreadCount; spread++) {

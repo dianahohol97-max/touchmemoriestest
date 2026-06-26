@@ -491,6 +491,21 @@ export default function CheckoutPage() {
                 console.error('Failed to link exports to order:', err);
             }
         }
+
+        // Link saved projects to this order. Constructors that save the project
+        // BEFORE payment (e.g. wall calendar) store the cart item id in
+        // cart_payload.id but have no order_id yet. Stamp order_id onto them so
+        // the Monobank webhook can find the design and trigger the print render.
+        // Book editors already set order_id themselves, so this is a no-op there.
+        try {
+            await fetch('/api/projects/link-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, cartItemIds }),
+            });
+        } catch (err) {
+            console.error('Failed to link projects to order:', err);
+        }
     };
 
     const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {

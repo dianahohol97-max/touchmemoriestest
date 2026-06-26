@@ -535,8 +535,10 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         addItem(cartPayload);
 
         // Upload originals to Storage so the manager has the source files when
-        // producing the calendar. Without this only low-res previews land in
-        // the projects row, which is not enough for print.
+        // producing the calendar, AND so the print render can rebuild each month
+        // from full-resolution photos. We keep a photoId → storage path map so
+        // the saved config can reference originals (not low-res previews).
+        const photoPaths: Record<string, string> = {};
         try {
             const { data: { user } } = await supabase.auth.getUser();
             const userKey = user?.id || 'anon';
@@ -548,6 +550,7 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 const path = `${userKey}/${cartItemId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
                 const { error: uploadError, file: up } = await uploadImageToStorage(supabase, 'order-files', path, p.file, { cacheControl: '31536000', downscale: true });
                 if (uploadError) { console.warn('wall-cal upload failed:', uploadError); continue; }
+                photoPaths[p.id] = path;
                 exportedFiles.push({
                     path, fileName: p.file.name, bucket: 'order-files',
                     fileCategory: 'photo-upload', productType: 'wall-calendar',
@@ -562,21 +565,33 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             console.warn('wall-cal storage step skipped:', e);
         }
 
-        // Persist as a project so it appears in "Мої дизайни" (it only went
-        // to the cart before). cart_payload lets the account "Замовити"
-        // button replay the exact priced payload. Non-blocking, logged-in only.
+        // Persist as a project so it appears in "Мої дизайни" AND so the print
+        // render can rebuild it. We save the FULL design (size, accent, every
+        // month page with its slots/crops, cover, marked dates) plus the photo
+        // metadata with their storage paths and bucket, so /print can resolve
+        // signed URLs to the originals. order_id is null here and gets linked at
+        // checkout (link-order) so the webhook can find this project.
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
+                const photoMeta = photos.map(p => ({
+                    id: p.id,
+                    path: photoPaths[p.id] || null,
+                    bucket: 'order-files',
+                    width: p.width,
+                    height: p.height,
+                    preview: p.preview,
+                }));
                 await supabase.from('projects').insert({
                     user_id: user.id,
                     product_type: 'wall-calendar',
                     format: SIZE_DIMS[size].label,
                     status: 'draft',
                     name: `Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
-                    pages_data: [{ size }],
+                    pages_data: [{ size, accent, markedDates, pages, coverConfig }],
+                    cover_data: coverConfig,
                     cart_payload: cartPayload,
-                    uploaded_photos: photos.map(p => p?.preview).filter(Boolean),
+                    uploaded_photos: photoMeta,
                     updated_at: new Date().toISOString(),
                 });
             }
