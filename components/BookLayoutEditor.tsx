@@ -3742,6 +3742,7 @@ export default function BookLayoutEditor() {
 
       const { error } = await sb.from('projects').insert({
         user_id: user.id,
+        order_id: orderId ?? null,
         name,
         product_type: productType,
         format: sizeLabel,

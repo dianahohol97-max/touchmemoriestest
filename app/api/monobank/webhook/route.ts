@@ -445,6 +445,27 @@ export async function POST(req: Request) {
                 });
             }
 
+            // Print render. On the first transition to paid, ask the render
+            // service (via /api/print/render-order) to screenshot every spread
+            // of this order's saved constructor design at 300 DPI and upload the
+            // print-ready JPEGs to storage. Fire-and-forget + idempotent (the
+            // service upserts files), and a safe no-op for orders with no
+            // constructor project. A render hiccup must never make Monobank
+            // retry the payment webhook, so it's awaited only inside catch.
+            if (existingOrder.payment_status !== 'paid') {
+                const baseUrl = getRuntimeBaseUrl();
+                fetch(`${baseUrl}/api/print/render-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-cron-secret': process.env.CRON_SECRET || '',
+                    },
+                    body: JSON.stringify({ orderId: reference }),
+                }).catch(err => {
+                    console.error('print render trigger failed:', err);
+                });
+            }
+
             // Designer service handoff. If the customer paid for an order
             // with with_designer=true, this is the moment to:
             //  - create the design_brief row (so the customer's brief link
