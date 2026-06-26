@@ -68,6 +68,52 @@ export async function POST(request: NextRequest) {
       results.push({ projectId: project.id, ok: res.ok, detail });
       if (!res.ok) {
         console.error('[render-order] render failed', { orderId, projectId: project.id, status: res.status, detail });
+        continue;
+      }
+
+      // Register the rendered JPEGs in order_files so the admin panel and the
+      // designer cabinet show THESE 300-DPI layouts (file_type 'export') instead
+      // of the old html2canvas snapshots. The render service uploads to the
+      // photobook-uploads bucket; we record that bucket + path here (variant A:
+      // keep the files where the service put them, just index them in the DB).
+      const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
+      if (uploaded.length) {
+        // Clear any prior render rows for this order so a re-render doesn't
+        // duplicate. Scope strictly to our print output (path contains /print/).
+        await admin
+          .from('order_files')
+          .delete()
+          .eq('order_id', orderId)
+          .eq('file_type', 'export')
+          .eq('bucket_name', 'photobook-uploads')
+          .like('file_path', '%/print/%');
+
+        const rows = uploaded.map((path) => {
+          const fileName = path.split('/').pop() || path;
+          const isCover = /(^|\/)00_cover\.jpg$/i.test(path) || /cover/i.test(fileName);
+          // 00_cover -> page 1, 01_spread -> page 2, ... (cover first).
+          const m = fileName.match(/^(\d+)_/);
+          const pageNumber = m ? parseInt(m[1], 10) + 1 : null;
+          return {
+            order_id: orderId,
+            file_path: path,
+            file_name: fileName,
+            file_type: 'export',
+            file_category: isCover ? 'book-cover' : 'book-spread',
+            product_type: 'photobook',
+            bucket_name: 'photobook-uploads',
+            mime_type: 'image/jpeg',
+            page_number: pageNumber,
+          };
+        });
+
+        const { error: ofErr } = await admin.from('order_files').insert(rows);
+        if (ofErr) {
+          console.error('[render-order] order_files insert failed', { orderId, projectId: project.id, error: ofErr.message });
+          // The render itself succeeded; surface the indexing problem but don't
+          // fail the whole call — files exist in storage and can be re-indexed.
+          results[results.length - 1] = { projectId: project.id, ok: true, detail: { ...detail, orderFilesError: ofErr.message } };
+        }
       }
     } catch (e: any) {
       console.error('[render-order] render request threw', { orderId, projectId: project.id, error: e?.message });
