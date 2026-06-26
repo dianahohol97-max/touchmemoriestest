@@ -3709,20 +3709,35 @@ export default function BookLayoutEditor() {
       const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> =
         photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
       if (orderId) {
+        console.log('[print-originals] start', { orderId, photoCount: photos.length, withOriginalFile: photos.filter(p => (p as any).originalFile).length });
         for (let i = 0; i < photos.length; i++) {
           const ph = photos[i];
-          const file = (ph as any).originalFile as File | undefined;
-          if (!file) continue;
+          // Prefer the high-quality original File (set when the photo was added
+          // this session). If the photo came from a restored draft, the File is
+          // gone (it can't be serialised), so fall back to fetching the preview
+          // URL into a blob — lower res but still a real photo for rendering.
+          let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
+          if (!body && ph.preview) {
+            try {
+              const r = await fetch(ph.preview);
+              if (r.ok) body = await r.blob();
+            } catch (e) {
+              console.warn('preview fetch for original failed', ph.id, e);
+            }
+          }
+          if (!body) continue;
           const oPath = `${user.id}/${orderId}/originals/${ph.id}.jpg`;
           try {
             const { error: oErr } = await sb.storage
               .from('photobook-uploads')
-              .upload(oPath, file, { cacheControl: '31536000', upsert: true, contentType: file.type || 'image/jpeg' });
+              .upload(oPath, body, { cacheControl: '31536000', upsert: true, contentType: (body as any).type || 'image/jpeg' });
             if (!oErr) uploadedPhotosMeta[i].path = oPath;
+            else console.warn('original upload error', ph.id, oErr.message);
           } catch (e) {
             console.warn('original photo upload failed', ph.id, e);
           }
         }
+        console.log('[print-originals] done', { uploaded: uploadedPhotosMeta.filter(m => m.path).length, total: photos.length });
       }
 
       const { error } = await sb.from('projects').insert({
