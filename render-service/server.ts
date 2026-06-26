@@ -58,7 +58,19 @@ let browser: Browser | null = null;
 async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
     browser = await chromium.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        // The container has no GPU and limited shared memory, so GPU
+        // compositing crashes (SIGSEGV) when screenshotting large print-size
+        // elements. Force software rendering — slower but stable at 300 DPI.
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--disable-features=VizDisplayCompositor',
+        '--use-gl=swiftshader',
+        '--force-color-profile=srgb',
+      ],
     });
   }
   return browser;
@@ -141,7 +153,7 @@ app.post('/render', async (req, res) => {
         const el = await page.$('[data-print-spread]');
         if (!el) throw new Error(`no spread element for page ${spread}`);
 
-        const raw = await el.screenshot({ type: 'png' });
+        const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide', scale: 'css' });
 
         // Normalise to the EXACT print pixel size + 300 DPI metadata, JPEG q92.
         const jpeg = await sharp(raw)
