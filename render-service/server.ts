@@ -22,6 +22,12 @@ import express from 'express';
 import { chromium, Browser } from 'playwright';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
+import WebSocket from 'ws';
+
+// Node 20 has no native WebSocket, and supabase-js initialises a realtime client
+// in its constructor which needs one. We don't use realtime — polyfill it so the
+// client can construct without crashing on boot.
+(globalThis as any).WebSocket = (globalThis as any).WebSocket || WebSocket;
 
 const PORT = process.env.PORT || 8080;
 const APP_BASE_URL = process.env.APP_BASE_URL!;          // e.g. https://touchmemories.com.ua
@@ -58,7 +64,12 @@ async function getBrowser(): Promise<Browser> {
   return browser;
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Node 20 has no native WebSocket, and supabase-js initialises a realtime client
+// in its constructor which needs one. We don't use realtime (only storage), but
+// the client still constructs it — the global WebSocket polyfill above handles it.
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
