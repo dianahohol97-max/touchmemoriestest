@@ -123,6 +123,13 @@ export default function PrintPage() {
 
   return (
     <div data-print-root style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
+      {/* The print surface must contain only the book. The cookie banner hides
+          itself on /print (see CookieBanner). This also hides newsletter popups
+          and toasts as a safety net so nothing floats into the screenshot. */}
+      <style>{`
+        [class*="newsletter" i], [class*="toast" i],
+        [aria-label*="Notification" i] { display: none !important; }
+      `}</style>
       {spreadsToRender.map((idx) => (
         <BookPreviewModal key={idx} {...common} printSpreadIndex={idx} printPageW={printPageW} />
       ))}

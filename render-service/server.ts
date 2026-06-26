@@ -153,7 +153,12 @@ app.post('/render', async (req, res) => {
         const el = await page.$('[data-print-spread]');
         if (!el) throw new Error(`no spread element for page ${spread}`);
 
-        const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide', scale: 'css' });
+        const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
+
+        // Diagnostic: log the real captured size vs the target print size. If the
+        // captured width is far below pxW, the screenshot was upscaled (=blurry).
+        const probe = await sharp(raw).metadata();
+        console.log(`[render] spread ${spread}: captured ${probe.width}x${probe.height}, target ${pxW}x${pxH}`);
 
         // Normalise to the EXACT print pixel size + 300 DPI metadata, JPEG q92.
         const jpeg = await sharp(raw)

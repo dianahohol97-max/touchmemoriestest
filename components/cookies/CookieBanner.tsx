@@ -32,6 +32,12 @@ export function CookieBanner() {
 
   if (!bannerVisible) return null;
 
+  // The print render page (/[locale]/print/...) is screenshotted at print
+  // resolution; no UI overlay may appear on it. Hide the banner there.
+  if (typeof window !== 'undefined' && window.location.pathname.includes('/print/')) {
+    return null;
+  }
+
   if (showSettings) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
