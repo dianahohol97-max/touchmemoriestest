@@ -32,7 +32,7 @@ interface Order {
     items: any[];
     customer_name?: string;
     delivery_address?: string;
-    tracking_number?: string;
+    ttn?: string;
     monobank_payment_url?: string | null;
 }
 
@@ -253,7 +253,7 @@ export default function AccountPage() {
             // email) instead of a single .or() — PostgREST .or() with an email value
             // silently returned nothing, so the pending order never showed. Merge +
             // dedupe by id. RLS still scopes each query to the user's own orders.
-            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,tracking_number,monobank_payment_url';
+            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,ttn,monobank_payment_url';
             const [byId, byEmail] = await Promise.all([
                 myCustomerId
                     ? supabase.from('orders').select(orderCols).eq('customer_id', myCustomerId).order('created_at', { ascending: false })
@@ -601,10 +601,10 @@ export default function AccountPage() {
                                                             )}
 
                                                             {/* Tracking */}
-                                                            {order.tracking_number && (
+                                                            {order.ttn && (
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#f0f4ff', borderRadius: 10, marginBottom: 12 }}>
                                                                     <Truck size={16} color="#263a99"/>
-                                                                    <span style={{ fontSize: 13, color: '#263a99', fontWeight: 700 }}>ТТН: {order.tracking_number}</span>
+                                                                    <span style={{ fontSize: 13, color: '#263a99', fontWeight: 700 }}>ТТН: {order.ttn}</span>
                                                                 </div>
                                                             )}
 
