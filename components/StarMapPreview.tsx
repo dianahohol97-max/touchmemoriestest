@@ -158,8 +158,15 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             '60×90 см': [600, 900],
         };
         const [W, H] = dimMap[config.size] || [600, 800];
-        // Use devicePixelRatio for crisp rendering on retina/HiDPI screens
-        const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 2;
+        // Render the canvas at TRUE print resolution. The logical layout is W×H;
+        // multiplying the pixel buffer by PRINT_SCALE makes it ~300 DPI so the
+        // export is sharp without upscaling a small screen canvas afterwards.
+        // The CSS size stays logical (set on the element), so the on-screen
+        // preview looks identical — only the pixel buffer is denser. Star maps
+        // are vector graphics (arcs, text), so this stays fast to redraw.
+        // A4 at 595 logical px → ×4.2 ≈ 2500 px ≈ 300 DPI on 21 cm.
+        const PRINT_SCALE = 4.2;
+        const dpr = PRINT_SCALE;
         canvas.width = W * dpr;
         canvas.height = H * dpr;
         ctx.scale(dpr, dpr);

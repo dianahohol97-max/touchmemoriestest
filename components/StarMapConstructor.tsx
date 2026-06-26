@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import StarMapPreview from './StarMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import ExportProgressModal from './ExportProgressModal';
-import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
+import { uploadOrderFile } from '@/lib/export-utils';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
@@ -53,6 +53,28 @@ interface StarMapConfig {
     qrY?: number;
     qrSize?: number;
     qrBgColor?: string;
+}
+
+// The preview canvas is now ~300 DPI (large). For the cart thumbnail and the
+// project row we only need a small image, so downscale to ~600px wide first —
+// otherwise a multi-megabyte base64 string bloats the cart and sessionStorage.
+function makePreviewDataUrl(canvas: HTMLCanvasElement | null): string {
+  if (!canvas || canvas.width === 0) return '';
+  try {
+    const targetW = 600;
+    const scale = targetW / canvas.width;
+    const tmp = document.createElement('canvas');
+    tmp.width = targetW;
+    tmp.height = Math.round(canvas.height * scale);
+    const ctx = tmp.getContext('2d');
+    if (!ctx) return canvas.toDataURL('image/jpeg', 0.6);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, 0, 0, tmp.width, tmp.height);
+    return tmp.toDataURL('image/jpeg', 0.7);
+  } catch {
+    return '';
+  }
 }
 
 export default function StarMapConstructor() {
@@ -196,21 +218,25 @@ export default function StarMapConstructor() {
 
         const cartItemId = `starmap_${Date.now()}`;
 
-        // Export canvas at 300 DPI if available
+        // Export canvas if available. The preview canvas is now rendered at
+        // ~300 DPI (PRINT_SCALE in StarMapPreview), so we export it directly as
+        // a JPEG instead of upscaling a small screen canvas. q=0.95 for print.
         if (canvas && canvas.width > 0) {
             try {
                 setExporting(true);
                 setExportDone(false);
 
-                const blob = await exportCanvasAt300DPI(canvas);
-                const filePath = `pending/${cartItemId}/starmap_300dpi.png`;
+                const blob: Blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.95);
+                });
+                const filePath = `pending/${cartItemId}/starmap_300dpi.jpg`;
                 await uploadOrderFile('poster-exports', filePath, blob);
 
                 // Store for checkout to link to real order_id later
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
                     bucket: 'poster-exports',
                     path: filePath,
-                    fileName: 'starmap_300dpi.png',
+                    fileName: 'starmap_300dpi.jpg',
                     fileCategory: 'star-map',
                     productType: 'star-map',
                     size: blob.size,
@@ -232,7 +258,7 @@ export default function StarMapConstructor() {
             name: product.name,
             price: config.price,
             qty: 1,
-            image: canvas ? canvas.toDataURL('image/jpeg', 0.7) : '',
+            image: makePreviewDataUrl(canvas),
             options: {
                 'Дата': config.date,
                 'Час': config.time,
@@ -270,7 +296,7 @@ export default function StarMapConstructor() {
                     name: config.headline?.trim() || product.name,
                     pages_data: [{ ...config }],
                     cart_payload: cartPayload,
-                    uploaded_photos: canvas ? [canvas.toDataURL('image/jpeg', 0.7)] : [],
+                    uploaded_photos: [makePreviewDataUrl(canvas)].filter(Boolean),
                     updated_at: new Date().toISOString(),
                 });
             }

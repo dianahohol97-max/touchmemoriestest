@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Upload, Plus, Trash2, Type, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw, Move, AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
-import { exportCanvasAt300DPI, uploadOrderFile } from '@/lib/export-utils';
+import { uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 
@@ -265,9 +265,12 @@ const LAYOUTS: Layout[] = [
 // wired so re-enabling is a one-line change.
 const SHOW_AI_PORTRAIT = false;
 
+// On-screen preview width in px. Print export scales padding/fonts against this.
+const PREVIEW_W = 480;
+
 const SIZES = [
-  { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30  },
-  { id: 'a3',    label: 'A3 (30×42)',  price: 450, ratio: 30/42  },
+  { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30, wCm: 21, hCm: 30 },
+  { id: 'a3',    label: 'A3 (30×42)',  price: 450, ratio: 30/42, wCm: 30, hCm: 42 },
 ];
 
 const FRAME_STYLES = [
@@ -712,13 +715,33 @@ export default function PosterConstructor() {
     setIsOrdering(true);
     try {
       let fileUrl = '';
-      const canvas = canvasRef.current;
-      if (canvas) {
-        try {
-          const blob = await exportCanvasAt300DPI(canvas);
-          const filePath = `poster-${Date.now()}.png`;
-          const uploadResult = await uploadOrderFile('poster-exports', filePath, blob); fileUrl = uploadResult.url;
-        } catch {}
+      // Print-ready layout: redraw the whole poster from the FULL-resolution
+      // originals at the physical size × 300 DPI (no upscaling of the small
+      // preview canvas). Falls back silently if anything fails — the per-photo
+      // originals are still uploaded below, so the manager is never left empty.
+      try {
+        const { renderPosterPrintBlob } = await import('@/lib/poster-render');
+        const blob = await renderPosterPrintBlob(
+          {
+            bgColor: config.bgColor,
+            padding: config.padding,
+            frameStyle: config.frameStyle,
+            frameColor: config.frameColor,
+            photos: config.photos as any,
+            textBlocks: config.textBlocks as any,
+          },
+          sizeObj.wCm,
+          sizeObj.hCm,
+          (W, H, p) => layout.getSlots(W, H, p) as any,
+          PREVIEW_W,
+        );
+        if (blob) {
+          const filePath = `poster-${Date.now()}.jpg`;
+          const uploadResult = await uploadOrderFile('poster-exports', filePath, blob);
+          fileUrl = uploadResult.url;
+        }
+      } catch (e) {
+        console.warn('poster print render failed:', e);
       }
 
       const cartPayload = {
@@ -821,7 +844,6 @@ export default function PosterConstructor() {
   };
 
   //  Preview width 
-  const PREVIEW_W = 480;
 
   //  Render 
   const steps = [
