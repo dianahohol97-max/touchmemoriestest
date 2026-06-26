@@ -80,30 +80,48 @@ export default function PrintPage() {
   const sizeKey = String(config.selectedSize || '20x20').replace(/[×х]/g, 'x');
   const [pw, ph] = sizeKey.split('x').map((n: string) => parseInt(n, 10) || 20);
 
+  // Spread count mirrors BookPreviewModal: cover (0) + content spreads.
+  const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
+
+  // ?page=N renders just that spread (what the render service requests per
+  // screenshot). No page param → render every spread stacked, for human review.
+  const pageParam = search.get('page');
+  const singleSpread = pageParam !== null ? parseInt(pageParam, 10) : null;
+  const spreadsToRender = singleSpread !== null
+    ? [singleSpread]
+    : Array.from({ length: spreadCount }, (_, i) => i);
+
+  // isPrinted may not be saved as a flag in older/newer configs — derive it from
+  // the cover type ("Друкована" = printed cover) too, otherwise the printed-cover
+  // photo renders down the wrong (velour/fabric) branch and the cover looks empty.
+  const coverTypeStr = String(config.selectedCoverType || config.coverType || '');
+  const isPrintedCover = !!config.isPrinted || /друков|printed/i.test(coverTypeStr);
+
+  const common = {
+    pages, photos, propW: pw, propH: ph,
+    freeSlots: overlays.freeSlots || {},
+    coverState,
+    isPrinted: isPrintedCover,
+    selectedCoverType: config.selectedCoverType || '',
+    effectiveCoverColor: config.effectiveCoverColor || '',
+    onClose: () => {},
+    pageBgs: overlays.pageBgs || {},
+    pageFrames: overlays.pageFrames || {},
+    pageShapes: overlays.pageShapes || {},
+    pageStickers: overlays.pageStickers || {},
+    qrOverlays: overlays.qrOverlays || {},
+    slotGap: config.slotGap ?? 4,
+    pageGap: config.pageGap ?? 0,
+    pageBorder: config.pageBorder || { width: 0, color: '#e2e8f0' },
+    isSpreadMode: config.isSpreadMode ?? true,
+    hasKalka: !!config.hasKalka,
+  };
+
   return (
-    <div data-print-root style={{ background: '#fff', minHeight: '100vh' }}>
-      <BookPreviewModal
-        pages={pages}
-        photos={photos}
-        propW={pw}
-        propH={ph}
-        freeSlots={overlays.freeSlots || {}}
-        coverState={coverState}
-        isPrinted={!!config.isPrinted}
-        selectedCoverType={config.selectedCoverType || ''}
-        effectiveCoverColor={config.effectiveCoverColor || ''}
-        onClose={() => { /* no-op: no chrome on the print page */ }}
-        pageBgs={overlays.pageBgs || {}}
-        pageFrames={overlays.pageFrames || {}}
-        pageShapes={overlays.pageShapes || {}}
-        pageStickers={overlays.pageStickers || {}}
-        qrOverlays={overlays.qrOverlays || {}}
-        slotGap={config.slotGap ?? 4}
-        pageGap={config.pageGap ?? 0}
-        pageBorder={config.pageBorder || { width: 0, color: '#e2e8f0' }}
-        isSpreadMode={config.isSpreadMode ?? true}
-        hasKalka={!!config.hasKalka}
-      />
+    <div data-print-root style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
+      {spreadsToRender.map((idx) => (
+        <BookPreviewModal key={idx} {...common} printSpreadIndex={idx} />
+      ))}
     </div>
   );
 }
