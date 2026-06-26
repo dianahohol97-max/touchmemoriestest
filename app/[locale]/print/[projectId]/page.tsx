@@ -87,6 +87,10 @@ export default function PrintPage() {
   // screenshot). No page param → render every spread stacked, for human review.
   const pageParam = search.get('page');
   const singleSpread = pageParam !== null ? parseInt(pageParam, 10) : null;
+  // ?w=N fixes the exact pixel width PER HALF PAGE — the render service passes
+  // the 300-DPI print width so the screenshot comes out at print resolution.
+  const wParam = search.get('w');
+  const printPageW = wParam ? parseInt(wParam, 10) : undefined;
   const spreadsToRender = singleSpread !== null
     ? [singleSpread]
     : Array.from({ length: spreadCount }, (_, i) => i);
@@ -120,7 +124,7 @@ export default function PrintPage() {
   return (
     <div data-print-root style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
       {spreadsToRender.map((idx) => (
-        <BookPreviewModal key={idx} {...common} printSpreadIndex={idx} />
+        <BookPreviewModal key={idx} {...common} printSpreadIndex={idx} printPageW={printPageW} />
       ))}
     </div>
   );
