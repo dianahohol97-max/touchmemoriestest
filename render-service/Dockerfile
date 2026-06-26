@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Install deps first (better layer caching)
 COPY package.json package-lock.json* ./
-RUN npm install --omit=dev && npm install -D typescript @types/node @types/express
+RUN npm install --omit=dev && npm install -D typescript @types/node @types/express @types/ws
 
 # Build
 COPY tsconfig.json ./
