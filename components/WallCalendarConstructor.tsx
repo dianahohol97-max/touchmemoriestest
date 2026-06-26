@@ -546,10 +546,48 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         };
         addItem(cartPayload);
 
-        // Upload originals to Storage so the manager has the source files when
-        // producing the calendar, AND so the print render can rebuild each month
-        // from full-resolution photos. We keep a photoId → storage path map so
-        // the saved config can reference originals (not low-res previews).
+        // Save the project ROW FIRST — before the (slow) photo uploads — so that
+        // if the user navigates to checkout immediately, the design is already
+        // persisted. Previously uploads ran first and a quick navigation aborted
+        // the function before the insert, leaving an order with no design.
+        // We insert with preview-based photo meta now, then patch in the real
+        // storage paths after the uploads finish. Returns the new project id so
+        // we can update it. Logged-in only (same rule as other constructors).
+        let projectId: string | null = null;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const photoMetaInitial = photos.map(p => ({
+                    id: p.id, path: null as string | null, bucket: 'order-files',
+                    width: p.width, height: p.height, preview: p.preview,
+                }));
+                const { data: inserted, error: insErr } = await supabase
+                    .from('projects')
+                    .insert({
+                        user_id: user.id,
+                        product_type: 'wall-calendar',
+                        format: SIZE_DIMS[size].label,
+                        status: 'draft',
+                        name: `Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
+                        pages_data: [{ size, accent, markedDates, pages, coverConfig }],
+                        cover_data: coverConfig,
+                        cart_payload: cartPayload,
+                        uploaded_photos: photoMetaInitial,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .select('id')
+                    .single();
+                if (insErr) console.error('wall-cal project insert failed:', insErr);
+                projectId = inserted?.id || null;
+            }
+        } catch (e) {
+            console.error('Saving wall-calendar project failed (non-blocking):', e);
+        }
+
+        // Upload originals to Storage so the manager has the source files AND so
+        // the print render can rebuild each month from full-resolution photos.
+        // photoId → storage path map lets us patch the saved project with real
+        // original paths once uploads complete.
         const photoPaths: Record<string, string> = {};
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -577,38 +615,22 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
             console.warn('wall-cal storage step skipped:', e);
         }
 
-        // Persist as a project so it appears in "Мої дизайни" AND so the print
-        // render can rebuild it. We save the FULL design (size, accent, every
-        // month page with its slots/crops, cover, marked dates) plus the photo
-        // metadata with their storage paths and bucket, so /print can resolve
-        // signed URLs to the originals. order_id is null here and gets linked at
-        // checkout (link-order) so the webhook can find this project.
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
+        // Patch the saved project with the real original storage paths so /print
+        // can sign URLs to full-resolution photos. If this doesn't run (fast
+        // navigation), the project still has the full config + previews, and the
+        // originals are recoverable from order_files via the cart item id.
+        if (projectId && Object.keys(photoPaths).length > 0) {
+            try {
                 const photoMeta = photos.map(p => ({
-                    id: p.id,
-                    path: photoPaths[p.id] || null,
-                    bucket: 'order-files',
-                    width: p.width,
-                    height: p.height,
-                    preview: p.preview,
+                    id: p.id, path: photoPaths[p.id] || null, bucket: 'order-files',
+                    width: p.width, height: p.height, preview: p.preview,
                 }));
-                await supabase.from('projects').insert({
-                    user_id: user.id,
-                    product_type: 'wall-calendar',
-                    format: SIZE_DIMS[size].label,
-                    status: 'draft',
-                    name: `Настінний фотокалендар 2026 · ${SIZE_DIMS[size].label}`,
-                    pages_data: [{ size, accent, markedDates, pages, coverConfig }],
-                    cover_data: coverConfig,
-                    cart_payload: cartPayload,
-                    uploaded_photos: photoMeta,
-                    updated_at: new Date().toISOString(),
-                });
+                await supabase.from('projects')
+                    .update({ uploaded_photos: photoMeta, updated_at: new Date().toISOString() })
+                    .eq('id', projectId);
+            } catch (e) {
+                console.warn('wall-cal project path patch skipped:', e);
             }
-        } catch (e) {
-            console.error('Saving wall-calendar project failed (non-blocking):', e);
         }
 
         toast.success(t('wallcal.calendar_added_to_cart'));
