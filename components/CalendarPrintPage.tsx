@@ -97,17 +97,17 @@ function PrintPhotoSlot({ photo, slot, W, H }: { photo: PhotoMeta | null; slot: 
     return <div style={{ width: W, height: H, background: '#eef2f7' }} />;
   }
   const zoom = slot.zoom || 1;
+  // Mirror the editor's PhotoSlot exactly: object-fit cover + object-position so
+  // the printed crop matches what the customer saw, for any aspect ratio.
   return (
     <div style={{ width: W, height: H, overflow: 'hidden', position: 'relative' }}>
       <img src={photo.preview} alt="" crossOrigin="anonymous" draggable={false}
         style={{
-          position: 'absolute',
-          width: `${100 * zoom}%`, height: `${100 * zoom}%`,
+          width: `${zoom * 100}%`, height: `${zoom * 100}%`,
           objectFit: 'cover',
-          left: `${50 - (slot.cropX ?? 50)}%`,
-          top: `${50 - (slot.cropY ?? 50)}%`,
-          transform: 'translate(-0%, -0%)',
           objectPosition: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
         }} />
     </div>
   );

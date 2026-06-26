@@ -295,9 +295,14 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
         const startCX = slot.cropX, startCY = slot.cropY;
         const zoom = slot.zoom || 1;
         startPointerDrag(e, (dx, dy) => {
+            // Pan in object-position space (0–100%). Dragging right should reveal
+            // the left of the photo, so cropX decreases as dx increases. The
+            // gain is scaled by W/H and zoom so the photo tracks the cursor at
+            // any aspect ratio — vertical photos in a wide slot pan their full
+            // height, which the old fixed-px transform couldn't do.
             onCropChange(
-                Math.max(0, Math.min(100, startCX - dx/W*100/zoom)),
-                Math.max(0, Math.min(100, startCY - dy/H*100/zoom)),
+                Math.max(0, Math.min(100, startCX - dx / W * 100 / zoom)),
+                Math.max(0, Math.min(100, startCY - dy / H * 100 / zoom)),
                 slot.zoom
             );
         });
@@ -313,9 +318,16 @@ function PhotoSlot({ slot, photo, W, H, onDrop, onCropChange }:
             onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('photo-id');if(id)onDrop(id);}}>
             {photo ? (
                 <img src={photo.preview} draggable={false} style={{
-                    width:`${(slot.zoom||1)*100}%`, height:`${(slot.zoom||1)*100}%`,
-                    objectFit:'cover', position:'absolute', top:'50%', left:'50%',
-                    transform:`translate(calc(-50% + ${(50-slot.cropX)*(slot.zoom||1)*0.5}px), calc(-50% + ${(50-slot.cropY)*(slot.zoom||1)*0.5}px))`,
+                    // object-fit:cover + object-position gives the FULL pan range
+                    // for any photo/slot aspect ratio (0% = top/left edge,
+                    // 100% = bottom/right edge), unlike the old fixed-px transform
+                    // which barely moved tall photos. zoom scales the box up so
+                    // there's overflow to pan into.
+                    width: `${(slot.zoom||1)*100}%`, height: `${(slot.zoom||1)*100}%`,
+                    objectFit: 'cover',
+                    objectPosition: `${slot.cropX ?? 50}% ${slot.cropY ?? 50}%`,
+                    position: 'absolute', top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
                     userSelect:'none', pointerEvents:'none',
                 }}/>
             ) : (
