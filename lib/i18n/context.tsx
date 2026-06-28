@@ -77,14 +77,17 @@ export function I18nProvider({
     const setLocale = useCallback((l: Locale) => {
         setLocaleState(l);
         localStorage.setItem('tm_locale', l);
-        // Navigate to new locale URL
+        // Navigate to the new-locale URL. Use replace() (not href =) so we don't
+        // leave the OLD-locale version of the current page in history — otherwise
+        // a "Back" click would land the user on the same page in the previous
+        // language (e.g. switch UK→EN on a product page, press Back, end up on UK).
         if (typeof window !== 'undefined') {
             const path = window.location.pathname;
             const localePattern = /^\/(uk|en|ro|pl|de)(\/|$)/;
             const newPath = localePattern.test(path)
                 ? path.replace(localePattern, `/${l}$2`)
                 : `/${l}${path}`;
-            window.location.href = newPath;
+            window.location.replace(newPath + window.location.search + window.location.hash);
         }
     }, []);
 
