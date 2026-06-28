@@ -40,7 +40,7 @@ export interface CoverState {
   textFontFamily: string;
   textFontSize: number;
   extraTexts: ExtraText[];
-  printedPhotoSlot?: PrintedPhotoSlot;
+  printedPhotoSlot?: PrintedPhotoSlot | null;
   printedTextBlocks?: PrintedTextBlock[];
   printedOverlay?: PrintedOverlay;
   printedBgColor?: string;
