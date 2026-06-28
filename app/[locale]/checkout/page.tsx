@@ -141,7 +141,11 @@ export default function CheckoutPage() {
                     code,
                     cart_total: rawTotal,
                     email: formData.email || undefined,
-                    items: items.map((it: any) => ({ product_id: it.product_id })),
+                    items: items.map((it: any) => ({
+                        product_id: it.product_id || it.id,
+                        price: it.price,
+                        qty: it.qty ?? it.quantity ?? 1,
+                    })),
                 }),
             });
             const result = await res.json();

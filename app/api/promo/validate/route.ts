@@ -134,14 +134,21 @@ export async function POST(request: Request) {
             }
         }
 
-        // 8. applies_to scope
+        // 8. applies_to scope — and compute the ELIGIBLE subtotal so the
+        // discount only applies to qualifying items, not the whole cart. A
+        // customer who adds a photobook (SUMMER7 applies) plus a magnet (it does
+        // not) must get 7% off the photobook only.
+        let eligibleTotal = cart_total; // 'all' → whole cart qualifies
+
         if (promo.applies_to === 'products' && Array.isArray(promo.applicable_product_ids) && promo.applicable_product_ids.length > 0) {
-            const cartProductIds = (items || []).map((i: any) => i.product_id).filter(Boolean);
-            const hasMatch = cartProductIds.some((pid: string) => promo.applicable_product_ids.includes(pid));
-            if (!hasMatch) {
+            const eligibleSet = new Set(promo.applicable_product_ids);
+            const eligibleItems = (items || []).filter((i: any) => eligibleSet.has(i.product_id));
+            if (eligibleItems.length === 0) {
                 return NextResponse.json({ valid: false, message: 'Промокод не діє на товари у кошику' }, { status: 400 });
             }
+            eligibleTotal = eligibleItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
         }
+
         if (promo.applies_to === 'categories' && Array.isArray(promo.applicable_category_ids) && promo.applicable_category_ids.length > 0) {
             const productIds = (items || []).map((i: any) => i.product_id).filter(Boolean);
             if (productIds.length === 0) {
@@ -151,20 +158,23 @@ export async function POST(request: Request) {
                 .from('products')
                 .select('id, category_id')
                 .in('id', productIds);
-            const cartCategoryIds = (prods || []).map((p: any) => p.category_id).filter(Boolean);
-            const hasMatch = cartCategoryIds.some((cid: string) => promo.applicable_category_ids.includes(cid));
-            if (!hasMatch) {
+            // product_id → category_id map, so we can pick only eligible items.
+            const catById = new Map((prods || []).map((p: any) => [p.id, p.category_id]));
+            const eligibleSet = new Set(promo.applicable_category_ids);
+            const eligibleItems = (items || []).filter((i: any) => eligibleSet.has(catById.get(i.product_id)));
+            if (eligibleItems.length === 0) {
                 return NextResponse.json({ valid: false, message: 'Промокод не діє на категорії у кошику' }, { status: 400 });
             }
+            eligibleTotal = eligibleItems.reduce((s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
         }
 
-        // 9. Discount amount
+        // 9. Discount amount — computed against the eligible subtotal.
         let discount_amount = 0;
         if (promo.type === 'percent') {
-            discount_amount = Math.round((cart_total * (promo.value / 100)) * 100) / 100;
+            discount_amount = Math.round((eligibleTotal * (promo.value / 100)) * 100) / 100;
         } else if (promo.type === 'fixed') {
             discount_amount = promo.value;
-            if (discount_amount > cart_total) discount_amount = cart_total;
+            if (discount_amount > eligibleTotal) discount_amount = eligibleTotal;
         }
         if (discount_amount < 0) discount_amount = 0;
 
