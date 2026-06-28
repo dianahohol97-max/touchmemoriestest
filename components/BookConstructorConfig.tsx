@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
 import TravelBookCoverSelector from './TravelBookCoverSelector';
-import { useT } from '@/lib/i18n/context';
+import { useT, useLocale } from '@/lib/i18n/context';
+import { getLocalized } from '@/lib/i18n/localize';
 
 interface ProductOption {
     name: string;
@@ -201,6 +202,7 @@ const FABRIC_BOOK_COLORS: Record<string, string> = {
 };
 export default function BookConstructorConfig({ productSlug }: BookConstructorConfigProps) {
     const t = useT();
+    const locale = useLocale();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [product, setProduct] = useState<BookProduct | null>(null);
@@ -1243,11 +1245,13 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-[#1e2d7d] mb-2">
-                    {productType === 'photobook' || productType === 'wishbook'
-                        ? (selectedCoverType
-                            ? `${product?.name || (productType === 'wishbook' ? t('book_config.wishbook_name') : t('book_config.photobook_name'))} — ${selectedCoverType.toLowerCase()} обкладинка`
-                            : product?.name || (productType === 'wishbook' ? t('book_config.wishbook_name') : t('book_config.photobook_name')))
-                        : product.name}
+                    {(() => {
+                        const localizedName = getLocalized(product, locale, 'name');
+                        const fallback = productType === 'wishbook'
+                            ? t('book_config.wishbook_name')
+                            : t('book_config.photobook_name');
+                        return localizedName || product?.name || fallback;
+                    })()}
                 </h1>
                 <p className="text-gray-600">{t('book_config.step1_title')}</p>
             </div>
