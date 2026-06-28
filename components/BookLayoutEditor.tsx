@@ -87,7 +87,7 @@ interface CoverState {
   // кольором) or 'graviruvannya' (Гравірування). +180 ₴ is charged whenever
   // extraTexts.length > 0 — flat, regardless of how many inscriptions.
   inscriptionMethod?: 'flex' | 'graviruvannya' | null;
-  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' } | null;
   printedPhotoSlots?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart'; photoId?: string|null; cropX?: number; cropY?: number; zoom?: number }[];
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
@@ -4457,10 +4457,20 @@ export default function BookLayoutEditor() {
                       </div>
                       )}
                       {!isHardCoverJournal && (
-                      <button onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
-                        style={{ padding:'6px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#64748b' }}>
-                        ↺ На весь розмір
-                      </button>
+                      <div style={{ display:'flex', gap:6 }}>
+                        <button onClick={()=>setCoverState(p=>({...p,printedPhotoSlot:{x:0,y:0,w:100,h:100,shape:'rect'}}))}
+                          style={{ flex:1, padding:'6px 10px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#64748b' }}>
+                          ↺ На весь розмір
+                        </button>
+                        {/* Remove the photo slot entirely for a photo-free cover
+                            (colour + text only). CoverEditor hides the slot when
+                            printedPhotoSlot is null, and the green "add photo to
+                            cover" button above brings it back. */}
+                        <button onClick={()=>{ pushHistory(); setCoverState(p=>({...p,printedPhotoSlot:null,printedPhotoSlots:undefined})); }}
+                          style={{ flex:1, padding:'6px 10px', border:'1px solid #fecaca', borderRadius:6, background:'#fef2f2', cursor:'pointer', fontSize:11, fontWeight:600, color:'#dc2626' }}>
+                          Прибрати фото
+                        </button>
+                      </div>
                       )}
                       {/* Bg color — moved up so it's always visible */}
                       <div>

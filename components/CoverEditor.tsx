@@ -108,7 +108,7 @@ export interface CoverConfig {
   textFontSize: number;
   extraTexts?: ExtraTextBlock[];
   // Printed cover
-  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' };
+  printedPhotoSlot?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart' } | null;
   printedPhotoSlots?: { x: number; y: number; w: number; h: number; shape: 'rect'|'circle'|'rounded'|'heart'; photoId?: string|null; cropX?: number; cropY?: number; zoom?: number }[];
   printedTextBlocks?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
   printedOverlay?: { type: 'none'|'color'|'gradient'; color: string; opacity: number; gradient: string };
