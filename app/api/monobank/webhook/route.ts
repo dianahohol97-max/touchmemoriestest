@@ -221,9 +221,12 @@ export async function POST(req: Request) {
         //     signature + our own create-invoice flow, but a defence in
         //     depth check costs nothing and would catch e.g. a hijacked
         //     keypair situation.
+        // Read with select('*') rather than an explicit column list: when the
+        // PostgREST schema cache is stale, naming monobank_* columns explicitly
+        // throws "column does not exist". '*' resolves whatever the table has.
         const { data: existingOrder } = await supabase
             .from('orders')
-            .select('id, total, customer_id, payment_status, monobank_invoice_status, monobank_invoice_id, with_designer, payment_type, prepaid_amount, items, certificate_code, certificate_applied, certificate_redeemed')
+            .select('*')
             .eq('id', reference)
             .single();
 
@@ -288,31 +291,25 @@ export async function POST(req: Request) {
                 notes = `Статус оплати змінено на: ${status}. Invoice: ${invoiceId}`;
         }
 
-        // Update order payment status — atomic conditional UPDATE.
-        // Only writes if the invoice/status combo isn't already recorded,
-        // which is what makes this race-safe: two concurrent webhook
-        // deliveries can't both succeed and both insert an order_history
-        // row. Whichever UPDATE runs first wins; the second observes 0
-        // affected rows and short-circuits.
-        const { data: updateResult, error: updateError } = await supabase
-            .from('orders')
-            .update({
-                payment_status: paymentStatus,
-                monobank_invoice_id: invoiceId,
-                monobank_invoice_status: status,
-                monobank_approval_code: approvalCode || null,
-                monobank_rrn: rrn || null,
-                ...(status === 'success' && existingOrder.payment_status !== 'paid'
-                    ? { paid_at: new Date().toISOString() }
-                    : {}),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', reference)
-            // Race-safety: only update if the (invoice_id, status) tuple
-            // hasn't already been applied. Use 'or' to handle the first-time
-            // case where monobank_invoice_id is NULL.
-            .or(`monobank_invoice_id.is.null,monobank_invoice_id.neq.${invoiceId},monobank_invoice_status.neq.${status}`)
-            .select('id');
+        // Update order payment status via a SQL function (RPC) instead of a
+        // direct .update(). PostgREST's schema cache periodically goes stale and
+        // then a direct update referencing monobank_invoice_id throws "column
+        // does not exist", breaking ALL payment confirmations. A SQL function
+        // resolves columns inside Postgres at execution time, so it is immune to
+        // that cache. The function keeps the same race-safety: it only updates
+        // when the (invoice_id, status) tuple isn't already applied, and returns
+        // the order id only if THIS call won the race (else NULL).
+        const { data: updatedId, error: updateError } = await supabase
+            .rpc('apply_monobank_payment', {
+                p_order_id: reference,
+                p_payment_status: paymentStatus,
+                p_invoice_id: invoiceId,
+                p_invoice_status: status,
+                p_approval_code: approvalCode || null,
+                p_rrn: rrn || null,
+                p_set_paid_at: status === 'success' && existingOrder.payment_status !== 'paid',
+            });
+        const updateResult = updatedId ? [{ id: updatedId }] : [];
 
         if (updateError) {
             console.error('Error updating order payment status:', updateError);
