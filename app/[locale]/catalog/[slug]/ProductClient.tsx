@@ -926,9 +926,27 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             <Navigation />
 
             <main className={styles.mainContainer} style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%', minWidth: 0 }}>
-                {/* Back Button */}
+                {/* Back Button — prefer in-site history, but guard the locale:
+                    if there's no usable history (direct link) or going back
+                    would leave the current language, go up to the product's
+                    category in the CURRENT locale instead. */}
                 <button
-                    onClick={() => router.back()}
+                    onClick={() => {
+                        const catSlug = product?.categories?.slug;
+                        const target = catSlug
+                            ? localePath(locale, `/category/${toPublicCategorySlug(catSlug)}`)
+                            : localePath(locale, '/catalog');
+                        // Use history only when the referrer is same-origin AND in
+                        // the same locale; otherwise navigate to the category so
+                        // the language never silently flips.
+                        const ref = typeof document !== 'undefined' ? document.referrer : '';
+                        const sameLocaleHistory = ref.includes(window.location.host) && ref.includes(`/${locale}/`);
+                        if (sameLocaleHistory && window.history.length > 1) {
+                            router.back();
+                        } else {
+                            router.push(target);
+                        }
+                    }}
                     style={{
                         fontSize: '14px',
                         color: '#263A99',
