@@ -3249,6 +3249,36 @@ export default function BookLayoutEditor() {
               if (/(\bcontrol\b|handle|toolbar|slider|zoom|export-ignore)/i.test(cls)) return true;
               return false;
             },
+            // html2canvas 1.4.1 ignores CSS transform:scale() on <img> elements
+            // when combined with objectFit — zoom set by the customer is dropped
+            // and photos render un-zoomed (wrong crop / stretched appearance).
+            // onclone converts scale(Z) + objectPosition into explicit width/height
+            // + top/left offsets so html2canvas captures exactly what the user sees.
+            onclone: (_doc: Document, el: HTMLElement) => {
+              el.querySelectorAll<HTMLImageElement>('img').forEach(img => {
+                const s = img.style;
+                const transform = s.transform || '';
+                const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
+                if (!scaleMatch) return;
+                const zoom = parseFloat(scaleMatch[1]);
+                if (!zoom || zoom === 1) return;
+                const pos = s.objectPosition || '50% 50%';
+                const [cpx, cpy] = pos.split(' ').map(v => parseFloat(v) || 50);
+                // Render the photo at zoom×100% size, shifted so the (cpx, cpy)
+                // anchor stays centred in its container (which has overflow:hidden).
+                s.width    = (zoom * 100).toFixed(2) + '%';
+                s.height   = (zoom * 100).toFixed(2) + '%';
+                s.position = 'absolute';
+                s.top      = (-(zoom - 1) * cpy).toFixed(2) + '%';
+                s.left     = (-(zoom - 1) * cpx).toFixed(2) + '%';
+                s.marginLeft = '0';
+                s.marginTop  = '0';
+                s.objectFit      = 'cover';
+                s.objectPosition = '0 0';
+                // Remove scale() but preserve rotate() if present
+                s.transform = transform.replace(/scale\([\d.]+\)/, '').trim() || 'none';
+              });
+            },
             // Dynamic scale so the exported canvas hits 300 DPI exactly.
             // For an A4 magazine spread that's typically scale ≈ 5–6,
             // depending on the customer's monitor zoom. Memory pressure
@@ -3258,7 +3288,7 @@ export default function BookLayoutEditor() {
             scale: dynamicScale,
             logging: false,
             allowTaint: false,
-          });
+          } as any);
           if (i === 0) {
             // Cover stays as a single image — it's printed as one
             // 470×328 mm sheet with the spine in the middle.
