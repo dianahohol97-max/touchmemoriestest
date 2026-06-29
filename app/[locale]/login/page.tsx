@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextUrl = searchParams.get('next') || '/account'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -50,7 +52,7 @@ export default function LoginPage() {
       setError('Невірний email або пароль')
       setLoading(false)
     } else {
-      router.push('/account')
+      router.push(nextUrl)
     }
   }
 
