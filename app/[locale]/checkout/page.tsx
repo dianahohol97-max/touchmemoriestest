@@ -510,6 +510,51 @@ export default function CheckoutPage() {
         } catch (err) {
             console.error('Failed to link projects to order:', err);
         }
+
+        // Save full design JSON for each book/magazine/travelbook cart item so
+        // Railway can render them at 300 DPI after payment. The editor stores
+        // the design in sessionStorage under design_{cartItemId} at addToCart
+        // time; we forward it here with the real order UUID.
+        for (const itemId of cartItemIds) {
+            let designRaw: string | null = null;
+            try { designRaw = sessionStorage.getItem(`design_${itemId}`); } catch { /* ignore */ }
+            if (!designRaw) continue;
+            try {
+                const design = JSON.parse(designRaw);
+                const cfg = design.config || {};
+                const slug = (cfg.productSlug || '').toLowerCase();
+                const isRailwayProduct =
+                    slug.includes('photobook') || slug.includes('fotoknig') ||
+                    slug.includes('travel') || slug.includes('magazine') ||
+                    slug.includes('zhurnal') || slug.includes('fotozhurnal') ||
+                    slug.includes('journal') || slug.includes('planner');
+                if (!isRailwayProduct) continue;
+
+                let productType = 'photobook';
+                if (slug.includes('travel')) productType = 'travelbook';
+                else if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('fotozhurnal')) productType = 'magazine';
+                else if (slug.includes('journal')) productType = 'journal';
+                else if (slug.includes('planner')) productType = 'planner';
+
+                await fetch('/api/projects/save-design', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId,
+                        cartItemId: itemId,
+                        design,
+                        productType,
+                        productName: cfg.productName || '',
+                        format: cfg.selectedSize || '',
+                        coverType: cfg.selectedCoverType || '',
+                        totalPages: (design.pages?.length || 1) - 1,
+                    }),
+                });
+                sessionStorage.removeItem(`design_${itemId}`);
+            } catch (err) {
+                console.error('Failed to save design for Railway render:', err);
+            }
+        }
     };
 
     const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {

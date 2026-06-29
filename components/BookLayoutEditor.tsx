@@ -3649,7 +3649,38 @@ export default function BookLayoutEditor() {
       } catch (e) {
         console.warn('Could not persist export list for cart linking:', e);
       }
-    } else {
+    }
+
+    // Always save full design JSON to sessionStorage so checkout can persist it
+    // to the projects table with the real order UUID — even for guest users who
+    // have no Supabase session. Railway render-order reads from projects, so
+    // this is the critical path that lets Railway render photobooks/magazines/
+    // travelbooks instead of falling back to the html2canvas snapshot.
+    try {
+      const designSnapshot = {
+        pages,
+        coverState,
+        pageStickers,
+        pageShapes,
+        pageBgs,
+        freeSlots,
+        qrOverlays,
+        generatedQRCount,
+        config,
+        uploadedPhotos: photos.map(p => ({
+          id: p.id,
+          name: p.name,
+          width: p.width,
+          height: p.height,
+          preview: p.preview,
+        })),
+      };
+      sessionStorage.setItem(`design_${orderId}`, JSON.stringify(designSnapshot));
+    } catch (e) {
+      console.warn('Could not persist design snapshot for Railway render:', e);
+    }
+
+    if (exportedFiles.length === 0) {
       // No print files were produced — either html2canvas captured nothing
       // (snapshots empty, e.g. the cover DOM node wasn't ready) OR snapshots
       // rendered but every upload failed. EITHER way a book/journal/wishbook
