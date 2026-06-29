@@ -3656,24 +3656,41 @@ export default function BookLayoutEditor() {
     // have no Supabase session. Railway render-order reads from projects, so
     // this is the critical path that lets Railway render photobooks/magazines/
     // travelbooks instead of falling back to the html2canvas snapshot.
+    // Upload originals to Supabase Storage first (using the anon/public INSERT
+    // policy on photobook-uploads) so Railway can build signed URLs from paths.
+    // blob:// URLs only live in the current browser tab — Railway can't access them.
     try {
+      const { createClient: createAnonClient } = await import('@/lib/supabase/client');
+      const sb = createAnonClient();
+      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> =
+        photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
+
+      for (let i = 0; i < photos.length; i++) {
+        const ph = photos[i];
+        let body: Blob | undefined;
+        const origFile = (ph as any).originalFile as File | undefined;
+        if (origFile) {
+          body = origFile;
+        } else if (ph.preview?.startsWith('blob:')) {
+          try { const r = await fetch(ph.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
+        } else if (ph.preview?.startsWith('data:')) {
+          try { body = await (await fetch(ph.preview)).blob(); } catch { /* skip */ }
+        }
+        if (!body) continue;
+        const path = `guest/${orderId}/originals/${ph.id}.jpg`;
+        try {
+          const { error: upErr } = await sb.storage
+            .from('photobook-uploads')
+            .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+          if (!upErr) uploadedPhotosMeta[i].path = path;
+          else console.warn('[design-snapshot] photo upload error', ph.id, upErr.message);
+        } catch (e) { console.warn('[design-snapshot] photo upload failed', ph.id, e); }
+      }
+
       const designSnapshot = {
-        pages,
-        coverState,
-        pageStickers,
-        pageShapes,
-        pageBgs,
-        freeSlots,
-        qrOverlays,
-        generatedQRCount,
-        config,
-        uploadedPhotos: photos.map(p => ({
-          id: p.id,
-          name: p.name,
-          width: p.width,
-          height: p.height,
-          preview: p.preview,
-        })),
+        pages, coverState, pageStickers, pageShapes, pageBgs,
+        freeSlots, qrOverlays, generatedQRCount, config,
+        uploadedPhotos: uploadedPhotosMeta,
       };
       sessionStorage.setItem(`design_${orderId}`, JSON.stringify(designSnapshot));
     } catch (e) {
