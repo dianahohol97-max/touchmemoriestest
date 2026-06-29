@@ -467,12 +467,13 @@ function PhotoSlotEditor({
   slotRect: { x: number; y: number; w: number; h: number };
   hideHeader?: boolean;
 }) {
+  const t = useT();
   return (
     <div style={{ background:'transparent' }}>
       {!hideHeader && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-          <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>Фото {index+1}</span>
-          <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}> Видалити</button>
+          <span style={{ fontSize:12, fontWeight:700, color:'#374151' }}>{t('poster.photo_n')} {index+1}</span>
+          <button onClick={() => onDelete(slot.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}>{t('poster.delete')}</button>
         </div>
       )}
       <img src={slot.photoUrl} style={{ width:'100%', height:72, objectFit:'cover', borderRadius:6, marginBottom:8 }} />
@@ -513,7 +514,7 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
   return (
     <div style={{ padding:'10px 12px', background:'#f8fafc', borderRadius:10, border:'1px solid #e2e8f0' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <span style={{ fontSize:11, color:'#94a3b8', fontFamily: block.fontFamily }}>{block.text.slice(0,20) || 'Новий текст'}</span>
+        <span style={{ fontSize:11, color:'#94a3b8', fontFamily: block.fontFamily }}>{block.text.slice(0,20) || t('poster.new_text')}</span>
         <button onClick={() => onDelete(block.id)} style={{ background:'#fee2e2', border:'none', borderRadius:6, padding:'3px 7px', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}></button>
       </div>
       <input type="text" value={block.text}
@@ -576,6 +577,51 @@ function TextBlockEditor({ block, onUpdate, onDelete }: {
 
 export default function PosterConstructor() {
     const t = useT();
+
+  // i18n helpers — map layout/frame IDs to localised labels
+  const layoutName = (id: string): string => {
+    const map: Record<string, string> = {
+      'single':           t('poster.one_photo'),
+      'circle-single':    t('poster.one_circle'),
+      'heart-single':     t('poster.one_heart'),
+      'two-h':            t('poster.two_horizontal'),
+      'two-v':            t('poster.two_vertical'),
+      'two-uneven':       t('poster.two_uneven'),
+      'two-circles':      t('poster.two_circles'),
+      'two-hearts':       t('poster.two_hearts'),
+      'three-top':        t('poster.three_top'),
+      'three-bot':        t('poster.three_bot'),
+      'triptych':         t('poster.triptych'),
+      'three-circles':    t('poster.three_circles'),
+      'four-grid':        t('poster.four_grid'),
+      'four-left':        t('poster.four_left'),
+      'four-right':       t('poster.four_right'),
+      'four-diagonal':    t('poster.four_diagonal'),
+      'four-circles':     t('poster.four_circles'),
+      'heart-collage-4':  t('poster.four_hearts'),
+      'heart-collage-2':  t('poster.two_hearts'),
+      'mixed-heart-grid': t('poster.heart_grid'),
+      'five-cross':       t('poster.five_cross'),
+      'five-grid':        t('poster.five_grid'),
+      'six-grid':         t('poster.six_grid'),
+      'six-3rows':        t('poster.six_3rows'),
+      'six-circles':      t('poster.six_circles'),
+      'nine-grid':        t('poster.nine_grid'),
+      'panorama':         t('poster.panorama'),
+    };
+    return map[id] ?? id;
+  };
+
+  const frameName = (id: string): string => {
+    const map: Record<string, string> = {
+      'none':    t('poster.no_frame'),
+      'thick':   t('poster.thick'),
+      'double':  t('poster.double'),
+      'rounded': t('poster.round'),
+    };
+    return map[id] ?? id;
+  };
+
   const router = useRouter();
   const { addItem } = useCartStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -679,7 +725,7 @@ export default function PosterConstructor() {
   //  Text management 
   const addTextBlock = () => {
     setConfig(prev => ({ ...prev, textBlocks: [...prev.textBlocks, {
-      id: `txt-${Date.now()}`, text: 'Ваш текст', x: 50, y: 90,
+      id: `txt-${Date.now()}`, text: t('poster.your_text'), x: 50, y: 90,
       fontSize: 24, fontFamily: 'Playfair Display', color: '#1a1a1a',
       align: 'center', bold: false, italic: false, letterSpacing: 1,
     }]}));
@@ -847,11 +893,11 @@ export default function PosterConstructor() {
 
   //  Render 
   const steps = [
-    { id: 'layout', label: '1. Макет' },
-    { id: 'photos', label: '2. Фото' },
-    { id: 'design', label: '3. Дизайн' },
-    { id: 'text',   label: '4. Текст' },
-    { id: 'size',   label: '5. Розмір' },
+    { id: 'layout', label: t('poster.tab_layout') },
+    { id: 'photos', label: t('poster.tab_photos') },
+    { id: 'design', label: t('poster.tab_design') },
+    { id: 'text',   label: t('poster.tab_text') },
+    { id: 'size',   label: t('poster.tab_size') },
   ];
 
   return (
@@ -878,15 +924,15 @@ export default function PosterConstructor() {
           {step === 'layout' && (
             <div>
               <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>{t('poster.select_layout')}</h3>
-              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>Як розміщувати фотографії на постері</p>
+              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>{t('poster.layout_hint')}</p>
               {[
-                { label: '1 фото', ids: ['single','circle-single','heart-single'] },
-                { label: '2 фото', ids: ['two-h','two-v','two-uneven','two-circles','two-hearts'] },
-                { label: '3 фото', ids: ['three-top','three-bot','triptych','three-circles'] },
-                { label: '4 фото', ids: ['four-grid','four-left','four-right','four-diagonal','four-circles','heart-collage-4'] },
-                { label: '5–6 фото', ids: ['five-cross','five-grid','six-grid','six-3rows','six-circles'] },
-                { label: '9+ фото', ids: ['nine-grid'] },
-                { label: 'Фігурні', ids: ['heart-collage-2','mixed-heart-grid','panorama'] },
+                { label: t('poster.group_1'),      ids: ['single','circle-single','heart-single'] },
+                { label: t('poster.group_2'),      ids: ['two-h','two-v','two-uneven','two-circles','two-hearts'] },
+                { label: t('poster.group_3'),      ids: ['three-top','three-bot','triptych','three-circles'] },
+                { label: t('poster.group_4'),      ids: ['four-grid','four-left','four-right','four-diagonal','four-circles','heart-collage-4'] },
+                { label: t('poster.group_56'),     ids: ['five-cross','five-grid','six-grid','six-3rows','six-circles'] },
+                { label: t('poster.group_9'),      ids: ['nine-grid'] },
+                { label: t('poster.group_shaped'), ids: ['heart-collage-2','mixed-heart-grid','panorama'] },
               ].map(group => {
                 const groupLayouts = LAYOUTS.filter(l => group.ids.includes(l.id));
                 if (!groupLayouts.length) return null;
@@ -903,7 +949,7 @@ export default function PosterConstructor() {
                               borderRadius:8, background: isActive ? '#f0f3ff' : '#fff',
                               cursor:'pointer', transition:'all 0.15s' }}>
                             <div style={{ width:'100%', height:52, padding:2 }}>{l.preview}</div>
-                            <span style={{ fontSize:9, fontWeight:700, color: isActive ? '#1e2d7d' : '#374151', textAlign:'center', lineHeight:1.2 }}>{l.name}</span>
+                            <span style={{ fontSize:9, fontWeight:700, color: isActive ? '#1e2d7d' : '#374151', textAlign:'center', lineHeight:1.2 }}>{layoutName(l.id)}</span>
                           </button>
                         );
                       })}
@@ -917,8 +963,8 @@ export default function PosterConstructor() {
           {/*  STEP 2: Photos  */}
           {step === 'photos' && (
             <div>
-              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Додати фото</h3>
-              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:12 }}>Макет "{layout.name}" — {layout.slots} фото</p>
+              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>{t('poster.add_photos_title')}</h3>
+              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:12 }}>{layoutName(config.layoutId)} — {layout.slots} {t('poster.layout_slots_hint')}</p>
 
               {config.photos.length < layout.slots && (<>
                 <button onClick={() => fileInputRef.current?.click()}
@@ -1000,7 +1046,7 @@ export default function PosterConstructor() {
                       {/* Drag handle + header */}
                       <div style={{ display:'flex', alignItems:'center', padding:'8px 12px 0', gap:6 }}>
                         <span style={{ fontSize:16, color:'#94a3b8', cursor:'grab', userSelect:'none' }}></span>
-                        <span style={{ fontSize:12, fontWeight:700, color:'#374151', flex:1 }}>Фото {i+1}</span>
+                        <span style={{ fontSize:12, fontWeight:700, color:'#374151', flex:1 }}>{t('poster.photo_n')} {i+1}</span>
                         {/* Move buttons */}
                         <button onClick={() => i > 0 && swapPhotos(i, i-1)} disabled={i===0}
                           style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===0?'not-allowed':'pointer', color:i===0?'#cbd5e1':'#374151', fontSize:12 }} title={t('poster.up')}>↑</button>
@@ -1008,7 +1054,7 @@ export default function PosterConstructor() {
                           style={{ padding:'2px 7px', border:'1px solid #e2e8f0', borderRadius:5, background:'#fff', cursor:i===config.photos.length-1?'not-allowed':'pointer', color:i===config.photos.length-1?'#cbd5e1':'#374151', fontSize:12 }} title={t('poster.down')}>↓</button>
                         {/* Replace button */}
                         <button onClick={() => { replaceTargetIdx.current = i; replaceInputRef.current?.click(); }}
-                          style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}> Замінити</button>
+                          style={{ padding:'2px 8px', border:'1px solid #c7d2fe', borderRadius:5, background:'#f0f3ff', cursor:'pointer', color:'#1e2d7d', fontSize:10, fontWeight:700 }}>{t('poster.replace')}</button>
                         <button onClick={() => deletePhoto(photo.id)}
                           style={{ padding:'2px 7px', border:'none', borderRadius:5, background:'#fee2e2', cursor:'pointer', color:'#ef4444', fontSize:11, fontWeight:700 }}></button>
                       </div>
@@ -1042,11 +1088,11 @@ export default function PosterConstructor() {
           {/*  STEP 3: Design  */}
           {step === 'design' && (
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', margin:0 }}>Дизайн</h3>
+              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', margin:0 }}>{t('poster.design_title')}</h3>
 
               {/* Background */}
               <div>
-                <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>Фон постера</label>
+                <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>{t('poster.bg_label')}</label>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:6 }}>
                   {BG_PRESETS.map(c => (
                     <button key={c} onClick={() => setConfig(p => ({ ...p, bgColor: c }))}
@@ -1066,7 +1112,7 @@ export default function PosterConstructor() {
                       style={{ padding:'7px 4px', border: config.frameStyle===f.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
                         borderRadius:8, background: config.frameStyle===f.id ? '#f0f3ff' : '#fff',
                         cursor:'pointer', fontSize:10, fontWeight:700, color: config.frameStyle===f.id ? '#1e2d7d' : '#374151' }}>
-                      {f.label}
+                      {frameName(f.id)}
                     </button>
                   ))}
                 </div>
@@ -1075,7 +1121,7 @@ export default function PosterConstructor() {
               {/* Frame color */}
               {config.frameStyle !== 'none' && (
                 <div>
-                  <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>Колір рамки</label>
+                  <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>{t('poster.frame_color_label')}</label>
                   <div style={{ display:'flex', gap:6, marginBottom:6 }}>
                     {['#1a1a1a','#ffffff','#1e2d7d','#b8860b','#8b0000','#2d5a27'].map(c => (
                       <button key={c} onClick={() => setConfig(p => ({ ...p, frameColor: c }))}
@@ -1090,7 +1136,7 @@ export default function PosterConstructor() {
               {/* Padding */}
               <div>
                 <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#374151', marginBottom:8 }}>
-                  Відступ від краю: {config.padding}px
+                  {t('poster.padding_edge')}: {config.padding}px
                 </label>
                 <input type="range" min={0} max={60} value={config.padding}
                   onChange={e => setConfig(p => ({ ...p, padding: +e.target.value }))}
@@ -1103,17 +1149,17 @@ export default function PosterConstructor() {
           {step === 'text' && (
             <div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', margin:0 }}>Написи</h3>
+                <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', margin:0 }}>{t('poster.text_title')}</h3>
                 <button onClick={addTextBlock}
                   style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontSize:12, fontWeight:700 }}>
-                  <Plus size={14}/> Додати
+                  <Plus size={14}/> {t('poster.add')}
                 </button>
               </div>
 
               {config.textBlocks.length === 0 ? (
                 <div style={{ textAlign:'center', padding:'32px 16px', color:'#94a3b8' }}>
                   <div style={{ fontSize:32, marginBottom:8 }}></div>
-                  <div style={{ fontSize:13 }}>Натисніть "Додати" щоб додати напис</div>
+                  <div style={{ fontSize:13 }}>{t('poster.no_texts')}</div>
                 </div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -1135,8 +1181,8 @@ export default function PosterConstructor() {
           {/*  STEP 5: Size  */}
           {step === 'size' && (
             <div>
-              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>Розмір постера</h3>
-              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>Вибір впливає на ціну</p>
+              <h3 style={{ fontWeight:800, fontSize:16, color:'#1e2d7d', marginBottom:4 }}>{t('poster.size_title')}</h3>
+              <p style={{ fontSize:12, color:'#94a3b8', marginBottom:16 }}>{t('poster.size_hint')}</p>
               <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:24 }}>
                 {SIZES.map(s => (
                   <button key={s.id} onClick={() => setConfig(p => ({ ...p, size: s.id as any }))}
@@ -1151,12 +1197,12 @@ export default function PosterConstructor() {
 
               {/* Order summary */}
               <div style={{ background:'#f0f3ff', borderRadius:12, padding:16, marginBottom:16 }}>
-                <div style={{ fontSize:12, color:'#64748b', marginBottom:8 }}>Ваше замовлення:</div>
+                <div style={{ fontSize:12, color:'#64748b', marginBottom:8 }}>{t('poster.your_order')}</div>
                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                  <span style={{ fontSize:13, color:'#374151' }}>Постер {sizeObj.label}</span>
+                  <span style={{ fontSize:13, color:'#374151' }}>{t('poster.order_poster')} {sizeObj.label}</span>
                   <span style={{ fontSize:13, fontWeight:700, color:'#1e2d7d' }}>{sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴</span>
                 </div>
-                <div style={{ fontSize:12, color:'#94a3b8' }}>Макет: {layout.name} · {config.photos.length} фото</div>
+                <div style={{ fontSize:12, color:'#94a3b8' }}>{t('poster.layout')} {layoutName(config.layoutId)} · {config.photos.length} {t('poster.layout_meta_photos')}</div>
                 {hasAiPortrait && (
                   <div style={{ fontSize:11, color:'#7c3aed', fontWeight:700, marginTop:4 }}>
                      AI Портрет +{AI_PORTRAIT_PRICE} ₴
@@ -1171,7 +1217,7 @@ export default function PosterConstructor() {
                   border:'none', borderRadius:12, fontWeight:800, fontSize:15, cursor: isPosterEmpty ? 'not-allowed' : 'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow: !isPosterEmpty ? '0 4px 20px rgba(30,45,125,0.3)' : 'none' }}>
                 <ShoppingCart size={18}/>
-                {isOrdering ? t('constructor.processing') : isPosterEmpty ? 'Додайте фото або текст' : `Замовити за ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
+                {isOrdering ? t('constructor.processing') : isPosterEmpty ? t('poster.add_text_or_photo') : `${t('poster.order_btn')} ${sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0)} ₴`}
               </button>
             </div>
           )}
@@ -1182,12 +1228,12 @@ export default function PosterConstructor() {
           <button onClick={() => { const idx = steps.findIndex(s => s.id === step); if (idx > 0) setStep(steps[idx-1].id as any); }}
             disabled={step === 'layout'}
             style={{ display:'flex', alignItems:'center', gap:4, padding:'8px 14px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor: step==='layout'?'not-allowed':'pointer', color: step==='layout'?'#cbd5e1':'#374151', fontWeight:600, fontSize:13 }}>
-            <ChevronLeft size={14}/> Назад
+            <ChevronLeft size={14}/> {t('poster.back')}
           </button>
           {step !== 'size' && (
             <button onClick={() => { const idx = steps.findIndex(s => s.id === step); if (idx < steps.length-1) setStep(steps[idx+1].id as any); }}
               style={{ display:'flex', alignItems:'center', gap:4, padding:'8px 14px', background:'#1e2d7d', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:700, fontSize:13 }}>
-              Далі <ChevronRight size={14}/>
+              {t('poster.next')} <ChevronRight size={14}/>
             </button>
           )}
         </div>
@@ -1196,7 +1242,7 @@ export default function PosterConstructor() {
       {/*  RIGHT: Live Preview  */}
       <div style={{ flex:1, background:'#f4f6fb', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'32px 24px', gap:16, minWidth:0 }}>
         <div style={{ fontSize:12, fontWeight:700, color:'#94a3b8', letterSpacing:'0.1em', textTransform:'uppercase' }}>
-          Попередній перегляд — {sizeObj.label}
+          {t('poster.preview_label')} — {sizeObj.label}
         </div>
         <div style={{ width:'100%', maxWidth:PREVIEW_W, position:'relative' }}>
           <PosterPreview config={config} canvasRef={canvasRef} W={PREVIEW_W} />
@@ -1248,7 +1294,7 @@ export default function PosterConstructor() {
                           }}
                           onClick={e => e.stopPropagation()}
                         >
-                          <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>Кадрування {i+1}:</span>
+                          <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>{t('poster.crop_label')} {i+1}:</span>
                           {/* Zoom — explicit −/+ so it's clear you can enlarge/shrink the photo */}
                           <span style={{ color:'#fff', fontSize:11 }}>🔍</span>
                           <button onClick={() => updatePhoto(photo.id, { zoom: Math.max(1, +(((photo.zoom||1) - 0.1).toFixed(2))) })}
@@ -1277,7 +1323,7 @@ export default function PosterConstructor() {
                           <button onClick={() => updatePhoto(photo.id, { cropX:50, cropY:50, zoom:1 })}
                             style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, padding:'2px 7px', color:'#fff', cursor:'pointer', fontSize:10 }}>↺</button>
                           <button onClick={() => setCropSlotIdx(null)}
-                            style={{ background:'#3b82f6', border:'none', borderRadius:5, padding:'2px 8px', color:'#fff', cursor:'pointer', fontSize:10, fontWeight:700 }}>Готово</button>
+                            style={{ background:'#3b82f6', border:'none', borderRadius:5, padding:'2px 8px', color:'#fff', cursor:'pointer', fontSize:10, fontWeight:700 }}>{t('poster.done')}</button>
                         </div>
                       )}
                       {/* Hint to click */}
@@ -1285,7 +1331,7 @@ export default function PosterConstructor() {
                         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'flex-end', justifyContent:'flex-end', padding:4, opacity:0, transition:'opacity 0.15s' }}
                           onMouseEnter={e => (e.currentTarget.style.opacity='1')}
                           onMouseLeave={e => (e.currentTarget.style.opacity='0')}>
-                          <span style={{ background:'rgba(0,0,0,0.65)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4 }}> Кадрувати</span>
+                          <span style={{ background:'rgba(0,0,0,0.65)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:4 }}>{t('poster.crop_btn')}</span>
                         </div>
                       )}
                     </div>

@@ -157,6 +157,7 @@ app.post('/render', async (req, res) => {
     //   • no printSpec (books): cover + spreads via [data-print-spread].
     if (printSpec && Array.isArray(printSpec.pages) && printSpec.pages.length) {
       const selector = printSpec.selector || '[data-print-page]';
+      const failed: { page: number; error: string }[] = [];
       for (let i = 0; i < printSpec.pages.length; i++) {
         const mm = printSpec.pages[i];
         const pxW = mmToPx(mm.w);
@@ -172,9 +173,15 @@ app.post('/render', async (req, res) => {
           await page.evaluate(async () => {
             await (document as any).fonts?.ready;
             const imgs = Array.from(document.images);
+            // Bound image waiting so a single stalled/empty <img> can't hang the
+            // whole page: resolve after 8s even if onload never fires.
             await Promise.all(imgs.map(img => img.complete && img.naturalWidth > 0
               ? Promise.resolve()
-              : new Promise(r => { img.onload = r; img.onerror = r; })));
+              : new Promise(r => {
+                  const done = () => r(null);
+                  img.onload = done; img.onerror = done;
+                  setTimeout(done, 8000);
+                })));
           });
           await page.waitForTimeout(300);
           const el = await page.$(selector);
@@ -194,11 +201,16 @@ app.post('/render', async (req, res) => {
             .upload(storagePath, jpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
           if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
           uploaded.push(storagePath);
+        } catch (pageErr: any) {
+          // One bad page (e.g. a missing photo) must not abort the whole
+          // calendar. Log it, record it, and carry on with the rest.
+          console.error(`[render] page ${i} failed, skipping:`, pageErr?.message || pageErr);
+          failed.push({ page: i, error: String(pageErr?.message || pageErr) });
         } finally {
           await page.close();
         }
       }
-      return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded });
+      return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded, failed });
     }
 
     // ── Book path (spreads) ─────────────────────────────────────────────────
