@@ -6002,7 +6002,7 @@ export default function BookLayoutEditor() {
                                 <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
-                              <div onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                              <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
                                 style={{ position:'absolute', bottom:4, left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', gap:3, background:'rgba(0,0,0,0.7)', borderRadius:16, padding:'2px 8px', zIndex:20 }}>
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:Math.max(0.3,(p.backCoverZoom??1)-0.1)}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,padding:'0 2px'}}>−</button>
                                 <span style={{color:'#fff',fontSize:8,fontWeight:700,minWidth:24,textAlign:'center'}}>{Math.round(bZoom*100)}%</span>
@@ -6017,7 +6017,7 @@ export default function BookLayoutEditor() {
                               {/* Delete photo */}
                               <button data-export-ignore="true" onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',fontSize:14,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)' }} onMouseDown={e=>e.stopPropagation()}>×</button>
                               {/* Move handle — always visible drag grip */}
-                              <div onPointerDown={e => { e.stopPropagation(); startBackSlotDrag(e, 'move'); }}
+                              <div data-export-ignore="true" onPointerDown={e => { e.stopPropagation(); startBackSlotDrag(e, 'move'); }}
                                 style={{position:'absolute',top:4,left:4,width:22,height:22,cursor:'move',zIndex:25,
                                   display:'flex',alignItems:'center',justifyContent:'center',
                                   background:'rgba(0,0,0,0.55)',borderRadius:6,touchAction:'manipulation'}}
@@ -6118,7 +6118,7 @@ export default function BookLayoutEditor() {
                               );
                             }}>
                             {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
-                            <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
+                            <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
                         ))}
@@ -6195,7 +6195,7 @@ export default function BookLayoutEditor() {
                               );
                             }}>
                             {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
-                            <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
+                            <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
                         ))}
@@ -6204,7 +6204,7 @@ export default function BookLayoutEditor() {
                   )}
                 </div>
                 {/* Cover fold-in (turn-in) margins — see comment in first cover render */}
-                <div style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
+                <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
                   <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
                     <rect x={cW*coverBleed.left}
                           y={cH*coverBleed.top}
@@ -7251,7 +7251,7 @@ export default function BookLayoutEditor() {
                                     style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
                                   {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
-                                    <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
+                                    <div data-export-ignore="true" style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
                                       <span style={{color:'#fff',fontSize:8,fontWeight:700}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                     </div>
                                   )}
@@ -7274,7 +7274,7 @@ export default function BookLayoutEditor() {
                                     const HALF = isMobile ? 90 : 130;
                                     const shiftX = Math.round(Math.max(HALF, Math.min(pageW - HALF, slotCenter)) - slotCenter);
                                     return (
-                                    <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:`translateX(calc(-50% + ${shiftX}px))`,display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
+                                    <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:`translateX(calc(-50% + ${shiftX}px))`,display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
                                       {/* Row 1: zoom + rotate + delete */}
                                       <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
                                         <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
@@ -7339,6 +7339,7 @@ export default function BookLayoutEditor() {
                                   })()}
                                 </div>
                                 <button
+                                  data-export-ignore="true"
                                   onClick={()=>{ clearSlot(pageIdx,i); activeSlotRef.current=null; }}
                                   onPointerDown={e=>{ e.stopPropagation(); activeSlotRef.current = { pageIdx, slotIdx: i }; }}
                                   style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)',fontSize:14,fontWeight:700}}>×</button>
@@ -7350,7 +7351,7 @@ export default function BookLayoutEditor() {
                                   if (!dpiCheck || dpiCheck.level === 'ok') return null;
                                   const isBad = dpiCheck.level === 'bad';
                                   return (
-                                    <div title={`${dpiCheck.dpi} DPI — ${isBad ? t('constructor.quality_bad') : t('constructor.quality_low')}`}
+                                    <div data-export-ignore="true" title={`${dpiCheck.dpi} DPI — ${isBad ? t('constructor.quality_bad') : t('constructor.quality_low')}`}
                                       style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px',
                                         background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)',
                                         borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help',
@@ -7384,6 +7385,7 @@ export default function BookLayoutEditor() {
                               </div>
                             )}
                             {editSlotKey === key && (
+                              <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:54}}>
                               <>
                                 {/* Selection border */}
                                 <div style={{position:'absolute',inset:0,border:'2px solid #3b82f6',borderRadius:4,zIndex:55,pointerEvents:'none'}}/>
@@ -7407,6 +7409,7 @@ export default function BookLayoutEditor() {
                                 <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}} onPointerDown={e=>e.stopPropagation()}
                                   style={{position:'absolute',left:'50%',top:-26,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:58,boxShadow:'0 2px 6px rgba(0,0,0,0.3)',whiteSpace:'nowrap'}}>Готово</button>
                               </>
+                              </div>
                             )}
                           </div>
                         );
