@@ -6015,7 +6015,7 @@ export default function BookLayoutEditor() {
                                 <button onClick={()=>setCoverState((p: any)=>({...p,backCoverZoom:1,backCoverCropX:50,backCoverCropY:50}))} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:8,fontWeight:700,padding:'0 2px'}}>↺</button>
                               </div>
                               {/* Delete photo */}
-                              <button onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',fontSize:14,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)' }} onMouseDown={e=>e.stopPropagation()}>×</button>
+                              <button data-export-ignore="true" onClick={()=>setCoverState((p: any)=>({...p,backCoverPhotoId:null}))} style={{ position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',fontSize:14,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,boxShadow:'0 2px 6px rgba(0,0,0,0.3)' }} onMouseDown={e=>e.stopPropagation()}>×</button>
                               {/* Move handle — always visible drag grip */}
                               <div onPointerDown={e => { e.stopPropagation(); startBackSlotDrag(e, 'move'); }}
                                 style={{position:'absolute',top:4,left:4,width:22,height:22,cursor:'move',zIndex:25,
@@ -6534,7 +6534,7 @@ export default function BookLayoutEditor() {
                                   style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
                                 {/* Zoom hint + badge */}
                                 {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
-                                  <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
+                                  <div data-export-ignore="true" style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
                                     <span style={{color:'#fff',fontSize:8,fontWeight:700}}>{Math.round((slot!.zoom||1)*100)}%</span>
                                   </div>
                                 )}
@@ -6553,7 +6553,7 @@ export default function BookLayoutEditor() {
                                     ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) }
                                     : { top: -44 };
                                   return (
-                                  <div onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
+                                  <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
                                     <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
                                       <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
                                       <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
@@ -6659,6 +6659,7 @@ export default function BookLayoutEditor() {
                               {/* Delete button — always visible on touch, hover on desktop */}
                               {slot?.photoId && (
                                 <button
+                                  data-export-ignore="true"
                                   onClick={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setEditSlotKey(null);activeSlotRef.current=null;}}
                                   onPointerDown={e=>{ e.stopPropagation(); activeSlotRef.current = { pageIdx: spreadPageIdx, slotIdx: i }; }}
                                   style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(220,38,38,0.85)',color:'#fff',border:'2px solid rgba(255,255,255,0.8)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:20,fontSize:14,fontWeight:700,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>×</button>
@@ -6671,7 +6672,7 @@ export default function BookLayoutEditor() {
                                 if (!dpiCheck || dpiCheck.level === 'ok') return null;
                                 const isBad = dpiCheck.level === 'bad';
                                 return (
-                                  <div title={`${dpiCheck.dpi} DPI — ${isBad ? t('constructor.quality_bad') : t('constructor.quality_low')}`}
+                                  <div data-export-ignore="true" title={`${dpiCheck.dpi} DPI — ${isBad ? t('constructor.quality_bad') : t('constructor.quality_low')}`}
                                     style={{ position:'absolute', top:4, left:4, display:'flex', alignItems:'center', gap:3, padding:'2px 6px', background: isBad ? 'rgba(220,38,38,0.9)' : 'rgba(217,119,6,0.9)', borderRadius:10, zIndex:35, pointerEvents:'auto', cursor:'help', fontSize:9, fontWeight:700, color:'#fff' }}>
                                     <span style={{fontSize:11}}></span>{dpiCheck.dpi} DPI
                                   </div>
@@ -6693,7 +6694,8 @@ export default function BookLayoutEditor() {
                           const sl = slotStyle;
                           const lx = Number(sl.left)||0, ty = Number(sl.top)||0, sw = Number(sl.width)||100, sh = Number(sl.height)||100;
                           return (
-                            <>
+                            <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:15}}>
+                              <>
                               {/* Blue selection border */}
                               <div style={{position:'absolute',left:lx-2,top:ty-2,width:sw+4,height:sh+4,border:'2px solid #3b82f6',borderRadius:4,zIndex:14,pointerEvents:'none'}}/>
                               {/* Snap guides — center lines */}
@@ -6741,6 +6743,7 @@ export default function BookLayoutEditor() {
                                  Готово
                               </button>
                             </>
+                            </div>
                           );
                         })()}
                         </React.Fragment>
@@ -6823,17 +6826,20 @@ export default function BookLayoutEditor() {
                     {(pageStickers[spreadPageIdx] || []).map(st => {
                       const isStSel = selectedStickerId === st.id;
                       return (
-                      <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex: zIndexFor(st.zOrder), touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32, outline: isStSel ? '2px dashed #1e2d7d' : 'none', outlineOffset: 2 }}
+                      <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex: zIndexFor(st.zOrder), touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32, outlineOffset: 2 }}
                         onPointerDown={e => { e.stopPropagation(); setSelectedStickerId(st.id); setSelectedQrId(null); setSelectedTextId(null); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
                         {st.url ? <img src={st.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block' }} draggable={false}/> : <span style={{ fontSize:typeof st.w==='string'&&st.w.endsWith('%')?Math.round(spreadW*parseFloat(st.w)/100*0.7):32, lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{st.emoji}</span>}
-                        <button onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                        <button data-export-ignore="true" onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                         {isStSel && (
-                          <ZOrderToolbar
-                            onBringForward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'forward')}
-                            onSendBackward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'backward')}
-                            onBringToFront={() => zOrderAction('sticker', st.id, spreadPageIdx, 'front')}
-                            onSendToBack={() => zOrderAction('sticker', st.id, spreadPageIdx, 'back')}
-                          />
+                          <>
+                            <div data-export-ignore="true" style={{position:'absolute',inset:-2,border:'2px dashed #1e2d7d',borderRadius:2,pointerEvents:'none'}}/>
+                            <ZOrderToolbar
+                              onBringForward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'forward')}
+                              onSendBackward={() => zOrderAction('sticker', st.id, spreadPageIdx, 'backward')}
+                              onBringToFront={() => zOrderAction('sticker', st.id, spreadPageIdx, 'front')}
+                              onSendToBack={() => zOrderAction('sticker', st.id, spreadPageIdx, 'back')}
+                            />
+                          </>
                         )}
                       </div>
                       );
@@ -6857,7 +6863,7 @@ export default function BookLayoutEditor() {
                         }}>
                         <img src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
                         {/* Delete */}
-                        <button onClick={()=>setQrOverlays(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(q=>q.id!==qr.id)}))}
+                        <button data-export-ignore="true" onClick={()=>setQrOverlays(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(q=>q.id!==qr.id)}))}
                           style={{position:'absolute',top:-7,right:-7,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,zIndex:20}}>×</button>
                         {/* SE resize handle — drag to resize keeping square ratio. */}
                         <div onPointerDown={e => {
