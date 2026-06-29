@@ -1794,7 +1794,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     }
                                                     constructorUrl = url.pathname + '?' + url.searchParams.toString();
                                                 }
-                                                router.push(constructorUrl);
+                                                requireAuth(() => router.push(constructorUrl), 'Щоб відкрити редактор та зберегти ваш дизайн — увійдіть в акаунт');
                                             }}
                                             style={{
                                                 flex: 1,
