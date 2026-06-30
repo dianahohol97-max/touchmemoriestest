@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
-    const guard = await requireAdmin();
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     const params = await props.params;
@@ -28,7 +28,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 }
 
 export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
-    const guard = await requireAdmin();
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     const params = await props.params;

@@ -77,9 +77,49 @@ export async function requireAdmin(): Promise<Guard> {
 }
 
 /**
- * Require either admin OR ownership of a customer record (i.e. the calling
- * user's customers.auth_user_id matches the given customer id).
+ * Require any ACTIVE staff member (admin, owner, manager, designer,
+ * marketer, production — any role with an active staff row), OR an
+ * admin_users entry.
+ *
+ * Use this for read-only admin-panel data that every staff member is
+ * allowed to see: the dashboard, the orders list, order details, the
+ * design queue. The narrower requireAdmin stays on destructive or
+ * sensitive actions (deleting orders, editing prices, managing staff).
+ *
+ * This mirrors the access the proxy.ts /admin gate already grants — it
+ * lets any active staff member load the /admin UI — so the data APIs must
+ * not be stricter than the page that renders them, otherwise managers see
+ * the shell with empty data (the '0 замовлень' bug).
  */
+export async function requireStaff(): Promise<Guard> {
+    const { user } = await getSession();
+    if (!user) {
+        return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    }
+
+    const admin = getAdminClient();
+    const email = user.email;
+
+    if (email) {
+        const { data: adminRow } = await admin
+            .from('admin_users')
+            .select('id')
+            .ilike('email', email)
+            .maybeSingle();
+        if (adminRow) return { ok: true, userId: user.id };
+
+        const { data: staffRow } = await admin
+            .from('staff')
+            .select('id, is_active')
+            .ilike('email', email)
+            .maybeSingle();
+        if (staffRow && (staffRow as any).is_active) {
+            return { ok: true, userId: user.id };
+        }
+    }
+
+    return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+}
 export async function requireOwnerOrAdmin(customerId: string | null): Promise<Guard> {
     const { user } = await getSession();
     if (!user) {

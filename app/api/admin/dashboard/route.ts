@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * RLS dependency and makes the numbers deterministic.
  */
 export async function GET() {
-  const guard = await requireAdmin();
+  const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
   try {

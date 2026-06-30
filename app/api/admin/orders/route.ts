@@ -1,11 +1,11 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-    const guard = await requireAdmin();
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     try {
