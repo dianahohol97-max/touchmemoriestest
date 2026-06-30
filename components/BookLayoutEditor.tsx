@@ -66,7 +66,7 @@ import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
-interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; }
+interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
 interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
@@ -1185,6 +1185,11 @@ export default function BookLayoutEditor() {
   // so when the user re-adds the same files they snap back into place. The photo
   // files themselves aren't stored on our servers, only the design structure is.
   const reopenPlacementRef = React.useRef<Record<string, { pages: { pi: number; si: number }[]; free: { pi: number; idx: number }[]; cover: boolean }>>({});
+  // Tracks the projects.id we're editing, if this session started from
+  // "Мої дизайни" → reopenDesign(). null means this is a brand-new draft.
+  // Used by handleSaveAndExit / autosave to UPDATE instead of inserting a
+  // duplicate project row every time the user saves.
+  const currentProjectIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     const cfg = sessionStorage.getItem('bookConstructorConfig');
@@ -1211,8 +1216,10 @@ export default function BookLayoutEditor() {
     //   • blob:http://... — new fast path, just a reference to the
     //     File object kept alive on window.__bookPhotoOriginals. No
     //     base64 conversion = ~10× faster for big batches.
+    //   • https://...     — signed Storage URL, used when reopening a saved
+    //     draft from another device/session (account page → reopenDesign).
     const isValidPreview = (s: string | undefined): boolean =>
-      !!s && (s.startsWith('data:image') || s.startsWith('blob:'));
+      !!s && (s.startsWith('data:image') || s.startsWith('blob:') || s.startsWith('https://'));
 
     const inMem = (window as unknown as { __bookPhotoOriginals?: PhotoData[] }).__bookPhotoOriginals;
     const inMemValid = Array.isArray(inMem) ? inMem.filter(p =>
@@ -1363,6 +1370,8 @@ export default function BookLayoutEditor() {
     // account page. Pick up the filename→slots map so re-added photos snap back.
     try {
       const placementRaw = sessionStorage.getItem('bookReopenPlacement');
+      const reopenProjectId = sessionStorage.getItem('bookReopenProjectId');
+      if (reopenProjectId) currentProjectIdRef.current = reopenProjectId;
       if (placementRaw) {
         const placement = JSON.parse(placementRaw) || {};
         reopenPlacementRef.current = placement;
@@ -2864,31 +2873,99 @@ export default function BookLayoutEditor() {
   const [showExitModal, setShowExitModal] = useState(false);
   const [exitSaving, setExitSaving] = useState(false);
 
-  const handleSaveAndExit = async () => {
-    setExitSaving(true);
+  // Core save logic, shared between the explicit "Save & exit" button and the
+  // silent autosave timer. Returns true on success. Never throws — autosave
+  // failures should be invisible to the user, not an error toast every 60s.
+  const persistDraft = async (): Promise<boolean> => {
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const sb = createClient();
       const { data: { user } } = await sb.auth.getUser();
-      if (user) {
-        const contentPages = isWishbook ? 32 : (pages.length - 1);
-        const sizeLabel = config?.selectedSize || '';
-        const name = `${config?.productName || t('constructor.photobooktype')} ${sizeLabel} · ${contentPages} стор.`;
-        const { error } = await sb.from('projects').insert({
-          user_id: user.id,
-          name,
-          product_type: 'photobook',
-          format: sizeLabel,
-          cover_type: config?.selectedCoverType || '',
-          total_pages: contentPages,
-          status: 'draft',
-          pages_data: pages,
-          cover_data: coverState,
-          uploaded_photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
-          updated_at: new Date().toISOString(),
-        });
-        if (error) console.error('handleSaveAndExit error:', error.message, error.details);
+      if (!user) return false;
+
+      const contentPages = isWishbook ? 32 : (pages.length - 1);
+      const sizeLabel = config?.selectedSize || '';
+      const name = `${config?.productName || t('constructor.photobooktype')} ${sizeLabel} · ${contentPages} стор.`;
+      const draftId = currentProjectIdRef.current || `draft-${Date.now()}`;
+
+      // Upload each photo's original file to Storage (skip ones already
+      // uploaded — they carry a `path` from a previous save in this
+      // session). This is what makes "reopen on another device" actually
+      // restore the photos instead of asking the user to re-pick them.
+      const uploadedPhotosMeta = await Promise.all(photos.map(async (p) => {
+        const existingPath = (p as any).storagePath as string | undefined;
+        if (existingPath) {
+          return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath };
+        }
+        let body: Blob | File | undefined = (p as any).originalFile as File | undefined;
+        if (!body && p.preview?.startsWith('blob:')) {
+          try { const r = await fetch(p.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
+        }
+        if (!body) return { id: p.id, name: p.name, width: p.width, height: p.height };
+        const path = `drafts/${user.id}/${draftId}/${p.id}.jpg`;
+        try {
+          const { error: upErr } = await sb.storage
+            .from('photobook-uploads')
+            .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+          if (upErr) { console.warn('[persistDraft] photo upload failed', p.id, upErr.message); return { id: p.id, name: p.name, width: p.width, height: p.height }; }
+          (p as any).storagePath = path;
+          return { id: p.id, name: p.name, width: p.width, height: p.height, path };
+        } catch (e) {
+          console.warn('[persistDraft] photo upload exception', p.id, e);
+          return { id: p.id, name: p.name, width: p.width, height: p.height };
+        }
+      }));
+
+      const row = {
+        user_id: user.id,
+        name,
+        product_type: 'photobook',
+        format: sizeLabel,
+        cover_type: config?.selectedCoverType || '',
+        total_pages: contentPages,
+        status: 'draft',
+        pages_data: pages,
+        cover_data: coverState,
+        overlays_data: { pageStickers, pageShapes, pageBgs, freeSlots, qrOverlays, generatedQRCount, config },
+        uploaded_photos: uploadedPhotosMeta,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (currentProjectIdRef.current) {
+        const { error } = await sb.from('projects').update(row).eq('id', currentProjectIdRef.current);
+        if (error) { console.error('[persistDraft] update error:', error.message, error.details); return false; }
+      } else {
+        const { data: inserted, error } = await sb.from('projects').insert(row).select('id').single();
+        if (error) { console.error('[persistDraft] insert error:', error.message, error.details); return false; }
+        if (inserted) currentProjectIdRef.current = inserted.id;
       }
+      return true;
+    } catch (e: any) {
+      console.error('[persistDraft] exception:', e?.message || e);
+      return false;
+    }
+  };
+
+  // Autosave every 60s while the user is actively editing, plus a final save
+  // on tab hide/close so closing the laptop or switching apps doesn't lose
+  // work. Silent — no toast, no spinner; handleSaveAndExit's explicit button
+  // remains the user-visible "your work is saved" confirmation.
+  useEffect(() => {
+    if (pages.length === 0) return; // nothing to save yet (still initialising)
+    const interval = setInterval(() => { persistDraft(); }, 60_000);
+    const onHide = () => { if (document.visibilityState === 'hidden') persistDraft(); };
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onHide);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages.length > 0]);
+
+  const handleSaveAndExit = async () => {
+    setExitSaving(true);
+    try {
+      await persistDraft();
     } catch (e: any) {
       console.error('handleSaveAndExit exception:', e?.message || e);
     }
@@ -3667,13 +3744,21 @@ export default function BookLayoutEditor() {
 
       for (let i = 0; i < photos.length; i++) {
         const ph = photos[i];
+        // Already uploaded in this session (e.g. restored from a saved draft
+        // via reopenDesign, or uploaded earlier by handleSaveAndExit) — reuse
+        // the existing path instead of re-uploading the same bytes.
+        const existingPath = (ph as any).storagePath as string | undefined;
+        if (existingPath) {
+          uploadedPhotosMeta[i].path = existingPath;
+          continue;
+        }
         let body: Blob | undefined;
         const origFile = (ph as any).originalFile as File | undefined;
         if (origFile) {
           body = origFile;
         } else if (ph.preview?.startsWith('blob:')) {
           try { const r = await fetch(ph.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
-        } else if (ph.preview?.startsWith('data:')) {
+        } else if (ph.preview?.startsWith('data:') || ph.preview?.startsWith('https://')) {
           try { body = await (await fetch(ph.preview)).blob(); } catch { /* skip */ }
         }
         if (!body) continue;
@@ -3682,7 +3767,7 @@ export default function BookLayoutEditor() {
           const { error: upErr } = await sb.storage
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-          if (!upErr) uploadedPhotosMeta[i].path = path;
+          if (!upErr) { uploadedPhotosMeta[i].path = path; (ph as any).storagePath = path; }
           else console.warn('[design-snapshot] photo upload error', ph.id, upErr.message);
         } catch (e) { console.warn('[design-snapshot] photo upload failed', ph.id, e); }
       }
@@ -3790,6 +3875,10 @@ export default function BookLayoutEditor() {
         console.log('[print-originals] start', { orderId, photoCount: photos.length, withOriginalFile: photos.filter(p => (p as any).originalFile).length });
         for (let i = 0; i < photos.length; i++) {
           const ph = photos[i];
+          // Already uploaded earlier this session (restored draft, or saved
+          // once already) — reuse the path, skip re-uploading.
+          const existingPath = (ph as any).storagePath as string | undefined;
+          if (existingPath) { uploadedPhotosMeta[i].path = existingPath; continue; }
           // Prefer the high-quality original File (set when the photo was added
           // this session). If the photo came from a restored draft, the File is
           // gone (it can't be serialised), so fall back to fetching the preview
@@ -3809,7 +3898,7 @@ export default function BookLayoutEditor() {
             const { error: oErr } = await sb.storage
               .from('photobook-uploads')
               .upload(oPath, body, { cacheControl: '31536000', upsert: true, contentType: (body as any).type || 'image/jpeg' });
-            if (!oErr) uploadedPhotosMeta[i].path = oPath;
+            if (!oErr) { uploadedPhotosMeta[i].path = oPath; (ph as any).storagePath = oPath; }
             else console.warn('original upload error', ph.id, oErr.message);
           } catch (e) {
             console.warn('original photo upload failed', ph.id, e);

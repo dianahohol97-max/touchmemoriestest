@@ -196,11 +196,45 @@ export default function AccountPage() {
             const coverPid = (row.cover_data as any)?.photoId;
             if (coverPid && idToName[coverPid]) ensure(idToName[coverPid]).cover = true;
 
+            // Restore photos from Storage if they were uploaded on a previous
+            // save (uploaded_photos[].path). Falls back to the empty-array
+            // "re-add by filename" flow for older drafts saved before this
+            // existed, or for any photo whose upload failed.
+            const photosWithPaths = photosMeta.filter(p => p?.path);
+            let restoredPhotos: any[] = [];
+            if (photosWithPaths.length > 0) {
+                try {
+                    const paths = photosWithPaths.map(p => p.path as string);
+                    const { data: signedUrls, error: signErr } = await supabase
+                        .storage.from('photobook-uploads')
+                        .createSignedUrls(paths, 60 * 60 * 24 * 7); // 7 days
+                    if (!signErr && signedUrls) {
+                        restoredPhotos = photosWithPaths.map((p, i) => ({
+                            id: p.id,
+                            name: p.name,
+                            width: p.width,
+                            height: p.height,
+                            preview: signedUrls[i]?.signedUrl || '',
+                        })).filter(p => p.preview);
+                    }
+                } catch (e) {
+                    console.error('Failed to restore photos from storage:', e);
+                }
+            }
+            // Any photo without a stored path still needs manual re-add — keep
+            // it out of restoredPhotos so the placement-by-filename toast covers it.
+            const restoredIds = new Set(restoredPhotos.map(p => p.id));
+            const remainingPlacement: typeof placement = {};
+            Object.entries(placement).forEach(([nm, info]) => {
+                const meta = photosMeta.find(p => p.name === nm);
+                if (!meta || !restoredIds.has(meta.id)) remainingPlacement[nm] = info;
+            });
+
             // Hand off via the same sessionStorage keys the editor already reads.
             sessionStorage.setItem('bookConstructorConfig', JSON.stringify(config));
-            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify([]));
+            sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(restoredPhotos));
             sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(draft));
-            sessionStorage.setItem('bookReopenPlacement', JSON.stringify(placement));
+            sessionStorage.setItem('bookReopenPlacement', JSON.stringify(remainingPlacement));
             sessionStorage.setItem('bookReopenProjectId', String(row.id));
             try { (window as any).__bookPhotoOriginals = undefined; } catch {}
 
