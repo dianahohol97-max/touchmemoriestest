@@ -143,6 +143,29 @@ export async function proxy(request: NextRequest) {
         // Admin path with valid session — fall through to session refresh.
     }
 
+    // ─── /{locale}/constructor/* and /{locale}/editor/* gating ──────────
+    // Opening the book/poster constructor or editor requires a logged-in
+    // account so the design auto-saves to the user's projects and can be
+    // reopened later / on another device. Without this, a guest could reach
+    // the editor via a direct URL, blog link or cart deep-link, design a
+    // whole book, and lose it all on refresh (nothing persisted server-side).
+    {
+        const localeMatch = pathname.match(/^\/(uk|en|ro|pl|de)(\/.*)?$/);
+        const subPath = localeMatch?.[2] || '';
+        if (subPath.startsWith('/constructor/') || subPath.startsWith('/editor/')) {
+            const { user, response } = await refreshSessionAndGetUser(request);
+            if (!user) {
+                const locale = localeMatch?.[1] || DEFAULT_LOCALE;
+                const loginUrl = new URL(`/${locale}/login`, request.url);
+                loginUrl.searchParams.set('next', pathname + (request.nextUrl.search || ''));
+                return NextResponse.redirect(loginUrl);
+            }
+            // Logged in — return the session-refreshed response so rotated
+            // auth cookies are preserved.
+            return response;
+        }
+    }
+
     // Skip non-page routes
     if (SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
         // Still update Supabase session for auth routes
