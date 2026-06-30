@@ -9,7 +9,8 @@ import {
     Tags, Mail, Palette, DollarSign, Bot,
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
-    Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target
+    Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target,
+    Home, MoreHorizontal
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -226,11 +227,60 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                 {children}
             </main>
 
+            {/*  Mobile bottom tab bar — the 5 most-used destinations, one tap
+                 each. This is the main mobile-usability win: the most common
+                 work (orders, dashboard, production, designer) no longer
+                 requires opening the burger menu and scrolling a 45-item list.
+                 Gated by permission so each role only sees what they can use;
+                 the last tab opens the full menu. Hidden on desktop. */}
+            {(() => {
+                const tabs = [
+                    { name: 'Огляд', href: '/admin', icon: <Home size={22} />, section: 'analytics' },
+                    { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={22} />, section: 'orders' },
+                    { name: 'Виробництво', href: '/admin/production', icon: <Factory size={22} />, section: 'production' },
+                    { name: 'Дизайн', href: '/admin/designer', icon: <Palette size={22} />, section: 'designer' },
+                ].filter(t => (isLoading || isAdmin) ? true : hasPermission(t.section, 'view'));
+                return (
+                    <nav className="tm-admin-bottomnav" style={{
+                        display: 'none', position: 'fixed', bottom: 0, left: 0, right: 0,
+                        zIndex: 100, backgroundColor: '#fff', borderTop: '1px solid #e2e8f0',
+                        boxShadow: '0 -2px 12px rgba(0,0,0,0.06)',
+                        height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+                        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    }}>
+                        {tabs.map(tab => {
+                            const isActive = tab.href === '/admin' ? pathname === '/admin' : pathname.startsWith(tab.href);
+                            return (
+                                <Link key={tab.href} href={tab.href} style={{
+                                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                    justifyContent: 'center', gap: '3px', textDecoration: 'none',
+                                    color: isActive ? '#263A99' : '#94a3b8', fontSize: '10px', fontWeight: 700,
+                                    paddingTop: '8px',
+                                }}>
+                                    {tab.icon}
+                                    <span>{tab.name}</span>
+                                </Link>
+                            );
+                        })}
+                        <button onClick={() => setMobileOpen(true)} style={{
+                            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            justifyContent: 'center', gap: '3px', background: 'none', border: 'none',
+                            color: '#94a3b8', fontSize: '10px', fontWeight: 700, cursor: 'pointer',
+                            paddingTop: '8px',
+                        }}>
+                            <MoreHorizontal size={22} />
+                            <span>Меню</span>
+                        </button>
+                    </nav>
+                );
+            })()}
+
             {/*  Responsive styles  */}
             <style>{`
                 @media (max-width: 768px) {
                     .tm-admin-topbar { display: flex !important; }
                     .tm-admin-overlay { display: block !important; }
+                    .tm-admin-bottomnav { display: flex !important; }
 
                     .tm-admin-sidebar {
                         left: 0 !important;
@@ -249,7 +299,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
 
                     .tm-admin-main {
                         margin-left: 0 !important;
-                        padding: 72px 16px 24px !important;
+                        padding: 72px 16px calc(76px + env(safe-area-inset-bottom, 0px)) !important;
                         height: auto !important;
                         min-height: 100vh;
                     }

@@ -341,8 +341,8 @@ export default function OrdersPage() {
                 </div>
             </div>
 
-            {/* Table */}
-            <div style={tableCardStyle}>
+            {/* Table — desktop only */}
+            <div style={tableCardStyle} className="tm-orders-table">
                 <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: '1.5px solid #f1f5f9' }}>
@@ -505,6 +505,88 @@ export default function OrdersPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Mobile card list — replaces the 1200px-wide horizontal-scroll
+                table on phones. Each order is a tappable card showing the
+                essentials at a glance: number + status, customer, items + total,
+                payment, and inline manager/designer assignment. */}
+            <div className="tm-orders-cards" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>Завантаження...</div>
+                ) : authError ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#dc2626' }}>
+                        Сесія завершилася. <a href="/admin/login" style={{ color: '#1e2d7d', fontWeight: 700, textDecoration: 'underline' }}>Увійдіть знову</a>.
+                    </div>
+                ) : filteredOrders.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>Замовлень не знайдено</div>
+                ) : filteredOrders.map(order => (
+                    <Link key={order.id} href={`/admin/orders/${order.id}`}
+                        style={{ display: 'block', textDecoration: 'none', color: 'inherit', background: '#fff', border: '1px solid #f1f5f9', borderRadius: 12, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+                        {/* Top row: number + date, payment badge */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                            <div>
+                                <div style={{ fontWeight: 800, color: '#263A99', fontSize: 15 }}>{order.order_number}</div>
+                                <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDateTime(order.created_at)}</div>
+                            </div>
+                            <div style={{
+                                fontSize: 10, fontWeight: 800,
+                                color: order.payment_status === 'paid' ? '#16a34a' : '#f59e0b',
+                                backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
+                                padding: '4px 8px', borderRadius: 6,
+                            }}>
+                                {order.payment_status === 'paid' ? 'ОПЛАЧЕНО' : 'ОЧІКУЄ'}
+                            </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status), marginBottom: 10 }}>
+                            {STATUS_TABS.find(t => t.id === order.order_status)?.label}
+                        </div>
+
+                        {/* Customer */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <div style={avatarStyle}>{order.customer_name?.[0]}</div>
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer_name}</div>
+                                <div style={{ fontSize: 12, color: '#64748b' }}>{order.customer_phone}</div>
+                            </div>
+                        </div>
+
+                        {/* Items + total */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: 12, color: '#64748b', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                {Array.isArray(order.items) && order.items.length > 0
+                                    ? (order.items.length === 1 ? order.items[0].name : `${order.items[0].name} +${order.items.length - 1}`)
+                                    : 'Без товарів'}
+                            </div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#1e2d7d', marginLeft: 12, flexShrink: 0 }}>{order.total} ₴</div>
+                        </div>
+
+                        {/* Assignees (read-only chips on mobile; tap card to manage) */}
+                        {(order.manager || order.designer) && (
+                            <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                                {order.manager && (
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 10px' }}>
+                                        М: {order.manager.name}
+                                    </span>
+                                )}
+                                {order.designer && (
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 10px' }}>
+                                        Д: {order.designer.name}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </Link>
+                ))}
+            </div>
+
+            <style>{`
+                @media (max-width: 768px) {
+                    .tm-orders-table { display: none !important; }
+                    .tm-orders-cards { display: flex !important; }
+                }
+            `}</style>
 
             {/* Quick comment modal */}
             {commentOrder && (
