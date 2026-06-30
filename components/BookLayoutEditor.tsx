@@ -3159,6 +3159,20 @@ export default function BookLayoutEditor() {
         return opts;
       })(),
       personalization_note: `${photos.length} фото · ${contentPages} сторінок · ${config.selectedSize}${isGraduation ? ` · мінімум ${GRADUATION_MIN_QTY} шт` : ''}${inscriptionExtra > 0 ? ` · напис: ${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'} (+180 ₴)` : ''}`,
+      // Full price breakdown, so a price that looks "wrong for the same book"
+      // can be explained at a glance (and so we can compare two devices). All
+      // figures are the exact inputs that produced `finalPrice`.
+      price_breakdown: {
+        base: baseDynamicPrice,
+        page_count_used: contentPages,
+        urgent: (() => { const u = (searchParams?.get('urgent') || '').toLowerCase(); return !!u && u !== '0' && u !== 'standard' && !u.includes('стандартна'); })(),
+        endpaper: endpaperExtra,
+        qr: qrExtra,
+        inscription: inscriptionExtra,
+        typesetting: typesettingExtra,
+        ai_portrait: hasAiPortrait ? AI_PORTRAIT_PRICE : 0,
+        final: finalPrice,
+      },
     };
 
     // If the customer arrived here via "Редагувати" on a cart item, reuse that
