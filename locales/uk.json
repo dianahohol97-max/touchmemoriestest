@@ -168,7 +168,8 @@
     "cookies_policy": "Cookie-політика",
     "refund_policy": "Повернення",
     "cookie_settings": "Налаштування cookies",
-    "newsletter_consent": "Я погоджуюсь з обробкою моїх даних для отримання маркетингових розсилок"
+    "newsletter_consent": "Я погоджуюсь з обробкою моїх даних для отримання маркетингових розсилок",
+    "for_photographers": "Для фотографів"
   },
   "cart": {
     "empty": "Кошик порожній",

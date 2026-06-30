@@ -191,7 +191,8 @@ export function Footer({ categories = [] }: FooterProps) {
                         links: [
                             { label: t('footer.delivery'), href: '/shipping-returns' },
                             { label: t('footer.faq'), href: '/faq' },
-                            { label: t('footer.constructor'), href: '/constructor/photobook' }
+                            { label: t('footer.constructor'), href: '/constructor/photobook' },
+                            { label: t('footer.for_photographers') || 'Для фотографів', href: `/${locale}/photographers` }
                         ]
                     },
                     {

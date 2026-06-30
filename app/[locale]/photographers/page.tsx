@@ -2,7 +2,7 @@ import B2bRegisterPage from '@/components/b2b/B2bRegisterPage';
 
 export const metadata = {
     title: 'Для фотографів — Touch.Memories',
-    robots: { index: false, follow: false }, // non-public until launch
+    description: 'Партнерська програма для фотографів: постійна знижка 10% на фотокниги, глянцеві журнали, фотодрук і travel book для ваших клієнтських проєктів.',
 };
 
 export default function PhotographersPage() {

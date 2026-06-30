@@ -168,7 +168,8 @@
     "cookies_policy": "Cookie Policy",
     "refund_policy": "Returns",
     "cookie_settings": "Cookie settings",
-    "newsletter_consent": "I agree to receive marketing emails"
+    "newsletter_consent": "I agree to receive marketing emails",
+    "for_photographers": "For photographers"
   },
   "cart": {
     "empty": "Your cart is empty",
