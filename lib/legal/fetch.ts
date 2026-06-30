@@ -16,6 +16,11 @@ export async function fetchLegalPage(
   locale: string
 ): Promise<LegalPage | null> {
   const admin = getAdminClient();
+  // During build/prerender the service-role env vars may be absent, so
+  // getAdminClient() returns null. Don't crash the whole build — just
+  // return null and let the page render its "not found" fallback. The
+  // page has revalidate=3600 so it'll fill in on the first runtime hit.
+  if (!admin) return null;
 
   const { data } = await admin
     .from('legal_pages')

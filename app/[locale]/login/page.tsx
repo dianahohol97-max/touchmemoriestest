@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function LoginPage() {
+// Inner component uses useSearchParams(), which forces client-side rendering.
+// Next.js requires any component reading useSearchParams() to sit inside a
+// <Suspense> boundary, otherwise the whole page fails to prerender at build
+// time ("useSearchParams() should be wrapped in a suspense boundary") — which
+// aborts `next build` and blocks every deploy. The default export below
+// provides that boundary.
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const nextUrl = searchParams.get('next') || '/account'
@@ -220,5 +226,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }
