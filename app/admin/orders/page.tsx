@@ -47,6 +47,7 @@ export default function OrdersPage() {
 
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -123,8 +124,14 @@ export default function OrdersPage() {
         setLoading(true);
         try {
             const res = await fetch('/api/admin/orders');
+            if (res.status === 401 || res.status === 403) {
+                setAuthError(true);
+                setOrders([]);
+                return;
+            }
             if (!res.ok) throw new Error(`API ${res.status}`);
             const json = await res.json();
+            setAuthError(false);
             if (json.orders) setOrders(json.orders);
         } catch (err) {
             console.error('Failed to fetch orders:', err);
@@ -353,6 +360,10 @@ export default function OrdersPage() {
                     <tbody>
                         {loading ? (
                             <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Завантаження...</td></tr>
+                        ) : authError ? (
+                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#dc2626' }}>
+                                Сесія завершилася. <a href="/admin/login" style={{ color: '#1e2d7d', fontWeight: 700, textDecoration: 'underline' }}>Увійдіть знову</a>, щоб побачити замовлення.
+                            </td></tr>
                         ) : filteredOrders.length === 0 ? (
                             <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Замовлень не знайдено</td></tr>
                         ) : filteredOrders.map(order => (

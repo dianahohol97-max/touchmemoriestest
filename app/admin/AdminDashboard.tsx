@@ -1,10 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { ShoppingBag, Clock, CreditCard, Palette, Plus, RefreshCw, ArrowRight, AlertTriangle, CheckCircle, Users } from 'lucide-react';
 import Link from 'next/link';
-
-const supabase = createClient();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function fmt(n: number) { return n.toLocaleString('uk-UA'); }
@@ -63,45 +60,27 @@ export default function AdminDashboard() {
 
     const load = async () => {
         setLoading(true);
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const todayIso = today.toISOString();
-        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+        try {
+            const res = await fetch('/api/admin/dashboard');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const { stats: newStats, queue: queueData } = await res.json();
 
-        const [ordersRes, queueRes, clientsRes] = await Promise.all([
-            supabase.from('orders').select('id,order_status,payment_status,total,with_designer,created_at'),
-            supabase.from('orders')
-                .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items')
-                .not('order_status', 'in', '("completed","cancelled")')
-                .order('created_at', { ascending: false })
-                .limit(20),
-            supabase.from('customers').select('id').gte('created_at', weekAgo),
-        ]);
+            setStats(newStats);
+            setQueue(queueData || []);
 
-        const orders = ordersRes.data || [];
-        const todayOrders = orders.filter(o => o.created_at >= todayIso);
-
-        const newStats = {
-            today: todayOrders.length,
-            todayRevenue: todayOrders.reduce((s, o) => s + Number(o.total || 0), 0),
-            awaitingPayment: orders.filter(o => o.payment_status === 'pending' && o.order_status !== 'cancelled').length,
-            awaitingPaymentSum: orders.filter(o => o.payment_status === 'pending' && o.order_status !== 'cancelled').reduce((s, o) => s + Number(o.total || 0), 0),
-            inProgress: orders.filter(o => ['new','pending','in_progress'].includes(o.order_status)).length,
-            needDesigner: orders.filter(o => o.with_designer && !['completed','cancelled'].includes(o.order_status)).length,
-            newClients: (clientsRes.data || []).length,
-        };
-
-        setStats(newStats);
-        setQueue(queueRes.data || []);
-
-        // Alerts
-        const a: { type: 'warn' | 'ok'; text: string }[] = [];
-        if (newStats.awaitingPayment > 0) a.push({ type: 'warn', text: `${newStats.awaitingPayment} замовлень очікують оплати на суму ${fmt(newStats.awaitingPaymentSum)} ₴` });
-        if (newStats.needDesigner > 0) a.push({ type: 'warn', text: `${newStats.needDesigner} замовлень потребують роботи дизайнера` });
-        if (newStats.today === 0) a.push({ type: 'warn', text: 'Сьогодні ще немає нових замовлень' });
-        if (a.length === 0) a.push({ type: 'ok', text: 'Всі показники в нормі' });
-        setAlerts(a);
-        setLastUpdated(new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }));
-        setLoading(false);
+            // Alerts
+            const a: { type: 'warn' | 'ok'; text: string }[] = [];
+            if (newStats.awaitingPayment > 0) a.push({ type: 'warn', text: `${newStats.awaitingPayment} замовлень очікують оплати на суму ${fmt(newStats.awaitingPaymentSum)} ₴` });
+            if (newStats.needDesigner > 0) a.push({ type: 'warn', text: `${newStats.needDesigner} замовлень потребують роботи дизайнера` });
+            if (newStats.today === 0) a.push({ type: 'warn', text: 'Сьогодні ще немає нових замовлень' });
+            if (a.length === 0) a.push({ type: 'ok', text: 'Всі показники в нормі' });
+            setAlerts(a);
+            setLastUpdated(new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }));
+        } catch (err) {
+            console.error('Failed to load dashboard:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
