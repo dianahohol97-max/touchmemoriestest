@@ -275,15 +275,8 @@ function MagazineTextBriefContent() {
       //    that we don't repeat here.
       const sessionId = `magazine-brief-${Date.now()}`;
       const uploadedItems: Array<{ path: string; name: string; size: number; type: string }> = [];
-      // order-files bucket enforces allowed_mime_types. Some phones report
-      // images as "image/jpg" (invalid) or with an empty/odd type, which the
-      // bucket rejects. Normalise to a type the bucket accepts.
-      const ALLOWED_CT = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/avif', 'application/pdf']);
-      const safeCt = (f: File) => {
-        let t = (f.type || '').toLowerCase();
-        if (t === 'image/jpg') t = 'image/jpeg';
-        return ALLOWED_CT.has(t) ? t : 'application/octet-stream';
-      };
+      // (image content-type normalisation now happens server-side in
+      // /api/upload/order-file)
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         try {
@@ -291,12 +284,18 @@ function MagazineTextBriefContent() {
           const fileToUpload = await downscaleImageIfLarge(normalized);
           const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
           const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`;
-          const { error } = await supabase.storage
-            .from('order-files')
-            .upload(path, fileToUpload, { upsert: true, contentType: safeCt(fileToUpload) });
-          if (error) {
-            console.error('upload error:', error);
-            toast.error(`Не вдалось завантажити ${photo.file.name}: ${(error as any)?.message || 'спробуйте ще раз'}`);
+          // Upload via the server (service role) so RLS never blocks customer
+          // uploads — guests and logged-in users alike. Direct browser uploads
+          // were hitting "new row violates row-level security policy".
+          const fd = new FormData();
+          fd.append('file', fileToUpload, safeName);
+          fd.append('path', path);
+          fd.append('bucket', 'order-files');
+          const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
+          if (!resp.ok) {
+            const j = await resp.json().catch(() => ({}));
+            console.error('upload error:', j);
+            toast.error(`Не вдалось завантажити ${photo.file.name}: ${j?.error || 'спробуйте ще раз'}`);
             continue;
           }
           uploadedItems.push({
@@ -327,12 +326,15 @@ function MagazineTextBriefContent() {
           const coverToUpload = await downscaleImageIfLarge(await normalizeImageFile(coverPhoto.file));
           const safeName = coverToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
           const path = `${sessionId}/cover_${safeName}`;
-          const { error } = await supabase.storage
-            .from('order-files')
-            .upload(path, coverToUpload, { upsert: true, contentType: safeCt(coverToUpload) });
-          if (error) {
-            console.error('cover upload error:', error);
-            toast.error(`Не вдалось завантажити обкладинку: ${(error as any)?.message || 'спробуйте ще раз'}`);
+          const fd = new FormData();
+          fd.append('file', coverToUpload, safeName);
+          fd.append('path', path);
+          fd.append('bucket', 'order-files');
+          const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
+          if (!resp.ok) {
+            const j = await resp.json().catch(() => ({}));
+            console.error('cover upload error:', j);
+            toast.error(`Не вдалось завантажити обкладинку: ${j?.error || 'спробуйте ще раз'}`);
           } else {
             coverPhotoPath = path;
             uploadedItems.push({
