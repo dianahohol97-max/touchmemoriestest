@@ -85,13 +85,15 @@ export default function CanvasPrintConstructor() {
     const handleAddToCart = async () => {
         if (!selectedSize || !photo) return;
         const cartItemId = `canvas-${Date.now()}`;
+        const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+        const cartImage = await makeCartThumbnail(photo.preview);
         addItem({
             id: cartItemId,
             product_id: product?.id || 'druk-na-polotni',
             name: `Друк на полотні ${selectedSize.label}`,
             price: selectedSize.price * qty,
             qty,
-            image: photo.preview,
+            image: cartImage,
             options: { 'Розмір': selectedSize.label },
             slug: 'druk-na-polotni',
             payment_mode: product?.payment_mode,

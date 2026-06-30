@@ -3001,7 +3001,15 @@ export default function BookLayoutEditor() {
     // how many spreads the cover editor shows — the inner pages aren't designed
     // here, only the cover. Other books use the actual content page count.
     const contentPages = isWishbook ? 32 : (pages.length - 1);
-    const productImage = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
+
+    // Build a small, PERSISTENT thumbnail for the cart. The previous code put
+    // the first photo's blob: URL straight into the cart item — but blob: URLs
+    // only live in the tab that created them, so on reload / another device /
+    // even just reopening the cart later the image was dead (the blue squares
+    // customers reported). makeCartThumbnail renders a ~240px JPEG data URL.
+    const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+    const rawCover = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
+    const productImage = await makeCartThumbnail(rawCover);
     const orderId = `pb-${Date.now()}`;
 
     // Never let a zero-price item into the cart — that produced orders with

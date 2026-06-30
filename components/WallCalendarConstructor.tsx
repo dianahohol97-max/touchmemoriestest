@@ -535,12 +535,14 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     const addToCart = async () => {
         const basePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
         const cartItemId = `wall-cal-${Date.now()}`;
+        const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+        const cartImage = await makeCartThumbnail(photos[0]?.preview);
         const cartPayload = {
             id: cartItemId,
             product_id: product?.id||'wall-calendar-2026',
             name:`Настінний фотокалендар 2027 · ${SIZE_DIMS[size].label}`,
             price: basePrice, qty:1,
-            image: photos[0]?.preview||'',
+            image: cartImage,
             options:{'Розмір':SIZE_DIMS[size].label},
             slug:'wall-calendar-2026',
         };

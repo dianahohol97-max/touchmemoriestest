@@ -207,13 +207,15 @@ export default function PosterEditor() {
 
   const price = SIZES.find(s => s.value === selectedSize)?.price || 350;
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
+    const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+    const cartImage = await makeCartThumbnail(photos[0]?.preview);
     addItem({
       id: `poster-${Date.now()}`,
       name: `Постер "${selectedTemplate.label}"`,
       price,
       qty: 1,
-      image: photos[0]?.preview || '',
+      image: cartImage,
       options: { 'Розмір': selectedSize, 'Шаблон': selectedTemplate.label },
       personalization_note: `Постер ${selectedSize}, шаблон: ${selectedTemplate.label}, фото: ${photos.length} шт.`,
     });
