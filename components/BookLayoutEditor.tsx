@@ -1246,7 +1246,7 @@ export default function BookLayoutEditor() {
           // layout is preserved. A toast guides the user to re-upload.
           const valid = parsed.filter(p => p.width > 0 && p.height > 0);
           const withoutPreview = valid.filter(p =>
-            !p.preview || (!p.preview.startsWith('data:image') && !p.preview.startsWith('blob:'))
+            !p.preview || (!p.preview.startsWith('data:image') && !p.preview.startsWith('blob:') && !p.preview.startsWith('https://'))
           );
           setPhotos(valid);
           if (withoutPreview.length > 0) {
@@ -2997,6 +2997,61 @@ export default function BookLayoutEditor() {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
     }
+
+    // Upload every photo's original to Storage FIRST, before we build any
+    // snapshot. This is the fix for "photos disappear after adding to cart":
+    // previously the cart-edit snapshot and the design snapshot were built
+    // from sessionStorage previews, which hold blob: URLs (dead outside the
+    // tab) or '' (when the sessionStorage quota was exceeded). Reopening the
+    // item from the cart then showed blank slots. By uploading up front, every
+    // photo carries a durable storagePath, and the snapshots below embed
+    // signed URLs that work on reload, in the cart, and on another device.
+    try {
+      const { createClient: createSbForUpload } = await import('@/lib/supabase/client');
+      const sbUp = createSbForUpload();
+      const uploadOrderId = `pb-${Date.now()}`;
+      for (const ph of photos) {
+        if ((ph as any).storagePath) continue; // already uploaded this session
+        let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
+        if (!body && ph.preview) {
+          if (ph.preview.startsWith('blob:') || ph.preview.startsWith('data:') || ph.preview.startsWith('https://')) {
+            try { const r = await fetch(ph.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
+          }
+        }
+        if (!body) continue;
+        const path = `guest/${uploadOrderId}/originals/${ph.id}.jpg`;
+        try {
+          const { error: upErr } = await sbUp.storage
+            .from('photobook-uploads')
+            .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+          if (!upErr) (ph as any).storagePath = path;
+        } catch { /* non-fatal: snapshot falls back to whatever preview exists */ }
+      }
+    } catch { /* upload unavailable — continue; existing fallbacks still apply */ }
+
+    // Resolve durable signed URLs for any photo that now has a storagePath, so
+    // the snapshots can store https:// previews instead of dead blob: URLs.
+    let signedPreviewById: Record<string, string> = {};
+    try {
+      const { createClient: createSbForSign } = await import('@/lib/supabase/client');
+      const sbSign = createSbForSign();
+      const paths = photos.map(p => (p as any).storagePath).filter(Boolean) as string[];
+      if (paths.length > 0) {
+        const { data: signed } = await sbSign.storage
+          .from('photobook-uploads')
+          .createSignedUrls(paths, 60 * 60 * 24 * 7); // 7 days
+        if (signed) {
+          let k = 0;
+          for (const p of photos) {
+            if ((p as any).storagePath) {
+              const s = signed[k++];
+              if (s?.signedUrl) signedPreviewById[p.id] = s.signedUrl;
+            }
+          }
+        }
+      }
+    } catch { /* signing unavailable — snapshot keeps existing previews */ }
+
     // Wishbook (книга побажань) is always a fixed 32-page block regardless of
     // how many spreads the cover editor shows — the inner pages aren't designed
     // here, only the cover. Other books use the actual content page count.
@@ -3189,9 +3244,25 @@ export default function BookLayoutEditor() {
     // if sessionStorage is full the snapshot is skipped and the cart simply
     // won't offer "edit" for this item (it still orders fine).
     try {
+      // Build the snapshot photo list from the live `photos` state, swapping
+      // in the durable signed Storage URL for each photo's preview. This is
+      // what makes reopening the item from the cart actually show the photos —
+      // the old code read bookConstructorPhotos (blob: URLs / empty previews),
+      // which were dead by the time the customer came back to edit.
+      const snapPhotos = JSON.stringify(photos.map(p => ({
+        id: p.id,
+        name: p.name,
+        width: p.width,
+        height: p.height,
+        focalX: p.focalX,
+        focalY: p.focalY,
+        hasFace: p.hasFace,
+        preview: signedPreviewById[p.id] || (p.preview?.startsWith('data:') ? p.preview : ''),
+        storagePath: (p as any).storagePath || undefined,
+      })));
       const snap = {
         config,
-        photos: sessionStorage.getItem('bookConstructorPhotos') || '[]',
+        photos: snapPhotos,
         draft: { productSlug: (config?.productSlug || '').toLowerCase().trim(), pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount },
       };
       // Durable: survives the session and isn't bound by the ~5 MB sessionStorage
