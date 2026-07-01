@@ -37,6 +37,60 @@ export async function prepareImageForUpload(file: File, opts: PrepareOpts = {}):
 export interface UploadOpts extends PrepareOpts {
   upsert?: boolean;
   cacheControl?: string;
+  /** Free-text label of the flow doing the upload, e.g. 'order-page' or a
+   *  constructor name. Stored on the attempt log so failures are traceable. */
+  context?: string;
+  /** Order id, when the upload happens in a flow that already has one. */
+  orderId?: string;
+}
+
+/**
+ * Record one upload attempt (success or failure) in upload_attempt_log.
+ *
+ * Fire-and-forget: this must NEVER slow down or break an upload. Every path is
+ * swallowed — a logging failure is invisible to the customer. The table has a
+ * public INSERT policy ("Anyone can log an upload attempt") so the browser's
+ * anon/authenticated client can write it directly; admins read it back.
+ *
+ * Why it exists: before this, a failed customer upload left no trace anywhere
+ * (the file 400'd, so no storage row and no order were created), so we could
+ * never answer "how many people failed to upload". Now every attempt is counted.
+ */
+function logUploadAttempt(
+  supabase: any,
+  row: {
+    bucket: string;
+    file_name: string;
+    file_size?: number;
+    mime_type?: string;
+    status: 'success' | 'error';
+    error_message?: string | null;
+    context?: string | null;
+    order_id?: string | null;
+  },
+): void {
+  try {
+    void supabase
+      .from('upload_attempt_log')
+      .insert({
+        bucket: row.bucket,
+        file_name: row.file_name,
+        file_size: row.file_size ?? null,
+        mime_type: row.mime_type ?? null,
+        status: row.status,
+        error_message: row.error_message ?? null,
+        context: row.context ?? null,
+        order_id: row.order_id ?? null,
+        user_agent:
+          typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      })
+      .then(
+        () => {},
+        () => {}, // never surface a logging error to the caller
+      );
+  } catch {
+    // navigator/client unavailable, or any sync throw — ignore entirely.
+  }
 }
 
 /**
@@ -97,5 +151,19 @@ export async function uploadImageToStorage(
     contentType: safeImageContentType(prepared),
     ...(opts.cacheControl ? { cacheControl: opts.cacheControl } : {}),
   });
+
+  // Record the attempt (non-blocking, never throws). This is what makes
+  // "how many uploads failed, and why" answerable at any time.
+  logUploadAttempt(supabase, {
+    bucket,
+    file_name: path,
+    file_size: prepared.size,
+    mime_type: safeImageContentType(prepared),
+    status: error ? 'error' : 'success',
+    error_message: error ? (error.message || String(error)) : null,
+    context: opts.context ?? null,
+    order_id: opts.orderId ?? null,
+  });
+
   return { data, error, file: prepared };
 }
