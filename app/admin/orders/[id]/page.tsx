@@ -1338,13 +1338,55 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {order.monobank_invoice_id && (
                                 <div style={{
                                     marginTop: '12px',
-                                    padding: '8px 12px',
+                                    padding: '12px',
                                     backgroundColor: '#f8fafc',
-                                    borderRadius: "3px",
+                                    borderRadius: 6,
                                     fontSize: '12px',
-                                    color: '#64748b'
+                                    color: '#475569',
+                                    border: '1px solid #e2e8f0',
                                 }}>
-                                    Invoice ID: {order.monobank_invoice_id}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <span style={{ fontWeight: 800, color: '#0f172a' }}>Monobank</span>
+                                        {order.monobank_invoice_status && (
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6,
+                                                backgroundColor: order.monobank_invoice_status === 'success' ? '#f0fdf4' : '#fffbeb',
+                                                color: order.monobank_invoice_status === 'success' ? '#16a34a' : '#d97706',
+                                            }}>
+                                                {order.monobank_invoice_status.toUpperCase()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                                        <span style={{ color: '#94a3b8' }}>Invoice ID:</span>
+                                        <code style={{ fontSize: 11, background: '#fff', padding: '2px 6px', borderRadius: 4, border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>{order.monobank_invoice_id}</code>
+                                        <button
+                                            onClick={() => { navigator.clipboard?.writeText(order.monobank_invoice_id); }}
+                                            title="Копіювати Invoice ID"
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 2, display: 'flex' }}
+                                        ><Copy size={13} /></button>
+                                    </div>
+                                    {order.paid_at && (
+                                        <div style={{ marginBottom: 8 }}>
+                                            <span style={{ color: '#94a3b8' }}>Оплачено:</span>{' '}
+                                            <b>{new Date(order.paid_at).toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</b> (Київ)
+                                        </div>
+                                    )}
+                                    <a
+                                        href="https://web.monobank.ua/"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                                            fontSize: 12, fontWeight: 700, color: '#1e2d7d', textDecoration: 'none',
+                                            padding: '6px 10px', background: '#eef2ff', borderRadius: 6,
+                                        }}
+                                    >
+                                        <ExternalLink size={13} /> Перевірити в кабінеті Monobank
+                                    </a>
+                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8, lineHeight: 1.5 }}>
+                                        «Success» означає що банк підтвердив оплату. Кошти на розрахунковий рахунок Monobank зазвичай зараховує наступного банківського дня — знайдіть транзакцію за Invoice ID або сумою/часом у кабінеті.
+                                    </div>
                                 </div>
                             )}
                             <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
