@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { Gift, Percent, BookHeart, Check, Loader2, Globe } from 'lucide-react';
+import { Gift, Percent, Check, Loader2, Globe } from 'lucide-react';
 
 const MODELS = [
     {
@@ -22,14 +22,16 @@ const MODELS = [
         description: 'Ваша агенція отримує персональний промокод зі знижкою для клієнтів, а ви — 10% від вартості кожного замовлення тревелбуку за цим кодом. Менеджерам вигідно рекомендувати нас — це додатковий дохід без жодних витрат.',
         perks: ['Персональний промокод агенції', '10% від вартості замовлення тревелбуку', 'Оплата лише за реальні продажі'],
     },
-    {
-        id: 'cobranded',
-        icon: BookHeart,
-        title: 'Co-branded тревелбуки',
-        tagline: 'Преміум-сервіс під вашим брендом',
-        description: 'Тревелбуки з логотипом вашої агенції та підписом «Ваша подорож з [агенція]». Ідеальний подарунок для VIP-клієнтів після преміальних турів — ви стаєте частиною їхнього найкращого досвіду подорожі.',
-        perks: ['Ваш логотип у книзі', 'Підкреслює преміальність турів', 'Підсилює лояльність клієнтів'],
-    },
+    // Co-branded travelbooks — hidden for now (terms not finalised). Restore
+    // this block and the matching form <option> below to bring it back.
+    // {
+    //     id: 'cobranded',
+    //     icon: BookHeart,
+    //     title: 'Co-branded тревелбуки',
+    //     tagline: 'Преміум-сервіс під вашим брендом',
+    //     description: 'Тревелбуки з логотипом вашої агенції та підписом «Ваша подорож з [агенція]». Ідеальний подарунок для VIP-клієнтів після преміальних турів — ви стаєте частиною їхнього найкращого досвіду подорожі.',
+    //     perks: ['Ваш логотип у книзі', 'Підкреслює преміальність турів', 'Підсилює лояльність клієнтів'],
+    // },
 ];
 
 export default function TravelAgenciesClient() {
@@ -157,7 +159,7 @@ export default function TravelAgenciesClient() {
                                                 <option value="">Оберіть (необовʼязково)</option>
                                                 <option value="gift_certificates">Подарункові сертифікати</option>
                                                 <option value="referral">Реферальна програма</option>
-                                                <option value="cobranded">Co-branded тревелбуки</option>
+                                                {/* <option value="cobranded">Co-branded тревелбуки</option> — hidden for now */}
                                                 <option value="not_sure">Ще не визначилися</option>
                                             </select>
                                         </Field>
