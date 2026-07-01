@@ -118,12 +118,15 @@ export async function uploadImageToStorage(
   opts: UploadOpts = {},
 ): Promise<{ data: any; error: any; file: File }> {
   const prepared = await prepareImageForUpload(file, opts);
+  const contentType = safeImageContentType(prepared);
+  let data: any = null;
+  let error: any = null;
 
-  // Customer-upload buckets go through the server (service role), which
-  // bypasses storage RLS entirely — the definitive fix for the recurring
-  // "new row violates row-level security policy" checkout error. See the
-  // function doc above for why the direct browser upsert failed for anon.
   if (SERVER_UPLOAD_BUCKETS.has(bucket)) {
+    // Customer-upload buckets go through the server (service role), which
+    // bypasses storage RLS entirely — the definitive fix for the recurring
+    // "new row violates row-level security policy" checkout error. See the
+    // function doc above for why the direct browser upsert failed for anon.
     try {
       const fd = new FormData();
       fd.append('file', prepared, path.split('/').pop() || 'photo.jpg');
@@ -132,33 +135,33 @@ export async function uploadImageToStorage(
       const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
       if (!resp.ok) {
         const j = await resp.json().catch(() => ({}));
-        return { data: null, error: { message: j?.error || `upload failed (${resp.status})` }, file: prepared };
+        error = { message: j?.error || `upload failed (${resp.status})` };
+      } else {
+        const j = await resp.json().catch(() => ({}));
+        data = { path: j?.path || path };
       }
-      const j = await resp.json().catch(() => ({}));
-      return { data: { path: j?.path || path }, error: null, file: prepared };
     } catch (e: any) {
-      return { data: null, error: { message: e?.message || 'upload failed' }, file: prepared };
+      error = { message: e?.message || 'upload failed' };
     }
+  } else {
+    // Other buckets (admin assets, etc.) keep the direct client upload.
+    const { data: d, error: e } = await supabase.storage.from(bucket).upload(path, prepared, {
+      upsert: opts.upsert ?? true,
+      contentType,
+      ...(opts.cacheControl ? { cacheControl: opts.cacheControl } : {}),
+    });
+    data = d;
+    error = e;
   }
 
-  // Other buckets (admin assets, etc.) keep the direct client upload. For any
-  // bucket with an owner-scoped SELECT policy, an upsert compiles to
-  // INSERT ... ON CONFLICT whose arbiter step needs SELECT visibility on the
-  // target row — which anon customers lack — so we force plain INSERT there.
-  const useUpsert = bucket === 'order-files' ? false : (opts.upsert ?? true);
-  const { data, error } = await supabase.storage.from(bucket).upload(path, prepared, {
-    upsert: useUpsert,
-    contentType: safeImageContentType(prepared),
-    ...(opts.cacheControl ? { cacheControl: opts.cacheControl } : {}),
-  });
-
-  // Record the attempt (non-blocking, never throws). This is what makes
-  // "how many uploads failed, and why" answerable at any time.
+  // Record every attempt (both paths, success or error). Non-blocking and
+  // fully swallowed — this is what makes "how many uploads failed, and why"
+  // answerable at any time, so a silent upload failure can never go unseen.
   logUploadAttempt(supabase, {
     bucket,
     file_name: path,
     file_size: prepared.size,
-    mime_type: safeImageContentType(prepared),
+    mime_type: contentType,
     status: error ? 'error' : 'success',
     error_message: error ? (error.message || String(error)) : null,
     context: opts.context ?? null,
