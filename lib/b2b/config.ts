@@ -32,7 +32,7 @@ export const B2B_ROLES: Record<B2bRole, B2bRoleConfig> = {
     },
     wedding_agency: {
         role: 'wedding_agency',
-        discountPercent: 10,
+        discountPercent: 7,
         categorySlugs: ['guestbooks'],
         label: 'Ціна для весільних агенцій',
         registerPath: '/wedding-agencies',
