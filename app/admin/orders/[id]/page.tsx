@@ -45,7 +45,8 @@ import {
     ShieldCheck,
     DollarSign,
     Copy,
-    RefreshCw
+    RefreshCw,
+    Palette
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -67,6 +68,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+
+  // Load the handwriting/display fonts used for cover inscriptions, so the
+  // inscription preview in each order item renders in the real font (Marck
+  // Script, Lobster, etc.) rather than a system fallback. One-time link inject.
+  useEffect(() => {
+    const id = 'inscription-fonts-admin';
+    if (document.getElementById(id)) return;
+    const fams = ['Marck Script', 'Montserrat', 'Philosopher', 'Lobster', 'Pacifico', 'Rubik', 'Nunito', 'Ubuntu']
+      .map(f => `family=${f.replace(/ /g, '+')}:wght@400;600;700`).join('&');
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?${fams}&display=swap`;
+    document.head.appendChild(link);
+  }, []);
 
   // Load the customer's uploaded photos (designer orders) so the Files card
   // can show + download them. These live in order_files; the card previously
@@ -788,6 +804,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 };
                                 const _selOpts = normalizeOpts(item.selected_options);
                                 const _opts = normalizeOpts(item.options);
+                                // Pull inscription params out of the options so we can render a
+                                // visual preview of the engraved/printed cover text — the manager
+                                // and the workshop see roughly how "Щасливі моменти" will look
+                                // (font, colour, size, on the chosen cover colour) instead of
+                                // reading five separate parameter lines.
+                                const allOpts = { ..._opts, ..._selOpts };
+                                const findOpt = (re: RegExp) => {
+                                    const k = Object.keys(allOpts).find(key => re.test(key));
+                                    return k ? String(allOpts[k]) : '';
+                                };
+                                const inscrText = findOpt(/текст напису/i);
+                                const inscrColorLabel = findOpt(/колір напису/i);
+                                const inscrFont = findOpt(/шрифт напису/i);
+                                const inscrSizeLabel = findOpt(/розмір напису/i);
+                                const coverColorLabel = findOpt(/колір обкладинки/i);
+                                const inscrColorHex = ({
+                                    'золотий': '#C9A24B', 'срібний': '#C7CBD1', 'білий': '#FFFFFF', 'чорний': '#1A1A1A',
+                                }[inscrColorLabel.toLowerCase()] || '#C9A24B');
+                                const coverColorHex = ({
+                                    'зелений': '#3f5e50', 'чорний': '#1A1A1A', 'синій': '#26364f', 'бордовий': '#5e2a30',
+                                    'сірий': '#6b6f76', 'бежевий': '#c9b79c', 'рожевий': '#c98a95', 'білий': '#e8e6e1',
+                                    'коричневий': '#5a4634', 'фіолетовий': '#4a3a5c',
+                                }[coverColorLabel.toLowerCase()] || '#6f675c');
+                                const inscrSizePx = /велик/i.test(inscrSizeLabel) ? 34 : /мал/i.test(inscrSizeLabel) ? 20 : 26;
                                 return (
                                 <div key={idx} style={itemRowStyle}>
                                     <div style={itemThumbStyle}>
@@ -825,6 +865,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {inscrText && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                                    <Palette size={12} /> Напис на обкладинці
+                                                </div>
+                                                <div style={{
+                                                    width: '100%', minHeight: 92, borderRadius: 10,
+                                                    background: coverColorHex,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    padding: '18px 16px', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.28)',
+                                                }}>
+                                                    <span style={{
+                                                        fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
+                                                        fontSize: inscrSizePx, color: inscrColorHex, lineHeight: 1.2,
+                                                        textAlign: 'center', wordBreak: 'break-word',
+                                                        textShadow: inscrColorHex.toLowerCase() === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+                                                    }}>
+                                                        {inscrText}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
+                                                    {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`} — прев'ю орієнтовне
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div style={itemCommentBoxStyle}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
