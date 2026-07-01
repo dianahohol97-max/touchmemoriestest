@@ -911,6 +911,20 @@ function OrderForm() {
       setSubmitted(true)
     } catch (e: any) {
       console.error('designer order submit error:', e)
+      // Log the FINAL failure (not just file uploads) so a customer's
+      // "can't finish the order" report leaves a trace we can read. The file
+      // uploads may all have succeeded and the real failure be here — e.g. an
+      // RLS error on orders/order_files insert, a NOT NULL violation, etc.
+      try {
+        void supabase.from('upload_attempt_log').insert({
+          bucket: 'order-files',
+          file_name: '(order submit)',
+          status: 'error',
+          error_message: e?.message || String(e),
+          context: 'designer-order-submit',
+          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        }).then(() => {}, () => {});
+      } catch { /* logging must never break the handler */ }
       setError(e?.message ? `Сталася помилка: ${e.message}` : "Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
     } finally {
       setSubmitting(false)
