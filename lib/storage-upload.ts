@@ -52,8 +52,17 @@ export async function uploadImageToStorage(
   opts: UploadOpts = {},
 ): Promise<{ data: any; error: any; file: File }> {
   const prepared = await prepareImageForUpload(file, opts);
+  // order-files has an owner-scoped SELECT policy (each customer sees only their
+  // own files). An upsert compiles to INSERT ... ON CONFLICT, and Postgres runs
+  // a conflict-arbiter check that needs SELECT visibility on the target row.
+  // Anonymous customers (not logged in) can't see any order-files row, so the
+  // upsert fails every time with "new row violates row-level security policy" —
+  // the recurring checkout error. A plain INSERT has no arbiter step and works
+  // for anon. Overwrite is never needed here: every order upload uses a unique
+  // per-order path, so forcing upsert off is both the fix and the safer default.
+  const useUpsert = bucket === 'order-files' ? false : (opts.upsert ?? true);
   const { data, error } = await supabase.storage.from(bucket).upload(path, prepared, {
-    upsert: opts.upsert ?? true,
+    upsert: useUpsert,
     contentType: safeImageContentType(prepared),
     ...(opts.cacheControl ? { cacheControl: opts.cacheControl } : {}),
   });
