@@ -798,6 +798,8 @@ function OrderForm() {
         const f = formData.files[i]
         const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
+        // uploadImageToStorage now routes order-files through the server-side
+        // service-role endpoint internally, so RLS never blocks the customer.
         const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
         if (upErr) { console.error('photo upload error:', upErr); lastUploadError = upErr; continue }
         uploaded.push({ path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
