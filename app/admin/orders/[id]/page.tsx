@@ -484,6 +484,50 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }
     };
 
+    // Production artwork for the inscription: black text on a white background,
+    // high-res, for engraving / hot-stamping. The colour swatch preview is for
+    // the customer; the workshop needs a clean B/W master to burn or press.
+    const downloadInscriptionArtwork = (text: string, font: string, filename: string) => {
+        try {
+            const scale = 4; // ~4x for crisp print output
+            const W = 1200, H = 400;
+            const canvas = document.createElement('canvas');
+            canvas.width = W * scale;
+            canvas.height = H * scale;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { toast.error('Не вдалося створити макет'); return; }
+            ctx.scale(scale, scale);
+            // Pure white background, pure black text — no colour, no shadow.
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // Fit the text to the width.
+            let fontSize = 160;
+            const setF = (s: number) => { ctx.font = `${s}px '${font || 'Marck Script'}', cursive`; };
+            setF(fontSize);
+            while (ctx.measureText(text).width > W - 120 && fontSize > 20) {
+                fontSize -= 4; setF(fontSize);
+            }
+            ctx.fillText(text, W / 2, H / 2);
+            canvas.toBlob((blob) => {
+                if (!blob) { toast.error('Не вдалося створити макет'); return; }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        } catch (e) {
+            console.error('inscription artwork error', e);
+            toast.error('Не вдалося створити макет');
+        }
+    };
+
     const saveNotes = async () => {
         setSaving(true);
         const { error } = await supabase
@@ -871,23 +915,60 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '8px' }}>
                                                     <Palette size={12} /> Напис на обкладинці
                                                 </div>
-                                                <div style={{
-                                                    width: '100%', minHeight: 92, borderRadius: 10,
-                                                    background: coverColorHex,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    padding: '18px 16px', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.28)',
-                                                }}>
-                                                    <span style={{
-                                                        fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
-                                                        fontSize: inscrSizePx, color: inscrColorHex, lineHeight: 1.2,
-                                                        textAlign: 'center', wordBreak: 'break-word',
-                                                        textShadow: inscrColorHex.toLowerCase() === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
-                                                    }}>
-                                                        {inscrText}
-                                                    </span>
+                                                {/* Two side-by-side previews: colour (what the customer sees)
+                                                    and the B/W production master (what the workshop needs). */}
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>Як бачить клієнт</div>
+                                                        <div style={{
+                                                            width: '100%', minHeight: 92, borderRadius: 10,
+                                                            background: coverColorHex,
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            padding: '18px 16px', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.28)',
+                                                        }}>
+                                                            <span style={{
+                                                                fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
+                                                                fontSize: inscrSizePx, color: inscrColorHex, lineHeight: 1.2,
+                                                                textAlign: 'center', wordBreak: 'break-word',
+                                                                textShadow: inscrColorHex.toLowerCase() === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+                                                            }}>
+                                                                {inscrText}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>Макет для нанесення</div>
+                                                        <div style={{
+                                                            width: '100%', minHeight: 92, borderRadius: 10,
+                                                            background: '#ffffff', border: '1px solid #e2e8f0',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            padding: '18px 16px',
+                                                        }}>
+                                                            <span style={{
+                                                                fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
+                                                                fontSize: inscrSizePx, color: '#000000', lineHeight: 1.2,
+                                                                textAlign: 'center', wordBreak: 'break-word',
+                                                            }}>
+                                                                {inscrText}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>
-                                                    {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`} — прев'ю орієнтовне
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 8 }}>
+                                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                                                        {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}.png`)}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                            fontSize: 12, fontWeight: 700, color: '#1e2d7d',
+                                                            padding: '6px 12px', background: '#eef2ff', border: 'none',
+                                                            borderRadius: 8, cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        <Download size={13} /> Завантажити макет (PNG)
+                                                    </button>
                                                 </div>
                                             </div>
                                         )}
