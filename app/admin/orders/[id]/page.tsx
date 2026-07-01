@@ -487,7 +487,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Production artwork for the inscription: black text on a white background,
     // high-res, for engraving / hot-stamping. The colour swatch preview is for
     // the customer; the workshop needs a clean B/W master to burn or press.
-    const downloadInscriptionArtwork = (text: string, font: string, filename: string) => {
+    const downloadInscriptionArtwork = (text: string, font: string, baseName: string, format: 'png' | 'jpg' = 'png') => {
         try {
             const scale = 4; // ~4x for crisp print output
             const W = 1200, H = 400;
@@ -498,6 +498,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (!ctx) { toast.error('Не вдалося створити макет'); return; }
             ctx.scale(scale, scale);
             // Pure white background, pure black text — no colour, no shadow.
+            // (JPEG has no transparency, so the explicit white fill matters for it.)
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, W, H);
             ctx.fillStyle = '#000000';
@@ -511,17 +512,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 fontSize -= 4; setF(fontSize);
             }
             ctx.fillText(text, W / 2, H / 2);
+            const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
             canvas.toBlob((blob) => {
                 if (!blob) { toast.error('Не вдалося створити макет'); return; }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = filename;
+                a.download = `${baseName}.${format}`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
-            }, 'image/png');
+            }, mime, format === 'jpg' ? 0.95 : undefined);
         } catch (e) {
             console.error('inscription artwork error', e);
             toast.error('Не вдалося створити макет');
@@ -958,17 +960,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     <div style={{ fontSize: 11, color: '#94a3b8' }}>
                                                         {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`}
                                                     </div>
-                                                    <button
-                                                        onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}.png`)}
-                                                        style={{
-                                                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                                                            fontSize: 12, fontWeight: 700, color: '#1e2d7d',
-                                                            padding: '6px 12px', background: '#eef2ff', border: 'none',
-                                                            borderRadius: 8, cursor: 'pointer',
-                                                        }}
-                                                    >
-                                                        <Download size={13} /> Завантажити макет (PNG)
-                                                    </button>
+                                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                        <button
+                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, 'png')}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                                fontSize: 12, fontWeight: 700, color: '#1e2d7d',
+                                                                padding: '6px 12px', background: '#eef2ff', border: 'none',
+                                                                borderRadius: 8, cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <Download size={13} /> PNG
+                                                        </button>
+                                                        <button
+                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, 'jpg')}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                                fontSize: 12, fontWeight: 700, color: '#1e2d7d',
+                                                                padding: '6px 12px', background: '#eef2ff', border: 'none',
+                                                                borderRadius: 8, cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            <Download size={13} /> JPG
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
