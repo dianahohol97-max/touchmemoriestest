@@ -489,29 +489,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // the customer; the workshop needs a clean B/W master to burn or press.
     const downloadInscriptionArtwork = (text: string, font: string, baseName: string, format: 'png' | 'jpg' = 'png') => {
         try {
-            const scale = 4; // ~4x for crisp print output
-            const W = 1200, H = 400;
+            // Square canvas matching the real 25×25 cm cover. 2500px = 250 DPI,
+            // enough for engraving/stamping artwork. The customer never moves the
+            // inscription on a velour album — it's centred — so we centre it too.
+            const SIZE = 2500;
             const canvas = document.createElement('canvas');
-            canvas.width = W * scale;
-            canvas.height = H * scale;
+            canvas.width = SIZE;
+            canvas.height = SIZE;
             const ctx = canvas.getContext('2d');
             if (!ctx) { toast.error('Не вдалося створити макет'); return; }
-            ctx.scale(scale, scale);
             // Pure white background, pure black text — no colour, no shadow.
-            // (JPEG has no transparency, so the explicit white fill matters for it.)
+            // (JPEG has no transparency, so the explicit white fill matters.)
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, W, H);
+            ctx.fillRect(0, 0, SIZE, SIZE);
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            // Fit the text to the width.
-            let fontSize = 160;
+            // Shrink the font until the WHOLE text fits on ONE line within the
+            // safe width (matches what the customer saw — single-line, centred).
+            const safeWidth = SIZE * 0.82; // ~9% margin each side
+            let fontSize = Math.round(SIZE * 0.22);
             const setF = (s: number) => { ctx.font = `${s}px '${font || 'Marck Script'}', cursive`; };
             setF(fontSize);
-            while (ctx.measureText(text).width > W - 120 && fontSize > 20) {
-                fontSize -= 4; setF(fontSize);
+            while (ctx.measureText(text).width > safeWidth && fontSize > 24) {
+                fontSize -= 6; setF(fontSize);
             }
-            ctx.fillText(text, W / 2, H / 2);
+            ctx.fillText(text, SIZE / 2, SIZE / 2);
             const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
             canvas.toBlob((blob) => {
                 if (!blob) { toast.error('Не вдалося створити макет'); return; }
@@ -939,17 +942,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>Макет для нанесення</div>
+                                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>Макет для нанесення · 25×25 см</div>
                                                         <div style={{
-                                                            width: '100%', minHeight: 92, borderRadius: 10,
+                                                            width: '100%', aspectRatio: '1 / 1', borderRadius: 10,
                                                             background: '#ffffff', border: '1px solid #e2e8f0',
                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                            padding: '18px 16px',
+                                                            padding: '10px', overflow: 'hidden',
                                                         }}>
                                                             <span style={{
                                                                 fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
                                                                 fontSize: inscrSizePx, color: '#000000', lineHeight: 1.2,
-                                                                textAlign: 'center', wordBreak: 'break-word',
+                                                                textAlign: 'center', whiteSpace: 'nowrap',
                                                             }}>
                                                                 {inscrText}
                                                             </span>
