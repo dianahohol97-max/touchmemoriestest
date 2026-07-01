@@ -487,28 +487,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Production artwork for the inscription: black text on a white background,
     // high-res, for engraving / hot-stamping. The colour swatch preview is for
     // the customer; the workshop needs a clean B/W master to burn or press.
-    const downloadInscriptionArtwork = (text: string, font: string, baseName: string, format: 'png' | 'jpg' = 'png') => {
+    const downloadInscriptionArtwork = (text: string, font: string, baseName: string, sizeLabel: string, format: 'png' | 'jpg' = 'png') => {
         try {
-            // Square canvas matching the real 25×25 cm cover. 2500px = 250 DPI,
-            // enough for engraving/stamping artwork. The customer never moves the
-            // inscription on a velour album — it's centred — so we centre it too.
+            // Square canvas matching the real 25×25 cm cover. 2500px = 250 DPI.
             const SIZE = 2500;
             const canvas = document.createElement('canvas');
             canvas.width = SIZE;
             canvas.height = SIZE;
             const ctx = canvas.getContext('2d');
             if (!ctx) { toast.error('Не вдалося створити макет'); return; }
-            // Pure white background, pure black text — no colour, no shadow.
-            // (JPEG has no transparency, so the explicit white fill matters.)
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, SIZE, SIZE);
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            // Shrink the font until the WHOLE text fits on ONE line within the
-            // safe width (matches what the customer saw — single-line, centred).
-            const safeWidth = SIZE * 0.82; // ~9% margin each side
-            let fontSize = Math.round(SIZE * 0.22);
+            // Font size must reflect the size the CUSTOMER chose (Малий /
+            // Середній / Великий), as a fraction of the 25 cm cover — not just
+            // the biggest that fits. We only shrink below the target if a long
+            // text would overflow the safe width.
+            const sizeFraction = /велик/i.test(sizeLabel) ? 0.16 : /мал/i.test(sizeLabel) ? 0.085 : 0.12; // середній default
+            const safeWidth = SIZE * 0.86;
+            let fontSize = Math.round(SIZE * sizeFraction);
             const setF = (s: number) => { ctx.font = `${s}px '${font || 'Marck Script'}', cursive`; };
             setF(fontSize);
             while (ctx.measureText(text).width > safeWidth && fontSize > 24) {
@@ -965,7 +964,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     </div>
                                                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                                         <button
-                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, 'png')}
+                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, inscrSizeLabel, 'png')}
                                                             style={{
                                                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                                                 fontSize: 12, fontWeight: 700, color: '#1e2d7d',
@@ -976,7 +975,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             <Download size={13} /> PNG
                                                         </button>
                                                         <button
-                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, 'jpg')}
+                                                            onClick={() => downloadInscriptionArtwork(inscrText, inscrFont, `napys_${order.order_number || 'order'}_poz${idx + 1}`, inscrSizeLabel, 'jpg')}
                                                             style={{
                                                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                                                 fontSize: 12, fontWeight: 700, color: '#1e2d7d',
