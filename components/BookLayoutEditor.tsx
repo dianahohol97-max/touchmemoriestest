@@ -2482,8 +2482,24 @@ export default function BookLayoutEditor() {
   };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const allFiles = Array.from(e.target.files || []);
+    if (!allFiles.length) return;
+
+    // Guard against files too large to decode in the browser (RAW dumps,
+    // multi-hundred-MP panoramas). These would freeze or crash the tab with no
+    // explanation. 60 MB comfortably covers any iPhone/mirrorless JPEG/HEIC.
+    const MAX_FILE_BYTES = 60 * 1024 * 1024;
+    const oversized = allFiles.filter(f => f.size > MAX_FILE_BYTES);
+    const files = allFiles.filter(f => f.size <= MAX_FILE_BYTES);
+    if (oversized.length > 0) {
+      toast.error(
+        oversized.length === allFiles.length
+          ? `Фото завелике (${Math.round(oversized[0].size / 1024 / 1024)} МБ). Максимум 60 МБ — зменшіть розмір або надішліть JPG.`
+          : `${oversized.length} фото завеликі (>60 МБ) і пропущені. Решта завантажуються.`,
+        { duration: 8000 }
+      );
+    }
+    if (!files.length) { e.target.value = ''; return; }
     const total = files.length;
     // Use a stable counter per upload batch to guarantee unique IDs
     const batchId = Date.now();
@@ -2511,11 +2527,28 @@ export default function BookLayoutEditor() {
         .sort((a, b) => a.idx - b.idx)
         .map(r => r.photo)
         .filter(Boolean) as PhotoData[];
+      const failedCount = total - loaded.length;
       if (loaded.length > 0) {
         setPhotos(prev => [...prev, ...loaded]);
         toast.success(`Завантажено ${loaded.length} фото`);
         // Detect focal points using Canvas saliency (free, instant, browser-side)
         loaded.forEach(photo => { detectFocalPoint(photo.preview, photo.id); });
+      }
+      // Never fail silently. If some (or all) photos didn't load, tell the
+      // customer exactly what happened — the #1 cause is iPhone HEIC photos
+      // that couldn't be converted in their browser. Silent drops were being
+      // reported as "не вдається завантажити фото" with no explanation.
+      if (failedCount > 0) {
+        if (loaded.length === 0) {
+          toast.error(
+            heicCount > 0
+              ? 'Не вдалося обробити фото з iPhone. У Налаштуваннях айфона → Камера → Формати оберіть «Найсумісніші», або надішліть фото як JPG.'
+              : 'Не вдалося завантажити фото. Спробуйте інший формат (JPG/PNG) або менший розмір.',
+            { duration: 9000 }
+          );
+        } else {
+          toast.error(`${failedCount} фото не завантажились (формат не підтримується). Решта — на місці.`, { duration: 7000 });
+        }
       }
     };
 

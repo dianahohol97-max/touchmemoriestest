@@ -33,11 +33,13 @@ export async function normalizeImageFile(file: File): Promise<File> {
   if (!isHeic(file)) return file;
   const newName = (file.name || 'photo').replace(/\.(heic|heif)$/i, '.jpg');
 
-  // 1) Primary: heic2any. Works for most iPhone HEIC.
+  // 1) Primary: heic2any. Works for most iPhone HEIC. It's single-threaded and
+  // memory-hungry, so very large HEIC (48MP iPhones, ~8000px) can make it throw
+  // or hang — the catch below falls through to the browser-native path.
   try {
     const mod: any = await import('heic2any');
     const heic2any = mod.default || mod;
-    const out: Blob | Blob[] = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
+    const out: Blob | Blob[] = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
     const blob: Blob = Array.isArray(out) ? out[0] : out;
     if (blob && blob.size > 0) {
       return new File([blob], newName, { type: 'image/jpeg', lastModified: file.lastModified });
@@ -47,24 +49,31 @@ export async function normalizeImageFile(file: File): Promise<File> {
     console.warn('heic2any failed, trying canvas fallback:', e);
   }
 
-  // 2) Fallback: some browsers (Safari, newer Chrome on macOS) can decode HEIC
-  // natively. Draw it onto a canvas and export JPEG.
+  // 2) Fallback: some browsers (Safari, newer Chrome on macOS, iOS Safari) can
+  // decode HEIC natively. Draw it onto a canvas and export JPEG. This is often
+  // the one that saves iPhone users — mobile Safari decodes HEIC natively.
   try {
     const url = URL.createObjectURL(file);
     const jpeg = await new Promise<File>((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         try {
+          // Cap dimensions so a 48MP HEIC doesn't blow the canvas memory
+          // budget on a phone (which silently produces a blank/failed blob).
+          const MAX = 4000;
+          const scale = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          canvas.width = w;
+          canvas.height = h;
           const ctx = canvas.getContext('2d');
-          if (!ctx || !canvas.width || !canvas.height) { reject(new Error('no canvas / zero size')); return; }
-          ctx.drawImage(img, 0, 0);
+          if (!ctx || !w || !h) { reject(new Error('no canvas / zero size')); return; }
+          ctx.drawImage(img, 0, 0, w, h);
           canvas.toBlob((b) => {
             if (b && b.size > 0) resolve(new File([b], newName, { type: 'image/jpeg', lastModified: file.lastModified }));
             else reject(new Error('canvas toBlob empty'));
-          }, 'image/jpeg', 0.92);
+          }, 'image/jpeg', 0.9);
         } catch (err) { reject(err); }
       };
       img.onerror = () => reject(new Error('browser cannot decode this HEIC'));
