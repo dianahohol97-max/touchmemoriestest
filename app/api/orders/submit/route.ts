@@ -149,6 +149,23 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       customer_id = customer?.id || null;
       customerBonusBalance = Number(customer?.bonus_balance || 0);
+
+      // Belt-and-braces: a DB trigger now creates a customers profile on
+      // signup, but if this auth user somehow has none (older account, trigger
+      // disabled, direct auth admin creation), create it here so the order is
+      // never orphaned. Orphaned orders were invisible in the customer's
+      // cabinet and broke bonuses/referrals (TM-001031/1032/1034 all hit this).
+      if (!customer_id && user.email) {
+        const { data: created } = await admin0
+          .from('customers')
+          .insert({ id: user.id, auth_user_id: user.id, email: user.email })
+          .select('id, bonus_balance')
+          .maybeSingle();
+        if (created) {
+          customer_id = created.id;
+          customerBonusBalance = Number(created.bonus_balance || 0);
+        }
+      }
     }
   } catch (e) {
     console.warn('orders/submit: customer lookup failed, falling back to guest', e);
