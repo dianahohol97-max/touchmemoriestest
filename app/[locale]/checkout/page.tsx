@@ -167,6 +167,53 @@ export default function CheckoutPage() {
         }
     };
 
+    // Auto-apply a code arriving via a referral link (?ref=CODE) or the promo
+    // link (?promo=CODE), or one ReferralCapture stashed in localStorage. This
+    // is what makes agency referral LINKS work end-to-end: the agency shares
+    // touchmemories.com.ua/?ref=THEIRCODE, and by the time the client reaches
+    // checkout the discount is already applied — no manual entry. If the code
+    // is a customer referral code (not a promo_code), validation just fails
+    // quietly and the friend-referral path handles it separately.
+    useEffect(() => {
+        if (promoCode || rawTotal <= 0) return;
+        let code = '';
+        try {
+            const params = new URLSearchParams(window.location.search);
+            code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
+            if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
+        } catch { /* ignore */ }
+        if (!code || !/^[A-Za-z0-9]{4,16}$/.test(code)) return;
+
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/promo/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code,
+                        cart_total: rawTotal,
+                        email: formData.email || undefined,
+                        items: items.map((it: any) => ({
+                            product_id: it.product_id || it.id,
+                            price: it.price,
+                            qty: it.qty ?? it.quantity ?? 1,
+                        })),
+                    }),
+                });
+                const result = await res.json();
+                if (cancelled || !result.valid) return;
+                const discount = typeof result.discount_amount === 'number' ? result.discount_amount : 0;
+                setPromoDiscount(Math.min(discount, rawTotal));
+                setPromoCode(code);
+                setPromoInput(code);
+                setPromoId(result.promo_id || null);
+            } catch { /* silent — no code applied */ }
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rawTotal]);
+
     const applyCertificate = async () => {
         if (!certInput.trim()) return;
         setCertLoading(true);

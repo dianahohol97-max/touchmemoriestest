@@ -165,6 +165,19 @@ export default function AgencyPartnersPage() {
                   </div>
                 </div>
 
+                {/* Ready-to-share referral link */}
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Посилання:</span>
+                  <code style={{ fontSize: 12, background: '#f8fafc', border: '1px solid #e2e8f0', padding: '5px 10px', borderRadius: 6, color: '#475569', wordBreak: 'break-all' }}>
+                    {`https://touchmemories.com.ua/?ref=${p.referral_code}`}
+                  </code>
+                  <button
+                    onClick={() => { navigator.clipboard?.writeText(`https://touchmemories.com.ua/?ref=${p.referral_code}`); toast.success('Посилання скопійовано'); }}
+                    title="Копіювати посилання"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4, display: 'flex' }}
+                  ><Copy size={15} /></button>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
                   <Stat label="Ставки" value={`${p.travelbook_rate}% / ${p.other_rate}%`} hint="тревелбук / інше" />
                   <Stat label="Всього нараховано" value={`${Number(p.total_earned).toFixed(0)} ₴`} />
