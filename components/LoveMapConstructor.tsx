@@ -9,6 +9,7 @@ import LoveMapPreview from './LoveMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 interface LoveMapConfig {
     // Step 1: Locations
@@ -195,12 +196,7 @@ export default function LoveMapConstructor() {
             const userKey = user?.id || 'anon';
             const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
             const path = `${userKey}/${cartItemId}/lovemap_config.json`;
-            const { error: uploadError } = await sb.storage
-                .from('order-files')
-                .upload(path, blob, {
-                    cacheControl: '31536000', upsert: true,
-                    contentType: 'application/json',
-                });
+            const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: 'application/json' });
             if (!uploadError) {
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
                     path, fileName: 'lovemap_config.json',

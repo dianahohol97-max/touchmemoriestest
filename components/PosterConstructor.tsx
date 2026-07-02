@@ -12,6 +12,7 @@ import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenera
 import { uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 //  Types 
 
@@ -826,12 +827,7 @@ export default function PosterConstructor() {
             const blob = await (await fetch(p.photoUrl)).blob();
             const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
             const path = `${userKey}/${cartPayload.id}/${String(i + 1).padStart(3, '0')}.${ext === 'jpg' ? 'jpeg' : ext}`;
-            const { error: uploadError } = await sb.storage
-              .from('order-files')
-              .upload(path, blob, {
-                cacheControl: '31536000', upsert: true,
-                contentType: blob.type || 'image/jpeg',
-              });
+            const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
             if (uploadError) { console.warn('poster upload failed:', uploadError); continue; }
             exportedFiles.push({
               path, fileName: `poster_slot_${i + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,

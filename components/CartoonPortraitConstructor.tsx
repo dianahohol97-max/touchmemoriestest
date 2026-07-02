@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, ShoppingCart, Upload, AlertTriangle, Loader2
 import CartoonPortraitPreview from './CartoonPortraitPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 interface CartoonPortraitConfig {
     // Step 1: Photo Upload
@@ -396,12 +397,7 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                     const blob = await (await fetch(config.generatedPortrait)).blob();
                     const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '');
                     const path = `${userKey}/${cartItemId}/generated.${ext}`;
-                    const { error: uploadError } = await sb.storage
-                        .from('order-files')
-                        .upload(path, blob, {
-                            cacheControl: '31536000', upsert: true,
-                            contentType: blob.type || 'image/png',
-                        });
+                    const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/png' });
                     if (!uploadError) {
                         exportedFiles.push({
                             path, fileName: `generated.${ext}`,

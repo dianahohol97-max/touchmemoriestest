@@ -9,6 +9,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useT } from '@/lib/i18n/context';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useDropZone } from '@/lib/hooks/useDropZone';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 // Puzzle formats: A5 (15×21) and A4 (20×30) in both orientations.
 type PuzzleFormat = {
@@ -163,12 +164,7 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
         const blob = await (await fetch(config.photoUrl)).blob();
         const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
         const path = `${userKey}/${cartItemId}/puzzle.${ext === 'jpg' ? 'jpeg' : ext}`;
-        const { error: uploadError } = await supabase.storage
-          .from('order-files')
-          .upload(path, blob, {
-            cacheControl: '31536000', upsert: true,
-            contentType: blob.type || 'image/jpeg',
-          });
+        const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
         if (!uploadError) {
           sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
             path, fileName: `puzzle.${ext === 'jpg' ? 'jpeg' : ext}`,

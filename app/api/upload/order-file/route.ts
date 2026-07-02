@@ -26,10 +26,12 @@ export const maxDuration = 60;
  *   bucket — defaults to "order-files"; only the customer-upload buckets
  *            are allowed (no writing to products/admin buckets).
  */
-const ALLOWED_BUCKETS = new Set(['order-files', 'photobook-uploads']);
+const ALLOWED_BUCKETS = new Set(['order-files', 'photobook-uploads', 'poster-exports']);
 const ALLOWED_CT = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
   'image/heic', 'image/heif', 'image/avif', 'application/pdf',
+  // Small config/descriptor blobs that constructors save alongside images.
+  'application/json', 'text/plain',
 ]);
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB per file
 

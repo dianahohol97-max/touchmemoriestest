@@ -10,6 +10,7 @@ import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { useT } from '@/lib/i18n/context';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 interface CityMapConfig {
     // Step 1: Location
@@ -176,12 +177,7 @@ export default function CityMapConstructor() {
             const userKey = user?.id || 'anon';
             const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
             const path = `${userKey}/${cartItemId}/citymap_config.json`;
-            const { error: uploadError } = await sb.storage
-                .from('order-files')
-                .upload(path, blob, {
-                    cacheControl: '31536000', upsert: true,
-                    contentType: 'application/json',
-                });
+            const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: 'application/json' });
             if (!uploadError) {
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
                     path, fileName: 'citymap_config.json',

@@ -9,6 +9,7 @@ import { Upload, ShoppingCart } from 'lucide-react';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
+import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
 const LOCALES = {
   uk: { months:['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'], days:['Пн','Вт','Ср','Чт','Пт','Сб','Нд'] },
@@ -291,12 +292,7 @@ export default function DeskCalendarConstructor(){
             const blob = await (await fetch(url)).blob();
             const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
             const path = `${userKey}/${cartItemId}/m${String(m + 1).padStart(2, '0')}-s${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`;
-            const { error: uploadError } = await sb.storage
-              .from('order-files')
-              .upload(path, blob, {
-                cacheControl: '31536000', upsert: true,
-                contentType: blob.type || 'image/jpeg',
-              });
+            const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
             if (uploadError) { console.warn('desk-cal upload failed:', uploadError); continue; }
             exportedFiles.push({
               path, fileName: `month_${m + 1}_slot_${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,

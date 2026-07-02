@@ -91,16 +91,21 @@ export async function uploadOrderFile(
   path: string,
   blob: Blob
 ): Promise<{ url: string; size: number }> {
-  const supabase = createClient()
-
-  const { error } = await supabase.storage.from(bucket).upload(path, blob, {
-    contentType: blob.type || 'image/png',
-    upsert: true,
-  })
-
-  if (error) throw new Error(`Storage upload failed: ${error.message}`)
-
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+  // Route through the server (service role) so RLS never blocks the upload —
+  // poster-exports and order-files both have public INSERT but no public
+  // UPDATE, so a direct browser upsert fails on any existing path. The server
+  // endpoint bypasses RLS entirely.
+  const fd = new FormData()
+  fd.append('file', blob, path.split('/').pop() || 'file')
+  fd.append('path', path)
+  fd.append('bucket', bucket)
+  const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd })
+  if (!resp.ok) {
+    const j = await resp.json().catch(() => ({}))
+    throw new Error(`Storage upload failed: ${j?.error || resp.status}`)
+  }
+  const createClient2 = createClient()
+  const { data } = createClient2.storage.from(bucket).getPublicUrl(path)
   return { url: data.publicUrl, size: blob.size }
 }
 
