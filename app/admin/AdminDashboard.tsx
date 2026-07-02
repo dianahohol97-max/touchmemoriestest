@@ -85,6 +85,15 @@ export default function AdminDashboard() {
 
     useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
 
+    // Mobile: swap the 7-column queue table for compact cards.
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
             <RefreshCw size={32} color="#1e2d7d" className="animate-spin"/>
@@ -94,8 +103,9 @@ export default function AdminDashboard() {
     return (
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* Header — wraps on phones so the buttons drop below the title
+                instead of stretching the row off-screen. */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                     <h1 style={{ fontSize: 26, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>Огляд</h1>
                     <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 3 }}>Оновлено о {lastUpdated} · автооновлення кожну хвилину</div>
@@ -122,8 +132,9 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
-            {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+            {/* Stats — auto-fit grid: 2×2 on phones, 4 across on desktop.
+                A hard repeat(4,1fr) squeezed the cards off-screen on mobile. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                 <StatCard icon={<ShoppingBag size={20} color="#1e2d7d"/>} color="#1e2d7d"
                     label="Сьогодні замовлень" value={stats.today}
                     sub={stats.todayRevenue > 0 ? `${fmt(stats.todayRevenue)} ₴` : 'ще немає'}
@@ -173,6 +184,33 @@ export default function AdminDashboard() {
                     <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
                         <CheckCircle size={32} style={{ margin: '0 auto 10px', display: 'block', opacity: .4 }}/>
                         Черга порожня — всі замовлення виконані!
+                    </div>
+                ) : isMobile ? (
+                    /* Mobile: compact tappable cards — the 7-column table gets
+                       crushed on a phone screen. */
+                    <div>
+                        {queue.map((o, idx) => {
+                            const st = STATUS_LABEL[o.order_status] || { label: o.order_status, color: '#374151', bg: '#f9fafb' };
+                            const pay = PAY_LABEL[o.payment_status] || { label: o.payment_status, color: '#6b7280' };
+                            return (
+                                <div key={o.id}
+                                    style={{ padding: '12px 16px', borderTop: idx === 0 ? 'none' : '1px solid #f1f5f9', cursor: 'pointer' }}
+                                    onClick={() => window.location.href = `/admin/orders/${o.id}`}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontWeight: 700, fontSize: 14, color: '#1e2d7d' }}>
+                                            #{o.order_number}{o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 5, fontSize: 11 }}>🎨</span>}
+                                        </span>
+                                        <span style={{ fontWeight: 700, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</span>
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#374151', marginTop: 3 }}>{o.customer_name} · {Array.isArray(o.items) ? o.items.length : 0} шт</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: pay.color }}>{pay.label}</span>
+                                        <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>{timeAgo(o.created_at)}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
