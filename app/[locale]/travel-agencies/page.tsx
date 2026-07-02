@@ -2,7 +2,7 @@ import TravelAgenciesClient from './TravelAgenciesClient';
 
 export const metadata = {
     title: 'Співпраця з тревел-агенціями — Touch.Memories',
-    robots: { index: false, follow: false }, // non-public until launch
+    description: 'Партнерська програма для тревел-агенцій: реферальна програма 10% на тревелбуки та подарункові сертифікати зі знижкою 10%.',
 };
 
 export default function TravelAgenciesPage() {
