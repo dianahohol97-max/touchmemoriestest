@@ -133,12 +133,24 @@ export default function AnalyticsPage() {
             const prevOrdersCount = prevOrders?.length || 0;
             const ordersChange = prevOrdersCount === 0 ? 100 : ((ordersCount - prevOrdersCount) / prevOrdersCount) * 100;
 
-            // New clients in this period
-            const { count: newClientsCount } = await supabase
-                .from('customers')
-                .select('*', { count: 'exact', head: true })
-                .gte('created_at', startDate.toISOString())
-                .lte('created_at', endDate.toISOString());
+            // New clients in this period — count unique people by phone/email
+            // whose FIRST order falls in the period. The old query counted only
+            // rows in `customers` (registered accounts), so guest checkouts —
+            // most of the traffic — never counted and the number looked frozen
+            // at 0–1.
+            const identity = (o: any) =>
+                String(o.customer_phone || '').replace(/\D/g, '') || String(o.customer_email || '').toLowerCase().trim();
+            const idsInPeriod = Array.from(new Set(orders.map(identity).filter(Boolean)));
+            let newClientsCount = 0;
+            if (idsInPeriod.length > 0) {
+                // Which of these identities ordered before the period?
+                const { data: priorOrders } = await supabase
+                    .from('orders')
+                    .select('customer_phone, customer_email')
+                    .lt('created_at', startDate.toISOString());
+                const priorIds = new Set((priorOrders || []).map(identity).filter(Boolean));
+                newClientsCount = idsInPeriod.filter(id => !priorIds.has(id)).length;
+            }
 
             const { count: prevNewClientsCount } = await supabase
                 .from('customers')
@@ -241,15 +253,19 @@ export default function AnalyticsPage() {
             orders.forEach(o => {
                 const items = Array.isArray(o.items) ? o.items : [];
                 items.forEach((item: any) => {
-                    const id = item.id || item.product_id || Math.random().toString();
-                    const name = item.name || 'Unknown Product';
-                    const price = Number(item.price) || 0;
-                    const quantity = Number(item.quantity || item.qty) || 1;
+                    const id = item.product_id || item.id || item.slug || Math.random().toString();
+                    // Site orders store the name as product_name (manual/legacy may
+                    // use name) — reading only item.name made every bar "Unknown
+                    // Product".
+                    const name = item.product_name || item.name || item.slug || 'Без назви';
+                    // Same for money: site orders carry total_price / unit_price.
+                    const lineTotal = Number(item.total_price)
+                        || (Number(item.unit_price || item.price) || 0) * (Number(item.quantity || item.qty) || 1);
 
                     if (!productStats[id]) {
                         productStats[id] = { name, revenue: 0 };
                     }
-                    productStats[id].revenue += price * quantity;
+                    productStats[id].revenue += lineTotal;
                 });
             });
 
@@ -372,7 +388,7 @@ export default function AnalyticsPage() {
     return (
         <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
                         Бізнес Аналітика
@@ -408,12 +424,13 @@ export default function AnalyticsPage() {
                 display: 'flex',
                 gap: '12px',
                 marginBottom: '20px',
-                padding: '20px',
+                padding: '16px',
                 backgroundColor: 'white',
                 borderRadius: '3px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                flexWrap: 'wrap'
             }}>
-                <div style={{ display: 'flex', gap: '8px', flex: 1 }}>
+                <div style={{ display: 'flex', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                     {(['today', 'week', 'month', 'custom'] as const).map(p => (
                         <button
                             key={p}
@@ -439,7 +456,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 {period === 'custom' && (
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Calendar size={18} color="#64748b" />
                             <input
@@ -473,7 +490,7 @@ export default function AnalyticsPage() {
             {/* KPI Cards */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
                 gap: '14px',
                 marginBottom: '20px'
             }}>
@@ -634,7 +651,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Charts Row 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px', marginBottom: '20px' }}>
                 {/* Revenue Over Time */}
                 <div style={{
                     padding: '16px',
@@ -704,7 +721,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Charts Row 2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px', marginBottom: '20px' }}>
                 {/* Orders by Source */}
                 <div style={{
                     padding: '16px',
