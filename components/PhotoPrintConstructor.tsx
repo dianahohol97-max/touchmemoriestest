@@ -736,6 +736,12 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
     addItem(cartPayload);
 
+    // Collected {path, bucket, ...} descriptors of the rendered prints that
+    // were uploaded to storage. Declared out here (not inside the try) because
+    // the projects insert further down also needs it — the saved design must
+    // reference the durable storage paths, not blob: previews.
+    const exportedFiles: any[] = [];
+
     // Render and upload the customer's adjusted print, NOT the original
     // file. Diana wants the manager to receive "ready-to-print" images
     // that look pixel-for-pixel like what the customer saw on screen:
@@ -753,7 +759,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const userKey = user?.id || 'anon';
-      const exportedFiles: any[] = [];
+      exportedFiles.length = 0; // reset the outer-scope collector
 
       // Wait once for any web fonts to be ready so polaroid captions
       // don't render in a fallback. document.fonts.ready resolves
@@ -1000,7 +1006,15 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           rotation:p.rotation,orientation:p.orientation,qty:p.qty,sizeOverride:p.sizeOverride,
           polaroidText:p.polaroidText,showCaption:p.showCaption})),
         cart_payload:cartPayload,
-        uploaded_photos:photos.map(p=>p.preview), updated_at:new Date().toISOString(),
+        // Store the DURABLE storage paths of the rendered prints (uploaded just
+        // above via the server endpoint), not blob: previews. blob: URLs die
+        // with the tab — a project saved with them looks like it has photos
+        // (uploaded_photos.length = 20) but every entry is unrecoverable, which
+        // is exactly what happened on TM-001034.
+        uploaded_photos: exportedFiles.length > 0
+          ? exportedFiles.map((f: any) => ({ path: f.path, bucket: f.bucket }))
+          : [],
+        updated_at:new Date().toISOString(),
       });
     } catch(e) { console.warn('Design save skipped:',e); }
 

@@ -273,6 +273,11 @@ export default function DeskCalendarConstructor(){
     // Upload originals to Storage. The slot state only keeps blob URLs, so
     // for each filled slot we fetch the blob and persist it. Without this
     // step the manager only sees previews and has no source to print from.
+    // Durable storage descriptors of the uploaded photos — declared out here
+    // because the projects insert below also references them (saved designs
+    // must point at storage paths, not dead blob: URLs).
+    const exportedFiles: any[] = [];
+
     try {
       const { createBrowserClient } = await import('@supabase/auth-helpers-nextjs');
       const sb = createBrowserClient(
@@ -281,7 +286,7 @@ export default function DeskCalendarConstructor(){
       );
       const { data: { user } } = await sb.auth.getUser();
       const userKey = user?.id || 'anon';
-      const exportedFiles: any[] = [];
+      exportedFiles.length = 0;
       let pageIdx = 0;
       for (let m = 0; m < monthPhotos.length; m++) {
         for (let s = 0; s < monthPhotos[m].length; s++) {
@@ -332,7 +337,10 @@ export default function DeskCalendarConstructor(){
           name: `Настільний календар ${year}`,
           pages_data: [{ year, lang, designName: design.name, monthCollageIds, monthPhotos, marks }],
           cart_payload: cartPayload,
-          uploaded_photos: monthPhotos.flat().map(p=>p?.url).filter(Boolean),
+          // Durable storage paths, not blob: previews (blob dies with the tab).
+          uploaded_photos: exportedFiles.length > 0
+            ? exportedFiles.map((f: any) => ({ path: f.path, bucket: f.bucket }))
+            : [],
           updated_at: new Date().toISOString(),
         });
       }

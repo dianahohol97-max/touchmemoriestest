@@ -807,6 +807,11 @@ export default function PosterConstructor() {
 
       addItem(cartPayload);
 
+      // Durable storage descriptors of the uploaded originals — declared out
+      // here because the projects insert below also references them (saved
+      // designs must point at storage paths, not dead blob: URLs).
+      const exportedFiles: any[] = [];
+
       // Upload originals from the blob URLs to Storage. Poster keeps photos as
       // photoUrl strings (URL.createObjectURL) rather than File refs, so we
       // fetch each one and persist the blob. Without this the manager only
@@ -819,7 +824,7 @@ export default function PosterConstructor() {
         );
         const { data: { user } } = await sb.auth.getUser();
         const userKey = user?.id || 'anon';
-        const exportedFiles: any[] = [];
+        exportedFiles.length = 0;
         for (let i = 0; i < config.photos.length; i++) {
           const p = config.photos[i];
           if (!p.photoUrl) continue;
@@ -868,7 +873,10 @@ export default function PosterConstructor() {
             name: `Постер ${sizeObj.label}`,
             pages_data: [{ ...config }],
             cart_payload: cartPayload,
-            uploaded_photos: config.photos.map(p => p.photoUrl).filter(Boolean),
+            // Durable storage paths, not blob: previews (blob dies with the tab).
+            uploaded_photos: exportedFiles.length > 0
+              ? exportedFiles.map((f: any) => ({ path: f.path, bucket: f.bucket }))
+              : [],
             updated_at: new Date().toISOString(),
           });
         }
