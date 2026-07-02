@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import crypto from 'crypto';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 import { processReferralReward } from '@/lib/referral/referral';
+import { processAgencyCommission } from '@/lib/agency/commission';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 import { startBabybookForPaidOrder } from '@/lib/babybook/orchestrate';
 
@@ -359,6 +360,19 @@ export async function POST(req: Request) {
                         orderTotal: Number(existingOrder.total) || 0,
                     });
                 } catch (e) { console.error('processReferralReward failed (payment still confirmed):', e); }
+
+                // Travel-agency referral commission: if the order used an agency
+                // partner's promo code, credit the agency 10% of travelbook
+                // subtotal + 3% of the rest (rates configurable per agency).
+                // Idempotent via UNIQUE(order_id) on agency_commissions; runs at
+                // most once per order and never breaks payment confirmation.
+                try {
+                    await processAgencyCommission(supabase, {
+                        orderId: reference,
+                        promoCode: existingOrder.promo_code ?? null,
+                        items: existingOrder.items,
+                    });
+                } catch (e) { console.error('processAgencyCommission failed (payment still confirmed):', e); }
 
                 // Certificate redemption: if this order was paid (partly) with a
                 // gift certificate, mark the certificate redeemed now and credit
