@@ -5,6 +5,7 @@ import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef } from 'react';
 import { Upload, ShoppingCart } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { uploadImageToStorage } from '@/lib/storage-upload';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
 import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
@@ -965,11 +966,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           .replace(/\.(jpe?g|png|webp|heic|heif|tiff?)$/i, '');
         const fileName = `${String(i + 1).padStart(3, '0')}_${baseRaw}_print.jpg`;
         const path = `${userKey}/${cartItemId}/${fileName}`;
-        const { error: uploadError } = await supabase.storage
-          .from('order-files')
-          .upload(path, blob, {
-            cacheControl: '31536000', upsert: true, contentType: 'image/jpeg',
-          });
+        // Upload via uploadImageToStorage, which routes order-files through the
+        // server-side service-role endpoint — direct browser uploads here hit
+        // "new row violates row-level security policy" for guests, so the file
+        // silently never uploaded, exportedFiles stayed empty, no order_files
+        // rows were created, and the print-sheet generator had nothing to work
+        // with (the "no A4 sheets in admin" bug on polaroid/photo-print orders).
+        const fileObj = new File([blob], fileName, { type: 'image/jpeg' });
+        const { error: uploadError } = await uploadImageToStorage(
+          supabase, 'order-files', path, fileObj, { upsert: true, cacheControl: '31536000' },
+        );
         if (uploadError) { console.warn('photo-print render upload failed:', uploadError); continue; }
         exportedFiles.push({
           path, fileName, bucket: 'order-files',
