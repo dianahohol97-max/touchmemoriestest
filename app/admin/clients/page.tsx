@@ -369,7 +369,7 @@ export default function ClientsPage() {
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '80px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                         CRM — База Клієнтів
@@ -701,7 +701,7 @@ export default function ClientsPage() {
                         />
                         <div style={drawer}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                                 <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#263A99', margin: 0 }}>
                                     Профіль клієнта
                                 </h2>
@@ -769,7 +769,7 @@ export default function ClientsPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9' }}>
                                     <div>
                                         <div style={drawerStatLabel}>Замовлень</div>
                                         <div style={drawerStatValue}>{selectedCustomer.total_orders || 0}</div>
@@ -876,7 +876,7 @@ const exportBtnStyle = {
 
 const statsGrid = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
     gap: '24px',
     marginBottom: '48px'
 };

@@ -211,7 +211,7 @@ export default function CreateOrderPage() {
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <button onClick={() => router.back()} style={backBtnStyle} type="button">
                         <ArrowLeft size={20} />
@@ -264,7 +264,7 @@ export default function CreateOrderPage() {
                         )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                         <div>
                             <label style={labelStyle}>Ім'я *</label>
                             <input
@@ -372,7 +372,7 @@ export default function CreateOrderPage() {
 
                 {/* Items Section */}
                 <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                         <h2 style={{ ...cardTitleStyle, margin: 0 }}>Товари</h2>
                         <button type="button" onClick={addItem} style={btnSecondaryStyle}>
                             <Plus size={16} /> Додати товар
@@ -386,7 +386,7 @@ export default function CreateOrderPage() {
                                     {index + 1}
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
                                         <div style={{ position: 'relative' }}>
                                             <label style={labelStyle}>Товар *</label>
                                             <div style={{ position: 'relative' }}>
@@ -512,7 +512,7 @@ export default function CreateOrderPage() {
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                                         <div>
                                             <label style={labelStyle}>Ціна (₴)</label>
                                             <input
@@ -546,7 +546,7 @@ export default function CreateOrderPage() {
                 </div>
 
                 {/* Delivery & Totals Section */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '32px' }}>
                     <div style={cardStyle}>
                         <h2 style={cardTitleStyle}>Доставка</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -591,7 +591,7 @@ export default function CreateOrderPage() {
                 {/*  Payment Section  */}
                 <div style={cardStyle}>
                     <h2 style={cardTitleStyle}>Оплата</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                         {/* Payment status */}
                         <div>
                             <label style={labelStyle}>Статус оплати *</label>
@@ -668,7 +668,7 @@ export default function CreateOrderPage() {
                             {/* Discount */}
                             <div style={{ marginBottom: 16, padding: '14px 16px', background: discountAmount > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${discountAmount > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10 }}>
                                 <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10 }}>🏷️ Знижка</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 8 }}>
                                     <div>
                                         <label style={{ ...labelStyle, marginBottom: 4 }}>Тип</label>
                                         <select value={discountType} onChange={e => setDiscountType(e.target.value as any)} style={selectStyle}>

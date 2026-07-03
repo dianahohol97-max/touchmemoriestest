@@ -169,7 +169,7 @@ export default function StaffManagementPage() {
 
     return (
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-primary)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Команда</h1>
                     <p style={{ color: '#64748b' }}>Управління менеджерами та дизайнерами</p>
@@ -311,7 +311,7 @@ export default function StaffManagementPage() {
                                     />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Роль *</label>
                                         <select
@@ -338,7 +338,7 @@ export default function StaffManagementPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '20px' }}>
                                     <div>
                                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>Ставка за день (₴)</label>
                                         <input
@@ -386,7 +386,7 @@ export default function StaffManagementPage() {
                                 </div>
 
                                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px', marginTop: '10px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                                         <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#263A99' }}>Індивідуальні налаштування доступу</h3>
                                         <button
                                             type="button"

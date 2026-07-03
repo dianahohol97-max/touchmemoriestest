@@ -88,7 +88,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                 </h2>
 
                 <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '24px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                         <div>
                             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Назва профілю</label>
                             <input name="name" value={formData.name} onChange={handleChange} required placeholder="Напр. Фотокнига 20х20" style={{ width: '100%', padding: '12px', borderRadius: "3px", border: '1px solid #e2e8f0' }} />
@@ -104,7 +104,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
                         <div>
                             <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Формат</label>
                             <select name="output_format" value={formData.output_format} onChange={handleChange} style={{ width: '100%', padding: '12px', borderRadius: "3px", border: '1px solid #e2e8f0' }}>
@@ -131,7 +131,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                         <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                              Розміри та відступи (у міліметрах)
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Ширина сторінки</label>
                                 <input type="number" name="page_width_mm" value={formData.page_width_mm} onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: "3px", border: '1px solid #e2e8f0' }} />
@@ -142,7 +142,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>Обріз Top</label>
                                 <input type="number" name="bleed_top_mm" value={formData.bleed_top_mm} onChange={handleChange} required style={{ width: '100%', padding: '8px', borderRadius: "3px", border: '1px solid #e2e8f0' }} />
@@ -161,7 +161,7 @@ export default function PrintProfileForm({ profile, onClose, onSuccess }: PrintP
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '16px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Безпечна зона (Safe Zone)</label>
                                 <input type="number" name="safe_zone_mm" value={formData.safe_zone_mm} onChange={handleChange} required style={{ width: '100%', padding: '10px', borderRadius: "3px", border: '1px solid #e2e8f0' }} />

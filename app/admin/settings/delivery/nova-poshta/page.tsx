@@ -87,7 +87,7 @@ export default function NovaPoshtaSettingsPage() {
 
     return (
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px' }}>Нова Пошта</h1>
                     <p style={{ color: '#64748b' }}>Налаштування декількох кабінетів Нової Пошти для відправки замовлень.</p>
@@ -144,7 +144,7 @@ export default function NovaPoshtaSettingsPage() {
                                 <label style={formLabel}>API Ключ</label>
                                 <input type="password" style={formInput} value={formData.api_key} onChange={e => setFormData({ ...formData, api_key: e.target.value })} required />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div>
                                     <label style={formLabel}>Ім'я відправника</label>
                                     <input style={formInput} value={formData.sender_name} onChange={e => setFormData({ ...formData, sender_name: e.target.value })} />
@@ -154,7 +154,7 @@ export default function NovaPoshtaSettingsPage() {
                                     <input style={formInput} value={formData.sender_phone} onChange={e => setFormData({ ...formData, sender_phone: e.target.value })} />
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div>
                                     <label style={formLabel}>City Ref (optional)</label>
                                     <input style={formInput} value={formData.sender_city_ref} onChange={e => setFormData({ ...formData, sender_city_ref: e.target.value })} />

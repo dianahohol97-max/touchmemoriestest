@@ -220,7 +220,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
             </aside>
 
             {/*  Main content  */}
-            <main className="tm-admin-main" style={{
+            <main className="tm-admin-main tm-admin-content" style={{
                 marginLeft: '320px', flex: 1,
                 padding: '40px 60px', overflowY: 'auto', height: '100vh',
             }}>
@@ -277,6 +277,20 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
 
             {/*  Responsive styles  */}
             <style>{`
+                @media (max-width: 768px) {
+                    /* Any wide table scrolls inside its card instead of
+                       stretching the whole page sideways. */
+                    .tm-admin-content table {
+                        display: block;
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch;
+                        max-width: 100%;
+                    }
+                    /* Nothing inside the admin can widen the page. */
+                    .tm-admin-content {
+                        overflow-x: clip;
+                    }
+                }
                 @media (max-width: 768px) {
                     .tm-admin-topbar { display: flex !important; }
                     .tm-admin-overlay { display: block !important; }

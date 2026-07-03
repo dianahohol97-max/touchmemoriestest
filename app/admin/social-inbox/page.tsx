@@ -158,7 +158,7 @@ export default function SocialInboxPage() {
     const selectedConv = conversations.find(c => c.id === selectedConvId);
 
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: "3px", overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', height: 'calc(100vh - 120px)', backgroundColor: 'white', borderRadius: "3px", overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
 
             {/* Conversations List */}
             <div style={{ borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
@@ -181,7 +181,7 @@ export default function SocialInboxPage() {
                                 onClick={() => setSelectedConvId(conv.id)}
                                 style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', backgroundColor: selectedConvId === conv.id ? '#f8fafc' : 'white', borderLeft: selectedConvId === conv.id ? '4px solid var(--primary)' : '4px solid transparent', transition: 'all 0.2s' }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <span style={{ fontSize: '14px', fontWeight: conv.is_read ? 600 : 800, color: '#263A99' }}>
                                             {conv.external_username || conv.external_user_id}

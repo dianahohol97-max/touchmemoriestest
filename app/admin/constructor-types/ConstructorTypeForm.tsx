@@ -258,7 +258,7 @@ export default function ConstructorTypeForm({ typeId, onClose, onSuccess }: Cons
                                     </div>
                                 </div>
                                 <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '20px', paddingTop: '20px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <label style={checkLabel}>
                                             <input type="checkbox" checked={formData.has_cover} onChange={e => setFormData({ ...formData, has_cover: e.target.checked })} />
                                             Є окрема обкладинка

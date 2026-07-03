@@ -310,7 +310,7 @@ export default function TeamPage() {
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '80px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                         Управління Командою
@@ -480,7 +480,7 @@ export default function TeamPage() {
                                     <div style={{ fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                                         Статистика цього місяця
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                                         <div>
                                             <div style={miniStatLabel}>
                                                 <ShoppingBag size={12} />
@@ -584,7 +584,7 @@ export default function TeamPage() {
 
                             <form onSubmit={handleSave} style={{ padding: '24px 32px', overflowY: 'auto', flex: 1 }}>
                                 <div style={{ display: 'grid', gap: '20px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Ім'я та Прізвище *</label>
                                             <input
@@ -609,7 +609,7 @@ export default function TeamPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Телефон</label>
                                             <input
@@ -668,7 +668,7 @@ export default function TeamPage() {
                                         <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#263A99', marginBottom: '16px' }}>
                                             Ставки оплати
                                         </h3>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
                                             <div>
                                                 <label style={labelStyle}>За день (₴)</label>
                                                 <input
@@ -763,7 +763,7 @@ const addButton = {
 
 const statsGrid = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
     gap: '24px',
     marginBottom: '48px'
 };

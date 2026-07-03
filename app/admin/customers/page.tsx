@@ -43,7 +43,7 @@ export default function CustomersPage() {
 
     return (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Клієнти</h1>
                     <p style={{ color: '#64748b' }}>База даних покупців та їх купівельна активність.</p>
@@ -142,7 +142,7 @@ export default function CustomersPage() {
     );
 }
 
-const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '32px', marginBottom: '48px' };
+const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '32px', marginBottom: '48px' };
 const statCardStyle = { backgroundColor: 'white', padding: '32px', borderRadius: "3px", border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
 const iconWrapperStyle = { width: '56px', height: '56px', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '13px', fontWeight: 700, color: '#64748b', marginBottom: '4px' };

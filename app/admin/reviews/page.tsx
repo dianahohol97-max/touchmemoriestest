@@ -387,7 +387,7 @@ export default function ReviewsAdminPage() {
                         </button>
                     </div>
                     {igPosts.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
                             {igPosts.map((post: any) => (
                                 <div key={post.id} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent' }}
                                     onMouseEnter={e => (e.currentTarget.style.border = '2px solid #ec4899')}

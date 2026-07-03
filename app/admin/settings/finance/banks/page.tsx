@@ -169,7 +169,7 @@ export default function BankAccountsPage() {
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 950, color: '#263A99', marginBottom: '8px' }}>Банківські рахунки</h1>
                     <p style={{ color: '#64748b' }}>Керуйте рахунками для прийому оплат та відстеження фінансів.</p>
@@ -243,13 +243,13 @@ export default function BankAccountsPage() {
             {isModalOpen && mounted && createPortal(
               <div style={modalOverlay} onClick={() => setIsModalOpen(false)}>
                     <div style={modalContent} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 900 }}>{editingAccount ? 'Редагувати рахунок' : 'Додати новий рахунок'}</h2>
                             <button onClick={() => setIsModalOpen(false)} style={closeBtn}><X size={20} /></button>
                         </div>
 
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div>
                                     <label style={formLabel}>Банк</label>
                                     <select
@@ -362,7 +362,7 @@ const bankIconCircle = { width: '40px', height: '40px', borderRadius: "3px", bac
 const iconActionBtn = { background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' };
 const miniLabel = { fontSize: '11px', textTransform: 'uppercase' as any, fontWeight: 800, color: '#94a3b8', display: 'block', marginBottom: '4px' };
 const detailValue = { fontSize: '14px', color: '#475569', fontWeight: 600, display: 'flex', alignItems: 'center' };
-const detailsGrid = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
+const detailsGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' };
 const modalOverlay = { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContent = { backgroundColor: 'white', borderRadius: "3px", padding: '32px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)' };
 const formLabel = { display: 'block', fontSize: '12px', fontWeight: 800, color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' as any };

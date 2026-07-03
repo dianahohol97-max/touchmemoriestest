@@ -86,7 +86,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
         {/* Left: Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Thumbnail */}

@@ -99,7 +99,7 @@ export default function TagsSettingsPage() {
 
     return (
         <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Управління тегами </h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте теги для швидкої категоризації замовлень</p>
@@ -150,7 +150,7 @@ export default function TagsSettingsPage() {
             </div>
 
             <div style={{ background: 'white', borderRadius: "3px", padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                     <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Активні теги</h2>
                     <button
                         onClick={saveOrder}

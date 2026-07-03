@@ -315,7 +315,7 @@ export default function PaymentsPage() {
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '80px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                         Платежі та Транзакції
@@ -680,7 +680,7 @@ const monobankBtn = {
 
 const statsGrid = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
     gap: '24px',
     marginBottom: '48px'
 };

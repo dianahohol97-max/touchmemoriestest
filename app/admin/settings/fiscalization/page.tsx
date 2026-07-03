@@ -99,7 +99,7 @@ export default function FiscalizationPage() {
 
             {/* Checkbox Accounts Section */}
             <section style={{ marginBottom: '60px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                     <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#263A99' }}>Аккаунти Checkbox</h2>
                     <button onClick={() => { setEditingAccount(null); setIsModalOpen(true); }} style={addBtnStyle}>
                         <Plus size={18} /> Додати аккаунт

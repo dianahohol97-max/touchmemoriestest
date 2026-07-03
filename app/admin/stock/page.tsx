@@ -214,7 +214,7 @@ export default function StockPage() {
                             <button onClick={() => setAdjustModal(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
                         </div>
                         <p style={{ fontSize: 14, color: '#374151', marginBottom: 20 }}><b>{adjustModal.name}</b></p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 16 }}>
                             <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', textAlign: 'center' as const }}>
                                 <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 600, marginBottom: 4 }}>ЗАРАЗ</div>
                                 <div style={{ fontSize: 24, fontWeight: 900 }}>{adjustModal.quantity_in_stock}</div>

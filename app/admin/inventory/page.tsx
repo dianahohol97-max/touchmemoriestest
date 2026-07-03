@@ -171,7 +171,7 @@ export default function InventoryAdminPage() {
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', color: '#263A99' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         Склад <Box style={{ color: '#94a3b8' }} size={28} />
@@ -323,7 +323,7 @@ export default function InventoryAdminPage() {
                         <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px' }}>{selectedProduct?.name}</p>
 
                         <form onSubmit={handleSupplySubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '16px' }}>
                                 <div>
                                     <label style={modalLabelStyle}>Кількість (шт)</label>
                                     <input type="number" required value={supplyData.quantity} onChange={e => setSupplyData({ ...supplyData, quantity: parseInt(e.target.value) })} style={modalInputStyle} />
@@ -337,7 +337,7 @@ export default function InventoryAdminPage() {
                                 <label style={modalLabelStyle}>Постачальник</label>
                                 <input type="text" value={supplyData.supplier} onChange={e => setSupplyData({ ...supplyData, supplier: e.target.value })} style={modalInputStyle} placeholder="Назва постачальника" />
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
                                 <div>
                                     <label style={modalLabelStyle}>Номер накладної</label>
                                     <input type="text" value={supplyData.invoice_number} onChange={e => setSupplyData({ ...supplyData, invoice_number: e.target.value })} style={modalInputStyle} />
@@ -439,7 +439,7 @@ export default function InventoryAdminPage() {
 
 // Styles
 const refreshBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', borderRadius: "3px", border: '1.5px solid #e2e8f0', color: '#64748b', fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
-const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '40px' };
+const statsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginBottom: '40px' };
 const statCardStyle = { display: 'flex', alignItems: 'center', gap: '16px', padding: '24px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' };
 const statIconStyle = { width: '48px', height: '48px', borderRadius: "3px", display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const statLabelStyle = { fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', marginBottom: '4px' };

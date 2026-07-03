@@ -925,7 +925,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </div>
                                                 {/* Two side-by-side previews: colour (what the customer sees)
                                                     and the B/W production master (what the workshop needs). */}
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
                                                     <div>
                                                         <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 4 }}>Як бачить клієнт</div>
                                                         <div style={{
@@ -1889,7 +1889,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             {showTTNModal && (
 <div style={overlayStyle} onClick={() => setShowTTNModal(false)}>
                     <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: "3px", padding: '40px', width: '600px', maxWidth: '90vw', boxShadow: '0 25px 50px rgba(0,0,0,0.2)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>Створити ТТН Нова Пошта</h2>
                             <button onClick={() => setShowTTNModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
                                 <X size={24} />

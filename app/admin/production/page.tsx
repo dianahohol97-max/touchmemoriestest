@@ -194,7 +194,7 @@ export default function ProductionKanbanPage() {
 
     return (
         <div style={{ padding: '32px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Виробництво </h1>
                     <p style={{ color: '#64748b' }}>Kanban дошка для відстеження друку</p>
@@ -239,7 +239,7 @@ export default function ProductionKanbanPage() {
 
                     return (
                         <div key={column.id} style={{ display: 'flex', flexDirection: 'column', background: '#f8fafc', borderRadius: "3px", padding: '20px', border: '1px solid #eef2f6' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                                 <h3 style={{ fontWeight: 800, color: '#263A99' }}>{column.title}</h3>
                                 <span style={{ background: 'white', padding: '4px 10px', borderRadius: "3px", fontSize: '12px', fontWeight: 800, color: '#64748b', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                                     {columnOrders.length}

@@ -339,7 +339,7 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
                     <L label="Назва бізнесу *"><input value={form.business_name} onChange={e => set('business_name', e.target.value)} style={fieldStyle} /></L>
                     <L label="Контактна особа"><input value={form.contact_name} onChange={e => set('contact_name', e.target.value)} style={fieldStyle} /></L>
                     <L label="Email"><input value={form.email} onChange={e => set('email', e.target.value)} style={fieldStyle} /></L>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
                         <L label="Телефон"><input value={form.phone} onChange={e => set('phone', e.target.value)} style={fieldStyle} /></L>
                         <L label="Місто"><input value={form.city} onChange={e => set('city', e.target.value)} style={fieldStyle} /></L>
                     </div>

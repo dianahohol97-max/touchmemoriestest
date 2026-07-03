@@ -50,7 +50,7 @@ export default function ConstructorTypesPage() {
 
     return (
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#263A99' }}>Типи конструктора</h1>
                     <p style={{ color: '#64748b' }}>Керуйте різними типами продуктів та їх правилами в конструкторі.</p>

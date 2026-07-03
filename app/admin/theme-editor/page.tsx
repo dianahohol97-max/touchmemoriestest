@@ -553,7 +553,7 @@ function ThemeEditorContent() {
                                         placeholder="Текст відгуку"
                                         style={{ ...inputStyle, height: '60px', marginBottom: '8px' }}
                                     />
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
                                         <input
                                             value={test.city}
                                             onChange={e => {

@@ -145,7 +145,7 @@ export default function RolesManagementPage() {
 
     return (
         <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'var(--font-primary)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Ролі та права доступу</h1>
                     <p style={{ color: '#64748b' }}>Керуйте рівнями доступу для вашої команди</p>
@@ -256,7 +256,7 @@ export default function RolesManagementPage() {
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#263A99' }}>Матриця прав</h3>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button onClick={() => setAllPermissions('full')} style={smallBtnStyle} disabled={currentRole.is_system}>Виділити все</button>

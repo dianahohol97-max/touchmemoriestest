@@ -312,7 +312,7 @@ export default function KadruvannyaPage() {
         Додай фото, обери розмір — кожне фото автоматично обріжеться по центру під цей розмір і розкладеться на аркуш. На виході — готовий PDF 300&nbsp;dpi.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 22, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 22, alignItems: 'start' }}>
         {/* Controls */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={card}>
@@ -334,7 +334,7 @@ export default function KadruvannyaPage() {
             </select>
 
             {useCustom && (
-              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
                 <div><label style={label}>Ш, см</label><input type="number" min={1} step={0.1} value={customW} onChange={e => setCustomW(+e.target.value)} style={inputS} /></div>
                 <div><label style={label}>В, см</label><input type="number" min={1} step={0.1} value={customH} onChange={e => setCustomH(+e.target.value)} style={inputS} /></div>
                 <div><label style={label}>Шт/арк</label><input type="number" min={1} max={60} value={customCount} onChange={e => setCustomCount(+e.target.value)} style={inputS} /></div>
@@ -358,7 +358,7 @@ export default function KadruvannyaPage() {
               «По сітці» — аркуш точно під набір фото. «30×20» / «A4» — фото по центру стандартного аркуша.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginTop: 14 }}>
               <div><label style={label}>Відступ між фото, мм</label><input type="number" min={0} max={20} value={gapMm} onChange={e => setGapMm(Math.max(0, +e.target.value))} style={inputS} /></div>
               <div><label style={label}>Поле аркуша, мм</label><input type="number" min={0} max={30} value={marginMm} onChange={e => setMarginMm(Math.max(0, +e.target.value))} style={inputS} /></div>
               {isPolaroid ? (

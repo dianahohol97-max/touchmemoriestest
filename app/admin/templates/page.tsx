@@ -233,7 +233,7 @@ export default function MessageTemplatesPage() {
 
     return (
         <div style={{ padding: '32px', maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px', color: '#263A99' }}>Шаблони повідомлень</h1>
                     <p style={{ color: '#64748b' }}>SMS та Email шаблони з автопідстановкою змінних</p>
@@ -292,7 +292,7 @@ export default function MessageTemplatesPage() {
                 <div
                     style={{ background: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}
                 >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                         <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99' }}>
                             {currentTemplate.id ? 'Редагувати шаблон' : `Новий ${currentTemplate.type === 'sms' ? 'SMS' : 'Email'} шаблон`}
                         </h2>
@@ -302,7 +302,7 @@ export default function MessageTemplatesPage() {
                     </div>
 
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#263A99', marginBottom: '8px' }}>Назва шаблону</label>
                                 <input
@@ -509,7 +509,7 @@ export default function MessageTemplatesPage() {
                         onClick={e => e.stopPropagation()}
                         style={{ background: 'white', padding: '32px', borderRadius: '16px', maxWidth: '500px', width: '90%', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}
                     >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                             <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#263A99' }}>
                                 Відправити {selectedTemplate!.type === 'sms' ? 'SMS' : 'Email'}
                             </h2>

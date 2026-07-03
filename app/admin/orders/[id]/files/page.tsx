@@ -220,7 +220,7 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
     return (
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '40px 20px', color: '#263A99' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <button onClick={() => router.back()} style={iconButtonStyle}>
                         <ArrowLeft size={20} />

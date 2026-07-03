@@ -248,7 +248,7 @@ export default function AutomationsPage() {
     return (
         <div style={{ maxWidth: '1800px', margin: '0 auto' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
                         Автоматизації
@@ -575,7 +575,7 @@ export default function AutomationsPage() {
                         overflow: 'auto',
                         boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: 0 }}>
                                 {editingRule ? 'Редагувати правило' : 'Нове правило автоматизації'}
                             </h2>
@@ -607,7 +607,7 @@ export default function AutomationsPage() {
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div>
                                     <label style={labelStyle}>Тригер *</label>
                                     <select
@@ -633,7 +633,7 @@ export default function AutomationsPage() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                                 <div>
                                     <label style={labelStyle}>Дія *</label>
                                     <select

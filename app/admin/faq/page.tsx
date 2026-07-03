@@ -92,7 +92,7 @@ export default function AdminFaqPage() {
 
     return (
         <div style={{ padding: '0 0 80px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px' }}>Часті Питання (FAQ)</h1>
                     <p style={{ color: '#64748b' }}>Керуйте базою знань для ваших клієнтів</p>

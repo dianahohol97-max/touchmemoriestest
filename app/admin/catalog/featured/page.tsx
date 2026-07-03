@@ -210,7 +210,7 @@ export default function FeaturedProductsPage() {
 
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto', color: '#263A99' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <Star className="text-amber-500" fill="currentColor" size={32} /> Популярні товари

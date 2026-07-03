@@ -51,7 +51,7 @@ export default function PrintProfilesPage() {
 
     return (
         <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#263A99', marginBottom: '8px' }}>Профілі друку </h1>
                     <p style={{ color: '#64748b' }}>Налаштуйте технічні параметри для генерації файлів під різні типи продукції</p>

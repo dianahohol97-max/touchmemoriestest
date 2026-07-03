@@ -351,7 +351,7 @@ export default function PromoPage() {
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '80px' }}>
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '8px', letterSpacing: '-0.02em' }}>
                         Промокоди
@@ -603,7 +603,7 @@ export default function PromoPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Тип знижки *</label>
                                             <select
@@ -669,7 +669,7 @@ export default function PromoPage() {
                                         </div>
                                     )}
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Мінімальна сума замовлення (₴)</label>
                                             <input
@@ -701,7 +701,7 @@ export default function PromoPage() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                         <div>
                                             <label style={labelStyle}>Дійсний від</label>
                                             <input
@@ -782,7 +782,7 @@ export default function PromoPage() {
                                         onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
                                         required style={{ ...inputStyle, fontFamily: 'monospace', fontWeight: 700 }} />
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                     <div>
                                         <label style={labelStyle}>Тип знижки *</label>
                                         <select value={editForm.type}
@@ -831,7 +831,7 @@ export default function PromoPage() {
                                         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Ctrl+Click для вибору кількох</div>
                                     </div>
                                 )}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                     <div>
                                         <label style={labelStyle}>Мінімальна сума (₴)</label>
                                         <input type="number" value={editForm.min_order_amount}
@@ -845,7 +845,7 @@ export default function PromoPage() {
                                             min="1" style={inputStyle} />
                                     </div>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                                     <div>
                                         <label style={labelStyle}>Дійсний від</label>
                                         <input type="date" value={editForm.valid_from}
@@ -906,7 +906,7 @@ const addBtn = {
 
 const statsGrid = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
     gap: '24px',
     marginBottom: '32px'
 };

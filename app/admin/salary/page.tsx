@@ -122,7 +122,7 @@ export default function SalaryPage() {
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '100px' }}>
             {/* Header Area */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontSize: '32px', fontWeight: 950, letterSpacing: '-0.02em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                         Розрахунок Зарплат
@@ -357,7 +357,7 @@ const dateInput = { border: 'none', background: 'transparent', fontSize: '13px',
 const primaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#6366f1', color: 'white', border: 'none', padding: '14px 24px', borderRadius: "3px", fontWeight: 800, fontSize: '14px', cursor: 'pointer', boxShadow: '0 10px 20px rgba(99, 102, 241, 0.2)' };
 const secondaryBtn = { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', color: '#263A99', border: '1.5px solid #e2e8f0', padding: '14px 24px', borderRadius: "3px", fontWeight: 800, fontSize: '14px', cursor: 'pointer' };
 
-const mainGrid = { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '40px', alignItems: 'start' };
+const mainGrid = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '40px', alignItems: 'start' };
 const sidebar = { display: 'flex', flexDirection: 'column' as any, gap: '24px', position: 'sticky' as any, top: '40px' };
 
 const searchContainer = { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', padding: '12px 16px', borderRadius: "3px" };
