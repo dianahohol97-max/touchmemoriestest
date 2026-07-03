@@ -422,7 +422,7 @@ function PhotoPreview({
 export default function PhotoPrintConstructor({ productSlug, initialSize, initialFinish, initialBorder }: PhotoPrintConstructorProps) {
   const t = useT();
   const locale = useLocale();
-  const { addItem } = useCartStore();
+  const { addItem, removeItem } = useCartStore();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -993,6 +993,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       }
       if (exportedFiles.length > 0) {
         sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
+      } else if (photos.length > 0) {
+        // HARD GUARD — same class as the blank photobook (TM-001034): every
+        // render upload failed, so the order would reach the admin with zero
+        // print files and nobody would notice until production. Refuse the
+        // add-to-cart instead of silently creating an unprintable order.
+        try { toast.error('Не вдалося зберегти фото для друку. Перевірте інтернет і спробуйте ще раз — замовлення без фото ми не приймаємо.', { duration: 10000 }); } catch {}
+        removeItem(cartItemId);
+        return;
       }
     } catch (e) {
       console.warn('photo-print storage step skipped:', e);

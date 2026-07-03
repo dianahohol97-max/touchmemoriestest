@@ -31,6 +31,10 @@ const PRINT_FILE_SLUG_PATTERNS = [
   'magazine', 'zhurnal', 'journal',
   'travelbook', 'travel-book',
   'planner', 'graduation',
+  // Gang-printed products: rendered prints must exist in order_files or the
+  // A4 sheet generator has nothing to work with (TM-001034 slipped through
+  // because these were missing from this list).
+  'photo-print', 'photoprint', 'fotodruk', 'polaroid', 'magnet',
 ];
 
 const WARNING_MARKER = 'файли для друку не завантажились';
