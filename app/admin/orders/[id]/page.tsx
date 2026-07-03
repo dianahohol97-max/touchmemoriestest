@@ -782,10 +782,20 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                             <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>Замовлення {order.order_number}</h1>
                             <span style={{ ...statusBadgeStyle, color: currentStatus.color, backgroundColor: currentStatus.bg }}>
                                 {currentStatus.label}
+                            </span>
+                            {/* Design-flow badge: designer-made vs the customer's own
+                                constructor layout — previously not shown anywhere, so
+                                staff couldn't tell which flow an order came from. */}
+                            <span style={{
+                                ...statusBadgeStyle,
+                                color: order.with_designer ? '#7c3aed' : '#0e7490',
+                                backgroundColor: order.with_designer ? '#f5f3ff' : '#ecfeff',
+                            }}>
+                                {order.with_designer ? '🎨 З дизайнером' : '🛠 Самостійний макет'}
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
