@@ -1249,6 +1249,83 @@ export default function BookLayoutEditor() {
             !p.preview || (!p.preview.startsWith('data:image') && !p.preview.startsWith('blob:') && !p.preview.startsWith('https://'))
           );
           setPhotos(valid);
+          // Ghosts WITH a storagePath (draft-persisted photos): rehydrate their
+          // previews from the server via signed URLs — the customer gets the
+          // full book back with zero re-uploading. This is the fix for the
+          // "blank book after refresh with many photos" failure (TM-001036):
+          // previews don't fit sessionStorage, but the bytes are in storage.
+          const ghostsWithPath = withoutPreview.filter((p: any) => p.path);
+          if (ghostsWithPath.length > 0) {
+            (async () => {
+              try {
+                const { createClient: mkSb } = await import('@/lib/supabase/client');
+                const sbg = mkSb();
+                const paths = ghostsWithPath.map((p: any) => p.path as string);
+                const { data: signed } = await sbg.storage
+                  .from('photobook-uploads')
+                  .createSignedUrls(paths, 60 * 60 * 24 * 7);
+                if (signed) {
+                  const urlByPath: Record<string, string> = {};
+                  signed.forEach((s, i) => { if (s?.signedUrl) urlByPath[paths[i]] = s.signedUrl; });
+                  setPhotos(prev => prev.map(p => {
+                    const path = (p as any).path || (p as any).storagePath;
+                    return (!p.preview && path && urlByPath[path])
+                      ? { ...p, preview: urlByPath[path], storagePath: path } as any
+                      : p;
+                  }));
+                }
+              } catch { /* signing failed — the re-upload prompt below still applies */ }
+            })();
+          }
+          // Ghosts WITHOUT a path can only come back via re-upload. Build the
+          // same filename→slots placement map the reopen flow uses, so the
+          // promised "стануть на свої місця за назвою" actually happens on the
+          // refresh path too (it previously only worked when reopening from
+          // the account page — re-uploads just appended and the book stayed
+          // blank, which is how a blank photobook got printed).
+          const ghostsNeedingReupload = withoutPreview.filter((p: any) => !p.path);
+          if (ghostsNeedingReupload.length > 0) {
+            try {
+              const _slug0 = (config?.productSlug || '').toLowerCase().trim();
+              const draftKey0 = _slug0 ? `bookEditorDraft_${_slug0}` : 'bookEditorDraft';
+              const draftRaw2 = sessionStorage.getItem(draftKey0);              const d2 = draftRaw2 ? JSON.parse(draftRaw2) : null;
+              if (d2?.pages) {
+                const ghostIds = new Set(ghostsNeedingReupload.map((p: any) => p.id));
+                const nameById: Record<string, string> = {};
+                ghostsNeedingReupload.forEach((p: any) => { nameById[p.id] = p.name; });
+                const map = reopenPlacementRef.current;
+                (d2.pages as any[]).forEach((pg: any, pi: number) => {
+                  (pg.slots || []).forEach((s: any, si: number) => {
+                    if (s?.photoId && ghostIds.has(s.photoId)) {
+                      const nm = nameById[s.photoId];
+                      if (!nm) return;
+                      if (!map[nm]) map[nm] = { pages: [], free: [], cover: false };
+                      map[nm].pages.push({ pi, si });
+                    }
+                  });
+                });
+                if (d2.freeSlots) {
+                  Object.entries(d2.freeSlots as Record<string, any[]>).forEach(([pi, arr]) => {
+                    (arr || []).forEach((fs: any, idx: number) => {
+                      if (fs?.photoId && ghostIds.has(fs.photoId)) {
+                        const nm = nameById[fs.photoId];
+                        if (!nm) return;
+                        if (!map[nm]) map[nm] = { pages: [], free: [], cover: false };
+                        map[nm].free.push({ pi: Number(pi), idx });
+                      }
+                    });
+                  });
+                }
+                if (d2.coverState?.photoId && ghostIds.has(d2.coverState.photoId)) {
+                  const nm = nameById[d2.coverState.photoId];
+                  if (nm) {
+                    if (!map[nm]) map[nm] = { pages: [], free: [], cover: false };
+                    map[nm].cover = true;
+                  }
+                }
+              }
+            } catch { /* placement map unavailable — re-upload appends as before */ }
+          }
           if (withoutPreview.length > 0) {
             setTimeout(() => {
               try {
@@ -1403,8 +1480,8 @@ export default function BookLayoutEditor() {
       const previewsFit = approxPreviewBytes < 3_500_000;
       try {
         const data = previewsFit
-          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }))
-          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace }));
+          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: (p as any).storagePath || undefined }))
+          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: (p as any).storagePath || undefined }));
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
         // sessionStorage quota exceeded. We can't fit full-size data URLs in
@@ -1421,7 +1498,7 @@ export default function BookLayoutEditor() {
         // setting src — and (b) would have softened photos visibly even if
         // it had run. We dropped both behaviours.)
         try {
-          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name }));
+          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, path: (p as any).storagePath || undefined }));
           sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
         } catch { /* give up — user will need to re-upload after a hard refresh */ }
       }
@@ -1459,6 +1536,10 @@ export default function BookLayoutEditor() {
         });
       }
       if (loc.cover) setCoverState(prev => ({ ...prev, photoId: photo.id }));
+      // Drop the preview-less ghost that held these slots — the re-uploaded
+      // photo has taken its place; keeping both would show a broken duplicate
+      // in the tray.
+      setPhotos(prev => prev.filter(p => !(p.name === photo.name && p.id !== photo.id && !p.preview)));
       delete map[photo.name];
     }
     if (placedAny && Object.keys(map).length === 0) {
@@ -3029,6 +3110,46 @@ export default function BookLayoutEditor() {
     if (!config) {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
+    }
+
+    // HARD GUARD — never let a blank book into the cart. TM-001036 was paid
+    // (3705₴) and printed with every page empty: after a refresh with many
+    // photos, slots referenced "ghost" photos (no preview, no bytes), the
+    // renders faithfully drew nothing, and neither the customer nor the
+    // system stopped it. If the design has no usable photo in any slot, or
+    // slots point at photos we can't actually render, refuse with a clear
+    // message instead of producing an empty product. Wishbook covers are
+    // exempt (inner pages aren't designed here); printed-cover checks apply
+    // only to content slots.
+    if (!isWishbook) {
+      const photoById = new Map(photos.map(p => [p.id, p]));
+      const contentSlots = pages.slice(1).flatMap(pg => pg.slots);
+      const filledSlots = contentSlots.filter(s => s.photoId);
+      const renderable = filledSlots.filter(s => {
+        const p = photoById.get(s.photoId as string) as any;
+        return p && (p.preview || p.storagePath || p.path);
+      });
+      if (filledSlots.length === 0 || renderable.length === 0) {
+        try {
+          toast.error(
+            photos.length > 0
+              ? 'У книзі немає жодного розміщеного фото. Перетягніть фото на сторінки (або скористайтесь Магічною збіркою) перед замовленням.'
+              : 'Книга порожня — додайте фото перед замовленням.',
+            { duration: 10000 }
+          );
+        } catch {}
+        return;
+      }
+      if (renderable.length < filledSlots.length) {
+        const ghosts = filledSlots.length - renderable.length;
+        try {
+          toast.error(
+            `${ghosts} фото у книзі втратили дані після оновлення сторінки. Завантажте ті самі файли ще раз — вони стануть на свої місця, і тоді можна замовляти.`,
+            { duration: 12000 }
+          );
+        } catch {}
+        return;
+      }
     }
 
     // Upload every photo's original to Storage FIRST, before we build any
