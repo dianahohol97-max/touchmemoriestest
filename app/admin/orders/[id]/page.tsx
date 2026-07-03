@@ -1771,30 +1771,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 </span>
                             </div>
 
-                            {/* Cover photo */}
-                            {order.text_brief.cover?.photo_path && (() => {
-                                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yivfsicvaoewxrtkrfxr.supabase.co';
-                                const photoUrl = `${supabaseUrl}/storage/v1/object/public/order-files/${order.text_brief.cover.photo_path}`;
-                                return (
-                                    <div style={{ marginBottom: 16 }}>
-                                        <label style={smallLabelStyle}>Фото на обкладинку</label>
-                                        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 6 }}>
-                                            <a href={photoUrl} target="_blank" rel="noopener noreferrer"
-                                                style={{ display: 'block', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '2px solid #7c3aed', flexShrink: 0 }}>
-                                                <img src={photoUrl} alt="Фото на обкладинку" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            </a>
-                                            <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-                                                <div><b>Ім'я:</b> {order.text_brief.cover.name}</div>
-                                                <div><b>Дата:</b> {order.text_brief.cover.date}</div>
-                                                <div><b>Стиль:</b> {order.text_brief.cover.style}</div>
-                                                {order.text_brief.cover.inscription && <div><b>Надпис:</b> {order.text_brief.cover.inscription}</div>}
-                                                {order.text_brief.cover.era && <div><b>Епоха/настрій:</b> {order.text_brief.cover.era}</div>}
-                                                {order.text_brief.cover.photo_note && <div style={{ color: '#f59e0b', fontWeight: 600 }}><b>Примітка до фото:</b> {order.text_brief.cover.photo_note}</div>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                            {/* Cover photo — order-files is a PRIVATE bucket, so a
+                                /object/public/ URL returns 400 and the thumbnail broke
+                                (TM-001037). Sign the path instead. */}
+                            {order.text_brief.cover?.photo_path && (
+                                <BriefCoverPhoto photoPath={order.text_brief.cover.photo_path} cover={order.text_brief.cover} smallLabelStyle={smallLabelStyle} supabase={supabase} />
+                            )}
 
                             {/* Cover data without photo */}
                             {!order.text_brief.cover?.photo_path && order.text_brief.cover && (
@@ -2094,3 +2076,42 @@ const modalInputStyle = { padding: '10px 16px', borderRadius: "3px", border: '1.
 const overlayStyle = { position: 'fixed' as any, inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' };
 const dropdownStyle = { backgroundColor: 'white', borderRadius: "3px", minWidth: '240px', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', border: '1px solid #f1f5f9', overflow: 'hidden' };
 const dropdownOptionStyle = { width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', border: 'none', background: 'none', textAlign: 'left' as any, cursor: 'pointer', fontSize: '14px', fontWeight: 700, transition: 'background 0.2s' };
+
+// Brief cover photo with a SIGNED url — order-files is a private bucket, so
+// the old hard-coded /object/public/ link 400'd and the thumbnail was broken.
+function BriefCoverPhoto({ photoPath, cover, smallLabelStyle, supabase }: { photoPath: string; cover: any; smallLabelStyle: any; supabase: any }) {
+    const [url, setUrl] = useState<string>('');
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const { data } = await supabase.storage.from('order-files').createSignedUrl(photoPath, 60 * 60);
+                if (!cancelled && data?.signedUrl) setUrl(data.signedUrl);
+            } catch { /* keep placeholder */ }
+        })();
+        return () => { cancelled = true; };
+    }, [photoPath]); // eslint-disable-line react-hooks/exhaustive-deps
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <label style={smallLabelStyle}>Фото на обкладинку</label>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 6 }}>
+                {url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer"
+                        style={{ display: 'block', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '2px solid #7c3aed', flexShrink: 0 }}>
+                        <img src={url} alt="Фото на обкладинку" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </a>
+                ) : (
+                    <div style={{ width: 80, height: 80, borderRadius: 8, border: '2px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }} />
+                )}
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+                    <div><b>Ім'я:</b> {cover.name}</div>
+                    <div><b>Дата:</b> {cover.date}</div>
+                    <div><b>Стиль:</b> {cover.style}</div>
+                    {cover.inscription && <div><b>Надпис:</b> {cover.inscription}</div>}
+                    {cover.era && <div><b>Епоха/настрій:</b> {cover.era}</div>}
+                    {cover.photo_note && <div style={{ color: '#f59e0b', fontWeight: 600 }}><b>Примітка до фото:</b> {cover.photo_note}</div>}
+                </div>
+            </div>
+        </div>
+    );
+}
