@@ -248,7 +248,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     const getProductionTime = (categorySlug: string = '', productSlug: string = '') => {
         const s = (categorySlug || '').toLowerCase();
         const ps = (productSlug || '').toLowerCase();
-        if (s.includes('photobook') || s.includes('фотокниг')) return t('product_page.production_10_14');
+        if (s.includes('photobook') || s.includes('фотокниг')) return t('product_page.production_14_18');
         if (s.includes('travelbook') || s.includes('travel')) return t('product_page.production_upto_10');
         // Hard cover journal: 10–14 days
         if (ps.includes('tverd') || ps.includes('hard') || s.includes('tverd') || s.includes('hard-cover')) return t('product_page.production_10_14');

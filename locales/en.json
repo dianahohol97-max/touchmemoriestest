@@ -1002,7 +1002,8 @@
     "lamination_click_hint": "Select a lamination to see the comparison on the left",
     "available_colors": "Available Colors",
     "cover_decoration": "Cover Decoration",
-    "certificate_select_options": "First choose the product options: {options}"
+    "certificate_select_options": "First choose the product options: {options}",
+    "production_14_18": "14–18 working days"
   },
   "gift_certificate": {
     "page_title": "Gift Certificate",

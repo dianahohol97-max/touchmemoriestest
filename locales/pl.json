@@ -982,7 +982,8 @@
     "lamination_click_hint": "Wybierz laminację, aby zobaczyć porównanie po lewej",
     "available_colors": "Dostępne kolory",
     "cover_decoration": "Zdobienie okładki",
-    "certificate_select_options": "Najpierw wybierz cechy produktu: {options}"
+    "certificate_select_options": "Najpierw wybierz cechy produktu: {options}",
+    "production_14_18": "14–18 dni roboczych"
   },
   "gift_certificate": {
     "page_title": "Certyfikat Podarunkowy",

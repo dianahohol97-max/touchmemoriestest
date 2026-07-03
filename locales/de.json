@@ -982,7 +982,8 @@
     "lamination_click_hint": "Wählen Sie eine Laminierung, um den Vergleich links zu sehen",
     "available_colors": "Verfügbare Farben",
     "cover_decoration": "Einbandverzierung",
-    "certificate_select_options": "Bitte zuerst die Produktoptionen wählen: {options}"
+    "certificate_select_options": "Bitte zuerst die Produktoptionen wählen: {options}",
+    "production_14_18": "14–18 Werktage"
   },
   "gift_certificate": {
     "page_title": "Geschenkgutschein",

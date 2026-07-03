@@ -1002,7 +1002,8 @@
     "lamination_click_hint": "Оберіть ламінацію щоб побачити порівняння зліва",
     "available_colors": "Доступні кольори",
     "cover_decoration": "Оздоблення обкладинки",
-    "certificate_select_options": "Спершу оберіть характеристики товару: {options}"
+    "certificate_select_options": "Спершу оберіть характеристики товару: {options}",
+    "production_14_18": "14–18 робочих днів"
   },
   "gift_certificate": {
     "page_title": "Подарунковий сертифікат",

@@ -982,7 +982,8 @@
     "lamination_click_hint": "Alege o laminare pentru a vedea comparația în stânga",
     "available_colors": "Culori disponibile",
     "cover_decoration": "Decorare copertă",
-    "certificate_select_options": "Mai întâi alegeți caracteristicile produsului: {options}"
+    "certificate_select_options": "Mai întâi alegeți caracteristicile produsului: {options}",
+    "production_14_18": "14–18 zile lucrătoare"
   },
   "gift_certificate": {
     "page_title": "Certificat Cadou",
