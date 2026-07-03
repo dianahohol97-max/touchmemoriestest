@@ -45,13 +45,8 @@ export async function GET(req: Request) {
     }
 
     // Candidate objects: old, in customer buckets, not drafts/.
-    const { data: candidates } = await admin
-        .schema('storage').from('objects')
-        .select('bucket_id, name, metadata')
-        .in('bucket_id', ['photobook-uploads', 'order-files'])
-        .lt('created_at', CUTOFF)
-        .not('name', 'like', 'drafts/%')
-        .limit(LIMIT * 3);
+    // storage schema isn't exposed over REST — use a security-definer RPC.
+    const { data: candidates } = await admin.rpc('list_old_storage_candidates', { cutoff: CUTOFF, max_rows: LIMIT * 3 });
 
     const toDelete: Record<string, string[]> = { 'photobook-uploads': [], 'order-files': [] };
     let bytes = 0; let kept = 0;
@@ -60,7 +55,7 @@ export async function GET(req: Request) {
         if (toDelete[o.bucket_id].length + (o.bucket_id === 'photobook-uploads' ? 0 : 0) >= LIMIT) continue;
         if (toDelete['photobook-uploads'].length + toDelete['order-files'].length >= LIMIT) continue;
         toDelete[o.bucket_id].push(o.name);
-        bytes += Number((o.metadata as any)?.size || 0);
+        bytes += Number((o as any).size_bytes || 0);
     }
     const total = toDelete['photobook-uploads'].length + toDelete['order-files'].length;
 
