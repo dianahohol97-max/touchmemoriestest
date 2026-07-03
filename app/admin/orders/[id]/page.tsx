@@ -774,7 +774,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const addr = (order.delivery_address || {}) as any;
 
     return (
-        <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#263A99' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#263A99', overflowX: 'clip' }}>
             {/* Top Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -891,9 +891,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={itemThumbStyle}>
                                         {item.image ? <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={24} color="#cbd5e1" />}
                                     </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
+                                            <div style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                                                 <div style={{ fontWeight: 800, fontSize: '16px' }}>
                                                     {item.name || item.product_name || 'Товар'}
                                                 </div>
