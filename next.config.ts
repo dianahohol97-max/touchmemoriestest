@@ -51,6 +51,18 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
+  async rewrites() {
+    return [
+      // Stale PWA service workers: browsers that registered a SW from an old
+      // deployment keep requesting the hashed /sw.<hash>.js forever (≈25
+      // 404s/day). Serve them a kill-switch script that unregisters the SW
+      // and clears its caches, so those clients stop knocking.
+      {
+        source: '/:file(sw\\..*\\.js)',
+        destination: '/api/sw-cleanup',
+      },
+    ];
+  },
   async redirects() {
     return [
       // Root → default locale. permanent:true emits a 308 (was a 307 from a
@@ -59,6 +71,11 @@ const nextConfig = {
       {
         source: '/',
         destination: '/uk',
+        permanent: true,
+      },
+      {
+        source: '/public-offer',
+        destination: '/uk/public-offer',
         permanent: true,
       },
       {
