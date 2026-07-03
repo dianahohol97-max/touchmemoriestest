@@ -776,14 +776,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     return (
         <div style={{ maxWidth: '1280px', margin: '0 auto', color: '#263A99' }}>
             {/* Top Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                     <button onClick={() => router.back()} style={iconButtonStyle}>
                         <ArrowLeft size={20} />
                     </button>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                            <h1 style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>Замовлення {order.order_number}</h1>
+                            <h1 style={{ fontSize: 'clamp(20px, 5vw, 32px)', fontWeight: 900, fontFamily: 'var(--font-heading)' }}>Замовлення {order.order_number}</h1>
                             <span style={{ ...statusBadgeStyle, color: currentStatus.color, backgroundColor: currentStatus.bg }}>
                                 {currentStatus.label}
                             </span>
@@ -833,7 +833,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* Content Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
 
                 {/* Left Side */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -1045,7 +1045,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div style={cardHeaderStyle}>
                                     <h3 style={{ ...cardTitleStyle, color: '#be185d' }}><DollarSign size={20} /> Фінансовий аналіз</h3>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '14px' }}>
                                     <div style={financeMetric}>
                                         <div style={financeLabel}>Дохід</div>
                                         <div style={financeValue}>{totalRevenue.toLocaleString()} ₴</div>
@@ -1068,7 +1068,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     })()}
 
                     {/* Delivery & Payment */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><Truck size={20} /> Доставка</h3>
@@ -1912,7 +1912,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                             <div>
                                 <label style={smallLabelStyle}>Телефон</label>
                                 <input
@@ -1943,7 +1943,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                             <div>
                                 <label style={smallLabelStyle}>Вага (кг)</label>
                                 <input
