@@ -133,30 +133,25 @@ export default function AnalyticsPage() {
             const prevOrdersCount = prevOrders?.length || 0;
             const ordersChange = prevOrdersCount === 0 ? 100 : ((ordersCount - prevOrdersCount) / prevOrdersCount) * 100;
 
-            // New clients in this period — count unique people by phone/email
-            // whose FIRST order falls in the period. The old query counted only
-            // rows in `customers` (registered accounts), so guest checkouts —
-            // most of the traffic — never counted and the number looked frozen
-            // at 0–1.
+            // New clients — unique people by phone/email whose FIRST order
+            // falls in the period. Both the CURRENT and the PREVIOUS period use
+            // the same method (the prev number used to come from the customers
+            // table — registered accounts only — so the % badge compared apples
+            // to oranges and always showed nonsense like +100%).
             const identity = (o: any) =>
                 String(o.customer_phone || '').replace(/\D/g, '') || String(o.customer_email || '').toLowerCase().trim();
             const idsInPeriod = Array.from(new Set(orders.map(identity).filter(Boolean)));
-            let newClientsCount = 0;
-            if (idsInPeriod.length > 0) {
-                // Which of these identities ordered before the period?
-                const { data: priorOrders } = await supabase
-                    .from('orders')
-                    .select('customer_phone, customer_email')
-                    .lt('created_at', startDate.toISOString());
-                const priorIds = new Set((priorOrders || []).map(identity).filter(Boolean));
-                newClientsCount = idsInPeriod.filter(id => !priorIds.has(id)).length;
-            }
-
-            const { count: prevNewClientsCount } = await supabase
-                .from('customers')
-                .select('*', { count: 'exact', head: true })
-                .gte('created_at', prevStartDate.toISOString())
-                .lt('created_at', prevEndDate.toISOString());
+            const idsInPrev = Array.from(new Set((prevOrders || []).map(identity).filter(Boolean)));
+            // Everyone who ordered before the PREVIOUS period started.
+            const { data: historicOrders } = await supabase
+                .from('orders')
+                .select('customer_phone, customer_email')
+                .lt('created_at', prevStartDate.toISOString());
+            const historicIds = new Set((historicOrders || []).map(identity).filter(Boolean));
+            const prevNewClientsCount = idsInPrev.filter(id => !historicIds.has(id)).length;
+            // For the current period, "seen before" = historic + previous period.
+            const seenBefore = new Set([...historicIds, ...idsInPrev]);
+            const newClientsCount = idsInPeriod.filter(id => !seenBefore.has(id)).length;
 
             const newClientsChange = (prevNewClientsCount || 0) === 0 ? 100 :
                 ((newClientsCount || 0) - (prevNewClientsCount || 0)) / (prevNewClientsCount || 1) * 100;
