@@ -13,6 +13,7 @@ import { I18nProvider } from '@/lib/i18n/context';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 import ReferralCapture from '@/components/ReferralCapture';
+import InAppBrowserBanner from '@/components/InAppBrowserBanner';
 import { SITE_INFO } from '@/lib/seoContent';
 import { getBaseUrl } from '@/lib/seo/locales';
 
@@ -146,6 +147,7 @@ export default function RootLayout({
               <CookieBanner />
               <Suspense fallback={null}>
                 <ReferralCapture />
+                <InAppBrowserBanner />
               </Suspense>
             </I18nProvider>
             <Suspense fallback={null}>
