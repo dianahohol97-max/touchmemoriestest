@@ -341,15 +341,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const updateStatus = async (newStatus: string) => {
         const loadingToast = toast.loading('Оновлення статусу...');
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({
-                    order_status: newStatus,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', id);
-
-            if (error) throw error;
+            const resp = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_status: newStatus, updated_at: new Date().toISOString() }),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити статус');
 
             await supabase.from('order_history').insert({
                 order_id: id,
@@ -534,16 +531,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     const saveNotes = async () => {
         setSaving(true);
-        const { error } = await supabase
-            .from('orders')
-            .update({
-                notes: notes,
-                client_comment: clientComment,
-                files_url: filesUrl
-            })
-            .eq('id', id);
-
-        if (!error) toast.success('Дані збережено');
+        const resp = await fetch(`/api/admin/orders/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes, client_comment: clientComment }),
+        });
+        if (resp.ok) toast.success('Дані збережено');
+        else toast.error('НЕ збережено — спробуйте ще раз');
         setSaving(false);
     };
 
