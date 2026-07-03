@@ -78,6 +78,34 @@ const nextConfig = {
         destination: '/uk/public-offer',
         permanent: true,
       },
+      // GSC-found 404s: alias paths people/old links use → real slugs
+      {
+        source: '/:locale(uk|en|ro|pl|de)/contact',
+        destination: '/:locale/kontakty',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/about',
+        destination: '/:locale/pro-nas',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/category/vypuskni-knyhy',
+        destination: '/:locale/category/graduation-books',
+        permanent: true,
+      },
+      // Old-site URLs (pre-migration /shop structure): stop leaking their SEO
+      // weight into 404s — land visitors on the catalog instead.
+      {
+        source: '/shop/:path*',
+        destination: '/uk/catalog',
+        permanent: true,
+      },
+      {
+        source: '/shop',
+        destination: '/uk/catalog',
+        permanent: true,
+      },
       {
         source: '/constructor',
         destination: '/constructor/photobook',
