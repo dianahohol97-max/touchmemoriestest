@@ -240,12 +240,12 @@ export default function OrdersPage() {
 
     return (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Замовлення</h1>
                     <p style={{ color: '#64748b' }}>Повний список транзакцій та статусів у реальному часі.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px", fontWeight: 700, fontSize: '15px', textDecoration: 'none' }}>
                         <Plus size={20} /> Створити замовлення
                     </Link>
@@ -628,8 +628,8 @@ const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padd
 const tabsWrapperStyle = { display: 'flex', gap: '12px', marginBottom: '32px', overflowX: 'auto' as any, paddingBottom: '8px' };
 const tabButtonStyle = { padding: '10px 20px', borderRadius: "3px", border: '1.5px solid #e2e8f0', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' as any };
 const countBadgeStyle = { padding: '2px 8px', borderRadius: "3px", backgroundColor: 'rgba(255,255,255,0.2)', fontSize: '10px', fontWeight: 900 };
-const filtersGridStyle = { display: 'grid', gridTemplateColumns: '1fr auto', gap: '24px', marginBottom: '32px', alignItems: 'center' };
-const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '0 16px', flex: 1 };
+const filtersGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '24px', alignItems: 'center' };
+const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '0 16px', flex: 1, minWidth: 0 };
 const searchInputStyle = { border: 'none', padding: '12px 0', outline: 'none', width: '100%', fontSize: '14px', fontWeight: 500 };
 const dateInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '8px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white' };
 const selectInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '10px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white', fontWeight: 600, cursor: 'pointer' };
