@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { getResendClient } from '@/lib/email/resend';
+import { sendEmail } from '@/lib/email/resend';
 import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,6 @@ export async function POST(req: Request) {
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
-    const resend = getResendClient();
     try {
         const { productId, newPrice, oldPrice } = await req.json();
 
@@ -54,8 +53,7 @@ export async function POST(req: Request) {
                 if (notifiedEmails.has(email)) return;
                 notifiedEmails.add(email);
 
-                return resend.emails.send({
-                    from: 'TouchMemories <shop@mail.touchmemories.com.ua>',
+                return sendEmail({
                     to: email,
                     subject: `Ціна знижена на ${productName}! `,
                     html: `

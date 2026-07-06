@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getResendClient } from '@/lib/email/resend';
+import { sendEmail } from '@/lib/email/resend';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -7,7 +7,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
     const supabase = getAdminClient();
-    const resend = getResendClient();
     // 1. Verify cron secret (if vercel cron)
     const authHeader = request.headers.get('authorization');
     if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -44,9 +43,8 @@ export async function GET(request: Request) {
                 });
 
                 // Send Email to Admin
-                await resend.emails.send({
-                    from: 'TouchMemories Alerts <hello@touchmemories.ua>',
-                    to: ['admin@touchmemories.ua'], // Replace with actual admin email
+                await sendEmail({
+                    to: 'hello@touchmemories.com.ua',
                     subject: ` Товар закінчився: ${product.name}`,
                     html: `
                         <h2> Увага: Товар повністю закінчився</h2>
@@ -77,9 +75,8 @@ export async function GET(request: Request) {
                     });
 
                     // Send Email to Admin
-                    await resend.emails.send({
-                        from: 'TouchMemories Alerts <hello@touchmemories.ua>',
-                        to: ['admin@touchmemories.ua'], // Replace with actual admin email
+                    await sendEmail({
+                        to: 'hello@touchmemories.com.ua',
                         subject: ` Низький залишок: ${product.name}`,
                         html: `
                             <h2> Мало товару на складі</h2>

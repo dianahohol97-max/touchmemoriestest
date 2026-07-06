@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getResendClient } from '@/lib/email/resend';
+import { sendEmail } from '@/lib/email/resend';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     const supabase = getAdminClient();
-    const resend = getResendClient();
     try {
         const body = await req.json();
         const { product_id, recipient_email, recipient_name, sender_name, message } = body;
@@ -41,9 +40,8 @@ export async function POST(req: Request) {
 
         const senderDisplay = sender_name || 'Ваш близький або друг';
 
-        const { data: emailData, error: emailError } = await resend.emails.send({
-            from: 'TouchMemories <hints@mail.touchmemories.ua>', // Needs domain verification in Resend
-            to: [recipient_email],
+        const { data: emailData, error: emailError } = await sendEmail({
+            to: recipient_email,
             subject: `${senderDisplay} мріє про цей подарунок 🎁`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
