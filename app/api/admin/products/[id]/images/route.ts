@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -12,6 +13,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+    const guard = await requireStaff();
+    if (!guard.ok) return guard.response;
+
   // Verify the caller is a logged-in admin
   const cookieClient = await createClient();
   const { data: { user } } = await cookieClient.auth.getUser();

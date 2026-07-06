@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireStaff } from '@/lib/auth/guards';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -18,6 +19,9 @@ const ALLOWED_BUCKETS = new Set([
 // photo and video uploads silently failing. The caller must be a logged-in
 // admin (verified via their session cookie against admin_users).
 export async function POST(req: Request) {
+    const guard = await requireStaff();
+    if (!guard.ok) return guard.response;
+
   const cookieClient = await createClient();
   const { data: { user } } = await cookieClient.auth.getUser();
   if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
