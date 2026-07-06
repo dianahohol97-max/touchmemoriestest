@@ -4256,9 +4256,14 @@ export default function BookLayoutEditor() {
     // a photobook row of the same size/pages and shows ~2075₴ instead of ~1509₴.
     const coverKey = config.selectedCoverType || 'Велюр';
     const pageColorRaw = config.selectedPageColor || searchParams?.get('page_color') || 'white';
-    // Normalise page_color code → label used in WISHBOOK_PRICES
-    const pageColorLabel = pageColorRaw.includes('чорн') || pageColorRaw === 'black' ? 'Чорні'
-      : pageColorRaw.includes('кремов') || pageColorRaw === 'cream' ? 'Кремові'
+    // Normalise page_color code → label used in WISHBOOK_PRICES.
+    // Compare in lowercase: the constructor stores the label ("Кремові",
+    // "Чорні") with a capital letter, and a case-sensitive includes() missed
+    // it — cream/black books silently fell back to the WHITE price
+    // (300–350 ₴ undercharge per book).
+    const pageColorLc = pageColorRaw.toLowerCase();
+    const pageColorLabel = pageColorLc.includes('чорн') || pageColorLc === 'black' ? 'Чорні'
+      : pageColorLc.includes('крем') || pageColorLc === 'cream' ? 'Кремові'
       : 'Білі';
     const sizeKey = config.selectedSize || '23x23';
     const wishbookPriceLookup = getWishbookPrice(coverKey, pageColorLabel, sizeKey);
