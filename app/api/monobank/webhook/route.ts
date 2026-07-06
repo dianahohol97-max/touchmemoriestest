@@ -349,6 +349,20 @@ export async function POST(req: Request) {
                 try { await deductInventory(supabase, existingOrder.items); }
                 catch (e) { console.error('deductInventory failed (payment still confirmed):', e); }
 
+                // Customer confirmation email. The transactional route existed
+                // from day one but nothing ever called it — customers paid and
+                // heard nothing (and email_logs stayed empty). Fire-and-forget
+                // with the internal secret; a mail failure can never break
+                // payment confirmation.
+                try {
+                    const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
+                    fetch(`${base}/api/email/transactional`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
+                        body: JSON.stringify({ action: 'paid', orderId: existingOrder.id }),
+                    }).catch(e => console.error('confirmation email failed (payment still confirmed):', e));
+                } catch (e) { console.error('confirmation email failed (payment still confirmed):', e); }
+
                 // Referral reward: if this buyer was referred and this is their
                 // first paid order ≥1000₴, credit 50₴ to the referrer. Idempotent
                 // and guarded inside the first-transition-to-paid block, so it

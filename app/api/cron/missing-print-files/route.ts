@@ -128,5 +128,27 @@ export async function GET(request: Request) {
     stats.flagged++;
   }
 
+  // ─── Second watchdog: paid designer orders nobody picked up ─────────────
+  // TM-001037/1040 sat unassigned for a week with the 14–18 day promise
+  // ticking. Flag any PAID with_designer order that has no designer after
+  // 24h — same notes-warning pattern, idempotent via marker.
+  const DESIGNER_MARKER = '[дизайнер не призначений]';
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data: unassigned } = await admin
+    .from('orders')
+    .select('id, order_number, notes')
+    .eq('payment_status', 'paid')
+    .eq('with_designer', true)
+    .is('designer_id', null)
+    .lt('created_at', dayAgo)
+    .limit(50);
+  for (const o of unassigned || []) {
+    if ((o.notes || '').includes(DESIGNER_MARKER)) continue;
+    const w = `⚠️ УВАГА: ${DESIGNER_MARKER} — оплачене замовлення з дизайнером понад 24 год без виконавця. Призначте дизайнера (Кабінет дизайнера → взяти в роботу). (виявлено автоматичною перевіркою)`;
+    const prev = (o.notes || '').trim();
+    const { error: e2 } = await admin.from('orders').update({ notes: prev ? `${w}\n\n${prev}` : w }).eq('id', o.id);
+    if (!e2) (stats as any).designerFlagged = ((stats as any).designerFlagged || 0) + 1;
+  }
+
   return NextResponse.json({ success: true, ...stats });
 }
