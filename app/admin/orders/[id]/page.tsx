@@ -47,7 +47,7 @@ import {
     Copy,
     RefreshCw,
     Palette
-} from 'lucide-react';
+, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS_OPTS = [
@@ -149,6 +149,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [filesUrl, setFilesUrl] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const [downloadingZip, setDownloadingZip] = useState(false);
+    const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1673,13 +1674,31 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             );
                             return (
                                 <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                                         <label style={{ ...smallLabelStyle, margin: 0 }}>Файли замовлення ({uploadedFiles.length})</label>
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button
+                                            onClick={async () => {
+                                                setAttachingOriginals(true);
+                                                try {
+                                                    const r = await fetch(`/api/admin/orders/${id}/attach-originals`, { method: 'POST' });
+                                                    const j = await r.json();
+                                                    if (r.ok && j.attached > 0) { toast.success(`Додано оригіналів: ${j.attached}`); fetchOrder(); }
+                                                    else toast.info(j.message || j.error || 'Оригінали не знайдено');
+                                                } catch { toast.error('Не вдалося підтягнути оригінали'); }
+                                                setAttachingOriginals(false);
+                                            }}
+                                            disabled={attachingOriginals}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: attachingOriginals ? 'default' : 'pointer' }}>
+                                            {attachingOriginals ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                            Підтягнути оригінали
+                                        </button>
                                         <button onClick={downloadAllAsZip} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                                             {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
                                         </button>
+                                        </div>
                                     </div>
 
                                     {exportFiles.length > 0 && (
