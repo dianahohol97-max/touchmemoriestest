@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { getResendClient } from '@/lib/email/resend';
+import { sendEmail } from '@/lib/email/resend';
 import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +13,6 @@ export async function POST(
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
-    const resend = getResendClient();
 
     try {
         const { id: orderId } = await params;
@@ -34,18 +33,13 @@ export async function POST(
             return NextResponse.json({ error: 'Customer email not found' }, { status: 400 });
         }
 
-        // Send Email via Resend
-        const data = await resend.emails.send({
-            from: 'TouchMemories <hello@touchmemories.shop>',
+        // Send via the same Brevo channel every other customer email uses
+        // (the old Resend client had no API key configured -> every send 500'd).
+        await sendEmail({
             to: order.customer_email,
             subject: subject,
-            text: body,
             html: `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">${body.replace(/\n/g, '<br/>')}</div>`,
         });
-
-        if (data.error) {
-            throw new Error(data.error.message);
-        }
 
         return NextResponse.json({ success: true, message: 'Email sent successfully' });
     } catch (error: any) {
