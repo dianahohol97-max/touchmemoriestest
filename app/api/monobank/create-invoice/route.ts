@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
         const { data: order, error: orderError } = await supabase
             .from('orders')
-            .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount')
+            .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount, monobank_invoice_id')
             .eq('id', orderId)
             .single();
 
@@ -144,6 +144,24 @@ export async function POST(req: Request) {
             monobank_payment_url: pageUrl,
             updated_at: new Date().toISOString()
         }).eq('id', orderId);
+
+        // First invoice for this order → email the customer "замовлення
+        // прийнято" WITH a pay button. Safety net for lost redirects
+        // (Instagram webview, closed tabs): TM-001043's customer finished
+        // checkout, the redirect never landed, and the site had no visible
+        // way for a guest to pay. Fire-and-forget; mail can never break
+        // invoice creation. Re-created invoices (retries) don't re-send.
+        try {
+            const firstInvoice = !(order as any).monobank_invoice_id;
+            if (firstInvoice && order.customer_email) {
+                const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
+                fetch(`${base}/api/email/transactional`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
+                    body: JSON.stringify({ action: 'placed', orderId }),
+                }).catch(() => {});
+            }
+        } catch { /* never block payment */ }
 
         await supabase.from('order_history').insert({
             order_id: orderId,

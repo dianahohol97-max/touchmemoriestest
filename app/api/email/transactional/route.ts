@@ -95,6 +95,12 @@ export async function POST(req: Request) {
                 },
                 deliveryAddress: `${order.delivery_method}, ${order.delivery_address?.city || ''} ${order.delivery_address?.warehouse || ''}`,
                 body: cfg?.body ? sub(cfg.body) : undefined,
+                // Unpaid order → give the customer a payment button. This is the
+                // net for lost Monobank redirects (IG webview etc.): TM-001043's
+                // customer finished checkout and had NOWHERE on the site to pay.
+                paymentUrl: order.payment_status !== 'paid'
+                    ? (order.monobank_payment_url || (order.monobank_invoice_id ? `https://pay.monobank.ua/${order.monobank_invoice_id}` : undefined))
+                    : undefined,
             }));
         } else if (action === 'shipped') {
             const cfg = await getAutomationConfig('order_shipped');

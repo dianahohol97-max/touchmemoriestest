@@ -27,6 +27,7 @@ interface OrderPlacedEmailProps {
     deliveryAddress?: string;
     // Optional admin override of the intro paragraph (blank line = new paragraph).
     body?: string;
+    paymentUrl?: string;
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
@@ -38,6 +39,7 @@ export const OrderPlacedEmail = ({
     totals = { subtotal: 0, delivery: 0, total: 0 },
     deliveryAddress = 'Київ, Відділення НП №1',
     body,
+    paymentUrl,
 }: OrderPlacedEmailProps) => (
     <Html>
         <Head />
@@ -59,6 +61,17 @@ export const OrderPlacedEmail = ({
                                 Привіт, {customerName}. Ми отримали ваше замовлення <strong>{orderNumber}</strong> і вже почали його обробляти.
                             </Text>
                         )}
+
+                    {paymentUrl && (
+                        <Section style={{ textAlign: 'center' as const, margin: '18px 0 6px' }}>
+                            <a href={paymentUrl} style={{ display: 'inline-block', background: '#263A99', color: '#ffffff', textDecoration: 'none', fontWeight: 700, padding: '13px 30px', borderRadius: 8, fontSize: 15 }}>
+                                Оплатити замовлення
+                            </a>
+                            <Text style={{ fontSize: 12, color: '#8898aa', margin: '10px 0 0' }}>
+                                Якщо сторінка оплати не відкрилась одразу — скористайтесь цією кнопкою. Оплата карткою будь-якого банку, Apple Pay чи Google Pay.
+                            </Text>
+                        </Section>
+                    )}
 
                     <Hr style={hr} />
 
