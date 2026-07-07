@@ -908,6 +908,28 @@ function OrderForm() {
 
       if (order) { setOrderId(order.id); setOrderNumber(order.order_number) }
       sessionStorage.removeItem('designerOrderConfig')
+
+      // Payment step — this flow used to END at "Підтвердити замовлення"
+      // with no payment at all (customers wrote "немає оплати, лише
+      // підтвердити"), and the team manually sent Monobank links from the
+      // admin. Same tail as checkout: create the invoice and go to the
+      // payment page. If the invoice can't be created (0 total, token
+      // issue), fall back to the success screen — the manager confirms and
+      // sends the link, and the order-placed email carries a pay button.
+      if (order && estPrice > 0) {
+        try {
+          const invoiceRes = await fetch('/api/monobank/create-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id, paymentRegion: 'UA' }),
+          })
+          const invoiceData = await invoiceRes.json()
+          if (invoiceRes.ok && invoiceData.pageUrl) {
+            window.location.href = invoiceData.pageUrl
+            return
+          }
+        } catch { /* fall through to success screen */ }
+      }
       setSubmitted(true)
     } catch (e: any) {
       console.error('designer order submit error:', e)
