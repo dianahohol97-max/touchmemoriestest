@@ -150,6 +150,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
+    const [checkingPayment, setCheckingPayment] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1487,6 +1488,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     >
                                         <ExternalLink size={13} /> Перевірити в кабінеті Monobank
                                     </a>
+                                    {order.payment_status !== 'paid' && (
+                                        <button
+                                            onClick={async () => {
+                                                setCheckingPayment(true);
+                                                try {
+                                                    const r = await fetch(`/api/admin/orders/${id}/check-payment`, { method: 'POST' });
+                                                    const j = await r.json();
+                                                    if (j.status === 'paid') { toast.success(j.message); fetchOrder(); }
+                                                    else toast.info(j.message || j.error || 'Не вдалося перевірити');
+                                                } catch { toast.error('Помилка перевірки'); }
+                                                setCheckingPayment(false);
+                                            }}
+                                            disabled={checkingPayment}
+                                            style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 8,
+                                                fontSize: 12, fontWeight: 700, color: '#fff', border: 'none', cursor: checkingPayment ? 'default' : 'pointer',
+                                                padding: '6px 10px', background: '#16a34a', borderRadius: 6,
+                                            }}
+                                        >
+                                            {checkingPayment ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Перевірити оплату зараз
+                                        </button>
+                                    )}
                                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8, lineHeight: 1.5 }}>
                                         «Success» означає що банк підтвердив оплату. Кошти на розрахунковий рахунок Monobank зазвичай зараховує наступного банківського дня — знайдіть транзакцію за Invoice ID або сумою/часом у кабінеті.
                                     </div>

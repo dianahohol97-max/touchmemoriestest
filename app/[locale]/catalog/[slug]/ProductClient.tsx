@@ -659,12 +659,19 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         // or for photobooks (priced via Source 1). For pure DB products (posters, maps etc.)
         // 'Розмір' carries a price modifier and must be included here.
         const hardcodedNames = new Set([
-            'Кількість сторінок', 'Тип обкладинки',
+            'Тип обкладинки',
             'Калька перед першою сторінкою', 'Тип ламінації',
             'Рамка', 'Вид', 'Покриття', 'Біла рамочка 3мм', 'Матеріал',
             'Матеріал обкладинки', 'Колір сторінок',
             'Ламінація', 'Ламінація сторінок', 'Ламінування сторінок', 'Індивідуальна обкладинка',
             'Терміновість',
+            // 'Кількість сторінок' is excluded ONLY when a dynamic price
+            // (page-scale lookup) already covered it. For DB-configured
+            // products like the glossy magazine dynamicPrice is null and the
+            // page surcharge lives in the option itself (+50 for 12 pages
+            // etc.) — TM-001043 was undercharged by exactly that 50 ₴
+            // because the exclusion was unconditional.
+            ...(dynamicPrice !== null || isPhotobook ? ['Кількість сторінок'] : []),
             // Note: 'Верстка тексту' is INTENTIONALLY NOT excluded here.
             // The ProductOptionsSelector returns the BASE magazine price
             // without the typesetting surcharge, so the +195 ₴ has to be
