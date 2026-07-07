@@ -131,6 +131,12 @@ export default function AccountPage() {
     // recompute pricing here — that was the recurring source of wrong prices.
     const designToCartItem = (d: Design) => {
         if (!d.cart_payload) return null;
+        // A payload without a sane price must NOT enter the cart — it renders
+        // as 'NaN ₴' and blocks checkout (hit by the re-export clones, whose
+        // payloads predate the current price shape). Those designs go through
+        // the editor instead, which recomputes the price fresh.
+        const price = Number((d.cart_payload as any).price);
+        if (!Number.isFinite(price) || price <= 0) return null;
         return { ...d.cart_payload, id: `${d.cart_payload.id || d.id}_${Date.now()}` };
     };
 
