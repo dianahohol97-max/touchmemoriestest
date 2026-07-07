@@ -909,6 +909,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         {item.pages ? `${item.pages} стор.` : ''}{item.pages && item.qty > 1 ? ' · ' : ''}{item.qty > 1 ? `${item.qty} шт` : ''}
                                                     </div>
                                                 )}
+                                                {Array.isArray(item.price_breakdown) && item.price_breakdown.length > 0 && (
+                                                    <div style={{ fontSize: 12, color: '#475569', marginTop: 6, background: '#f8fafc', border: '1px solid #eef2f7', borderRadius: 8, padding: '6px 10px', display: 'inline-block' }}>
+                                                        {item.price_breakdown.map((b: any, bi: number) => (
+                                                            <div key={bi} style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+                                                                <span>{b.label}</span>
+                                                                <span style={{ fontWeight: 700 }}>{bi === 0 ? '' : '+'}{Number(b.amount).toLocaleString()} ₴</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <div style={{ fontWeight: 900, fontSize: '16px' }}>

@@ -10,6 +10,7 @@ export interface CartItem {
     image?: string;
     options?: any;
     selected_attributes?: { [key: string]: boolean | string | number }; // Custom attributes
+    price_breakdown?: Array<{ label: string; amount: number }>;
     product_id?: string;
     category_slug?: string;
     slug?: string;

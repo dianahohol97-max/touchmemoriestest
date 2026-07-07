@@ -558,6 +558,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
 
     // Calculate final price — priority: photobook table > dynamicPrice > generic modifiers
     let finalPrice = product.price || 0;
+    let priceBreakdownFull: Array<{ label: string; amount: number }> = [];
 
     // Source 1: Photobook prices table lookup (ALL photobooks use this when data available)
     if (isPhotobook && photobookPricesData.length > 0) {
@@ -686,6 +687,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         ]);
 
         let extraModifiers = 0;
+        // Human-readable price breakdown, captured AT PURCHASE TIME so the
+        // admin can always answer "чому 720, а не 770" — each surcharge is a
+        // labeled line stored with the cart item (team request, TM-001043).
+        const priceBreakdown: Array<{ label: string; amount: number }> = [];
+
         product.options.forEach((opt: any) => {
             // Skip options already accounted for in dynamicPrice or photobook lookup
             if (hardcodedNames.has(opt.name)) return;
@@ -693,6 +699,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             if (opt.type === 'inscription') {
                 if (customProductOptions[INSCRIPTION_KEYS.on] === 'yes') {
                     extraModifiers += Number(opt.price || 0);
+                    if (Number(opt.price)) priceBreakdown.push({ label: opt.name || 'Надпис', amount: Number(opt.price) });
                 }
                 return;
             }
@@ -700,7 +707,12 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             const selected = customProductOptions[opt.name];
             if (selected === undefined) return;
             if (opt.type === 'counter') {
-                extraModifiers += Math.max(0, Math.floor(Number(selected) || 0)) * Number(opt.unit_price || 0);
+                {
+                    const qty = Math.max(0, Math.floor(Number(selected) || 0));
+                    const add = qty * Number(opt.unit_price || 0);
+                    extraModifiers += add;
+                    if (add) priceBreakdown.push({ label: `${opt.name} × ${qty}`, amount: add });
+                }
                 return;
             }
             const items = opt.options || opt.values || [];
@@ -709,7 +721,11 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                 i.label === selected || i.name === selected
             );
             if (match && typeof match === 'object') {
-                extraModifiers += Number(match.price || match.priceModifier || 0);
+                {
+                    const add = Number(match.price || match.priceModifier || 0);
+                    extraModifiers += add;
+                    if (add) priceBreakdown.push({ label: `${opt.name}: ${match.label || selected}`, amount: add });
+                }
             }
         });
 
@@ -736,6 +752,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         // Flat extras (typesetting, retouching, QR, etc.) ride on top
         // of the rush-inflated baseline, not below it.
         finalPrice += extraModifiers;
+        priceBreakdownFull = [
+            { label: 'Базова вартість', amount: finalPrice - extraModifiers },
+            ...priceBreakdown,
+        ];
     }
 
     const handleAddToCart = () => {
@@ -838,6 +858,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             qty: quantity,
             image: mainImage,
             options: itemOptions,
+            price_breakdown: priceBreakdownFull.length ? priceBreakdownFull : undefined,
             slug: product.slug,
             personalization_note: personalizationNote,
             payment_mode: (product as any).payment_mode, // for split payment eligibility at checkout

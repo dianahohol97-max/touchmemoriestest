@@ -643,6 +643,7 @@ export default function CheckoutPage() {
                         total_price: it.price * it.qty,
                         slug: it.slug,
                         options: it.options || {},
+                        price_breakdown: it.price_breakdown || undefined,
                         // Preserve structured per-item data (e.g. gift-certificate
                         // recipient name / email / message / face amount) so the
                         // payment webhook can auto-issue the certificate.
