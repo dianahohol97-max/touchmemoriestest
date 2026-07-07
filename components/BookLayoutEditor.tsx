@@ -3067,10 +3067,21 @@ export default function BookLayoutEditor() {
   // on tab hide/close so closing the laptop or switching apps doesn't lose
   // work. Silent — no toast, no spinner; handleSaveAndExit's explicit button
   // remains the user-visible "your work is saved" confirmation.
+  //
+  // CRITICAL (TM-001046 root cause, шар 3): the interval used to capture the
+  // persistDraft closure from the render when the effect FIRST mounted —
+  // i.e. the freshly-initialised book with EMPTY slots. Every autosave then
+  // overwrote the DB with that initial empty layout for the whole session,
+  // which is why Angelina's project had 118 photos but zero placements: her
+  // real assembly was never saved, it was actively erased once a minute.
+  // The ref always points at the latest closure, so every tick saves the
+  // CURRENT state.
+  const persistDraftRef = useRef(persistDraft);
+  persistDraftRef.current = persistDraft;
   useEffect(() => {
     if (pages.length === 0) return; // nothing to save yet (still initialising)
-    const interval = setInterval(() => { persistDraft(); }, 60_000);
-    const onHide = () => { if (document.visibilityState === 'hidden') persistDraft(); };
+    const interval = setInterval(() => { persistDraftRef.current(); }, 60_000);
+    const onHide = () => { if (document.visibilityState === 'hidden') persistDraftRef.current(); };
     document.addEventListener('visibilitychange', onHide);
     return () => {
       clearInterval(interval);
@@ -3114,6 +3125,12 @@ export default function BookLayoutEditor() {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
     }
+
+    // Order-time layout snapshot — a FRESH persistDraft call from the click
+    // closure (never stale), so even if every autosave failed the DB holds
+    // the exact layout being ordered. This is the belt to the stale-interval
+    // suspenders fix above (TM-001046: order existed, layout didn't).
+    try { await persistDraft(); } catch { /* ordering must not break on save */ }
 
     // HARD GUARD — never let a blank book into the cart. TM-001036 was paid
     // (3705₴) and printed with every page empty: after a refresh with many
