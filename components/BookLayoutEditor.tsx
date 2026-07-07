@@ -3598,44 +3598,35 @@ export default function BookLayoutEditor() {
             // and photos render un-zoomed (wrong crop / stretched appearance).
             // onclone converts scale(Z) + objectPosition into explicit width/height
             // + top/left offsets so html2canvas captures exactly what the user sees.
-            onclone: (_doc: Document, el: HTMLElement) => {
+            onclone: (doc: Document, el: HTMLElement) => {
+              // PLAN Б for html2canvas's object-fit quirks. The painter
+              // ignores object-fit whenever the <img> carries ANY transform:
+              // identity scale (fixed earlier), and — the layer under it —
+              // the translate() that gutter-spanning spread slots use, which
+              // stretched every photo crossing the fold (TM-001047 makets).
+              // Instead of whack-a-moling transforms, every <img> in the
+              // export clone becomes a <div> with background-image:
+              // background-size:cover/contain is mathematically identical to
+              // object-fit and html2canvas paints backgrounds correctly
+              // under ALL transforms (scale, rotate, translate). The live
+              // editor DOM is untouched — this rewrites only the clone.
               el.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-                const s = img.style;
-                const transform = s.transform || '';
-                const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
-                const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-                if (!zoom || zoom === 1) {
-                  // html2canvas ignores object-fit as soon as ANY transform is
-                  // present on the img — and every slot carries the identity
-                  // 'scale(1) rotate(0deg)', so unzoomed photos were painted
-                  // STRETCHED to the slot box (the squashed-faces makets).
-                  // Strip the no-op parts so cover/contain are honored.
-                  const cleaned = transform
-                    .replace(/scale\(1(\.0+)?\)/g, '')
-                    .replace(/rotate\(0deg\)/g, '')
-                    .trim();
-                  s.transform = cleaned || 'none';
-                  return;
-                }
-                const pos = s.objectPosition || '50% 50%';
-                const [cpx, cpy] = pos.split(' ').map(v => parseFloat(v) || 50);
-                // Render the photo at zoom×100% size, shifted so the (cpx, cpy)
-                // anchor stays centred in its container (which has overflow:hidden).
-                s.width    = (zoom * 100).toFixed(2) + '%';
-                s.height   = (zoom * 100).toFixed(2) + '%';
-                s.position = 'absolute';
-                s.top      = (-(zoom - 1) * cpy).toFixed(2) + '%';
-                s.left     = (-(zoom - 1) * cpx).toFixed(2) + '%';
-                s.marginLeft = '0';
-                s.marginTop  = '0';
-                s.objectFit      = 'cover';
-                s.objectPosition = '0 0';
-                // Remove scale() AND identity rotate — any residual transform
-                // reactivates the same object-fit-ignoring path.
-                s.transform = transform
-                  .replace(/scale\([\d.]+\)/g, '')
-                  .replace(/rotate\(0deg\)/g, '')
-                  .trim() || 'none';
+                const src = img.currentSrc || img.src;
+                if (!src) return;
+                const div = doc.createElement('div');
+                div.setAttribute('style', img.getAttribute('style') || '');
+                const cls = img.getAttribute('class');
+                if (cls) div.setAttribute('class', cls);
+                const s = div.style;
+                s.backgroundImage = `url("${src}")`;
+                s.backgroundSize = (img.style.objectFit === 'contain') ? 'contain' : 'cover';
+                s.backgroundPosition = img.style.objectPosition || '50% 50%';
+                s.backgroundRepeat = 'no-repeat';
+                if (!s.width) s.width = '100%';
+                if (!s.height) s.height = '100%';
+                (s as any).objectFit = '';
+                (s as any).objectPosition = '';
+                img.replaceWith(div);
               });
             },
             // Dynamic scale so the exported canvas hits 300 DPI exactly.
