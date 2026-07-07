@@ -23,6 +23,7 @@ export default function DesignerProjectBlock({ order }: Props) {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -80,6 +81,19 @@ export default function DesignerProjectBlock({ order }: Props) {
     setSending(false);
   };
 
+  // Copy the CUSTOMER's constructor project into MY drafts — for re-export
+  // on current code without asking the customer to redo anything (TM-001046).
+  const handleCloneToMe = async () => {
+    setCloning(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/clone-project-to-me`, { method: 'POST' });
+      const j = await res.json();
+      if (res.ok) toast.success(j.message || 'Скопійовано у ваші чернетки');
+      else toast.error(j.error || 'Не вдалося скопіювати');
+    } catch { toast.error('Не вдалося скопіювати'); }
+    setCloning(false);
+  };
+
   const copyReviewLink = async () => {
     const url = getReviewUrl();
     if (!url) return;
@@ -134,10 +148,17 @@ export default function DesignerProjectBlock({ order }: Props) {
           <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
             Макет ще не створено. Відкрийте конструктор, створіть макет і він автоматично збережеться за цим замовленням.
           </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <a href={getConstructorUrl()} target="_blank" rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: '#7c3aed', color: '#fff', borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: 'none', transition: 'background 0.2s' }}>
             <Palette size={16} /> Відкрити конструктор <ChevronRight size={16} />
           </a>
+          <button onClick={handleCloneToMe} disabled={cloning}
+            title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: cloning ? 'default' : 'pointer' }}>
+            {cloning ? 'Копіюю…' : '📋 Макет клієнта → мої чернетки'}
+          </button>
+          </div>
         </div>
       ) : (
         // Project exists
@@ -174,6 +195,12 @@ export default function DesignerProjectBlock({ order }: Props) {
               <Palette size={14} />
               {project.status === 'revision_requested' ? 'Редагувати (правки)' : 'Редагувати макет'}
             </a>
+
+            <button onClick={handleCloneToMe} disabled={cloning}
+              title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#7c3aed', borderRadius: 7, fontWeight: 700, fontSize: 13, border: '1.5px solid #7c3aed', cursor: cloning ? 'default' : 'pointer' }}>
+              {cloning ? 'Копіюю…' : '📋 → мої чернетки'}
+            </button>
 
             {/* Send for review — only if not yet sent or revision requested */}
             {['in_progress', 'draft', 'revision_requested'].includes(project.status) && (
