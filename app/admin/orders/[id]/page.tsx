@@ -151,6 +151,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
+    const [cloningProject, setCloningProject] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1710,6 +1711,23 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                                         <label style={{ ...smallLabelStyle, margin: 0 }}>Файли замовлення ({uploadedFiles.length})</label>
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button
+                                            onClick={async () => {
+                                                setCloningProject(true);
+                                                try {
+                                                    const r = await fetch(`/api/admin/orders/${id}/clone-project-to-me`, { method: 'POST' });
+                                                    const j = await r.json();
+                                                    if (r.ok) toast.success(j.message || 'Скопійовано у ваші чернетки');
+                                                    else toast.info(j.error || 'Макет не знайдено');
+                                                } catch { toast.error('Не вдалося скопіювати'); }
+                                                setCloningProject(false);
+                                            }}
+                                            disabled={cloningProject}
+                                            title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0891b2', border: '1.5px solid #0891b2', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: cloningProject ? 'default' : 'pointer' }}>
+                                            {cloningProject ? <Loader2 size={14} className="animate-spin" /> : '📋'}
+                                            Макет → мої чернетки
+                                        </button>
                                         <button
                                             onClick={async () => {
                                                 setAttachingOriginals(true);
