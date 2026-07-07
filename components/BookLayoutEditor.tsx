@@ -3586,9 +3586,20 @@ export default function BookLayoutEditor() {
                 const s = img.style;
                 const transform = s.transform || '';
                 const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
-                if (!scaleMatch) return;
-                const zoom = parseFloat(scaleMatch[1]);
-                if (!zoom || zoom === 1) return;
+                const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+                if (!zoom || zoom === 1) {
+                  // html2canvas ignores object-fit as soon as ANY transform is
+                  // present on the img — and every slot carries the identity
+                  // 'scale(1) rotate(0deg)', so unzoomed photos were painted
+                  // STRETCHED to the slot box (the squashed-faces makets).
+                  // Strip the no-op parts so cover/contain are honored.
+                  const cleaned = transform
+                    .replace(/scale\(1(\.0+)?\)/g, '')
+                    .replace(/rotate\(0deg\)/g, '')
+                    .trim();
+                  s.transform = cleaned || 'none';
+                  return;
+                }
                 const pos = s.objectPosition || '50% 50%';
                 const [cpx, cpy] = pos.split(' ').map(v => parseFloat(v) || 50);
                 // Render the photo at zoom×100% size, shifted so the (cpx, cpy)
@@ -3602,8 +3613,12 @@ export default function BookLayoutEditor() {
                 s.marginTop  = '0';
                 s.objectFit      = 'cover';
                 s.objectPosition = '0 0';
-                // Remove scale() but preserve rotate() if present
-                s.transform = transform.replace(/scale\([\d.]+\)/, '').trim() || 'none';
+                // Remove scale() AND identity rotate — any residual transform
+                // reactivates the same object-fit-ignoring path.
+                s.transform = transform
+                  .replace(/scale\([\d.]+\)/g, '')
+                  .replace(/rotate\(0deg\)/g, '')
+                  .trim() || 'none';
               });
             },
             // Dynamic scale so the exported canvas hits 300 DPI exactly.
