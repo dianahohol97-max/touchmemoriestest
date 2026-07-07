@@ -1680,6 +1680,7 @@ export default function BookLayoutEditor() {
             .filter((p: any) => p && p.url)
             .map((p: any) => new Promise<PhotoData | null>((resolve) => {
               const img = new window.Image();
+            img.crossOrigin = 'anonymous';
               img.onload = () => resolve({
                 id: String(p.id),
                 preview: p.url,
@@ -2147,6 +2148,7 @@ export default function BookLayoutEditor() {
   };
   const detectFocalPoint = (previewDataUrl: string, photoId: string) => {
     const img = new window.Image();
+            img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         // Downsample to 64x64 for fast processing
@@ -2642,6 +2644,7 @@ export default function BookLayoutEditor() {
       reader.onload = ev => {
         const originalDataUrl = ev.target!.result as string;
         const img = new window.Image();
+            img.crossOrigin = 'anonymous';
         img.onload = () => {
           // Print quality: keep original up to 5000px (A3@300dpi = 4961px).
           // KEY POINT: avoid re-encoding when we don't have to. Re-running a
@@ -3908,6 +3911,27 @@ export default function BookLayoutEditor() {
           await Promise.all(jobs.slice(b, b + UPLOAD_BATCH).map(processJob));
         }
         setUploadState(prev => prev ? { ...prev, done: uploadedSoFar, failed } : prev);
+
+        // ── Blank-render tripwire ────────────────────────────────────────
+        // TM-001036 and TM-001046 both shipped books whose page renders were
+        // byte-identical blanks (html2canvas silently skipping images). A
+        // real book's pages NEVER hash alike. If we produced 4+ inner pages
+        // and they collapse to ≤2 distinct sizes, the render pipeline is
+        // blind — abort the order loudly instead of selling a blank book.
+        const innerSizes = exportedFiles
+          .filter(f => !/cover|flex|inset/i.test(f.fileName))
+          .map(f => (f as any).size)
+          .filter((s: any) => Number.isFinite(s));
+        if (innerSizes.length >= 4 && new Set(innerSizes).size <= 2) {
+          try {
+            toast.error(
+              'Не вдалося коректно згенерувати макет — сторінки вийшли порожніми. Оновіть сторінку (F5) і спробуйте ще раз; якщо повториться — напишіть нам, ми допоможемо.',
+              { duration: 12000 }
+            );
+          } catch {}
+          setUploadState(null);
+          return;
+        }
       }
 
       // Cover-decoration inset files (akryl, metal, gravirovka, etc.)
@@ -4626,7 +4650,7 @@ export default function BookLayoutEditor() {
                         onClick={(e) => { if(e.ctrlKey||e.metaKey){ if(!used){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
                         style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', opacity: used ? 0.6 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : used ? '1px solid #10b981' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
-                          <img loading="lazy" src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                          <img crossOrigin="anonymous" loading="lazy" src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}></div>}
                           {used && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents:'none' }}><span style={{fontSize:9,fontWeight:800,color:'#1d4ed8',background:'rgba(255,255,255,0.9)',padding:'2px 6px',borderRadius:6}}>для заміни</span></div>}
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
@@ -5079,7 +5103,7 @@ export default function BookLayoutEditor() {
                               draggable
                               onDragStart={e => { e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                               style={{ aspectRatio:'1', borderRadius:4, overflow:'hidden', cursor:'grab', border: coverState.photoId===ph.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0' }}>
-                              <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                              <img crossOrigin="anonymous" loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                             </div>
                           ))}
                         </div>
@@ -5604,7 +5628,7 @@ export default function BookLayoutEditor() {
                     )}
                   </div>
                   {kalkaState.imageUrl && (
-                    <img src={kalkaState.imageUrl} style={{ marginTop:6, width:'100%', maxHeight:80, objectFit:'contain', borderRadius:6, border:'1px solid #e2e8f0' }}/>
+                    <img crossOrigin="anonymous" src={kalkaState.imageUrl} style={{ marginTop:6, width:'100%', maxHeight:80, objectFit:'contain', borderRadius:6, border:'1px solid #e2e8f0' }}/>
                   )}
                   {/* Image positioning controls */}
                   {kalkaState.imageUrl && (
@@ -5762,6 +5786,7 @@ export default function BookLayoutEditor() {
               // Remove background (white/light) from image using Canvas
               const removeBackground = (url: string, spi: number, stkId: string) => {
                 const img = new window.Image();
+            img.crossOrigin = 'anonymous';
                 img.onload = () => {
                   const canvas = document.createElement('canvas');
                   canvas.width = img.width;
@@ -5817,7 +5842,7 @@ export default function BookLayoutEditor() {
                         <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:4 }}>
                           {custom.map(stk => (
                             <div key={stk.id} style={{ border:'1px solid #e2e8f0', borderRadius:8, overflow:'hidden', background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 10px 10px', position:'relative' }}>
-                              <img src={stk.url} style={{ width:'100%', aspectRatio:'1', objectFit:'contain' }} />
+                              <img crossOrigin="anonymous" src={stk.url} style={{ width:'100%', aspectRatio:'1', objectFit:'contain' }} />
                               <button
                                 onClick={() => removeBackground(stk.url, spi, stk.id)}
                                 title="Видалити фон"
@@ -5845,7 +5870,7 @@ export default function BookLayoutEditor() {
                             }}
                             style={{ padding:'6px 2px', border:'1px solid #e2e8f0', borderRadius:8, background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0 / 8px 8px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, overflow:'hidden', minWidth:0 }}
                             title={sticker.name}>
-                            <img src={sticker.image_url} alt={sticker.name} style={{ width:40, height:40, objectFit:'contain' }} />
+                            <img crossOrigin="anonymous" src={sticker.image_url} alt={sticker.name} style={{ width:40, height:40, objectFit:'contain' }} />
                             <span style={{ fontSize:7, color:'#64748b', textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', width:'100%' }}>{sticker.name}</span>
                           </button>
                         ))}
@@ -6418,7 +6443,7 @@ export default function BookLayoutEditor() {
                                   });
                                 }}
                                 onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.3, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
-                                <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                                <img crossOrigin="anonymous" src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
                               <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
@@ -6536,7 +6561,7 @@ export default function BookLayoutEditor() {
                                 setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                               );
                             }}>
-                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img crossOrigin="anonymous" src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                             <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
@@ -6613,7 +6638,7 @@ export default function BookLayoutEditor() {
                                 setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                               );
                             }}>
-                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img crossOrigin="anonymous" src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                             <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
@@ -6665,7 +6690,7 @@ export default function BookLayoutEditor() {
                         });
                       }}
                       style={{ position: 'absolute', left: `${kalkaState.imgX - kalkaState.imgScale/2}%`, top: `${kalkaState.imgY - kalkaState.imgScale/2}%`, width: `${kalkaState.imgScale}%`, height: `${kalkaState.imgScale}%`, overflow: 'hidden', opacity: 0.65, cursor: 'grab', touchAction: 'none', userSelect: 'none' }}>
-                      <img src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, pointerEvents: 'none' }} draggable={false}/>
+                      <img crossOrigin="anonymous" src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, pointerEvents: 'none' }} draggable={false}/>
                     </div>
                   )}
                   {kalkaState.calendarEnabled && (
@@ -6918,7 +6943,7 @@ export default function BookLayoutEditor() {
                                 const incoming = photos.find(p => p.id === dragPhotoId);
                                 return incoming ? (
                                   <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none' }}>
-                                    <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
+                                    <img crossOrigin="anonymous" src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
                                     <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10 }}>Замінити фото</div>
                                   </div>
                                 ) : null;
@@ -6947,7 +6972,7 @@ export default function BookLayoutEditor() {
                                 }}
                                 onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
+                                <img crossOrigin="anonymous" src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
                                   onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                   style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
@@ -7247,7 +7272,7 @@ export default function BookLayoutEditor() {
                       return (
                       <div key={st.id} style={{ position:'absolute', left:st.x, top:st.y, width:st.w, height:st.h, cursor:'move', zIndex: zIndexFor(st.zOrder), touchAction:'none', fontSize:typeof st.w==='number'?st.w*0.8:32, outlineOffset: 2 }}
                         onPointerDown={e => { e.stopPropagation(); setSelectedStickerId(st.id); setSelectedQrId(null); setSelectedTextId(null); const origX = typeof st.x === 'number' ? st.x : 0; const origY = typeof st.y === 'number' ? st.y : 0; startPointerDrag(e, (dx:number,dy:number) => { setPageStickers(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(s=>s.id===st.id?{...s,x:origX+dx,y:origY+dy}:s)})); }); }}>
-                        {st.url ? <img src={st.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block' }} draggable={false}/> : <span style={{ fontSize:typeof st.w==='string'&&st.w.endsWith('%')?Math.round(spreadW*parseFloat(st.w)/100*0.7):32, lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{st.emoji}</span>}
+                        {st.url ? <img crossOrigin="anonymous" src={st.url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block' }} draggable={false}/> : <span style={{ fontSize:typeof st.w==='string'&&st.w.endsWith('%')?Math.round(spreadW*parseFloat(st.w)/100*0.7):32, lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{st.emoji}</span>}
                         <button data-export-ignore="true" onClick={()=>setPageStickers(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(s=>s.id!==st.id)}))} style={{position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
                         {isStSel && (
                           <>
@@ -7280,7 +7305,7 @@ export default function BookLayoutEditor() {
                             setQrOverlays(prev => ({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).map(q=>q.id===qr.id?{...q,x:origX+dx,y:origY+dy}:q)}));
                           });
                         }}>
-                        <img src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
+                        <img crossOrigin="anonymous" src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
                         {/* Delete */}
                         <button data-export-ignore="true" onClick={()=>setQrOverlays(prev=>({...prev,[spreadPageIdx]:(prev[spreadPageIdx]||[]).filter(q=>q.id!==qr.id)}))}
                           style={{position:'absolute',top:-7,right:-7,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,zIndex:20}}>×</button>
@@ -7377,7 +7402,7 @@ export default function BookLayoutEditor() {
                             });
                           }}
                           style={{ position: 'absolute', left: `${kalkaState.imgX - kalkaState.imgScale/2}%`, top: `${kalkaState.imgY - kalkaState.imgScale/2}%`, width: `${kalkaState.imgScale}%`, height: `${kalkaState.imgScale}%`, overflow: 'hidden', opacity: 0.65, cursor: 'grab', touchAction: 'none', userSelect: 'none' }}>
-                          <img src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, pointerEvents: 'none' }} draggable={false}/>
+                          <img crossOrigin="anonymous" src={kalkaState.imageUrl} style={{ width:'100%', height:'100%', objectFit:'contain', objectPosition:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, transform:`scale(${kalkaState.imgZoom})`, transformOrigin:`${kalkaState.imgCropX}% ${kalkaState.imgCropY}%`, pointerEvents: 'none' }} draggable={false}/>
                         </div>
                       )}
                       {/* Calendar */}
@@ -7657,7 +7682,7 @@ export default function BookLayoutEditor() {
                                   const incoming = photos.find(p => p.id === dragPhotoId);
                                   return incoming ? (
                                     <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none', transition:'opacity 0.15s' }}>
-                                      <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
+                                      <img crossOrigin="anonymous" src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
                                       <div style={{ position:'absolute', bottom:6, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:10, fontWeight:700, padding:'3px 10px', borderRadius:10, whiteSpace:'nowrap' }}>Замінити фото</div>
                                     </div>
                                   ) : null;
@@ -7665,7 +7690,7 @@ export default function BookLayoutEditor() {
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
+                                  <img crossOrigin="anonymous" src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
@@ -7786,7 +7811,7 @@ export default function BookLayoutEditor() {
                                 {isOver && dragPhotoId && (() => {
                                   const incoming = photos.find(p => p.id === dragPhotoId);
                                   return incoming ? (
-                                    <img src={incoming.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.5, borderRadius:4, transition:'opacity 0.15s' }} draggable={false}/>
+                                    <img crossOrigin="anonymous" src={incoming.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.5, borderRadius:4, transition:'opacity 0.15s' }} draggable={false}/>
                                   ) : null;
                                 })()}
                                 {/* Slot number badge */}
@@ -7989,7 +8014,7 @@ export default function BookLayoutEditor() {
                               setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                             );
                           }}>
-                          {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                          {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img crossOrigin="anonymous" src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                           <button onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(s=>s.id!==stk.id)}));}}
                             style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           {isStSel && (
@@ -8002,7 +8027,7 @@ export default function BookLayoutEditor() {
                           )}
                           {stk.id.startsWith('stk-custom-') && stk.url && (
                             <button onPointerDown={e=>{e.stopPropagation();}} onClick={e=>{e.stopPropagation();
-                              const img2=new window.Image(); img2.onload=()=>{
+                              const img2=new window.Image(); img2.crossOrigin='anonymous'; img2.onload=()=>{
                                 const cv=document.createElement('canvas'); cv.width=img2.width; cv.height=img2.height;
                                 const cx2=cv.getContext('2d')!; cx2.drawImage(img2,0,0);
                                 const d=cx2.getImageData(0,0,cv.width,cv.height); const px=d.data;
@@ -8039,7 +8064,7 @@ export default function BookLayoutEditor() {
                                 setQrOverlays(prev => ({...prev,[pageIdx]:(prev[pageIdx]||[]).map(q=>q.id===qr.id?{...q,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:q)}))
                               );
                             }}>
-                            <img src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
+                            <img crossOrigin="anonymous" src={qr.dataUrl} alt="QR" style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none', display:'block', background:'#fff' }} draggable={false}/>
                             <button onClick={e=>{e.stopPropagation();setQrOverlays(prev=>({...prev,[pageIdx]:(prev[pageIdx]||[]).filter(q=>q.id!==qr.id)}));}}
                               style={{ position:'absolute',top:-7,right:-7,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:11,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,zIndex:20 }}>×</button>
                             <div onPointerDown={e => {
@@ -8132,7 +8157,7 @@ export default function BookLayoutEditor() {
                     {/* Back cover (left) */}
                     <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {!isPrinted && <div style={{ position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 5px)', pointerEvents:'none' }}/>}
-                      {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
+                      {backPhoto && <img crossOrigin="anonymous" src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
                     {/* Spine */}
                     <div style={{ width: 2, height: '100%', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}/>
@@ -8140,11 +8165,11 @@ export default function BookLayoutEditor() {
                     <div style={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {/* Ready-made cover background (travel book) — full bleed */}
                       {coverState.printedBgImage && (
-                        <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
+                        <img crossOrigin="anonymous" src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
                       )}
                       {isPrinted && frontPhoto && (
                         <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
-                          <img src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
+                          <img crossOrigin="anonymous" src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
                         </div>
                       )}
                       {!isPrinted && coverState.photoId && frontPhoto && (() => {
@@ -8161,7 +8186,7 @@ export default function BookLayoutEditor() {
                         bW *= k; bH *= k;
                         return (
                           <div style={{ position:'absolute', left:`calc(50% - ${bW/2}px)`, top:`calc(50% - ${bH/2}px)`, width:bW, height:bH, borderRadius:dims.round?'50%':2, overflow:'hidden', border:'1px solid rgba(255,255,255,0.5)' }}>
-                            <img src={frontPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                            <img crossOrigin="anonymous" src={frontPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                           </div>
                         );
                       })()}
@@ -8220,7 +8245,7 @@ export default function BookLayoutEditor() {
                         };
                         return (
                           <div key={i} style={ss}>
-                            {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                            {ph && <img crossOrigin="anonymous" loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                           </div>
                         );
                       })}
@@ -8254,7 +8279,7 @@ export default function BookLayoutEditor() {
                       };
                       return (
                         <div key={i} style={ss}>
-                          {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                          {ph && <img crossOrigin="anonymous" loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                         </div>
                       );
                     })}
@@ -8396,7 +8421,7 @@ export default function BookLayoutEditor() {
                     }
                   }}
                   style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isSel ? '2.5px solid #7c3aed' : isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
-                  <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                  <img crossOrigin="anonymous" loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                   {isSel && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:22, height:22, borderRadius:999, background:'#7c3aed', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{selOrder}</span></div>}
                   {!isSel && isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
                   {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
@@ -8541,7 +8566,7 @@ export default function BookLayoutEditor() {
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}
                          onMouseEnter={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x && !used) x.style.opacity = '1'; }}
                          onMouseLeave={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x) x.style.opacity = '0'; }}>
-                      <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                      <img crossOrigin="anonymous" loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
@@ -9104,7 +9129,7 @@ export default function BookLayoutEditor() {
                             setTapSelectedPhotoId(ph.id);
                             setMobilePanel(false);
                           }}>
-                          <img src={ph.noBgUrl || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
+                          <img crossOrigin="anonymous" src={ph.noBgUrl || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
                           {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}></div>}
                           {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}></div>}
                           {ph.noBgLoading && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.75)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>⏳</div>}
@@ -9131,7 +9156,7 @@ export default function BookLayoutEditor() {
             {leftTab === 'stickers' && (() => {
               const spi = getActivePageIdx();
               const removeBackgroundMobile = (url: string, stkId: string) => {
-                const img2 = new window.Image(); img2.onload = () => {
+                const img2 = new window.Image(); img2.crossOrigin = 'anonymous'; img2.onload = () => {
                   const cv = document.createElement('canvas'); cv.width = img2.width; cv.height = img2.height;
                   const cx2 = cv.getContext('2d')!; cx2.drawImage(img2, 0, 0);
                   const d = cx2.getImageData(0, 0, cv.width, cv.height); const px = d.data;
@@ -9169,7 +9194,7 @@ export default function BookLayoutEditor() {
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6, marginTop:8 }}>
                       {(pageStickers[spi]||[]).filter(s=>s.id.startsWith('stk-custom-')).map(stk => (
                         <div key={stk.id} style={{ position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid #e2e8f0', background:'repeating-conic-gradient(#f0f0f0 0% 25%, white 0% 50%) 0 0/10px 10px', aspectRatio:'1' }}>
-                          <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
+                          <img crossOrigin="anonymous" src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
                           <button onClick={()=>removeBackgroundMobile(stk.url, stk.id)}
                             style={{ position:'absolute', bottom:2, right:2, background:'rgba(139,92,246,0.9)', border:'none', borderRadius:6, color:'#fff', fontSize:11, padding:'2px 5px', cursor:'pointer', touchAction:'manipulation' }}></button>
                         </div>
@@ -9799,7 +9824,7 @@ export default function BookLayoutEditor() {
                     )}
                   </div>
                   {kalkaState.imageUrl && (
-                    <img src={kalkaState.imageUrl} style={{ marginTop:8, width:'100%', maxHeight:100, objectFit:'contain', borderRadius:8, border:'1px solid #e2e8f0' }}/>
+                    <img crossOrigin="anonymous" src={kalkaState.imageUrl} style={{ marginTop:8, width:'100%', maxHeight:100, objectFit:'contain', borderRadius:8, border:'1px solid #e2e8f0' }}/>
                   )}
                 </div>
                 <div>
