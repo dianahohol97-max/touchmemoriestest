@@ -287,7 +287,7 @@ export default function AccountPage() {
             // email) instead of a single .or() — PostgREST .or() with an email value
             // silently returned nothing, so the pending order never showed. Merge +
             // dedupe by id. RLS still scopes each query to the user's own orders.
-            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,ttn,monobank_payment_url';
+            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,ttn,monobank_payment_url,monobank_invoice_id';
             const [byId, byEmail] = await Promise.all([
                 myCustomerId
                     ? supabase.from('orders').select(orderCols).eq('customer_id', myCustomerId).order('created_at', { ascending: false })
@@ -644,8 +644,8 @@ export default function AccountPage() {
 
                                                             {/* Actions */}
                                                             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                                                                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (order as any).monobank_payment_url && (
-                                                                    <a href={(order as any).monobank_payment_url} target="_blank" rel="noopener noreferrer"
+                                                                {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && ((order as any).monobank_payment_url || (order as any).monobank_invoice_id) && (
+                                                                    <a href={(order as any).monobank_payment_url || `https://pay.monobank.ua/${(order as any).monobank_invoice_id}`} target="_blank" rel="noopener noreferrer"
                                                                         style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', border: 'none', borderRadius: 8, color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 13, background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.3)' }}>
                                                                         💳 Оплатити {order.total} ₴
                                                                     </a>

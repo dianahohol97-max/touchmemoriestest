@@ -55,10 +55,11 @@ export async function POST(req: Request) {
         const { data: order, error } = await supabase
             .from('orders')
             .select(`
-                id, order_number, order_status, created_at, paid_at, 
+                id, order_number, order_status, payment_status, created_at, paid_at, 
                 confirmed_at, production_at, shipped_at, delivered_at,
                 ttn, items, total, delivery_method, delivery_address,
-                customer_name, customer_email, customer_phone
+                customer_name, customer_email, customer_phone,
+                monobank_payment_url, monobank_invoice_id
             `)
             .eq('order_number', trimmedOrderNumber)
             .or(`customer_email.eq.${trimmedContact},customer_phone.eq.${trimmedContact}`)

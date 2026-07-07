@@ -76,6 +76,13 @@ export default function TrackPage() {
     };
 
     const currentIdx = order ? getStatusIndex(order.order_status) : -1;
+    // Universal pay link: saved pageUrl or derived from the invoice id — a
+    // customer who closed (or never reached) the Monobank tab must always
+    // have a visible way to pay (TM-001043: 'на сайті не бачила платіжної
+    // сторінки').
+    const payUrl = order && order.payment_status !== 'paid' && order.order_status !== 'cancelled'
+        ? (order.monobank_payment_url || (order.monobank_invoice_id ? `https://pay.monobank.ua/${order.monobank_invoice_id}` : null))
+        : null;
 
     return (
         <main style={mainStyle}>
@@ -128,6 +135,19 @@ export default function TrackPage() {
                             exit={{ opacity: 0, y: 20 }}
                             style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}
                         >
+                            {/* Unpaid? Big obvious pay banner first. */}
+                            {payUrl && (
+                                <div style={{ ...resultCardStyle, background: '#fffbeb', border: '2px solid #f59e0b', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                                    <div>
+                                        <div style={{ fontSize: 16, fontWeight: 900, color: '#92400e' }}>⏳ Замовлення очікує оплати</div>
+                                        <div style={{ fontSize: 13, color: '#a16207', marginTop: 4 }}>Сума: {Number(order.total).toLocaleString('uk-UA')} ₴ · картка будь-якого банку, Apple Pay чи Google Pay</div>
+                                    </div>
+                                    <a href={payUrl} style={{ display: 'inline-block', background: '#263A99', color: '#fff', fontWeight: 800, padding: '14px 28px', borderRadius: 10, textDecoration: 'none' }}>
+                                        💳 Оплатити зараз
+                                    </a>
+                                </div>
+                            )}
+
                             {/* Progress Bar Component */}
                             <div style={resultCardStyle}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '48px' }}>
