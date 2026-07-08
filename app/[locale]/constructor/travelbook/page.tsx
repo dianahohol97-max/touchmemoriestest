@@ -9,15 +9,19 @@ import SmartModeSelector from '@/components/SmartModeSelector'
 import SmartModeProcessor from '@/components/SmartModeProcessor'
 
 // Travel Book pricing
+// Canonical scale from lib/products (TRAVEL_BOOK.prices). This page kept a
+// stale local copy — 25₴ below the real price on every tier, plus 5₴/page
+// lamination instead of the official 7 — silently undercharging every order
+// that came through here (found during the 08.07 pricing audit).
 const TRAVEL_BOOK_PRICES: Record<number, number> = {
-  12: 650,
-  16: 800,
-  20: 950,
-  24: 1100,
-  28: 1250,
-  32: 1400,
-  36: 1550,
-  40: 1700,
+  12: 675,
+  16: 825,
+  20: 975,
+  24: 1125,
+  28: 1275,
+  32: 1425,
+  36: 1575,
+  40: 1725,
   44: 1850,
   48: 2000,
   52: 2125,
@@ -78,7 +82,7 @@ export default function TravelBookConstructor() {
 
   // Calculate prices
   const basePrice = TRAVEL_BOOK_PRICES[selectedPages] || 0
-  const laminationPrice = extras.lamination ? selectedPages * 5 : 0
+  const laminationPrice = extras.lamination ? selectedPages * 7 : 0
   const endpapersPrice = extras.endpapers ? 100 : 0
   const qrCodePrice = extras.qrCode ? 50 : 0
   const coverTextPrice = extras.coverText ? 50 : 0
@@ -357,7 +361,7 @@ export default function TravelBookConstructor() {
                 )}
                 {extras.lamination && (
                   <div className="mt-2 text-sm font-semibold text-[#C4704F]">
-                    +{laminationPrice} ₴ (5 ₴ × {selectedPages})
+                    +{laminationPrice} ₴ (7 ₴ × {selectedPages})
                   </div>
                 )}
               </div>
