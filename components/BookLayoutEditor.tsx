@@ -33,7 +33,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
-import { getMagazinePrice, getTravelBookPrice } from '@/lib/products';
+import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
@@ -4369,8 +4369,16 @@ export default function BookLayoutEditor() {
   // out text on the inside pages — same flat fee, charged once.
   const TYPESETTING_PRICE = 195;
   const typesettingExtra = (typesettingApplies && !isMagazine) ? TYPESETTING_PRICE : 0;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
-  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra;
+  // Page lamination (+7 ₴ × сторінка). The catalog page carries the choice
+  // via URL params, and until now the editor showed it in the options for
+  // the manager but NEVER priced it — a 12-page laminated travelbook billed
+  // 775 instead of 859 (Diana's arithmetic, order of 08.07). Same rule as
+  // getTravelBookPrice's own lamination handling.
+  const pageLamRaw = (searchParams?.get('page-lamination') || searchParams?.get('lamination') || '').toLowerCase();
+  const hasPageLamination = !!pageLamRaw && !['none', '0', 'no', 'ні'].includes(pageLamRaw) && !pageLamRaw.includes('без');
+  const laminationExtra = hasPageLamination ? LAMINATION_PRICE_PER_PAGE * Math.max(0, pages.length - 1) : 0;
+  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
