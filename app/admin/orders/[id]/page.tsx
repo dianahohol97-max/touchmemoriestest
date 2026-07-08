@@ -1336,7 +1336,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ fontWeight: 700, marginBottom: 6 }}>
                                         {order.payment_type === 'split' ? '50% передоплата онлайн' : 'Повна оплата онлайн'}
                                     </div>
-                                    <div>Передоплачено онлайн: <b>{order.prepaid_amount || 0} ₴</b></div>
+                                    <div>{order.payment_status === 'paid' ? 'Передоплачено онлайн' : 'До передоплати онлайн (не сплачено)'}: <b>{order.prepaid_amount || 0} ₴</b></div>
                                     {Number(order.cod_amount) > 0 && (
                                         <div>Накладений (Нова Пошта): <b>{order.cod_amount} ₴</b></div>
                                     )}
