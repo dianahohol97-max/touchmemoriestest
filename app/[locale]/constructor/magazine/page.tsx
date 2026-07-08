@@ -71,7 +71,7 @@ export default function GlossyMagazineConstructor() {
   // Price calculation
   const basePrice = useMemo(() => getMagazinePrice(pages, extras.typesetting), [pages, extras.typesetting])
   const typesettingPrice = extras.typesetting ? TYPESETTING_PRICE : 0
-  const retouchingPrice = extras.retouching ? extras.retouchingCount * RETOUCHING_PRICE_PER_PHOTO : 0
+  const retouchingPrice = 0 // ретуш не надається (бренд-правило)
   const subtotal = basePrice + retouchingPrice
   const urgentPrice = extras.urgent ? Math.round(subtotal * URGENT_MULTIPLIER) : 0
   const totalPrice = subtotal + urgentPrice
@@ -400,70 +400,8 @@ export default function GlossyMagazineConstructor() {
                 )}
               </div>
 
-              {/* 2. Photo Retouching */}
-              <div
-                className={`bg-white rounded-xl p-6 border-2 transition-all ${
-                  extras.retouching ? 'border-[#E63946] shadow-md' : 'border-gray-200'
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Ретуш фотографій</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                      Покращення кольору, яскравості та контрасту. Видалення дефектів шкіри та фону. Базова ретуш — {RETOUCHING_PRICE_PER_PHOTO} ₴ за фото.
-                    </p>
-                    {extras.retouching && (
-                      <p className="text-base font-semibold text-[#E63946]">
-                        {RETOUCHING_PRICE_PER_PHOTO} ₴ × {extras.retouchingCount} фото = {retouchingPrice} ₴
-                      </p>
-                    )}
-                  </div>
-                  <label className="relative inline-block w-14 h-8 cursor-pointer flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={extras.retouching}
-                      onChange={(e) => setExtras({ ...extras, retouching: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-full h-full bg-gray-200 peer-checked:bg-[#E63946] rounded-full transition-colors" />
-                    <div className="absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform peer-checked:translate-x-6 shadow-sm" />
-                  </label>
-                </div>
-                {extras.retouching && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Скільки фото потребують ретуші?
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setExtras({ ...extras, retouchingCount: Math.max(1, extras.retouchingCount - 1) })}
-                        className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:border-[#E63946] hover:text-[#E63946] transition-colors"
-                      >
-                        <Minus className="w-5 h-5" />
-                      </button>
-                      <input
-                        type="number"
-                        value={extras.retouchingCount}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10)
-                          if (!isNaN(val) && val >= 1 && val <= 200) {
-                            setExtras({ ...extras, retouchingCount: val })
-                          }
-                        }}
-                        min={1}
-                        max={200}
-                        className="w-20 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-[#E63946]"
-                      />
-                      <button
-                        onClick={() => setExtras({ ...extras, retouchingCount: Math.min(200, extras.retouchingCount + 1) })}
-                        className="w-10 h-10 rounded-lg border-2 border-gray-300 flex items-center justify-center hover:border-[#E63946] hover:text-[#E63946] transition-colors"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Ретуш прибрано: бренд не надає послуги ретуші (правило
+                  контенту №3) — цей блок продавав неіснуючу послугу. */}
 
               {/* 3. Urgent Production */}
               <div
@@ -516,12 +454,6 @@ export default function GlossyMagazineConstructor() {
                   <div className="flex justify-between">
                     <span className="text-gray-700">Верстка тексту</span>
                     <span className="font-semibold text-gray-900">{TYPESETTING_PRICE} ₴</span>
-                  </div>
-                )}
-                {extras.retouching && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-700">Ретуш фото ({extras.retouchingCount} шт.)</span>
-                    <span className="font-semibold text-gray-900">{retouchingPrice} ₴</span>
                   </div>
                 )}
                 {extras.urgent && (
@@ -816,12 +748,6 @@ export default function GlossyMagazineConstructor() {
                   <div className="flex justify-between">
                     <span className="text-gray-700">Верстка тексту</span>
                     <span className="font-semibold text-gray-900">{TYPESETTING_PRICE} ₴</span>
-                  </div>
-                )}
-                {extras.retouching && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-700">Ретуш ({extras.retouchingCount} фото)</span>
-                    <span className="font-semibold text-gray-900">{retouchingPrice} ₴</span>
                   </div>
                 )}
                 {extras.urgent && (
