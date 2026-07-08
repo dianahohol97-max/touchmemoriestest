@@ -635,8 +635,8 @@ function MagazineTextBriefContent() {
           //   • Premium — upper bound = recommended + 10, because the
           //     longer premium articles use more supporting images, so
           //     the editor needs a bigger pool to pick from.
-          const recMin = pagesNum;
-          const recMax = pkg === 'premium' ? pagesNum + 10 : Math.ceil(pagesNum * 1.3);
+          const recMin = pagesNum + 2; // +2: обкладинка й задник теж з фото
+          const recMax = (pkg === 'premium' ? pagesNum + 10 : Math.ceil(pagesNum * 1.3)) + 2;
           const count = photos.length;
           const ok = count >= recMin && count <= recMax;
           const tooFew = count > 0 && count < recMin;

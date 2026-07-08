@@ -81,12 +81,11 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
     if (!fileList) return
     let incoming = Array.from(fileList)
     // Designer flow caps uploads at +35% of the recommended maximum.
-    // Recommendation: 1× to 1.5× pageCount (e.g. 6 pages → 6-9 photos).
-    // Hard cap on top: ceil(recMax × 1.35) so the customer can give the
-    // designer ~10 extra to pick from but not a 100-photo dump.
-    // For 6 pages: recMax=9, cap=ceil(9*1.35)=13.
+    // Recommendation: pages+2 (COVERS need photos too — a client sent
+    // exactly 12 for a 12-page book and the designer came up short) up
+    // to 1.5×pages+2. Hard cap on top: ceil(recMax × 1.35).
     if (pageCount && pageCount > 0) {
-      const recMax = Math.ceil(pageCount * 1.5)
+      const recMax = Math.ceil(pageCount * 1.5) + 2
       const maxPhotos = Math.ceil(recMax * 1.35)
       const remaining = Math.max(0, maxPhotos - data.length)
       if (remaining <= 0) {
@@ -134,8 +133,8 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
           достатньо" — no jarring "досягнуто максимум" since the customer
           can still upload up to the silent cap if they want. */}
       {pageCount && pageCount > 0 && (() => {
-        const recMin = pageCount
-        const recMax = Math.ceil(pageCount * 1.5)
+        const recMin = pageCount + 2 // +2: обкладинки теж з фото
+        const recMax = Math.ceil(pageCount * 1.5) + 2
         const count = data.length
         const enough = count >= recMin
         const tooFew = count > 0 && count < recMin
