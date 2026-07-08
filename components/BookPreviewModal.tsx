@@ -558,6 +558,14 @@ export function BookPreviewModal({
 
     return (
       <div style={{ width: pageW, height: pageH, background: frontBg, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        {/* Cover template artwork (travelbook templates: Paris art etc.) —
+            the editor draws this as the base layer (printedBgImage); the
+            preview used to SKIP it, so template covers showed as a bare
+            colour with floating text blocks («ваш текст» / «2019»). */}
+        {(coverState as any)?.printedBgImage && (
+          <img src={(coverState as any).printedBgImage} alt="" draggable={false}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
         {/* Main photo slot */}
         <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>
           {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%`, transform: `scale(${(coverState as any)?.photoZoom ?? 1}) rotate(${(coverState as any)?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} draggable={false} />}
