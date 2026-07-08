@@ -155,10 +155,15 @@ export async function POST(req: Request) {
             const firstInvoice = !(order as any).monobank_invoice_id;
             if (firstInvoice && order.customer_email) {
                 const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
-                fetch(`${base}/api/email/transactional`, {
+                // AWAITED: fire-and-forget dies on Vercel — the lambda freezes
+                // right after the response is returned, so the request was
+                // never actually sent (email_logs stayed empty for two days
+                // of invoices). ~300ms of latency buys a real email.
+                await fetch(`${base}/api/email/transactional`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
                     body: JSON.stringify({ action: 'placed', orderId }),
+                    signal: AbortSignal.timeout(8000),
                 }).catch(() => {});
             }
         } catch { /* never block payment */ }

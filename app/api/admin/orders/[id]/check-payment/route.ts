@@ -93,10 +93,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         // Customer confirmation email — same guarded fire-and-forget as webhook.
         try {
             const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
-            fetch(`${base}/api/email/transactional`, {
+            await fetch(`${base}/api/email/transactional`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
                 body: JSON.stringify({ action: 'paid', orderId: id }),
+                signal: AbortSignal.timeout(8000),
             }).catch(() => {});
         } catch { /* never block */ }
     }

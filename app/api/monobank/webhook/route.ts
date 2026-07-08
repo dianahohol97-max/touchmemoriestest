@@ -356,10 +356,14 @@ export async function POST(req: Request) {
                 // payment confirmation.
                 try {
                     const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
-                    fetch(`${base}/api/email/transactional`, {
+                    // AWAITED — see create-invoice: un-awaited fetches never
+                    // leave a frozen Vercel lambda. Errors still swallowed so a
+                    // mail failure can never break payment confirmation.
+                    await fetch(`${base}/api/email/transactional`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
                         body: JSON.stringify({ action: 'paid', orderId: existingOrder.id }),
+                        signal: AbortSignal.timeout(8000),
                     }).catch(e => console.error('confirmation email failed (payment still confirmed):', e));
                 } catch (e) { console.error('confirmation email failed (payment still confirmed):', e); }
 
