@@ -3075,14 +3075,33 @@ export default function BookLayoutEditor() {
   // CURRENT state.
   const persistDraftRef = useRef(persistDraft);
   persistDraftRef.current = persistDraft;
+
+  // Save-on-change (debounced): the 60s interval left a fatal window — a
+  // mobile tab discarded within a minute of the customer's last edit lost
+  // everything since the previous tick (Anna: 27 photos saved, 0 placements
+  // — the tab died mid-layout between ticks). Every layout mutation now
+  // arms a 3s timer; edits reset it, a 3s pause flushes the CURRENT state
+  // via the ref. Continuous dragging never spams the network — the save
+  // fires on the first breather. The interval below stays as a backstop.
+  useEffect(() => {
+    if (pages.length === 0) return;
+    const t = setTimeout(() => { persistDraftRef.current(); }, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, freeSlots, coverState, pageStickers, pageShapes, pageBgs]);
   useEffect(() => {
     if (pages.length === 0) return; // nothing to save yet (still initialising)
     const interval = setInterval(() => { persistDraftRef.current(); }, 60_000);
     const onHide = () => { if (document.visibilityState === 'hidden') persistDraftRef.current(); };
+    const onPageHide = () => { persistDraftRef.current(); };
     document.addEventListener('visibilitychange', onHide);
+    // iOS Safari fires pagehide more reliably than visibilitychange when the
+    // tab is backgrounded/discarded — a second chance to flush placements.
+    window.addEventListener('pagehide', onPageHide);
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onPageHide);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.length > 0]);
