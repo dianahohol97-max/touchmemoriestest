@@ -172,7 +172,7 @@ app.post('/render', async (req, res) => {
       orderPrefix = `unknown/${projectId}`;
     }
 
-    const b = await getBrowser();
+    await getBrowser(); // warm up; each page fetches a fresh handle (recycling)
     const uploaded: string[] = [];
 
     // Two render modes:
@@ -186,7 +186,7 @@ app.post('/render', async (req, res) => {
         const mm = printSpec.pages[i];
         const pxW = mmToPx(mm.w);
         const pxH = mmToPx(mm.h);
-        const page = await b.newPage({
+        const page = await (await getBrowser()).newPage({
           viewport: { width: pxW + 40, height: pxH + 40 },
           deviceScaleFactor: 1,
         });
@@ -255,7 +255,10 @@ app.post('/render', async (req, res) => {
       // two halves, so each half is pxW/2. The page reads ?w to fix that width.
       const halfW = Math.round(pxW / 2);
 
-      const page = await b.newPage({
+      // Fetch the browser per spread: recycleBrowserIfNeeded() may have closed
+      // the one captured before the loop, and a stale handle throws
+      // 'Target page, context or browser has been closed'.
+      const page = await (await getBrowser()).newPage({
         viewport: { width: pxW + 40, height: pxH + 40 },
         deviceScaleFactor: 1,
       });
