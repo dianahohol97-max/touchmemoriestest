@@ -753,7 +753,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             toast.success('Лист надіслано');
             setShowReplyModal(false);
         } else {
-            toast.error('Помилка надсилання');
+            // Show the server's reason instead of a bare 'Помилка надсилання' —
+            // an empty subject or a Brevo rejection used to look identical.
+            const d = await res.json().catch(() => ({} as any));
+            toast.error(d?.error ? `Не надіслано: ${d.error}` : 'Помилка надсилання');
         }
         setSendingReply(false);
     };

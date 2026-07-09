@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,10 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const guard = await requireAdmin();
+    // Replying to a customer is a manager's job, not an admin's: the managers
+    // (Катерина, Вероніка, …) are in `staff`, not `admin_users`, so requireAdmin
+    // rejected them outright.
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
@@ -33,12 +36,21 @@ export async function POST(
             return NextResponse.json({ error: 'Customer email not found' }, { status: 400 });
         }
 
-        // Send via the same Brevo channel every other customer email uses
-        // (the old Resend client had no API key configured -> every send 500'd).
+        // Brevo rejects a message with no subject, and the modal lets the
+        // manager leave it empty (only the template fills it) — that 400 came
+        // back as a bare 'Помилка надсилання'. Fall back to a sane subject and
+        // refuse an empty body loudly instead of sending a blank email.
+        const cleanBody = String(body ?? '').trim();
+        if (!cleanBody) {
+            return NextResponse.json({ error: 'Порожній текст листа' }, { status: 400 });
+        }
+        const cleanSubject = String(subject ?? '').trim()
+            || `Ваше замовлення ${order.order_number} — Touch.Memories`;
+
         await sendEmail({
             to: order.customer_email,
-            subject: subject,
-            html: `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">${body.replace(/\n/g, '<br/>')}</div>`,
+            subject: cleanSubject,
+            html: `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">${cleanBody.replace(/\n/g, '<br/>')}</div>`,
         });
 
         return NextResponse.json({ success: true, message: 'Email sent successfully' });
