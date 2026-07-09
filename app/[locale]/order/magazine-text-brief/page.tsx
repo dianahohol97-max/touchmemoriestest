@@ -351,10 +351,30 @@ function MagazineTextBriefContent() {
         }
       }
 
-      // 2) Create order row. Total price is left at 0 — the manager
-      //    will compute it after reviewing brief + photos (same
-      //    pattern as the designer-flow).
-      const productName = productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      // 2) Create order row. The order used to land with total = 0, so the
+      //    admin showed «0 ₴» and a manager had to re-derive the price by
+      //    hand — even though this page already computes and SHOWS the
+      //    customer «від N ₴». Store that same figure (base + urgency +
+      //    text package) with a labeled breakdown; the manager still
+      //    confirms it after reading the brief, but starts from a number
+      //    instead of a blank.
+      const estPagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
+      const estBase = estPagesNum ? (getMagazinePrice(estPagesNum, false) || 0) : 0;
+      const estUrgentRaw = String(carriedOptions['Терміновість'] || carriedOptions['urgent'] || '').toLowerCase();
+      const estIsUrgent = estUrgentRaw !== '' && estUrgentRaw !== '0' && estUrgentRaw !== 'standard' && !estUrgentRaw.includes('стандартна');
+      const estUrgentExtra = estIsUrgent ? Math.round(estBase * URGENT_MULTIPLIER) : 0;
+      const estTotal = estBase ? estBase + estUrgentExtra + PACKAGE_PRICE[pkg] : 0;
+      const estBreakdown = estBase ? [
+        { label: `Базова вартість (${estPagesNum} стор.)`, amount: estBase },
+        ...(estUrgentExtra ? [{ label: 'Термінове виготовлення', amount: estUrgentExtra }] : []),
+        { label: `Текст пише команда — ${PACKAGE_LABEL[pkg]}`, amount: PACKAGE_PRICE[pkg] },
+      ] : [];
+
+      const PRODUCT_NAMES: Record<string, string> = {
+        'personalized-glossy-magazine': 'Глянцевий журнал про людину',
+      };
+      const productName = PRODUCT_NAMES[productSlug]
+        || productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -371,11 +391,17 @@ function MagazineTextBriefContent() {
             product_slug: productSlug,
             product_name: productName,
             quantity: 1,
+            unit_price: estTotal,
+            total_price: estTotal,
+            price_breakdown: estBreakdown,
             text_package: pkg,
             text_package_price: PACKAGE_PRICE[pkg],
             options: carriedOptions,
           }],
           notes: [
+            estTotal
+              ? `💰 Ціна попередня (${estTotal} ₴) — підтвердіть після перегляду анкети, потім надішліть посилання на оплату.`
+              : '💰 Ціну не пораховано автоматично (немає кількості сторінок) — визначте вручну.',
             `Текст пише команда — пакет: ${PACKAGE_LABEL[pkg]}`,
             coverName ? `Імʼя на обкладинці: ${coverName}` : '',
             coverDate ? `Дата на обкладинці: ${coverDate}` : '',
@@ -389,8 +415,9 @@ function MagazineTextBriefContent() {
           // orders table uses `total` (not total_price) and has no
           // contact_method column — store the contact preference inside
           // custom_attributes so it's still surfaced for the manager.
-          custom_attributes: { contact_method: contactMethod },
-          total: 0,
+          custom_attributes: { contact_method: contactMethod, price_is_preliminary: true },
+          total: estTotal,
+          subtotal: estTotal,
           text_brief: {
             package: pkg,
             answers,
