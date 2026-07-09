@@ -152,6 +152,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
+    const [sendingPayLink, setSendingPayLink] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
@@ -1401,6 +1402,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     <Copy size={14} /> Копіювати
                                                 </button>
                                             </div>
+                                            {order.payment_status !== 'paid' && (
+                                                <button
+                                                    onClick={async () => {
+                                                        setSendingPayLink(true);
+                                                        try {
+                                                            const r = await fetch(`/api/admin/orders/${id}/send-payment-link`, { method: 'POST' });
+                                                            const j = await r.json();
+                                                            if (r.ok) toast.success(j.message || 'Лист надіслано');
+                                                            else toast.error(j.error || 'Не вдалося надіслати');
+                                                        } catch { toast.error('Не вдалося надіслати'); }
+                                                        setSendingPayLink(false);
+                                                    }}
+                                                    disabled={sendingPayLink}
+                                                    title="Надішле клієнту лист із кнопкою «Оплатити замовлення»"
+                                                    style={{ marginTop: 8, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                        padding: '9px 12px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8,
+                                                        fontSize: 13, fontWeight: 700, cursor: sendingPayLink ? 'default' : 'pointer' }}>
+                                                    {sendingPayLink ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                                                    Надіслати посилання клієнту
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
                                         <button
