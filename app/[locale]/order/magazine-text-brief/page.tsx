@@ -400,8 +400,8 @@ function MagazineTextBriefContent() {
           }],
           notes: [
             estTotal
-              ? `💰 Ціна попередня (${estTotal} ₴) — підтвердіть після перегляду анкети, потім надішліть посилання на оплату.`
-              : '💰 Ціну не пораховано автоматично (немає кількості сторінок) — визначте вручну.',
+              ? `💰 Рахунок виставлено автоматично: ${estTotal} ₴ (база + терміновість + пакет тексту).`
+              : '💰 Ціну не пораховано автоматично (немає кількості сторінок) — визначте вручну і надішліть посилання на оплату.',
             `Текст пише команда — пакет: ${PACKAGE_LABEL[pkg]}`,
             coverName ? `Імʼя на обкладинці: ${coverName}` : '',
             coverDate ? `Дата на обкладинці: ${coverDate}` : '',
@@ -415,7 +415,7 @@ function MagazineTextBriefContent() {
           // orders table uses `total` (not total_price) and has no
           // contact_method column — store the contact preference inside
           // custom_attributes so it's still surfaced for the manager.
-          custom_attributes: { contact_method: contactMethod, price_is_preliminary: true },
+          custom_attributes: { contact_method: contactMethod },
           total: estTotal,
           subtotal: estTotal,
           text_brief: {
@@ -463,6 +463,30 @@ function MagazineTextBriefContent() {
 
       setOrderId(order.id);
       setOrderNumber(order.order_number);
+
+      // Payment step. The brief used to end at «менеджер звʼяжеться з вами»
+      // even though this page computes the exact price (base + urgency +
+      // text package) — a manager then re-derived the same number and sent
+      // a link by hand. The price is deterministic, so bill it now: create
+      // the invoice and send the customer to Monobank, exactly like
+      // checkout and the designer flow. If the invoice can't be created
+      // (no page count carried, bank error), fall back to the success
+      // screen — the manager path and the pay-button email still cover it.
+      if (estTotal > 0) {
+        try {
+          const invoiceRes = await fetch('/api/monobank/create-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id, paymentRegion: 'UA' }),
+          });
+          const invoiceData = await invoiceRes.json();
+          if (invoiceRes.ok && invoiceData.pageUrl) {
+            window.location.href = invoiceData.pageUrl;
+            return;
+          }
+        } catch { /* fall through to success screen */ }
+      }
+
       setOrderComplete(true);
       toast.success('Замовлення прийнято! Менеджер звʼяжеться з вами.');
     } catch (err: any) {
