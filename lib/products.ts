@@ -655,3 +655,21 @@ export function getUsageHelper(pages: number): string {
   }
   return ' Ідеально для: великих корпоративних звітів, каталогів, книг';
 }
+
+/**
+ * Is page lamination actually selected?
+ *
+ * The DB option stores machine values ('none' | 'with'), but the constructor
+ * compared the selection against the localized LABEL ('Без ламінації'), so
+ * 'none' never matched and every un-laminated travelbook was quoted +7₴/page
+ * for a service the customer declined. Meanwhile the editor read the URL param
+ * under the wrong name and never charged for real lamination. One predicate,
+ * tolerant of values, labels and locales.
+ */
+export function isPageLaminationSelected(value?: string | null): boolean {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (!v) return false;
+  if (['none', 'no', '0', 'false', 'ні'].includes(v)) return false;
+  if (v.includes('без') || v.includes('without') || v.includes('fără') || v.includes('bez') || v.includes('ohne')) return false;
+  return true;
+}

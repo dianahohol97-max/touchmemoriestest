@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { WISHBOOK_PRICES, getWishbookPrice } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -746,7 +746,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
             // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
             // to hard journal and Travel Book per Diana's price list.
-            if (isHardJournal && selectedPageLamination && selectedPageLamination !== t('constructor.no_lamination')) {
+            if (isHardJournal && isPageLaminationSelected(selectedPageLamination)) {
                 magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
             }
 
@@ -872,7 +872,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Page lamination — flat per-page surcharge (7 ₴/стор per Diana's
         // May 2026 price list). Applies to Travel Book; hard journal handles
         // it in the magazine/journal branch above.
-        if (productType === 'travelbook' && selectedPageLamination && selectedPageLamination !== t('constructor.no_lamination')) {
+        if (productType === 'travelbook' && isPageLaminationSelected(selectedPageLamination)) {
             const pageNum = parseInt(selectedPageCount?.match(/\d+/)?.[0] || '0');
             if (pageNum > 0) total += pageNum * LAMINATION_PRICE_PER_PAGE;
         }

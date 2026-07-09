@@ -33,7 +33,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
-import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
+import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
@@ -4425,8 +4425,13 @@ export default function BookLayoutEditor() {
   // the manager but NEVER priced it — a 12-page laminated travelbook billed
   // 775 instead of 859 (Diana's arithmetic, order of 08.07). Same rule as
   // getTravelBookPrice's own lamination handling.
-  const pageLamRaw = (searchParams?.get('page-lamination') || searchParams?.get('lamination') || '').toLowerCase();
-  const hasPageLamination = !!pageLamRaw && !['none', '0', 'no', 'ні'].includes(pageLamRaw) && !pageLamRaw.includes('без');
+  // The catalog page passes this as `page_lamination` (underscore) — reading
+  // only 'page-lamination' meant real lamination was never billed here.
+  const pageLamRaw = searchParams?.get('page_lamination')
+    || searchParams?.get('page-lamination')
+    || searchParams?.get('lamination')
+    || '';
+  const hasPageLamination = isPageLaminationSelected(pageLamRaw);
   const laminationExtra = hasPageLamination ? LAMINATION_PRICE_PER_PAGE * Math.max(0, pages.length - 1) : 0;
   const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
   const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra;

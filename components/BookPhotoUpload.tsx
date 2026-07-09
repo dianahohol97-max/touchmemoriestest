@@ -1,4 +1,5 @@
 'use client';
+import { isPageLaminationSelected } from '@/lib/products';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -473,10 +474,13 @@ export default function BookPhotoUpload() {
                                 <p>• {t('photo_upload.decoration_label')} {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
                             )}
                             {config.selectedLamination && <p>• {t('photo_upload.lamination_cover')} {config.selectedLamination}</p>}
-                            {config.selectedPageLamination && config.selectedPageLamination !== 'Без ламінації' && (() => {
+                            {isPageLaminationSelected(config.selectedPageLamination) && (() => {
+                                // The option's machine value is 'with' | 'none'; comparing it to the
+                                // Ukrainian label meant 'none' rendered as «none (+84 ₴)» — charging
+                                // for lamination the customer declined.
                                 const pages = parseInt(config.selectedPageCount?.match(/\d+/)?.[0] || '0');
                                 const lamCost = pages > 0 ? pages * 7 : 0;
-                                return <p>• {t('photo_upload.lamination_pages')} {config.selectedPageLamination}{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
+                                return <p>• {t('photo_upload.lamination_pages')} З ламінацією{lamCost > 0 ? ` (+${lamCost} ₴)` : ''}</p>;
                             })()}
                             {(config as any).enableKalka && (
                                 <p>• Калька перед першою сторінкою: <b>так</b> (+300 ₴)</p>
