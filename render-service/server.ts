@@ -67,6 +67,13 @@ const PRINT_DIMS_MM: Record<string, { spread: { w: number; h: number }; cover: {
 // slug first (travel → 20x30, wishbook → selectedSize, magazine → A4), then fall
 // back to the explicit selectedSize. Mirrors BookLayoutEditor so the render uses
 // the exact same dimensions the customer designed against.
+// Page size (mm) per dims key. Numeric keys ('20x30') are centimetres and are
+// parsed directly; named keys need this table so bleed can be derived.
+const PAGE_MM: Record<string, { w: number; h: number }> = {
+  'A4': { w: 210, h: 297 },
+  'magazine-A4': { w: 210, h: 297 },
+};
+
 function resolveSizeKey(config: any): string {
   const slug = String(config?.productSlug || '').toLowerCase();
   if (slug.includes('travel')) return '20x30';
@@ -280,29 +287,66 @@ app.post('/render', async (req, res) => {
         const probe = await sharp(raw).metadata();
         console.log(`[render] spread ${spread}: captured ${probe.width}x${probe.height}, target ${pxW}x${pxH}`);
 
-        // ASPECT GUARD. fit:'fill' stretches whatever was captured onto the
-        // target box, so a layout rendered at the wrong page size came out
-        // silently distorted (captured 4963x2481 stretched to 4961x3602 —
-        // people got taller). Only a scale is acceptable; a different aspect
-        // means the /print page built the wrong geometry, and a loud failure
-        // beats a stretched book.
+        // ── BLEED, not stretch ────────────────────────────────────────────
+        // The /print page draws the bare spread (two pages side by side), while
+        // the print target is bigger: content + bleed, and for the cover also
+        // the spine/wrap. fit:'fill' used to pull the capture onto that target,
+        // so a 20x30 book was stretched 3.3% vertically and people got taller
+        // ('captured 5563x4164 vs target 5551x3874').
+        //
+        // Correct behaviour: the capture is the CONTENT area. Scale it to the
+        // content pixels (aspect preserved), then grow the edges outward by
+        // replicating the border pixels — exactly what the client-side
+        // extendBleed() does, and what a printer expects to trim away.
+        const named = PAGE_MM[sizeKey];
+        const sizeParts = sizeKey.split(/[x×]/).map((n) => parseFloat(n));
+        const pageMm = named
+          || (sizeParts.length === 2 && sizeParts.every((n) => n > 0)
+            ? { w: sizeParts[0] * 10, h: sizeParts[1] * 10 }   // '20x30' = centimetres
+            : null);
+        if (!pageMm) {
+          throw new Error(`cannot derive page size from '${sizeKey}' — refusing to guess bleed`);
+        }
+        const contentMmW = 2 * pageMm.w;   // spread = two pages wide
+        const contentMmH = pageMm.h;
+        const contentPxW = mmToPx(contentMmW);
+        const contentPxH = mmToPx(contentMmH);
+
+        // The capture must match the CONTENT aspect (not the bleed target).
         const capturedAspect = (probe.width || 1) / (probe.height || 1);
-        const targetAspect = pxW / pxH;
-        const aspectDrift = Math.abs(capturedAspect - targetAspect) / targetAspect;
+        const contentAspect = contentPxW / contentPxH;
+        const aspectDrift = Math.abs(capturedAspect - contentAspect) / contentAspect;
         if (aspectDrift > 0.01) {
           throw new Error(
             `aspect mismatch on spread ${spread}: captured ${probe.width}x${probe.height} ` +
-            `(${capturedAspect.toFixed(3)}) vs target ${pxW}x${pxH} (${targetAspect.toFixed(3)}). ` +
-            `The /print page rendered the wrong page size — refusing to stretch.`
+            `(${capturedAspect.toFixed(3)}) vs page content ${contentPxW}x${contentPxH} ` +
+            `(${contentAspect.toFixed(3)}). The /print page rendered the wrong page size.`
           );
         }
 
-        // Normalise to the EXACT print pixel size + 300 DPI metadata, JPEG q92.
-        const jpeg = await sharp(raw)
-          .resize(pxW, pxH, { fit: 'fill' })
+        const dx = pxW - contentPxW;
+        const dy = pxH - contentPxH;
+        if (dx < 0 || dy < 0) {
+          throw new Error(`print target ${pxW}x${pxH} smaller than content ${contentPxW}x${contentPxH}`);
+        }
+
+        const scaled = await sharp(raw)
+          .resize(contentPxW, contentPxH, { fit: 'fill' })  // aspect already matches within 1%
+          .toBuffer();
+
+        const jpeg = await sharp(scaled)
+          .extend({
+            left: Math.floor(dx / 2),
+            right: dx - Math.floor(dx / 2),
+            top: Math.floor(dy / 2),
+            bottom: dy - Math.floor(dy / 2),
+            extendWith: 'copy',   // replicate edge pixels = bleed / cover wrap
+          })
           .withMetadata({ density: DPI })
           .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
           .toBuffer();
+
+        console.log(`[render] spread ${spread}: content ${contentPxW}x${contentPxH} + bleed → ${pxW}x${pxH}`);
 
         const fileName = isCover ? '00_cover.jpg' : `${String(spread).padStart(2, '0')}_spread.jpg`;
         const storagePath = `${orderPrefix}/print/${fileName}`;
