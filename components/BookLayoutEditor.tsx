@@ -3616,6 +3616,37 @@ export default function BookLayoutEditor() {
             // onclone converts scale(Z) + objectPosition into explicit width/height
             // + top/left offsets so html2canvas captures exactly what the user sees.
             onclone: (doc: Document, el: HTMLElement) => {
+              // Editor chrome that slipped through ignoreElements: the dashed
+              // frame around an inscription is part of the text element
+              // itself (not an overlay), and selection outlines live in
+              // inline styles. Strip them in the clone only.
+              el.querySelectorAll<HTMLElement>('[data-inscription-frame="true"]').forEach(node => {
+                node.style.border = 'none';
+                node.style.borderRadius = '0';
+              });
+              el.querySelectorAll<HTMLElement>('*').forEach(node => {
+                if (node.style.outline && node.style.outline !== 'none') node.style.outline = 'none';
+              });
+
+              // html2canvas drops percentage translate() — an inscription
+              // centred with translate(-50%,-50%) rendered shifted right and
+              // down by half its size ('назва не посередині'). Convert the
+              // percentages to pixels using the element's own measured box:
+              // translation never changes size, so the rect is safe to read.
+              el.querySelectorAll<HTMLElement>('*').forEach(node => {
+                const tr = node.style.transform;
+                if (!tr || !tr.includes('%')) return;
+                const r = node.getBoundingClientRect();
+                if (!r.width && !r.height) return;
+                node.style.transform = tr
+                  .replace(/translate\(\s*(-?[\d.]+)%\s*,\s*(-?[\d.]+)%\s*\)/g,
+                    (_m, a, b) => `translate(${(parseFloat(a) / 100) * r.width}px, ${(parseFloat(b) / 100) * r.height}px)`)
+                  .replace(/translateX\(\s*(-?[\d.]+)%\s*\)/g,
+                    (_m, a) => `translateX(${(parseFloat(a) / 100) * r.width}px)`)
+                  .replace(/translateY\(\s*(-?[\d.]+)%\s*\)/g,
+                    (_m, a) => `translateY(${(parseFloat(a) / 100) * r.height}px)`);
+              });
+
               // PLAN Б for html2canvas's object-fit quirks. The painter
               // ignores object-fit whenever the <img> carries ANY transform:
               // identity scale (fixed earlier), and — the layer under it —
@@ -6546,7 +6577,7 @@ export default function BookLayoutEditor() {
                         );
                       })}
                       {/* Label */}
-                      <div style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
+                      <div data-export-ignore="true" style={{position:'absolute',top:4,left:4,background:'rgba(0,0,0,0.5)',borderRadius:8,padding:'2px 8px',zIndex:20,pointerEvents:'none'}}>
                         <span style={{color:'#fff',fontSize:8,fontWeight:700}}>Задня</span>
                       </div>
                       {/* Click-to-enable CTA — printed products with no back-cover photo yet.
@@ -6569,7 +6600,7 @@ export default function BookLayoutEditor() {
                       )}
                       {!isPrinted && (
                         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
-                          <span style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
+                          <span data-export-ignore="true" style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
                         </div>
                       )}
                     </div>
@@ -6648,7 +6679,7 @@ export default function BookLayoutEditor() {
                 {/* Back cover — plain */}
                 <div style={{ width: pageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <span style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
+                    <span data-export-ignore="true" style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
                   {/* Spine line */}
                   <div style={{ position:'absolute', right:0, top:0, width:2, height:'100%', background:'rgba(0,0,0,0.15)' }}/>

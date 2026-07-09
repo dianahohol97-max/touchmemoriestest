@@ -980,6 +980,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 onChange({extraTexts: updated});
               });
             }}
+            data-inscription-frame="true"
             style={{ position:'absolute', left:`${et.x}%`, top:`${et.y}%`, transform:'translate(-50%,-50%)', cursor:'move', zIndex:20, padding:'8px 12px', border:'1px dashed rgba(255,255,255,0.25)', borderRadius:3 }}>
             <span
               contentEditable suppressContentEditableWarning
@@ -997,6 +998,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 Sits at top-right corner of the text frame. */}
             <button
               data-del-extra-text
+              data-export-ignore="true"
               title="Видалити напис"
               onPointerDown={(e) => { e.stopPropagation(); }}
               onClick={(e) => {
