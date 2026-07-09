@@ -29,7 +29,8 @@ export default async function LandingLinks({ locale }: { locale: string }) {
     if (!rows.length) return null;
 
     const geo = rows.filter(r => r.kind === 'geo');
-    const others = rows.filter(r => r.kind !== 'geo');
+    const countries = rows.filter(r => r.kind === 'country');
+    const others = rows.filter(r => r.kind !== 'geo' && r.kind !== 'country');
 
     const href = (r: Row) => `/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`;
     const cityLabel = (r: Row) => geoCityLabel(r.occasion, r.h1);
@@ -104,6 +105,18 @@ export default async function LandingLinks({ locale }: { locale: string }) {
                             {geo.map(r => (
                                 <li key={`${r.category_slug}-${r.occasion}`}>
                                     <Link href={href(r)} style={linkStyle}>{cityLabel(r)}</Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                {countries.length > 0 && (
+                    <div>
+                        <h2 style={headingStyle}>Travel Book по країнах</h2>
+                        <ul style={listStyle}>
+                            {countries.map(r => (
+                                <li key={`${r.category_slug}-${r.occasion}`}>
+                                    <Link href={href(r)} style={linkStyle}>{otherLabel(r)}</Link>
                                 </li>
                             ))}
                         </ul>

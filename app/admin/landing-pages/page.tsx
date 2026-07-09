@@ -15,15 +15,32 @@ interface LandingPage {
   meta_description: string;
   intro: string;
   product_slugs: string[];
+  faq: Array<{ q: string; a: string }>;
   sort_order: number;
   is_active: boolean;
 }
 
 const EMPTY: LandingPage = {
   category_slug: '', occasion: '', kind: 'cluster', h1: '',
-  meta_title: '', meta_description: '', intro: '', product_slugs: [],
+  meta_title: '', meta_description: '', intro: '', product_slugs: [], faq: [],
   sort_order: 0, is_active: true,
 };
+
+// FAQ is edited as plain text: question line, then answer line(s), blank line
+// between items. Parsed to [{q, a}] on save; serialized back for editing.
+function faqToText(faq: Array<{ q: string; a: string }> | null | undefined): string {
+  return (faq || []).map((f) => `${f.q}\n${f.a}`).join('\n\n');
+}
+function textToFaq(text: string): Array<{ q: string; a: string }> {
+  return text
+    .split(/\n{2,}/)
+    .map((block) => {
+      const lines = block.trim().split('\n');
+      if (lines.length < 2) return null;
+      return { q: lines[0].trim(), a: lines.slice(1).join(' ').trim() };
+    })
+    .filter((f): f is { q: string; a: string } => !!f && !!f.q && !!f.a);
+}
 
 export default function AdminLandingPages() {
   const supabase = createClient();
@@ -31,7 +48,14 @@ export default function AdminLandingPages() {
   const [cats, setCats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<LandingPage | null>(null);
+  const [faqText, setFaqText] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Raw FAQ text follows whichever row is opened for editing; parsed on save.
+  function openEditor(r: LandingPage | null) {
+    setEditing(r);
+    setFaqText(r ? faqToText(r.faq) : '');
+  }
 
   useEffect(() => { void load(); }, []);
 
@@ -80,6 +104,7 @@ export default function AdminLandingPages() {
       meta_description: editing.meta_description?.trim() || null,
       intro: editing.intro || '',
       product_slugs: editing.product_slugs || [],
+      faq: textToFaq(faqText),
       sort_order: Number(editing.sort_order) || 0,
       is_active: editing.is_active,
       updated_at: new Date().toISOString(),
@@ -105,7 +130,7 @@ export default function AdminLandingPages() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-stone-900">SEO-лендінги</h1>
         {!editing && (
-          <button onClick={() => setEditing({ ...EMPTY })}
+          <button onClick={() => openEditor({ ...EMPTY })}
             className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">
             <Plus size={16} /> Нова сторінка
           </button>
@@ -138,6 +163,7 @@ export default function AdminLandingPages() {
                 onChange={(e) => setEditing({ ...editing, kind: e.target.value })}>
                 <option value="cluster">cluster (нагода)</option>
                 <option value="geo">geo (місто)</option>
+                <option value="country">country (країна — Travel Book)</option>
               </select>
             </div>
           </div>
@@ -169,6 +195,13 @@ export default function AdminLandingPages() {
             <label className={label}>Текст-вступ (абзаци розділяй порожнім рядком)</label>
             <textarea className={input} rows={8} value={editing.intro}
               onChange={(e) => setEditing({ ...editing, intro: e.target.value })} />
+          </div>
+
+          <div>
+            <label className={label}>FAQ (перший рядок — питання, далі відповідь; питання розділяй порожнім рядком)</label>
+            <textarea className={input} rows={8} value={faqText}
+              placeholder={'Скільки сторінок вмістить Travel Book?\nВід 12 до 80 сторінок — залежно від кількості фото.\n\nЯк замовити?\nЗберіть макет у конструкторі...'}
+              onChange={(e) => setFaqText(e.target.value)} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -220,7 +253,7 @@ export default function AdminLandingPages() {
                 className={`p-2 rounded-lg ${r.is_active ? 'text-green-600 hover:bg-green-50' : 'text-stone-400 hover:bg-stone-50'}`}>
                 {r.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
               </button>
-              <button onClick={() => setEditing({ ...EMPTY, ...r, product_slugs: r.product_slugs || [] })}
+              <button onClick={() => openEditor({ ...EMPTY, ...r, product_slugs: r.product_slugs || [] })}
                 className="p-2 rounded-lg text-stone-500 hover:bg-stone-100"><Edit size={16} /></button>
               <button onClick={() => remove(r)}
                 className="p-2 rounded-lg text-red-500 hover:bg-red-50"><Trash2 size={16} /></button>

@@ -87,12 +87,12 @@ async function getLandingProducts(lp: any) {
   return (data as any[]) || [];
 }
 
-const L: Record<string, { home: string; catalog: string; from: string }> = {
-  uk: { home: 'Головна', catalog: 'Каталог', from: 'від' },
-  en: { home: 'Home', catalog: 'Catalog', from: 'from' },
-  ro: { home: 'Acasă', catalog: 'Catalog', from: 'de la' },
-  pl: { home: 'Strona główna', catalog: 'Katalog', from: 'od' },
-  de: { home: 'Startseite', catalog: 'Katalog', from: 'ab' },
+const L: Record<string, { home: string; catalog: string; from: string; faq: string; countries: string }> = {
+  uk: { home: 'Головна', catalog: 'Каталог', from: 'від', faq: 'Часті питання', countries: 'Travel Book по інших країнах' },
+  en: { home: 'Home', catalog: 'Catalog', from: 'from', faq: 'FAQ', countries: 'Travel Books for other countries' },
+  ro: { home: 'Acasă', catalog: 'Catalog', from: 'de la', faq: 'Întrebări frecvente', countries: 'Travel Book pentru alte țări' },
+  pl: { home: 'Strona główna', catalog: 'Katalog', from: 'od', faq: 'FAQ', countries: 'Travel Book — inne kraje' },
+  de: { home: 'Startseite', catalog: 'Katalog', from: 'ab', faq: 'FAQ', countries: 'Travel Books für andere Länder' },
 };
 
 export async function generateMetadata({
@@ -165,6 +165,7 @@ export default async function LandingPage({
 
   // Sibling landing pages for internal linking (discovery + link equity).
   let geoSiblings: Array<{ category_slug: string; occasion: string; kind: string; h1: string | null; translations?: any }> = [];
+  let countrySiblings: typeof geoSiblings = [];
   let otherSiblings: typeof geoSiblings = [];
   if (supabase) {
     const { data: sib } = await supabase
@@ -176,7 +177,12 @@ export default async function LandingPage({
       (r) => !(r.category_slug === lp.category_slug && r.occasion === occasion)
     );
     geoSiblings = siblings.filter((r) => r.kind === 'geo').slice(0, 15);
-    otherSiblings = siblings.filter((r) => r.kind !== 'geo').slice(0, 12);
+    // Country pages link only to sibling countries of the SAME category —
+    // a Travel Book Italy page should not surface photobook city pages first.
+    countrySiblings = siblings
+      .filter((r) => r.kind === 'country' && r.category_slug === lp.category_slug)
+      .slice(0, 15);
+    otherSiblings = siblings.filter((r) => r.kind !== 'geo' && r.kind !== 'country').slice(0, 12);
   }
 
   const site = getBaseUrl();
@@ -186,6 +192,15 @@ export default async function LandingPage({
   const lpIntro = getLocalized(lp, locale, 'intro') || lp.intro;
   const lpMetaDesc = getLocalized(lp, locale, 'meta_description') || lp.meta_description;
   const introParas = String(lpIntro || '').split(/\n{2,}/).map((p: string) => p.trim()).filter(Boolean);
+
+  // FAQ: array of {q, a}. Localized copy lives in translations.{locale}.faq
+  // (same convention as text fields); uk reads the base column.
+  const faqRaw = locale === 'uk'
+    ? lp.faq
+    : (((lp.translations as any) || {})[locale] || {}).faq || lp.faq;
+  const faqItems: Array<{ q: string; a: string }> = Array.isArray(faqRaw)
+    ? faqRaw.filter((f: any) => f && typeof f.q === 'string' && typeof f.a === 'string' && f.q.trim() && f.a.trim())
+    : [];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -220,6 +235,19 @@ export default async function LandingPage({
                 position: i + 1,
                 url: getCanonicalUrl(locale, `/catalog/${p.slug}`),
                 name: getLocalized(p, locale, 'name') || p.name,
+              })),
+            },
+          ]
+        : []),
+      ...(faqItems.length
+        ? [
+            {
+              '@type': 'FAQPage',
+              '@id': `${pageUrl}#faq`,
+              mainEntity: faqItems.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
               })),
             },
           ]
@@ -287,7 +315,21 @@ export default async function LandingPage({
           </div>
         )}
 
-        {(geoSiblings.length > 0 || otherSiblings.length > 0) && (
+        {faqItems.length > 0 && (
+          <section aria-label={t.faq} style={{ marginTop: 56, maxWidth: 800 }}>
+            <h2 style={{ fontSize: 'clamp(1.3rem, 3vw, 1.7rem)', fontWeight: 800, color: '#1e2d7d', marginBottom: 20 }}>{t.faq}</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {faqItems.map((f, i) => (
+                <details key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', padding: '14px 18px' }}>
+                  <summary style={{ fontSize: 16, fontWeight: 600, color: '#1e2d7d', cursor: 'pointer', listStyle: 'none' }}>{f.q}</summary>
+                  <p style={{ fontSize: 15, lineHeight: 1.7, color: '#475569', margin: '10px 0 2px' }}>{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {(geoSiblings.length > 0 || countrySiblings.length > 0 || otherSiblings.length > 0) && (
           <section aria-label="Інші сторінки" style={{ marginTop: 56, paddingTop: 32, borderTop: '1px solid #eee' }}>
             {geoSiblings.length > 0 && (
               <div style={{ marginBottom: 24 }}>
@@ -296,6 +338,18 @@ export default async function LandingPage({
                   {geoSiblings.map((r) => (
                     <li key={`${r.category_slug}-${r.occasion}`}>
                       <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{geoCityLabel(r.occasion, r.h1)}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {countrySiblings.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 800, color: '#263A99', textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 0 12px' }}>{t.countries}</h2>
+                <ul style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px', listStyle: 'none', padding: 0, margin: 0 }}>
+                  {countrySiblings.map((r) => (
+                    <li key={`${r.category_slug}-${r.occasion}`}>
+                      <Link href={`/${locale}/category/${toPublicCategorySlug(r.category_slug)}/${r.occasion}`} style={{ fontSize: 14, color: '#475569', textDecoration: 'none' }}>{clusterLabel(getLocalized(r, locale, 'h1'), r.occasion)}</Link>
                     </li>
                   ))}
                 </ul>
