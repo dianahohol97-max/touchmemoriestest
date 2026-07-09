@@ -62,7 +62,7 @@
     },
     {
       "path": "/api/cron/render-paid-orders",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 }
