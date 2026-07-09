@@ -1,64 +1,68 @@
 {
-    "crons": [
-        {
-            "path": "/api/cron/close-shift",
-            "schedule": "30 23 * * *"
-        },
-        {
-            "path": "/api/cron/recurring-expenses",
-            "schedule": "0 0 * * *"
-        },
-        {
-            "path": "/api/cron/birthday-emails",
-            "schedule": "0 10 * * *"
-        },
-        {
-            "path": "/api/cron/stock-alerts",
-            "schedule": "0 8 * * *"
-        },
-        {
-            "path": "/api/cron/backup-db",
-            "schedule": "0 3 * * *"
-        },
-        {
-            "path": "/api/cron/cleanup-order-files",
-            "schedule": "0 4 * * *"
-        },
-        {
-            "path": "/api/nova-poshta/sync-tracking",
-            "schedule": "0 6 * * *"
-        },
-        {
-            "path": "/api/cron/design-lifecycle",
-            "schedule": "0 9 * * *"
-        },
-        {
-            "path": "/api/cron/certificate-reminders",
-            "schedule": "0 11 * * *"
-        },
-        {
-            "path": "/api/cron/winback-emails",
-            "schedule": "0 12 * * *"
-        },
-        {
-            "path": "/api/cron/abandoned-cart-emails",
-            "schedule": "0 13 * * *"
-        },
-        {
-            "path": "/api/cron/welcome-series-emails",
-            "schedule": "0 14 * * *"
-        },
-        {
-            "path": "/api/cron/update-exchange-rate",
-            "schedule": "0 5 1,15 * *"
-        },
-        {
-            "path": "/api/cron/unpaid-orders",
-            "schedule": "0 9 * * *"
-        },
-        {
-            "path": "/api/cron/missing-print-files",
-            "schedule": "0 7 * * *"
-        }
-    ]
+  "crons": [
+    {
+      "path": "/api/cron/close-shift",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/cron/recurring-expenses",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/birthday-emails",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/stock-alerts",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/backup-db",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-order-files",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/nova-poshta/sync-tracking",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/design-lifecycle",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/certificate-reminders",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/winback-emails",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/abandoned-cart-emails",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/welcome-series-emails",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/update-exchange-rate",
+      "schedule": "0 5 1,15 * *"
+    },
+    {
+      "path": "/api/cron/unpaid-orders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/missing-print-files",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/render-paid-orders",
+      "schedule": "*/15 * * * *"
+    }
+  ]
 }
