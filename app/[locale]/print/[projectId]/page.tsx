@@ -110,9 +110,31 @@ export default function PrintPage() {
     height: p.height || 0,
   }));
 
-  // Derive the proportion (page aspect) the editor used, from the size in config.
-  const sizeKey = String(config.selectedSize || '20x20').replace(/[×х]/g, 'x');
-  const [pw, ph] = sizeKey.split('x').map((n: string) => parseInt(n, 10) || 20);
+  // Derive the proportion (page aspect) the editor used. NEVER guess: a silent
+  // '20x20' fallback made the render service capture square spreads for a
+  // travelbook ('captured 4963x2481, target 4961x3602' in the Railway logs) —
+  // geometrically wrong print files that look like a successful render.
+  // Order of truth: saved config → projects.format → the product's fixed size.
+  const PRODUCT_SIZE: Record<string, string> = {
+    travelbook: '20x30', // travelbook-20x30 has exactly one size
+  };
+  const rawSize = String(
+    config.selectedSize || project.format || PRODUCT_SIZE[String(project.product_type || '')] || ''
+  )
+    .replace(/[×х]/g, 'x')
+    .replace(/\s|см|cm/gi, '');
+  const sizeMatch = rawSize.match(/(\d+)x(\d+)/);
+  if (!sizeMatch) {
+    return (
+      <div style={{ padding: 40, fontFamily: 'sans-serif', color: '#dc2626' }}>
+        Print render unavailable: розмір виробу не збережено в макеті
+        (config.selectedSize / projects.format порожні, тип «{String(project.product_type || '?')}»).
+        Рендер зупинено, щоб не віддати спотворений файл у друк.
+      </div>
+    );
+  }
+  const pw = parseInt(sizeMatch[1], 10);
+  const ph = parseInt(sizeMatch[2], 10);
 
   // Spread count mirrors BookPreviewModal: cover (0) + content spreads.
   const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
