@@ -9,6 +9,7 @@ import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
 import TravelBookCoverSelector from './TravelBookCoverSelector';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
+import { trackFunnelStep } from '@/lib/analytics/funnel';
 
 interface ProductOption {
     name: string;
@@ -1103,6 +1104,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // display.
         const urgent = searchParams.get('urgent');
         if (urgent) params.set('urgent', urgent);
+        // Configuration accepted — size, cover and pages are chosen. Everyone
+        // who drops off before this saw a price they didn't like or a choice
+        // they couldn't make; everyone past it is committed enough to upload.
+        trackFunnelStep('constructor_config', {
+            product_slug: productSlug,
+            product_type: pt,
+            page_count: Number(selectedPageCount) || undefined,
+            value: totalPrice || undefined,
+        });
+
         // Wishbook/guestbook — skip photo upload, go straight to full cover editor (same as photobook editor, cover-only mode)
         if (pt === 'wishbook') {
             router.push(`/editor/book/layout?${params.toString()}`);
@@ -1230,6 +1241,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     }
 
     const totalPrice = calculatePrice();
+
+    // The customer reached the configurator — this is the real first step of the
+    // book funnel. Fired once the product is loaded so product_type is accurate.
+    useEffect(() => {
+        if (!product) return;
+        trackFunnelStep('constructor_start', {
+            product_slug: productSlug,
+            product_type: getProductType(),
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [product]);
     const photoRec = getPhotoRecommendation();
     const productType = getProductType();
     // Each photobook product is cover-type-specific: photobook-printed,

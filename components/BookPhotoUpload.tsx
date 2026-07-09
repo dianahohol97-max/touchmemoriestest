@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, X, AlertTriangle, ChevronRight, GripVertical, Info } from 'lucide-react';
 import { useT } from '@/lib/i18n/context';
 import { toast } from 'sonner';
+import { trackFunnelStep } from '@/lib/analytics/funnel';
 
 interface PhotoFile {
     id: string;
@@ -415,6 +416,12 @@ export default function BookPhotoUpload() {
             navigatingForward.current = true;
             const currentParams = new URLSearchParams(window.location.search);
             currentParams.set('product', config?.productSlug || '');
+            // Photos are in — the customer has committed real effort. Drop-off
+            // after this step is an editor problem, before it is an upload problem.
+            trackFunnelStep('photos_uploaded', {
+                product_slug: config?.productSlug || undefined,
+                photo_count: photos.length,
+            });
             router.push(`/editor/book/layout?${currentParams.toString()}`);
         } catch (err) {
             console.error('handleContinue error:', err);

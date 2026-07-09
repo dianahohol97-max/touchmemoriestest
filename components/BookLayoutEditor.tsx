@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, Sho
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
+import { trackFunnelStep, resetFunnel } from '@/lib/analytics/funnel';
+import { trackAddToCart } from '@/components/providers/AnalyticsProvider';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
@@ -3053,6 +3055,14 @@ export default function BookLayoutEditor() {
         if (error) { console.error('[persistDraft] insert error:', error.message, error.details); return false; }
         if (inserted) currentProjectIdRef.current = inserted.id;
       }
+      // A draft now exists in Supabase — this customer is recoverable by email
+      // even if they never reach the cart. Fires once per session per product
+      // (the autosave interval runs every 60s; the guard lives in trackFunnelStep).
+      trackFunnelStep('draft_saved', {
+        product_slug: (config?.productSlug || '').toLowerCase().trim() || undefined,
+        photo_count: photos.length,
+        page_count: pages.length,
+      });
       return true;
     } catch (e: any) {
       console.error('[persistDraft] exception:', e?.message || e);
@@ -3075,6 +3085,29 @@ export default function BookLayoutEditor() {
   // CURRENT state.
   const persistDraftRef = useRef(persistDraft);
   persistDraftRef.current = persistDraft;
+
+  // "Real work started" signal. Anyone who has filled three spreads has spent
+  // ~10 minutes here; the gap between photos_uploaded and this step is where a
+  // confusing editor shows up in the data. Uses freeSlots too — free placement
+  // is a valid way to fill a spread and ignoring it would undercount.
+  const filledSpreads = React.useMemo(() => {
+    let n = 0;
+    for (let i = 0; i < pages.length; i++) {
+      const hasTemplatePhoto = (pages[i]?.slots || []).some((s) => !!s.photoId);
+      const hasFreePhoto = (freeSlots[i] || []).some((s: any) => !!s?.photoId);
+      if (hasTemplatePhoto || hasFreePhoto) n++;
+    }
+    return n;
+  }, [pages, freeSlots]);
+
+  useEffect(() => {
+    if (filledSpreads < 3) return;
+    trackFunnelStep('spread_completed', {
+      product_slug: (config?.productSlug || '').toLowerCase().trim() || undefined,
+      spread_count: filledSpreads,
+      photo_count: photos.length,
+    });
+  }, [filledSpreads, config?.productSlug, photos.length]);
 
   // Save-on-change (debounced): the 60s interval left a fatal window — a
   // mobile tab discarded within a minute of the customer's last edit lost
@@ -3470,6 +3503,11 @@ export default function BookLayoutEditor() {
       sessionStorage.removeItem('bookEditCartItemId');
     } else {
       addItem(cartPayload as any);
+      // The editor was the only add-to-cart path GA4 never saw — which is why
+      // Travel Book showed 429 item views and 0 adds to cart. Editing an item
+      // already in the cart is deliberately not counted again.
+      trackAddToCart(cartPayload, 1);
+      resetFunnel((config?.productSlug || '').toLowerCase().trim());
     }
 
     const clearSlug = (config?.productSlug || '').toLowerCase().trim();
