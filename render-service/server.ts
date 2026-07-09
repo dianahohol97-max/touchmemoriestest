@@ -83,6 +83,23 @@ const app = express();
 app.use(express.json());
 
 let browser: Browser | null = null;
+// Chromium leaks steadily when screenshotting 29-megapixel elements: the
+// singleton survived 26 spreads on Jul 2 but the GPU process was OOM-killed
+// (exit_code=9) on a heavier book. Recycle the browser every few spreads —
+// a relaunch costs ~1s and resets the whole address space.
+const SPREADS_PER_BROWSER = 5;
+let spreadsOnCurrentBrowser = 0;
+
+export async function recycleBrowserIfNeeded(): Promise<void> {
+  if (++spreadsOnCurrentBrowser < SPREADS_PER_BROWSER) return;
+  spreadsOnCurrentBrowser = 0;
+  if (browser) {
+    try { await browser.close(); } catch { /* already gone */ }
+    browser = null;
+    console.log('[render] browser recycled');
+  }
+}
+
 async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
     browser = await chromium.launch({
@@ -208,6 +225,7 @@ app.post('/render', async (req, res) => {
           failed.push({ page: i, error: String(pageErr?.message || pageErr) });
         } finally {
           await page.close();
+        await recycleBrowserIfNeeded();
         }
       }
       return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded, failed });
@@ -252,12 +270,32 @@ app.post('/render', async (req, res) => {
         const el = await page.$('[data-print-spread]');
         if (!el) throw new Error(`no spread element for page ${spread}`);
 
-        const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
+        // JPEG (q100) instead of PNG: a 29-megapixel PNG buffer is the single
+        // biggest allocation in the loop and pushed Chromium into the OOM
+        // killer (GPU process exit_code=9). Visually lossless at q100.
+        const raw = await el.screenshot({ type: 'jpeg', quality: 100, animations: 'disabled', caret: 'hide' });
 
         // Diagnostic: log the real captured size vs the target print size. If the
         // captured width is far below pxW, the screenshot was upscaled (=blurry).
         const probe = await sharp(raw).metadata();
         console.log(`[render] spread ${spread}: captured ${probe.width}x${probe.height}, target ${pxW}x${pxH}`);
+
+        // ASPECT GUARD. fit:'fill' stretches whatever was captured onto the
+        // target box, so a layout rendered at the wrong page size came out
+        // silently distorted (captured 4963x2481 stretched to 4961x3602 —
+        // people got taller). Only a scale is acceptable; a different aspect
+        // means the /print page built the wrong geometry, and a loud failure
+        // beats a stretched book.
+        const capturedAspect = (probe.width || 1) / (probe.height || 1);
+        const targetAspect = pxW / pxH;
+        const aspectDrift = Math.abs(capturedAspect - targetAspect) / targetAspect;
+        if (aspectDrift > 0.01) {
+          throw new Error(
+            `aspect mismatch on spread ${spread}: captured ${probe.width}x${probe.height} ` +
+            `(${capturedAspect.toFixed(3)}) vs target ${pxW}x${pxH} (${targetAspect.toFixed(3)}). ` +
+            `The /print page rendered the wrong page size — refusing to stretch.`
+          );
+        }
 
         // Normalise to the EXACT print pixel size + 300 DPI metadata, JPEG q92.
         const jpeg = await sharp(raw)
@@ -275,6 +313,7 @@ app.post('/render', async (req, res) => {
         uploaded.push(storagePath);
       } finally {
         await page.close();
+        await recycleBrowserIfNeeded();
       }
     }
 
