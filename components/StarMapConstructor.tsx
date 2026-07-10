@@ -33,6 +33,7 @@ interface StarMapConfig {
     showConstellations?: boolean;
     showConstellationNames?: boolean;
     showMilkyWay?: boolean;
+    showCoordinates?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     showStarNames?: boolean;
     backgroundColor: string;
@@ -139,6 +140,7 @@ export default function StarMapConstructor() {
         showConstellationNames: true,
         showMilkyWay: true,
         showGrid: false,
+        showCoordinates: true,
 
         // Step 4 defaults
         size: initialStarMapSize,
@@ -801,6 +803,7 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
                         { key: 'showMilkyWay',           label: t('constructor.milky_way'), default: true },
                         { key: 'showStarNames',          label: t('constructor.star_names'), default: true },
                         { key: 'showGrid',               label: t('constructor.coord_grid'), default: false },
+                        { key: 'showCoordinates',        label: 'Координати внизу постера', default: true },
                     ].map(({ key, label }) => {
                         const val = (config as any)[key] !== false;
                         return (

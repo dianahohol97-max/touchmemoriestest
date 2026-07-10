@@ -12,6 +12,7 @@ interface StarMapConfig {
     backgroundColor: string; skyColor?: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
     showGrid?: boolean; showConstellations?: boolean; showConstellationNames?: boolean; showMilkyWay?: boolean;
+    showCoordinates?: boolean;
     constellationLang?: 'uk' | 'en' | 'pl' | 'ro' | 'de';
     showStarNames?: boolean;
     qrUrl?: string; qrValue?: string;
@@ -558,12 +559,16 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
                 ctx.fillText(line.trim(),W/2,lineY);
             }
 
-            // Coordinates — bottom, small
-            ctx.globalAlpha=1;
-            ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.28;
-            const latS=lat>=0?`${lat.toFixed(2)}°N`:`${Math.abs(lat).toFixed(2)}°S`;
-            const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
-            ctx.fillText(`${latS}  ${lonS}`, W/2, H-20*s); ctx.globalAlpha=1;
+            // Coordinates — optional, hugging the very bottom edge. They used to
+            // float 20pt above it, reading as a stray caption under the
+            // dedication; now they sit at the margin (or vanish entirely).
+            if (config.showCoordinates !== false) {
+                ctx.globalAlpha=1;
+                ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.28;
+                const latS=lat>=0?`${lat.toFixed(2)}°N`:`${Math.abs(lat).toFixed(2)}°S`;
+                const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
+                ctx.fillText(`${latS}  ${lonS}`, W/2, H-9*s); ctx.globalAlpha=1;
+            }
         }
     }, [config, fontTick]);
 
