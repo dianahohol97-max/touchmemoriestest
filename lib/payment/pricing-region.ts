@@ -113,3 +113,26 @@ export function formatDisplayPrice(
   const marked = uahBase * resolvePriceMultiplier(locale, region);
   return formatPrice(marked, currency);
 }
+
+/**
+ * Which ФОП collects the money for this order, derived from how it ships.
+ *
+ * Two flows (designer orders, magazine text brief) used to hardcode 'ua', so a
+ * foreign customer ordering through them would have been invoiced on the wrong
+ * account. They only offer Ukrainian delivery today, which is why nobody
+ * noticed — but the rule belongs in one place, next to the money.
+ */
+export function deliveryToPaymentRegion(
+  deliveryMethod: string | null | undefined,
+  countryCode?: string | null,
+): 'ua' | 'international' {
+  const country = String(countryCode || '').trim().toUpperCase();
+  if (country && country !== 'UA') return 'international';
+
+  const method = String(deliveryMethod || '').trim().toLowerCase();
+  if (method === 'international' || method === 'intl' || method.includes('world')) {
+    return 'international';
+  }
+  // nova_poshta, pickup, ukrposhta, courier … all domestic.
+  return 'ua';
+}

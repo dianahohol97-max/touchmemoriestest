@@ -1,4 +1,5 @@
 'use client';
+import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
 
 // Magazine "we write the text" flow. Customer landed here from the
 // product page after picking the "Ми пишемо — Базовий" or "Ми пишемо
@@ -477,7 +478,7 @@ function MagazineTextBriefContent() {
           const invoiceRes = await fetch('/api/monobank/create-invoice', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId: order.id, paymentRegion: 'UA' }),
+            body: JSON.stringify({ orderId: order.id, paymentRegion: deliveryToPaymentRegion('pickup') }),
           });
           const invoiceData = await invoiceRes.json();
           if (invoiceRes.ok && invoiceData.pageUrl) {

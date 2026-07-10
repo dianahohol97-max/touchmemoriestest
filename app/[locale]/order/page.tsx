@@ -1,4 +1,5 @@
 'use client'
+import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
 
 export const dynamic = 'force-dynamic'
 
@@ -921,7 +922,7 @@ function OrderForm() {
           const invoiceRes = await fetch('/api/monobank/create-invoice', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId: order.id, paymentRegion: 'UA' }),
+            body: JSON.stringify({ orderId: order.id, paymentRegion: deliveryToPaymentRegion(formData.delivery) }),
           })
           const invoiceData = await invoiceRes.json()
           if (invoiceRes.ok && invoiceData.pageUrl) {

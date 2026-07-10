@@ -26,17 +26,32 @@ export async function POST(req: Request) {
         // a fallback if the DB row is missing/inactive, so a misconfigured
         // table can't take payments fully offline.
         // ──────────────────────────────────────────────────────────────
+        // Look up the row for this region REGARDLESS of is_active, so a
+        // disabled account can't silently fall through to an env token that
+        // belongs to a different ФОП. Until today the 'ua' row carried the
+        // wrong owner's token; a silent fallback would re-create exactly that
+        // class of error, and money landing on the wrong entity is not
+        // something an error log can undo.
         const { data: bankAccount } = await supabase
             .from('bank_accounts')
-            .select('api_key')
+            .select('api_key, is_active, label')
             .eq('region', paymentRegion)
             .eq('bank_name', 'Monobank')
-            .eq('is_active', true)
             .maybeSingle();
+
+        if (bankAccount && !bankAccount.is_active) {
+            return NextResponse.json(
+                { error: `Рахунок Monobank для регіону ${paymentRegion} (${bankAccount.label}) вимкнено. Увімкніть його в адмінці — оплату не створено, щоб гроші не пішли на інший ФОП.` },
+                { status: 503 },
+            );
+        }
 
         const envToken = isInternational
             ? process.env.MONOBANK_TOKEN_INTL
             : process.env.MONOBANK_TOKEN;
+        if (!bankAccount?.api_key && envToken) {
+            console.warn(`[create-invoice] No bank_accounts row for region ${paymentRegion} — falling back to env token. Verify which ФОП owns it.`);
+        }
         const token = bankAccount?.api_key || envToken;
 
         if (!token) {
