@@ -2640,11 +2640,16 @@ export default function BookLayoutEditor() {
       // those photos load instead of being silently dropped by img.onerror.
       normalizeImageFile(origFile).then((file: File) => {
       finishNormalize();
-      const reader = new FileReader();
-      reader.onload = ev => {
-        const originalDataUrl = ev.target!.result as string;
+      // Decode straight from an object URL instead of FileReader/base64. A
+      // 5 MB phone photo becomes a ~7 MB base64 STRING on the JS heap, and a
+      // batch of them existed simultaneously — enough for Chrome to kill the
+      // tab ('This page couldn't load') on modest laptops. An object URL is
+      // a handle to bytes the browser already holds; nothing is copied.
+      {
+        const objectUrl = URL.createObjectURL(file);
         const img = new window.Image();
         img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
           // Print quality: keep original up to 5000px (A3@300dpi = 4961px).
           // KEY POINT: avoid re-encoding when we don't have to. Re-running a
           // camera JPEG through canvas.toDataURL('image/jpeg', 0.95) is a
@@ -2708,16 +2713,12 @@ export default function BookLayoutEditor() {
           tryCommit();
         };
         img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
           results.push({ idx, photo: null });
           tryCommit();
         };
-        img.src = ev.target!.result as string;
-      };
-      reader.onerror = () => {
-        results.push({ idx, photo: null });
-        tryCommit();
-      };
-      reader.readAsDataURL(file);
+        img.src = objectUrl;
+      }
       }).catch(() => { finishNormalize(); results.push({ idx, photo: null }); tryCommit(); });
     });
     e.target.value = '';
