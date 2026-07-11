@@ -609,6 +609,22 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoAdvance, selectedSize, selectedPageCount, selectedCoverType, selectedCoverColor, photobookPrices.length]);
 
+    // Funnel: customer reached the configurator. MUST live with the other hooks,
+    // above the `if (loading)` / `if (!product)` early returns — Antigravity's
+    // analytics commit placed this useEffect AFTER them, so on the first render
+    // (loading=true) the early return ran before the hook and on the next render
+    // it didn't: the hook order changed between renders → React error #310, which
+    // crashed the whole constructor on load for every book product. Guarded on
+    // `product` so it only fires once the product is actually loaded.
+    useEffect(() => {
+        if (loading || !product) return;
+        trackFunnelStep('constructor_start', {
+            product_slug: productSlug,
+            product_type: getProductType(),
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, product]);
+
     const calculatePrice = (): number => {
         if (!product) return 0;
 
@@ -1242,16 +1258,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
     const totalPrice = calculatePrice();
 
-    // The customer reached the configurator — this is the real first step of the
-    // book funnel. Fired once the product is loaded so product_type is accurate.
-    useEffect(() => {
-        if (!product) return;
-        trackFunnelStep('constructor_start', {
-            product_slug: productSlug,
-            product_type: getProductType(),
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [product]);
     const photoRec = getPhotoRecommendation();
     const productType = getProductType();
     // Each photobook product is cover-type-specific: photobook-printed,
