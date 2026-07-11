@@ -283,6 +283,13 @@ function ClampedTextWrapper({
 
   return (
     <div ref={wrapRef}
+      // The dashed frame is editor-only chrome. Without this attribute it bakes
+      // into the printed cover — html2canvas can't drop a `border` via
+      // ignoreElements (that would drop the text too), so the export's onclone
+      // strips the border from every [data-inscription-frame] node in the clone.
+      // The soft-cover inscription frame already carried this; the printed-cover
+      // text wrapper did not, which is why the frame printed on the cover.
+      data-inscription-frame="true"
       style={{
         position: 'absolute',
         left: `${safeX}%`,
@@ -300,6 +307,7 @@ function ClampedTextWrapper({
       {/* Font-size buttons — flip above when text is in lower 30% of canvas */}
       {onFontSizeChange && (
         <div
+          data-html2canvas-ignore="true"
           onMouseDown={e => e.stopPropagation()}
           onPointerDown={e => e.stopPropagation()}
           style={{
@@ -746,7 +754,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
                 />
-                <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
+                <button data-html2canvas-ignore="true" onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
               </ClampedTextWrapper>
@@ -783,7 +791,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                   onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
                 />
-                <button onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
+                <button data-html2canvas-ignore="true" onClick={e=>{e.stopPropagation();onChange({printedTextBlocks:texts.filter(t=>t.id!==tb.id)});}}
                   onMouseDown={e=>e.stopPropagation()}
                   style={{ position:'absolute',top:-8,right:-8,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>×</button>
               </ClampedTextWrapper>
