@@ -820,6 +820,7 @@ export default function BookLayoutEditor() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobilePanel, setMobilePanel] = useState(false); // bottom sheet open
   const [mobileLayoutGroup, setMobileLayoutGroup] = useState<string | null>(null); // selected layout group on mobile
+  const [mActiveGroup, setMActiveGroup] = useState<string>('1 фото'); // mobile: active layout-group filter chip. MUST stay a top-level hook — it was declared inside the `leftTab === 'layouts'` render IIFE, which made it a conditional hook and crashed the editor (React #310) on the first tab switch. Falls back to the first available group inside the IIFE when invalid for the current spread/page mode.
   const [mobilePanelHeight, setMobilePanelHeight] = useState<'half'|'full'>('half'); // bottom sheet size
   const [mobileMultiSelect, setMobileMultiSelect] = useState(false); // mobile: select several photos to place at once
   useEffect(() => {
@@ -9166,17 +9167,19 @@ export default function BookLayoutEditor() {
               const activeIdx = getActivePageIdx();
               const modeLayouts = LAYOUTS.filter(l => isSpreadMode ? l.id.startsWith('sp-') : !l.id.startsWith('sp-'));
               const mGroups = [...new Set(modeLayouts.map(l => l.group))];
-              const [mActiveGroup, setMActiveGroup] = React.useState(mGroups[0] || '1 фото');
-              const filteredLayouts = modeLayouts.filter(l => l.group === mActiveGroup);
+              // effectiveGroup is a plain derived value, NOT a hook — the state lives at the top level (mActiveGroup).
+              // If the remembered group isn't valid for the current mode (spread vs page), fall back to the first group.
+              const effectiveGroup = mGroups.includes(mActiveGroup) ? mActiveGroup : (mGroups[0] || '1 фото');
+              const filteredLayouts = modeLayouts.filter(l => l.group === effectiveGroup);
               return (
               <>
                 {/* Group filter tabs */}
                 <div style={{ display:'flex', gap:4, overflowX:'auto', paddingBottom:8, scrollbarWidth:'none' }}>
                   {mGroups.map(g => (
                     <button key={g} onClick={() => setMActiveGroup(g)}
-                      style={{ flexShrink:0, padding:'5px 10px', border: mActiveGroup===g ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
-                        borderRadius:20, background: mActiveGroup===g ? '#1e2d7d' : '#f8fafc',
-                        color: mActiveGroup===g ? '#fff' : '#374151', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                      style={{ flexShrink:0, padding:'5px 10px', border: effectiveGroup===g ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                        borderRadius:20, background: effectiveGroup===g ? '#1e2d7d' : '#f8fafc',
+                        color: effectiveGroup===g ? '#fff' : '#374151', fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
                       {g}
                     </button>
                   ))}
