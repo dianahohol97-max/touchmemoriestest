@@ -1,27 +1,69 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { Search, X, Check } from 'lucide-react';
 import Image from 'next/image';
 
+/**
+ * Travel Book cover picker.
+ *
+ * Reads the live cover library from /api/travelbook-covers, which serves the
+ * `travelbook_covers` table (the 100 city + country covers uploaded through the
+ * admin). This component used to query the OLD `travel_book_covers` table (55
+ * rows, group_type ukrainian/international) directly, so freshly uploaded covers
+ * never appeared in the constructor. The API is the single source of truth and
+ * is CDN-cached, so we go through it instead of a direct table read.
+ *
+ * The emitted cover keeps the legacy field aliases (city_name / country /
+ * landmark / background_color) so the consumer in BookConstructorConfig — which
+ * saves and previews those fields — keeps working without changes.
+ */
+
 interface TravelBookCover {
     id: string;
+    name: string;
+    name_en: string;
+    image_url: string;
+    thumbnail_url: string | null;
+    kind: 'city' | 'country';
+    sort_order: number;
+    // Legacy aliases kept for the consumer (BookConstructorConfig save/preview).
     city_name: string;
     city_name_en: string;
     country: string;
     landmark: string;
-    image_url: string;
-    thumbnail_url: string | null;
     background_color: string;
-    group_type: 'ukrainian' | 'international';
-    sort_order: number;
+    group_type: 'city' | 'country';
 }
 
 interface TravelBookCoverSelectorProps {
     selectedCoverId: string | null;
     onCoverSelect: (cover: TravelBookCover) => void;
     onClose?: () => void;
+}
+
+// Map an /api/travelbook-covers row onto the shape this component and its
+// consumer expect. The new table has no country/landmark/background_color, so
+// we fill sensible fallbacks (the English name doubles as the subtitle).
+function mapCover(row: any): TravelBookCover {
+    const name = row.name || row.name_en || '';
+    const nameEn = row.name_en || row.name || '';
+    const kind: 'city' | 'country' = row.kind === 'country' ? 'country' : 'city';
+    return {
+        id: row.id,
+        name,
+        name_en: nameEn,
+        image_url: row.image_url || '',
+        thumbnail_url: row.thumbnail_url || null,
+        kind,
+        sort_order: row.sort_order ?? 0,
+        city_name: name,
+        city_name_en: nameEn,
+        country: nameEn,
+        landmark: '',
+        background_color: '#e5e7eb',
+        group_type: kind,
+    };
 }
 
 export default function TravelBookCoverSelector({
@@ -33,12 +75,7 @@ export default function TravelBookCoverSelector({
     const [filteredCovers, setFilteredCovers] = useState<TravelBookCover[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'all' | 'ukrainian' | 'international'>('all');
-
-    const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const [activeTab, setActiveTab] = useState<'all' | 'city' | 'country'>('all');
 
     useEffect(() => {
         fetchCovers();
@@ -51,16 +88,10 @@ export default function TravelBookCoverSelector({
     async function fetchCovers() {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('travel_book_covers')
-                .select('*')
-                .eq('is_active', true)
-                .eq('generation_status', 'approved')
-                .order('sort_order', { ascending: true });
-
-            if (error) throw error;
-
-            setCovers(data || []);
+            const res = await fetch('/api/travelbook-covers');
+            const body = await res.json();
+            const list = Array.isArray(body?.covers) ? body.covers.map(mapCover) : [];
+            setCovers(list);
         } catch (error) {
             console.error('Error fetching travel book covers:', error);
         } finally {
@@ -71,29 +102,27 @@ export default function TravelBookCoverSelector({
     function filterCovers() {
         let filtered = [...covers];
 
-        // Filter by tab
-        if (activeTab === 'ukrainian') {
-            filtered = filtered.filter(c => c.group_type === 'ukrainian');
-        } else if (activeTab === 'international') {
-            filtered = filtered.filter(c => c.group_type === 'international');
+        // Filter by tab (city / country)
+        if (activeTab === 'city') {
+            filtered = filtered.filter(c => c.kind === 'city');
+        } else if (activeTab === 'country') {
+            filtered = filtered.filter(c => c.kind === 'country');
         }
 
         // Filter by search query
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter(c =>
-                c.city_name.toLowerCase().includes(query) ||
-                c.city_name_en.toLowerCase().includes(query) ||
-                c.country.toLowerCase().includes(query) ||
-                c.landmark.toLowerCase().includes(query)
+                c.name.toLowerCase().includes(query) ||
+                c.name_en.toLowerCase().includes(query)
             );
         }
 
         setFilteredCovers(filtered);
     }
 
-    const ukrainianCovers = covers.filter(c => c.group_type === 'ukrainian');
-    const internationalCovers = covers.filter(c => c.group_type === 'international');
+    const cityCovers = covers.filter(c => c.kind === 'city');
+    const countryCovers = covers.filter(c => c.kind === 'country');
 
     return (
         <div className="w-full">
@@ -102,7 +131,7 @@ export default function TravelBookCoverSelector({
                 <div>
                     <h3 className="text-xl font-bold text-gray-900">Оберіть обкладинку Travel Book</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                        {covers.length} доступних міст
+                        {covers.length} доступних обкладинок
                     </p>
                 </div>
                 {onClose && (
@@ -148,24 +177,24 @@ export default function TravelBookCoverSelector({
                     Всі ({covers.length})
                 </button>
                 <button
-                    onClick={() => setActiveTab('ukrainian')}
+                    onClick={() => setActiveTab('city')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-                        activeTab === 'ukrainian'
+                        activeTab === 'city'
                             ? 'border-purple-600 text-purple-600'
                             : 'border-transparent text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                    Українські міста ({ukrainianCovers.length})
+                    Міста ({cityCovers.length})
                 </button>
                 <button
-                    onClick={() => setActiveTab('international')}
+                    onClick={() => setActiveTab('country')}
                     className={`px-4 py-2 font-medium transition-colors border-b-2 ${
-                        activeTab === 'international'
+                        activeTab === 'country'
                             ? 'border-purple-600 text-purple-600'
                             : 'border-transparent text-gray-600 hover:text-gray-900'
                     }`}
                 >
-                    Міжнародні ({internationalCovers.length})
+                    Країни ({countryCovers.length})
                 </button>
             </div>
 
@@ -181,7 +210,7 @@ export default function TravelBookCoverSelector({
                 <div className="text-center py-12">
                     <p className="text-gray-600">
                         {searchQuery
-                            ? `Не знайдено міст за запитом "${searchQuery}"`
+                            ? `Не знайдено за запитом "${searchQuery}"`
                             : 'Немає доступних обкладинок'}
                     </p>
                 </div>
@@ -192,7 +221,6 @@ export default function TravelBookCoverSelector({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-[600px] overflow-y-auto pr-2">
                     {filteredCovers.map((cover) => (
                         <CoverCard
-            // @ts-ignore
                             key={cover.id}
                             cover={cover}
                             isSelected={cover.id === selectedCoverId}
@@ -207,7 +235,7 @@ export default function TravelBookCoverSelector({
                 <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
                     <p className="text-sm text-purple-900">
                         <span className="font-semibold">Обрано:</span>{' '}
-                        {covers.find(c => c.id === selectedCoverId)?.city_name}
+                        {covers.find(c => c.id === selectedCoverId)?.name}
                     </p>
                 </div>
             )}
@@ -239,10 +267,10 @@ function CoverCard({ cover, isSelected, onSelect }: CoverCardProps) {
         >
             {/* Image */}
             <div className="aspect-[2/3] bg-gray-100 relative">
-                {!imageError ? (
+                {!imageError && cover.image_url ? (
                     <Image
-                        src={cover.image_url}
-                        alt={cover.city_name}
+                        src={cover.thumbnail_url || cover.image_url}
+                        alt={cover.name}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                         className="object-cover"
@@ -255,9 +283,8 @@ function CoverCard({ cover, isSelected, onSelect }: CoverCardProps) {
                         style={{ backgroundColor: cover.background_color }}
                     >
                         <p className="text-2xl font-bold text-gray-800 mb-2">
-                            {cover.city_name_en.toUpperCase()}
+                            {(cover.name_en || cover.name).toUpperCase()}
                         </p>
-                        <p className="text-xs text-gray-600">{cover.landmark}</p>
                     </div>
                 )}
 
@@ -275,10 +302,10 @@ function CoverCard({ cover, isSelected, onSelect }: CoverCardProps) {
             {/* Info */}
             <div className="p-2 bg-white text-left">
                 <p className="font-semibold text-sm text-gray-900 truncate">
-                    {cover.city_name}
+                    {cover.name}
                 </p>
                 <p className="text-xs text-gray-600 truncate">
-                    {cover.country}
+                    {cover.kind === 'country' ? 'Країна' : 'Місто'}
                 </p>
             </div>
         </button>

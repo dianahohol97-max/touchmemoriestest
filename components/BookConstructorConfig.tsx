@@ -1918,7 +1918,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                                 {selectedCover.city_name}
                                             </p>
                                             <p className="text-sm text-purple-700">
-                                                {selectedCover.country} — {selectedCover.landmark}
+                                                {[selectedCover.country, selectedCover.landmark].filter(Boolean).join(' — ')}
                                             </p>
                                         </div>
                                         <button
