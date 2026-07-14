@@ -103,15 +103,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   // Download every uploaded photo at once as a single ZIP (built client-side
   // from the signed URLs). Cover is prefixed so it sorts first / is obvious.
-  const downloadAllAsZip = async () => {
-    if (!uploadedFiles.length || downloadingZip) return;
+  const downloadAllAsZip = async (subset?: any[], zipLabel?: string) => {
+    const files = (subset && subset.length) ? subset : uploadedFiles;
+    if (!files.length || downloadingZip) return;
     setDownloadingZip(true);
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       const used = new Set<string>();
       let added = 0;
-      await Promise.all(uploadedFiles.map(async (f: any) => {
+      await Promise.all(files.map(async (f: any) => {
         if (!f.url) return;
         try {
           const resp = await fetch(f.url);
@@ -130,7 +131,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${order?.order_number || 'order'}_фото.zip`;
+      a.download = `${order?.order_number || 'order'}_${zipLabel || 'фото'}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1721,7 +1722,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {uploadedFiles.length > 0 && (() => {
                             const exportFiles = uploadedFiles.filter((f: any) => f.isExport);
                             const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);
-                            const photos = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover);
+                            const isOriginal = (f: any) => (f.category || '').toLowerCase() === 'original';
+                            const originals = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && isOriginal(f));
+                            const photos = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && !isOriginal(f));
                             const thumb = (f: any, big = false) => (
                                 <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
                                     title={f.name}
@@ -1769,7 +1772,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {attachingOriginals ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
                                             Підтягнути оригінали
                                         </button>
-                                        <button onClick={downloadAllAsZip} disabled={downloadingZip}
+                                        <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                                             {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
@@ -1785,6 +1788,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
                                                 {exportFiles.map((f: any) => thumb(f, true))}
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {originals.length > 0 && (
+                                        <div style={{ marginBottom: 12, padding: 10, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    <ImageIcon size={13} /> Оригінали фото клієнта ({originals.length})
+                                                </div>
+                                                <button onClick={() => downloadAllAsZip(originals, 'оригінали')} disabled={downloadingZip}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#93c5fd' : '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                    Оригінали (ZIP)
+                                                </button>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px' }}>
+                                                {originals.map((f: any) => thumb(f))}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>Повнорозмірні оригінали, завантажені клієнтом. Клік по фото — завантажити оригінал.</div>
                                         </div>
                                     )}
 
