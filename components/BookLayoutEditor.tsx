@@ -3620,6 +3620,26 @@ export default function BookLayoutEditor() {
       const spreadTargetPx = mmToPx300(dims.spread.w); // e.g. A4 → 4961 px
       const coverTargetPx  = mmToPx300(dims.cover.w);  // e.g. A4 → 5551 px
 
+      // Print quality: the editor DOM shows the 1600px DISPLAY preview, but the
+      // snapshot must paint from the full-resolution master — otherwise a
+      // print-size cover/spread (300 DPI ≈ 3500–5500 px) is upscaled from 1600 px
+      // and comes out soft (the "жахлива якість обкладинки" bug, worst on a
+      // zoomed photo-insert). Map each preview URL → an object URL of its
+      // original File; the onclone below paints the master instead of the
+      // preview. Object URLs are cheap handles (no byte copy); they're revoked
+      // right after the capture loop. Photos with no in-memory original (e.g.
+      // after a page reload, where only preview/storage URLs survive) fall back
+      // to whatever source they already have.
+      const hiResByPreview = new Map<string, string>();
+      const exportObjectUrls: string[] = [];
+      for (const p of photos) {
+        if (p?.preview && p.originalFile instanceof File) {
+          const u = URL.createObjectURL(p.originalFile);
+          hiResByPreview.set(p.preview, u);
+          exportObjectUrls.push(u);
+        }
+      }
+
       for (let i = 0; i < totalViews; i++) {
         try {
           setCurrentIdx(i);
@@ -3699,8 +3719,14 @@ export default function BookLayoutEditor() {
               // under ALL transforms (scale, rotate, translate). The live
               // editor DOM is untouched — this rewrites only the clone.
               el.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-                const src = img.currentSrc || img.src;
-                if (!src) return;
+                const rawSrc = img.currentSrc || img.src;
+                if (!rawSrc) return;
+                // Swap the 1600px display preview for the full-res master when we
+                // have one, so the print snapshot is sharp at 300 DPI. Try both
+                // the resolved src and the raw src attribute (data:/blob:/https).
+                const src = hiResByPreview.get(rawSrc)
+                  || hiResByPreview.get(img.getAttribute('src') || '')
+                  || rawSrc;
                 const div = doc.createElement('div');
                 div.setAttribute('style', img.getAttribute('style') || '');
                 const cls = img.getAttribute('class');
@@ -3778,6 +3804,8 @@ export default function BookLayoutEditor() {
       }
       // Restore the original page the user was on
       setCurrentIdx(originalIdx);
+      // Release the full-res object URLs created for the snapshot.
+      exportObjectUrls.forEach(u => { try { URL.revokeObjectURL(u); } catch { /* noop */ } });
     }
 
     // Output format depends on the product. Diana wants a single
