@@ -3539,13 +3539,20 @@ export default function BookLayoutEditor() {
     else if (uploadSlug.includes('journal')) uploadProductType = 'journal';
     else if (uploadSlug.includes('planner')) uploadProductType = 'planner';
 
+    // Client-side html2canvas print export is DISABLED. The print layout is
+    // produced solely by the Railway render service (on payment, and on demand
+    // via the admin "Перегенерувати макет" button) — full-res originals from
+    // storage, no editor chrome, so no browser snapshotting is needed. We still
+    // save the design + upload originals below so Railway has what it needs.
+    const SKIP_CLIENT_HTML2CANVAS: boolean = true;
+
     // Total number of "views" to capture: cover (idx 0) plus each spread
     // (idx 1..). lastSpreadIdx is Math.ceil((pages.length - 1) / 2).
     const lastSpreadIdx = Math.max(0, Math.ceil((pages.length - 1) / 2));
     const totalViews = lastSpreadIdx + 1; // include cover
     const originalIdx = currentIdx;
 
-    setUploadState({ active: true, done: 0, total: totalViews, failed: 0, orderId });
+    if (!SKIP_CLIENT_HTML2CANVAS) setUploadState({ active: true, done: 0, total: totalViews, failed: 0, orderId });
 
     // Clear every selection/edit state BEFORE snapshotting. Selection frames,
     // delete (×) buttons, z-order toolbars, resize handles and the text editor
@@ -3565,7 +3572,7 @@ export default function BookLayoutEditor() {
     // Lazy-load the renderer libs so the editor itself stays light.
     let html2canvas: any = null;
     let jsPDFCtor: any = null;
-    try {
+    if (!SKIP_CLIENT_HTML2CANVAS) try {
       const mod1: any = await import('html2canvas');
       html2canvas = mod1.default || mod1;
       const mod2: any = await import('jspdf');
@@ -4164,7 +4171,7 @@ export default function BookLayoutEditor() {
       console.warn('Could not persist design snapshot for Railway render:', e);
     }
 
-    if (exportedFiles.length === 0) {
+    if (!SKIP_CLIENT_HTML2CANVAS && exportedFiles.length === 0) {
       // No print files were produced — either html2canvas captured nothing
       // (snapshots empty, e.g. the cover DOM node wasn't ready) OR snapshots
       // rendered but every upload failed. EITHER way a book/journal/wishbook

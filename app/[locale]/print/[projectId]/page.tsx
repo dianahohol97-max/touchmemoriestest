@@ -162,8 +162,14 @@ export default function PrintPage() {
     freeSlots: overlays.freeSlots || {},
     coverState,
     isPrinted: isPrintedCover,
-    selectedCoverType: config.selectedCoverType || '',
-    effectiveCoverColor: config.effectiveCoverColor || '',
+    selectedCoverType: config.selectedCoverType || config.coverType || '',
+    // The saved config stores the chosen colour under selectedCoverColor (the
+    // editor computes effectiveCoverColor only at runtime, so it's absent here).
+    // Reading effectiveCoverColor alone yielded '' → resolveCoverColor fell back
+    // to the fabric default beige (#C4AA88) instead of the ordered red — hence
+    // TM-001066's cover rendered beige. Fall back through the real stored fields.
+    effectiveCoverColor: config.effectiveCoverColor || config.selectedCoverColor
+      || config.selectedLeatherColor || config.selectedVelourColor || config.coverColor || '',
     onClose: () => {},
     pageBgs: overlays.pageBgs || {},
     pageFrames: overlays.pageFrames || {},
