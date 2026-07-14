@@ -21,8 +21,8 @@ async function requireStaff(): Promise<boolean> {
   if (!user?.email) return false;
   const admin = getAdminClient();
   const [{ data: adminRow }, { data: staffRow }] = await Promise.all([
-    admin.from('admin_users').select('id').eq('email', user.email).maybeSingle(),
-    admin.from('staff').select('id').eq('email', user.email).maybeSingle(),
+    admin.from('admin_users').select('id').ilike('email', user.email).maybeSingle(),
+    admin.from('staff').select('id').ilike('email', user.email).maybeSingle(),
   ]);
   return Boolean(adminRow || staffRow);
 }

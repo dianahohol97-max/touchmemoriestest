@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .eq('email', user.email)
+            .ilike('email', user.email)
             .maybeSingle();
         if (adminRow) allowed = true;
 
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
             const { data: staffRow } = await admin
                 .from('staff')
                 .select('id')
-                .eq('email', user.email)
+                .ilike('email', user.email)
                 .maybeSingle();
             if (staffRow) allowed = true;
         }

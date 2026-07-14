@@ -18,7 +18,7 @@ export async function PATCH(
   if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const admin = getAdminClient();
-  const { data: adminRow } = await admin.from('admin_users').select('id').eq('email', user.email).maybeSingle();
+  const { data: adminRow } = await admin.from('admin_users').select('id').ilike('email', user.email).maybeSingle();
   if (!adminRow) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
