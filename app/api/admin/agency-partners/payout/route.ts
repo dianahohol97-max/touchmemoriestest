@@ -25,6 +25,10 @@ export async function POST(request: Request) {
   if (!pending || pending.length === 0) {
     return NextResponse.json({ ok: true, paid: 0, message: 'Немає нарахувань до виплати' });
   }
+  // Minimum payout threshold.
+  if (sum < 500) {
+    return NextResponse.json({ error: `Мінімальна сума виведення — 500 грн (зараз ${Math.round(sum)} грн)` }, { status: 400 });
+  }
 
   const now = new Date().toISOString();
   await admin

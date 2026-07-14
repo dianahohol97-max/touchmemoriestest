@@ -19,6 +19,7 @@ interface Partner {
   pending_payout: number;
   status: string;
   partner_kind?: string;
+  payout_account?: string | null;
 }
 
 interface PendingRequest {
@@ -193,7 +194,14 @@ export default function AgencyPartnersPage() {
                   <Stat label="До виплати" value={`${Number(p.pending_payout).toFixed(0)} ₴`} highlight={p.pending_payout > 0} />
                 </div>
 
-                {p.pending_payout > 0 && (
+                {p.payout_account && (
+                  <div style={{ marginTop: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Рахунок для виплати</div>
+                    <div style={{ fontSize: 13, color: '#0f172a', whiteSpace: 'pre-wrap' }}>{p.payout_account}</div>
+                  </div>
+                )}
+
+                {p.pending_payout >= 500 ? (
                   <div style={{ marginTop: 14, textAlign: 'right' }}>
                     <button
                       onClick={() => payout(p.id)}
@@ -204,7 +212,11 @@ export default function AgencyPartnersPage() {
                       Позначити виплаченим ({Number(p.pending_payout).toFixed(0)} ₴)
                     </button>
                   </div>
-                )}
+                ) : p.pending_payout > 0 ? (
+                  <div style={{ marginTop: 12, fontSize: 12, color: '#c2410c' }}>
+                    До виплати {Number(p.pending_payout).toFixed(0)} ₴ — виплата доступна від 500 ₴
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

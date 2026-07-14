@@ -148,6 +148,7 @@ export async function POST(request: Request) {
   if (getBrevoApiKey() && email) {
     const kindWord = partnerKind === 'travel_blogger' ? 'блогером' : 'агенцією';
     const refLink = `https://touchmemories.com.ua/?ref=${code}`;
+    const cabinetLink = `https://touchmemories.com.ua/uk/partner/${partner.cabinet_token}`;
     try {
       await sendBrevoEmail({
         to: email,
@@ -167,6 +168,8 @@ export async function POST(request: Request) {
               </table>
               <p style="font-size:14px;color:#334155;margin:0 0 8px">Клієнт вводить код при оформленні й отримує знижку, а вам нараховується комісія — <b>автоматично після оплати замовлення</b>. Можна ділитися і прямим посиланням:</p>
               <p style="font-size:14px;margin:0 0 16px"><a href="${refLink}" style="color:#263A99">${refLink}</a></p>
+              <div style="text-align:center;margin:18px 0"><a href="${cabinetLink}" style="display:inline-block;background:#263A99;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px">Відкрити партнерський кабінет</a></div>
+              <p style="font-size:13px;color:#64748b;margin:0 0 16px">У кабінеті ви бачите свої нарахування й можете вказати рахунок для виведення коштів. Мінімальна сума виведення — 500 грн; нарахування відбувається автоматично після оплати замовлень.</p>
               <p style="font-size:13px;color:#94a3b8;margin:0">Дякуємо за співпрацю! Якщо виникнуть питання — просто відповідайте на цей лист.</p>
             </div>
           </div>`,
