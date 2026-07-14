@@ -41,6 +41,7 @@ export default function AgencyPartnersPage() {
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<string | null>(null);
   const [payingOut, setPayingOut] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -185,6 +186,22 @@ export default function AgencyPartnersPage() {
                     title="Копіювати посилання"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4, display: 'flex' }}
                   ><Copy size={15} /></button>
+                  <button
+                    onClick={async () => {
+                      setSendingEmail(p.id);
+                      try {
+                        const r = await fetch(`/api/admin/agency-partners/${p.id}/resend-welcome`, { method: 'POST' });
+                        const j = await r.json();
+                        if (r.ok) toast.success(`Лист надіслано на ${j.sentTo}`);
+                        else toast.error(j.error || 'Не вдалося надіслати');
+                      } catch { toast.error('Не вдалося надіслати'); }
+                      setSendingEmail(null);
+                    }}
+                    disabled={sendingEmail === p.id}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#263A99', border: '1.5px solid #263A99', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: sendingEmail === p.id ? 'default' : 'pointer' }}>
+                    {sendingEmail === p.id ? <Loader2 size={13} className="animate-spin" /> : '✉️'}
+                    {sendingEmail === p.id ? 'Надсилаю…' : 'Надіслати лист'}
+                  </button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
