@@ -45,6 +45,8 @@ export default function TravelAgenciesClient() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState(false);
+    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger'>('travel_agency');
+    const isBlogger = kind === 'travel_blogger';
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -58,7 +60,7 @@ export default function TravelAgenciesClient() {
             const res = await fetch('/api/partnership/travel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ agencyName, contactName, email, phone, website, interestedModel, message }),
+                body: JSON.stringify({ kind, agencyName, contactName, email, phone, website, interestedModel, message }),
             });
             const data = await res.json();
             if (!res.ok) { setError(data.error || 'Сталася помилка.'); setLoading(false); return; }
@@ -134,11 +136,21 @@ export default function TravelAgenciesClient() {
                             ) : (
                                 <>
                                     <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1e2d7d', marginBottom: 6, textAlign: 'center' }}>Хочемо співпрацювати</h2>
-                                    <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 28, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови для вашої агенції</p>
+                                    <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови співпраці</p>
 
                                     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                        <Field label="Назва агенції" required>
-                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder="Назва вашої агенції" style={inputStyle} />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                            {([['travel_agency', 'Агенція'], ['travel_blogger', 'Блогер']] as const).map(([val, label]) => (
+                                                <button key={val} type="button" onClick={() => setKind(val)}
+                                                    style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                                        border: kind === val ? '2px solid #263A99' : '1px solid #e2e8f0',
+                                                        background: kind === val ? '#263A99' : '#fff', color: kind === val ? '#fff' : '#475569' }}>
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <Field label={isBlogger ? 'Імʼя / назва блогу' : 'Назва агенції'} required>
+                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder={isBlogger ? 'Ваше імʼя або назва блогу' : 'Назва вашої агенції'} style={inputStyle} />
                                         </Field>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                             <Field label="Контактна особа">

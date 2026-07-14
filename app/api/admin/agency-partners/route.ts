@@ -60,6 +60,8 @@ export async function POST(request: Request) {
   const travelbookRate = Number(body?.travelbookRate ?? 10);
   const otherRate = Number(body?.otherRate ?? 3);
   const clientDiscount = Number(body?.clientDiscount ?? 5); // % discount the code gives the client
+  // travel_agency | travel_blogger — same mechanics/rates, label only.
+  let partnerKind = body?.kind === 'travel_blogger' ? 'travel_blogger' : 'travel_agency';
 
   // If approving an existing request, pull its details.
   if (requestId) {
@@ -74,6 +76,7 @@ export async function POST(request: Request) {
       email = email || req.email;
       phone = phone || req.phone;
       website = website || req.website;
+      if (req.kind === 'travel_blogger') partnerKind = 'travel_blogger';
     }
   }
 
@@ -125,6 +128,7 @@ export async function POST(request: Request) {
       travelbook_rate: travelbookRate,
       other_rate: otherRate,
       status: 'active',
+      partner_kind: partnerKind,
       source_request_id: requestId || null,
     })
     .select('*')

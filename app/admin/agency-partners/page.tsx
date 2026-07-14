@@ -18,6 +18,7 @@ interface Partner {
   total_paid_out: number;
   pending_payout: number;
   status: string;
+  partner_kind?: string;
 }
 
 interface PendingRequest {
@@ -30,6 +31,7 @@ interface PendingRequest {
   interested_model: string | null;
   status: string;
   created_at: string;
+  kind?: string;
 }
 
 export default function AgencyPartnersPage() {
@@ -52,11 +54,11 @@ export default function AgencyPartnersPage() {
       setPartners(json.partners || []);
     } catch { /* ignore */ }
 
-    // New travel-agency requests not yet approved
+    // New travel-agency / travel-blogger requests not yet approved
     const { data: reqs } = await supabase
       .from('partnership_requests')
       .select('*')
-      .eq('kind', 'travel_agency')
+      .in('kind', ['travel_agency', 'travel_blogger'])
       .neq('status', 'approved')
       .order('created_at', { ascending: false });
     setRequests(reqs || []);
@@ -127,7 +129,10 @@ export default function AgencyPartnersPage() {
             {requests.map(r => (
               <div key={r.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{r.agency_name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{r.agency_name}</div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: r.kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: r.kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>{r.kind === 'travel_blogger' ? 'Блогер' : 'Агенція'}</span>
+                  </div>
                   <div style={{ fontSize: 13, color: '#64748b' }}>{r.contact_name && `${r.contact_name} · `}{r.email}{r.phone && ` · ${r.phone}`}</div>
                   {r.website && <div style={{ fontSize: 12, color: '#94a3b8' }}>{r.website}</div>}
                 </div>
@@ -149,14 +154,17 @@ export default function AgencyPartnersPage() {
       <section>
         <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Партнери ({partners.length})</h2>
         {partners.length === 0 ? (
-          <div style={{ color: '#94a3b8', padding: '30px 0', textAlign: 'center' }}>Ще немає підтверджених агенцій</div>
+          <div style={{ color: '#94a3b8', padding: '30px 0', textAlign: 'center' }}>Ще немає підтверджених партнерів</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {partners.map(p => (
               <div key={p.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 16 }}>{p.agency_name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 16 }}>{p.agency_name}</div>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: p.partner_kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: p.partner_kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>{p.partner_kind === 'travel_blogger' ? 'Блогер' : 'Агенція'}</span>
+                    </div>
                     <div style={{ fontSize: 13, color: '#64748b' }}>{p.contact_name && `${p.contact_name} · `}{p.email}{p.phone && ` · ${p.phone}`}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
