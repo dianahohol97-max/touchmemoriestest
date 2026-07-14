@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     .from('promo_codes')
     .insert({
       code,
-      type: 'percentage',
+      type: 'percent',
       value: clientDiscount,
       applies_to: 'all',
       is_active: true,
