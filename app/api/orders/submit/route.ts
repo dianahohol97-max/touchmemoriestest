@@ -117,6 +117,25 @@ export async function POST(request: NextRequest) {
       const hasPageLine = Object.keys(it.options).some(isPageCountKey);
       if (!hasPageLine) it.options['Сторінок'] = '32 сторінки';
     }
+
+    // Strip decoration sub-variants that don't match the chosen decoration.
+    // The configurator carries default values for "Варіант акрилу" and
+    // "Варіант фотовставки" even when "Оздоблення" is "Без оздоблення" (or a
+    // different type), which produced the contradictory
+    // "Без оздоблення + Варіант акрилу + Варіант фотовставки" on orders like
+    // TM-001065. Drop the acrylic-size line unless the decoration is acrylic,
+    // and the photo-insert-size line unless it's a photo insert.
+    for (const bag of [it?.options, it?.selected_options]) {
+      if (!bag || typeof bag !== 'object') continue;
+      const decoKey = Object.keys(bag).find(k => /оздоблен/i.test(k));
+      const deco = decoKey ? String(bag[decoKey]) : '';
+      const isAcrylic = /акрил/i.test(deco);
+      const isPhotoInsert = /фото|вставк/i.test(deco);
+      for (const key of Object.keys(bag)) {
+        if (/варіант\s*акрил/i.test(key) && !isAcrylic) delete bag[key];
+        if (/варіант\s*фото/i.test(key) && !isPhotoInsert) delete bag[key];
+      }
+    }
   }
   const subtotal = Number(body.subtotal);
   const delivery_cost = Number(body.delivery_cost);
