@@ -151,6 +151,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
+    const [rerendering, setRerendering] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
     const [sendingPayLink, setSendingPayLink] = useState(false);
@@ -1785,6 +1786,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: attachingOriginals ? 'default' : 'pointer' }}>
                                             {attachingOriginals ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
                                             Підтягнути оригінали
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm('Перегенерувати макет для друку через Railway? Це створить різкі файли з повних оригіналів (без тех-знаків). Може зайняти 1–2 хв.')) return;
+                                                setRerendering(true);
+                                                try {
+                                                    const r = await fetch(`/api/admin/orders/${id}/rerender`, { method: 'POST' });
+                                                    const j = await r.json();
+                                                    if (r.ok) { toast.success('Макет перегенеровано (Railway)'); fetchOrder(); }
+                                                    else toast.error(j.error || 'Не вдалося перегенерувати');
+                                                } catch { toast.error('Не вдалося перегенерувати'); }
+                                                setRerendering(false);
+                                            }}
+                                            disabled={rerendering}
+                                            title="Серверний рендер через Railway: повні оригінали, 300 DPI, без редакторських тех-знаків. Не потребує участі клієнта."
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#ea580c', border: '1.5px solid #ea580c', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: rerendering ? 'default' : 'pointer' }}>
+                                            {rerendering ? <Loader2 size={14} className="animate-spin" /> : '🖨️'}
+                                            {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
                                         <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
