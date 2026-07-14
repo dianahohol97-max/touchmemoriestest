@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+// The Railway render of every spread can take 1–2 min for a large book; give the
+// route room so a fire-and-forget trigger actually completes and registers files.
+export const maxDuration = 300;
+
 /**
  * Trigger the print render for a paid order.
  *

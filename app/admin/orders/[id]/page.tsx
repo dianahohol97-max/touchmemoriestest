@@ -1794,7 +1794,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 try {
                                                     const r = await fetch(`/api/admin/orders/${id}/rerender`, { method: 'POST' });
                                                     const j = await r.json();
-                                                    if (r.ok) { toast.success('Макет перегенеровано (Railway)'); fetchOrder(); }
+                                                    if (r.ok) {
+                                                        toast.success('Рендер запущено — файли оновляться за 1–2 хв');
+                                                        setTimeout(() => fetchOrder(), 90000);
+                                                    }
                                                     else toast.error(j.error || 'Не вдалося перегенерувати');
                                                 } catch { toast.error('Не вдалося перегенерувати'); }
                                                 setRerendering(false);
