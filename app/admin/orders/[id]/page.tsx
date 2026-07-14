@@ -855,10 +855,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 const _isWishbook = /wish|guest|pobazhan/i.test(String(item.slug || '')) || /побажан/i.test(String(item.name || item.product_name || ''));
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
-                                    if (!_isWishbook) return obj;
                                     const out: Record<string, any> = { ...obj };
+                                    if (_isWishbook) {
+                                        for (const k of Object.keys(out)) {
+                                            if (/сторінок|сторінки|page/i.test(k) && !/колір|color/i.test(k)) out[k] = '32 сторінки';
+                                        }
+                                    }
+                                    // Decoration sub-variants (acrylic size / photo-insert size) only make
+                                    // sense for their matching decoration. When "Оздоблення" is
+                                    // "Без оздоблення" (or another type), these carry stale default values
+                                    // — that's the "Без оздоблення + Варіант акрилу + Варіант фотовставки"
+                                    // contradiction. Hide the lines that don't match the chosen decoration.
+                                    const decoKey = Object.keys(out).find(k => /оздоблен/i.test(k));
+                                    const deco = decoKey ? String(out[decoKey]) : '';
+                                    const isAcrylic = /акрил/i.test(deco);
+                                    const isPhotoInsert = /фото|вставк/i.test(deco);
                                     for (const k of Object.keys(out)) {
-                                        if (/сторінок|сторінки|page/i.test(k) && !/колір|color/i.test(k)) out[k] = '32 сторінки';
+                                        if (/варіант\s*акрил/i.test(k) && !isAcrylic) delete out[k];
+                                        if (/варіант\s*фото/i.test(k) && !isPhotoInsert) delete out[k];
                                     }
                                     return out;
                                 };
