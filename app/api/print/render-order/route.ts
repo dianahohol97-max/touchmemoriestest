@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   const results: Array<{ projectId: string; ok: boolean; detail?: unknown }> = [];
+  const allUploaded: string[] = []; // every path the render produced, across projects
   for (const project of projects) {
     try {
       const res = await fetch(`${renderUrl.replace(/\/$/, '')}/render`, {
@@ -83,15 +84,7 @@ export async function POST(request: NextRequest) {
       // keep the files where the service put them, just index them in the DB).
       const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
       if (uploaded.length) {
-        // Clear any prior render rows for this order so a re-render doesn't
-        // duplicate. Scope strictly to our print output (path contains /print/).
-        await admin
-          .from('order_files')
-          .delete()
-          .eq('order_id', orderId)
-          .eq('file_type', 'export')
-          .eq('bucket_name', 'photobook-uploads')
-          .like('file_path', '%/print/%');
+        allUploaded.push(...uploaded);
 
         const rows = uploaded.map((path) => {
           const fileName = path.split('/').pop() || path;
@@ -123,6 +116,34 @@ export async function POST(request: NextRequest) {
     } catch (e: any) {
       console.error('[render-order] render request threw', { orderId, projectId: project.id, error: e?.message });
       results.push({ projectId: project.id, ok: false, detail: e?.message });
+    }
+  }
+
+  // Replace mode: once the fresh render exists, remove EVERY older export file
+  // for this order that isn't part of the new set — both the client html2canvas
+  // drafts (pb-…) and any previous Railway render — from storage AND the DB, so
+  // the admin shows only the new spreads and no orphans pile up in storage.
+  // Guarded by allUploaded.length so a failed render never deletes the old files.
+  if (allUploaded.length) {
+    const newSet = new Set(allUploaded);
+    const { data: oldFiles } = await admin
+      .from('order_files')
+      .select('id, file_path, bucket_name')
+      .eq('order_id', orderId)
+      .eq('file_type', 'export');
+    const stale = (oldFiles || []).filter((f: any) => !newSet.has(f.file_path));
+    if (stale.length) {
+      const byBucket = new Map<string, string[]>();
+      for (const f of stale) {
+        const b = f.bucket_name || 'photobook-uploads';
+        if (!byBucket.has(b)) byBucket.set(b, []);
+        byBucket.get(b)!.push(f.file_path);
+      }
+      for (const [bucket, paths] of byBucket) {
+        try { await admin.storage.from(bucket).remove(paths); }
+        catch (e: any) { console.error('[render-order] storage cleanup failed', { orderId, bucket, error: e?.message }); }
+      }
+      await admin.from('order_files').delete().in('id', stale.map((f: any) => f.id));
     }
   }
 
