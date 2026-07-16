@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { processAgencyCommission } from '@/lib/agency/commission';
+import { processReferralReward } from '@/lib/referral/referral';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +31,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const { data: order } = await admin
         .from('orders')
-        .select('id, order_number, payment_status, monobank_invoice_id')
+        .select('id, order_number, payment_status, monobank_invoice_id, promo_code, items, customer_id, total')
         .eq('id', id)
         .maybeSingle();
     if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
@@ -90,6 +92,25 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     if (updated) {
+        // Paid-transition accruals — the same ones the Monobank webhook runs.
+        // This path confirms payments the webhook missed, so without them the
+        // partner commission and friend-referral bonus would silently skip.
+        // Both are idempotent via their UNIQUE(order_id) ledger guards.
+        try {
+            await processAgencyCommission(admin, {
+                orderId: order.id,
+                promoCode: (order as any).promo_code ?? null,
+                items: (order as any).items,
+            });
+        } catch (e) { console.error('[check-payment] agency commission failed:', e); }
+        try {
+            await processReferralReward(admin, {
+                orderId: order.id,
+                customerId: (order as any).customer_id ?? null,
+                orderTotal: Number((order as any).total) || 0,
+            });
+        } catch (e) { console.error('[check-payment] referral reward failed:', e); }
+
         // Customer confirmation email — same guarded fire-and-forget as webhook.
         try {
             const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');

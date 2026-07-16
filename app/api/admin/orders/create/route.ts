@@ -1,5 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
+import { processAgencyCommission } from '@/lib/agency/commission';
+import { processReferralReward } from '@/lib/referral/referral';
 import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -152,6 +154,27 @@ export async function POST(request: Request) {
             }).catch(err => {
                 console.error('[Manual Order] designer-service/on-payment trigger failed:', err);
             });
+        }
+
+        // 7.5. Partner commission + friend-referral bonus. Manual orders never
+        // hit the Monobank webhook, so the paid-transition accruals must run
+        // here too. Both are idempotent (UNIQUE(order_id) ledger guards) and
+        // must never block order creation.
+        if (payment?.status === 'paid') {
+            try {
+                await processAgencyCommission(supabase, {
+                    orderId: order.id,
+                    promoCode: totals?.promo_code || null,
+                    items,
+                });
+            } catch (e) { console.error('[Manual Order] agency commission failed:', e); }
+            try {
+                await processReferralReward(supabase, {
+                    orderId: order.id,
+                    customerId: customerId || null,
+                    orderTotal: Number(totals?.total) || 0,
+                });
+            } catch (e) { console.error('[Manual Order] referral reward failed:', e); }
         }
 
         // 8. Fiscalisation. If the admin marked the order paid, fire a Checkbox

@@ -425,6 +425,10 @@ export async function POST(request: NextRequest) {
       designer_service_fee: body.with_designer ? (Number(body.designer_service_fee) || 0) : 0,
       order_status: 'new',
       payment_status: 'pending',
+      // The applied promo code string — the paid-transition hooks (Monobank
+      // webhook, admin check-payment) look up agency partners by this code
+      // to accrue their commission. Without it commissions never accrued.
+      promo_code: String((body as any).promo_code || '').trim().toUpperCase().slice(0, 64) || null,
       payment_type,
       prepaid_amount: amounts.prepaid_amount,
       cod_amount: amounts.cod_amount,
