@@ -8,6 +8,7 @@ import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
 import { trackFunnelStep, resetFunnel } from '@/lib/analytics/funnel';
 import { trackAddToCart } from '@/components/providers/AnalyticsProvider';
+import { useB2b } from '@/lib/b2b/useB2b';
 import { AutoBuildModal } from './editor/AutoBuildModal';
 import { FontPicker } from './editor/FontPicker';
 import { CoverTemplatesPicker } from './editor/CoverTemplatesPicker';
@@ -832,6 +833,10 @@ export default function BookLayoutEditor() {
     return () => window.removeEventListener('resize', check);
   }, []);
   const { addItem, replaceItem } = useCartStore();
+  // Verified B2B partners (photographers etc.) get their standing category
+  // discount in the editor too — it applied only on the plain product page,
+  // while books are actually bought THROUGH the editor.
+  const b2b = useB2b();
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const designerOrderId = searchParams?.get('designer_order_id') || null;
   // The configurator passes the chosen «Верстка тексту» variant as text_layout:
@@ -3303,12 +3308,34 @@ export default function BookLayoutEditor() {
       return;
     }
 
+    // B2B partner discount (e.g. photographers −10% on photobooks/journals/
+    // travelbooks). The percent is keyed by the product's CATEGORY slug, which
+    // the editor config doesn't carry — resolve it from the DB at add time.
+    // Same math as the product page, so both purchase paths price alike;
+    // orders/submit already lowers its price floor for verified B2B partners.
+    let b2bPct = 0;
+    try {
+      if (b2b.isB2b && config.productId) {
+        const { createClient: mkB2bSb } = await import('@/lib/supabase/client');
+        const { data: prodCat } = await mkB2bSb()
+          .from('products')
+          .select('categories(slug)')
+          .eq('id', config.productId)
+          .maybeSingle();
+        const catSlug = Array.isArray(prodCat?.categories)
+          ? (prodCat?.categories[0] as any)?.slug
+          : (prodCat?.categories as any)?.slug;
+        b2bPct = b2b.discountFor(catSlug || '');
+      }
+    } catch { /* no discount on lookup failure — never block ordering */ }
+    const cartFinalPrice = b2bPct ? Math.round(finalPrice * (1 - b2bPct / 100)) : finalPrice;
+
     const cartPayload = {
       id: orderId,
       slug: _slug,
       product_id: config.productId,
       name: config.productName || t('constructor.photobooktype'),
-      price: finalPrice,
+      price: cartFinalPrice,
       // Itemized breakdown for the admin order card (team request:
       // 'щоб йшло в адмінку текст — ціна, ламінування — ціна'). Base line
       // is derived as finalPrice minus the extras so it stays honest even
@@ -3322,7 +3349,11 @@ export default function BookLayoutEditor() {
         if (qrExtra > 0) lines.push({ label: `QR-код × ${generatedQRCount}`, amount: qrExtra });
         if (hasAiPortrait) lines.push({ label: 'AI-портрет', amount: AI_PORTRAIT_PRICE });
         const extrasSum = lines.reduce((s, l) => s + l.amount, 0);
-        return [{ label: 'Базова вартість', amount: Math.max(0, finalPrice - extrasSum) }, ...lines];
+        const out = [{ label: 'Базова вартість', amount: Math.max(0, finalPrice - extrasSum) }, ...lines];
+        if (cartFinalPrice < finalPrice) {
+          out.push({ label: `${b2b.label || 'Партнерська знижка'} (−${b2bPct}%)`, amount: cartFinalPrice - finalPrice });
+        }
+        return out;
       })(),
       qty: isGraduation ? GRADUATION_MIN_QTY : 1,
       ...(isGraduation ? { min_qty: GRADUATION_MIN_QTY } : {}),

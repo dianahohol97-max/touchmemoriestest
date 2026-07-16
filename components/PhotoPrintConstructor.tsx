@@ -7,6 +7,7 @@ import { Upload, ShoppingCart } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { uploadImageToStorage } from '@/lib/storage-upload';
 import { useCartStore } from '@/store/cart-store';
+import { useB2b } from '@/lib/b2b/useB2b';
 import { toast } from 'sonner';
 import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
 
@@ -423,6 +424,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const t = useT();
   const locale = useLocale();
   const { addItem, removeItem } = useCartStore();
+  // Verified B2B partners get their category discount here too (prints are in
+  // the photographer program) — previously only the plain product page did.
+  const b2b = useB2b();
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -469,7 +473,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
   useEffect(() => {
     async function fetchProduct() {
-      const { data } = await supabase.from('products').select('*, translations').eq('slug', productSlug).eq('is_active', true).single();
+      const { data } = await supabase.from('products').select('*, translations, categories(slug)').eq('slug', productSlug).eq('is_active', true).single();
       if (data) {
         setProduct(data);
         const opts = (data.options as ProductOption[]) || [];
@@ -718,9 +722,13 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
 
     const cartItemId = `${product.id}_${Date.now()}`;
     const magnetSets = isMagnet && multiple>0 ? Math.ceil(totalQty/multiple) : 0;
+    const b2bCat = Array.isArray(product.categories) ? product.categories[0]?.slug : product.categories?.slug;
+    const b2bPct = b2b.discountFor(b2bCat || '');
+    const basePrice = calculatePrice();
+    const cartPrice = b2bPct ? Math.round(basePrice * (1 - b2bPct / 100)) : basePrice;
     const cartPayload = {
       id: cartItemId, product_id:product.id, name:product.name,
-      price:calculatePrice(), image:product.images?.[0]||'', slug:product.slug,
+      price:cartPrice, image:product.images?.[0]||'', slug:product.slug,
       options:{ 'Кількість фото':totalQty.toString(),
         ...(selectedSize&&{'Розмір':selectedSize}), ...(selectedFinish&&{'Покриття':selectedFinish}),
         ...(isMagnet
