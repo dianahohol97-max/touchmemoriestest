@@ -35,6 +35,9 @@ export default function BookingSection({ slots, theme: t, kicker }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState<BookingResult | null>(null);
+  const [doneSlotId, setDoneSlotId] = useState('');
+  const [claimed, setClaimed] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   const byDate = useMemo(() => {
     const map = new Map<string, PublicSlot[]>();
@@ -71,6 +74,7 @@ export default function BookingSection({ slots, theme: t, kicker }: {
         if (res.status === 409) { setTaken(prev => [...prev, selected.id]); setSelected(null); }
         return;
       }
+      setDoneSlotId(selected.id);
       setDone(json);
     } catch { setError('Сталася помилка. Спробуйте ще раз.'); }
     finally { setLoading(false); }
@@ -127,6 +131,31 @@ export default function BookingSection({ slots, theme: t, kicker }: {
               </div>
               <div style={{ fontSize: 12, color: t.faint, marginTop: 10, textAlign: 'center' }}>
                 Оплата надходить безпосередньо фотографу.
+              </div>
+
+              {/* "Я оплатив(ла)": повідомляє фотографа — той звіряє з банком */}
+              <div style={{ marginTop: 14, textAlign: 'center' }}>
+                {claimed ? (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#065f46' }}>
+                    ✅ Дякуємо! Ми повідомили фотографа — він перевірить надходження.
+                  </div>
+                ) : (
+                  <button disabled={claiming}
+                    onClick={async () => {
+                      if (claiming) return;
+                      setClaiming(true);
+                      try {
+                        await fetch('/api/photographers/booking/claim', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ slot_id: doneSlotId }),
+                        });
+                        setClaimed(true);
+                      } finally { setClaiming(false); }
+                    }}
+                    style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.muted, borderRadius: btnRadius, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: claiming ? 'default' : 'pointer' }}>
+                    {claiming ? 'Надсилаємо…' : 'Я оплатив(ла) ✓'}
+                  </button>
+                )}
               </div>
             </div>
           )}

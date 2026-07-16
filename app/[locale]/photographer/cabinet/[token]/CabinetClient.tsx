@@ -18,7 +18,7 @@ interface Profile {
 }
 interface Slot {
   id: string; slot_date: string; slot_time: string; duration_min: number;
-  price: string | null; status: string;
+  price: string | null; status: string; payment_status: string;
   client_name: string | null; client_phone: string | null; client_comment: string | null;
 }
 interface PriceRow { title: string; price: string; description?: string }
@@ -446,6 +446,15 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
     else alert((await res.json())?.error || 'Помилка');
   };
 
+  const markPaid = async (id: string, paid: boolean) => {
+    const res = await fetch('/api/photographers/slots', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, slot_id: id, paid }),
+    });
+    if (res.ok) { await loadSlots(); flash(paid ? 'Позначено оплаченим' : 'Позначку знято'); }
+    else alert((await res.json())?.error || 'Помилка');
+  };
+
   const savePayments = async () => {
     setSavingPay(true);
     try {
@@ -513,8 +522,28 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
               <div style={{ color: '#64748b', fontSize: 13 }}>{s.duration_min} хв{s.price ? ` · ${s.price}` : ''}</div>
               <div style={{ flex: 1 }} />
               {s.status === 'booked' ? (
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '4px 10px' }}>
-                  ✅ {s.client_name} · {s.client_phone}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '4px 10px' }}>
+                    ✅ {s.client_name} · {s.client_phone}
+                  </span>
+                  {/* Payment badge: platform never sees the money — the client
+                      claims payment, the photographer verifies in their bank */}
+                  {s.payment_status === 'paid' ? (
+                    <button onClick={() => markPaid(s.id, false)} title="Зняти позначку"
+                      style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#d1fae5', border: 'none', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
+                      💰 Оплачено
+                    </button>
+                  ) : s.payment_status === 'claimed' ? (
+                    <button onClick={() => markPaid(s.id, true)} title="Клієнт повідомив про оплату — перевірте банк і підтвердіть"
+                      style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
+                      💳 Клієнт повідомив про оплату — підтвердити?
+                    </button>
+                  ) : (
+                    <button onClick={() => markPaid(s.id, true)} title="Позначити оплаченим"
+                      style={{ fontSize: 12, fontWeight: 700, color: '#64748b', background: '#f1f5f9', border: 'none', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
+                      Не оплачено · позначити ✓
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
