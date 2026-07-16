@@ -325,7 +325,15 @@ function LandingSection({ token, profile, onChanged, flash }: {
 
   return (
     <div style={card}>
-      <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Лендинг: прайс і портфоліо</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Лендинг: прайс і портфоліо</h2>
+        <a href={`/uk/photographer/${profile.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}>
+          Переглянути мою сторінку ↗
+        </a>
+      </div>
+      <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
+        Адреса вашого лендингу: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d', fontWeight: 700 }}>touchmemories.com.ua/uk/photographer/{profile.slug}</a>
+      </div>
 
       <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 16 }}>Прайс</h3>
       {pricing.map((row, i) => (
