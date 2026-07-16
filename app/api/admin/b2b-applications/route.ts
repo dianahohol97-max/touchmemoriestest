@@ -70,11 +70,21 @@ export async function PATCH(request: Request) {
     let landingSlug: string | null = null;
     if (action === 'approve' && app.role === 'photographer') {
         try {
-            const { data: existing } = await admin
-                .from('photographers')
-                .select('id, cabinet_token, slug, customer_id')
-                .or(`customer_id.eq.${app.customer_id},email.ilike.${app.email}`)
-                .maybeSingle();
+            // Match by customer link OR email. Guard the customer_id condition:
+            // a null app.customer_id would render `customer_id.eq.null`, which
+            // errors as an invalid-uuid cast, the lookup finds nothing, and a
+            // duplicate photographer row (new slug) gets inserted.
+            const conds = [
+                app.customer_id ? `customer_id.eq.${app.customer_id}` : '',
+                app.email ? `email.ilike.${app.email}` : '',
+            ].filter(Boolean);
+            const { data: existing } = conds.length
+                ? await admin
+                    .from('photographers')
+                    .select('id, cabinet_token, slug, customer_id')
+                    .or(conds.join(','))
+                    .maybeSingle()
+                : { data: null };
 
             if (existing) {
                 cabinetToken = existing.cabinet_token;

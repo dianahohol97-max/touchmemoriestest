@@ -9,8 +9,10 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
     const { data: staff } = await supabase.from('staff').select('*').eq('id', staffId).single();
     if (!staff) throw new Error('Staff not found');
 
-    const startDate = new Date(fromDate);
-    const endDate = new Date(toDate);
+    const startDate = startOfDay(new Date(fromDate));
+    // Include the whole final day — a bare `new Date(toDate)` is midnight, so
+    // `.lte('paid_at', endDate)` would drop everything after 00:00 on toDate.
+    const endDate = endOfDay(new Date(toDate));
 
     // 2. Fetch Common Data
     // - Shifts
@@ -29,7 +31,7 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         .eq('staff_id', staffId)
         .gte('error_date', fromDate)
         .lte('error_date', toDate);
-    const totalQCPoints = qcLogs?.reduce((sum: number, log: any) => sum + log.points, 0) || 0;
+    const totalQCPoints = qcLogs?.reduce((sum: number, log: any) => sum + (Number(log.points) || 0), 0) || 0;
 
     // - Orders (Based on paid_at for managers, or relevant IDs for others)
     // We fetch all orders that might be relevant to this person
@@ -72,9 +74,11 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         managerOrders.forEach((o: any) => {
             const items = (o.items || []) as any[];
             items.forEach((item: any) => {
-                const name = (item.name || '').toLowerCase();
+                const name = (item.product_name || item.name || '').toLowerCase();
                 if (name.includes('пісня')) {
-                    pesnyaCommission += (Number(item.price) * (item.qty || item.quantity || 1)) * 0.1;
+                    const qty = item.quantity || item.qty || 1;
+                    const subtotal = Number(item.total_price) || (Number(item.unit_price ?? item.price) || 0) * qty;
+                    pesnyaCommission += subtotal * 0.1;
                 }
             });
         });
@@ -101,10 +105,10 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         designerOrders.forEach((o: any) => {
             const items = (o.items || []) as any[];
             items.forEach((item: any) => {
-                const name = (item.name || '').toLowerCase();
-                const price = Number(item.price) || 0;
-                const qty = item.qty || item.quantity || 1;
-                const subtotal = price * qty;
+                const name = (item.product_name || item.name || '').toLowerCase();
+                const qty = item.quantity || item.qty || 1;
+                const unitPrice = Number(item.unit_price ?? item.price) || 0;
+                const subtotal = Number(item.total_price) || unitPrice * qty;
 
                 if (name.includes('робота дизайнера')) {
                     designerWorkFixed += qty * 100;
@@ -140,7 +144,7 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         orders?.forEach((o: any) => {
             const items = (o.items || []) as any[];
             items.forEach((item: any) => {
-                if ((item.name || '').toLowerCase().includes('магніт')) {
+                if ((item.product_name || item.name || '').toLowerCase().includes('магніт')) {
                     magnetsCount += (item.qty || item.quantity || 1) * 10; // sets to units
                 }
             });
@@ -153,7 +157,7 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         orders?.forEach((o: any) => {
             const items = (o.items || []) as any[];
             items.forEach((item: any) => {
-                const name = (item.name || '').toLowerCase();
+                const name = (item.product_name || item.name || '').toLowerCase();
                 if (name.includes('фото') || name.includes('polaroid')) {
                     photoCount += (item.qty || item.quantity || 1);
                 }

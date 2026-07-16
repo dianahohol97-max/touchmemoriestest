@@ -312,12 +312,12 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
   // We fetch orders once and pull category/cost data by joining product_name → products.title.
   const { data: orders } = await supabase
     .from('orders')
-    .select('total_price, items')
+    .select('total, items')
     .gte('paid_at', startDate)
     .lte('paid_at', endDate)
     .not('paid_at', 'is', null);
 
-  const revenue = orders?.reduce((sum, order: any) => sum + Number(order.total_price), 0) || 0;
+  const revenue = orders?.reduce((sum, order: any) => sum + Number(order.total || 0), 0) || 0;
 
   // Build a lookup of product_name → { category, cost_price } by fetching products
   // we'll need for category breakdown and COGS.
@@ -434,12 +434,12 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
     // Month revenue
     const { data: monthOrders } = await supabase
       .from('orders')
-      .select('total_price')
+      .select('total')
       .gte('paid_at', monthStartStr)
       .lte('paid_at', monthEndStr)
       .not('paid_at', 'is', null);
 
-    const monthRevenue = monthOrders?.reduce((sum, order) => sum + Number(order.total_price), 0) || 0;
+    const monthRevenue = monthOrders?.reduce((sum, order: any) => sum + Number(order.total || 0), 0) || 0;
 
     // Month expenses (including salaries)
     const { data: monthExpenses } = await supabase

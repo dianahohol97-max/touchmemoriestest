@@ -4,6 +4,16 @@ import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
+// Only real admin_roles columns are writable. The list page enriches each role
+// with a UI-only `member_count`; forwarding it to Postgres throws 42703 and
+// made every role edit fail — so pick the known columns explicitly.
+const EDITABLE_ROLE_FIELDS = ['name', 'slug', 'permissions'] as const;
+function pickRoleFields(body: Record<string, any>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const k of EDITABLE_ROLE_FIELDS) if (k in body) out[k] = body[k];
+    return out;
+}
+
 export async function GET() {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
@@ -30,15 +40,16 @@ export async function POST(req: Request) {
     const supabase = getAdminClient();
     try {
         const body = await req.json();
+        const row = pickRoleFields(body);
 
         // Generate slug if not provided
-        if (!body.slug && body.name) {
-            body.slug = body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (!row.slug && row.name) {
+            row.slug = String(row.name).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
         }
 
         const { data, error } = await supabase
             .from('admin_roles')
-            .insert([body])
+            .insert([row])
             .select()
             .single();
 
@@ -57,7 +68,7 @@ export async function PATCH(req: Request) {
     const supabase = getAdminClient();
     try {
         const body = await req.json();
-        const { id, ...updates } = body;
+        const { id } = body;
 
         if (!id) {
             return NextResponse.json({ error: 'Missing role ID' }, { status: 400 });
@@ -66,7 +77,7 @@ export async function PATCH(req: Request) {
         const { data, error } = await supabase
             .from('admin_roles')
             .update({
-                ...updates,
+                ...pickRoleFields(body),
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)

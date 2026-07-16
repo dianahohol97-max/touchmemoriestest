@@ -80,6 +80,23 @@ export async function POST(request: Request) {
                 .select('id')
                 .maybeSingle();
             customerId = cust?.id ?? userId;
+        } else {
+            // Account already existed (they signed up before as a normal
+            // customer). createUser failed so we have no userId — still attach
+            // the B2B role/status to their existing customer row, otherwise
+            // b2b_role stays null and the discount never applies even after we
+            // verify the application (approval only flips b2b_status).
+            const { data: cust } = await admin
+                .from('customers')
+                .update({
+                    b2b_role: role,
+                    b2b_status: 'pending',
+                    b2b_portfolio_url: portfolioUrl,
+                })
+                .ilike('email', email)
+                .select('id')
+                .maybeSingle();
+            customerId = cust?.id ?? null;
         }
 
         // 3. Create the application row for the admin review queue

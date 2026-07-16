@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireStaff, requireAdmin } from '@/lib/auth/guards';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,9 @@ export async function GET() {
 // personal promo code + the agency_partners row). Body: { requestId } OR the
 // raw fields { agencyName, email, ... }.
 export async function POST(request: Request) {
-  const guard = await requireStaff();
+  // Approval mints a client-facing discount promo code and a partner row —
+  // an admin-only action, not general staff.
+  const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
   const admin = getAdminClient();
 
