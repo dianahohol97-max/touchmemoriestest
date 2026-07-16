@@ -48,14 +48,18 @@ export async function PATCH(request: Request) {
         .update({ status: newStatus, admin_note: note || null, reviewed_at: new Date().toISOString() })
         .eq('id', id);
 
-    // Update the customer's B2B status
+    // Update the customer's B2B status. Match by the linked customer_id when we
+    // have it, otherwise fall back to the application email — otherwise an
+    // approved partner whose application was never linked to a customer would
+    // stay without the discount (b2b_status never flips to verified).
+    const custPatch = {
+        b2b_status: newStatus,
+        b2b_verified_at: action === 'approve' ? new Date().toISOString() : null,
+    };
     if (app.customer_id) {
-        await admin.from('customers')
-            .update({
-                b2b_status: newStatus,
-                b2b_verified_at: action === 'approve' ? new Date().toISOString() : null,
-            })
-            .eq('id', app.customer_id);
+        await admin.from('customers').update(custPatch).eq('id', app.customer_id);
+    } else if (app.email) {
+        await admin.from('customers').update(custPatch).ilike('email', app.email);
     }
 
     // Approved photographers also get a gallery cabinet + public landing
