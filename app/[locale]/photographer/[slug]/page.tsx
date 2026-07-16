@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { getLandingTheme } from '@/lib/photographers/themes';
 
 export const revalidate = 300;
 
@@ -12,7 +13,7 @@ async function getPhotographer(slug: string) {
   const admin = getAdminClient();
   const { data } = await admin
     .from('photographers')
-    .select('name, bio, phone, instagram, website, email, logo_url, avatar_url, pricing, portfolio, city, specialization, landing_enabled, is_active')
+    .select('name, bio, phone, instagram, website, email, logo_url, avatar_url, pricing, portfolio, city, specialization, landing_enabled, landing_theme, is_active')
     .eq('slug', slug)
     .maybeSingle();
   if (!data || !data.is_active || !data.landing_enabled) return null;
@@ -80,6 +81,7 @@ export default async function PhotographerLandingPage({ params }: Props) {
     );
   }
 
+  const t = getLandingTheme(p.landing_theme);
   const pricing: { title?: string; price?: string; description?: string }[] =
     (Array.isArray(p.pricing) ? p.pricing : []).filter(i => (i?.title || '').trim());
   const portfolio: string[] = Array.isArray(p.portfolio) ? p.portfolio : [];
@@ -88,6 +90,7 @@ export default async function PhotographerLandingPage({ params }: Props) {
   const avatar = p.avatar_url || p.logo_url;
   const instagramHandle = p.instagram ? p.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '') : null;
   const phoneHref = p.phone ? `tel:${p.phone.replace(/[^\d+]/g, '')}` : null;
+  const primaryHref = phoneHref || (p.email ? `mailto:${p.email}` : null);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -114,78 +117,100 @@ export default async function PhotographerLandingPage({ params }: Props) {
       : {}),
   };
 
+  const centered = t.heroAlign === 'center';
+  const btnRadius = t.pill ? 999 : Math.max(t.radius, 2);
+  const h1Style: React.CSSProperties = {
+    fontFamily: t.headingFont,
+    fontWeight: t.headingWeight,
+    textTransform: t.headingTransform,
+    letterSpacing: t.headingSpacing,
+    color: t.ink,
+  };
+  const kickerStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: t.labelSpacing,
+    color: t.faint,
+  };
+  const sectionH2 = (text: string, kicker: string) => (
+    <div style={{ textAlign: centered ? 'center' : 'left', marginBottom: 30 }}>
+      <div style={kickerStyle}>{kicker}</div>
+      <h2 style={{ ...h1Style, fontSize: 28, margin: '4px 0 0' }}>{text}</h2>
+    </div>
+  );
+
+  // Portfolio grid presets — genuinely different rhythm per theme.
+  const gridStyle: React.CSSProperties =
+    t.grid === 'portrait'
+      ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }
+      : { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 };
+  const tileAspect = t.grid === 'portrait' ? '4 / 5' : '1 / 1';
+
   return (
-    <div className="min-h-screen bg-[#faf8f5] text-[#1c1917]">
+    <div style={{ minHeight: '100vh', background: t.bg, color: t.ink }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
-      <header className="relative overflow-hidden">
-        {/* Soft backdrop from the first portfolio shot */}
-        {portfolio[0] && (
-          <div aria-hidden className="absolute inset-0">
+      <header style={{ position: 'relative', overflow: 'hidden' }}>
+        {t.heroBackdrop && portfolio[0] && (
+          <div aria-hidden style={{ position: 'absolute', inset: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={portfolio[0]} alt="" className="w-full h-full object-cover opacity-[0.14] blur-2xl scale-110" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#faf8f5]/60 via-[#faf8f5]/85 to-[#faf8f5]" />
+            <img src={portfolio[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: t.dark ? 0.22 : 0.14, filter: 'blur(28px)', transform: 'scale(1.1)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${t.bg}99, ${t.bg}d9 55%, ${t.bg})` }} />
           </div>
         )}
 
-        <div className="relative max-w-3xl mx-auto px-5 pt-20 pb-14 text-center">
+        <div style={{ position: 'relative', maxWidth: 780, margin: '0 auto', padding: '80px 20px 56px', textAlign: centered ? 'center' : 'left' }}>
           {avatar ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatar} alt={seoTitle(p)}
-              className="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover mx-auto shadow-xl ring-4 ring-white" />
+              style={{ width: 120, height: 120, borderRadius: t.pill ? '50%' : t.radius, objectFit: 'cover', margin: centered ? '0 auto' : 0, display: 'block', boxShadow: '0 18px 44px rgba(0,0,0,0.18)', border: `4px solid ${t.card}` }} />
           ) : (
-            <div className="w-28 h-28 rounded-full mx-auto bg-[#1c1917] text-[#faf8f5] flex items-center justify-center text-4xl font-heading font-bold shadow-xl ring-4 ring-white">
+            <div style={{ width: 120, height: 120, borderRadius: t.pill ? '50%' : t.radius, background: t.accent, color: t.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, fontFamily: t.headingFont, fontWeight: t.headingWeight, margin: centered ? '0 auto' : 0, boxShadow: '0 18px 44px rgba(0,0,0,0.18)' }}>
               {p.name.trim().charAt(0).toUpperCase()}
             </div>
           )}
 
-          <div className="mt-6 text-[11px] md:text-xs font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">
+          <div style={{ ...kickerStyle, marginTop: 26 }}>
             {spec}{p.city ? ` · ${p.city}` : ''}
           </div>
-          <h1 className="mt-2 font-heading font-extrabold tracking-tight text-4xl md:text-5xl leading-tight">
+          <h1 style={{ ...h1Style, fontSize: 44, lineHeight: 1.12, margin: '8px 0 0' }}>
             {p.name}
           </h1>
 
           {p.bio && (
-            <p className="mt-5 text-[15px] md:text-base leading-relaxed text-[#57534e] max-w-xl mx-auto whitespace-pre-wrap">
+            <p style={{ marginTop: 20, fontSize: 16, lineHeight: 1.7, color: t.muted, maxWidth: 560, marginLeft: centered ? 'auto' : 0, marginRight: centered ? 'auto' : 0, whiteSpace: 'pre-wrap' }}>
               {p.bio}
             </p>
           )}
 
-          {/* Contact actions */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            {phoneHref && (
-              <a href={phoneHref}
-                className="inline-flex items-center gap-2 bg-[#1c1917] text-[#faf8f5] rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-black/10 hover:bg-black transition-colors">
-                Забронювати зйомку
-              </a>
-            )}
-            {!phoneHref && p.email && (
-              <a href={`mailto:${p.email}`}
-                className="inline-flex items-center gap-2 bg-[#1c1917] text-[#faf8f5] rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-black/10 hover:bg-black transition-colors">
+          <div style={{ marginTop: 32, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: centered ? 'center' : 'flex-start' }}>
+            {primaryHref && (
+              <a href={primaryHref}
+                style={{ background: t.accent, color: t.accentInk, borderRadius: btnRadius, padding: '13px 26px', fontSize: 14, fontWeight: 700, textDecoration: 'none', boxShadow: '0 10px 26px rgba(0,0,0,0.14)' }}>
                 Забронювати зйомку
               </a>
             )}
             {instagramHandle && (
               <a href={`https://instagram.com/${instagramHandle}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold border border-[#d6d3d1] text-[#44403c] hover:border-[#1c1917] hover:text-[#1c1917] transition-colors bg-white/70">
-                Instagram <span className="text-[#a8a29e]">@{instagramHandle}</span>
+                style={{ border: `1px solid ${t.chipBorder}`, background: t.chipBg, color: t.muted, borderRadius: btnRadius, padding: '13px 22px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+                Instagram <span style={{ color: t.faint }}>@{instagramHandle}</span>
               </a>
             )}
             {p.website && (
               <a href={p.website.startsWith('http') ? p.website : `https://${p.website}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold border border-[#d6d3d1] text-[#44403c] hover:border-[#1c1917] hover:text-[#1c1917] transition-colors bg-white/70">
+                style={{ border: `1px solid ${t.chipBorder}`, background: t.chipBg, color: t.muted, borderRadius: btnRadius, padding: '13px 22px', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
                 Сайт
               </a>
             )}
           </div>
 
           {(p.phone || p.email) && (
-            <div className="mt-4 text-[13px] text-[#a8a29e]">
-              {p.phone && <a href={phoneHref!} className="hover:text-[#57534e]">{p.phone}</a>}
-              {p.phone && p.email && <span className="mx-2">·</span>}
-              {p.email && <a href={`mailto:${p.email}`} className="hover:text-[#57534e]">{p.email}</a>}
+            <div style={{ marginTop: 18, fontSize: 13, color: t.faint }}>
+              {p.phone && <a href={phoneHref!} style={{ color: t.faint, textDecoration: 'none' }}>{p.phone}</a>}
+              {p.phone && p.email && <span style={{ margin: '0 8px' }}>·</span>}
+              {p.email && <a href={`mailto:${p.email}`} style={{ color: t.faint, textDecoration: 'none' }}>{p.email}</a>}
             </div>
           )}
         </div>
@@ -193,42 +218,39 @@ export default async function PhotographerLandingPage({ params }: Props) {
 
       {/* ── Portfolio ────────────────────────────────────────── */}
       {portfolio.length > 0 && (
-        <section className="max-w-5xl mx-auto px-4 md:px-6 pb-4">
-          <div className="text-center mb-8">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">Роботи</div>
-            <h2 className="mt-1 font-heading font-extrabold tracking-tight text-2xl md:text-3xl">Портфоліо</h2>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 [grid-auto-rows:1fr]">
-            {portfolio.map((url, i) => (
-              <div key={url}
-                className={`relative overflow-hidden rounded-xl bg-[#e7e5e4] ${i === 0 && portfolio.length >= 3 ? 'col-span-2 row-span-2' : ''}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={`${p.name} — портфоліо, фото ${i + 1}`} loading={i < 3 ? 'eager' : 'lazy'}
-                  className="w-full h-full object-cover aspect-square transition-transform duration-500 hover:scale-[1.03]" />
-              </div>
-            ))}
+        <section style={{ maxWidth: 1000, margin: '0 auto', padding: '8px 16px 16px' }}>
+          {sectionH2('Портфоліо', 'Роботи')}
+          <div style={t.grid === 'portrait' ? gridStyle : { ...gridStyle, gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 45%), 1fr))' }}>
+            {portfolio.map((url, i) => {
+              const feature = t.grid === 'feature' && i === 0 && portfolio.length >= 3;
+              return (
+                <div key={url} style={{
+                  position: 'relative', overflow: 'hidden', borderRadius: t.radius, background: t.tileBg,
+                  ...(feature ? { gridColumn: 'span 2', gridRow: 'span 2' } : {}),
+                }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt={`${p.name} — портфоліо, фото ${i + 1}`} loading={i < 3 ? 'eager' : 'lazy'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: tileAspect, display: 'block', transition: 'transform .5s' }} />
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
 
       {/* ── Pricing ──────────────────────────────────────────── */}
       {pricing.length > 0 && (
-        <section className="max-w-2xl mx-auto px-5 pt-14 pb-4">
-          <div className="text-center mb-8">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">Вартість</div>
-            <h2 className="mt-1 font-heading font-extrabold tracking-tight text-2xl md:text-3xl">Прайс на фотозйомку</h2>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#e7e5e4] shadow-sm divide-y divide-[#f5f5f4]">
+        <section style={{ maxWidth: 660, margin: '0 auto', padding: '48px 20px 8px' }}>
+          {sectionH2('Прайс на фотозйомку', 'Вартість')}
+          <div style={{ background: t.card, borderRadius: Math.max(t.radius, 4), border: `1px solid ${t.border}`, boxShadow: t.dark ? 'none' : '0 2px 10px rgba(0,0,0,0.04)' }}>
             {pricing.map((item, i) => (
-              <div key={i} className="flex items-baseline justify-between gap-4 px-6 py-5">
-                <div className="min-w-0">
-                  <div className="font-semibold text-[15px]">{item.title}</div>
-                  {item.description && <div className="mt-1 text-[13px] leading-relaxed text-[#78716c]">{item.description}</div>}
+              <div key={i} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, padding: '20px 24px', borderTop: i > 0 ? `1px solid ${t.divider}` : 'none' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{item.title}</div>
+                  {item.description && <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.6, color: t.muted }}>{item.description}</div>}
                 </div>
                 {item.price && (
-                  <div className="shrink-0 font-heading font-extrabold text-[17px] whitespace-nowrap">{item.price}</div>
+                  <div style={{ flexShrink: 0, fontFamily: t.headingFont, fontWeight: 800, fontSize: 17, whiteSpace: 'nowrap' }}>{item.price}</div>
                 )}
               </div>
             ))}
@@ -237,30 +259,28 @@ export default async function PhotographerLandingPage({ params }: Props) {
       )}
 
       {/* ── CTA band ─────────────────────────────────────────── */}
-      {(phoneHref || p.email || instagramHandle) && (
-        <section className="max-w-3xl mx-auto px-5 py-16">
-          <div className="bg-[#1c1917] text-[#faf8f5] rounded-3xl px-8 py-12 text-center shadow-2xl shadow-black/20">
-            <h2 className="font-heading font-extrabold tracking-tight text-2xl md:text-3xl">
-              Сподобались роботи?
-            </h2>
-            <p className="mt-2 text-[15px] text-[#d6d3d1]">
+      {(primaryHref || instagramHandle) && (
+        <section style={{ maxWidth: 780, margin: '0 auto', padding: '56px 20px 64px' }}>
+          <div style={{ background: t.ctaBandBg, color: t.ctaBandInk, borderRadius: Math.max(t.radius * 2, 4), padding: '48px 32px', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.22)' }}>
+            <h2 style={{ ...h1Style, color: t.ctaBandInk, fontSize: 28, margin: 0 }}>Сподобались роботи?</h2>
+            <p style={{ marginTop: 8, fontSize: 15, color: t.ctaBandMuted }}>
               Напишіть — обговоримо вашу зйомку{p.city ? ` у місті ${p.city}` : ''}.
             </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <div style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
               {phoneHref && (
-                <a href={phoneHref} className="bg-[#faf8f5] text-[#1c1917] rounded-full px-6 py-3 text-sm font-bold hover:bg-white transition-colors">
+                <a href={phoneHref} style={{ background: t.ctaBandInk, color: t.ctaBandBg, borderRadius: btnRadius, padding: '12px 24px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                   Зателефонувати
                 </a>
               )}
               {instagramHandle && (
                 <a href={`https://instagram.com/${instagramHandle}`} target="_blank" rel="noopener noreferrer"
-                  className="rounded-full px-6 py-3 text-sm font-bold border border-[#57534e] hover:border-[#faf8f5] transition-colors">
+                  style={{ border: `1px solid ${t.ctaBandMuted}`, color: t.ctaBandInk, borderRadius: btnRadius, padding: '12px 24px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                   Написати в Instagram
                 </a>
               )}
               {p.email && (
                 <a href={`mailto:${p.email}`}
-                  className="rounded-full px-6 py-3 text-sm font-bold border border-[#57534e] hover:border-[#faf8f5] transition-colors">
+                  style={{ border: `1px solid ${t.ctaBandMuted}`, color: t.ctaBandInk, borderRadius: btnRadius, padding: '12px 24px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                   Email
                 </a>
               )}
@@ -270,8 +290,8 @@ export default async function PhotographerLandingPage({ params }: Props) {
       )}
 
       {/* ── Footer note ──────────────────────────────────────── */}
-      <footer className="pb-10 text-center">
-        <a href={`/${locale}/gallery-for-photographers`} className="text-[12px] text-[#a8a29e] hover:text-[#57534e] transition-colors">
+      <footer style={{ paddingBottom: 40, textAlign: 'center' }}>
+        <a href={`/${locale}/gallery-for-photographers`} style={{ fontSize: 12, color: t.faint, textDecoration: 'none' }}>
           Сторінку створено на Touch.Memories — галереї та візитки для фотографів
         </a>
       </footer>

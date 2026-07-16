@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { LANDING_THEMES } from '@/lib/photographers/themes';
 
 interface Profile {
   id: string; slug: string; name: string; bio: string | null; email: string;
   phone: string | null; instagram: string | null; website: string | null;
   logo_url: string | null; avatar_url: string | null;
   city: string | null; specialization: string | null;
-  landing_enabled: boolean; pricing: PriceRow[]; portfolio: string[];
+  landing_enabled: boolean; landing_theme: string | null;
+  pricing: PriceRow[]; portfolio: string[];
   custom_domain: string | null; custom_domain_paid: boolean;
 }
 interface PriceRow { title: string; price: string; description?: string }
@@ -335,7 +337,10 @@ function LandingSection({ token, profile, onChanged, flash }: {
         Адреса вашого лендингу: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d', fontWeight: 700 }}>touchmemories.com.ua/uk/photographer/{profile.slug}</a>
       </div>
 
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 16 }}>Прайс</h3>
+      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 16 }}>Дизайн сторінки</h3>
+      <ThemePicker token={token} current={profile.landing_theme || 'classic'} onChanged={onChanged} flash={flash} slug={profile.slug} />
+
+      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Прайс</h3>
       {pricing.map((row, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr auto', gap: 8, marginTop: 8, alignItems: 'center' }}>
           <input style={input} placeholder="Послуга (напр. Фотосесія 1 год)" value={row.title || ''} onChange={e => setRow(i, 'title', e.target.value)} />
@@ -373,6 +378,72 @@ function LandingSection({ token, profile, onChanged, flash }: {
           Напишіть нам на <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#1e2d7d' }}>hello@touchmemories.com.ua</a> — підключимо.
         </p>
       )}
+    </div>
+  );
+}
+
+/* ── Вибір теми лендингу ─────────────────────────────────────────────── */
+
+function ThemePicker({ token, current, onChanged, flash, slug }: {
+  token: string; current: string; onChanged: () => Promise<void>; flash: (m: string) => void; slug: string;
+}) {
+  const [saving, setSaving] = useState('');
+
+  const pick = async (key: string) => {
+    if (key === current || saving) return;
+    setSaving(key);
+    try {
+      const res = await fetch('/api/photographers/profile', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, landing_theme: key }),
+      });
+      if (res.ok) { await onChanged(); flash('Дизайн застосовано'); }
+      else alert((await res.json())?.error || 'Помилка');
+    } finally { setSaving(''); }
+  };
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>
+        Оберіть стиль — зміни видно одразу на <a href={`/uk/photographer/${slug}`} target="_blank" style={{ color: '#1e2d7d', fontWeight: 700 }}>вашій сторінці</a>.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        {LANDING_THEMES.map(t => {
+          const active = t.key === current;
+          return (
+            <button key={t.key} onClick={() => pick(t.key)} disabled={!!saving}
+              style={{
+                textAlign: 'left', cursor: active ? 'default' : 'pointer', padding: 0, overflow: 'hidden',
+                borderRadius: 12, background: '#fff',
+                border: active ? '2px solid #1e2d7d' : '1px solid #e5e7eb',
+                boxShadow: active ? '0 0 0 3px rgba(30,45,125,0.12)' : 'none',
+                opacity: saving && saving !== t.key ? 0.6 : 1,
+              }}>
+              {/* Міні-макет: смуга хіро + плитки портфоліо в кольорах теми */}
+              <div style={{ background: t.bg, padding: '12px 12px 10px' }}>
+                <div style={{ width: 26, height: 26, borderRadius: t.pill ? '50%' : 4, background: t.accent, margin: t.heroAlign === 'center' ? '0 auto 6px' : '0 0 6px' }} />
+                <div style={{
+                  height: 8, width: '65%', borderRadius: 3, background: t.ink,
+                  margin: t.heroAlign === 'center' ? '0 auto 5px' : '0 0 5px',
+                  fontFamily: t.headingFont,
+                }} />
+                <div style={{ height: 5, width: '45%', borderRadius: 3, background: t.faint, margin: t.heroAlign === 'center' ? '0 auto 8px' : '0 0 8px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ aspectRatio: t.grid === 'portrait' ? '4/5' : '1/1', borderRadius: Math.min(t.radius, 6), background: t.tileBg, border: `1px solid ${t.border}` }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ padding: '8px 12px 10px', borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e2d7d' }}>
+                  {saving === t.key ? 'Застосовуємо…' : t.label} {active && '✓'}
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, lineHeight: 1.4 }}>{t.tagline}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

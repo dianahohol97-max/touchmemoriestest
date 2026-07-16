@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getPhotographerByToken } from '@/lib/photographers/helpers';
+import { isValidThemeKey } from '@/lib/photographers/themes';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
 // Only these fields are editable from the cabinet. slug / custom_domain /
 // is_active are managed by staff in the admin — a photographer must not be
 // able to move their public URL or toggle the paid domain themselves.
-const EDITABLE = ['name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio', 'landing_enabled', 'city', 'specialization'] as const;
+const EDITABLE = ['name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio', 'landing_enabled', 'city', 'specialization', 'landing_theme'] as const;
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
     }
     if ('portfolio' in patch && !Array.isArray(patch.portfolio)) {
       return NextResponse.json({ error: 'portfolio має бути списком' }, { status: 400 });
+    }
+    if ('landing_theme' in patch && !isValidThemeKey(patch.landing_theme)) {
+      return NextResponse.json({ error: 'Невідома тема лендингу' }, { status: 400 });
     }
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: 'Немає полів для оновлення' }, { status: 400 });
