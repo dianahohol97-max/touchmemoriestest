@@ -82,7 +82,36 @@ export default function CertificatesAdminPage() {
     });
     setSavingCert(false);
     if (error) { toast.error('Помилка: ' + error.message); return; }
-    toast.success('Сертифікат створено!');
+
+    // "Create & send": actually email the recipient their certificate. This
+    // was previously a no-op — the button label changed but no mail was sent.
+    if (newCert.sendEmail && newCert.recipient_email) {
+      try {
+        const res = await fetch('/api/admin/send-certificate-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: newCert.code,
+            amount: newCert.amount,
+            recipient_name: newCert.recipient_name || null,
+            recipient_email: newCert.recipient_email,
+            sender_name: newCert.sender_name || null,
+            message: newCert.message || null,
+            expires_at: newCert.expires_at || null,
+          }),
+        });
+        if (res.ok) {
+          toast.success('Сертифікат створено і надіслано на пошту!');
+        } else {
+          const j = await res.json().catch(() => ({}));
+          toast.error('Створено, але лист не надіслано: ' + (j.error || 'помилка'));
+        }
+      } catch {
+        toast.error('Створено, але лист не вдалося надіслати');
+      }
+    } else {
+      toast.success('Сертифікат створено!');
+    }
     setShowCreateModal(false);
     setNewCert({ code: '', amount: 0, recipient_name: '', recipient_email: '', recipient_phone: '', sender_name: '', message: '', expires_at: '', source: 'manual', notes: '', sendEmail: false });
     fetchCertificates();

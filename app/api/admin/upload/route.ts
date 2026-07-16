@@ -49,6 +49,23 @@ export async function POST(req: Request) {
   if (!ALLOWED_BUCKETS.has(bucket)) return NextResponse.json({ error: 'Bucket not allowed' }, { status: 400 });
 
   const ext = (file.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  // Content-type / size validation. These buckets are PUBLIC, so an .svg or
+  // .html would be served from our domain and run script (stored XSS). Allow
+  // only raster images (and video in the videos bucket), with a size cap.
+  const isVideoBucket = bucket === 'videos';
+  const MAX_BYTES = isVideoBucket ? 200 * 1024 * 1024 : 25 * 1024 * 1024;
+  const ALLOWED_EXT = isVideoBucket
+    ? ['mp4', 'webm', 'mov', 'm4v']
+    : ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+  const MIME_RE = isVideoBucket ? /^video\// : /^image\/(jpeg|png|webp|gif|avif)$/;
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: `Файл завеликий (макс ${Math.round(MAX_BYTES / 1048576)} МБ)` }, { status: 400 });
+  }
+  if (!ALLOWED_EXT.includes(ext) || (file.type && !MIME_RE.test(file.type))) {
+    return NextResponse.json({ error: 'Недозволений тип файлу' }, { status: 400 });
+  }
+
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const path = folder ? `${folder}/${fileName}` : fileName;
 

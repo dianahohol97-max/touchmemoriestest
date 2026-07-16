@@ -31,8 +31,11 @@ export async function POST(request: Request) {
         }
 
         let query = supabase.from('subscribers').select('id, email, name').eq('is_active', true);
-        if (segment === 'instagram') query = query.eq('source', 'instagram');
-        if (segment === 'checkout') query = query.eq('source', 'checkout');
+        // Any non-'all' segment is a subscriber `source` value (the UI lists the
+        // distinct sources and previews the count as source === segment). Filter
+        // by it directly — otherwise unknown sources (popup, manual, …) fell
+        // through and the newsletter went to EVERY active subscriber.
+        if (segment && segment !== 'all') query = query.eq('source', segment);
         const { data: subscribers, error: subErr } = await query;
 
         if (subErr) return NextResponse.json({ error: 'Помилка завантаження підписників' }, { status: 500 });

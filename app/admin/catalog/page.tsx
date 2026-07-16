@@ -284,7 +284,7 @@ export default function AdminCatalogPage() {
                 </div>
 
                 {/* Add button */}
-                <Link href="/admin/catalog/product/new" style={S.addBtn}>
+                <Link href="/admin/products/new" style={S.addBtn}>
                     <Plus size={18}/> Додати товар
                 </Link>
             </div>
@@ -301,7 +301,7 @@ export default function AdminCatalogPage() {
                 <div style={{ padding: '80px 20px', textAlign: 'center' }}>
                     <Package size={48} color="#e2e8f0" style={{ margin: '0 auto 16px' }}/>
                     <div style={{ color: '#94a3b8', fontSize: 15 }}>Товарів не знайдено</div>
-                    <Link href="/admin/catalog/product/new" style={{ ...S.addBtn, display: 'inline-flex', marginTop: 20 }}>
+                    <Link href="/admin/products/new" style={{ ...S.addBtn, display: 'inline-flex', marginTop: 20 }}>
                         <Plus size={16}/> Додати перший товар
                     </Link>
                 </div>

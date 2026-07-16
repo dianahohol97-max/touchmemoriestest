@@ -33,6 +33,8 @@ interface Order {
     customer_id?: string;
     total: number;
     payment_method: string;
+    payment_type?: string;
+    cod_amount?: number;
     payment_status: string;
     created_at: string;
     paid_at?: string;
@@ -168,9 +170,11 @@ export default function PaymentsPage() {
                 pendingSum += total;
             }
 
-            // COD to collect
-            if (order.payment_method === 'cod' && order.payment_status === 'pending') {
-                codToCollect += total;
+            // COD to collect. There is no `payment_method` column — that field
+            // was always undefined so this counter was stuck at 0. Split-payment
+            // orders carry a cod_amount that is collected on delivery.
+            if (Number(order.cod_amount) > 0 && order.payment_status !== 'paid') {
+                codToCollect += Number(order.cod_amount) || 0;
                 codCount++;
             }
         });

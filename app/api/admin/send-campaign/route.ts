@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
     if (!guard.ok) return guard.response;
 
     try {
-        const supabase = await createClient();
+        // Service-role client: this route writes campaign/log rows and reads the
+        // full subscriber list. The anon (cookie/RLS) client silently returned
+        // no subscribers and failed the writes, leaving campaigns stuck 'sending'.
+        const supabase = getAdminClient();
         const body = await req.json();
         const { campaign_id } = body;
 
