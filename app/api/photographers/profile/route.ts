@@ -21,8 +21,9 @@ const EDITABLE = [
   'name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio',
   'landing_enabled', 'city', 'specialization', 'landing_theme',
   // booking + direct-to-photographer payment settings
-  'booking_enabled', 'pay_mono_enabled', 'pay_mono_link',
-  'pay_wfp_enabled', 'pay_wfp_link', 'pay_requisites_enabled', 'pay_requisites',
+  'booking_enabled', 'pay_mono_enabled', 'pay_mono_link', 'pay_mono_token',
+  'pay_wfp_enabled', 'pay_wfp_link', 'pay_wfp_account', 'pay_wfp_secret',
+  'pay_requisites_enabled', 'pay_requisites',
 ] as const;
 
 export async function POST(req: NextRequest) {

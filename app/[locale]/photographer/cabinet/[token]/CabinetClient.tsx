@@ -409,7 +409,10 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
   const [pay, setPay] = useState({
     booking_enabled: profile.booking_enabled ?? true,
     pay_mono_enabled: !!profile.pay_mono_enabled, pay_mono_link: profile.pay_mono_link || '',
+    pay_mono_token: (profile as any).pay_mono_token || '',
     pay_wfp_enabled: !!profile.pay_wfp_enabled, pay_wfp_link: profile.pay_wfp_link || '',
+    pay_wfp_account: (profile as any).pay_wfp_account || '',
+    pay_wfp_secret: (profile as any).pay_wfp_secret || '',
     pay_requisites_enabled: !!profile.pay_requisites_enabled, pay_requisites: profile.pay_requisites || '',
   });
   const [savingPay, setSavingPay] = useState(false);
@@ -565,21 +568,51 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
             <input type="checkbox" checked={pay.pay_mono_enabled} onChange={() => toggle('pay_mono_enabled')} />
-            Monobank (посилання на банку / оплату)
+            Monobank
           </label>
           {pay.pay_mono_enabled && (
-            <input style={{ ...input, marginTop: 8 }} placeholder="https://send.monobank.ua/jar/…"
-              value={pay.pay_mono_link} onChange={e => setPay(p => ({ ...p, pay_mono_link: e.target.value }))} />
+            <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+              <div>
+                <label style={{ ...label, marginTop: 0 }}>Варіант 1 — просто посилання (банка/оплата)</label>
+                <input style={input} placeholder="https://send.monobank.ua/jar/…"
+                  value={pay.pay_mono_link} onChange={e => setPay(p => ({ ...p, pay_mono_link: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ ...label, marginTop: 0 }}>Варіант 2 — автопідтвердження: токен еквайрингу mono (X-Token)</label>
+                <input style={input} placeholder="Токен з кабінету еквайрингу monobank (для ФОП)"
+                  value={pay.pay_mono_token} onChange={e => setPay(p => ({ ...p, pay_mono_token: e.target.value }))} />
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                  З токеном рахунок створюється автоматично на суму слота, а статус «Оплачено» ставиться сам після оплати. Токен бачите лише ви.
+                </div>
+              </div>
+            </div>
           )}
         </div>
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
             <input type="checkbox" checked={pay.pay_wfp_enabled} onChange={() => toggle('pay_wfp_enabled')} />
-            WayForPay (посилання на оплату)
+            WayForPay
           </label>
           {pay.pay_wfp_enabled && (
-            <input style={{ ...input, marginTop: 8 }} placeholder="https://secure.wayforpay.com/…"
-              value={pay.pay_wfp_link} onChange={e => setPay(p => ({ ...p, pay_wfp_link: e.target.value }))} />
+            <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+              <div>
+                <label style={{ ...label, marginTop: 0 }}>Варіант 1 — просто посилання на оплату</label>
+                <input style={input} placeholder="https://secure.wayforpay.com/…"
+                  value={pay.pay_wfp_link} onChange={e => setPay(p => ({ ...p, pay_wfp_link: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ ...label, marginTop: 0 }}>Варіант 2 — автопідтвердження: merchant-дані WayForPay</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input style={input} placeholder="merchantAccount"
+                    value={pay.pay_wfp_account} onChange={e => setPay(p => ({ ...p, pay_wfp_account: e.target.value }))} />
+                  <input style={input} type="password" placeholder="SecretKey"
+                    value={pay.pay_wfp_secret} onChange={e => setPay(p => ({ ...p, pay_wfp_secret: e.target.value }))} />
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                  З merchant-даними рахунок створюється автоматично, а «Оплачено» ставиться саме після оплати. Ключі бачите лише ви.
+                </div>
+              </div>
+            </div>
           )}
         </div>
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>

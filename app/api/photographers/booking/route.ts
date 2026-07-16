@@ -49,14 +49,21 @@ export async function POST(req: NextRequest) {
 
   const { data: p } = await admin
     .from('photographers')
-    .select('name, email, phone, pay_mono_enabled, pay_mono_link, pay_wfp_enabled, pay_wfp_link, pay_requisites_enabled, pay_requisites')
+    .select('name, email, phone, pay_mono_enabled, pay_mono_link, pay_mono_token, pay_wfp_enabled, pay_wfp_link, pay_wfp_account, pay_wfp_secret, pay_requisites_enabled, pay_requisites')
     .eq('id', booked.photographer_id)
     .maybeSingle();
 
-  // Only enabled AND filled methods reach the client.
+  // Only enabled AND filled methods reach the client. When the photographer
+  // stored their own merchant credentials, the client gets the AUTO flow
+  // (invoice via /booking/pay + provider webhook flips the status) instead
+  // of a static link. Credentials themselves never leave the server.
+  const monoAuto = !!(p?.pay_mono_enabled && p?.pay_mono_token);
+  const wfpAuto = !!(p?.pay_wfp_enabled && p?.pay_wfp_account && p?.pay_wfp_secret);
   const payment = {
-    mono_link: p?.pay_mono_enabled && p?.pay_mono_link ? p.pay_mono_link : null,
-    wfp_link: p?.pay_wfp_enabled && p?.pay_wfp_link ? p.pay_wfp_link : null,
+    mono_auto: monoAuto,
+    wfp_auto: wfpAuto,
+    mono_link: !monoAuto && p?.pay_mono_enabled && p?.pay_mono_link ? p.pay_mono_link : null,
+    wfp_link: !wfpAuto && p?.pay_wfp_enabled && p?.pay_wfp_link ? p.pay_wfp_link : null,
     requisites: p?.pay_requisites_enabled && p?.pay_requisites ? p.pay_requisites : null,
   };
 

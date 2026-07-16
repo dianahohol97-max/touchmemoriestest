@@ -14,7 +14,10 @@ export interface PublicSlot {
 interface BookingResult {
   slot: { date: string; time: string; duration_min: number; price: string | null };
   photographer_name: string;
-  payment: { mono_link: string | null; wfp_link: string | null; requisites: string | null };
+  payment: {
+    mono_auto?: boolean; wfp_auto?: boolean;
+    mono_link: string | null; wfp_link: string | null; requisites: string | null;
+  };
 }
 
 const fmtDate = (d: string) =>
@@ -38,6 +41,26 @@ export default function BookingSection({ slots, theme: t, kicker }: {
   const [doneSlotId, setDoneSlotId] = useState('');
   const [claimed, setClaimed] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [paying, setPaying] = useState('');
+  const [payError, setPayError] = useState('');
+
+  // Auto payment: create an invoice via the photographer's own merchant
+  // account and send the client to the provider's payment page. The provider
+  // webhook marks the booking paid — no manual confirmation needed.
+  const payAuto = async (provider: 'mono' | 'wfp') => {
+    if (paying) return;
+    setPaying(provider); setPayError('');
+    try {
+      const res = await fetch('/api/photographers/booking/pay', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slot_id: doneSlotId, provider }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.url) { setPayError(json?.error || 'Не вдалося створити рахунок'); return; }
+      window.location.href = json.url;
+    } catch { setPayError('Сталася помилка. Спробуйте ще раз.'); }
+    finally { setPaying(''); }
+  };
 
   const byDate = useMemo(() => {
     const map = new Map<string, PublicSlot[]>();
@@ -82,7 +105,8 @@ export default function BookingSection({ slots, theme: t, kicker }: {
 
   if (byDate.length === 0 && !done) return null;
 
-  const hasPayment = done && (done.payment.mono_link || done.payment.wfp_link || done.payment.requisites);
+  const hasPayment = done && (done.payment.mono_auto || done.payment.wfp_auto || done.payment.mono_link || done.payment.wfp_link || done.payment.requisites);
+  const hasManualPayment = done && (done.payment.mono_link || done.payment.wfp_link || done.payment.requisites);
 
   return (
     <section style={{ maxWidth: 660, margin: '0 auto', padding: '48px 20px 8px' }}>
@@ -110,6 +134,19 @@ export default function BookingSection({ slots, theme: t, kicker }: {
             <div style={{ marginTop: 18, textAlign: 'left', background: t.bg, borderRadius: Math.max(t.radius, 6), padding: 18 }}>
               <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10, textAlign: 'center' }}>Оплата</div>
               <div style={{ display: 'grid', gap: 8 }}>
+                {done.payment.mono_auto && (
+                  <button onClick={() => payAuto('mono')} disabled={!!paying}
+                    style={{ display: 'block', width: '100%', textAlign: 'center', background: '#000', color: '#fff', border: 'none', borderRadius: btnRadius, padding: '11px 16px', fontWeight: 700, fontSize: 14, cursor: paying ? 'default' : 'pointer', opacity: paying && paying !== 'mono' ? 0.6 : 1 }}>
+                    {paying === 'mono' ? 'Створюємо рахунок…' : 'Оплатити через Monobank'}
+                  </button>
+                )}
+                {done.payment.wfp_auto && (
+                  <button onClick={() => payAuto('wfp')} disabled={!!paying}
+                    style={{ display: 'block', width: '100%', textAlign: 'center', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: btnRadius, padding: '11px 16px', fontWeight: 700, fontSize: 14, cursor: paying ? 'default' : 'pointer', opacity: paying && paying !== 'wfp' ? 0.6 : 1 }}>
+                    {paying === 'wfp' ? 'Створюємо рахунок…' : 'Оплатити карткою (WayForPay)'}
+                  </button>
+                )}
+                {payError && <div style={{ color: '#b91c1c', fontSize: 13, textAlign: 'center' }}>{payError}</div>}
                 {done.payment.mono_link && (
                   <a href={done.payment.mono_link} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'block', textAlign: 'center', background: '#000', color: '#fff', borderRadius: btnRadius, padding: '11px 16px', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
@@ -133,8 +170,9 @@ export default function BookingSection({ slots, theme: t, kicker }: {
                 Оплата надходить безпосередньо фотографу.
               </div>
 
-              {/* "Я оплатив(ла)": повідомляє фотографа — той звіряє з банком */}
-              <div style={{ marginTop: 14, textAlign: 'center' }}>
+              {/* "Я оплатив(ла)": лише для ручних способів — автооплата
+                  підтверджується вебхуком провайдера сама */}
+              {hasManualPayment && <div style={{ marginTop: 14, textAlign: 'center' }}>
                 {claimed ? (
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#065f46' }}>
                     ✅ Дякуємо! Ми повідомили фотографа — він перевірить надходження.
@@ -156,7 +194,7 @@ export default function BookingSection({ slots, theme: t, kicker }: {
                     {claiming ? 'Надсилаємо…' : 'Я оплатив(ла) ✓'}
                   </button>
                 )}
-              </div>
+              </div>}
             </div>
           )}
         </div>
