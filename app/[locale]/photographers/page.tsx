@@ -26,6 +26,10 @@ export default function PhotographersPage() {
                 text: 'Не потрібна знижка? Створіть лише кабінет галерей і візитку — без заявки →',
                 href: '/uk/gallery-for-photographers#signup',
             }}
+            cabinetLink={{
+                text: 'Вже маєте кабінет фотографа? Увійти →',
+                href: '/uk/photographer/cabinet',
+            }}
         />
     );
 }

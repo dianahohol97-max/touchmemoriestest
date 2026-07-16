@@ -110,6 +110,10 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
           Отримати кабінет безкоштовно
         </a>
         <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 10 }}>Кабінет — одразу, без заявок і модерації · знижка 10% — окремо, після підтвердження заявки</div>
+        <div style={{ fontSize: 14, marginTop: 14 }}>
+          <span style={{ color: '#94a3b8' }}>Вже маєте кабінет? </span>
+          <a href={`/${locale}/photographer/cabinet`} style={{ color: '#1e2d7d', fontWeight: 700, textDecoration: 'none' }}>Увійти у свій кабінет →</a>
+        </div>
       </section>
 
       {/* Benefits */}
@@ -169,7 +173,8 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
         <h2 style={{ ...h2, marginBottom: 8, textAlign: 'center' }}>Спробуйте — це безкоштовно</h2>
         <p style={{ color: '#475569', marginTop: 0, marginBottom: 20, textAlign: 'center' }}>Кабінет створюється за хвилину — без заявок і модерації.</p>
         <SignupForm locale={locale} />
-        <div style={{ marginTop: 16, fontSize: 14, textAlign: 'center' }}>
+        <div style={{ marginTop: 16, fontSize: 14, textAlign: 'center', display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href={`/${locale}/photographer/cabinet`} style={{ color: '#1e2d7d', fontWeight: 700 }}>Вже маєте кабінет? Увійти →</a>
           <a href={`/${locale}/photographer`} style={{ color: '#1e2d7d' }}>Подивитися каталог фотографів →</a>
         </div>
       </section>
