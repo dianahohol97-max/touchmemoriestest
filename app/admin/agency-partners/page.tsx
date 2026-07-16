@@ -20,6 +20,7 @@ interface Partner {
   status: string;
   partner_kind?: string;
   payout_account?: string | null;
+  payout_requested_at?: string | null;
 }
 
 interface PendingRequest {
@@ -215,6 +216,12 @@ export default function AgencyPartnersPage() {
                   <div style={{ marginTop: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Рахунок для виплати</div>
                     <div style={{ fontSize: 13, color: '#0f172a', whiteSpace: 'pre-wrap' }}>{p.payout_account}</div>
+                  </div>
+                )}
+
+                {p.payout_requested_at && (
+                  <div style={{ marginTop: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+                    💸 Партнер запросив виплату {new Date(p.payout_requested_at).toLocaleDateString('uk-UA')}
                   </div>
                 )}
 

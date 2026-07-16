@@ -45,7 +45,8 @@ export async function POST(request: Request) {
     .maybeSingle();
   await admin
     .from('agency_partners')
-    .update({ total_paid_out: Number(agency?.total_paid_out || 0) + sum })
+    // Also clear any open payout request — this payout fulfils it.
+    .update({ total_paid_out: Number(agency?.total_paid_out || 0) + sum, payout_requested_at: null })
     .eq('id', agencyId);
 
   return NextResponse.json({ ok: true, paid: sum, count: pending.length });
