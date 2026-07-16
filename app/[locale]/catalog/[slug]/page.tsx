@@ -60,7 +60,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: 'Touch.Memories',
       images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
       locale: OG_LOCALE_MAP[locale],
-      type: 'website',
+      // Meta catalog / Shop requires og:type=product on product pages so the
+      // pixel-scraped microdata (product:* tags below in the body) is read as a
+      // catalog item. Cast because Next's OpenGraphType union omits 'product'.
+      type: 'product' as any,
     },
     twitter: {
       card: 'summary_large_image',
@@ -125,6 +128,11 @@ export default async function ProductPage({ params }: Props) {
 
   let jsonLdProduct: Record<string, any> | null = null;
   let jsonLdBreadcrumb: Record<string, any> | null = null;
+  // Open Graph product microdata for the Meta Pixel / Shop catalog crawler.
+  // retailer_item_id MUST equal the id used in the Facebook catalog feed
+  // (app/api/feeds/facebook-catalog.json → id: product.id) so pixel views match
+  // catalog items.
+  let productMeta: Record<string, string> | null = null;
 
   if (product) {
     const tr = ((product.translations as any) || {})[locale] || {};
@@ -161,6 +169,15 @@ export default async function ProductPage({ params }: Props) {
         : {}),
     };
 
+    productMeta = {
+      'product:price:amount': price > 0 ? price.toFixed(2) : '',
+      'product:price:currency': 'UAH',
+      'product:retailer_item_id': String((product as any).id ?? ''),
+      'product:availability': 'in stock',
+      'product:condition': 'new',
+      'product:brand': 'Touch.Memories',
+    };
+
     const crumbs: Record<string, any>[] = [
       { '@type': 'ListItem', position: 1, name: 'Головна', item: getCanonicalUrl(locale) },
       { '@type': 'ListItem', position: 2, name: 'Каталог', item: getCanonicalUrl(locale, '/catalog') },
@@ -190,6 +207,10 @@ export default async function ProductPage({ params }: Props) {
       {jsonLdBreadcrumb && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
       )}
+      {productMeta &&
+        Object.entries(productMeta).map(([property, content]) =>
+          content ? <meta key={property} property={property} content={content} /> : null
+        )}
       <ProductClient params={Promise.resolve({ slug, locale })} initialProduct={product || undefined} initialReviews={productReviews} />
     </>
   );
