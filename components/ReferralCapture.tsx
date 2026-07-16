@@ -18,7 +18,8 @@ export default function ReferralCapture() {
         try {
             const params = new URLSearchParams(window.location.search);
             const ref = params.get('ref');
-            if (ref && /^[A-Za-z0-9]{4,16}$/.test(ref)) {
+            // Allow Cyrillic: partner codes are generated from agency names.
+            if (ref && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(ref)) {
                 localStorage.setItem(REF_KEY, ref.toUpperCase());
             }
         } catch { /* ignore */ }

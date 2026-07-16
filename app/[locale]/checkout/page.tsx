@@ -182,7 +182,10 @@ export default function CheckoutPage() {
             code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
             if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
         } catch { /* ignore */ }
-        if (!code || !/^[A-Za-z0-9]{4,16}$/.test(code)) return;
+        // Partner codes may contain Cyrillic (generated from agency names,
+        // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
+        // referral links applied no discount.
+        if (!code || !/^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(code)) return;
 
         let cancelled = false;
         (async () => {

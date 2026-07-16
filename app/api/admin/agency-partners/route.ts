@@ -5,11 +5,20 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 
 export const dynamic = 'force-dynamic';
 
+// KMU-55-ish quick map for code prefixes only (readability, not fidelity).
+const CYR_TO_LAT: Record<string, string> = {
+  'А':'A','Б':'B','В':'V','Г':'H','Ґ':'G','Д':'D','Е':'E','Є':'YE','Ж':'ZH','З':'Z','И':'Y','І':'I','Ї':'YI','Й':'Y',
+  'К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R','С':'S','Т':'T','У':'U','Ф':'F','Х':'KH','Ц':'TS','Ч':'CH',
+  'Ш':'SH','Щ':'SHCH','Ь':'','Ю':'YU','Я':'YA',
+};
+
 function genAgencyCode(name: string): string {
-  // Readable prefix from the agency name + random suffix.
-  const base = (name || 'AG')
-    .toUpperCase()
-    .replace(/[^A-ZА-ЯІЇЄ0-9]/gi, '')
+  // Readable LATIN prefix from the agency name + random suffix. Codes go into
+  // share links (?ref=CODE), so latin keeps URLs clean; the promo validation
+  // itself accepts Cyrillic codes too for the ones issued earlier.
+  const translit = (name || 'AG').toUpperCase().split('').map(ch => CYR_TO_LAT[ch] ?? ch).join('');
+  const base = translit
+    .replace(/[^A-Z0-9]/g, '')
     .slice(0, 4) || 'AG';
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let suffix = '';
