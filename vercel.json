@@ -63,6 +63,10 @@
     {
       "path": "/api/cron/render-paid-orders",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-galleries",
+      "schedule": "30 3 * * *"
     }
   ]
 }

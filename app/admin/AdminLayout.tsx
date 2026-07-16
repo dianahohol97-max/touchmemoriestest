@@ -45,6 +45,7 @@ const menuItems = [
     { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
     { name: 'Заявки B2B', href: '/admin/b2b-applications', icon: <UserPlus size={20} />, section: 'catalog' },
     { name: 'Тревел-партнери', href: '/admin/agency-partners', icon: <Globe size={20} />, section: 'catalog' },
+    { name: 'Фотографи', href: '/admin/photographers', icon: <Image size={20} />, section: 'catalog' },
     { name: 'Корпоративні запити', href: '/admin/corporate-requests', icon: <Building2 size={20} />, section: 'catalog' },
     { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog' },
     { name: 'Кабінет дизайнера', href: '/admin/designer', icon: <Palette size={20} />, section: 'designer' },
