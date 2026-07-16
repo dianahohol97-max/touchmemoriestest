@@ -34,6 +34,7 @@ export default function BookingSection({ slots, theme: t, kicker }: {
   const [selected, setSelected] = useState<PublicSlot | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -83,11 +84,15 @@ export default function BookingSection({ slots, theme: t, kicker }: {
       setError("Вкажіть ім'я та коректний телефон");
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Вкажіть коректний email');
+      return;
+    }
     setLoading(true); setError('');
     try {
       const res = await fetch('/api/photographers/booking', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slot_id: selected.id, name, phone, comment }),
+        body: JSON.stringify({ slot_id: selected.id, name, phone, email, comment }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -208,7 +213,8 @@ export default function BookingSection({ slots, theme: t, kicker }: {
               </div>
               <div style={{ display: 'grid', gap: 10 }}>
                 <input style={inputStyle} placeholder="Ваше ім'я *" value={name} onChange={e => setName(e.target.value)} />
-                <input style={inputStyle} placeholder="Телефон *" value={phone} onChange={e => setPhone(e.target.value)} />
+                <input style={inputStyle} type="tel" placeholder="Телефон *" value={phone} onChange={e => setPhone(e.target.value)} />
+                <input style={inputStyle} type="email" placeholder="Email *" value={email} onChange={e => setEmail(e.target.value)} />
                 <textarea style={{ ...inputStyle, minHeight: 64, resize: 'vertical' }} placeholder="Коментар (тип зйомки, локація — необовʼязково)" value={comment} onChange={e => setComment(e.target.value)} />
               </div>
               {error && <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 10 }}>{error}</div>}

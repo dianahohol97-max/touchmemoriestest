@@ -477,8 +477,18 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Запис на зйомку</h2>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
+          {/* Зберігається одразу — вимкнув і блок зник зі сторінки, без окремої кнопки */}
           <input type="checkbox" checked={pay.booking_enabled}
-            onChange={() => { toggle('booking_enabled'); }} />
+            onChange={async e => {
+              const enabled = e.target.checked;
+              setPay(p => ({ ...p, booking_enabled: enabled }));
+              const res = await fetch('/api/photographers/profile', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, booking_enabled: enabled }),
+              });
+              if (res.ok) flash(enabled ? 'Запис увімкнено на сторінці' : 'Запис вимкнено — блок зник зі сторінки');
+              else { setPay(p => ({ ...p, booking_enabled: !enabled })); alert('Не вдалося зберегти'); }
+            }} />
           Показувати запис на сторінці
         </label>
       </div>

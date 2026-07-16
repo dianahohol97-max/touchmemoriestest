@@ -26,6 +26,9 @@ export async function POST(req: NextRequest) {
   if (!/^[0-9a-f-]{36}$/i.test(slotId)) return NextResponse.json({ error: 'Невірний слот' }, { status: 400 });
   if (!name || name.length > 120) return NextResponse.json({ error: "Вкажіть ім'я" }, { status: 400 });
   if (!phone || phone.replace(/\D/g, '').length < 9) return NextResponse.json({ error: 'Вкажіть коректний телефон' }, { status: 400 });
+  // Full contact details are mandatory for a booking — the photographer must
+  // be able to reach the client by phone AND email.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Вкажіть коректний email' }, { status: 400 });
 
   const admin = getAdminClient();
 
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
       status: 'booked',
       client_name: name,
       client_phone: phone,
-      client_email: email || null,
+      client_email: email,
       client_comment: comment || null,
       booked_at: new Date().toISOString(),
     })
