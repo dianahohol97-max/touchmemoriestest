@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +23,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    // Service-role client: Vercel cron calls this with no user session, and
+    // expenses' RLS references auth.users — the anon role got 42501
+    // "permission denied for table users" every night, so recurring expenses
+    // were never processed.
+    const supabase = getAdminClient();
     const today = new Date().toISOString().split('T')[0];
 
     // Get all active recurring expenses
@@ -35,6 +39,11 @@ export async function GET(request: NextRequest) {
     if (fetchError) throw fetchError;
 
     const expensesToCreate: any[] = [];
+    // Sources that spawned a copy this run. Recurrence is handed over to the
+    // newest copy (is_recurring stays true on it) and switched off on the
+    // source — otherwise every past copy would keep qualifying and spawn its
+    // own duplicate on each subsequent run.
+    const sourceIdsToRetire: string[] = [];
 
     for (const expense of recurringExpenses || []) {
       const lastDate = new Date(expense.date);
@@ -95,16 +104,24 @@ export async function GET(request: NextRequest) {
           notes: expense.notes ? `${expense.notes} (автоматично створено)` : 'Автоматично створено',
           added_by: expense.added_by,
         });
+        sourceIdsToRetire.push(expense.id);
       }
     }
 
-    // Insert new expenses
+    // Insert new expenses, then retire the sources they were copied from
     if (expensesToCreate.length > 0) {
       const { error: insertError } = await supabase
         .from('expenses')
         .insert(expensesToCreate);
 
       if (insertError) throw insertError;
+
+      const { error: retireError } = await supabase
+        .from('expenses')
+        .update({ is_recurring: false })
+        .in('id', sourceIdsToRetire);
+
+      if (retireError) throw retireError;
     }
 
     return NextResponse.json({

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBriefLinkEmail } from '@/lib/designer-service/emails';
 import { sendTelegramMessage } from '@/lib/automation/telegram-notifications';
 
@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Service-role client: this route is invoked server-to-server (Monobank
+    // webhook, manual order creation) with no user session, and design_briefs'
+    // RLS references auth.users — the anon role gets 42501 "permission denied
+    // for table users" and briefs were never created after payment.
+    const supabase = getAdminClient();
 
     // Get order details. Two things to note about this query:
     //
