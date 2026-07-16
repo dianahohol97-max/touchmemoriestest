@@ -92,8 +92,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  // Photographer catalog + public landing pages ("фотограф {місто}" queries).
+  // Photographer catalog + public landing pages ("фотограф {місто}" queries)
+  // and the service landing for photographers themselves.
   // Client galleries are token-gated and noindex — never listed here.
+  {
+    const path = '/gallery-for-photographers';
+    const alternates = getAlternateLanguages(path);
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+        alternates: { languages: alternates },
+      });
+    }
+  }
   {
     const path = '/photographer';
     const alternates = getAlternateLanguages(path);

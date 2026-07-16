@@ -61,6 +61,11 @@ export default async function PhotographersCatalogPage({ params }: Props) {
         Перевірені фотографи, що працюють із Touch.Memories: портфоліо, прайс і контакти на сторінці кожного фотографа.
       </p>
 
+      <a href={`/${locale}/gallery-for-photographers`}
+        style={{ display: 'block', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 20px', marginBottom: 28, textDecoration: 'none', color: '#1e2d7d', fontWeight: 700 }}>
+        📷 Ви фотограф? Отримайте безкоштовну галерею для клієнтів і власну сторінку-візитку →
+      </a>
+
       {list.length === 0 && <div style={{ color: '#94a3b8' }}>Каталог наповнюється — завітайте пізніше.</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
