@@ -39,8 +39,6 @@ export default function BookingSection({ slots, theme: t, kicker }: {
   const [error, setError] = useState('');
   const [done, setDone] = useState<BookingResult | null>(null);
   const [doneSlotId, setDoneSlotId] = useState('');
-  const [claimed, setClaimed] = useState(false);
-  const [claiming, setClaiming] = useState(false);
   const [paying, setPaying] = useState('');
   const [payError, setPayError] = useState('');
 
@@ -106,7 +104,6 @@ export default function BookingSection({ slots, theme: t, kicker }: {
   if (byDate.length === 0 && !done) return null;
 
   const hasPayment = done && (done.payment.mono_auto || done.payment.wfp_auto || done.payment.mono_link || done.payment.wfp_link || done.payment.requisites);
-  const hasManualPayment = done && (done.payment.mono_link || done.payment.wfp_link || done.payment.requisites);
 
   return (
     <section style={{ maxWidth: 660, margin: '0 auto', padding: '48px 20px 8px' }}>
@@ -170,31 +167,6 @@ export default function BookingSection({ slots, theme: t, kicker }: {
                 Оплата надходить безпосередньо фотографу.
               </div>
 
-              {/* "Я оплатив(ла)": лише для ручних способів — автооплата
-                  підтверджується вебхуком провайдера сама */}
-              {hasManualPayment && <div style={{ marginTop: 14, textAlign: 'center' }}>
-                {claimed ? (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#065f46' }}>
-                    ✅ Дякуємо! Ми повідомили фотографа — він перевірить надходження.
-                  </div>
-                ) : (
-                  <button disabled={claiming}
-                    onClick={async () => {
-                      if (claiming) return;
-                      setClaiming(true);
-                      try {
-                        await fetch('/api/photographers/booking/claim', {
-                          method: 'POST', headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ slot_id: doneSlotId }),
-                        });
-                        setClaimed(true);
-                      } finally { setClaiming(false); }
-                    }}
-                    style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.muted, borderRadius: btnRadius, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: claiming ? 'default' : 'pointer' }}>
-                    {claiming ? 'Надсилаємо…' : 'Я оплатив(ла) ✓'}
-                  </button>
-                )}
-              </div>}
             </div>
           )}
         </div>
