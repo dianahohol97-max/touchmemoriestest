@@ -17,7 +17,13 @@ export async function GET(req: NextRequest) {
 // Only these fields are editable from the cabinet. slug / custom_domain /
 // is_active are managed by staff in the admin — a photographer must not be
 // able to move their public URL or toggle the paid domain themselves.
-const EDITABLE = ['name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio', 'landing_enabled', 'city', 'specialization', 'landing_theme'] as const;
+const EDITABLE = [
+  'name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio',
+  'landing_enabled', 'city', 'specialization', 'landing_theme',
+  // booking + direct-to-photographer payment settings
+  'booking_enabled', 'pay_mono_enabled', 'pay_mono_link',
+  'pay_wfp_enabled', 'pay_wfp_link', 'pay_requisites_enabled', 'pay_requisites',
+] as const;
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +43,11 @@ export async function POST(req: NextRequest) {
     }
     if ('landing_theme' in patch && !isValidThemeKey(patch.landing_theme)) {
       return NextResponse.json({ error: 'Невідома тема лендингу' }, { status: 400 });
+    }
+    for (const linkKey of ['pay_mono_link', 'pay_wfp_link'] as const) {
+      if (linkKey in patch && patch[linkKey] && !/^https?:\/\//i.test(String(patch[linkKey]))) {
+        return NextResponse.json({ error: 'Посилання на оплату має починатися з http' }, { status: 400 });
+      }
     }
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: 'Немає полів для оновлення' }, { status: 400 });

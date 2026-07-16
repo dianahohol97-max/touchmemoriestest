@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 import { getLandingTheme } from '@/lib/photographers/themes';
+import BookingSection, { type PublicSlot } from './BookingSection';
 
 export const revalidate = 300;
 
@@ -13,7 +14,7 @@ async function getPhotographer(slug: string) {
   const admin = getAdminClient();
   const { data } = await admin
     .from('photographers')
-    .select('name, bio, phone, instagram, website, email, logo_url, avatar_url, pricing, portfolio, city, specialization, landing_enabled, landing_theme, is_active')
+    .select('id, name, bio, phone, instagram, website, email, logo_url, avatar_url, pricing, portfolio, city, specialization, landing_enabled, landing_theme, booking_enabled, is_active')
     .eq('slug', slug)
     .maybeSingle();
   if (!data || !data.is_active || !data.landing_enabled) return null;
@@ -82,6 +83,22 @@ export default async function PhotographerLandingPage({ params }: Props) {
   }
 
   const t = getLandingTheme(p.landing_theme);
+
+  // Free future slots for the booking widget (hidden when none or disabled).
+  let slots: PublicSlot[] = [];
+  if (p.booking_enabled) {
+    const admin = getAdminClient();
+    const { data: slotRows } = await admin
+      .from('photographer_slots')
+      .select('id, slot_date, slot_time, duration_min, price')
+      .eq('photographer_id', (p as any).id)
+      .eq('status', 'free')
+      .gte('slot_date', new Date().toISOString().slice(0, 10))
+      .order('slot_date', { ascending: true })
+      .order('slot_time', { ascending: true })
+      .limit(80);
+    slots = (slotRows || []) as PublicSlot[];
+  }
   const pricing: { title?: string; price?: string; description?: string }[] =
     (Array.isArray(p.pricing) ? p.pricing : []).filter(i => (i?.title || '').trim());
   const portfolio: string[] = Array.isArray(p.portfolio) ? p.portfolio : [];
@@ -237,6 +254,9 @@ export default async function PhotographerLandingPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      {/* ── Booking ──────────────────────────────────────────── */}
+      {slots.length > 0 && <BookingSection slots={slots} theme={t} kicker={kickerStyle} />}
 
       {/* ── Pricing ──────────────────────────────────────────── */}
       {pricing.length > 0 && (

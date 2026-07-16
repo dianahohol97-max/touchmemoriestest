@@ -11,6 +11,15 @@ interface Profile {
   landing_enabled: boolean; landing_theme: string | null;
   pricing: PriceRow[]; portfolio: string[];
   custom_domain: string | null; custom_domain_paid: boolean;
+  booking_enabled: boolean;
+  pay_mono_enabled: boolean; pay_mono_link: string | null;
+  pay_wfp_enabled: boolean; pay_wfp_link: string | null;
+  pay_requisites_enabled: boolean; pay_requisites: string | null;
+}
+interface Slot {
+  id: string; slot_date: string; slot_time: string; duration_min: number;
+  price: string | null; status: string;
+  client_name: string | null; client_phone: string | null; client_comment: string | null;
 }
 interface PriceRow { title: string; price: string; description?: string }
 interface Gallery {
@@ -62,6 +71,7 @@ export default function CabinetClient({ token }: { token: string }) {
       {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 8, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
 
       <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
+      <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
     </div>
@@ -378,6 +388,186 @@ function LandingSection({ token, profile, onChanged, flash }: {
           Напишіть нам на <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#1e2d7d' }}>hello@touchmemories.com.ua</a> — підключимо.
         </p>
       )}
+    </div>
+  );
+}
+
+/* ── Запис на зйомку: слоти + оплата ─────────────────────────────────── */
+
+const fmtSlotDate = (d: string) =>
+  new Date(`${d}T00:00:00`).toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
+
+function BookingCabinetSection({ token, profile, onChanged, flash }: {
+  token: string; profile: Profile; onChanged: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [duration, setDuration] = useState(60);
+  const [price, setPrice] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [pay, setPay] = useState({
+    booking_enabled: profile.booking_enabled ?? true,
+    pay_mono_enabled: !!profile.pay_mono_enabled, pay_mono_link: profile.pay_mono_link || '',
+    pay_wfp_enabled: !!profile.pay_wfp_enabled, pay_wfp_link: profile.pay_wfp_link || '',
+    pay_requisites_enabled: !!profile.pay_requisites_enabled, pay_requisites: profile.pay_requisites || '',
+  });
+  const [savingPay, setSavingPay] = useState(false);
+
+  const loadSlots = async () => {
+    const res = await fetch(`/api/photographers/slots?token=${encodeURIComponent(token)}`);
+    const json = await res.json();
+    if (res.ok) setSlots(json.slots || []);
+  };
+  useEffect(() => { loadSlots(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
+
+  const addSlot = async () => {
+    if (!date || !time || adding) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/photographers/slots', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, date, time, duration_min: duration, price }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || 'Помилка'); return; }
+      setTime(''); setPrice('');
+      await loadSlots();
+      flash('Слот додано');
+    } finally { setAdding(false); }
+  };
+
+  const removeSlot = async (id: string) => {
+    const res = await fetch('/api/photographers/slots', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, slot_id: id }),
+    });
+    if (res.ok) { await loadSlots(); flash('Слот видалено'); }
+    else alert((await res.json())?.error || 'Помилка');
+  };
+
+  const savePayments = async () => {
+    setSavingPay(true);
+    try {
+      const res = await fetch('/api/photographers/profile', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, ...pay }),
+      });
+      if (res.ok) { await onChanged(); flash('Налаштування оплати збережено'); }
+      else alert((await res.json())?.error || 'Помилка');
+    } finally { setSavingPay(false); }
+  };
+
+  const toggle = (k: keyof typeof pay) => setPay(p => ({ ...p, [k]: !p[k] }));
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Запис на зйомку</h2>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
+          <input type="checkbox" checked={pay.booking_enabled}
+            onChange={() => { toggle('booking_enabled'); }} />
+          Показувати запис на сторінці
+        </label>
+      </div>
+      <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>
+        Додайте вільні дати й час — клієнти бронюватимуть їх прямо на вашій сторінці, а вам прийде лист. Оплата надходить напряму вам.
+      </p>
+
+      {/* Додавання слота */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+        <div>
+          <label style={label}>Дата</label>
+          <input style={input} type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
+        </div>
+        <div>
+          <label style={label}>Час</label>
+          <input style={input} type="time" value={time} onChange={e => setTime(e.target.value)} />
+        </div>
+        <div>
+          <label style={label}>Тривалість</label>
+          <select style={input} value={duration} onChange={e => setDuration(Number(e.target.value))}>
+            <option value={30}>30 хв</option><option value={60}>1 год</option>
+            <option value={90}>1.5 год</option><option value={120}>2 год</option>
+            <option value={180}>3 год</option><option value={240}>4 год</option>
+          </select>
+        </div>
+        <div>
+          <label style={label}>Ціна (текст)</label>
+          <input style={input} value={price} onChange={e => setPrice(e.target.value)} placeholder="2500 грн" />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <button style={{ ...btn, width: '100%' }} onClick={addSlot} disabled={adding || !date || !time}>
+            {adding ? '…' : '+ Додати'}
+          </button>
+        </div>
+      </div>
+
+      {/* Список слотів */}
+      {slots.length > 0 && (
+        <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+          {slots.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontWeight: 800, minWidth: 130, textTransform: 'capitalize' }}>{fmtSlotDate(s.slot_date)}</div>
+              <div style={{ fontWeight: 700 }}>{s.slot_time}</div>
+              <div style={{ color: '#64748b', fontSize: 13 }}>{s.duration_min} хв{s.price ? ` · ${s.price}` : ''}</div>
+              <div style={{ flex: 1 }} />
+              {s.status === 'booked' ? (
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '4px 10px' }}>
+                  ✅ {s.client_name} · {s.client_phone}
+                </div>
+              ) : (
+                <>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '4px 10px' }}>Вільно</span>
+                  <button style={{ ...btnGhost, padding: '6px 10px' }} onClick={() => removeSlot(s.id)}>✕</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Оплата */}
+      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Оплата (напряму вам)</h3>
+      <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
+        Клієнт побачить увімкнені способи одразу після бронювання. Увімкніть хоча б один — або жодного, якщо берете оплату при зустрічі.
+      </p>
+      <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <input type="checkbox" checked={pay.pay_mono_enabled} onChange={() => toggle('pay_mono_enabled')} />
+            Monobank (посилання на банку / оплату)
+          </label>
+          {pay.pay_mono_enabled && (
+            <input style={{ ...input, marginTop: 8 }} placeholder="https://send.monobank.ua/jar/…"
+              value={pay.pay_mono_link} onChange={e => setPay(p => ({ ...p, pay_mono_link: e.target.value }))} />
+          )}
+        </div>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <input type="checkbox" checked={pay.pay_wfp_enabled} onChange={() => toggle('pay_wfp_enabled')} />
+            WayForPay (посилання на оплату)
+          </label>
+          {pay.pay_wfp_enabled && (
+            <input style={{ ...input, marginTop: 8 }} placeholder="https://secure.wayforpay.com/…"
+              value={pay.pay_wfp_link} onChange={e => setPay(p => ({ ...p, pay_wfp_link: e.target.value }))} />
+          )}
+        </div>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <input type="checkbox" checked={pay.pay_requisites_enabled} onChange={() => toggle('pay_requisites_enabled')} />
+            Реквізити для ручної оплати
+          </label>
+          {pay.pay_requisites_enabled && (
+            <textarea style={{ ...input, marginTop: 8, minHeight: 70, resize: 'vertical' }}
+              placeholder={'Картка: 5375 0000 0000 0000\nОтримувач: Олена Коваленко\nПризначення: фотозйомка'}
+              value={pay.pay_requisites} onChange={e => setPay(p => ({ ...p, pay_requisites: e.target.value }))} />
+          )}
+        </div>
+      </div>
+      <button style={{ ...btn, marginTop: 12 }} onClick={savePayments} disabled={savingPay}>
+        {savingPay ? 'Зберігаємо…' : 'Зберегти налаштування оплати'}
+      </button>
     </div>
   );
 }
