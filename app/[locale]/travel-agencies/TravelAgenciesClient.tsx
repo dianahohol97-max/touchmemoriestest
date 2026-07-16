@@ -187,6 +187,9 @@ export default function TravelAgenciesClient() {
                                             {loading ? 'Надсилається…' : 'Надіслати заявку'}
                                         </button>
                                     </form>
+                                    <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', margin: '16px 0 0' }}>
+                                        Вже наш партнер? <a href="/uk/partner/cabinet" style={{ color: '#263A99', fontWeight: 700 }}>Увійти в кабінет →</a>
+                                    </p>
                                 </>
                             )}
                         </div>

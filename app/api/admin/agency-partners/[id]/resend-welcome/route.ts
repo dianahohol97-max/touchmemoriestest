@@ -53,6 +53,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
             <p style="font-size:14px;color:#334155;margin:0 0 16px">Клієнт вводить код при оформленні й отримує знижку, а вам нараховується комісія — <b>автоматично після оплати замовлення</b>. Можна ділитися і прямим посиланням:</p>
             <p style="font-size:14px;margin:0 0 16px"><a href="${refLink}" style="color:#263A99">${refLink}</a></p>
             <div style="text-align:center;margin:18px 0"><a href="${cabinetLink}" style="display:inline-block;background:#263A99;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px">Відкрити партнерський кабінет</a></div>
+            <p style="font-size:13px;color:#64748b;margin:0 0 16px">Щоб заходити в кабінет будь-коли, навіть без цього листа — <a href="https://touchmemories.com.ua/uk/register" style="color:#263A99">створіть акаунт</a> на цю саму пошту (${p.email}), і далі входьте через <a href="https://touchmemories.com.ua/uk/partner/cabinet" style="color:#263A99">touchmemories.com.ua/uk/partner/cabinet</a> — кабінет прив'яжеться автоматично.</p>
             <p style="font-size:13px;color:#64748b;margin:0 0 16px">У кабінеті ви бачите свої нарахування й можете вказати рахунок для виведення коштів. Мінімальна сума виведення — 500 грн.</p>
             <p style="font-size:13px;color:#94a3b8;margin:0">Дякуємо за співпрацю! Якщо виникнуть питання — просто відповідайте на цей лист.</p>
           </div>
