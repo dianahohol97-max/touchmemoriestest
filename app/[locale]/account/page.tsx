@@ -113,9 +113,11 @@ export default function AccountPage() {
     const [wishlist, setWishlist] = useState<any[]>([]);
     const [referral, setReferral] = useState<any>(null);
     const [referralLoading, setReferralLoading] = useState(false);
-    // B2B partner info (photographer / wedding agency): discount % and, for
-    // photographers, the gallery-cabinet + landing links (sidebar card).
-    const [b2b, setB2b] = useState<{ isB2b: boolean; role: string | null; discountPercent: number; label: string | null; photographer: { cabinet_token: string; slug: string } | null } | null>(null);
+    // B2B partner info (photographer / wedding agency): discount % and the
+    // gallery-cabinet + landing links (sidebar card). The cabinet is open
+    // self-service for everyone; the discount is B2B-verification-gated.
+    const [b2b, setB2b] = useState<{ isB2b: boolean; role: string | null; discountPercent: number; label: string | null; photographer: { cabinet_token: string; slug: string } | null; loggedIn?: boolean } | null>(null);
+    const [creatingCabinet, setCreatingCabinet] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -387,9 +389,22 @@ export default function AccountPage() {
     useEffect(() => {
         fetch('/api/b2b/me')
             .then(r => (r.ok ? r.json() : null))
-            .then(d => { if (d?.isB2b) setB2b(d); })
+            .then(d => { if (d?.loggedIn) setB2b(d); })
             .catch(() => { /* the account works fine without the B2B card */ });
     }, []);
+
+    const createPhotographerCabinet = async () => {
+        if (creatingCabinet) return;
+        setCreatingCabinet(true);
+        try {
+            const res = await fetch('/api/photographers/self-create', { method: 'POST' });
+            const json = await res.json();
+            if (!res.ok) { toast.error(json?.error || 'Не вдалося створити кабінет'); return; }
+            setB2b(prev => prev ? { ...prev, photographer: json.photographer } : prev);
+            toast.success('Кабінет фотографа створено!');
+        } catch { toast.error('Не вдалося створити кабінет'); }
+        finally { setCreatingCabinet(false); }
+    };
 
     const logout = async () => {
         await supabase.auth.signOut();
@@ -530,18 +545,25 @@ export default function AccountPage() {
                             </div>
                         </div>
 
-                        {/* B2B partner card: the 10% discount + (for photographers)
-                            the gallery cabinet and public landing links */}
-                        {b2b?.isB2b && (
+                        {/* Photographer / partner card. The gallery cabinet + landing
+                            is self-service for everyone; the 10% discount line shows
+                            only after B2B verification. */}
+                        {b2b && (
                             <div style={{ background: '#fff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 18px', marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                     <span style={{ fontSize: 18 }}>📷</span>
-                                    <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>{b2b.label || 'Партнер'}</span>
+                                    <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>{b2b.isB2b ? (b2b.label || 'Партнер') : 'Кабінет фотографа'}</span>
                                 </div>
-                                <div style={{ fontSize: 13, color: '#475569', marginBottom: b2b.photographer ? 12 : 0 }}>
-                                    Ваша знижка <b style={{ color: '#1e2d7d' }}>{b2b.discountPercent}%</b> діє автоматично на відповідні товари в каталозі та кошику.
-                                </div>
-                                {b2b.photographer && (
+                                {b2b.isB2b ? (
+                                    <div style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>
+                                        Ваша знижка <b style={{ color: '#1e2d7d' }}>{b2b.discountPercent}%</b> діє автоматично на відповідні товари в каталозі та кошику.
+                                    </div>
+                                ) : b2b.role === 'photographer' && b2b.photographer ? (
+                                    <div style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>
+                                        Заявка на знижку 10% на розгляді — кабінет уже доступний.
+                                    </div>
+                                ) : null}
+                                {b2b.photographer ? (
                                     <div style={{ display: 'grid', gap: 6 }}>
                                         <a href={`/uk/photographer/cabinet/${b2b.photographer.cabinet_token}`}
                                             style={{ display: 'block', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
@@ -551,6 +573,16 @@ export default function AccountPage() {
                                             style={{ display: 'block', textAlign: 'center', background: '#eef2ff', color: '#1e2d7d', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                                             Моя сторінка-візитка ↗
                                         </a>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
+                                            Галереї для передачі фото клієнтам (30 днів) і власна сторінка-візитка — безкоштовно.
+                                        </div>
+                                        <button onClick={createPhotographerCabinet} disabled={creatingCabinet}
+                                            style={{ display: 'block', width: '100%', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, border: 'none', cursor: creatingCabinet ? 'default' : 'pointer', opacity: creatingCabinet ? 0.7 : 1 }}>
+                                            {creatingCabinet ? 'Створюємо…' : 'Створити кабінет'}
+                                        </button>
                                     </div>
                                 )}
                             </div>

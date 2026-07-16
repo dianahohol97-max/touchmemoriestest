@@ -93,6 +93,46 @@ export async function POST(request: Request) {
             status: 'pending',
         });
 
+        // 3.5. Photographers get their gallery cabinet + landing IMMEDIATELY —
+        // that part is free self-service; only the 10% discount waits for the
+        // application to be approved. Idempotent per customer/email.
+        let cabinetToken: string | null = null;
+        if (role === 'photographer') {
+            try {
+                const { data: existing } = await admin
+                    .from('photographers')
+                    .select('id, cabinet_token, customer_id')
+                    .or(`${customerId ? `customer_id.eq.${customerId},` : ''}email.ilike.${email}`)
+                    .maybeSingle();
+                if (existing) {
+                    cabinetToken = existing.cabinet_token;
+                    if (!existing.customer_id && customerId) {
+                        await admin.from('photographers').update({ customer_id: customerId }).eq('id', existing.id);
+                    }
+                } else {
+                    const baseSlug = name.toLowerCase()
+                        .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+                        .replace(/^-+|-+$/g, '')
+                        .replace(/[а-яіїєґ]/gi, '')
+                        .replace(/^-+|-+$/g, '') || 'photographer';
+                    const { data: created } = await admin
+                        .from('photographers')
+                        .insert({
+                            name, email,
+                            slug: `${baseSlug}-${String(Date.now()).slice(-5)}`,
+                            customer_id: customerId,
+                            website: portfolioUrl || null,
+                        })
+                        .select('cabinet_token')
+                        .single();
+                    cabinetToken = created?.cabinet_token || null;
+                }
+            } catch (e) {
+                console.error('[b2b/register] cabinet creation failed:', e);
+            }
+        }
+        const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
+
         // 4. Emails (best-effort)
         if (getBrevoApiKey()) {
             const roleLabel = role === 'photographer' ? 'Фотограф' : 'Весільна агенція';
@@ -130,7 +170,9 @@ export async function POST(request: Request) {
                       <div style="padding:32px 28px;background:#fff;border:1px solid #e2e8f0">
                         <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${name}!</h2>
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Дякуємо за заявку на партнерську програму TouchMemories. Ми переглянемо ваше портфоліо протягом 1–2 робочих днів і повідомимо про підтвердження на цю пошту.</p>
-                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">Після підтвердження вам автоматично відкриється постійна знижка ${cfg.discountPercent}% — нічого вводити не доведеться, ціна враховуватиметься щойно ви увійдете у свій акаунт.</p>
+                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">Після підтвердження вам автоматично відкриється постійна знижка ${cfg.discountPercent}% — нічого вводити не доведеться, ціна враховуватиметься щойно ви увійдете у свій акаунт.</p>${cabinetToken ? `
+                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">А <strong>кабінет фотографа</strong> доступний уже зараз: галереї для передачі фото клієнтам (зберігання 30 днів) і ваша сторінка-візитка з портфоліо та прайсом.</p>
+                        <p style="margin:16px 0 0"><a href="${siteUrl}/uk/photographer/cabinet/${cabinetToken}" style="background:#1e2d7d;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет фотографа</a></p>` : ''}
                       </div>
                     </div>`,
                 fromName: 'Touch.Memories',
