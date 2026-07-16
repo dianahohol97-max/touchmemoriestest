@@ -20,6 +20,10 @@ export default function WeddingAgenciesPage() {
             portfolioLabel="Сайт або сторінка агенції"
             portfolioPlaceholder="Instagram або вебсайт агенції"
             discountPercent={7}
+            cabinetLink={{
+                text: 'Вже маєте кабінет агенції? Увійти →',
+                href: '/uk/wedding-agency/cabinet',
+            }}
         />
     );
 }
