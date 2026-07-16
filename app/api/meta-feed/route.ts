@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
  * and the existing JSON feed use (`status` is not part of site visibility).
  */
 
-const HEADERS = ['id', 'title', 'description', 'availability', 'condition', 'price', 'link', 'image_link', 'brand'] as const;
+const HEADERS = ['id', 'title', 'description', 'availability', 'condition', 'price', 'link', 'image_link', 'brand', 'quantity_to_sell_on_facebook'] as const;
 
 /** RFC 4180: quote a field if it contains a comma, quote or newline;
  *  double any inner quotes. Otherwise the feed breaks on the first
@@ -62,7 +62,7 @@ export async function GET() {
 
   const { data: products, error } = await admin
     .from('products')
-    .select('id, name, slug, description, short_description, price, sale_price, images')
+    .select('id, name, slug, description, short_description, price, sale_price, images, track_inventory, stock_available')
     .eq('is_active', true);
 
   if (error) {
@@ -84,6 +84,11 @@ export async function GET() {
 
     const image = Array.isArray(p.images) && p.images[0] ? String(p.images[0]) : `${site}/og-image.jpg`;
 
+    // Meta hides items with no sellable quantity ("Missing quantity" → not
+    // shown in Shops). Most products are made-to-order, so a large constant
+    // is honest; inventory-tracked items report their real stock.
+    const quantity = p.track_inventory ? Math.max(Number(p.stock_available) || 0, 0) : 100;
+
     const row: Record<(typeof HEADERS)[number], string> = {
       id: String(p.id),
       title,
@@ -94,6 +99,7 @@ export async function GET() {
       link: `${site}/uk/catalog/${p.slug}`,
       image_link: image,
       brand: 'Touch.Memories',
+      quantity_to_sell_on_facebook: String(quantity),
     };
 
     lines.push(HEADERS.map(h => csvField(row[h])).join(','));
