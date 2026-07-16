@@ -55,6 +55,18 @@ export async function POST(req: Request) {
 
   if (!ALLOWED_BUCKETS.has(bucket)) return NextResponse.json({ error: 'Bucket not allowed' }, { status: 400 });
 
+  // Extension allowlist. These buckets are PUBLIC, so an .svg/.html would be
+  // served from our domain and could run script (stored XSS). Only raster
+  // images (and video in the videos bucket). Size is enforced by the bucket's
+  // own file-size limit since the bytes never pass through this function.
+  const isVideoBucket = bucket === 'videos';
+  const ALLOWED_EXT = isVideoBucket
+    ? ['mp4', 'webm', 'mov', 'm4v']
+    : ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+  if (!ALLOWED_EXT.includes(ext)) {
+    return NextResponse.json({ error: 'Недозволений тип файлу' }, { status: 400 });
+  }
+
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   const path = folder ? `${folder}/${fileName}` : fileName;
 

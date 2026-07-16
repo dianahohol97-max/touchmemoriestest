@@ -115,7 +115,10 @@ export default function KadruvannyaPage() {
   // Active cell + count (preset or custom).
   const cell = useMemo(() => {
     if (useCustom) {
-      const w = Math.max(10, customW), h = Math.max(10, customH);
+      // Inputs are in centimetres (labels "Ш, см"/"В, см"); the geometry below
+      // works in millimetres like every preset (w:50 == 5 cm). Convert, or a
+      // "9 cm" custom size came out as a 9 mm crop.
+      const w = Math.max(10, customW * 10), h = Math.max(10, customH * 10);
       const count = Math.max(1, Math.min(60, customCount));
       return { w, h, count, label: `${customW} × ${customH} см` };
     }
