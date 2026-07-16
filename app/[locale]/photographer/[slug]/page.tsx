@@ -80,20 +80,15 @@ export default async function PhotographerLandingPage({ params }: Props) {
     );
   }
 
-  const pricing: { title?: string; price?: string; description?: string }[] = Array.isArray(p.pricing) ? p.pricing : [];
+  const pricing: { title?: string; price?: string; description?: string }[] =
+    (Array.isArray(p.pricing) ? p.pricing : []).filter(i => (i?.title || '').trim());
   const portfolio: string[] = Array.isArray(p.portfolio) ? p.portfolio : [];
   const pageUrl = getCanonicalUrl(locale, `/photographer/${slug}`);
-  const subtitle = [p.specialization || 'Фотограф', p.city].filter(Boolean).join(' • ');
-  const contacts = [
-    p.phone && { label: '📞', value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
-    p.email && { label: '✉️', value: p.email, href: `mailto:${p.email}` },
-    p.instagram && { label: '📷', value: p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '')}` },
-    p.website && { label: '🌐', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
-  ].filter(Boolean) as { label: string; value: string; href: string }[];
+  const spec = (p.specialization || 'Фотограф').trim();
+  const avatar = p.avatar_url || p.logo_url;
+  const instagramHandle = p.instagram ? p.instagram.replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '') : null;
+  const phoneHref = p.phone ? `tel:${p.phone.replace(/[^\d+]/g, '')}` : null;
 
-  // Structured data: a photography service (rich results for "фотограф {місто}")
-  // plus the person behind it. Prices are free-form text, so they go into the
-  // offer name/description rather than a numeric price field.
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ProfessionalService',
@@ -106,11 +101,10 @@ export default async function PhotographerLandingPage({ params }: Props) {
     ...(p.email ? { email: p.email } : {}),
     ...(p.city ? { address: { '@type': 'PostalAddress', addressLocality: p.city, addressCountry: 'UA' } } : {}),
     ...(portfolio.length ? { photo: portfolio.map(u => ({ '@type': 'ImageObject', contentUrl: u })) } : {}),
-    ...(contacts.length ? { sameAs: contacts.filter(c => c.href.startsWith('http')).map(c => c.href) } : {}),
-    founder: { '@type': 'Person', name: p.name, jobTitle: p.specialization || 'Фотограф' },
+    founder: { '@type': 'Person', name: p.name, jobTitle: spec },
     ...(pricing.length
       ? {
-          makesOffer: pricing.filter(i => i.title).map(i => ({
+          makesOffer: pricing.map(i => ({
             '@type': 'Offer',
             name: i.title,
             ...(i.description ? { description: i.description } : {}),
@@ -121,65 +115,166 @@ export default async function PhotographerLandingPage({ params }: Props) {
   };
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 20px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
+    <div className="min-h-screen bg-[#faf8f5] text-[#1c1917]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Business card header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 28 }}>
-        {(p.logo_url || p.avatar_url) && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.logo_url || p.avatar_url!} alt={`${p.name} — ${subtitle}`} style={{ width: 96, height: 96, borderRadius: 16, objectFit: 'cover', border: '1px solid #e5e7eb' }} />
-        )}
-        <div>
-          <h1 style={{ fontSize: 32, fontWeight: 800, margin: 0, color: '#1e2d7d' }}>{seoTitle(p)}</h1>
-          <div style={{ color: '#64748b', marginTop: 4 }}>{subtitle}</div>
-        </div>
-      </div>
-
-      {p.bio && <p style={{ fontSize: 16, lineHeight: 1.65, marginBottom: 28, whiteSpace: 'pre-wrap' }}>{p.bio}</p>}
-
-      {contacts.length > 0 && (
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 40 }}>
-          {contacts.map(c => (
-            <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f1f5f9', borderRadius: 999, padding: '9px 16px', textDecoration: 'none', color: '#1e2d7d', fontWeight: 600, fontSize: 14 }}>
-              <span>{c.label}</span><span>{c.value}</span>
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* Portfolio */}
-      {portfolio.length > 0 && (
-        <section style={{ marginBottom: 44 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 16 }}>Портфоліо</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-            {portfolio.map((url, i) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={url} src={url} alt={`${p.name} — портфоліо, фото ${i + 1}`} loading="lazy"
-                style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 10, background: '#f1f5f9' }} />
-            ))}
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <header className="relative overflow-hidden">
+        {/* Soft backdrop from the first portfolio shot */}
+        {portfolio[0] && (
+          <div aria-hidden className="absolute inset-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={portfolio[0]} alt="" className="w-full h-full object-cover opacity-[0.14] blur-2xl scale-110" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#faf8f5]/60 via-[#faf8f5]/85 to-[#faf8f5]" />
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Pricing */}
-      {pricing.length > 0 && (
-        <section>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e2d7d', marginBottom: 16 }}>Прайс на фотозйомку</h2>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {pricing.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'baseline', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 200 }}>
-                  <div style={{ fontWeight: 700 }}>{item.title}</div>
-                  {item.description && <div style={{ color: '#64748b', fontSize: 14, marginTop: 2 }}>{item.description}</div>}
-                </div>
-                <div style={{ fontWeight: 800, color: '#1e2d7d', whiteSpace: 'nowrap' }}>{item.price}</div>
+        <div className="relative max-w-3xl mx-auto px-5 pt-20 pb-14 text-center">
+          {avatar ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatar} alt={seoTitle(p)}
+              className="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover mx-auto shadow-xl ring-4 ring-white" />
+          ) : (
+            <div className="w-28 h-28 rounded-full mx-auto bg-[#1c1917] text-[#faf8f5] flex items-center justify-center text-4xl font-heading font-bold shadow-xl ring-4 ring-white">
+              {p.name.trim().charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          <div className="mt-6 text-[11px] md:text-xs font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">
+            {spec}{p.city ? ` · ${p.city}` : ''}
+          </div>
+          <h1 className="mt-2 font-heading font-extrabold tracking-tight text-4xl md:text-5xl leading-tight">
+            {p.name}
+          </h1>
+
+          {p.bio && (
+            <p className="mt-5 text-[15px] md:text-base leading-relaxed text-[#57534e] max-w-xl mx-auto whitespace-pre-wrap">
+              {p.bio}
+            </p>
+          )}
+
+          {/* Contact actions */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            {phoneHref && (
+              <a href={phoneHref}
+                className="inline-flex items-center gap-2 bg-[#1c1917] text-[#faf8f5] rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-black/10 hover:bg-black transition-colors">
+                Забронювати зйомку
+              </a>
+            )}
+            {!phoneHref && p.email && (
+              <a href={`mailto:${p.email}`}
+                className="inline-flex items-center gap-2 bg-[#1c1917] text-[#faf8f5] rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-black/10 hover:bg-black transition-colors">
+                Забронювати зйомку
+              </a>
+            )}
+            {instagramHandle && (
+              <a href={`https://instagram.com/${instagramHandle}`} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold border border-[#d6d3d1] text-[#44403c] hover:border-[#1c1917] hover:text-[#1c1917] transition-colors bg-white/70">
+                Instagram <span className="text-[#a8a29e]">@{instagramHandle}</span>
+              </a>
+            )}
+            {p.website && (
+              <a href={p.website.startsWith('http') ? p.website : `https://${p.website}`} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold border border-[#d6d3d1] text-[#44403c] hover:border-[#1c1917] hover:text-[#1c1917] transition-colors bg-white/70">
+                Сайт
+              </a>
+            )}
+          </div>
+
+          {(p.phone || p.email) && (
+            <div className="mt-4 text-[13px] text-[#a8a29e]">
+              {p.phone && <a href={phoneHref!} className="hover:text-[#57534e]">{p.phone}</a>}
+              {p.phone && p.email && <span className="mx-2">·</span>}
+              {p.email && <a href={`mailto:${p.email}`} className="hover:text-[#57534e]">{p.email}</a>}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ── Portfolio ────────────────────────────────────────── */}
+      {portfolio.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 md:px-6 pb-4">
+          <div className="text-center mb-8">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">Роботи</div>
+            <h2 className="mt-1 font-heading font-extrabold tracking-tight text-2xl md:text-3xl">Портфоліо</h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 [grid-auto-rows:1fr]">
+            {portfolio.map((url, i) => (
+              <div key={url}
+                className={`relative overflow-hidden rounded-xl bg-[#e7e5e4] ${i === 0 && portfolio.length >= 3 ? 'col-span-2 row-span-2' : ''}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`${p.name} — портфоліо, фото ${i + 1}`} loading={i < 3 ? 'eager' : 'lazy'}
+                  className="w-full h-full object-cover aspect-square transition-transform duration-500 hover:scale-[1.03]" />
               </div>
             ))}
           </div>
         </section>
       )}
+
+      {/* ── Pricing ──────────────────────────────────────────── */}
+      {pricing.length > 0 && (
+        <section className="max-w-2xl mx-auto px-5 pt-14 pb-4">
+          <div className="text-center mb-8">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#a8a29e]">Вартість</div>
+            <h2 className="mt-1 font-heading font-extrabold tracking-tight text-2xl md:text-3xl">Прайс на фотозйомку</h2>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#e7e5e4] shadow-sm divide-y divide-[#f5f5f4]">
+            {pricing.map((item, i) => (
+              <div key={i} className="flex items-baseline justify-between gap-4 px-6 py-5">
+                <div className="min-w-0">
+                  <div className="font-semibold text-[15px]">{item.title}</div>
+                  {item.description && <div className="mt-1 text-[13px] leading-relaxed text-[#78716c]">{item.description}</div>}
+                </div>
+                {item.price && (
+                  <div className="shrink-0 font-heading font-extrabold text-[17px] whitespace-nowrap">{item.price}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── CTA band ─────────────────────────────────────────── */}
+      {(phoneHref || p.email || instagramHandle) && (
+        <section className="max-w-3xl mx-auto px-5 py-16">
+          <div className="bg-[#1c1917] text-[#faf8f5] rounded-3xl px-8 py-12 text-center shadow-2xl shadow-black/20">
+            <h2 className="font-heading font-extrabold tracking-tight text-2xl md:text-3xl">
+              Сподобались роботи?
+            </h2>
+            <p className="mt-2 text-[15px] text-[#d6d3d1]">
+              Напишіть — обговоримо вашу зйомку{p.city ? ` у місті ${p.city}` : ''}.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              {phoneHref && (
+                <a href={phoneHref} className="bg-[#faf8f5] text-[#1c1917] rounded-full px-6 py-3 text-sm font-bold hover:bg-white transition-colors">
+                  Зателефонувати
+                </a>
+              )}
+              {instagramHandle && (
+                <a href={`https://instagram.com/${instagramHandle}`} target="_blank" rel="noopener noreferrer"
+                  className="rounded-full px-6 py-3 text-sm font-bold border border-[#57534e] hover:border-[#faf8f5] transition-colors">
+                  Написати в Instagram
+                </a>
+              )}
+              {p.email && (
+                <a href={`mailto:${p.email}`}
+                  className="rounded-full px-6 py-3 text-sm font-bold border border-[#57534e] hover:border-[#faf8f5] transition-colors">
+                  Email
+                </a>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Footer note ──────────────────────────────────────── */}
+      <footer className="pb-10 text-center">
+        <a href={`/${locale}/gallery-for-photographers`} className="text-[12px] text-[#a8a29e] hover:text-[#57534e] transition-colors">
+          Сторінку створено на Touch.Memories — галереї та візитки для фотографів
+        </a>
+      </footer>
     </div>
   );
 }
