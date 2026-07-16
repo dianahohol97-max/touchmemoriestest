@@ -30,7 +30,7 @@ export async function GET() {
     customer ? `customer_id.eq.${customer.id}` : '',
     email ? `email.ilike.${email}` : '',
   ].filter(Boolean);
-  if (!conds.length) return NextResponse.json({ loggedIn: true, cabinet_token: null });
+  if (!conds.length) return NextResponse.json({ loggedIn: true, email: email || null, cabinet_token: null });
 
   const { data: ph } = await admin
     .from('photographers')
@@ -45,6 +45,7 @@ export async function GET() {
 
   return NextResponse.json({
     loggedIn: true,
+    email: email || null,
     cabinet_token: ph?.is_active ? ph.cabinet_token : null,
     slug: ph?.slug || null,
   });

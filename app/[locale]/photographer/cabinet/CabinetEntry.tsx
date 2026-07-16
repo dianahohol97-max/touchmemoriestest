@@ -13,12 +13,14 @@ type State =
 export default function CabinetEntry() {
   const router = useRouter();
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/photographers/my-cabinet', { credentials: 'include' });
         const json = await res.json();
+        if (json.email) setEmail(json.email);
         if (!json.loggedIn) { setState({ kind: 'guest' }); return; }
         if (json.cabinet_token) {
           router.replace(`/uk/photographer/cabinet/${json.cabinet_token}`);
@@ -88,9 +90,14 @@ export default function CabinetEntry() {
   if (state.kind === 'no_cabinet') {
     return (
       <div style={wrap}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d' }}>Створити кабінет фотографа</div>
-        <div style={{ maxWidth: 420 }}>До вашого акаунта ще не прив'язаний кабінет. Створіть його одним кліком — галереї для клієнтів і сторінка-візитка зʼявляться одразу.</div>
-        <button onClick={createCabinet} style={btn}>Створити кабінет</button>
+        {email && (
+          <div style={{ fontSize: 13, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 12px' }}>
+            ✓ Ви вже увійшли як <b>{email}</b>
+          </div>
+        )}
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d' }}>У вас ще немає кабінету фотографа</div>
+        <div style={{ maxWidth: 440 }}>Ваш акаунт є, але кабінет фотографа ще не створено. Натисніть кнопку — галереї для клієнтів і сторінка-візитка зʼявляться одразу, нічого заповнювати не потрібно.</div>
+        <button onClick={createCabinet} style={btn}>Створити кабінет одним кліком</button>
         <a href="/uk/gallery-for-photographers#signup" style={{ color: '#94a3b8', fontSize: 13 }}>Дізнатися більше про кабінет →</a>
       </div>
     );

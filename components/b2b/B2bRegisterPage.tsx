@@ -134,12 +134,16 @@ export default function B2bRegisterPage({
                                         {loading && <Loader2 size={16} className="animate-spin" />}
                                         {loading ? 'Надсилається…' : 'Подати заявку'}
                                     </button>
-                                    <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
-                                        Вже маєте акаунт? <Link href="/login" style={{ color: '#1e2d7d', fontWeight: 600 }}>Увійти</Link>
-                                    </p>
-                                    {cabinetLink && (
+                                    {/* When a cabinet link is present it already covers "already
+                                        registered? sign in" — showing the generic account login too
+                                        just gives two near-identical "Увійти" links. */}
+                                    {cabinetLink ? (
                                         <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
                                             <a href={cabinetLink.href} style={{ color: '#1e2d7d', fontWeight: 600 }}>{cabinetLink.text}</a>
+                                        </p>
+                                    ) : (
+                                        <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
+                                            Вже маєте акаунт? <Link href="/login" style={{ color: '#1e2d7d', fontWeight: 600 }}>Увійти</Link>
                                         </p>
                                     )}
                                     {altLink && (
