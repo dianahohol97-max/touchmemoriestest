@@ -245,7 +245,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                                 </select>
                             </div>
 
-                            {formData.applies_to === 'specific_products' && (
+                            {formData.applies_to === 'products' && (
                                 <div style={itemSelectorGrid}>
                                     {fetching ? <Loader2 className={styles.animateSpin} /> : products.map(p => (
                                         <button
@@ -264,7 +264,7 @@ export default function PromoCodeForm({ id, initialData }: PromoCodeFormProps) {
                                 </div>
                             )}
 
-                            {formData.applies_to === 'specific_categories' && (
+                            {formData.applies_to === 'categories' && (
                                 <div style={itemSelectorGrid}>
                                     {fetching ? <Loader2 className={styles.animateSpin} /> : categories.map(c => (
                                         <button

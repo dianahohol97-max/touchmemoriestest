@@ -72,16 +72,14 @@ export async function PUT(req: Request) {
         const body = await req.json();
         const { tags } = body; // Array of { id, sort_order }
 
-        const { error } = await supabase
-            .from('order_tags')
-            .upsert(tags); // Upsert needs full row or will fill defaults. Better to update one by one for partial.
-
-        // Because upsert requires all NOT NULL fields if they don't have defaults, 
-        // we'll update sequentially if there's no bulk update function.
+        // Update sort_order per row. (A prior `upsert(tags)` here always errored
+        // — the page sends UI-enriched objects with a non-column usage_count —
+        // and the error was swallowed; the loop below is what actually worked.)
         for (const tag of (tags as any[])) {
-            await supabase.from('order_tags')
+            const { error } = await supabase.from('order_tags')
                 .update({ sort_order: tag.sort_order })
                 .eq('id', tag.id);
+            if (error) return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
