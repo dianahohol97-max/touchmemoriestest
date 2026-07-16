@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   let { agencyName, contactName, email, phone, website, requestId } = body;
-  const travelbookRate = Number(body?.travelbookRate ?? 10);
+  const travelbookRate = Number(body?.travelbookRate ?? 5);
   const otherRate = Number(body?.otherRate ?? 3);
   const clientDiscount = Number(body?.clientDiscount ?? 5); // % discount the code gives the client
   // travel_agency | travel_blogger — same mechanics/rates, label only.
