@@ -37,6 +37,7 @@ const btnGhost: React.CSSProperties = { ...btn, background: '#f1f5f9', color: '#
 export default function CabinetClient({ token }: { token: string }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const [b2bStatus, setB2bStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -52,6 +53,7 @@ export default function CabinetClient({ token }: { token: string }) {
     const gJson = await gRes.json();
     if (!pRes.ok) { setError(pJson?.error || 'Кабінет не знайдено'); return; }
     setProfile(pJson.photographer);
+    setB2bStatus(pJson.b2b_status ?? null);
     setGalleries(gJson.galleries || []);
   };
 
@@ -68,12 +70,58 @@ export default function CabinetClient({ token }: { token: string }) {
         {profile.custom_domain_paid && profile.custom_domain && <> · домен: <b>{profile.custom_domain}</b></>}
       </p>
 
+      {/* Two logins are easy to confuse: this token-based cabinet manages
+          galleries/landing, while BUYING with the 10% partner discount needs
+          the customer account (email+password). Steer photographers there. */}
+      <DiscountBanner status={b2bStatus} />
+
       {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 8, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
 
       <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
       <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+    </div>
+  );
+}
+
+/* ── Плашка про купівельну знижку 10% (два різні входи) ──────────────── */
+
+function DiscountBanner({ status }: { status: string | null }) {
+  // verified — discount active; pending — applied but awaiting approval;
+  // null / other — no application yet (this cabinet may be self-service only).
+  if (status === 'verified') {
+    return (
+      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+        <div style={{ fontWeight: 800, color: '#065f46', fontSize: 15, marginBottom: 2 }}>💰 Ваша знижка 10% активна</div>
+        <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
+          Щоб купувати фотокниги, журнали, фотодрук і тревелбуки зі знижкою — <b>увійдіть у свій акаунт покупця</b> (той самий email і пароль, що при реєстрації). Ціна зі знижкою враховується автоматично в каталозі й кошику.
+        </div>
+        <a href="/uk/login" style={{ display: 'inline-block', background: '#065f46', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+          Увійти в акаунт, щоб купувати зі знижкою
+        </a>
+      </div>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+        <div style={{ fontWeight: 800, color: '#92400e', fontSize: 15, marginBottom: 2 }}>⏳ Заявку на знижку 10% розглядаємо</div>
+        <div style={{ fontSize: 13, color: '#b45309' }}>
+          Щойно ми підтвердимо заявку, знижка на фотокниги, журнали, фотодрук і тревелбуки увімкнеться у вашому акаунті автоматично — і ви зможете купувати за спеціальною ціною.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>💡 Хочете знижку 10% на друк?</div>
+      <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
+        Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки для клієнтських проєктів — подайте коротку заявку фотографа.
+      </div>
+      <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        Подати заявку на знижку 10%
+      </a>
     </div>
   );
 }

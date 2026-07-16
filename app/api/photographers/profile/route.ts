@@ -11,7 +11,29 @@ export async function GET(req: NextRequest) {
   const photographer = await getPhotographerByToken(token);
   if (!photographer) return NextResponse.json({ error: 'Кабінет не знайдено' }, { status: 404 });
   const { cabinet_token: _hidden, ...safe } = photographer as any;
-  return NextResponse.json({ photographer: safe });
+
+  // Surface the linked account's B2B status so the cabinet can tell the
+  // photographer whether the 10% shopping discount is active yet (verified),
+  // still pending, or not applied for. Matched by customer link or email.
+  let b2b_status: string | null = null;
+  try {
+    const admin = getAdminClient();
+    const conds = [
+      (photographer as any).customer_id ? `id.eq.${(photographer as any).customer_id}` : '',
+      (photographer as any).customer_id ? `auth_user_id.eq.${(photographer as any).customer_id}` : '',
+      (photographer as any).email ? `email.ilike.${(photographer as any).email}` : '',
+    ].filter(Boolean);
+    if (conds.length) {
+      const { data: customer } = await admin
+        .from('customers')
+        .select('b2b_role, b2b_status')
+        .or(conds.join(','))
+        .maybeSingle();
+      if (customer?.b2b_role === 'photographer') b2b_status = customer.b2b_status || null;
+    }
+  } catch { /* the cabinet works fine without the discount hint */ }
+
+  return NextResponse.json({ photographer: safe, b2b_status });
 }
 
 // Only these fields are editable from the cabinet. slug / custom_domain /
