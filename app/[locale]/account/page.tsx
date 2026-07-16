@@ -113,6 +113,9 @@ export default function AccountPage() {
     const [wishlist, setWishlist] = useState<any[]>([]);
     const [referral, setReferral] = useState<any>(null);
     const [referralLoading, setReferralLoading] = useState(false);
+    // B2B partner info (photographer / wedding agency): discount % and, for
+    // photographers, the gallery-cabinet + landing links (sidebar card).
+    const [b2b, setB2b] = useState<{ isB2b: boolean; role: string | null; discountPercent: number; label: string | null; photographer: { cabinet_token: string; slug: string } | null } | null>(null);
     const [copied, setCopied] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -380,6 +383,14 @@ export default function AccountPage() {
             .finally(() => setReferralLoading(false));
     }, [tab, referral, referralLoading]);
 
+    // B2B partner card data — same hook-ordering constraint as above.
+    useEffect(() => {
+        fetch('/api/b2b/me')
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => { if (d?.isB2b) setB2b(d); })
+            .catch(() => { /* the account works fine without the B2B card */ });
+    }, []);
+
     const logout = async () => {
         await supabase.auth.signOut();
         router.push('/');
@@ -518,6 +529,32 @@ export default function AccountPage() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* B2B partner card: the 10% discount + (for photographers)
+                            the gallery cabinet and public landing links */}
+                        {b2b?.isB2b && (
+                            <div style={{ background: '#fff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 18px', marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <span style={{ fontSize: 18 }}>📷</span>
+                                    <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>{b2b.label || 'Партнер'}</span>
+                                </div>
+                                <div style={{ fontSize: 13, color: '#475569', marginBottom: b2b.photographer ? 12 : 0 }}>
+                                    Ваша знижка <b style={{ color: '#1e2d7d' }}>{b2b.discountPercent}%</b> діє автоматично на відповідні товари в каталозі та кошику.
+                                </div>
+                                {b2b.photographer && (
+                                    <div style={{ display: 'grid', gap: 6 }}>
+                                        <a href={`/uk/photographer/cabinet/${b2b.photographer.cabinet_token}`}
+                                            style={{ display: 'block', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                            Кабінет фотографа: галереї
+                                        </a>
+                                        <a href={`/uk/photographer/${b2b.photographer.slug}`} target="_blank"
+                                            style={{ display: 'block', textAlign: 'center', background: '#eef2ff', color: '#1e2d7d', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                            Моя сторінка-візитка ↗
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Nav */}
                         <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid #e9edf5' }}>
