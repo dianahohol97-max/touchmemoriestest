@@ -22,6 +22,10 @@ export default function PhotographersPage() {
             portfolioLabel="Посилання на портфоліо"
             portfolioPlaceholder="Instagram, сайт або Behance"
             discountPercent={10}
+            altLink={{
+                text: 'Не потрібна знижка? Створіть лише кабінет галерей і візитку — без заявки →',
+                href: '/uk/gallery-for-photographers#signup',
+            }}
         />
     );
 }

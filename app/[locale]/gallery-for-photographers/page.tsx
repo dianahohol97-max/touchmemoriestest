@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, getBaseUrl, type Locale } from '@/lib/seo/locales';
+import SignupForm from './SignupForm';
 
 export const revalidate = 3600;
 
@@ -33,7 +34,7 @@ const FAQ = [
   },
   {
     q: 'Як почати користуватися?',
-    a: 'Заповніть коротку форму реєстрації — кабінет із галереями та сторінкою-візиткою стане доступним одразу, посилання прийде на пошту. Знижка 10% активується після підтвердження заявки (1–2 робочі дні).',
+    a: 'Створіть кабінет прямо на цій сторінці — потрібні лише імʼя, email і пароль. Кабінет із галереями та сторінкою-візиткою доступний одразу, без заявок і модерації. Знижку 10% на товари можна оформити окремо — заявкою фотографа.',
   },
 ];
 
@@ -86,9 +87,9 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
     })),
   };
 
-  // One unified entry point: the B2B photographer registration also grants the
-  // 10% product discount, the gallery cabinet and the landing page.
-  const registerUrl = `/${locale}/photographers`;
+  // Instant self-service signup lives right on this page (#signup); the 10%
+  // discount application is a separate flow at /photographers.
+  const registerUrl = '#signup';
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
@@ -108,7 +109,7 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
         <a href={registerUrl} style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 10, padding: '14px 28px', fontWeight: 800, textDecoration: 'none', fontSize: 16 }}>
           Отримати кабінет безкоштовно
         </a>
-        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 10 }}>Кабінет — одразу після реєстрації · знижка 10% — після підтвердження заявки</div>
+        <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 10 }}>Кабінет — одразу, без заявок і модерації · знижка 10% — окремо, після підтвердження заявки</div>
       </section>
 
       {/* Benefits */}
@@ -138,8 +139,8 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
         <h2 style={h2}>Як це працює</h2>
         <ol style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'grid', gap: 12 }}>
           {[
-            'Заповніть форму реєстрації — кабінет із галереями доступний одразу, лист із посиланням прийде на пошту.',
-            'Заповніть візитку: спеціалізація, місто, портфоліо, прайс — і ваша сторінка вже в каталозі фотографів. Після підтвердження заявки додасться знижка 10%.',
+            'Створіть кабінет на цій сторінці (імʼя, email, пароль) — він доступний одразу, лист із посиланням прийде на пошту.',
+            'Заповніть візитку: спеціалізація, місто, портфоліо, прайс — і ваша сторінка вже в каталозі фотографів.',
             'Після зйомки створіть галерею, завантажте фото й надішліть клієнту лінк. Готово!',
           ].map((step, i) => (
             <li key={i} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px' }}>
@@ -163,14 +164,12 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Bottom CTA + internal links */}
-      <section style={{ textAlign: 'center', background: '#eef2ff', borderRadius: 16, padding: '36px 20px' }}>
-        <h2 style={{ ...h2, marginBottom: 8 }}>Спробуйте — це безкоштовно</h2>
-        <p style={{ color: '#475569', marginTop: 0, marginBottom: 20 }}>Кабінет створюється за кілька хвилин.</p>
-        <a href={registerUrl} style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 10, padding: '14px 28px', fontWeight: 800, textDecoration: 'none', fontSize: 16 }}>
-          Зареєструватися як фотограф
-        </a>
-        <div style={{ marginTop: 16, fontSize: 14 }}>
+      {/* Signup + internal links */}
+      <section id="signup" style={{ background: '#eef2ff', borderRadius: 16, padding: '36px 20px', scrollMarginTop: 90 }}>
+        <h2 style={{ ...h2, marginBottom: 8, textAlign: 'center' }}>Спробуйте — це безкоштовно</h2>
+        <p style={{ color: '#475569', marginTop: 0, marginBottom: 20, textAlign: 'center' }}>Кабінет створюється за хвилину — без заявок і модерації.</p>
+        <SignupForm locale={locale} />
+        <div style={{ marginTop: 16, fontSize: 14, textAlign: 'center' }}>
           <a href={`/${locale}/photographer`} style={{ color: '#1e2d7d' }}>Подивитися каталог фотографів →</a>
         </div>
       </section>

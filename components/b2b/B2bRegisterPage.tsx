@@ -14,10 +14,14 @@ interface B2bRegisterPageProps {
     portfolioLabel: string;   // "Посилання на портфоліо" / "Сайт або сторінка агенції"
     portfolioPlaceholder: string;
     discountPercent: number;
+    /** Optional escape hatch under the form for people who don't need the
+     *  discount application (e.g. photographers who want only the free
+     *  gallery cabinet + landing). */
+    altLink?: { text: string; href: string };
 }
 
 export default function B2bRegisterPage({
-    role, title, subtitle, benefits, portfolioLabel, portfolioPlaceholder, discountPercent,
+    role, title, subtitle, benefits, portfolioLabel, portfolioPlaceholder, discountPercent, altLink,
 }: B2bRegisterPageProps) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -130,6 +134,11 @@ export default function B2bRegisterPage({
                                     <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
                                         Вже маєте акаунт? <Link href="/login" style={{ color: '#1e2d7d', fontWeight: 600 }}>Увійти</Link>
                                     </p>
+                                    {altLink && (
+                                        <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
+                                            <a href={altLink.href} style={{ color: '#1e2d7d', fontWeight: 600 }}>{altLink.text}</a>
+                                        </p>
+                                    )}
                                 </form>
                             </div>
                         </div>
