@@ -6,6 +6,7 @@ interface Profile {
   id: string; slug: string; name: string; bio: string | null; email: string;
   phone: string | null; instagram: string | null; website: string | null;
   logo_url: string | null; avatar_url: string | null;
+  city: string | null; specialization: string | null;
   landing_enabled: boolean; pricing: PriceRow[]; portfolio: string[];
   custom_domain: string | null; custom_domain_paid: boolean;
 }
@@ -204,6 +205,7 @@ function ProfileSection({ token, profile, onChanged, flash }: {
   const [form, setForm] = useState({
     name: profile.name || '', bio: profile.bio || '', phone: profile.phone || '',
     instagram: profile.instagram || '', website: profile.website || '',
+    city: profile.city || '', specialization: profile.specialization || '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -226,6 +228,19 @@ function ProfileSection({ token, profile, onChanged, flash }: {
       <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Профіль (візитка)</h2>
       <label style={label}>Ім&apos;я / назва студії</label>
       <input style={input} value={form.name} onChange={set('name')} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={label}>Спеціалізація</label>
+          <input style={input} value={form.specialization} onChange={set('specialization')} placeholder="Весільний фотограф" />
+        </div>
+        <div>
+          <label style={label}>Місто</label>
+          <input style={input} value={form.city} onChange={set('city')} placeholder="Київ" />
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+        Спеціалізація і місто показуються в заголовку вашої сторінки та допомагають знаходити вас у Google (напр. «весільний фотограф Київ»).
+      </div>
       <label style={label}>Про себе</label>
       <textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={form.bio} onChange={set('bio')} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

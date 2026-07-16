@@ -92,6 +92,42 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
+  // Photographer catalog + public landing pages ("фотограф {місто}" queries).
+  // Client galleries are token-gated and noindex — never listed here.
+  {
+    const path = '/photographer';
+    const alternates = getAlternateLanguages(path);
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.7,
+        alternates: { languages: alternates },
+      });
+    }
+  }
+
+  const { data: photographers } = await admin
+    .from('photographers')
+    .select('slug, updated_at')
+    .eq('is_active', true)
+    .eq('landing_enabled', true);
+
+  for (const ph of photographers || []) {
+    const path = `/photographer/${ph.slug}`;
+    const alternates = getAlternateLanguages(path);
+    for (const locale of LOCALES) {
+      entries.push({
+        url: getCanonicalUrl(locale, path),
+        lastModified: ph.updated_at ? new Date(ph.updated_at) : new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.7,
+        alternates: { languages: alternates },
+      });
+    }
+  }
+
   const { data: landings } = await admin
     .from('landing_pages')
     .select('category_slug, occasion, updated_at')

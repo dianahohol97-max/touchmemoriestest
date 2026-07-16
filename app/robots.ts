@@ -31,6 +31,11 @@ export default function robots(): MetadataRoute.Robots {
           '/*/blog?*',
           // Blog tag pages — thin content, no direct SEO value
           '/*/blog/tag/*',
+          // Private token pages: client photo galleries and photographer
+          // cabinets (both also noindex). Public landings /*/photographer/{slug}
+          // stay crawlable.
+          '/*/gallery/',
+          '/*/photographer/cabinet/',
         ],
       },
     ],

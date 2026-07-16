@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 // Only these fields are editable from the cabinet. slug / custom_domain /
 // is_active are managed by staff in the admin — a photographer must not be
 // able to move their public URL or toggle the paid domain themselves.
-const EDITABLE = ['name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio', 'landing_enabled'] as const;
+const EDITABLE = ['name', 'bio', 'phone', 'instagram', 'website', 'pricing', 'portfolio', 'landing_enabled', 'city', 'specialization'] as const;
 
 export async function POST(req: NextRequest) {
   try {
