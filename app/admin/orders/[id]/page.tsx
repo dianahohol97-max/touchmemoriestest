@@ -406,39 +406,47 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         const value = intlTrackingValue.trim();
         if (!value) { toast.error('Введіть міжнародний трек-номер'); return; }
         setSavingIntl(true);
-        const { error } = await supabase
-            .from('orders')
-            .update({
-                ttn: value,
-                tracking_carrier: 'nova_poshta_intl',
-                tracking_url: `https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(value)}`,
-                order_status: order.order_status === 'new' || order.order_status === 'processing' ? 'shipped' : order.order_status,
-            })
-            .eq('id', id);
-        if (!error) {
+        try {
+            // Via the PATCH API (service role) — a direct browser update of orders
+            // is blocked by RLS and silently saved nothing.
+            const resp = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ttn: value,
+                    tracking_carrier: 'nova_poshta_intl',
+                    tracking_url: `https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(value)}`,
+                    order_status: order.order_status === 'new' || order.order_status === 'processing' ? 'shipped' : order.order_status,
+                    updated_at: new Date().toISOString(),
+                }),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || `API ${resp.status}`);
             toast.success('Міжнародний трек-номер збережено');
             fetchOrder();
-        } else {
-            toast.error('Помилка збереження');
+        } catch (e: any) {
+            toast.error(e.message || 'Помилка збереження');
+        } finally {
+            setSavingIntl(false);
         }
-        setSavingIntl(false);
     };
 
     const saveTTN = async () => {
         setSaving(true);
-        const { error } = await supabase
-            .from('orders')
-            .update({ ttn: ttnValue })
-            .eq('id', id);
-
-        if (!error) {
+        try {
+            const resp = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ttn: ttnValue, updated_at: new Date().toISOString() }),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || `API ${resp.status}`);
             toast.success('ТТН збережено');
             setIsEditingTTN(false);
             fetchOrder();
-        } else {
-            toast.error('Помилка збереження');
+        } catch (e: any) {
+            toast.error(e.message || 'Помилка збереження');
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     const handleAssign = async (role: 'manager_id' | 'designer_id', staffId: string) => {
@@ -506,17 +514,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     };
 
     const updateItemComment = async (index: number, comment: string) => {
-        const newItems = [...order.items];
-        newItems[index] = { ...newItems[index], comment };
-
-        const { error } = await supabase
-            .from('orders')
-            .update({ items: newItems })
-            .eq('id', id);
-
-        if (!error) {
+        // Save via the service-role API — a direct browser update of orders.items
+        // is blocked by RLS (0 rows, no error), so the comment never persisted.
+        if ((order.items?.[index]?.comment || '') === (comment || '')) return; // nothing changed
+        try {
+            const res = await fetch(`/api/admin/orders/${id}/item-comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index, comment }),
+            });
+            if (!res.ok) {
+                const d = await res.json().catch(() => ({}));
+                throw new Error(d.error || `API ${res.status}`);
+            }
+            const newItems = [...order.items];
+            newItems[index] = { ...newItems[index], comment };
             setOrder({ ...order, items: newItems });
             toast.success('Коментар збережено');
+        } catch (err) {
+            console.error('Save item comment failed:', err);
+            toast.error('Не вдалося зберегти коментар');
         }
     };
 
@@ -605,17 +622,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     };
 
     const updateOrderAccount = async (field: 'bank_account_id' | 'np_account_id', value: string) => {
-        const { error } = await supabase
-            .from('orders')
-            .update({ [field]: value || null })
-            .eq('id', id);
-
-        if (!error) {
+        try {
+            const resp = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [field]: value || null, updated_at: new Date().toISOString() }),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || `API ${resp.status}`);
             setOrder({ ...order, [field]: value });
             toast.success('Дані оновлено');
             fetchOrder();
-        } else {
-            toast.error('Помилка оновлення');
+        } catch (e: any) {
+            toast.error(e.message || 'Помилка оновлення');
         }
     };
 
