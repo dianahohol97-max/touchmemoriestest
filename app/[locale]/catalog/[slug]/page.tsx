@@ -20,7 +20,10 @@ const PRODUCT_PUBLIC_FIELDS =
   'is_personalized, has_designer_option, designer_service_price, max_free_revisions, is_popular, ' +
   'popular_order, options, specs, price_from, sale_price, og_image, video_url, variants, ' +
   'custom_attributes, attribute_price_modifiers, tags, characteristics, sku, status, updated_at, ' +
-  'is_partially_personalized, product_type, translations, features, payment_mode, production_time, shipping_info, payment_info, fulfillment_type';
+  'is_partially_personalized, product_type, translations, features, payment_mode, production_time, shipping_info, payment_info, fulfillment_type, ' +
+  // Availability (not sensitive): whether we track stock and how many are free
+  // to sell right now. stock_available is generated = stock_quantity - reserved.
+  'track_inventory, stock_available';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale: rawLocale } = await params;

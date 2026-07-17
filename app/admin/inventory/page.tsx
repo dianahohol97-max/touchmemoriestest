@@ -51,9 +51,11 @@ export default function InventoryAdminPage() {
         setLoading(true);
         const { data, error } = await supabase
             .from('products')
-            .select(`id, name, stock, stock_reserved, low_stock_threshold, cost_price, cost_price_currency, track_inventory, images`)
+            // Read the canonical stock_quantity but alias it as `stock` so the
+            // rest of this page (display + supply math) keeps working unchanged.
+            .select(`id, name, stock:stock_quantity, stock_reserved, low_stock_threshold, cost_price, cost_price_currency, track_inventory, images`)
             .eq('track_inventory', true)
-            .order('stock', { ascending: true }); // Lowest first
+            .order('stock_quantity', { ascending: true }); // Lowest first
 
         if (!error && data) {
             setProducts(data);
@@ -97,9 +99,9 @@ export default function InventoryAdminPage() {
 
             if (moveError) throw moveError;
 
-            // 2. Update Product
+            // 2. Update Product (canonical column; stock_available is generated)
             await supabase.from('products').update({
-                stock: selectedProduct.stock + qty,
+                stock_quantity: selectedProduct.stock + qty,
                 cost_price: cost
             }).eq('id', selectedProduct.id);
 
@@ -135,9 +137,9 @@ export default function InventoryAdminPage() {
 
             if (moveError) throw moveError;
 
-            // 2. Update Product
+            // 2. Update Product (canonical column; stock_available is generated)
             await supabase.from('products').update({
-                stock: newQty
+                stock_quantity: newQty
             }).eq('id', selectedProduct.id);
 
             toast.dismiss(loadingToast);

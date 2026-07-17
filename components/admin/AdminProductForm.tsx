@@ -142,7 +142,7 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         description: initialData?.description || '',
         short_description: initialData?.short_description || '',
         price: initialData?.price || 0,
-        stock: initialData?.stock || 0,
+        stock: initialData?.stock_quantity ?? initialData?.stock ?? 0,
         category_id: initialData?.category_id || '',
         is_active: initialData?.is_active ?? true,
         meta_title: initialData?.meta_title || '',

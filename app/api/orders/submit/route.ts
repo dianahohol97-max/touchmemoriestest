@@ -260,6 +260,44 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Stock availability guard ──────────────────────────────────
+  // For products with inventory tracking on, never let an order exceed what's
+  // actually available. The storefront disables the button, but the API must
+  // enforce it too. Made-to-order products (track_inventory off) are skipped.
+  {
+    const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
+    if (slugs.length > 0) {
+      const stockAdmin = getAdminClient();
+      const { data: stockRows } = await stockAdmin
+        .from('products')
+        .select('slug, track_inventory, product_type, stock_available')
+        .in('slug', slugs);
+      const availBySlug = new Map<string, number>();
+      for (const p of (stockRows || []) as any[]) {
+        if (p.track_inventory && p.product_type === 'physical') {
+          availBySlug.set(p.slug, Number(p.stock_available) || 0);
+        }
+      }
+      if (availBySlug.size > 0) {
+        const wantBySlug = new Map<string, number>();
+        for (const it of body.items) {
+          if (it.slug && availBySlug.has(it.slug)) {
+            wantBySlug.set(it.slug, (wantBySlug.get(it.slug) || 0) + (Number(it.quantity) || 1));
+          }
+        }
+        for (const [slug, want] of wantBySlug) {
+          const have = availBySlug.get(slug) ?? 0;
+          if (want > have) {
+            return NextResponse.json(
+              { error: 'out_of_stock', detail: `Товару недостатньо в наявності (доступно ${have}, у замовленні ${want}).`, slug },
+              { status: 409 },
+            );
+          }
+        }
+      }
+    }
+  }
+
 
   //   - Look up payment_mode for every item slug
   //   - Re-compute allowSplit; if client requested 'split' but it's not allowed → force 'full'

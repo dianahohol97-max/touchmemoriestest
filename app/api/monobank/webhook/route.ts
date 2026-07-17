@@ -100,13 +100,13 @@ async function deductInventory(admin: ReturnType<typeof getAdminClient>, items: 
             let prod: any = null;
             if (pid && PRODUCT_UUID_RE.test(String(pid))) {
                 const { data } = await admin.from('products')
-                    .select('id, options, stock, track_inventory, product_type')
+                    .select('id, options, stock_quantity, track_inventory, product_type')
                     .eq('id', pid).maybeSingle();
                 prod = data;
             }
             if (!prod && slug) {
                 const { data } = await admin.from('products')
-                    .select('id, options, stock, track_inventory, product_type')
+                    .select('id, options, stock_quantity, track_inventory, product_type')
                     .eq('slug', slug).maybeSingle();
                 prod = data;
             }
@@ -132,8 +132,11 @@ async function deductInventory(admin: ReturnType<typeof getAdminClient>, items: 
 
             const patch: Record<string, any> = {};
             if (optionsChanged) patch.options = newOptions;
-            if (prod.track_inventory && prod.product_type === 'physical' && prod.stock != null) {
-                patch.stock = Math.max(0, Number(prod.stock) - qty);
+            if (prod.track_inventory && prod.product_type === 'physical' && prod.stock_quantity != null) {
+                // Decrement the canonical on-hand column. stock_available is a
+                // generated column (stock_quantity - stock_reserved) and updates
+                // automatically. (The legacy `stock` column is no longer used.)
+                patch.stock_quantity = Math.max(0, Number(prod.stock_quantity) - qty);
             }
             if (Object.keys(patch).length > 0) {
                 await admin.from('products').update(patch).eq('id', prod.id);
