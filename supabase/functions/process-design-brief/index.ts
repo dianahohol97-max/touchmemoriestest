@@ -72,11 +72,26 @@ serve(async (req) => {
       throw new Error('Brief not found');
     }
 
-    // Update status to processing
-    await supabaseClient
+    // Atomically CLAIM the brief for processing. This flips the status to
+    // 'ai_processing' only from a non-processing, non-completed state. Without
+    // it the status was set blindly, so anyone holding the brief token could
+    // POST this function repeatedly and re-run the paid Claude Vision calls
+    // (one per photo) — an uncapped third-party-AI wallet drain. If nothing is
+    // claimed, the brief is already being processed or is done ('ai_done'), so
+    // this is a no-op replay and we return without spending anything.
+    const { data: claimed } = await supabaseClient
       .from('design_briefs')
       .update({ status: 'ai_processing' })
-      .eq('token', token);
+      .eq('token', token)
+      .neq('status', 'ai_processing')
+      .neq('status', 'ai_done')
+      .select('id');
+    if (!claimed || claimed.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, skipped: 'already_processing_or_done' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const photos = brief.photos_metadata as PhotoMetadata[];
 
