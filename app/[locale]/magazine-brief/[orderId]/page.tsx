@@ -6,14 +6,14 @@ import { Footer } from '@/components/ui/Footer';
 import { toast } from 'sonner';
 
 const TOPICS = [
-  { id: 'intro', label: 'Передмова — хто вона є', icon: '✨' },
-  { id: 'friendship', label: 'Дружба', icon: '🤝' },
-  { id: 'family', label: "Сім'я і дім", icon: '🏡' },
-  { id: 'love', label: 'Любов і стосунки', icon: '💫' },
-  { id: 'favourites', label: 'Улюблені речі', icon: '🎀' },
-  { id: 'strength', label: 'Сила і характер', icon: '🦋' },
-  { id: 'memories', label: 'Спільні спогади', icon: '📸' },
-  { id: 'future', label: 'Побажання на майбутнє', icon: '🌟' },
+  { id: 'intro', label: 'Передмова — хто вона є', icon: '' },
+  { id: 'friendship', label: 'Дружба', icon: '' },
+  { id: 'family', label: "Сім'я і дім", icon: '' },
+  { id: 'love', label: 'Любов і стосунки', icon: '' },
+  { id: 'favourites', label: 'Улюблені речі', icon: '' },
+  { id: 'strength', label: 'Сила і характер', icon: '' },
+  { id: 'memories', label: 'Спільні спогади', icon: '' },
+  { id: 'future', label: 'Побажання на майбутнє', icon: '' },
 ];
 
 const RELATIONSHIPS = ['подруга', 'мама', 'партнер / кохана людина', 'сестра', 'донька', 'колега', 'я сама', 'інше'];
@@ -24,10 +24,10 @@ const TONES = [
   { id: 'mix', label: 'Суміш', desc: 'Тепло + трохи гумору' },
 ];
 const LANGUAGES = [
-  { id: 'uk', label: '🇺🇦 Українська' },
-  { id: 'en', label: '🇬🇧 English' },
-  { id: 'pl', label: '🇵🇱 Polski' },
-  { id: 'ro', label: '🇷🇴 Română' },
+  { id: 'uk', label: 'Українська' },
+  { id: 'en', label: 'English' },
+  { id: 'pl', label: 'Polski' },
+  { id: 'ro', label: 'Română' },
 ];
 
 const inp = { width: '100%', padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: 10, fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' as const, lineHeight: 1.5 };
@@ -109,8 +109,7 @@ export default function MagazineBriefPage() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navigation />
       <main style={{ flex: 1, maxWidth: 600, margin: '0 auto', padding: '120px 20px 60px', textAlign: 'center' }}>
-        <div style={{ fontSize: 64, marginBottom: 24 }}>✨</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1e2d7d', marginBottom: 16 }}>Анкету отримано!</h1>
+                <h1 style={{ fontSize: 32, fontWeight: 800, color: '#1e2d7d', marginBottom: 16 }}>Анкету отримано!</h1>
         <p style={{ fontSize: 17, color: '#374151', lineHeight: 1.8, marginBottom: 32 }}>
           Ми вже пишемо текст для вашого журналу.<br />
           Протягом кількох годин він зʼявиться у вашій поштовій скринці та в особистому кабінеті.
@@ -285,8 +284,7 @@ export default function MagazineBriefPage() {
                   return (
                     <button key={t.id} onClick={() => toggleTopic(t.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', border: `2px solid ${sel ? '#1e2d7d' : '#e5e7eb'}`, borderRadius: 12, background: sel ? '#f0f3ff' : '#fff', cursor: 'pointer', textAlign: 'left' }}>
-                      <span style={{ fontSize: 20 }}>{t.icon}</span>
-                      <span style={{ fontSize: 15, fontWeight: sel ? 700 : 400, color: sel ? '#1e2d7d' : '#374151' }}>{t.label}</span>
+                                            <span style={{ fontSize: 15, fontWeight: sel ? 700 : 400, color: sel ? '#1e2d7d' : '#374151' }}>{t.label}</span>
                       {sel && <span style={{ marginLeft: 'auto', color: '#1e2d7d', fontWeight: 900 }}>✓</span>}
                     </button>
                   );
@@ -323,14 +321,14 @@ export default function MagazineBriefPage() {
               <strong>⏰ Коли отримаєте текст?</strong><br />
               Текст буде готовий через ~3 години після заповнення анкети.<br />
               Якщо ви заповнюєте після 19:00 — текст прийде вранці після 8:00.<br />
-              Вночі ми не турбуємо 🌙
+              Вночі ми не турбуємо 
             </div>
 
             <div style={{ display: 'flex', gap: 12 }}>
               <button onClick={() => setStep(2)} style={{ flex: 1, padding: '14px', background: '#f1f5f9', color: '#374151', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>← Назад</button>
               <button onClick={submit} disabled={submitting}
                 style={{ flex: 2, padding: '14px', background: submitting ? '#9ca3af' : '#1e2d7d', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer' }}>
-                {submitting ? 'Відправляємо...' : '✨ Відправити анкету'}
+                {submitting ? 'Відправляємо...' : 'Відправити анкету'}
               </button>
             </div>
           </div>

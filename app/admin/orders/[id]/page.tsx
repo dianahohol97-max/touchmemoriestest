@@ -798,7 +798,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 color: order.with_designer ? '#7c3aed' : '#0e7490',
                                 backgroundColor: order.with_designer ? '#f5f3ff' : '#ecfeff',
                             }}>
-                                {order.with_designer ? '🎨 З дизайнером' : '🛠 Самостійний макет'}
+                                {order.with_designer ? 'З дизайнером' : 'Самостійний макет'}
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '14px', marginTop: '4px' }}>
@@ -1258,7 +1258,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             {isIntl && (
                                 <div style={{ marginTop: 16, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                                     <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        🌍 Міжнародне відправлення (Нова Пошта)
+                                         Міжнародне відправлення (Нова Пошта)
                                     </div>
                                     <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 1.5 }}>
                                         Накладну створюєш у кабінеті/відділенні Нової Пошти (міжнародна доставка). Дані нижче вже транслітеровані — скопіюй у заявку, потім встав отриманий трек-номер.
@@ -1676,7 +1676,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {!order.with_designer ? (
                             <div style={{ background: '#f9fafb', border: '1px dashed #d1d5db', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>🎨 Дизайн від дизайнера</div>
+                                    <div style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>Дизайн від дизайнера</div>
                                     <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Натисніть щоб призначити дизайнера для цього замовлення</div>
                                 </div>
                                 <button onClick={async () => {
@@ -1768,7 +1768,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             disabled={cloningProject}
                                             title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0891b2', border: '1.5px solid #0891b2', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: cloningProject ? 'default' : 'pointer' }}>
-                                            {cloningProject ? <Loader2 size={14} className="animate-spin" /> : '📋'}
+                                            {cloningProject ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
                                             Макет → мої чернетки
                                         </button>
                                         <button
@@ -1805,7 +1805,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             disabled={rerendering}
                                             title="Серверний рендер через Railway: повні оригінали, 300 DPI, без редакторських тех-знаків. Не потребує участі клієнта."
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#ea580c', border: '1.5px solid #ea580c', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: rerendering ? 'default' : 'pointer' }}>
-                                            {rerendering ? <Loader2 size={14} className="animate-spin" /> : '🖨️'}
+                                            {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
                                         <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}

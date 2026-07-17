@@ -150,7 +150,7 @@ export default function MagazineTextPage() {
                 <p style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Сторінка {currentPage + 1}</p>
                 <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e2d7d', margin: 0 }}>{currentPageData.title}</h2>
                 {currentPageData.edited_text && (
-                  <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginTop: 4, display: 'block' }}>✏️ Відредаговано вами</span>
+                  <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginTop: 4, display: 'block' }}>Відредаговано вами</span>
                 )}
               </div>
               {!approved && !editing && (
@@ -203,7 +203,7 @@ export default function MagazineTextPage() {
 
         {approved && (
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '24px', textAlign: 'center' }}>
-            <p style={{ fontSize: 16, color: '#166534', fontWeight: 700, marginBottom: 8 }}>✅ Текст підтверджено і додано до журналу!</p>
+            <p style={{ fontSize: 16, color: '#166534', fontWeight: 700, marginBottom: 8 }}>Текст підтверджено і додано до журналу!</p>
             <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>Дизайнер вже бачить ваш текст і додасть його в макет</p>
             <button onClick={() => router.push(`/${params?.locale || 'uk'}/account`)}
               style={{ padding: '10px 24px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>

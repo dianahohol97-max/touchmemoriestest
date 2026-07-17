@@ -40,8 +40,7 @@ export default function SignupForm({ locale }: { locale: string }) {
   if (result) {
     return (
       <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 14, padding: 24, textAlign: 'center' }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🎉</div>
-        <div style={{ fontWeight: 800, fontSize: 18, color: '#065f46', marginBottom: 6 }}>Кабінет створено!</div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: '#065f46', marginBottom: 6 }}>Кабінет створено!</div>
         <p style={{ color: '#047857', fontSize: 14, marginTop: 0 }}>Посилання також надіслано на вашу пошту.</p>
         <a href={`/${locale}/photographer/cabinet/${result.cabinet_token}`}
           style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 10, padding: '12px 24px', fontWeight: 800, textDecoration: 'none', marginTop: 6 }}>

@@ -18,8 +18,7 @@ export function CartSuccessModal({ onClose, cartUrl = '/cart', catalogUrl = '/ca
         style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:380, width:'100%',
           textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
-        <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
+                <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
           Товар додано до кошика!
         </h2>
         <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>

@@ -138,7 +138,7 @@ export default function ProductsAdminPage() {
         }).eq('id', sel.id);
         setSaving(false);
         if (error) { toast.error('Помилка: ' + error.message); return; }
-        toast.success('Збережено ✓');
+        toast.success('Збережено');
         setProducts(prev => prev.map(p => p.id === sel.id ? { ...sel } : p));
         setModal(false);
         // Revalidate cache so changes appear on site immediately
@@ -259,7 +259,7 @@ export default function ProductsAdminPage() {
                     fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
                 }
             } else {
-                toast.success(`Додано ${uploadedUrls.length} фото ✓`, { id: 'img-upload' });
+                toast.success(`Додано ${uploadedUrls.length} фото`, { id: 'img-upload' });
             }
         } else {
             // Tell the user WHY nothing was uploaded — never the silent generic message.
@@ -282,7 +282,7 @@ export default function ProductsAdminPage() {
                 toast.error(`Не збережено: ${error.message}`);
             } else {
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
-                toast.success('Головне фото оновлено ✓');
+                toast.success('Головне фото оновлено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
             }
         }
@@ -301,7 +301,7 @@ export default function ProductsAdminPage() {
                 toast.error(`Порядок не збережено: ${error.message}`);
             } else {
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
-                toast.success('Порядок фото оновлено ✓');
+                toast.success('Порядок фото оновлено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
             }
         }
@@ -317,7 +317,7 @@ export default function ProductsAdminPage() {
                 toast.error(`Не збережено: ${error.message}`);
             } else {
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: newImages } : p));
-                toast.success('Фото видалено ✓');
+                toast.success('Фото видалено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
             }
         }
@@ -351,7 +351,7 @@ export default function ProductsAdminPage() {
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
             }
         } else {
-            toast.success('Відео завантажено ✓', { id: 'video-upload' });
+            toast.success('Відео завантажено', { id: 'video-upload' });
         }
     }
 
@@ -389,7 +389,7 @@ export default function ProductsAdminPage() {
         }).select().single();
         setSaving(false);
         if (error) { toast.error('Помилка: ' + error.message); return; }
-        toast.success('Товар створено ✓');
+        toast.success('Товар створено');
         const newProd = { ...sel, id: data.id };
         // Revalidate cache
         fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: newProd?.slug || '' }) }).catch(() => {});
@@ -731,7 +731,7 @@ export default function ProductsAdminPage() {
                                             )}
                                             <div style={{ display:'flex', gap:8 }}>
                                                 <label style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 12px', background:'#f0f3ff', color:'#1e2d7d', border:'1px dashed #c7d2fe', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600, flexShrink:0 }}>
-                                                    📁 Завантажити файл
+                                                     Завантажити файл
                                                     <input type="file" accept="video/*" style={{ display:'none' }} onChange={e=>{ if(e.target.files?.[0]) handleVideoUpload(e.target.files[0]); }}/>
                                                 </label>
                                                 <input value={S.video_url||''} onChange={e=>upd('video_url',e.target.value||null)} placeholder="або вставте URL відео..." style={{ ...IS, flex:1 }}/>

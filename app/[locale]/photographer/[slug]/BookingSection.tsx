@@ -122,7 +122,7 @@ export default function BookingSection({ slots, theme: t, kicker }: {
       {done ? (
         /* ── Success + payment ─────────────────────────────── */
         <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: Math.max(t.radius, 6), padding: 28, textAlign: 'center' }}>
-          <div style={{ fontSize: 34 }}>✅</div>
+          <div style={{ fontSize: 34, color: '#16a34a' }}>✓</div>
           <div style={{ fontFamily: t.headingFont, fontWeight: 800, fontSize: 20, marginTop: 8 }}>
             Вас записано!
           </div>

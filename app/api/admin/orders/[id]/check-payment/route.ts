@@ -123,5 +123,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         } catch { /* never block */ }
     }
 
-    return NextResponse.json({ status: 'paid', message: 'Банк підтвердив оплату — замовлення позначено оплаченим ✅' });
+    return NextResponse.json({ status: 'paid', message: 'Банк підтвердив оплату — замовлення позначено оплаченим' });
 }

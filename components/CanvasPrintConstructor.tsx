@@ -326,7 +326,7 @@ export default function CanvasPrintConstructor() {
 
                     {photo && (
                         <div style={{ marginBottom: 8, marginTop: -16, fontSize: 12, color: '#64748b', textAlign: 'center' }}>
-                            ⚠️ Прев'ю показує кадрування за пропорціями {selectedSize?.label || ''}. Фото обрізається по центру — перевірте що головний об'єкт у кадрі.
+                            ⚠ Прев'ю показує кадрування за пропорціями {selectedSize?.label || ''}. Фото обрізається по центру — перевірте що головний об'єкт у кадрі.
                         </div>
                     )}
 

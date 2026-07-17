@@ -107,7 +107,7 @@ export default function AdminPhotographersPage() {
             </div>
             <div className="flex gap-2 mt-3 flex-wrap">
               <button className={btnGhost} disabled={busyId === p.id} onClick={() => sendWelcome(p.id)}>Надіслати лист</button>
-              <button className={btnGhost} onClick={() => copy(`${window.location.origin}/uk/photographer/cabinet/${p.cabinet_token}`, 'Посилання на кабінет скопійовано')}>Кабінет 🔗</button>
+              <button className={btnGhost} onClick={() => copy(`${window.location.origin}/uk/photographer/cabinet/${p.cabinet_token}`, 'Посилання на кабінет скопійовано')}>Кабінет</button>
               <a className={btnGhost} href={`/uk/photographer/${p.slug}`} target="_blank">Візитка ↗</a>
               <button className={btnGhost} disabled={busyId === p.id}
                 onClick={() => patch(p.id, { is_active: !p.is_active }, p.is_active ? 'Вимкнено' : 'Увімкнено')}>

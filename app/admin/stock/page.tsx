@@ -132,7 +132,7 @@ export default function StockPage() {
                     { label: 'Всього товарів', value: items.length, color: '#1e2d7d' },
                     { label: 'В наявності', value: items.filter(i => i.quantity_available > 0).length, color: '#16a34a' },
                     { label: 'Немає', value: items.filter(i => i.quantity_available <= 0).length, color: '#6b7280' },
-                    { label: '⚠ Низький залишок', value: lowCount, color: '#d97706' },
+                    { label: 'Низький залишок', value: lowCount, color: '#d97706' },
                 ].map(s => (
                     <div key={s.label} style={card}>
                         <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</div>

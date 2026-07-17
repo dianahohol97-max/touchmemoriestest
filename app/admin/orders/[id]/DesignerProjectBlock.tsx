@@ -132,7 +132,7 @@ export default function DesignerProjectBlock({ order }: Props) {
       {order.designer_note && (
         <div style={{ background: '#fdf4ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-            📋 Технічне завдання
+             Технічне завдання
           </div>
           <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>{order.designer_note}</div>
         </div>
@@ -156,7 +156,7 @@ export default function DesignerProjectBlock({ order }: Props) {
           <button onClick={handleCloneToMe} disabled={cloning}
             title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: cloning ? 'default' : 'pointer' }}>
-            {cloning ? 'Копіюю…' : '📋 Макет клієнта → мої чернетки'}
+            {cloning ? 'Копіюю…' : 'Макет клієнта → мої чернетки'}
           </button>
           </div>
         </div>
@@ -199,7 +199,7 @@ export default function DesignerProjectBlock({ order }: Props) {
             <button onClick={handleCloneToMe} disabled={cloning}
               title="Скопіює макет клієнта (розстановку і фото) у ВАШІ чернетки конструктора — для переекспорту без участі клієнта"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#7c3aed', borderRadius: 7, fontWeight: 700, fontSize: 13, border: '1.5px solid #7c3aed', cursor: cloning ? 'default' : 'pointer' }}>
-              {cloning ? 'Копіюю…' : '📋 → мої чернетки'}
+              {cloning ? 'Копіюю…' : '→ мої чернетки'}
             </button>
 
             {/* Send for review — only if not yet sent or revision requested */}

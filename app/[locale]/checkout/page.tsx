@@ -891,7 +891,7 @@ export default function CheckoutPage() {
                                     <h2 style={{ fontSize: '24px', fontWeight: 900, marginBottom: '24px' }}>{t('checkout.shipping')}</h2>
                                     {/* Delivery destination — authoritative ship region */}
                                     <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                                        {([['UA', '🇺🇦 Україна (Нова Пошта)'], ['INTL', '🌍 За кордон']] as [ShipRegion, string][]).map(([r, label]) => (
+                                        {([['UA', 'Україна (Нова Пошта)'], ['INTL', 'За кордон']] as [ShipRegion, string][]).map(([r, label]) => (
                                             <button
                                                 key={r}
                                                 type="button"
@@ -1164,7 +1164,7 @@ export default function CheckoutPage() {
                                 <div style={{ marginBottom: 16 }}>
                                     {!promoCode ? (
                                         <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>🏷️ Маєте промокод?</div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Маєте промокод?</div>
                                             <div style={{ display: 'flex', gap: 8 }}>
                                                 <input
                                                     value={promoInput}
@@ -1195,7 +1195,7 @@ export default function CheckoutPage() {
                                 <div style={{ marginBottom: 16 }}>
                                     {!certCode ? (
                                         <div>
-                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>🎟️ Маєте подарунковий сертифікат?</div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Маєте подарунковий сертифікат?</div>
                                             <div style={{ display: 'flex', gap: 8 }}>
                                                 <input
                                                     value={certInput}
@@ -1238,13 +1238,13 @@ export default function CheckoutPage() {
                                 </div>
                                 {dupDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
-                                        <span>🎁 Знижка за копії:</span>
+                                        <span>Знижка за копії:</span>
                                         <span>-{money(dupDiscount)}</span>
                                     </div>
                                 )}
                                 {promoDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
-                                        <span>🏷️ Знижка ({promoCode}):</span>
+                                        <span>Знижка ({promoCode}):</span>
                                         <span>-{money(promoDiscount)}</span>
                                     </div>
                                 )}
@@ -1266,13 +1266,13 @@ export default function CheckoutPage() {
                                 )}
                                 {certApplied > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
-                                        <span>🎟️ Сертифікат:</span>
+                                        <span>Сертифікат:</span>
                                         <span>-{money(certApplied)}</span>
                                     </div>
                                 )}
                                 {bonusRedeemed > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
-                                        <span>🎁 Бонуси:</span>
+                                        <span>Бонуси:</span>
                                         <span>-{money(bonusRedeemed)}</span>
                                     </div>
                                 )}

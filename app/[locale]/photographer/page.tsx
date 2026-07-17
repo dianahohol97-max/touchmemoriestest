@@ -63,7 +63,7 @@ export default async function PhotographersCatalogPage({ params }: Props) {
 
       <a href={`/${locale}/gallery-for-photographers`}
         style={{ display: 'block', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 20px', marginBottom: 28, textDecoration: 'none', color: '#1e2d7d', fontWeight: 700 }}>
-        📷 Ви фотограф? Отримайте безкоштовну галерею для клієнтів і власну сторінку-візитку →
+        Ви фотограф? Отримайте безкоштовну галерею для клієнтів і власну сторінку-візитку →
       </a>
 
       {list.length === 0 && <div style={{ color: '#94a3b8' }}>Каталог наповнюється — завітайте пізніше.</div>}
@@ -76,7 +76,7 @@ export default async function PhotographersCatalogPage({ params }: Props) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={p.logo_url || p.avatar_url!} alt={p.name} style={{ width: 56, height: 56, borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <div style={{ width: 56, height: 56, borderRadius: 12, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>📷</div>
+              <div style={{ width: 56, height: 56, borderRadius: 12, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{(p.name || '?').charAt(0)}</div>
             )}
             <div>
               <div style={{ fontWeight: 800, color: '#1e2d7d' }}>{p.name}</div>

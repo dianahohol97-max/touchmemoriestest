@@ -299,7 +299,7 @@ export default function CartDrawer() {
                             }}>
                                 {dupDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>
-                                        <span>🎁 Знижка за копії</span>
+                                        <span>Знижка за копії</span>
                                         <span>-{dupDiscount} ₴</span>
                                     </div>
                                 )}

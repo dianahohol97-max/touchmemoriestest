@@ -136,7 +136,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             {/* Payout */}
             <div style={{ ...card, background: canPayout ? '#ecfdf5' : '#fff7ed', border: `1px solid ${canPayout ? '#a7f3d0' : '#fed7aa'}` }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: canPayout ? '#047857' : '#c2410c', marginBottom: 4 }}>
-                    {canPayout ? 'Можна виводити 🎉' : `Мінімальна сума виведення — ${uah(minPayout)}`}
+                    {canPayout ? 'Можна виводити' : `Мінімальна сума виведення — ${uah(minPayout)}`}
                 </div>
                 <div style={{ fontSize: 13, color: '#475569' }}>
                     {canPayout
@@ -209,7 +209,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                     <button onClick={save} disabled={saving} style={{ ...btn, background: saving ? '#94a3b8' : '#263A99' }}>
                         {saving ? 'Збереження…' : 'Зберегти рахунок'}
                     </button>
-                    {saved && <span style={{ color: '#047857', fontSize: 14, fontWeight: 600 }}>Збережено ✓</span>}
+                    {saved && <span style={{ color: '#047857', fontSize: 14, fontWeight: 600 }}>Збережено</span>}
                 </div>
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>Ці дані бачимо лише ми — для проведення виплат вашої комісії.</div>
             </div>

@@ -1258,8 +1258,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                       <div style={{ fontSize:11, color:'#94a3b8', marginBottom:5 }}>Підпис</div>
                       <button onClick={toggleCaptionSelected}
                         style={{ ...BTN(effectivePhotos.some(p=>p.showCaption)), display:'flex', alignItems:'center', gap:6, padding:'8px 14px' }}>
-                        <span>✏️</span>
-                        {effectivePhotos.some(p=>p.showCaption) ? 'Підпис увімкнено (+5 ₴)' : 'Додати підпис (+5 ₴)'}
+                                                {effectivePhotos.some(p=>p.showCaption) ? 'Підпис увімкнено (+5 ₴)' : 'Додати підпис (+5 ₴)'}
                       </button>
                       {effectivePhotos.some(p=>p.showCaption) && effectivePhotos.length===1 && (
                         <input type="text" placeholder="Введіть підпис…" maxLength={40}
@@ -1489,8 +1488,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={()=>setShowCartModal(false)}>
         <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:380, width:'100%',
           textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }} onClick={e=>e.stopPropagation()}>
-          <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
-          <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>Фото додано до кошика!</h2>
+                    <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>Фото додано до кошика!</h2>
           <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>Оформити замовлення або продовжити вибирати товари?</p>
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             <a href={`/${locale}/cart`} style={{ display:'block', padding:'13px', background:'#1e2d7d', color:'#fff', borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>Оформити замовлення →</a>

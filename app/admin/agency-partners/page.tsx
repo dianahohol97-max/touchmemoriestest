@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import toast from 'react-hot-toast';
-import { Copy, Check, Loader2, Plus } from 'lucide-react';
+import { Copy, Check, Loader2, Plus, Mail } from 'lucide-react';
 
 interface Partner {
   id: string;
@@ -200,7 +200,7 @@ export default function AgencyPartnersPage() {
                     }}
                     disabled={sendingEmail === p.id}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#263A99', border: '1.5px solid #263A99', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: sendingEmail === p.id ? 'default' : 'pointer' }}>
-                    {sendingEmail === p.id ? <Loader2 size={13} className="animate-spin" /> : '✉️'}
+                    {sendingEmail === p.id ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
                     {sendingEmail === p.id ? 'Надсилаю…' : 'Надіслати лист'}
                   </button>
                 </div>
@@ -221,7 +221,7 @@ export default function AgencyPartnersPage() {
 
                 {p.payout_requested_at && (
                   <div style={{ marginTop: 12, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
-                    💸 Партнер запросив виплату {new Date(p.payout_requested_at).toLocaleDateString('uk-UA')}
+                     Партнер запросив виплату {new Date(p.payout_requested_at).toLocaleDateString('uk-UA')}
                   </div>
                 )}
 

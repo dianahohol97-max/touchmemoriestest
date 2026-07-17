@@ -120,7 +120,7 @@ function DiscountStatus({ status, percent }: { status: string | null; percent: n
   if (status === 'verified') {
     return (
       <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
-        <div style={{ fontWeight: 800, color: '#065f46', fontSize: 16, marginBottom: 4 }}>💍 Ваша знижка {percent}% активна</div>
+        <div style={{ fontWeight: 800, color: '#065f46', fontSize: 16, marginBottom: 4 }}>Ваша знижка {percent}% активна</div>
         <div style={{ fontSize: 14, color: '#047857', lineHeight: 1.6 }}>
           Замовляйте книги побажань і весільні газети зі знижкою — <b>увійдіть у свій акаунт покупця</b>, і спеціальна ціна враховується автоматично в каталозі й кошику.
         </div>
