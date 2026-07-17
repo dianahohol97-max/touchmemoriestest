@@ -6,6 +6,7 @@ import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { getLocalized } from '@/lib/i18n/localize';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 const BLOG_META: Record<string, { title: string; description: string }> = {
   uk: { title: 'Блог — ідеї та натхнення | Touch.Memories', description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.' },
@@ -16,8 +17,24 @@ const BLOG_META: Record<string, { title: string; description: string }> = {
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale } = await params;
-  return BLOG_META[locale] || BLOG_META.uk;
+  const { locale: rawLocale } = await params;
+  const locale = (rawLocale || 'uk') as Locale;
+  const m = BLOG_META[locale] || BLOG_META.uk;
+  return {
+    ...m,
+    alternates: {
+      canonical: getCanonicalUrl(locale, '/blog'),
+      languages: getAlternateLanguages('/blog'),
+    },
+    openGraph: {
+      title: m.title,
+      description: m.description,
+      url: getCanonicalUrl(locale, '/blog'),
+      siteName: 'Touch.Memories',
+      locale: OG_LOCALE_MAP[locale],
+      type: 'website',
+    },
+  };
 }
 
 // ISR — revalidate every hour (removed force-dynamic to prevent ISR conflict)

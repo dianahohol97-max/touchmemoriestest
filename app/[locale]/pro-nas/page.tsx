@@ -1,12 +1,33 @@
+import type { Metadata } from 'next';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
 import { Heart, Award, Users } from 'lucide-react';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
-export const metadata = {
-  title: 'Про нас | Touch.Memories',
-  description: 'Touch.Memories — студія у Тернополі, яка створює фотокниги, журнали та вироби зі спогадів з 2018 року. Якість, індивідуальний підхід, довіра тисяч клієнтів.',
-};
+const TITLE = 'Про нас | Touch.Memories';
+const DESCRIPTION = 'Touch.Memories — студія у Тернополі, яка створює фотокниги, журнали та вироби зі спогадів з 2018 року. Якість, індивідуальний підхід, довіра тисяч клієнтів.';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale: rawLocale } = await params;
+  const locale = (rawLocale || 'uk') as Locale;
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: {
+      canonical: getCanonicalUrl(locale, '/pro-nas'),
+      languages: getAlternateLanguages('/pro-nas'),
+    },
+    openGraph: {
+      title: TITLE,
+      description: DESCRIPTION,
+      url: getCanonicalUrl(locale, '/pro-nas'),
+      siteName: 'Touch.Memories',
+      locale: OG_LOCALE_MAP[locale],
+      type: 'website',
+    },
+  };
+}
 
 export default function ProNasPage() {
   return (

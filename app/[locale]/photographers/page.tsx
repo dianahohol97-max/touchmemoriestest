@@ -1,9 +1,30 @@
+import type { Metadata } from 'next';
 import B2bRegisterPage from '@/components/b2b/B2bRegisterPage';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
-export const metadata = {
-    title: 'Для фотографів — Touch.Memories',
-    description: 'Партнерська програма для фотографів: знижка 10%, онлайн-галереї для передачі фото клієнтам і власна сторінка-візитка з портфоліо та прайсом.',
-};
+const TITLE = 'Для фотографів — Touch.Memories';
+const DESCRIPTION = 'Партнерська програма для фотографів: знижка 10%, онлайн-галереї для передачі фото клієнтам і власна сторінка-візитка з портфоліо та прайсом.';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale: rawLocale } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
+    return {
+        title: TITLE,
+        description: DESCRIPTION,
+        alternates: {
+            canonical: getCanonicalUrl(locale, '/photographers'),
+            languages: getAlternateLanguages('/photographers'),
+        },
+        openGraph: {
+            title: TITLE,
+            description: DESCRIPTION,
+            url: getCanonicalUrl(locale, '/photographers'),
+            siteName: 'Touch.Memories',
+            locale: OG_LOCALE_MAP[locale],
+            type: 'website',
+        },
+    };
+}
 
 export default function PhotographersPage() {
     return (
