@@ -294,6 +294,36 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── Gift-certificate value floor ──────────────────────────────
+  // Gift certificates carry no product slug, so the base-price floor above
+  // never sees them. But certificates/on-payment issues `metadata.amount` as
+  // spendable store credit once the order is paid — so a tampered cart that
+  // pays 1 ₴ for a line whose metadata.amount is 50000 would mint 50000 ₴ of
+  // free credit. A certificate is never discountable: the buyer must pay its
+  // full face value. Add each gift-cert line's face value to the floor at FULL
+  // value (no 20% buffer) so both the subtotal and the charged total must
+  // cover it. Matches how certificates/on-payment detects cert items.
+  {
+    const certFloor = (body.items as any[]).reduce((sum, it) => {
+      const isCert = it?.metadata?.certificateType || it?.options?.['Номер'];
+      if (!isCert) return sum;
+      const face = Math.max(0, Math.round(Number(it?.metadata?.amount ?? it?.unit_price ?? 0)));
+      return sum + face;
+    }, 0);
+    if (certFloor > 0) {
+      if (subtotal < certFloor) {
+        console.warn(`orders/submit: subtotal ${subtotal} < gift-certificate face floor ${certFloor}`);
+        return NextResponse.json(
+          { error: 'subtotal_too_low', detail: 'A gift certificate must be purchased at its full face value.' },
+          { status: 422 },
+        );
+      }
+      // Fold into the charged-amount floor so no promo/discount can drop the
+      // paid total below the certificate value either.
+      priceFloorBase += certFloor;
+    }
+  }
+
   // ── Stock availability guard ──────────────────────────────────
   // For products with inventory tracking on, never let an order exceed what's
   // actually available. The storefront disables the button, but the API must

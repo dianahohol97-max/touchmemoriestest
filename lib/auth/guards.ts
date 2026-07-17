@@ -24,6 +24,22 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 type Guard = { ok: true; userId: string } | { ok: false; response: NextResponse };
 
+/**
+ * Escape LIKE/ILIKE wildcards in a value that must be matched EXACTLY.
+ *
+ * The admin/staff checks below match the caller's own email against the
+ * privileged tables with `.ilike('email', email)`. ILIKE treats `%` and `_`
+ * as wildcards, and the caller controls their email — so registering an
+ * address like `_iana@gmail.com` (matches `diana@…`) or `%@gmail.com` would
+ * make the pattern match a privileged row the attacker does not own. Escaping
+ * the metacharacters turns the match back into a literal, case-insensitive
+ * equality. A normal address (no % _ \) is unchanged, so real logins are
+ * unaffected.
+ */
+export function likeEscape(value: string): string {
+    return value.replace(/[\\%_]/g, '\\$&');
+}
+
 async function getSession() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -55,7 +71,7 @@ export async function requireAdmin(): Promise<Guard> {
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .ilike('email', email)
+            .ilike('email', likeEscape(email))
             .maybeSingle();
         if (adminRow) return { ok: true, userId: user.id };
 
@@ -65,7 +81,7 @@ export async function requireAdmin(): Promise<Guard> {
         const { data: staffRow } = await admin
             .from('staff')
             .select('id, role')
-            .ilike('email', email)
+            .ilike('email', likeEscape(email))
             .maybeSingle();
         const staffRole = (staffRow as any)?.role;
         if (staffRow && (staffRole === 'admin' || staffRole === 'owner')) {
@@ -104,14 +120,14 @@ export async function requireStaff(): Promise<Guard> {
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .ilike('email', email)
+            .ilike('email', likeEscape(email))
             .maybeSingle();
         if (adminRow) return { ok: true, userId: user.id };
 
         const { data: staffRow } = await admin
             .from('staff')
             .select('id, is_active')
-            .ilike('email', email)
+            .ilike('email', likeEscape(email))
             .maybeSingle();
         if (staffRow && (staffRow as any).is_active) {
             return { ok: true, userId: user.id };
@@ -134,7 +150,7 @@ export async function requireOwnerOrAdmin(customerId: string | null): Promise<Gu
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .ilike('email', email)
+            .ilike('email', likeEscape(email))
             .maybeSingle();
         if (adminRow) return { ok: true, userId: user.id };
     }

@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward } from '@/lib/referral/referral';
+import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: order } = await admin
     .from('orders')
-    .select('id, payment_status, promo_code, items, customer_id, total')
+    .select('id, payment_status, promo_code, items, customer_id, total, certificate_code, certificate_redeemed, certificate_applied')
     .eq('id', id)
     .maybeSingle();
   if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
@@ -58,6 +59,22 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         orderTotal: Number((order as any).total) || 0,
       });
     } catch (e) { console.error('[mark-paid] referral reward failed:', e); }
+
+    // Certificate redemption — the webhook does this on its paid transition, so
+    // the manual path must too. Without it a cert used to pay a cash/transfer
+    // order stays redeemed=false; after the 24h reservation TTL the SAME code
+    // becomes spendable again → the certificate value is double-spent.
+    // Idempotent via the certificate_redeemed flag + the atomic redeemed check.
+    if ((order as any).certificate_code && !(order as any).certificate_redeemed) {
+      try {
+        await redeemOrderCertificate(admin, {
+          orderId: order.id,
+          code: (order as any).certificate_code,
+          applied: Number((order as any).certificate_applied) || 0,
+          customerId: (order as any).customer_id ?? null,
+        });
+      } catch (e) { console.error('[mark-paid] certificate redemption failed:', e); }
+    }
 
     // Customer confirmation email — same guarded fire-and-forget as the webhook.
     try {

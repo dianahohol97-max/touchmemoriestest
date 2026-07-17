@@ -3,6 +3,7 @@ import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward } from '@/lib/referral/referral';
+import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const { data: order } = await admin
         .from('orders')
-        .select('id, order_number, payment_status, monobank_invoice_id, promo_code, items, customer_id, total')
+        .select('id, order_number, payment_status, monobank_invoice_id, promo_code, items, customer_id, total, certificate_code, certificate_redeemed, certificate_applied')
         .eq('id', id)
         .maybeSingle();
     if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
@@ -110,6 +111,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
                 orderTotal: Number((order as any).total) || 0,
             });
         } catch (e) { console.error('[check-payment] referral reward failed:', e); }
+
+        // Certificate redemption — mirror the webhook so a cert used on an order
+        // reconciled here is flipped to redeemed; otherwise it becomes spendable
+        // again after the 24h reservation TTL (double-spend). Idempotent.
+        if ((order as any).certificate_code && !(order as any).certificate_redeemed) {
+            try {
+                await redeemOrderCertificate(admin, {
+                    orderId: order.id,
+                    code: (order as any).certificate_code,
+                    applied: Number((order as any).certificate_applied) || 0,
+                    customerId: (order as any).customer_id ?? null,
+                });
+            } catch (e) { console.error('[check-payment] certificate redemption failed:', e); }
+        }
 
         // Customer confirmation email — same guarded fire-and-forget as webhook.
         try {

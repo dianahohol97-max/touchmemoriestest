@@ -51,11 +51,17 @@ async function isUserAdmin(userEmail: string | null | undefined): Promise<boolea
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !serviceKey) return false;
 
+    // Escape LIKE wildcards: userEmail is the caller's own address, and ILIKE
+    // treats % and _ as wildcards. Without this, registering "_iana@…" (matches
+    // "diana@…") or "%@gmail.com" would make this gate match a privileged row
+    // the attacker doesn't own — anonymous admin takeover. \ % _ become literals.
+    const emailPattern = userEmail.replace(/[\\%_]/g, '\\$&');
+
     // admin_users.id is its own UUID and is NOT the same as auth.users.id —
     // match by email, the same way the is_admin() DB function and the
     // requireAdmin guard do. Matching by user.id silently fails for every
     // real admin and would lock Diana out of the admin panel.
-    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=ilike.${encodeURIComponent(userEmail)}`;
+    const adminCheckUrl = `${url}/rest/v1/admin_users?select=id&email=ilike.${encodeURIComponent(emailPattern)}`;
     try {
         const res = await fetch(adminCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
@@ -71,7 +77,7 @@ async function isUserAdmin(userEmail: string | null | undefined): Promise<boolea
     // is decided by the permission system (PermissionsContext + per-section
     // route protection); admin-only API routes stay guarded by requireAdmin.
     // Clients (no staff row) are not allowed — they get bounced to /admin/login.
-    const staffCheckUrl = `${url}/rest/v1/staff?select=role,is_active&email=ilike.${encodeURIComponent(userEmail)}`;
+    const staffCheckUrl = `${url}/rest/v1/staff?select=role,is_active&email=ilike.${encodeURIComponent(emailPattern)}`;
     try {
         const res = await fetch(staffCheckUrl, {
             headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },

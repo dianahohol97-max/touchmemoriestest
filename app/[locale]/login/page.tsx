@@ -14,7 +14,11 @@ import Link from 'next/link'
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const nextUrl = searchParams.get('next') || '/account'
+  // Only allow same-origin relative paths as the post-login redirect. A raw
+  // ?next= would let /login?next=//evil.com or ?next=https://evil.com bounce the
+  // user off-site right after authenticating (phishing off a trusted domain).
+  const rawNext = searchParams.get('next') || '/account'
+  const nextUrl = /^\/(?!\/)/.test(rawNext) ? rawNext : '/account'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 

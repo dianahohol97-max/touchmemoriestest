@@ -82,6 +82,27 @@ export async function POST(request: Request) {
             }
         }
 
+        // Privilege-escalation guard: admin/staff authority is decided by an
+        // email match against admin_users / staff, and this endpoint creates
+        // auto-confirmed accounts (no mailbox-ownership proof). So a stranger
+        // must NOT be able to self-register an address that is listed as staff
+        // or admin — that would hand them the panel on first login. Staff
+        // logins are provisioned separately through the admin/staff flow.
+        // Email is matched literally (LIKE wildcards escaped).
+        const emailPattern = email.replace(/[\\%_]/g, '\\$&');
+        const [{ data: adminMatch }, { data: staffMatch }] = await Promise.all([
+            supabase.from('admin_users').select('id').ilike('email', emailPattern).maybeSingle(),
+            supabase.from('staff').select('id').ilike('email', emailPattern).maybeSingle(),
+        ]);
+        if (adminMatch || staffMatch) {
+            // Generic message — don't confirm to the caller that this is a staff
+            // address (avoids turning this into a staff-email oracle).
+            return NextResponse.json(
+                { error: 'Цей email не можна зареєструвати. Зверніться до підтримки.' },
+                { status: 403 }
+            );
+        }
+
         // 1. Create auth user with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
             email,
