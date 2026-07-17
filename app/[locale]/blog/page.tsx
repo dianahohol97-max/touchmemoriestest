@@ -304,7 +304,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                 <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Наші продукти</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                     {featuredProducts.map(product => (
-                                        <Link key={product.id} href={`/products/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                                        <Link key={product.id} href={`/${loc || 'uk'}/catalog/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
                                             <div style={{ width: '80px', height: '80px', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#f8fafc', position: 'relative', flexShrink: 0 }}>
                                                 {product.images && product.images[0] && (
                                                     <Image src={product.images[0]} alt={product.name} fill style={{ objectFit: 'cover' }} />
@@ -316,7 +316,7 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                             </div>
                                         </Link>
                                     ))}
-                                    <Link href="/products" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
+                                    <Link href={`/${loc || 'uk'}/catalog`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
                                         В каталог <ArrowRight size={16} />
                                     </Link>
                                 </div>

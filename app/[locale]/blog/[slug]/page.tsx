@@ -271,7 +271,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             </h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
                                 {relatedProducts.map((p: any) => (
-                                    <Link key={p?.id} href={`/products/${p?.slug || ''}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
+                                    <Link key={p?.id} href={`/${locale}/catalog/${p?.slug || ''}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
                                         <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
                                             {p?.images && Array.isArray(p.images) && p.images[0] && <Image src={p.images[0]} alt={p?.name || 'Product'} fill style={{ objectFit: 'cover' }} />}
                                         </div>

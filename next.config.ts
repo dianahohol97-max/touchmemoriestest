@@ -94,6 +94,30 @@ const nextConfig = {
         destination: '/:locale/category/graduation-books',
         permanent: true,
       },
+      // Legacy product URLs. /[locale]/product/[slug] was an old duplicate
+      // product page (removed — it 500ed in production and carried no
+      // metadata), and blog content linked to /products/[slug] which never
+      // existed as a route. Canonical product URL is /[locale]/catalog/[slug].
+      {
+        source: '/:locale(uk|en|ro|pl|de)/product/:slug',
+        destination: '/:locale/catalog/:slug',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/products/:slug',
+        destination: '/:locale/catalog/:slug',
+        permanent: true,
+      },
+      {
+        source: '/product/:slug',
+        destination: '/uk/catalog/:slug',
+        permanent: true,
+      },
+      {
+        source: '/products/:slug',
+        destination: '/uk/catalog/:slug',
+        permanent: true,
+      },
       // Old-site URLs (pre-migration /shop structure): stop leaking their SEO
       // weight into 404s — land visitors on the catalog instead.
       {
