@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, X, AlertTriangle, ChevronRight, GripVertical, Info } from 'lucide-react';
 import { useT } from '@/lib/i18n/context';
 import { toast } from 'sonner';
+import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { trackFunnelStep } from '@/lib/analytics/funnel';
 
 interface PhotoFile {
@@ -79,23 +80,40 @@ export default function BookPhotoUpload() {
         // technical 500 hard limit below. The customer arranges the book
         // themselves, so they may upload as many photos as they like.
         const newPhotos: PhotoFile[] = [];
+        let failedCount = 0;
+        let heicConverting = false;
 
         for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (!file.type.startsWith('image/')) continue;
+            let file = files[i];
+            // Accept files with an empty/unknown MIME too — iPhone HEIC often
+            // arrives with no type at all, and the old `startsWith('image/')`
+            // gate silently discarded the whole batch with zero feedback.
+            const looksLikeImage = file.type.startsWith('image/') || file.type === ''
+                || /\.(heic|heif|jpe?g|png|webp|gif|avif)$/i.test(file.name);
+            if (!looksLikeImage) { failedCount++; continue; }
 
             // Check max 500 photos limit (hard upper bound for any product)
             if (photos.length + newPhotos.length >= 500) {
                 toast.error(t('photo_upload.max_photos'));
                 break;
             }
-            // NOTE: the per-product "recommended max" cap (130% of the
-            // recommended count) was removed — in the constructor the
-            // customer may upload as many photos as they like. The
-            // recommendation is shown as guidance only; the minimum
-            // (one photo per page) is still enforced before they can
-            // continue. The 500 hard limit above is just a technical
-            // safety bound.
+
+            // HEIC/HEIF (or empty-MIME): normalise to JPEG exactly like the
+            // editor's own upload path does — this page previously had no
+            // HEIC handling, so iPhone photos were dropped one decode-error
+            // at a time with only a console.error.
+            try {
+                if (!file.type.startsWith('image/') || /hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) {
+                    if (!heicConverting) {
+                        heicConverting = true;
+                        toast.info(t('photo_upload.converting') || 'Конвертуємо фото з iPhone...', { duration: 4000 });
+                    }
+                    file = await normalizeImageFile(file);
+                }
+            } catch {
+                failedCount++;
+                continue;
+            }
 
             const preview = URL.createObjectURL(file);
 
@@ -109,7 +127,11 @@ export default function BookPhotoUpload() {
                 });
 
                 newPhotos.push({
-                    id: Math.random().toString(36).substring(7),
+                    // crypto.randomUUID: the old 5-char Math.random id could
+                    // collide across two customers uploading in the same
+                    // moment — storage paths embed this id, and a collision
+                    // plus upsert overwrote someone else's photo.
+                    id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
                     file,
                     preview,
                     width: img.width,
@@ -117,6 +139,7 @@ export default function BookPhotoUpload() {
                 });
             } catch (error) {
                 URL.revokeObjectURL(preview);
+                failedCount++;
                 console.error('Error loading image:', error);
             }
         }
@@ -124,6 +147,12 @@ export default function BookPhotoUpload() {
         setPhotos(prev => [...prev, ...newPhotos]);
         if (newPhotos.length > 0) {
             toast.success(t('photo_upload.photos_uploaded').replace('{n}', String(newPhotos.length)));
+        }
+        // Never fail silently: the customer must know some (or all) files
+        // didn't make it, otherwise a whole iPhone batch could vanish
+        // without a word.
+        if (failedCount > 0) {
+            toast.error(`${failedCount} файл(ів) не вдалося обробити — спробуйте зберегти їх як JPEG і завантажити ще раз.`, { duration: 8000 });
         }
     };
 

@@ -70,7 +70,7 @@ import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
-interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
+interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -1657,6 +1657,15 @@ export default function BookLayoutEditor() {
         if (cd.coverState) {
           setCoverState(cd.coverState);
         }
+        // Restore the rest of the editor state (saved since the canvas_data
+        // format was extended — older projects simply don't have these keys).
+        if (cd.freeSlots) setFreeSlots(cd.freeSlots);
+        if (cd.pageBgs) setPageBgs(cd.pageBgs);
+        if (cd.pageShapes) setPageShapes(cd.pageShapes);
+        if (cd.pageFrames) setPageFrames(cd.pageFrames);
+        if (cd.pageStickers) setPageStickers(cd.pageStickers);
+        if (cd.qrOverlays) setQrOverlays(cd.qrOverlays);
+        if (typeof cd.generatedQRCount === 'number') setGeneratedQRCount(cd.generatedQRCount);
         toast.success(`Завантажено макет "${project.title}"${project.revision_notes ? ' — є правки від клієнта' : ''}`);
       } catch (e) {
         console.error('Failed to load designer project', e);
@@ -1967,25 +1976,52 @@ export default function BookLayoutEditor() {
 
   const addSpread = () => {
     pushHistory();
-    const newId1 = pages.length;
-    const newId2 = pages.length + 1;
+    // Ids must be UNIQUE, not positional: after a spread deletion the array
+    // shrinks but ids are never renumbered, so `pages.length` could mint an
+    // id that already exists — duplicate React keys and glitchy
+    // reconciliation (edits appearing on the wrong page). Labels stay
+    // positional (they're display text), ids come from max+1.
+    const maxId = pages.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
+    const newId1 = maxId + 1;
+    const newId2 = maxId + 2;
     setPages(prev => [
       ...prev,
-      { id: newId1, label: `${t('constructor.page_short')} ${newId1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
-      { id: newId2, label: `${t('constructor.page_short')} ${newId2}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      { id: newId1, label: `${t('constructor.page_short')} ${prev.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      { id: newId2, label: `${t('constructor.page_short')} ${prev.length + 1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
     ]);
     const newSpreadIdx = Math.ceil(pages.length / 2);
     setCurrentIdx(newSpreadIdx);
   };
 
   const removeCurrentSpread = () => {
-    pushHistory();
+    // Guards BEFORE pushHistory — a rejected delete must not pollute the
+    // undo stack with a duplicate snapshot.
     if (pages.length <= minPagesLen) { toast.error(`${t('constructor.min_spreads')} ${minSpreads}`); return; }
     if (currentIdx === 0) { toast.error(t('constructor.cannot_delete_cover')); return; }
+    pushHistory();
     // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
     const p1 = (currentIdx - 1) * 2 + 1;
     const p2 = p1 + 1;
+    // Every decoration store (free slots, shapes, stickers, QR, backgrounds,
+    // frames) is keyed by PAGE ARRAY INDEX. Removing two pages shifts every
+    // later index down by 2, so those maps must be re-keyed by the same
+    // permutation — exactly what moveSpread already does. Without this,
+    // deleting a middle spread silently moved backgrounds/stickers/free
+    // photos of all later spreads onto the wrong pages, and the book could
+    // be printed that way. order[newIdx] = oldIdx over the surviving pages.
+    const order = pages.map((_, i) => i).filter(i => i !== p1 && i !== p2);
+    const remap = <T,>(m: Record<number, T>): Record<number, T> => {
+      const out: Record<number, T> = {};
+      order.forEach((oldIdx, newIdx) => { if (m[oldIdx] !== undefined) out[newIdx] = m[oldIdx]; });
+      return out;
+    };
     setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
+    setFreeSlots(prev => remap(prev));
+    setPageShapes(prev => remap(prev));
+    setPageStickers(prev => remap(prev));
+    setQrOverlays(prev => remap(prev));
+    setPageBgs(prev => remap(prev));
+    setPageFrames(prev => remap(prev));
     setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 3) / 2))));
     toast.success(t('constructor.spread_deleted'));
   };
@@ -2978,7 +3014,14 @@ export default function BookLayoutEditor() {
           format: config?.selectedSize || '',
           cover_type: config?.selectedCoverType || '',
           page_count: pages.length - 1,
-          canvas_data: { pages, coverState, photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })) },
+          // FULL editor state. Previously only pages+coverState were saved,
+          // so a designer's free-positioned photos, backgrounds, stickers,
+          // shapes, frames and QR codes vanished on every save→reopen.
+          canvas_data: {
+            pages, coverState,
+            freeSlots, pageBgs, pageShapes, pageFrames, pageStickers, qrOverlays, generatedQRCount,
+            photos: photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height })),
+          },
         }),
       });
       if (res.ok) {
@@ -3239,7 +3282,10 @@ export default function BookLayoutEditor() {
     try {
       const { createClient: createSbForUpload } = await import('@/lib/supabase/client');
       const sbUp = createSbForUpload();
-      const uploadOrderId = `pb-${Date.now()}`;
+      // Random suffix: a bare timestamp can collide when two customers add to
+      // cart in the same millisecond — storage paths embed this id and the
+      // uploads use upsert, so a collision overwrote another customer's files.
+      const uploadOrderId = `pb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       for (const ph of photos) {
         if ((ph as any).storagePath) continue; // already uploaded this session
         let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
@@ -3295,14 +3341,16 @@ export default function BookLayoutEditor() {
     const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
     const rawCover = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
     const productImage = await makeCartThumbnail(rawCover);
-    const orderId = `pb-${Date.now()}`;
+    const orderId = `pb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // Never let a zero-price item into the cart — that produced orders with
     // total = 0 in the admin (travelbook / hard-cover journal fall through the
-    // photobook_prices matrix, so dynamicPrice could resolve to 0). Fall back to
-    // the configurator's totalPrice, and if even that is 0, refuse and tell the
-    // user rather than silently creating a free order.
-    const finalPrice = dynamicPrice > 0 ? dynamicPrice : ((config.totalPrice || 0) > 0 ? config.totalPrice : 0);
+    // photobook_prices matrix, so dynamicPrice could resolve to 0). Fall back
+    // to the PER-UNIT configurator price (configUnitBase + decoration) — raw
+    // config.totalPrice is multiplied by copies, and qty below now carries the
+    // copies count, so using it here would double-multiply.
+    const unitFallback = configUnitBase + decorationExtra;
+    const finalPrice = dynamicPrice > 0 ? dynamicPrice : (unitFallback > 0 ? unitFallback : 0);
     if (!(finalPrice > 0)) {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
@@ -3342,6 +3390,7 @@ export default function BookLayoutEditor() {
       // when the base came from config.totalPrice fallback.
       price_breakdown: (() => {
         const lines: Array<{ label: string; amount: number }> = [];
+        if (decorationExtra > 0) lines.push({ label: 'Оздоблення обкладинки', amount: decorationExtra });
         if (endpaperExtra > 0) lines.push({ label: 'Друк на форзацах', amount: endpaperExtra });
         if (laminationExtra > 0) lines.push({ label: `Ламінування сторінок (7 ₴ × ${Math.max(0, pages.length - 1)})`, amount: laminationExtra });
         if (typesettingExtra > 0) lines.push({ label: 'Верстка тексту', amount: typesettingExtra });
@@ -3355,7 +3404,11 @@ export default function BookLayoutEditor() {
         }
         return out;
       })(),
-      qty: isGraduation ? GRADUATION_MIN_QTY : 1,
+      // "Кількість примірників" from the configurator becomes the cart qty
+      // (previously always 1 — the customer paid for and received a single
+      // copy no matter what they picked). Graduation albums keep their
+      // 5-copy minimum on top.
+      qty: isGraduation ? Math.max(GRADUATION_MIN_QTY, copiesCount) : copiesCount,
       ...(isGraduation ? { min_qty: GRADUATION_MIN_QTY } : {}),
       image: productImage,
       options: (() => {
@@ -3396,6 +3449,8 @@ export default function BookLayoutEditor() {
         // Cover lamination (printed cover — Глянцева / Матова). Set from
         // config.selectedLamination which is passed by BookConstructorConfig.
         if (config.selectedLamination) opts[t('constructor.cover_lamination')] = config.selectedLamination;
+        // Copies count — the manager must see how many books to produce.
+        if (copiesCount > 1) opts['Кількість примірників'] = String(copiesCount);
         // Cover decoration — show whatever soft-cover decoration the
         // customer set up in the editor (acryl, photo insert, metal
         // plate, flex, gravirovka). decoType 'none' means no decoration.
@@ -4142,7 +4197,11 @@ export default function BookLayoutEditor() {
 
     if (exportedFiles.length > 0) {
       try {
-        sessionStorage.setItem(`export_${orderId}`, JSON.stringify(exportedFiles));
+        // Keyed by the CART ITEM id (not the internal pb-timestamp orderId):
+        // when re-editing a cart item, cartPayload.id keeps the original item
+        // id while orderId is freshly minted — and checkout looks these
+        // snapshots up by item id. Keying by orderId orphaned every re-edit.
+        sessionStorage.setItem(`export_${cartPayload.id}`, JSON.stringify(exportedFiles));
       } catch (e) {
         console.warn('Could not persist export list for cart linking:', e);
       }
@@ -4197,7 +4256,30 @@ export default function BookLayoutEditor() {
         freeSlots, qrOverlays, generatedQRCount, config,
         uploadedPhotos: uploadedPhotosMeta,
       };
-      sessionStorage.setItem(`design_${orderId}`, JSON.stringify(designSnapshot));
+      // Keyed by cartPayload.id — checkout forwards `design_<itemId>` to the
+      // server so Railway can render. With the old `design_${orderId}` key a
+      // RE-EDITED cart item wrote the snapshot under a new pb-timestamp while
+      // checkout kept looking under the original item id: for guests the
+      // updated design never reached the renderer.
+      sessionStorage.setItem(`design_${cartPayload.id}`, JSON.stringify(designSnapshot));
+
+      // The export_failed guard used to live only in the html2canvas branch,
+      // which is permanently disabled (SKIP_CLIENT_HTML2CANVAS) — so partial
+      // original-upload failures became invisible: the project row was still
+      // created and Railway rendered the missing photos as EMPTY slots, which
+      // the missing-print-files cron does not catch (it only flags orders
+      // with zero files). Re-arm the guard on the live path: any photo left
+      // without a storage path warns the customer and flags the cart item so
+      // checkout writes the warning onto the order for the manager.
+      const missingOriginals = uploadedPhotosMeta.filter(m => !m.path).length;
+      if (missingOriginals > 0) {
+        try { sessionStorage.setItem(`export_failed_${cartPayload.id}`, '1'); } catch { /* quota */ }
+        toast.error(
+          `${missingOriginals} з ${photos.length} фото не вдалося завантажити на сервер друку. Перевірте інтернет і збережіть макет ще раз, або напишіть нам — інакше ці фото не потраплять у друк.`,
+          { duration: 12000 },
+        );
+        console.error('[print-originals] missing paths', { orderId, missingOriginals, total: photos.length });
+      }
     } catch (e) {
       console.warn('Could not persist design snapshot for Railway render:', e);
     }
@@ -4216,7 +4298,7 @@ export default function BookLayoutEditor() {
         try {
           // Mark the cart item so checkout writes the flag onto the order and
           // the admin order page can show a clear warning badge.
-          sessionStorage.setItem(`export_failed_${orderId}`, '1');
+          sessionStorage.setItem(`export_failed_${cartPayload.id}`, '1');
         } catch { /* ignore quota */ }
         toast.error(
           `Не вдалося підготувати файли для друку. Перевірте підключення та спробуйте оформити ще раз, або напишіть нам — інакше замовлення прийде без макета.${uploadErrDetail ? ` (деталі: ${uploadErrDetail})` : ''}`,
@@ -4355,8 +4437,26 @@ export default function BookLayoutEditor() {
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
 
 
-//  Pricing (imported from @/lib/editor/pricing) 
+//  Pricing (imported from @/lib/editor/pricing)
   const currentPageCount = Math.max(0, pages.length - 1);
+
+  // ── Configurator-only price components the editor must NOT lose ────────
+  // The configurator folds two things into config.totalPrice that the
+  // editor's own table lookups know nothing about:
+  //   1. decorationSurcharge — the paid cover decoration (акрил / металева
+  //      пластина / фотовставка). Recomputing the price from the tables
+  //      dropped it, so every decorated book was billed WITHOUT the
+  //      surcharge while production still made the decoration.
+  //   2. selectedCopies — "Кількість примірників" multiplies totalPrice,
+  //      but the editor always added qty:1 at the single-unit price.
+  // copiesCount becomes the cart qty; decorationExtra joins dynamicPrice.
+  // configUnitBase is the per-unit, decoration-free equivalent of
+  // config.totalPrice for use as a fallback base — so that fallback paths
+  // (scrapbook, wishbook table miss, photobook table miss) never count the
+  // decoration twice once decorationExtra is added on top.
+  const copiesCount = Math.max(1, parseInt(String(config.selectedCopies ?? '1'), 10) || 1);
+  const decorationExtra = Math.max(0, Number(config.decorationSurcharge) || 0);
+  const configUnitBase = Math.max(0, Math.round(((Number(config.totalPrice) || 0) / copiesCount)) - decorationExtra);
 
   // Pricing path differs by product type. Photobooks/journals/wishbooks use
   // the Supabase photobook_prices table via calculateDynamicPrice — that
@@ -4421,7 +4521,7 @@ export default function BookLayoutEditor() {
     // matrix, no velour-style size×pages lookup. Pulling them through the
     // photobook_prices table makes them inherit wishbook velour pricing
     // (a 30×20 / 32pp would land on ~2075 ₴ instead of the real 525 ₴).
-    baseDynamicPrice = config.totalPrice || 0;
+    baseDynamicPrice = configUnitBase;
     basePriceDiff = 0;
   } else if (isWishbook) {
     // Wishbooks use the wishbook_prices table (cover_category × page_color × size),
@@ -4440,7 +4540,7 @@ export default function BookLayoutEditor() {
       : 'Білі';
     const sizeKey = config.selectedSize || '23x23';
     const wishbookPriceLookup = getWishbookPrice(coverKey, pageColorLabel, sizeKey);
-    baseDynamicPrice = wishbookPriceLookup ?? config.totalPrice ?? 0;
+    baseDynamicPrice = wishbookPriceLookup ?? configUnitBase;
     basePriceDiff = 0; // fixed price, no page-count variable
   } else {
     const result = calculateDynamicPrice(
@@ -4449,7 +4549,10 @@ export default function BookLayoutEditor() {
       config.selectedSize || '20x20',
       currentPageCount,
       config.selectedPageCount || '20',
-      config.totalPrice,
+      // Fallback base when the table has no rows: the per-unit,
+      // decoration-free equivalent of config.totalPrice, so adding
+      // decorationExtra below never double-counts the surcharge.
+      configUnitBase,
       !!config.enableKalka,
     );
     // Urgent surcharge for hardcover journal / travelbook / photobook
@@ -4511,7 +4614,10 @@ export default function BookLayoutEditor() {
     || '';
   const hasPageLamination = isPageLaminationSelected(pageLamRaw);
   const laminationExtra = hasPageLamination ? LAMINATION_PRICE_PER_PAGE * Math.max(0, pages.length - 1) : 0;
-  const dynamicPrice = baseDynamicPrice + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  // decorationExtra is NOT part of priceDiff: the decoration was chosen and
+  // priced at the configurator, so it exists in both the ordered and the
+  // current total — only editor-added extras contribute to the "+N ₴" badge.
+  const dynamicPrice = baseDynamicPrice + decorationExtra + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
   const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
@@ -4612,7 +4718,7 @@ export default function BookLayoutEditor() {
                 <div style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>Мінімум {GRADUATION_MIN_QTY} шт · {dynamicPrice * GRADUATION_MIN_QTY} ₴ за {GRADUATION_MIN_QTY}</div>
               )}
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d', display:'flex', alignItems:'center', gap:4 }}>
-                {dynamicPrice} ₴
+                {copiesCount > 1 ? `${dynamicPrice} ₴ × ${copiesCount}` : `${dynamicPrice} ₴`}
                 {priceDiff !== 0 && (
                   <span title={priceDiff > 0
                     ? `Ви додали сторінок більше ніж у початковому замовленні — доплата +${priceDiff} ₴`
