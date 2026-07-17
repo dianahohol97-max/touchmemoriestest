@@ -10,6 +10,7 @@ import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 // ISR: revalidate every 2 hours — blog posts rarely change
 export const revalidate = 7200;
@@ -169,8 +170,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div style={{ backgroundColor: 'white', minHeight: '100vh', fontFamily: 'var(--font-primary)' }}>
             <Navigation />
 
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdArticle) }} />
-            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdArticle) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdBreadcrumb) }} />
 
             {/* View Counter Trigger */}
             <script dangerouslySetInnerHTML={{

@@ -6,7 +6,10 @@ import { getRoleConfig, type B2bRole } from '@/lib/b2b/config';
 
 export const dynamic = 'force-dynamic';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Excludes comma and parentheses: this email is later interpolated into a
+// PostgREST `.or()` filter string (photographer cabinet lookup), where those
+// characters would let a crafted address inject extra filter terms.
+const EMAIL_RE = /^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/;
 const URL_RE = /^https?:\/\/.+/i;
 
 export async function POST(request: Request) {

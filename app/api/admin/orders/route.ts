@@ -32,7 +32,10 @@ export async function GET(req: Request) {
         }
 
         if (search) {
-            query = query.or(`order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_phone.ilike.%${search}%`);
+            // Strip PostgREST filter metacharacters so the search term can't
+            // inject extra `.or()` terms (staff-gated, but cheap to close).
+            const s = search.replace(/[,()*]/g, ' ').trim();
+            if (s) query = query.or(`order_number.ilike.%${s}%,customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%`);
         }
 
         const { data, error } = await query;

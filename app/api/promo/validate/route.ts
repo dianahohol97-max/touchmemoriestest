@@ -26,6 +26,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ valid: false, message: 'Промокод не передано' }, { status: 400 });
         }
 
+        // Sanitise the two values that get interpolated into a PostgREST `.or()`
+        // filter string below (step 7). Without this a caller could inject extra
+        // filter terms (e.g. customer_id="…,id.not.is.null") to skew the
+        // single-use check. customer_id must be a plain UUID; email must not
+        // carry the comma/paren metacharacters PostgREST parses.
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const safeCustomerId = typeof customer_id === 'string' && UUID_RE.test(customer_id) ? customer_id : null;
+        if (email && /[,()]/.test(email)) {
+            return NextResponse.json({ valid: false, message: 'Невірний email' }, { status: 400 });
+        }
+
         // 1. Fetch Promo Code
         const { data: promo, error: promoErr } = await supabase
             .from('promo_codes')
@@ -112,7 +123,7 @@ export async function POST(request: Request) {
         //    users could reuse a code indefinitely.
         if (promo.is_single_use_per_customer || promo.requires_email_match) {
             const orFilters: string[] = [];
-            if (customer_id) orFilters.push(`customer_id.eq.${customer_id}`);
+            if (safeCustomerId) orFilters.push(`customer_id.eq.${safeCustomerId}`);
             if (email) orFilters.push(`email.eq.${email}`);
 
             if (orFilters.length > 0) {

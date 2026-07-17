@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 export const revalidate = 600;
 
@@ -55,7 +56,7 @@ export default async function PhotographersCatalogPage({ params }: Props) {
 
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 20px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <h1 style={{ fontSize: 30, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Фотографи</h1>
       <p style={{ color: '#64748b', marginTop: 0, marginBottom: 28, maxWidth: 640 }}>
         Перевірені фотографи, що працюють із Touch.Memories: портфоліо, прайс і контакти на сторінці кожного фотографа.

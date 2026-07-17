@@ -19,6 +19,11 @@ export async function POST(request: Request) {
         const file = form.get('file');
 
         if (!orderId) return NextResponse.json({ error: 'order_id required' }, { status: 400 });
+        // order_id becomes part of the storage path — require a clean UUID so it
+        // can never contain path separators or traversal segments.
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+            return NextResponse.json({ error: 'order_id invalid' }, { status: 400 });
+        }
         if (!(file instanceof File)) return NextResponse.json({ error: 'file required' }, { status: 400 });
         if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Файл завеликий (макс 12MB)' }, { status: 400 });
         if (file.type && !ALLOWED.includes(file.type)) {

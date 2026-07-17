@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, getBaseUrl, type Locale } from '@/lib/seo/locales';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import SignupForm from './SignupForm';
 
 export const revalidate = 3600;
@@ -93,8 +94,8 @@ export default async function GalleryForPhotographersPage({ params }: Props) {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 20px 90px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqLd) }} />
 
       {/* Hero */}
       <section style={{ textAlign: 'center', marginBottom: 56 }}>

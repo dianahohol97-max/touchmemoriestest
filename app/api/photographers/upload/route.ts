@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
 
   const file = form.get('file');
   if (!(file instanceof File)) return NextResponse.json({ error: 'Немає файлу' }, { status: 400 });
-  if (!file.type.startsWith('image/')) return NextResponse.json({ error: 'Файл не є зображенням' }, { status: 400 });
+  // Raster images only. SVG is `image/*` but is an active document — served from
+  // the public gallery bucket it would execute scripts in visitors' browsers
+  // (stored XSS on the photographer's public landing page).
+  const ALLOWED_IMG = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
+  if (!ALLOWED_IMG.includes(file.type)) return NextResponse.json({ error: 'Підтримуються JPG, PNG, WEBP, GIF, HEIC' }, { status: 400 });
   if (file.size > MAX_PHOTO_BYTES) return NextResponse.json({ error: 'Файл більший за 25 МБ' }, { status: 400 });
 
   const portfolio: string[] = Array.isArray(photographer.portfolio) ? photographer.portfolio : [];

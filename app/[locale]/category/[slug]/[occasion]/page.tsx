@@ -10,6 +10,7 @@ import {
   type Locale,
 } from '@/lib/seo/locales';
 import { getLocalized } from '@/lib/i18n/localize';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { toDbCategorySlug, toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { geoCityLabel, clusterLabel } from '@/lib/seo/landingLabels';
 import { Navigation } from '@/components/ui/Navigation';
@@ -257,7 +258,7 @@ export default async function LandingPage({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
       <Navigation />
 
       <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>

@@ -10,6 +10,7 @@ import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { CookieBanner } from '@/components/cookies/CookieBanner';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n/context';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 import ReferralCapture from '@/components/ReferralCapture';
@@ -133,7 +134,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://yivfsicvaoewxrtkrfxr.supabase.co" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(globalJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(globalJsonLd) }}
         />
       </head>
       <body className="font-body bg-background text-textPrimary antialiased">

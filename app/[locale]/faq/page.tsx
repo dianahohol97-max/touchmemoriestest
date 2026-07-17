@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import FAQClient from './FAQClient';
 import { FAQ_ITEMS } from '@/lib/faq';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale: rawLocale } = await params;
@@ -40,7 +41,7 @@ export default function FAQPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <FAQClient />
     </>

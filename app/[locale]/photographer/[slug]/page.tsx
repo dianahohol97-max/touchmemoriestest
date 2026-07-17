@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 import { getLandingTheme } from '@/lib/photographers/themes';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import BookingSection, { type PublicSlot } from './BookingSection';
 
 export const revalidate = 300;
@@ -166,7 +167,7 @@ export default async function PhotographerLandingPage({ params }: Props) {
 
   return (
     <div style={{ minHeight: '100vh', background: t.bg, color: t.ink }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <header style={{ position: 'relative', overflow: 'hidden' }}>

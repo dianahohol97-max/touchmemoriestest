@@ -11,6 +11,7 @@ import {
   type Locale,
 } from '@/lib/seo/locales';
 import { getLocalized } from '@/lib/i18n/localize';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { toDbCategorySlug, toPublicCategorySlug, DB_TO_UA_CATEGORY } from '@/lib/seo/categorySlugs';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
@@ -180,7 +181,7 @@ export default async function CategoryPage({
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <Navigation />
 

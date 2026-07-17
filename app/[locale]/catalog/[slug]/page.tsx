@@ -4,6 +4,7 @@ import ProductClient from './ProductClient';
 import { getLocalized } from '@/lib/i18n/localize';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 interface Props {
   params: Promise<{ slug: string; locale: string }>;
@@ -211,10 +212,10 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       {jsonLdProduct && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProduct) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdProduct) }} />
       )}
       {jsonLdBreadcrumb && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdBreadcrumb) }} />
       )}
       {productMeta &&
         Object.entries(productMeta).map(([property, content]) =>

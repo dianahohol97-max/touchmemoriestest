@@ -18,7 +18,11 @@ export async function GET(request: Request) {
     let query = admin.from('leads').select('*').order('created_at', { ascending: false }).limit(500);
     if (status && status !== 'all') query = query.eq('status', status);
     if (type && type !== 'all') query = query.eq('business_type', type);
-    if (q) query = query.or(`business_name.ilike.%${q}%,email.ilike.%${q}%,city.ilike.%${q}%`);
+    if (q) {
+        // Strip PostgREST filter metacharacters to prevent `.or()` term injection.
+        const s = q.replace(/[,()*]/g, ' ').trim();
+        if (s) query = query.or(`business_name.ilike.%${s}%,email.ilike.%${s}%,city.ilike.%${s}%`);
+    }
 
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
