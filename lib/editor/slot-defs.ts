@@ -238,7 +238,8 @@ export function getSlotDefs(layout: string, W: number, H: number, gap: number = 
   if (layout === 'p-6-uneven')     return [S(0,0,0,W*0.4,H*0.6), S(1,W*0.4+g,0,W*0.6-g,H*0.4-g/2), S(2,W*0.4+g,H*0.4+g/2,W*0.6-g,H*0.6-g/2), S(3,0,H*0.6+g,w3,H*0.4-g), S(4,w3+g,H*0.6+g,w3,H*0.4-g), S(5,2*(w3+g),H*0.6+g,w3,H*0.4-g)];
 
   //  PAGE: 7 фото 
-  if (layout === 'p-7-grid')       { const sw=(W-2*g)/3, sh=(H-2*g)/3; return [[0,1,2].flatMap(col=>[0,1].map(row=>S(col*2+row,col*(sw+g),row*(sh+g),sw,sh))).concat(S(6,0,(sh+g)*2,W,sh))].flat(); }
+  // (removed: dead duplicate of the earlier same-id definition — the if-chain
+  //  above returns first, so edits here never had any effect)
   if (layout === 'p-7-hero')       { const bh=H*0.5; const sw=(W-5*g)/6; return [S(0,0,0,W,bh), ...Array.from({length:6},(_,i)=>S(i+1,i*(sw+g),bh+g,sw,H-bh-g))]; }
   if (layout === 'p-7-3-4')        { const sw3=(W-2*g)/3; const sw4=(W-3*g)/4; return [S(0,0,0,sw3,h2), S(1,sw3+g,0,sw3,h2), S(2,2*(sw3+g),0,sw3,h2), S(3,0,h2+g,sw4,h2), S(4,sw4+g,h2+g,sw4,h2), S(5,2*(sw4+g),h2+g,sw4,h2), S(6,3*(sw4+g),h2+g,sw4,h2)]; }
   if (layout === 'p-7-4-3')        { const sw4=(W-3*g)/4; const sw3=(W-2*g)/3; const sh=h2; return [...Array.from({length:4},(_,i)=>S(i,i*(sw4+g),0,sw4,sh)), ...Array.from({length:3},(_,i)=>S(i+4,i*(sw3+g),sh+g,sw3,sh))]; }
@@ -250,7 +251,8 @@ export function getSlotDefs(layout: string, W: number, H: number, gap: number = 
   if (layout === 'p-7-focus')      return [S(0,0,0,W*0.6,H*0.6), ...Array.from({length:6},(_,i)=>{ const cols=3; const sw=(W-2*g)/3; const sh=H*0.4-g; return i<3 ? S(i+1,i*(sw+g),H*0.6+g,sw,sh) : S(i+1,(i-3)*(sw+g)+(i<3?0:W*0.6+g),0,W*0.4-g,H*0.6/3-g/2); }).slice(0,6)];
 
   //  PAGE: 8 фото 
-  if (layout === 'p-8-grid')       return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
+  // (removed: dead duplicate of the earlier same-id definition — the if-chain
+  //  above returns first, so edits here never had any effect)
   if (layout === 'p-8-hero')       { const sw=(W-6*g)/7; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:7},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
   if (layout === 'p-8-2x4')        return Array.from({length:8},(_,i)=>S(i,(i%4)*(w4+g),Math.floor(i/4)*(h2+g),w4,h2));
   if (layout === 'p-8-mosaic')     { const sw3=(W-2*g)/3; return [S(0,0,0,W*0.5,h2-g/2), S(1,W*0.5+g,0,W*0.25-g/2,h2-g/2), S(2,W*0.75+g/2,0,W*0.25-g/2,h2-g/2), ...Array.from({length:5},(_,i)=>S(i+3,i*(W/5+g),h2+g/2,W/5-g,h2-g/2))]; }
@@ -259,7 +261,8 @@ export function getSlotDefs(layout: string, W: number, H: number, gap: number = 
   if (layout === 'p-8-cols')       { const sw=(W-3*g)/4; const sh=(H-g)/2; return Array.from({length:8},(_,i)=>S(i,(i%4)*(sw+g),Math.floor(i/4)*(sh+g),sw,sh)); }
 
   //  PAGE: 9 фото 
-  if (layout === 'p-9-grid')       return Array.from({length:9},(_,i)=>S(i,(i%3)*(w3+g),Math.floor(i/3)*(h3+g),w3,h3));
+  // (removed: dead duplicate of the earlier same-id definition — the if-chain
+  //  above returns first, so edits here never had any effect)
   if (layout === 'p-9-hero')       { const sw=(W-7*g)/8; const sh=h2; return [S(0,0,0,W,sh), ...Array.from({length:8},(_,i)=>S(i+1,i*(sw+g),sh+g,sw,sh))]; }
   if (layout === 'p-9-mosaic')     return [S(0,0,0,W*0.55,H*0.55), ...Array.from({length:8},(_,i)=>{ const cols=4; const sw=(W-3*g)/4; const sh=H*0.45-g; return i<4 ? S(i+1,i*(sw+g),H*0.55+g,sw,sh) : S(i+1,(i-4)*((W*0.45-g)/4+g)+W*0.55+g,0,(W*0.45-g)/4,(H*0.55-g)/4); })];
   if (layout === 'p-9-strip')      { const w9=(W-8*g)/9; return Array.from({length:9},(_,i)=>S(i,i*(w9+g),0,w9,H)); }

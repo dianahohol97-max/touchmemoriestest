@@ -39,20 +39,30 @@ interface FreeSlotLayerProps {
 const MIN_SIZE = 40;
 
 // DPI check: calculates print DPI for a photo in a slot
-// Returns: 'ok' (>=200), 'warn' (100-199), 'bad' (<100), or null if can't calculate
+// Returns: 'ok' (>=91), 'warn' (70-90), 'bad' (<70), or null if can't calculate
+// Accounts for in-slot ZOOM (zooming in spreads fewer source pixels over the
+// same physical area — effective DPI drops proportionally; the badge used to
+// stay silent for exactly the most common low-quality case, a strong zoom)
+// and for quarter-turn ROTATION (which swaps the photo axis that maps to the
+// slot's width/height).
 function checkPhotoDpi(
   photoW: number | undefined, photoH: number | undefined,
   slotW: number, slotH: number, canvasW: number, canvasH: number,
-  pageMmW?: number, pageMmH?: number
+  pageMmW?: number, pageMmH?: number, zoom?: number, rotation?: number
 ): { level: 'ok' | 'warn' | 'bad'; dpi: number } | null {
   if (!photoW || !photoH || !pageMmW || !pageMmH) return null;
   if (slotW <= 0 || slotH <= 0 || canvasW <= 0) return null;
+  // Quarter turns swap which photo axis covers the slot's width vs height.
+  const quarter = Math.abs(((rotation || 0) % 180)) === 90;
+  const effW = quarter ? photoH : photoW;
+  const effH = quarter ? photoW : photoH;
   // Slot physical size in mm
   const slotMmW = (slotW / canvasW) * pageMmW;
   const slotMmH = (slotH / canvasH) * pageMmH;
   // DPI = pixels / inches, where inches = mm / 25.4
-  const dpiW = photoW / (slotMmW / 25.4);
-  const dpiH = photoH / (slotMmH / 25.4);
+  const z = Math.max(1, zoom || 1);
+  const dpiW = effW / z / (slotMmW / 25.4);
+  const dpiH = effH / z / (slotMmH / 25.4);
   const dpi = Math.min(dpiW, dpiH); // worst axis
   // Diana's call: show DPI badge only when it actually matters for print.
   // Below 91 DPI is when softness becomes visible on a printed page; above
@@ -391,7 +401,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                   )}
                   {/* DPI warning badge */}
                   {(() => {
-                    const dpiCheck = checkPhotoDpi(photo?.width, photo?.height, slot.w, slot.h, canvasW, canvasH, pageSizeMm?.w, pageSizeMm?.h);
+                    const dpiCheck = checkPhotoDpi(photo?.width, photo?.height, slot.w, slot.h, canvasW, canvasH, pageSizeMm?.w, pageSizeMm?.h, (slot as any).zoom, (slot as any).rotation);
                     if (!dpiCheck || dpiCheck.level === 'ok') return null;
                     const isBad = dpiCheck.level === 'bad';
                     return (

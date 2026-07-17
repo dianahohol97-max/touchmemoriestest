@@ -98,7 +98,13 @@ function pickBestLayout(
   variety: 'min' | 'medium' | 'max'
 ): string {
   const compatible = allLayouts.filter(l => l.slots === slotCount);
-  if (compatible.length === 0) return allLayouts[0]?.id || 'p-full';
+  if (compatible.length === 0) {
+    // No exact match (over-stuffed group): take the layout with the MOST
+    // slots so as few photos as possible fall off; the caller reports any
+    // remainder to the user instead of dropping it silently.
+    const biggest = [...allLayouts].sort((x, y) => y.slots - x.slots)[0];
+    return biggest?.id || allLayouts[0]?.id || 'p-full';
+  }
 
   // Orientation fit is a HARD preference, not just a bonus. If any compatible
   // layout matches the group's orientation, we only ever choose among those.
@@ -147,6 +153,10 @@ export interface AutoBuildResult {
   pages: { layout: string; photoIds: string[] }[];
   coverPhotoId: string | null;
   totalSpreads: number;
+  /** Photos that did not fit any page (group larger than the biggest layout
+   *  under a page-count limit). The UI must tell the user, never drop them
+   *  silently. */
+  droppedCount?: number;
 }
 
 export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
@@ -193,8 +203,12 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
   const groupBudget = maxPages
     ? Math.max(1, isSpreadMode ? Math.floor(maxPages / 2) : maxPages)
     : Infinity;
-  // Spread layouts exist up to 6 slots; single pages up to 4.
-  const hardMax = isSpreadMode ? 6 : 4;
+  // The ceilings must match slot-defs reality: page layouts exist up to 9
+  // slots (p-9-*) and spread layouts up to 16 (sp-16-grid). The old caps of
+  // 4/6 forced the leftover round-robin to push groups past every available
+  // layout size — pickBestLayout then fell back to allLayouts[0] and the
+  // consumer silently DROPPED the extra photos from the book.
+  const hardMax = isSpreadMode ? 16 : 9;
 
   // Fill as many pages/spreads as we can: every budgeted page when there are
   // at least that many photos, otherwise one page per photo (the rest stay
@@ -270,9 +284,20 @@ export function autoBuild(options: AutoBuildOptions): AutoBuildResult {
     }
   }
 
+  // Count photos that exceed their page's actual slot capacity — the editor
+  // maps photoIds[i] onto slot i, so anything past the layout's slot count
+  // would vanish from the book without a trace.
+  const slotsById = new Map(layouts.map(l => [l.id, l.slots]));
+  let droppedCount = 0;
+  for (const rp of resultPages) {
+    const cap = slotsById.get(rp.layout) ?? rp.photoIds.length;
+    if (rp.photoIds.length > cap) droppedCount += rp.photoIds.length - cap;
+  }
+
   return {
     pages: resultPages,
     coverPhotoId,
     totalSpreads: isSpreadMode ? pageGroups.length : Math.ceil(resultPages.length / 2),
+    droppedCount,
   };
 }
