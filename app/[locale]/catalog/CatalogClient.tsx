@@ -193,7 +193,7 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
     });
 
     return (
-        <main style={{ flex: 1, padding: '140px 20px 80px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+        <main style={{ flex: 1, padding: '0 20px 80px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
             {/* Pending Order Banner */}
             {hasPendingOrder && (
                 <div style={{
@@ -224,17 +224,6 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
                     </button>
                 </div>
             )}
-
-            {/* Breadcrumbs */}
-            <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
-                <a href="/" style={{ color: '#888', textDecoration: 'none' }}>{t('catalog.home')}</a> <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
-            </div>
-
-            <header style={{ marginBottom: '40px' }}>
-                <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 900, marginBottom: '16px' }}>
-                    {t('catalog.title')}
-                </h1>
-            </header>
 
             <div className={styles.catalogLayout}>
                 {/* Main Content */}
@@ -419,9 +408,25 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
 }
 
 export default function CatalogPage({ initialProducts = [], initialCategories = [] }: { initialProducts?: any[]; initialCategories?: any[] }) {
+    const t = useT();
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc', display: 'flex', flexDirection: 'column' }}>
             <Navigation />
+            {/* Breadcrumbs + h1 live OUTSIDE the Suspense boundary: CatalogContent
+                calls useSearchParams(), which makes static prerendering emit only
+                the Suspense fallback for that subtree — so anything inside it is
+                invisible in the initial HTML. Keeping the page heading here means
+                crawlers always get a server-rendered h1. */}
+            <div style={{ padding: '140px 20px 0', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+                <div style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
+                    <a href="/" style={{ color: '#888', textDecoration: 'none' }}>{t('catalog.home')}</a> <span style={{ margin: '0 8px' }}>→</span> {t('catalog.title')}
+                </div>
+                <header style={{ marginBottom: '40px' }}>
+                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 900, marginBottom: '16px' }}>
+                        {t('catalog.title')}
+                    </h1>
+                </header>
+            </div>
             <Suspense fallback={<div className="flex-1 flex justify-center items-center"><Loader2 size={40} className="animate-spin text-slate-300" /></div>}>
                 <CatalogContent initialProducts={initialProducts} initialCategories={initialCategories} />
             </Suspense>
