@@ -25,6 +25,8 @@ interface Certificate {
   purchaser_name?: string;
   purchaser_email?: string;
   message?: string;
+  source?: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -63,10 +65,7 @@ export default function CertificatesAdminPage() {
     // sertifikaty never appeared in the list. Unified on `certificates`
     // (the table lib/certificates/generateCertificate.ts also writes to)
     // and mapped the legacy fields onto its schema: expires_at→valid_until,
-    // status='active' is implicit when redeemed=false. `source` is a free-
-    // text column on certificates added by an earlier migration; older
-    // databases that don't have it will reject the column — we drop it on
-    // missing-column errors via the catch path below.
+    // status='active' is implicit when redeemed=false.
     const { error } = await supabase.from('certificates').insert({
       code: newCert.code,
       amount: newCert.amount,
@@ -78,6 +77,8 @@ export default function CertificatesAdminPage() {
       purchaser_name: newCert.sender_name || null,
       message: newCert.message || null,
       valid_until: newCert.expires_at || null,
+      source: newCert.source || null,
+      notes: newCert.notes || null,
       redeemed: false,
     });
     setSavingCert(false);
@@ -564,6 +565,24 @@ export default function CertificatesAdminPage() {
                     <div className="text-sm text-stone-500">Покупець</div>
                     <div className="font-medium">{selectedCertificate.purchaser_name}</div>
                     <div className="text-sm text-stone-600">{selectedCertificate.purchaser_email}</div>
+                  </div>
+                )}
+
+                {selectedCertificate.source && (
+                  <div>
+                    <div className="text-sm text-stone-500">Джерело</div>
+                    <div className="font-medium">
+                      {{ manual: 'Вручну', website: 'Сайт', instagram: 'Instagram', other: 'Інше' }[selectedCertificate.source] || selectedCertificate.source}
+                    </div>
+                  </div>
+                )}
+
+                {selectedCertificate.notes && (
+                  <div>
+                    <div className="text-sm text-stone-500">Внутрішні нотатки</div>
+                    <div className="bg-amber-50 p-4 rounded-lg text-stone-700 whitespace-pre-wrap">
+                      {selectedCertificate.notes}
+                    </div>
                   </div>
                 )}
 
