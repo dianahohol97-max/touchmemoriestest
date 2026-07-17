@@ -12,6 +12,14 @@ function timeAgo(iso: string) {
     if (diff < 1440) return `${Math.floor(diff/60)} год тому`;
     return `${Math.floor(diff/1440)} дн тому`;
 }
+// Absolute date + time (e.g. "15.07.2026, 14:08") — the queue showed relative
+// "N дн тому", but staff asked for the exact date and time of each order.
+function fmtDateTime(iso: string) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('uk-UA', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+}
 
 // Canonical order statuses — kept in sync with STATUS_OPTS on the order card
 // (app/admin/orders/[id]) and STATUS_TABS on the orders list. The queue used a
@@ -236,7 +244,7 @@ export default function AdminDashboard() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
                                         <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
                                         <span style={{ fontSize: 11, fontWeight: 600, color: pay.color }}>{pay.label}</span>
-                                        <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>{timeAgo(o.created_at)}</span>
+                                        <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto', whiteSpace: 'nowrap' }}>{fmtDateTime(o.created_at)}</span>
                                     </div>
                                 </div>
                             );
@@ -279,7 +287,7 @@ export default function AdminDashboard() {
                                         <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 600, color: pay.color, whiteSpace: 'nowrap' }}>
                                             {pay.label}
                                         </td>
-                                        <td style={{ padding: '10px 14px', fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>{timeAgo(o.created_at)}</td>
+                                        <td style={{ padding: '10px 14px', fontSize: 12, color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtDateTime(o.created_at)}</td>
                                     </tr>
                                 );
                             })}
