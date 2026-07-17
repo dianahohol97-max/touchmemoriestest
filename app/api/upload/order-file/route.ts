@@ -35,7 +35,31 @@ const ALLOWED_CT = new Set([
 ]);
 const MAX_BYTES = 50 * 1024 * 1024; // 50 MB per file
 
+// Overwriting an EXISTING object is only allowed while it is younger than
+// this. Legitimate re-writes to the same path all happen within an editing
+// session ("Редагувати" from the cart re-exports pending/<cartItemId>/...);
+// print files of completed orders must never be silently replaceable by an
+// anonymous request that merely knows/guesses the path.
+const OVERWRITE_WINDOW_MS = 48 * 60 * 60 * 1000;
+
 export async function POST(request: NextRequest) {
+  // CSRF/off-site guard: the route stays open for guests (constructors upload
+  // before any order or session exists), but only from our own pages. Direct
+  // cross-site scripts get rejected; requests without an Origin header (older
+  // in-app webviews) are allowed through.
+  const origin = request.headers.get('origin');
+  if (origin) {
+    let host = '';
+    try { host = new URL(origin).hostname; } catch { /* malformed → rejected below */ }
+    const ownHost = request.nextUrl.hostname;
+    const allowed = host === ownHost
+      || host === 'touchmemories.com.ua' || host === 'www.touchmemories.com.ua'
+      || host.endsWith('.vercel.app') || host === 'localhost';
+    if (!allowed) {
+      return NextResponse.json({ error: 'origin not allowed' }, { status: 403 });
+    }
+  }
+
   let form: FormData;
   try {
     form = await request.formData();
@@ -50,7 +74,7 @@ export async function POST(request: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'file is required' }, { status: 400 });
   }
-  if (!path || path.includes('..') || path.startsWith('/')) {
+  if (!path || path.length > 512 || path.includes('..') || path.startsWith('/')) {
     return NextResponse.json({ error: 'invalid path' }, { status: 400 });
   }
   if (!ALLOWED_BUCKETS.has(bucket)) {
@@ -70,6 +94,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // If the target object already exists, only allow the overwrite while it
+    // is fresh (same editing session / next-day cart edit). Old order files
+    // are immutable through this anonymous route.
+    const dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+    const name = path.slice(path.lastIndexOf('/') + 1);
+    const { data: existing } = await admin.storage
+      .from(bucket)
+      .list(dir, { search: name, limit: 10 });
+    const match = (existing || []).find((f: any) => f.name === name);
+    if (match) {
+      const createdAt = new Date(match.created_at || match.updated_at || 0).getTime();
+      if (!createdAt || Date.now() - createdAt > OVERWRITE_WINDOW_MS) {
+        console.warn('[upload/order-file] blocked overwrite of aged object', { bucket, path });
+        return NextResponse.json({ error: 'file already exists and can no longer be replaced' }, { status: 409 });
+      }
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const { error } = await admin.storage
       .from(bucket)
