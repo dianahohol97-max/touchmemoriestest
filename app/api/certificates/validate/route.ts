@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { certReservationCutoffISO } from '@/lib/certificates/redeemCertificate';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const admin = getAdminClient();
   const { data: cert, error } = await admin
     .from('certificates')
-    .select('id, amount, certificate_type, product_name, valid_until, redeemed')
+    .select('id, amount, certificate_type, product_name, valid_until, redeemed, reserved_order_id, reserved_at')
     .eq('code', code)
     .maybeSingle();
 
@@ -28,6 +29,12 @@ export async function POST(req: NextRequest) {
   if (cert.redeemed) return NextResponse.json({ valid: false, reason: 'redeemed' });
   if (cert.valid_until && new Date(cert.valid_until) < new Date()) {
     return NextResponse.json({ valid: false, reason: 'expired' });
+  }
+  // A live reservation means another pending order already applied this code
+  // at checkout (reservations expire after 24h — see redeemCertificate.ts).
+  if (cert.reserved_order_id && cert.reserved_at
+      && new Date(cert.reserved_at).toISOString() >= certReservationCutoffISO()) {
+    return NextResponse.json({ valid: false, reason: 'reserved' });
   }
 
   return NextResponse.json({

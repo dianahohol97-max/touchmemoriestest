@@ -236,6 +236,7 @@ export default function CheckoutPage() {
                     redeemed: 'Сертифікат вже використано',
                     expired: 'Термін дії сертифіката минув',
                     invalid_format: 'Невірний формат коду',
+                    reserved: 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату',
                 };
                 setCertError(reasons[result.reason] || 'Сертифікат недійсний');
                 return;
@@ -682,6 +683,8 @@ export default function CheckoutPage() {
                         ? 'Вкажіть ваше ім\'я'
                         : errCode === 'customer_email invalid'
                         ? 'Введіть коректний email'
+                        : errCode === 'certificate_in_use'
+                        ? 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату. Зверніться до нас, якщо це помилка.'
                         : 'Не вдалося створити замовлення';
                 throw new Error(friendlyError);
             }

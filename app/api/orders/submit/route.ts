@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
@@ -6,7 +7,7 @@ import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, sh
 import { getEurRate, getIntlShippingConfig } from '@/lib/i18n/exchangeRate';
 import { getB2bSession } from '@/lib/b2b/session';
 import { getRoleConfig } from '@/lib/b2b/config';
-import { checkCertificateForPayment } from '@/lib/certificates/redeemCertificate';
+import { checkCertificateForPayment, reserveCertificateForOrder, releaseCertificateReservation } from '@/lib/certificates/redeemCertificate';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -59,6 +60,31 @@ interface OrderPayload {
   ship_region?: string;   // 'UA' | 'INTL'
   locale?: string;        // interface language (uk vs non-uk)
   display_currency?: string; // what the customer saw (UAH/EUR/...)
+}
+
+/**
+ * Compare-and-swap credit to a customer's bonus balance (used to refund a
+ * debit when order creation fails after the debit already happened). The
+ * `.eq('bonus_balance', live)` guard makes the read-modify-write atomic:
+ * a concurrent writer changes the balance → our UPDATE matches 0 rows → retry.
+ */
+async function creditBonusCAS(admin: ReturnType<typeof getAdminClient>, customerId: string, amount: number): Promise<boolean> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: fresh } = await admin
+      .from('customers')
+      .select('bonus_balance')
+      .eq('id', customerId)
+      .maybeSingle();
+    const live = Number(fresh?.bonus_balance || 0);
+    const { data: updated } = await admin
+      .from('customers')
+      .update({ bonus_balance: live + amount })
+      .eq('id', customerId)
+      .eq('bonus_balance', live)
+      .select('id');
+    if (updated && updated.length > 0) return true;
+  }
+  return false;
 }
 
 function isValidPhone(s: unknown): s is string {
@@ -389,6 +415,13 @@ export async function POST(request: NextRequest) {
   const finalDeliveryCost = shipRegion === 'INTL' ? intlShipping : delivery_cost;
   const orderTotalBeforeCredits = Math.max(1, Math.round(markedSubtotal - baseDiscount + finalDeliveryCost));
 
+  // The order id is generated here (not by the DB default) so the certificate
+  // reservation below can be tied to the order BEFORE the row exists. Without
+  // this, one certificate code could be applied to any number of parallel
+  // pending orders (each discounted!) because redemption only happened in the
+  // payment webhook.
+  const orderId = randomUUID();
+
   // Certificate payment (applied first, before bonuses). Validate the code
   // server-side; the certificate covers up to the order total, any leftover is
   // credited to the buyer's bonus balance AFTER payment (handled in the webhook).
@@ -398,14 +431,29 @@ export async function POST(request: NextRequest) {
   const requestedCertCode = typeof (body as any).certificate_code === 'string'
     ? (body as any).certificate_code.trim().toUpperCase() : null;
   if (requestedCertCode) {
-    const check = await checkCertificateForPayment(admin, requestedCertCode);
+    const check = await checkCertificateForPayment(admin, requestedCertCode, orderId);
     if (check.valid && check.id) {
+      // Atomically claim the certificate for this order. If another checkout
+      // holds a live reservation, reject loudly — silently dropping the
+      // discount would charge the customer more than the total they saw.
+      const reserved = await reserveCertificateForOrder(admin, check.id, orderId);
+      if (!reserved) {
+        return NextResponse.json(
+          { error: 'certificate_in_use', detail: 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату.' },
+          { status: 409 },
+        );
+      }
       certApplied = Math.min(check.amount || 0, orderTotalBeforeCredits);
       certId = check.id;
       certCode = requestedCertCode;
+    } else if (check.reason === 'reserved') {
+      return NextResponse.json(
+        { error: 'certificate_in_use', detail: 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату.' },
+        { status: 409 },
+      );
     }
-    // If invalid, we silently ignore it here (client already validated and
-    // shows errors); the order proceeds without certificate coverage.
+    // Otherwise invalid — silently ignore it here (client already validated
+    // and shows errors); the order proceeds without certificate coverage.
   }
 
   const markedTotalBeforeBonus = Math.max(0, orderTotalBeforeCredits - certApplied);
@@ -414,7 +462,37 @@ export async function POST(request: NextRequest) {
   // bonusToRedeem was already bounded by the client-reported total above; this
   // re-bounds it to the real marked total so it's always correct.
   const bonusApplied = Math.max(0, Math.min(bonusToRedeem, customerBonusBalance, Math.floor(markedTotalBeforeBonus * 0.5)));
-  const markedTotal = Math.max(1, markedTotalBeforeBonus - bonusApplied);
+
+  // Debit the bonus BEFORE the order row exists, with a compare-and-swap
+  // guard. The previous flow (read balance → write balance, after insert) let
+  // two simultaneous checkouts both spend the same 100₴ of bonuses: both reads
+  // saw 100, both writes stored 0, both orders got the discount. Here the
+  // UPDATE only matches when the balance is still what we read, so exactly one
+  // concurrent writer wins each round; the loser re-reads and can only debit
+  // what genuinely remains. The order total below uses the amount actually
+  // debited, never the requested amount.
+  let bonusDebited = 0;
+  if (customer_id && bonusApplied > 0) {
+    for (let attempt = 0; attempt < 3 && bonusDebited === 0; attempt++) {
+      const { data: fresh } = await admin
+        .from('customers')
+        .select('bonus_balance')
+        .eq('id', customer_id)
+        .maybeSingle();
+      const live = Number(fresh?.bonus_balance || 0);
+      const debit = Math.min(bonusApplied, live);
+      if (debit <= 0) break;
+      const { data: updated } = await admin
+        .from('customers')
+        .update({ bonus_balance: live - debit })
+        .eq('id', customer_id)
+        .eq('bonus_balance', live)
+        .select('id');
+      if (updated && updated.length > 0) bonusDebited = debit;
+    }
+  }
+
+  const markedTotal = Math.max(1, markedTotalBeforeBonus - bonusDebited);
 
   // For a split order, full_only items must be charged 100% up front; only the
   // splittable items (+ delivery − discount) are split 50/50. Sum the marked
@@ -437,6 +515,9 @@ export async function POST(request: NextRequest) {
     .insert({
       // order_number is assigned by the DB sequence default (TM-NNNNNN) and read
       // back below via .select — keeps numbering sequential across all flows.
+      // The id is pre-generated so the certificate reservation above could be
+      // bound to this order before the row existed.
+      id: orderId,
       customer_id,
       customer_name: body.customer_name.trim(),
       customer_phone: body.customer_phone.trim(),
@@ -477,6 +558,15 @@ export async function POST(request: NextRequest) {
 
   if (error || !inserted) {
     console.error('orders/submit insert error:', error);
+    // The certificate reservation and bonus debit happened before the insert —
+    // give both back so a failed order never costs the customer anything.
+    if (certId) {
+      await releaseCertificateReservation(admin, orderId).catch(() => {});
+    }
+    if (customer_id && bonusDebited > 0) {
+      const refunded = await creditBonusCAS(admin, customer_id, bonusDebited).catch(() => false);
+      if (!refunded) console.error(`orders/submit: FAILED to refund ${bonusDebited} bonuses to customer ${customer_id} after insert error`);
+    }
     return NextResponse.json(
       { error: 'Failed to create order', detail: error?.message || null, code: (error as any)?.code || null },
       { status: 500 },
@@ -492,32 +582,19 @@ export async function POST(request: NextRequest) {
       : `Замовлення створено через checkout (повна оплата онлайн)`,
   });
 
-  // Debit redeemed bonus from the customer's balance and log it. Done after the
-  // order row exists so a failed insert never burns bonuses. Re-reads the
-  // current balance and clamps again to avoid races / double-spend.
-  if (customer_id && bonusApplied > 0) {
+  // The balance was already debited atomically before the insert (see above);
+  // here we only log the transaction, now that the order row exists for the FK.
+  if (customer_id && bonusDebited > 0) {
     try {
-      const { data: fresh } = await admin
-        .from('customers')
-        .select('bonus_balance')
-        .eq('id', customer_id)
-        .maybeSingle();
-      const liveBalance = Number(fresh?.bonus_balance || 0);
-      const debit = Math.min(bonusApplied, liveBalance);
-      if (debit > 0) {
-        await admin.from('customers')
-          .update({ bonus_balance: liveBalance - debit })
-          .eq('id', customer_id);
-        await admin.from('bonus_transactions').insert({
-          customer_id,
-          amount: -debit,
-          kind: 'order_redemption',
-          order_id: inserted.id,
-          note: `Списання бонусів на замовлення ${inserted.order_number}`,
-        });
-      }
+      await admin.from('bonus_transactions').insert({
+        customer_id,
+        amount: -bonusDebited,
+        kind: 'order_redemption',
+        order_id: inserted.id,
+        note: `Списання бонусів на замовлення ${inserted.order_number}`,
+      });
     } catch (e) {
-      console.error('orders/submit: bonus debit failed (order still created):', e);
+      console.error('orders/submit: bonus transaction log failed (balance already debited):', e);
     }
   }
 
@@ -544,15 +621,25 @@ export async function POST(request: NextRequest) {
           order_id: inserted.id,
           discount_amount: Math.max(0, subtotal - total),
         });
-        // Increment uses_count via a fresh read (no atomic rpc available).
-        const { data: pc } = await admin
-          .from('promo_codes')
-          .select('uses_count')
-          .eq('id', promoId)
-          .maybeSingle();
-        await admin.from('promo_codes')
-          .update({ uses_count: Number(pc?.uses_count || 0) + 1 })
-          .eq('id', promoId);
+        // Increment uses_count with a compare-and-swap: the plain read-then-
+        // write version let N simultaneous checkouts all read the same count
+        // and store count+1, so max_uses could be overshot silently. The
+        // `.eq('uses_count', n)` guard means only one concurrent writer wins
+        // each round; losers re-read the fresh count and retry.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const { data: pc } = await admin
+            .from('promo_codes')
+            .select('uses_count')
+            .eq('id', promoId)
+            .maybeSingle();
+          const n = Number(pc?.uses_count || 0);
+          const { data: bumped } = await admin.from('promo_codes')
+            .update({ uses_count: n + 1 })
+            .eq('id', promoId)
+            .eq('uses_count', n)
+            .select('id');
+          if (bumped && bumped.length > 0) break;
+        }
       }
     } catch (e) {
       console.error('orders/submit: promo usage recording failed (order still created):', e);

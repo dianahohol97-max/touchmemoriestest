@@ -8,19 +8,32 @@ export interface CertCheck {
 }
 
 /**
+ * A certificate applied at checkout stays "reserved" for this long. Within the
+ * window no other order can apply the same code; after it, an unpaid order
+ * silently loses its hold (Monobank payment links expire within 24h anyway).
+ */
+export const CERT_RESERVATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function certReservationCutoffISO(): string {
+    return new Date(Date.now() - CERT_RESERVATION_TTL_MS).toISOString();
+}
+
+/**
  * Validate a certificate code for use as payment, server-side.
- * Checks existence, not-redeemed, not-expired. Returns the cert id + amount.
+ * Checks existence, not-redeemed, not-expired, not actively reserved by
+ * another pending order. Returns the cert id + amount.
  */
 export async function checkCertificateForPayment(
     admin: SupabaseClient,
     code: string,
+    forOrderId?: string,
 ): Promise<CertCheck> {
     const clean = (code || '').trim().toUpperCase();
     if (!clean || !/^[A-Z0-9]{4,16}$/.test(clean)) return { valid: false, reason: 'invalid_format' };
 
     const { data: cert, error } = await admin
         .from('certificates')
-        .select('id, amount, valid_until, redeemed')
+        .select('id, amount, valid_until, redeemed, reserved_order_id, reserved_at')
         .eq('code', clean)
         .maybeSingle();
 
@@ -30,7 +43,55 @@ export async function checkCertificateForPayment(
     if (cert.valid_until && new Date(cert.valid_until) < new Date()) {
         return { valid: false, reason: 'expired' };
     }
+    const activelyReserved = cert.reserved_order_id
+        && cert.reserved_order_id !== forOrderId
+        && cert.reserved_at
+        && new Date(cert.reserved_at).toISOString() >= certReservationCutoffISO();
+    if (activelyReserved) return { valid: false, reason: 'reserved' };
     return { valid: true, id: cert.id, amount: Number(cert.amount) || 0 };
+}
+
+/**
+ * Atomically reserve a certificate for one order. This is the race guard the
+ * plain check above cannot provide: the UPDATE only succeeds when the cert is
+ * still unredeemed AND not held by another live reservation, so two parallel
+ * checkouts with the same code can never both get the discount.
+ *
+ * Returns true when this order now holds the reservation.
+ */
+export async function reserveCertificateForOrder(
+    admin: SupabaseClient,
+    certId: string,
+    orderId: string,
+): Promise<boolean> {
+    const cutoff = certReservationCutoffISO();
+    const { data, error } = await admin
+        .from('certificates')
+        .update({ reserved_order_id: orderId, reserved_at: new Date().toISOString() })
+        .eq('id', certId)
+        .eq('redeemed', false)
+        .or(`reserved_order_id.is.null,reserved_order_id.eq.${orderId},reserved_at.is.null,reserved_at.lt.${cutoff}`)
+        .select('id');
+    if (error) {
+        console.error('reserveCertificateForOrder failed:', error);
+        return false;
+    }
+    return !!data && data.length > 0;
+}
+
+/**
+ * Best-effort release of a reservation (used when order creation fails after
+ * the cert was already reserved). Only touches rows this order actually holds.
+ */
+export async function releaseCertificateReservation(
+    admin: SupabaseClient,
+    orderId: string,
+): Promise<void> {
+    await admin
+        .from('certificates')
+        .update({ reserved_order_id: null, reserved_at: null })
+        .eq('reserved_order_id', orderId)
+        .eq('redeemed', false);
 }
 
 /**
