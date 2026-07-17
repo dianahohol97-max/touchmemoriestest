@@ -90,6 +90,13 @@ export default function AgencyPartnersPage() {
   };
 
   const payout = async (agencyId: string) => {
+    // Irreversible: the endpoint zeroes the partner's accrued balance. Never
+    // let a single stray click do that.
+    const partner = partners.find(p => p.id === agencyId);
+    const label = partner
+      ? `${partner.agency_name || 'партнеру'} (${Number(partner.pending_payout || 0).toFixed(0)} ₴)`
+      : 'цьому партнеру';
+    if (!confirm(`Позначити виплату ${label} як здійснену? Баланс до виплати буде обнулено — цю дію не можна скасувати.`)) return;
     setPayingOut(agencyId);
     try {
       const res = await fetch('/api/admin/agency-partners/payout', {

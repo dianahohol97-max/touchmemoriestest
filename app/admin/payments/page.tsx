@@ -16,7 +16,6 @@ import {
     X,
     Activity,
     CreditCard,
-    Banknote,
     Truck,
     ExternalLink,
     Calendar
@@ -32,8 +31,11 @@ interface Order {
     customer_name: string;
     customer_id?: string;
     total: number;
-    payment_method: string;
-    payment_type?: string;
+    // The real column is payment_type ('full' | 'split' | null). There has
+    // never been a payment_method column on orders — the old code filtered
+    // and charted on it, so the filter matched nothing and the chart showed
+    // one big "unknown" slice.
+    payment_type?: string | null;
     cod_amount?: number;
     payment_status: string;
     created_at: string;
@@ -62,12 +64,9 @@ interface Filters {
 }
 
 const PAYMENT_TYPES: Record<string, string> = {
-    cash: 'Готівка',
-    card: 'Картка',
-    cod: 'Накладений платіж',
-    prepayment: 'Передоплата',
-    monobank: 'Monobank',
-    transfer: 'Переказ'
+    full: 'Повна оплата онлайн',
+    split: '50/50 (передоплата + решта)',
+    unknown: 'Не вказано'
 };
 
 const PAYMENT_STATUSES: Record<string, string> = {
@@ -191,6 +190,13 @@ export default function PaymentsPage() {
     };
 
     const markAsPaid = async (orderId: string) => {
+        // Irreversible money action (fires partner commission + referral bonus
+        // accruals) — never on a single stray click.
+        const order = orders.find(o => o.id === orderId);
+        const label = order
+            ? `замовлення ${order.order_number} на ${(Number(order.total) || 0).toLocaleString()} ₴`
+            : 'це замовлення';
+        if (!confirm(`Позначити ${label} як оплачене? Це нарахує комісії та бонуси і не скасовується одним кліком.`)) return;
         try {
             // Go through the server endpoint so a manual paid-transition runs the
             // same accruals as the webhook (partner commission + referral bonus).
@@ -217,7 +223,7 @@ export default function PaymentsPage() {
             order.customer_name.toLowerCase().includes(filters.search.toLowerCase());
 
         const paymentTypeMatch =
-            !filters.paymentType || order.payment_method === filters.paymentType;
+            !filters.paymentType || (order.payment_type || 'unknown') === filters.paymentType;
 
         const paymentStatusMatch =
             !filters.paymentStatus || order.payment_status === filters.paymentStatus;
@@ -245,7 +251,7 @@ export default function PaymentsPage() {
     // Payment type breakdown
     const paymentTypeBreakdown = Object.entries(
         filteredOrders.reduce((acc, order) => {
-            const type = order.payment_method || 'unknown';
+            const type = order.payment_type || 'unknown';
             acc[type] = (acc[type] || 0) + Number(order.total);
             return acc;
         }, {} as Record<string, number>)
@@ -261,7 +267,7 @@ export default function PaymentsPage() {
             'Номер замовлення': order.order_number,
             Клієнт: order.customer_name,
             'Сума (₴)': order.total,
-            'Тип оплати': PAYMENT_TYPES[order.payment_method] || order.payment_method,
+            'Тип оплати': PAYMENT_TYPES[order.payment_type || 'unknown'] || order.payment_type,
             Статус: PAYMENT_STATUSES[order.payment_status] || order.payment_status,
             'Оплачено': formatDateTime(order.paid_at)
         }));
@@ -305,12 +311,8 @@ export default function PaymentsPage() {
 
     const getPaymentTypeIcon = (type: string) => {
         const icons: Record<string, any> = {
-            cash: <Banknote size={16} />,
-            card: <CreditCard size={16} />,
-            cod: <Truck size={16} />,
-            monobank: <CreditCard size={16} />,
-            prepayment: <DollarSign size={16} />,
-            transfer: <CreditCard size={16} />
+            full: <CreditCard size={16} />,
+            split: <Truck size={16} />
         };
         return icons[type] || <DollarSign size={16} />;
     };
@@ -597,8 +599,8 @@ export default function PaymentsPage() {
                                                 fontSize: '14px'
                                             }}
                                         >
-                                            {getPaymentTypeIcon(order.payment_method)}
-                                            {PAYMENT_TYPES[order.payment_method] || order.payment_method}
+                                            {getPaymentTypeIcon(order.payment_type || 'unknown')}
+                                            {PAYMENT_TYPES[order.payment_type || 'unknown'] || order.payment_type}
                                         </div>
                                     </td>
                                     <td style={tdStyle}>{getStatusBadge(order.payment_status)}</td>

@@ -94,6 +94,15 @@ export default function SalaryPage() {
     };
 
     const updateSalaryStatus = async (id: string, newStatus: string) => {
+        // Money action — require an explicit confirmation before recording a
+        // salary as paid out, so a single stray click can't mark it.
+        if (newStatus === 'paid') {
+            const s = salaries.find(x => x.id === id);
+            const who = s?.staff?.name || 'співробітника';
+            const amount = Number(s?.total_amount ?? s?.total ?? s?.amount ?? 0);
+            const amountLabel = amount > 0 ? ` (${amount.toLocaleString()} ₴)` : '';
+            if (!confirm(`Позначити зарплату для ${who}${amountLabel} як виплачену?`)) return;
+        }
         try {
             const res = await fetch(`/api/admin/salary/${id}`, {
                 method: 'PATCH',
