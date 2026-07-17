@@ -8,12 +8,12 @@ import { Footer } from '@/components/ui/Footer';
 import { getLocalized } from '@/lib/i18n/localize';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
-const BLOG_META: Record<string, { title: string; description: string }> = {
-  uk: { title: 'Блог — ідеї та натхнення | Touch.Memories', description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.' },
-  en: { title: 'Blog — Ideas & Inspiration | Touch.Memories', description: 'Tips, ideas and inspiration for creating the perfect photo book and unforgettable gifts.' },
-  pl: { title: 'Blog — pomysły i inspiracje | Touch.Memories', description: 'Porady, pomysły i inspiracje do tworzenia idealnej fotoksiążki i niezapomnianych prezentów.' },
-  de: { title: 'Blog — Ideen & Inspiration | Touch.Memories', description: 'Tipps, Ideen und Inspiration für das perfekte Fotobuch und unvergessliche Geschenke.' },
-  ro: { title: 'Blog — Idei și Inspirație | Touch.Memories', description: 'Sfaturi, idei și inspirație pentru a crea cartea foto perfectă și cadouri de neuitat.' },
+const BLOG_META: Record<string, { title: string; description: string; h1: string; subtitle: string }> = {
+  uk: { title: 'Блог — ідеї та натхнення | Touch.Memories', description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.', h1: 'Блог TouchMemories', subtitle: 'Натхнення, ідеї для подарунків та поради щодо створення ідеальної фотокниги.' },
+  en: { title: 'Blog — Ideas & Inspiration | Touch.Memories', description: 'Tips, ideas and inspiration for creating the perfect photo book and unforgettable gifts.', h1: 'TouchMemories Blog', subtitle: 'Inspiration, gift ideas and tips for creating the perfect photo book.' },
+  pl: { title: 'Blog — pomysły i inspiracje | Touch.Memories', description: 'Porady, pomysły i inspiracje do tworzenia idealnej fotoksiążki i niezapomnianych prezentów.', h1: 'Blog TouchMemories', subtitle: 'Inspiracje, pomysły na prezenty i porady dotyczące tworzenia idealnej fotoksiążki.' },
+  de: { title: 'Blog — Ideen & Inspiration | Touch.Memories', description: 'Tipps, Ideen und Inspiration für das perfekte Fotobuch und unvergessliche Geschenke.', h1: 'TouchMemories Blog', subtitle: 'Inspiration, Geschenkideen und Tipps für das perfekte Fotobuch.' },
+  ro: { title: 'Blog — Idei și Inspirație | Touch.Memories', description: 'Sfaturi, idei și inspirație pentru a crea cartea foto perfectă și cadouri de neuitat.', h1: 'Blogul TouchMemories', subtitle: 'Inspirație, idei de cadouri și sfaturi pentru a crea cartea foto perfectă.' },
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
@@ -138,10 +138,10 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
             <main style={{ paddingTop: '100px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', padding: '100px 24px 80px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '60px' }}>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-                        Блог TouchMemories
+                        {(BLOG_META[loc || 'uk'] || BLOG_META.uk).h1}
                     </h1>
                     <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto' }}>
-                        Натхнення, ідеї для подарунків та поради щодо створення ідеальної фотокниги.
+                        {(BLOG_META[loc || 'uk'] || BLOG_META.uk).subtitle}
                     </p>
                 </div>
 

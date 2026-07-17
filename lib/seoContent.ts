@@ -10,7 +10,9 @@ export const SITE_INFO = {
   about: 'Touch.Memories — фотолабораторія з Тернополя, яка створює преміальну поліграфічну продукцію з ваших фотографій. Ми друкуємо фотокниги, тревел-буки, журнали, календарі, магніти, пазли та постери. Кожен виріб — це ручна праця та любов до деталей.',
   city: 'Тернопіль',
   address: 'вул. Омеляна Польового, 4а, Тернопіль',
-  email: 'touchmemoriestrnp@gmail.com',
+  // Single public contact email — must match kontakty page, Footer and the
+  // Organization/LocalBusiness JSON-LD in app/layout.tsx.
+  email: 'touch.memories3@gmail.com',
   telegram: 'https://t.me/touchmemories',
   instagram: 'https://instagram.com/touch.memories',
   metaTitle: 'Touch.Memories — Фотокниги, журнали та фотовироби у Тернополі',

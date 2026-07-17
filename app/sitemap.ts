@@ -31,7 +31,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const alternates = getAlternateLanguages(route.path);
       entries.push({
         url: getCanonicalUrl(locale, route.path),
-        lastModified: new Date(),
+        // No lastModified for static routes: stamping new Date() on every
+        // generation claims "changed just now" forever, which teaches Google
+        // to ignore our lastmod values entirely. Omitting it is valid per the
+        // sitemap spec; DB-backed entries below keep their real updated_at.
         changeFrequency: route.changeFreq,
         priority: route.priority,
         alternates: { languages: alternates },
@@ -105,7 +108,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
-        lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.8,
         alternates: { languages: alternates },
@@ -118,7 +120,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const locale of LOCALES) {
       entries.push({
         url: getCanonicalUrl(locale, path),
-        lastModified: new Date(),
         changeFrequency: 'weekly',
         priority: 0.7,
         alternates: { languages: alternates },
