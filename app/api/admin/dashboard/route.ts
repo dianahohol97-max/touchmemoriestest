@@ -29,7 +29,7 @@ export async function GET() {
     const [ordersRes, queueRes, clientsRes] = await Promise.all([
       supabase.from('orders').select('id,order_status,payment_status,total,with_designer,created_at'),
       supabase.from('orders')
-        .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items')
+        .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items,order_tag_assignments(order_tags(id,name,color,icon))')
         .not('order_status', 'in', '("completed","cancelled")')
         .order('created_at', { ascending: false })
         .limit(20),

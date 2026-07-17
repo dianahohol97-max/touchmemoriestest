@@ -30,6 +30,26 @@ const PAY_LABEL: Record<string, { label: string; color: string }> = {
     refunded: { label: 'Повернення',    color: '#dc2626' },
 };
 
+// ── OrderTags ────────────────────────────────────────────────────────────────
+// Coloured tag chips shown inline in the order queue, so tags are visible on the
+// list without opening the order card. Same visual style as the full orders page.
+function OrderTags({ order }: { order: any }) {
+    const tags = (order?.order_tag_assignments || [])
+        .map((a: any) => a?.order_tags)
+        .filter(Boolean);
+    if (tags.length === 0) return null;
+    return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+            {tags.map((tag: any) => (
+                <span key={tag.id} title={tag.name}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 12, backgroundColor: `${tag.color || '#64748b'}15`, border: `1px solid ${tag.color || '#64748b'}40`, fontSize: 11, fontWeight: 700, color: tag.color || '#475569', whiteSpace: 'nowrap' }}>
+                    {tag.icon && <span>{tag.icon}</span>}{tag.name}
+                </span>
+            ))}
+        </div>
+    );
+}
+
 // ── StatCard ─────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, color, href }: any) {
     const card = (
@@ -203,6 +223,8 @@ export default function AdminDashboard() {
                                         <span style={{ fontWeight: 700, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</span>
                                     </div>
                                     <div style={{ fontSize: 13, color: '#374151', marginTop: 3 }}>{o.customer_name} · {Array.isArray(o.items) ? o.items.length : 0} шт</div>
+                                    <OrderTags order={o} />
+
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
                                         <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
                                         <span style={{ fontSize: 11, fontWeight: 600, color: pay.color }}>{pay.label}</span>
@@ -232,8 +254,11 @@ export default function AdminDashboard() {
                                         onMouseLeave={e => (e.currentTarget.style.background = '')}
                                         onClick={() => window.location.href = `/admin/orders/${o.id}`}>
                                         <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 13, color: '#1e2d7d', whiteSpace: 'nowrap' }}>
-                                            #{o.order_number}
-                                            {o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><Palette size={11}/></span>}
+                                            <div>
+                                                #{o.order_number}
+                                                {o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><Palette size={11}/></span>}
+                                            </div>
+                                            <OrderTags order={o} />
                                         </td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{o.customer_name}</td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, color: '#6b7280' }}>{Array.isArray(o.items) ? o.items.length : 0} шт</td>
