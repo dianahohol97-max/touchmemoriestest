@@ -1,7 +1,15 @@
 import fetch from 'node-fetch';
 
-const SUPABASE_URL = 'https://yivfsicvaoewxrtkrfxr.supabase.co';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpdmZzaWN2YW9ld3hydGtyZnhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwNzMxNzQwMCwiZXhwIjoyMDIyODkzNDAwfQ.jWKQx5P-VH5wvLVGhZE3bQx0L6yJ9vZX8kY7nN4qP2M';
+// The service_role key must NEVER be hardcoded — it grants full DB access.
+// It was previously committed here in plaintext; read it from the environment
+// instead. (The old committed key is compromised and must be rotated in the
+// Supabase dashboard — see the note this commit references.)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yivfsicvaoewxrtkrfxr.supabase.co';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_KEY) {
+  console.error('Set SUPABASE_SERVICE_ROLE_KEY in the environment before running this script.');
+  process.exit(1);
+}
 
 const queries = [
   // 1. Create design_briefs table

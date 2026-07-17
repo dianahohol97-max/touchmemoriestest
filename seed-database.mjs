@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://yivfsicvaoewxrtkrfxr.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpdmZzaWN2YW9ld3hydGtyZnhyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcwOTMwMzQwMCwiZXhwIjoyMDI0ODc5NDAwfQ.KqVfZl_vN3JN6jZHp5v0TZ8vQYZ3RzQZ8RJwY0sVJGo';
+// The service_role key must NEVER be hardcoded — it grants full DB access.
+// It was previously committed here in plaintext; read it from the environment
+// instead. (The old committed key is compromised and must be rotated in the
+// Supabase dashboard — see the note this commit references.)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://yivfsicvaoewxrtkrfxr.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseKey) {
+  console.error('Set SUPABASE_SERVICE_ROLE_KEY in the environment before running this script.');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
