@@ -368,6 +368,54 @@ export async function POST(request: NextRequest) {
   // ──────────────────────────────────────────────────────────────
   const admin = getAdminClient();
 
+  // ── Promo re-validation (F2) ──────────────────────────────────
+  // /api/promo/validate enforces max_uses + single-use, but it is a separate
+  // read-only endpoint — a client can skip it and POST here directly, or fire
+  // several submits after one validate, and the code was honoured every time
+  // (usage is only recorded AFTER insert). Re-check the promo here, before the
+  // order exists, and reject an exhausted or already-used code. Mirrors the
+  // validate logic. (customer_id is the server-resolved UUID, not client input.)
+  {
+    const promoId = (body as any).promo_id;
+    if (promoId && typeof promoId === 'string') {
+      const { data: promo } = await admin
+        .from('promo_codes')
+        .select('id, is_active, valid_until, max_uses, uses_count, is_single_use_per_customer')
+        .eq('id', promoId)
+        .maybeSingle();
+      if (promo) {
+        const expired = promo.valid_until && new Date(promo.valid_until) < new Date();
+        const capped = promo.max_uses !== null && Number(promo.uses_count) >= Number(promo.max_uses);
+        if (!promo.is_active || expired || capped) {
+          return NextResponse.json(
+            { error: 'promo_invalid', detail: 'Цей промокод більше недійсний.' },
+            { status: 422 },
+          );
+        }
+        if (promo.is_single_use_per_customer) {
+          const buyerEmailLc = body.customer_email?.trim().toLowerCase() || null;
+          const orFilters: string[] = [];
+          if (customer_id) orFilters.push(`customer_id.eq.${customer_id}`);
+          if (buyerEmailLc && !/[,()]/.test(buyerEmailLc)) orFilters.push(`email.eq.${buyerEmailLc}`);
+          if (orFilters.length > 0) {
+            const { data: usages } = await admin
+              .from('promo_code_usages')
+              .select('id')
+              .eq('promo_code_id', promoId)
+              .or(orFilters.join(','))
+              .limit(1);
+            if (usages && usages.length > 0) {
+              return NextResponse.json(
+                { error: 'promo_already_used', detail: 'Цей промокод уже використано.' },
+                { status: 422 },
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+
   let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
   const modeBySlug = new Map<string, string>();
   const costBySlug = new Map<string, number>();
