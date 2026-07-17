@@ -69,6 +69,19 @@ export default async function LocaleLayout({
     return (
         <I18nServerProvider locale={locale}>
             <AuthModalProvider>
+                {/* The root layout hardcodes <html lang="uk"> and cannot see the
+                    [locale] param without forcing dynamic rendering site-wide
+                    (headers()/cookies() would kill ISR). This synchronous script
+                    corrects the attribute before any content is parsed, so
+                    screen readers and Google's renderer get the real language.
+                    <html> has suppressHydrationWarning, so React won't complain. */}
+                {locale !== 'uk' && (
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `document.documentElement.lang=${JSON.stringify(locale)};`,
+                        }}
+                    />
+                )}
                 <div lang={locale}>
                     {children}
                 </div>
