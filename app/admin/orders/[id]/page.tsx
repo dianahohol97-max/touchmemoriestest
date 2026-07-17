@@ -1605,11 +1605,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     </div>
                                 </div>
                             )}
-                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: order.fiscal_id ? '#10b981' : '#64748b' }}>
                                     <ShieldCheck size={16} /> {order.fiscal_id ? 'Фіскалізовано' : 'Не фіскалізовано'}
                                 </div>
-                                <button onClick={runFiscalization} style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>Фіскалізувати</button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    {/* Fiscal receipt (чек) — a visible button, not just the small header icon,
+                                        so it's easy to open/send to the customer once the order is fiscalized. */}
+                                    {order.fiscal_url && (
+                                        <a href={order.fiscal_url} target="_blank" rel="noopener noreferrer"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#10b981', textDecoration: 'none', padding: '6px 12px', border: '1px solid #10b981', borderRadius: '3px' }}>
+                                            <Receipt size={14} /> Переглянути чек
+                                        </a>
+                                    )}
+                                    <button onClick={runFiscalization} style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: "3px", fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>Фіскалізувати</button>
+                                </div>
                             </div>
                         </div>
                     </div>
