@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { escapeHtml } from '@/lib/email/escape';
 
 export async function POST(request: Request) {
     try {
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
                     <div style="padding:28px;background:#fff;border:1px solid #e2e8f0">
                         <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 20px">Нове повідомлення з сайту</h2>
                         <table style="width:100%;font-size:14px;border-collapse:collapse">
-                            <tr><td style="padding:8px 0;color:#6b7280;width:80px">Ім'я:</td><td style="padding:8px 0;font-weight:600;color:#111">${name}</td></tr>
-                            <tr><td style="padding:8px 0;color:#6b7280">Email:</td><td style="padding:8px 0"><a href="mailto:${email}" style="color:#1e2d7d">${email}</a></td></tr>
+                            <tr><td style="padding:8px 0;color:#6b7280;width:80px">Ім'я:</td><td style="padding:8px 0;font-weight:600;color:#111">${escapeHtml(name)}</td></tr>
+                            <tr><td style="padding:8px 0;color:#6b7280">Email:</td><td style="padding:8px 0"><a href="mailto:${encodeURIComponent(email)}" style="color:#1e2d7d">${escapeHtml(email)}</a></td></tr>
                         </table>
                         <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
                         <p style="color:#6b7280;font-size:13px;margin:0 0 8px">Повідомлення:</p>

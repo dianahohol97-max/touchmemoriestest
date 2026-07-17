@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { escapeHtml } from '@/lib/email/escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   const name = String(body?.name || '').trim();
   const phone = String(body?.phone || '').trim();
   const email = String(body?.email || '').trim();
-  const comment = String(body?.comment || '').trim();
+  const comment = String(body?.comment || '').trim().slice(0, 2000);
 
   if (!/^[0-9a-f-]{36}$/i.test(slotId)) return NextResponse.json({ error: 'Невірний слот' }, { status: 400 });
   if (!name || name.length > 120) return NextResponse.json({ error: "Вкажіть ім'я" }, { status: 400 });
@@ -85,10 +86,10 @@ export async function POST(req: NextRequest) {
             <table style="width:100%;font-size:14px;border-collapse:collapse">
               <tr><td style="padding:6px 0;color:#6b7280;width:120px">Дата:</td><td style="padding:6px 0;font-weight:700">${dateHuman}, ${booked.slot_time} (${booked.duration_min} хв)</td></tr>
               ${booked.price ? `<tr><td style="padding:6px 0;color:#6b7280">Вартість:</td><td style="padding:6px 0;font-weight:700">${booked.price}</td></tr>` : ''}
-              <tr><td style="padding:6px 0;color:#6b7280">Клієнт:</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-              <tr><td style="padding:6px 0;color:#6b7280">Телефон:</td><td style="padding:6px 0"><a href="tel:${phone}">${phone}</a></td></tr>
-              ${email ? `<tr><td style="padding:6px 0;color:#6b7280">Email:</td><td style="padding:6px 0">${email}</td></tr>` : ''}
-              ${comment ? `<tr><td style="padding:6px 0;color:#6b7280">Коментар:</td><td style="padding:6px 0">${comment}</td></tr>` : ''}
+              <tr><td style="padding:6px 0;color:#6b7280">Клієнт:</td><td style="padding:6px 0;font-weight:600">${escapeHtml(name)}</td></tr>
+              <tr><td style="padding:6px 0;color:#6b7280">Телефон:</td><td style="padding:6px 0"><a href="tel:${encodeURIComponent(phone)}">${escapeHtml(phone)}</a></td></tr>
+              ${email ? `<tr><td style="padding:6px 0;color:#6b7280">Email:</td><td style="padding:6px 0">${escapeHtml(email)}</td></tr>` : ''}
+              ${comment ? `<tr><td style="padding:6px 0;color:#6b7280">Коментар:</td><td style="padding:6px 0">${escapeHtml(comment)}</td></tr>` : ''}
             </table>
             <p style="font-size:13px;color:#64748b;margin:18px 0 0">Клієнту показано ваші способи оплати. Зв'яжіться з клієнтом для підтвердження.</p>
           </div>

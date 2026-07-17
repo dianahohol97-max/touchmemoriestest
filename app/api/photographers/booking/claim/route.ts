@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { escapeHtml } from '@/lib/email/escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
           <div style="padding:28px;background:#fff;border:1px solid #e2e8f0">
             <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 12px">💳 Клієнт повідомив про оплату</h2>
             <p style="font-size:14px;color:#475569;line-height:1.7;margin:0">
-              <b>${slot.client_name}</b> (${slot.client_phone}) повідомляє, що оплатив(ла) зйомку
+              <b>${escapeHtml(slot.client_name)}</b> (${escapeHtml(slot.client_phone)}) повідомляє, що оплатив(ла) зйомку
               <b>${dateHuman}, ${slot.slot_time}</b>${slot.price ? ` — ${slot.price}` : ''}.
             </p>
             <p style="font-size:13px;color:#64748b;margin:16px 0 0">Перевірте надходження у своєму банку та позначте бронювання «Оплачено» в кабінеті.</p>

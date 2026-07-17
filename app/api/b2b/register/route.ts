@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { escapeHtml } from '@/lib/email/escape';
 import { getRoleConfig, type B2bRole } from '@/lib/b2b/config';
 
 export const dynamic = 'force-dynamic';
@@ -165,10 +166,10 @@ export async function POST(request: Request) {
                         <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 16px">Нова заявка на партнерство</h2>
                         <table style="width:100%;font-size:14px;border-collapse:collapse">
                           <tr><td style="padding:6px 0;color:#6b7280;width:110px">Тип:</td><td style="padding:6px 0;font-weight:600">${roleLabel}</td></tr>
-                          <tr><td style="padding:6px 0;color:#6b7280">Імʼя:</td><td style="padding:6px 0;font-weight:600">${name}</td></tr>
-                          <tr><td style="padding:6px 0;color:#6b7280">Email:</td><td style="padding:6px 0">${email}</td></tr>
-                          ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Телефон:</td><td style="padding:6px 0">${phone}</td></tr>` : ''}
-                          <tr><td style="padding:6px 0;color:#6b7280">Портфоліо:</td><td style="padding:6px 0"><a href="${portfolioUrl}" style="color:#1e2d7d">${portfolioUrl}</a></td></tr>
+                          <tr><td style="padding:6px 0;color:#6b7280">Імʼя:</td><td style="padding:6px 0;font-weight:600">${escapeHtml(name)}</td></tr>
+                          <tr><td style="padding:6px 0;color:#6b7280">Email:</td><td style="padding:6px 0">${escapeHtml(email)}</td></tr>
+                          ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Телефон:</td><td style="padding:6px 0">${escapeHtml(phone)}</td></tr>` : ''}
+                          <tr><td style="padding:6px 0;color:#6b7280">Портфоліо:</td><td style="padding:6px 0"><a href="${escapeHtml(portfolioUrl)}" style="color:#1e2d7d">${escapeHtml(portfolioUrl)}</a></td></tr>
                         </table>
                         <p style="font-size:13px;color:#64748b;margin:18px 0 0">Підтвердити або відхилити можна в адмінці → Заявки B2B.</p>
                       </div>
@@ -185,7 +186,7 @@ export async function POST(request: Request) {
                     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
                       <div style="background:#263A99;padding:24px 28px;text-align:center"><span style="color:#fff;font-size:20px;font-weight:900;letter-spacing:.1em">TOUCH.MEMORIES</span></div>
                       <div style="padding:32px 28px;background:#fff;border:1px solid #e2e8f0">
-                        <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${name}!</h2>
+                        <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${escapeHtml(name)}!</h2>
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Дякуємо за заявку на партнерську програму TouchMemories. Ми переглянемо ваше портфоліо протягом 1–2 робочих днів і повідомимо про підтвердження на цю пошту.</p>
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">Після підтвердження вам автоматично відкриється постійна знижка ${cfg.discountPercent}% — нічого вводити не доведеться, ціна враховуватиметься щойно ви увійдете у свій акаунт.</p>${cabinetToken ? `
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">А <strong>кабінет фотографа</strong> доступний уже зараз: галереї для передачі фото клієнтам (зберігання 30 днів) і ваша сторінка-візитка з портфоліо та прайсом.</p>

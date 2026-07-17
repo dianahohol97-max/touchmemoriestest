@@ -20,6 +20,13 @@ export async function GET(request: Request) {
 
         if (Date.now() > expiresAt) return NextResponse.json({ valid: false, reason: 'expired' });
 
+        // SECURITY NOTE: the fallback 'tm-review-secret' is committed in this
+        // public repo — if neither REVIEW_TOKEN_SECRET nor NEXTAUTH_SECRET is set
+        // in the environment, review tokens are forgeable. Set REVIEW_TOKEN_SECRET
+        // in Vercel; once it is guaranteed present the fallback should be removed
+        // here AND in reviews/request + reviews/submit (which sign/verify with the
+        // same key). Impact if unset is low (reviews are moderated before display),
+        // so we do not fail closed here to avoid breaking live review links.
         const secret = process.env.REVIEW_TOKEN_SECRET || process.env.NEXTAUTH_SECRET || 'tm-review-secret';
         const payload = `${orderId}:${expiresAt}`;
         const expected = crypto.createHmac('sha256', secret).update(payload).digest('hex');
