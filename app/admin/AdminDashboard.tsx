@@ -13,14 +13,22 @@ function timeAgo(iso: string) {
     return `${Math.floor(diff/1440)} дн тому`;
 }
 
+// Canonical order statuses — kept in sync with STATUS_OPTS on the order card
+// (app/admin/orders/[id]) and STATUS_TABS on the orders list. The queue used a
+// stale set of keys (pending/in_progress/ready/completed), so real statuses like
+// `confirmed` / `in_production` / `delivered` fell through to the raw English
+// value ("confirmed"). Legacy keys are kept as aliases so nothing regresses.
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-    new:         { label: 'Нове',          color: '#2563eb', bg: '#eff6ff' },
-    pending:     { label: 'Очікує',        color: '#d97706', bg: '#fffbeb' },
-    in_progress: { label: 'В роботі',      color: '#7c3aed', bg: '#f5f3ff' },
-    ready:       { label: 'Готове',        color: '#059669', bg: '#f0fdf4' },
-    shipped:     { label: 'Відправлено',   color: '#0891b2', bg: '#ecfeff' },
-    completed:   { label: 'Виконано',      color: '#16a34a', bg: '#f0fdf4' },
-    cancelled:   { label: 'Скасовано',     color: '#dc2626', bg: '#fef2f2' },
+    new:           { label: 'Нове',         color: '#263A99', bg: '#eff6ff' },
+    pending:       { label: 'Нове',         color: '#263A99', bg: '#eff6ff' },
+    confirmed:     { label: 'Підтверджено', color: '#14b8a6', bg: '#f0fdfa' },
+    in_production: { label: 'У виробництві', color: '#f59e0b', bg: '#fffbeb' },
+    in_progress:   { label: 'У виробництві', color: '#f59e0b', bg: '#fffbeb' },
+    ready:         { label: 'Готове',        color: '#059669', bg: '#f0fdf4' },
+    shipped:       { label: 'Відправлено',  color: '#a855f7', bg: '#f5f3ff' },
+    delivered:     { label: 'Виконано',     color: '#22c55e', bg: '#f0fdf4' },
+    completed:     { label: 'Виконано',     color: '#22c55e', bg: '#f0fdf4' },
+    cancelled:     { label: 'Скасовано',    color: '#ef4444', bg: '#fef2f2' },
 };
 
 const PAY_LABEL: Record<string, { label: string; color: string }> = {
