@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { CheckCircle2, Clock, XCircle, ShoppingBag, Phone } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, ShoppingBag, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { trackPurchase } from '@/components/providers/AnalyticsProvider';
 
@@ -168,7 +168,9 @@ function DyakuiemoContent() {
                     </button>
                     {!isFailed && (
                     <a
-                        href="tel:+380970000000"
+                        href="https://t.me/touchmemories"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{
                             padding: '14px 28px', background: '#fff', color: '#1e2d7d',
                             border: '1.5px solid #c7d2fe', borderRadius: 10, fontSize: 15, fontWeight: 700,
@@ -176,7 +178,7 @@ function DyakuiemoContent() {
                             textDecoration: 'none'
                         }}
                     >
-                        <Phone size={18} /> {t('thankyou.call_us')}
+                        <MessageCircle size={18} /> {t('thankyou.call_us')}
                     </a>
                     )}
                 </div>

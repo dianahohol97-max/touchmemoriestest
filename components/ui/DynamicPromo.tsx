@@ -3,9 +3,12 @@
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useTranslation } from '@/lib/i18n/context';
+import { localePath } from '@/lib/i18n/path';
 
 export function DynamicPromo({ blockName }: { blockName: string }) {
     const { content, blocks } = useTheme();
+    const { locale } = useTranslation();
     const block = blocks.find(b => b.block_name === blockName);
 
     if (!block || !block.is_visible) return null;
@@ -71,7 +74,7 @@ export function DynamicPromo({ blockName }: { blockName: string }) {
                             transition={{ delay: 0.3 }}
                         >
                             <Link
-                                href="/products"
+                                href={localePath(locale, '/catalog')}
                                 className="inline-block bg-blue-600 text-white px-10 py-4 rounded-full font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                             >
                                 {buttonText}

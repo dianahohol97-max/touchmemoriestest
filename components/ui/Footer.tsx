@@ -98,14 +98,17 @@ function NewsletterFormFooter() {
 
 function FooterLegalLinks() {
     const t = useT();
+    const { locale } = useTranslation();
     const { reopenBanner } = useConsent();
     return (
         <div className="flex flex-wrap gap-x-12 gap-y-4">
             {[
-                { label: t('footer.privacy'), href: '/privacy' },
-                { label: t('footer.offer'), href: '/terms' },
-                { label: t('footer.cookies_policy') || 'Cookies', href: '/cookies' },
-                { label: t('footer.refund_policy') || 'Повернення', href: '/refund' },
+                // localePath keeps the visitor's language — bare '/privacy' used
+                // to bounce a /de visitor back to the Ukrainian default.
+                { label: t('footer.privacy'), href: localePath(locale, '/privacy') },
+                { label: t('footer.offer'), href: localePath(locale, '/terms') },
+                { label: t('footer.cookies_policy') || 'Cookies', href: localePath(locale, '/cookies') },
+                { label: t('footer.refund_policy') || 'Повернення', href: localePath(locale, '/refund') },
             ].map((link) => (
                 <Link key={link.href} href={link.href} className="text-[13px] text-primary/20 hover:text-primary transition-colors font-medium no-underline">
                     {link.label}
@@ -170,7 +173,13 @@ export function Footer({ categories = [] }: FooterProps) {
                     links: (section.footer_links as any[])
                         .filter(link => link.is_active)
                         .sort((a, b) => a.display_order - b.display_order)
-                        .map(link => ({ label: link.translations?.[locale]?.text || link.link_text, href: link.link_url }))
+                        .map(link => ({
+                            label: link.translations?.[locale]?.text || link.link_text,
+                            // Internal links stored in the DB have no locale prefix
+                            // ('/faq'); prepend it so foreign visitors stay in their
+                            // language. mailto:/https: links pass through untouched.
+                            href: link.link_url?.startsWith('/') ? localePath(locale, link.link_url) : link.link_url,
+                        }))
                 }));
                 setSections(formattedSections);
             } else {
@@ -189,9 +198,9 @@ export function Footer({ categories = [] }: FooterProps) {
                         id: 'help',
                         title: t('footer.help'),
                         links: [
-                            { label: t('footer.delivery'), href: '/shipping-returns' },
-                            { label: t('footer.faq'), href: '/faq' },
-                            { label: t('footer.constructor'), href: '/constructor/photobook' },
+                            { label: t('footer.delivery'), href: localePath(locale, '/shipping-returns') },
+                            { label: t('footer.faq'), href: localePath(locale, '/faq') },
+                            { label: t('footer.constructor'), href: localePath(locale, '/constructor/photobook') },
                             { label: t('footer.for_photographers') || 'Для фотографів', href: `/${locale}/photographers` }
                         ]
                     },
