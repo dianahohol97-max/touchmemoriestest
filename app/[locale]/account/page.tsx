@@ -11,7 +11,8 @@ import {
     Trash2, Package, ChevronRight, RotateCw, Pencil,
     ExternalLink, Clock, CheckCircle2, Truck, Star,
     MapPin, Phone, Mail, Calendar, FileText, Layers,
-    ShoppingCart, AlertCircle, XCircle, Loader2, Gift, Copy
+    ShoppingCart, AlertCircle, XCircle, Loader2, Gift, Copy,
+    KeyRound, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -612,6 +613,17 @@ export default function AccountPage() {
                                     )}
                                 </button>
                             ))}
+                            {/* Security & privacy pages existed but nothing linked
+                                to them — password change, account deletion and the
+                                GDPR data export were unreachable from the UI. */}
+                            <Link href="/account/settings"
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'transparent', color: '#475569', borderTop: '1px solid #f1f5f9', textDecoration: 'none', fontWeight: 600, fontSize: 14, textAlign: 'left', borderLeft: '3px solid transparent', boxSizing: 'border-box' }}>
+                                <KeyRound size={17} /> Безпека і пароль
+                            </Link>
+                            <Link href="/account/privacy"
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'transparent', color: '#475569', borderTop: '1px solid #f1f5f9', textDecoration: 'none', fontWeight: 600, fontSize: 14, textAlign: 'left', borderLeft: '3px solid transparent', boxSizing: 'border-box' }}>
+                                <ShieldCheck size={17} /> Приватність і дані
+                            </Link>
                             <button onClick={logout}
                                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'transparent', color: '#ef4444', border: 'none', borderTop: '1px solid #f1f5f9', cursor: 'pointer', fontWeight: 600, fontSize: 14, textAlign: 'left', borderLeft: '3px solid transparent' }}>
                                 <LogOut size={17} /> Вийти

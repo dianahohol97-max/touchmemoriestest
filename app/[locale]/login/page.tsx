@@ -172,11 +172,16 @@ function LoginForm() {
               fontSize: '16px',
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: '16px'
+              marginBottom: '12px'
             }}
           >
             {loading ? 'Завантаження...' : 'Увійти'}
           </button>
+          <p style={{ textAlign: 'right', fontSize: '14px', margin: '0 0 16px' }}>
+            <Link href="/forgot-password" style={{ color: '#64748b', fontWeight: 500 }}>
+              Забули пароль?
+            </Link>
+          </p>
         </form>
 
         <div style={{

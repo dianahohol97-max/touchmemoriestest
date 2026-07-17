@@ -31,6 +31,13 @@ export function OAuthCallbackHandler() {
         supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
             if (error) {
                 console.error('OAuth code exchange error:', error.message);
+            } else if (pathname?.includes('/reset-password')) {
+                // Password-recovery link: the emailed URL lands on
+                // /reset-password with a ?code=. Exchange it (done above) but
+                // STAY on the page so the user can set a new password —
+                // bouncing them to /account here made the reset form
+                // unreachable. Strip the used code from the URL.
+                router.replace(pathname);
             } else {
                 // Redirect to the localized account page. A bare "/account"
                 // 404s because the route only exists under [locale].
