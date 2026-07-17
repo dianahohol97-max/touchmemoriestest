@@ -1,6 +1,8 @@
 'use client';
 import { useTranslation } from '@/lib/i18n/context';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import styles from './cart.module.css';
 import { useCartStore } from '@/store/cart-store';
 import { Navigation } from '@/components/ui/Navigation';
@@ -20,6 +22,10 @@ export default function CartPage() {
     const { items, removeItem, updateQuantity } = useCartStore();
     const router = useRouter();
     const b2b = useB2b();
+    // Same display formatting as the product cards: a non-uk visitor who saw
+    // €-prices in the catalog must NOT suddenly see raw ₴ in the cart.
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
+    const fmt = (uah: number) => formatDisplayPrice(uah, locale, currency);
 
     // Which cart items have a re-openable design snapshot (saved by the editor
     // when the item was added). Only those show an "Редагувати" button — the
@@ -243,7 +249,7 @@ export default function CartPage() {
                                                 <button onClick={() => updateQuantity(item.id, item.qty + 1)} style={qtyBtnStyle}><Plus size={14} /></button>
                                             </div>
                                             <div style={{ fontWeight: 800, fontSize: '16px', minWidth: '80px', textAlign: 'right' }}>
-                                                {item.price * item.qty} ₴
+                                                {fmt(item.price * item.qty)}
                                             </div>
                                             <button onClick={() => removeCartItem(item.id)} style={{ padding: '8px', border: 'none', background: 'transparent', cursor: 'pointer', color: '#ff4d4d' }}>
                                                 <Trash2 size={20} />
@@ -268,12 +274,12 @@ export default function CartPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
                                         <span>Проміжна сума</span>
-                                        <span>{total} ₴</span>
+                                        <span>{fmt(total)}</span>
                                     </div>
                                     {dupDiscount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
                                             <span>Знижка за копії</span>
-                                            <span>-{dupDiscount} ₴</span>
+                                            <span>-{fmt(dupDiscount)}</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', opacity: 0.8 }}>
@@ -282,7 +288,7 @@ export default function CartPage() {
                                     </div>
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '24px', fontWeight: 900 }}>
                                         <span>Всього</span>
-                                        <span>{netTotal} ₴</span>
+                                        <span>{fmt(netTotal)}</span>
                                     </div>
                                 </div>
 

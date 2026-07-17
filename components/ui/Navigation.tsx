@@ -406,7 +406,7 @@ export function Navigation() {
                             <p className="text-sm text-gray-500 line-clamp-2">{product.short_description}</p>
                           )}
                           <p className="text-sm font-bold text-blue-600 mt-2">
-                            {product.price_from ? `від ${product.price_from}` : product.price} ₴
+                            {product.price_from ? `${t('ui.from')} ` : ''}{product.price} ₴
                           </p>
                         </div>
                       </Link>

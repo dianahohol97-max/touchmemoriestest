@@ -5,13 +5,20 @@ import { useCartStore } from '@/store/cart-store';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { listCartEditSnapshotIds, getCartEditSnapshot } from '@/lib/cart-edit-store';
+import { detectCurrency } from '@/lib/i18n/currency';
+import { formatDisplayPrice } from '@/lib/payment/pricing-region';
+import { localePath } from '@/lib/i18n/path';
 
 export default function CartDrawer() {
     const t = useT();
     const locale = useLocale();
+    // Match the catalog's display currency — the drawer must not flip a
+    // €-shopper back to raw ₴ mid-purchase.
+    const currency = useMemo(() => detectCurrency(locale), [locale]);
+    const fmt = (uah: number) => formatDisplayPrice(uah, locale, currency);
     const router = useRouter();
     const {
         items,
@@ -281,7 +288,7 @@ export default function CartDrawer() {
                                                 </div>
 
                                                 <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>
-                                                    {item.price * item.qty} ₴
+                                                    {fmt(item.price * item.qty)}
                                                 </div>
                                             </div>
                                         </div>
@@ -300,16 +307,16 @@ export default function CartDrawer() {
                                 {dupDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', fontWeight: 700, color: '#16a34a' }}>
                                         <span>Знижка за копії</span>
-                                        <span>-{dupDiscount} ₴</span>
+                                        <span>-{fmt(dupDiscount)}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
                                     <span style={{ fontWeight: 600, color: '#666' }}>{t('cart.total_to_pay')}</span>
-                                    <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary)' }}>{netTotal} ₴</span>
+                                    <span style={{ fontSize: '24px', fontWeight: 900, color: 'var(--primary)' }}>{fmt(netTotal)}</span>
                                 </div>
 
                                 <Link
-                                    href="/cart"
+                                    href={localePath(locale, '/cart')}
                                     onClick={closeDrawer}
                                     style={{
                                         display: 'flex',
