@@ -353,9 +353,15 @@ function Step1Location({ config, setConfig }: { config: CityMapConfig; setConfig
                                 hasValidLocation: true
                             });
                         } else {
+                            // The user is typing a new place but hasn't picked one from
+                            // the dropdown yet — the stored lat/lon still belong to the
+                            // PREVIOUS city. Invalidate until a real selection is made,
+                            // otherwise the order ships a map of the old city (default
+                            // Kyiv) labelled with the newly typed name.
                             setConfig({
                                 ...config,
-                                location
+                                location,
+                                hasValidLocation: false
                             });
                         }
                     }}

@@ -762,6 +762,11 @@ export default function PosterConstructor() {
     setIsOrdering(true);
     try {
       let fileUrl = '';
+      // Descriptor of the composed 300-DPI print file, pushed into
+      // exportedFiles below so checkout links it as an order_files row.
+      // Before, the print file existed only as a URL inside
+      // personalization_note — invisible on the admin order-files page.
+      let printExport: { path: string; size: number } | null = null;
       // Print-ready layout: redraw the whole poster from the FULL-resolution
       // originals at the physical size × 300 DPI (no upscaling of the small
       // preview canvas). Falls back silently if anything fails — the per-photo
@@ -786,6 +791,7 @@ export default function PosterConstructor() {
           const filePath = `poster-${Date.now()}.jpg`;
           const uploadResult = await uploadOrderFile('poster-exports', filePath, blob);
           fileUrl = uploadResult.url;
+          printExport = { path: filePath, size: blob.size };
         }
       } catch (e) {
         console.warn('poster print render failed:', e);
@@ -811,6 +817,15 @@ export default function PosterConstructor() {
       // here because the projects insert below also references them (saved
       // designs must point at storage paths, not dead blob: URLs).
       const exportedFiles: any[] = [];
+      if (printExport) {
+        exportedFiles.push({
+          path: printExport.path, fileName: 'poster_300dpi.jpg',
+          bucket: 'poster-exports', fileCategory: 'poster-print',
+          productType: 'poster', fileType: 'export',
+          size: printExport.size, mimeType: 'image/jpeg',
+          pageNumber: 0,
+        });
+      }
 
       // Upload originals from the blob URLs to Storage. Poster keeps photos as
       // photoUrl strings (URL.createObjectURL) rather than File refs, so we
@@ -824,7 +839,6 @@ export default function PosterConstructor() {
         );
         const { data: { user } } = await sb.auth.getUser();
         const userKey = user?.id || 'anon';
-        exportedFiles.length = 0;
         for (let i = 0; i < config.photos.length; i++) {
           const p = config.photos[i];
           if (!p.photoUrl) continue;
