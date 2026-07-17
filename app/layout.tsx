@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Script from "next/script";
 import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
@@ -74,6 +75,11 @@ export default function RootLayout({
   // Global structured data (site-wide identity). Rendered server-side so it's
   // in the initial HTML for crawlers. Product/Breadcrumb JSON-LD lives on the
   // product pages; this is the Organization / LocalBusiness / WebSite graph.
+  // Microsoft Clarity project id — read from the environment, never hardcoded.
+  // Set NEXT_PUBLIC_CLARITY_ID in .env.local (local) and in Vercel (production).
+  // When unset (e.g. a preview without the var) the tag simply isn't rendered.
+  const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
+
   const site = getBaseUrl();
   const SOCIALS = [
     'https://instagram.com/touch.memories',
@@ -138,6 +144,19 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body bg-background text-textPrimary antialiased">
+        {/* Microsoft Clarity — official tag loaded via next/script (afterInteractive
+            so it never blocks first render). Rendered at the root layout, so it
+            fires on every route across all locales, /order/book, and the editor.
+            Only emitted when NEXT_PUBLIC_CLARITY_ID is configured. */}
+        {clarityId && (
+          <Script id="ms-clarity" strategy="afterInteractive">
+            {`(function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "${clarityId}");`}
+          </Script>
+        )}
         <ConsentProvider>
           <ThemeProvider>
             <I18nProvider>
