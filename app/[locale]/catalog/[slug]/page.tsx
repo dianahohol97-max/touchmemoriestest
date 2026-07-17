@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
 import ProductClient from './ProductClient';
 import { getLocalized } from '@/lib/i18n/localize';
-import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
 interface Props {
@@ -40,14 +40,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const tr = ((product.translations as any) || {})[locale] || {};
   const isUk = locale === 'uk';
-  const title = tr.meta_title || (isUk ? product.meta_title : '') || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
+  const rawTitle = tr.meta_title || (isUk ? product.meta_title : '') || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
+  // DB meta_title may already contain the brand suffix — normalize so the
+  // final <title> carries it exactly once and og/twitter titles carry none.
+  const title = stripBrandSuffix(String(rawTitle));
   const rawDesc = tr.meta_description || (isUk ? product.meta_description : '') || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '';
   const description = rawDesc.toString().slice(0, 160);
   const ogImage = product.og_image || (product.images && product.images[0]) || `${getBaseUrl()}/og-image.jpg`;
   const path = `/catalog/${slug}`;
 
   return {
-    title: `${title} | Touch.Memories`,
+    title: withBrandSuffix(title),
     description,
     alternates: {
       canonical: getCanonicalUrl(locale, path),

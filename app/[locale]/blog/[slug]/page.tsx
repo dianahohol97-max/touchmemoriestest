@@ -9,7 +9,7 @@ import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
-import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 
 // ISR: revalidate every 2 hours — blog posts rarely change
 export const revalidate = 7200;
@@ -33,12 +33,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         }
 
         const tr = ((post.translations as any) || {})[locale] || {};
-        const title = tr.meta_title || tr.title || post.meta_title || getLocalized(post, locale, 'title') || 'Article';
+        // DB meta_title may already contain "| Touch.Memories" — strip it so the
+        // suffix is appended exactly once (was rendering doubled in the SERP).
+        const title = stripBrandSuffix(String(tr.meta_title || tr.title || post.meta_title || getLocalized(post, locale, 'title') || 'Article'));
         const description = (tr.meta_description || tr.excerpt || post.meta_description || getLocalized(post, locale, 'excerpt') || '').toString().slice(0, 160);
         const path = `/blog/${slug}`;
 
         return {
-            title: `${title} | Touch.Memories`,
+            title: withBrandSuffix(title),
             description,
             alternates: {
                 canonical: getCanonicalUrl(locale, path),

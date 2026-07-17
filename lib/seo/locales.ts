@@ -38,6 +38,21 @@ export function getCanonicalUrl(locale: Locale, path: string = ''): string {
   return `${base}/${locale}${cleanPath}`;
 }
 
+// Some meta_title values in the DB already end with "| Touch.Memories" while
+// page code appends the brand suffix too, producing "… | Touch.Memories |
+// Touch.Memories" in the SERP. Strip any existing suffix first so the brand
+// appears exactly once regardless of how the DB row was authored.
+const BRAND_SUFFIX_RE = /\s*\|\s*Touch\.?\s?Memories\s*$/i;
+
+export function stripBrandSuffix(title: string): string {
+  return title.replace(BRAND_SUFFIX_RE, '').trim();
+}
+
+export function withBrandSuffix(title: string): string {
+  const clean = stripBrandSuffix(title);
+  return clean ? `${clean} | Touch.Memories` : 'Touch.Memories';
+}
+
 export function getAlternateLanguages(path: string = ''): Record<string, string> {
   const result: Record<string, string> = {};
   for (const loc of LOCALES) {
