@@ -238,6 +238,13 @@ export async function POST(request: NextRequest) {
   //   (promo codes, split-payment rounding). Options can only add to
   //   the base price, never subtract below it, so this is a safe floor.
   // ──────────────────────────────────────────────────────────────
+  // The 0.8×base floor (in BASE UAH) computed below, hoisted so the CHARGED
+  // amount can be floored too — not just `subtotal`. Without this, the floor
+  // guarded subtotal while the money followed the client's `total`, and the
+  // raw `subtotal − total` discount was unbounded: subtotal=2000 (passes the
+  // floor) with total=1 produced a 1 ₴ order that create-invoice + webhook
+  // faithfully billed. 0 means "no floor known" (unknown slugs) → no cap.
+  let priceFloorBase = 0;
   {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
@@ -275,6 +282,7 @@ export async function POST(request: NextRequest) {
         }, 0);
         // Allow up to 20% below the (B2B-adjusted) base, but never less than 1₴
         const floor = Math.max(1, Math.round(baseFloor * 0.80));
+        priceFloorBase = floor; // hoisted for the charged-amount floor below
         if (subtotal < floor) {
           console.warn(`orders/submit: subtotal ${subtotal} < floor ${floor} (base ${baseFloor}) for slugs [${slugs.join(', ')}]`);
           return NextResponse.json(
@@ -402,9 +410,24 @@ export async function POST(request: NextRequest) {
   const exchangeRate = displayCurrency === 'UAH' ? null : eurRate;
 
   // Discount the client already applied lives in (base subtotal − base total).
-  // Markup hits the canonical price (subtotal); the flat UAH discount is
-  // subtracted after; intl shipping is added on top.
+  // This is the promo + duplicate-copies discount (the checkout builds
+  // total = rawTotal − promoDiscount − dupDiscount; bonus/certificate are NOT
+  // in it — they are re-validated and applied server-side below).
   const baseDiscount = Math.max(0, Math.min(subtotal, subtotal - total));
+
+  // Cap that client discount against the SAME 0.8×base floor used for
+  // subtotal, so the charged product amount can't be discounted below the
+  // floor via a tampered `total`. The floor already bakes in the 20% promo
+  // buffer and any B2B discount, so legitimate promos pass untouched;
+  // certificate/bonus (applied after) may still legitimately lower the total.
+  if (priceFloorBase > 0 && (subtotal - baseDiscount) < priceFloorBase) {
+    console.warn(`orders/submit: discounted product amount ${subtotal - baseDiscount} < floor ${priceFloorBase} (subtotal ${subtotal}, total ${total})`);
+    return NextResponse.json(
+      { error: 'discount_too_high', detail: 'The applied discount exceeds the maximum allowed for these products.' },
+      { status: 422 },
+    );
+  }
+
   const markedSubtotal = Math.round(subtotal * priceMultiplier);
 
   let intlShipping = 0;

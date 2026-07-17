@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward } from '@/lib/referral/referral';
@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
  * by their own UNIQUE(order_id) ledgers.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const guard = await requireStaff();
+  const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireStaff } from '@/lib/auth/guards';
 import {
   renderWishbookCoverPng,
   specFromOrderOptions,
@@ -41,7 +42,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'order id required' }, { status: 400 });
 
-  const force = req.nextUrl.searchParams.get('force') === '1';
+  // ?force=1 deletes the existing cover.jpg and re-renders — an expensive
+  // (sharp + og, maxDuration 60s) operation that also churns the print file.
+  // The unauthenticated checkout path may only CREATE a missing cover
+  // (idempotent skip); forcing a re-render is a staff-only action, or a
+  // stranger with an order UUID could hammer it to burn compute and overwrite
+  // the cover repeatedly (mirrors the print-sheets gating).
+  let force = req.nextUrl.searchParams.get('force') === '1';
+  if (force) {
+    const guard = await requireStaff();
+    if (!guard.ok) force = false; // silently fall back to idempotent behaviour
+  }
   const admin = getAdminClient();
 
   // 1. Load the order.
