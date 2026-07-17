@@ -45,6 +45,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
     } catch (err: any) {
         console.error('[contact] error:', err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return NextResponse.json({ error: 'Не вдалося надіслати повідомлення' }, { status: 500 });
     }
 }

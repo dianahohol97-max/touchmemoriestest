@@ -120,6 +120,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, id: emailData?.id });
 
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        console.error('[gift-hint] error:', e);
+        return NextResponse.json({ error: 'Не вдалося надіслати натяк' }, { status: 500 });
     }
 }

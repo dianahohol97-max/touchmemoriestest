@@ -25,6 +25,6 @@ export async function GET() {
 
     } catch (error: any) {
         console.error('Error fetching account orders:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: 'Не вдалося завантажити замовлення' }, { status: 500 });
     }
 }

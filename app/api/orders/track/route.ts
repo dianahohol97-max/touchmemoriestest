@@ -52,13 +52,20 @@ export async function POST(req: Request) {
 
         // 2. Fetch Order with verification
         // Support either email or phone match
+        // Return only what the tracking UI actually renders. customer_email /
+        // customer_phone are deliberately NOT selected: the caller already knows
+        // one of them (they had to supply it to match), and echoing BOTH back
+        // would let someone who knows a victim's phone harvest their email (or
+        // vice versa) off a guessable order number. The payment link + delivery
+        // address ARE returned — the pay-unpaid-order button and shipping panel
+        // on the tracking page use them, and they are the caller's own order.
         const { data: order, error } = await supabase
             .from('orders')
             .select(`
-                id, order_number, order_status, payment_status, created_at, paid_at, 
+                id, order_number, order_status, payment_status, created_at, paid_at,
                 confirmed_at, production_at, shipped_at, delivered_at,
                 ttn, items, total, delivery_method, delivery_address,
-                customer_name, customer_email, customer_phone,
+                customer_name,
                 monobank_payment_url, monobank_invoice_id
             `)
             .eq('order_number', trimmedOrderNumber)
