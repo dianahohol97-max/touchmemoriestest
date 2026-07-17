@@ -840,11 +840,21 @@ export default function BookLayoutEditor() {
   const [mActiveGroup, setMActiveGroup] = useState<string>('1 фото'); // mobile: active layout-group filter chip. MUST stay a top-level hook — it was declared inside the `leftTab === 'layouts'` render IIFE, which made it a conditional hook and crashed the editor (React #310) on the first tab switch. Falls back to the first available group inside the IIFE when invalid for the current spread/page mode.
   const [mobilePanelHeight, setMobilePanelHeight] = useState<'half'|'full'>('half'); // bottom sheet size
   const [mobileMultiSelect, setMobileMultiSelect] = useState(false); // mobile: select several photos to place at once
+  // Touch capability, independent of width. A tablet or a landscape phone is
+  // wider than 640px so it keeps the desktop CHROME, but HTML5 drag-and-drop
+  // never fires on touch — those users could not place photos and saw only
+  // "drag" affordances. tap-to-place already works mechanically on any device
+  // (tap a photo → tap a slot), so we just surface it: any drag-only hint
+  // becomes "tap or drag" when isTouch.
+  const [isTouch, setIsTouch] = useState(false);
   useEffect(() => {
     const check = () => {
       setIsMobile(window.innerWidth < 640);
     };
     check();
+    try {
+      setIsTouch(window.matchMedia('(hover: none), (pointer: coarse)').matches || navigator.maxTouchPoints > 0);
+    } catch { /* keep desktop behaviour */ }
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -3379,6 +3389,9 @@ export default function BookLayoutEditor() {
   // button stayed clickable through a potentially minutes-long originals
   // upload — the UI looked frozen and a double-click added the book twice.
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  // The cart line this design last became — lets the success modal offer
+  // «Продовжити редагування» that re-saves onto the same line, not a copy.
+  const [lastCartItemId, setLastCartItemId] = useState<string | null>(null);
 
   // Show cart modal after upload completes (or immediately if no files to upload)
   useEffect(() => {
@@ -3789,6 +3802,10 @@ export default function BookLayoutEditor() {
       try { sessionStorage.setItem('tmCartEdit_' + cartPayload.id, JSON.stringify(snap)); } catch { /* quota — IndexedDB still holds it */ }
     } catch { /* snapshot skipped; item still orders, just not re-editable */ }
 
+    // Remember which cart line this design became, so the success modal's
+    // «Продовжити редагування» can re-target it (a re-save replaces the same
+    // line instead of adding a duplicate book).
+    setLastCartItemId(cartPayload.id);
     if (editingCartItemId) {
       replaceItem(cartPayload as any);
       sessionStorage.removeItem('bookEditCartItemId');
@@ -4512,7 +4529,10 @@ export default function BookLayoutEditor() {
     }
     setUploadState(prev => prev ? { ...prev, active: false } : null);
 
-    setPhotos([]);
+    // Do NOT clear photos here. The old setPhotos([]) emptied the canvas the
+    // instant the success modal appeared, so dismissing the modal (or picking
+    // «Продовжити редагування») dropped the user into a blank editor. Keeping
+    // the state lets them keep tweaking; a re-save replaces the same cart line.
     // After snapshots and upload, always show the cart modal —
     // either the PDF made it through or not, the order itself is
     // already in the cart and we should let the user proceed.
@@ -6960,7 +6980,7 @@ export default function BookLayoutEditor() {
                               display:'flex', alignItems:'center', gap:5, pointerEvents:'none', whiteSpace:'nowrap' }}>
                               <ImageIcon size={11} color="#fff"/>
                               <span style={{ fontSize:9, fontWeight:600, color:'#fff' }}>
-                                {isMobile ? 'Торкніться або перетягніть фото' : 'Перетягніть фото сюди'}
+                                {(isMobile || isTouch) ? 'Торкніться або перетягніть фото' : 'Перетягніть фото сюди'}
                               </span>
                             </div>
                           )}
@@ -8113,6 +8133,19 @@ export default function BookLayoutEditor() {
                           const origTop = Number(slotStyle.top) || 0;
                           const origW = Number(slotStyle.width) || 100;
                           const origH = Number(slotStyle.height) || 100;
+                          // Snap targets: every OTHER slot on this page (parity with the
+                          // spread editor, which had snap while page layouts did not —
+                          // users could align slots on spreads but not on single pages).
+                          const others = pageDefs
+                            .filter(({ i: idx }) => idx !== i)
+                            .map(({ i: idx, s: ss }) => {
+                              const otherSlot = page?.slots[idx];
+                              const oGeom = resolveCustomSlot(otherSlot, pageW, cH);
+                              return oGeom ? oGeom : {
+                                left: Number(ss.left)||0, top: Number(ss.top)||0,
+                                width: Number(ss.width)||0, height: Number(ss.height)||0,
+                              };
+                            });
                           pushHistory();
                           startPointerDrag(e2, (dx: number, dy: number) => {
                             let nx = origLeft, ny = origTop, nw = origW, nh = origH;
@@ -8121,12 +8154,18 @@ export default function BookLayoutEditor() {
                             else if (type === 'sw') { nx = origLeft + dx; nw = Math.max(40, origW - dx); nh = Math.max(40, origH + dy); }
                             else if (type === 'ne') { ny = origTop + dy; nw = Math.max(40, origW + dx); nh = Math.max(40, origH - dy); }
                             else if (type === 'nw') { nx = origLeft + dx; ny = origTop + dy; nw = Math.max(40, origW - dx); nh = Math.max(40, origH - dy); }
+                            // Snap-to-align before clamping (same helper the spread uses).
+                            const snapped = applySnap({ x: nx, y: ny, w: nw, h: nh }, others, pageW, cH, type);
+                            nx = snapped.x; ny = snapped.y; nw = snapped.w; nh = snapped.h;
                             // Clamp inside this single page (pageW × cH)
                             nx = Math.max(0, Math.min(pageW - nw, nx));
                             ny = Math.max(0, Math.min(cH - nh, ny));
                             nw = Math.min(nw, pageW - nx);
                             nh = Math.min(nh, cH - ny);
+                            setSnapGuides({ v: snapped.guidesV, h: snapped.guidesH });
                             setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: (nx/pageW)*100, customY: (ny/cH)*100, customW: (nw/pageW)*100, customH: (nh/cH)*100, customPct: true }) }));
+                          }, () => {
+                            setSnapGuides({ v: [], h: [] });
                           });
                         };
                         return (
@@ -8301,7 +8340,7 @@ export default function BookLayoutEditor() {
                                   <ImageIcon size={isMobile?17:14} color={isOver?'#3b82f6':'#818cf8'}/>
                                 </div>
                                 <span style={{fontSize:isMobile?10:9,fontWeight:600,color:isOver?'#3b82f6':'#818cf8',textAlign:'center',lineHeight:1.2}}>
-                                  {isOver ? t('constructor.release') : dragPhotoId ? t('constructor.here') : (isMobile && !tapSelectedPhotoId ? t('constructor.tap_to_add') : '')}
+                                  {isOver ? t('constructor.release') : dragPhotoId ? t('constructor.here') : ((isMobile || isTouch) && !tapSelectedPhotoId ? t('constructor.tap_to_add') : '')}
                                 </span>
                                 {tapSelectedPhotoId && !dragPhotoId && (
                                   <span style={{fontSize:isMobile?10:9,fontWeight:600,color:'#3b82f6',background:'rgba(59,130,246,0.08)',padding:'2px 8px',borderRadius:10}}>{isMobile ? t('constructor.tap_to_insert') : t('constructor.click_to_insert')}</span>
@@ -8338,6 +8377,19 @@ export default function BookLayoutEditor() {
                           </div>
                         );
                       })}
+                      {/* Snap-to-align guides for the PAGE editor (parity with the
+                          spread editor). Rendered in page-space; shown only while a
+                          slot on THIS page is being edited. */}
+                      {!!editSlotKey && editSlotKey.startsWith(pageIdx + '-') && (
+                        <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:53}}>
+                          {snapGuides.v.map((vx, gi) => (
+                            <div key={`psnap-v-${gi}`} style={{position:'absolute',left:vx-0.5,top:0,width:1.5,height:cH,background:'#ec4899',pointerEvents:'none',boxShadow:'0 0 4px rgba(236,72,153,0.6)'}}/>
+                          ))}
+                          {snapGuides.h.map((hy, gi) => (
+                            <div key={`psnap-h-${gi}`} style={{position:'absolute',left:0,top:hy-0.5,width:pageW,height:1.5,background:'#ec4899',pointerEvents:'none',boxShadow:'0 0 4px rgba(236,72,153,0.6)'}}/>
+                          ))}
+                        </div>
+                      )}
                       {/* Text blocks for this page */}
                       {page?.textBlocks?.map(tb => {
                         const isSel = selectedTextId === tb.id;
@@ -9363,7 +9415,7 @@ export default function BookLayoutEditor() {
             {[
               { icon:'', title:'Додати фото в слот', desc:'Відкрий "Зображення" → тапни фото → тапни слот на сторінці' },
               { icon:'⇄', title:'Гортати розвороти', desc:'Гортай вліво/вправо по розвороту або тисни стрілки ‹ › вгорі, щоб перейти між сторінками' },
-              { icon:'', title:'Збільшити/зменшити фото', desc:'Зведи або розведи два пальці на фото (pinch-zoom)' },
+              { icon:'', title:'Збільшити/зменшити фото в слоті', desc:'Тапни фото → у панелі, що зʼявиться, тисни + або − для масштабу. Два пальці по сторінці збільшують увесь розворот.' },
               { icon:'', title:'Змінити кадрування', desc:'Двічі тапни на фото → переміщай пальцем → "Готово"' },
               { icon:'', title:t('constructor.slot_move'), desc:'Один палець на рамці фотослота → тягни в потрібне місце' },
               { icon:'↔', title:t('constructor.slot_resize'), desc:'Тапни слот → тягни за білі кутові ручки' },
@@ -10530,6 +10582,16 @@ export default function BookLayoutEditor() {
                   borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>
                 Оформити замовлення →
               </a>
+              <button onClick={() => {
+                // Stay in the editor and keep editing THIS cart line: a further
+                // «Готово» will replace it instead of adding a duplicate book.
+                if (lastCartItemId) { try { sessionStorage.setItem('bookEditCartItemId', lastCartItemId); } catch {} }
+                setShowCartModal(false);
+              }}
+                style={{ display:'block', width:'100%', padding:'13px', background:'#f0f3ff', color:'#1e2d7d',
+                  border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:14, cursor:'pointer' }}>
+                Продовжити редагування
+              </button>
               <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/catalog`}
                 style={{ display:'block', padding:'13px', background:'#f1f5f9', color:'#374151',
                   borderRadius:10, fontWeight:700, fontSize:14, textDecoration:'none' }}>
