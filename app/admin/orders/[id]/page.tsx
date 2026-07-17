@@ -1019,6 +1019,20 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         </div>
                                                     </div>
                                                 </div>
+                                                {/* Print colour of the inscription. The B/W master is black-on-white,
+                                                    so the workshop can't tell what colour to engrave/print — state it
+                                                    explicitly with a swatch, and flag clearly when it wasn't captured. */}
+                                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#334155' }}>
+                                                    <span>Друк кольором:</span>
+                                                    {inscrColorLabel ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                                            <span style={{ width: 14, height: 14, borderRadius: '50%', background: inscrColorHex, border: '1px solid #cbd5e1', flexShrink: 0 }} />
+                                                            {inscrColorLabel}
+                                                        </span>
+                                                    ) : (
+                                                        <span style={{ color: '#dc2626' }}>не вказано — уточніть у клієнта</span>
+                                                    )}
+                                                </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 8 }}>
                                                     <div style={{ fontSize: 11, color: '#94a3b8' }}>
                                                         {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`}
