@@ -3,6 +3,35 @@ import { requireAuth } from '@/lib/auth/guards';
 
 export const AI_PORTRAIT_PRICE = 75;
 
+// Per-user generation caps. Every call costs real provider money (Gemini
+// ≈$0.04/image, Replicate more) while the 75₴ surcharge is only charged if
+// the user actually adds the item to the cart — so without a cap a logged-in
+// user can regenerate for free without limit. In-memory like orders/track:
+// per-instance and reset on redeploy, which is fine as a cost brake.
+const genLimitMap = new Map<string, { minute: { count: number; resetAt: number }; day: { count: number; resetAt: number } }>();
+const GEN_PER_10MIN = 6;
+const GEN_PER_DAY = 30;
+
+function checkGenLimit(userId: string): { ok: boolean; message?: string } {
+  const now = Date.now();
+  let entry = genLimitMap.get(userId);
+  if (!entry) {
+    entry = { minute: { count: 0, resetAt: now + 10 * 60_000 }, day: { count: 0, resetAt: now + 24 * 3600_000 } };
+    genLimitMap.set(userId, entry);
+  }
+  if (now >= entry.minute.resetAt) entry.minute = { count: 0, resetAt: now + 10 * 60_000 };
+  if (now >= entry.day.resetAt) entry.day = { count: 0, resetAt: now + 24 * 3600_000 };
+  if (entry.minute.count >= GEN_PER_10MIN) {
+    return { ok: false, message: 'Забагато генерацій поспіль. Зачекайте кілька хвилин і спробуйте ще раз.' };
+  }
+  if (entry.day.count >= GEN_PER_DAY) {
+    return { ok: false, message: 'Досягнуто денний ліміт генерацій. Спробуйте завтра.' };
+  }
+  entry.minute.count++;
+  entry.day.count++;
+  return { ok: true };
+}
+
 const STYLE_PROMPTS: Record<string, string> = {
   pixar:      'pixar 3d animation style character portrait, vibrant colors, smooth render, expressive eyes, cinematic lighting, disney pixar quality',
   anime:      'anime illustration portrait, studio ghibli style, soft colors, detailed manga face, professional anime art',
@@ -180,6 +209,11 @@ export async function POST(request: Request) {
   // anyone could burn through the daily HF quota or rack up Replicate spend.
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
+
+  const limit = checkGenLimit(guard.userId);
+  if (!limit.ok) {
+    return NextResponse.json({ error: limit.message }, { status: 429 });
+  }
 
   try {
     const formData = await request.formData();

@@ -5,21 +5,22 @@ import { useState, useEffect, useRef } from 'react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { useCartStore } from '@/store/cart-store';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, ShoppingCart, Upload, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ShoppingCart, Upload, Loader2, RefreshCw } from 'lucide-react';
 import CartoonPortraitPreview from './CartoonPortraitPreview';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 import { uploadCustomerFile } from '@/lib/upload-customer-file';
+import { makeCartThumbnail } from '@/lib/cart-thumbnail';
 
 interface CartoonPortraitConfig {
     // Step 1: Photo Upload
     uploadedPhoto: File | null;
     uploadedPhotoPreview: string | null;
-    faceDetected: boolean | null;
     photoResolution: { width: number; height: number } | null;
 
-    // Step 2: Style Selection
-    animationStyle: 'pixar' | 'disney' | 'anime' | 'simpsons' | 'watercolor' | 'pop-art' | 'minimalist';
+    // Step 2: Style Selection — keys MUST match the server allowlist in
+    // app/api/pixar-portrait/route.ts (STYLE_PROMPTS), the server owns prompts.
+    animationStyle: 'pixar' | 'anime' | 'cartoon' | 'watercolor' | 'sketch' | 'oilpainting';
 
     // Step 3: Background
     backgroundType: 'solid' | 'gradient' | 'scene' | 'transparent';
@@ -59,7 +60,6 @@ const { addItem } = useCartStore();
         // Step 1 defaults
         uploadedPhoto: null,
         uploadedPhotoPreview: null,
-        faceDetected: null,
         photoResolution: null,
 
         // Step 2 defaults
@@ -116,42 +116,33 @@ const { addItem } = useCartStore();
         fetchProduct();
     }, [supabase]);
 
-    // Animation styles with descriptions
+    // Animation styles. Only styles the AI route actually supports are offered
+    // (the old list had simpsons/pop-art/minimalist which no provider was ever
+    // wired for). Generation prompts live server-side in the API route.
     const animationStyles = {
         'pixar': {
             name: 'Піксар',
-            description: '3D стиль Pixar',
-            prompt: 'Transform this portrait photo into a Pixar 3D animation style character. Keep facial features recognizable. Clean background.'
-        },
-        'disney': {
-            name: 'Дісней',
-            description: 'Класична анімація Disney',
-            prompt: 'Transform this portrait into Disney classic 2D animation style. Keep facial features recognizable.'
+            description: '3D стиль Pixar'
         },
         'anime': {
             name: 'Аніме',
-            description: 'Японський аніме стиль',
-            prompt: 'Transform this portrait into Japanese anime style. Keep facial features recognizable.'
+            description: 'Японський аніме стиль'
         },
-        'simpsons': {
-            name: 'Сімпсони',
-            description: 'Стиль The Simpsons',
-            prompt: 'Transform this portrait into The Simpsons animation style. Yellow skin, big eyes. Keep facial features recognizable.'
+        'cartoon': {
+            name: 'Мультфільм',
+            description: 'Класична 2D анімація Disney'
         },
         'watercolor': {
             name: 'Акварель',
-            description: 'Акварельний портрет',
-            prompt: 'Transform this portrait into a watercolor painting style. Soft colors, artistic brush strokes. Keep facial features recognizable.'
+            description: 'Акварельний портрет'
         },
-        'pop-art': {
-            name: 'Поп-арт',
-            description: 'Стиль Енді Воргола',
-            prompt: 'Transform this portrait into Andy Warhol pop art style. Bold colors, high contrast. Keep facial features recognizable.'
+        'sketch': {
+            name: 'Ескіз',
+            description: 'Олівцевий малюнок'
         },
-        'minimalist': {
-            name: 'Мінімалізм',
-            description: 'Мінімалістична лінія',
-            prompt: 'Transform this portrait into minimalist line art style. Simple black lines on white. Keep facial features recognizable.'
+        'oilpainting': {
+            name: 'Олія',
+            description: 'Класичний олійний живопис'
         }
     };
 
@@ -232,7 +223,6 @@ const { addItem } = useCartStore();
                 uploadedPhoto: file,
                 uploadedPhotoPreview: previewUrl,
                 photoResolution: { width: img.width, height: img.height },
-                faceDetected: true, // Simplified - in production, use face detection API
                 generatedPortrait: null
             });
 
@@ -263,61 +253,75 @@ const { addItem } = useCartStore();
         }
     };
 
-    // Generate AI portrait
+    // Generate AI portrait through the shared server route (same one the
+    // poster and photobook editors use). It returns either an immediate
+    // image (Gemini / HuggingFace → data: URL) or a Replicate predictionId
+    // to poll. This used to be a setTimeout stub that returned the customer's
+    // own photo unchanged — a paid product with no actual AI behind it.
     const handleGeneratePortrait = async () => {
         if (!config.uploadedPhoto) {
             toast.error('Будь ласка, завантажте фото');
             return;
         }
 
-        setConfig(prev => ({ ...prev, isProcessing: true, processingProgress: 0 }));
+        setConfig(prev => ({ ...prev, isProcessing: true, processingProgress: 5 }));
 
-        try {
-            // Simulate progress
-            const progressInterval = setInterval(() => {
-                setConfig(prev => ({
-                    ...prev,
-                    processingProgress: Math.min(prev.processingProgress + 10, 90)
-                }));
-            }, 500);
-
-            // TODO: Replace with actual Nano Banana API call
-            // const formData = new FormData();
-            // formData.append('image', config.uploadedPhoto);
-            // formData.append('prompt', animationStyles[config.animationStyle].prompt);
-
-            // const response = await fetch('YOUR_NANO_BANANA_API_ENDPOINT', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Authorization': 'Bearer YOUR_API_KEY'
-            //     },
-            //     body: formData
-            // });
-
-            // const result = await response.json();
-            // const generatedImageUrl = result.image_url;
-
-            // Simulate API call (3 seconds)
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            clearInterval(progressInterval);
-
-            // For demo: use uploaded photo as generated result
-            // In production, replace with actual AI-generated image URL
-            const generatedImageUrl = config.uploadedPhotoPreview;
-
+        // Advance the bar slowly while the provider works (~20-60s); the real
+        // completion snaps it to 100.
+        const progressInterval = setInterval(() => {
             setConfig(prev => ({
                 ...prev,
-                generatedPortrait: generatedImageUrl,
+                processingProgress: Math.min(prev.processingProgress + 5, 90)
+            }));
+        }, 1500);
+
+        try {
+            const formData = new FormData();
+            formData.append('image', config.uploadedPhoto);
+            formData.append('style', config.animationStyle);
+
+            const res = await fetch('/api/pixar-portrait', { method: 'POST', body: formData });
+            if (res.status === 401) {
+                throw new Error('Щоб створити AI-портрет, будь ласка, увійдіть у свій акаунт.');
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.error) {
+                throw new Error(data.error || 'Помилка генерації портрета');
+            }
+
+            let resultUrl: string | null = null;
+            if (data.url) {
+                resultUrl = data.url;
+            } else if (data.predictionId && data.polling) {
+                // Replicate path: poll every 3s, up to ~2.5 minutes.
+                for (let attempt = 0; attempt < 50 && !resultUrl; attempt++) {
+                    await new Promise(r => setTimeout(r, 3000));
+                    const pollRes = await fetch(`/api/pixar-portrait?id=${encodeURIComponent(data.predictionId)}`);
+                    const poll = await pollRes.json().catch(() => ({}));
+                    if (poll.status === 'succeeded' && poll.url) {
+                        resultUrl = poll.url;
+                    } else if (poll.status === 'failed') {
+                        throw new Error('Генерація не вдалася. Спробуйте інше фото.');
+                    }
+                }
+                if (!resultUrl) throw new Error('Час очікування вийшов. Спробуйте ще раз.');
+            }
+            if (!resultUrl) throw new Error('AI не повернув зображення. Спробуйте ще раз.');
+
+            clearInterval(progressInterval);
+            setConfig(prev => ({
+                ...prev,
+                generatedPortrait: resultUrl,
                 isProcessing: false,
                 processingProgress: 100
             }));
 
             toast.success('Портрет створено успішно!');
 
-        } catch (error) {
+        } catch (error: any) {
+            clearInterval(progressInterval);
             console.error('Error generating portrait:', error);
-            toast.error('Помилка при створенні портрету. Спробуйте ще раз.');
+            toast.error(error?.message || 'Помилка при створенні портрету. Спробуйте ще раз.');
             setConfig(prev => ({ ...prev, isProcessing: false, processingProgress: 0 }));
         }
     };
@@ -337,12 +341,24 @@ const { addItem } = useCartStore();
         const totalPrice = calculatePrice();
         const cartItemId = `cartoon-portrait-${Date.now()}`;
 
+        // Cart persists in localStorage, so the image must be a small
+        // self-contained thumbnail. The generated result is a big data: URL
+        // (Gemini) or a remote URL (Replicate) — route it through a blob URL
+        // so makeCartThumbnail downscales both instead of passing data: through.
+        let cartImage = '';
+        try {
+            const blob = await (await fetch(config.generatedPortrait)).blob();
+            const blobUrl = URL.createObjectURL(blob);
+            cartImage = await makeCartThumbnail(blobUrl);
+            URL.revokeObjectURL(blobUrl);
+        } catch { /* fall back to empty — cart shows placeholder */ }
+
         addItem({
             id: cartItemId,
             name: t('cartoon.header_title'),
             price: totalPrice,
             qty: 1,
-            image: config.generatedPortrait,
+            image: cartImage,
             options: {
                 'Розмір': config.size,
                 'Тип продукту': config.productType,
@@ -391,8 +407,11 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                 }
             }
 
-            // Generated portrait (the AI-rendered output) — typically a data URL
-            if (config.generatedPortrait && config.generatedPortrait.startsWith('data:')) {
+            // Generated portrait (the AI-rendered output). fetch() handles both
+            // shapes the API returns: a data: URL (Gemini/HF) and a remote
+            // https: URL (Replicate). The old `startsWith('data:')` gate meant
+            // Replicate results were never stored at all.
+            if (config.generatedPortrait) {
                 try {
                     const blob = await (await fetch(config.generatedPortrait)).blob();
                     const ext = (blob.type.split('/')[1] || 'png').replace(/[^a-z0-9]/g, '');
@@ -557,28 +576,17 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
                                         className="hidden"
                                     />
 
-                                    {/* Photo Info */}
+                                    {/* Photo Info. No fake "face detected" badge here — we don't
+                                        run face detection, so we don't claim we did. */}
                                     {config.photoResolution && (
                                         <div className="p-4 bg-blue-50 rounded-lg space-y-2">
                                             <p className="text-sm">
                                                 <span className="font-semibold">Роздільна здатність:</span>{' '}
                                                 {config.photoResolution.width}×{config.photoResolution.height}px
                                             </p>
-                                            {config.faceDetected !== null && (
-                                                <p className="text-sm flex items-center gap-2">
-                                                    {config.faceDetected ? (
-                                                        <>
-                                                            <span className="text-green-600"></span>
-                                                            <span>Обличчя виявлено</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <AlertTriangle className="w-4 h-4 text-orange-500" />
-                                                            <span className="text-orange-600">Обличчя не виявлено</span>
-                                                        </>
-                                                    )}
-                                                </p>
-                                            )}
+                                            <p className="text-sm text-gray-600">
+                                                Для найкращого результату обличчя має бути чітким і добре освітленим.
+                                            </p>
                                         </div>
                                     )}
                                 </div>
