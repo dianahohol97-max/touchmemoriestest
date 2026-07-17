@@ -50,16 +50,14 @@ function ReviewContent() {
 
           {status === 'invalid' && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
-              <h2 style={{ color: '#1e2d7d', fontWeight: 700, marginBottom: 8 }}>Посилання недійсне або прострочене</h2>
+                            <h2 style={{ color: '#1e2d7d', fontWeight: 700, marginBottom: 8 }}>Посилання недійсне або прострочене</h2>
               <p style={{ color: '#64748b', fontSize: 14 }}>Посилання для відгуку дійсне 30 днів. Якщо у вас є питання — напишіть нам.</p>
             </div>
           )}
 
           {status === 'sent' && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 40, marginBottom: 16 }}>🙏</div>
-              <h2 style={{ color: '#1e2d7d', fontWeight: 700, marginBottom: 8 }}>Дякуємо за відгук!</h2>
+                            <h2 style={{ color: '#1e2d7d', fontWeight: 700, marginBottom: 8 }}>Дякуємо за відгук!</h2>
               <p style={{ color: '#64748b', fontSize: 14 }}>Після перевірки він з'явиться на сторінці товару.</p>
             </div>
           )}
@@ -98,7 +96,7 @@ function ReviewContent() {
                 style={{ width: '100%', padding: '14px', background: (!rating || !text.trim()) ? '#e2e8f0' : '#263A99',
                   color: (!rating || !text.trim()) ? '#94a3b8' : '#fff',
                   border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 15, cursor: (!rating || !text.trim()) ? 'not-allowed' : 'pointer' }}>
-                {sending ? 'Надсилається…' : 'Надіслати відгук ⭐'}
+                {sending ? 'Надсилається…' : 'Надіслати відгук'}
               </button>
             </>
           )}

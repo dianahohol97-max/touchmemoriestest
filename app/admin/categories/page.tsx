@@ -75,7 +75,7 @@ export default function CategoriesPage() {
             }).select().single();
             setSaving(false);
             if (error) { toast.error(error.message); return; }
-            toast.success('Категорію створено ✓');
+            toast.success('Категорію створено');
             setCategories(prev => [...prev, data].sort((a,b) => a.sort_order - b.sort_order));
         } else {
             const { error } = await supabase.from('categories').update({
@@ -84,7 +84,7 @@ export default function CategoriesPage() {
             }).eq('id', sel.id);
             setSaving(false);
             if (error) { toast.error(error.message); return; }
-            toast.success('Збережено ✓');
+            toast.success('Збережено');
             setCategories(prev => prev.map(c => c.id === sel.id ? { ...sel } : c));
         }
         closeModal();

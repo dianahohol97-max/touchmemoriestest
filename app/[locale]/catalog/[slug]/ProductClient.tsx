@@ -733,9 +733,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         // adding the flat-rate extras. Урgency multiplies the base
         // production price; typesetting / inscription / kalka are flat
         // labour fees that don't compound with the rush. So:
-        //   525 base × 1.3 urgent + 195 typesetting = 878 ✅
+        // 525 base × 1.3 urgent + 195 typesetting = 878 ✓
         // not the previous order which gave
-        //   (525 + 195) × 1.3 = 936 ❌
+        // (525 + 195) × 1.3 = 936 ✕
         if (product.options && Array.isArray(product.options)) {
             product.options.forEach((opt: any) => {
                 if (!opt.options) return;
@@ -1694,7 +1694,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     Замовити з нашим редактором →
                                                 </button>
                                                 <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
-                                                    ✏️ Ви обрали «Ми пишемо» — конструктор не запускається. Після оплати наш редактор зв'яжеться з вами та напише текст. Щоб відкрити конструктор самостійно — оберіть «Власний текст».
+                                                     Ви обрали «Ми пишемо» — конструктор не запускається. Після оплати наш редактор зв'яжеться з вами та напише текст. Щоб відкрити конструктор самостійно — оберіть «Власний текст».
                                                 </p>
                                                 </div>
                                             );

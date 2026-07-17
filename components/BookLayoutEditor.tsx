@@ -1813,7 +1813,7 @@ export default function BookLayoutEditor() {
   // mobile text panels so it appears the moment they open the tab.
   const noTextLayoutNotice = (isTypesettingTextProduct && !hasTextLayout) ? (
     <div style={{ display:'flex', gap:8, padding:'10px 12px', background:'#fff7ed', border:'1px solid #fdba74', borderRadius:10, fontSize:12, lineHeight:1.45, color:'#9a3412' }}>
-      <span style={{ fontSize:15, lineHeight:1 }}>⚠️</span>
+      <span style={{ fontSize:15, lineHeight:1 }}>⚠</span>
       {isMagazine ? (
         <span>Ви обрали варіант <b>без верстки тексту</b>. Додати текст можна — щойно ви це зробите, до замовлення <b>автоматично</b> додається послуга верстки (<b>+195 ₴</b>).</span>
       ) : (
@@ -2365,7 +2365,7 @@ export default function BookLayoutEditor() {
         return { ...s, photoId: newId, ...getFocalCrop(newId) };
       }),
     })));
-    toast.success('Фото перемішано! 🎲 Не сподобалось — натисни ще раз або Undo', { duration: 2500 });
+    toast.success('Фото перемішано! Не сподобалось — натисни ще раз або Undo', { duration: 2500 });
   };
 
   // Auto-collage: drop N photos onto a page → pick best layout + assign
@@ -4594,7 +4594,7 @@ export default function BookLayoutEditor() {
                 title="Перемішати фото в слотах — лишає шаблони, змінює порядок фото"
                 style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 10px', border:'1px solid #c7d2fe', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontSize:13, fontWeight:600, color:'#1e2d7d' }}
               >
-                🔀
+                <Shuffle size={14}/>
               </button>
             )}
             <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
@@ -5859,7 +5859,7 @@ export default function BookLayoutEditor() {
                       <button key={align} onClick={() => setKalkaState(p => ({ ...p, textAlign: align }))}
                         title={align === 'left' ? 'По лівому' : align === 'center' ? 'По центру' : 'По правому'}
                         style={{ flex:1, padding:'6px 4px', border: kalkaState.textAlign === align ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius:6, background: kalkaState.textAlign === align ? '#f0f3ff' : '#fff', cursor:'pointer', fontSize:14, color: kalkaState.textAlign === align ? '#1e2d7d' : '#374151', fontWeight:700 }}>
-                        {align === 'left' ? '⬅' : align === 'center' ? '↔' : '➡'}
+                        {align === 'left' ? '←' : align === 'center' ? '↔' : '→'}
                       </button>
                     ))}
                   </div>
@@ -6113,7 +6113,7 @@ export default function BookLayoutEditor() {
                     don't feel ambushed at checkout. */}
                 <div style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:8, padding:'10px 12px', margin:'10px 12px 0', fontSize:11, color:'#9a3412', lineHeight:1.5 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:800, marginBottom:4 }}>
-                    <span>💡</span>
+                    <span>+</span>
                     <span>+{QR_PRICE_PER_GENERATION}₴ за кожен QR-код</span>
                   </div>
                   Доплата нараховується за кожен згенерований QR, доданий у книгу. Власний PNG (внизу) — без доплати.
@@ -8913,7 +8913,7 @@ export default function BookLayoutEditor() {
                   <p style={{ color:'#64748b', fontSize:14, lineHeight:1.6, marginBottom: photos.tip ? 12 : 20 }}>{photos.body}</p>
                   {photos.tip && (
                     <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:13, color:'#92400e' }}>
-                      💡 {photos.tip}
+                      {photos.tip}
                     </div>
                   )}
                   <div style={{ display:'flex', gap:8 }}>
@@ -8944,7 +8944,7 @@ export default function BookLayoutEditor() {
                   )}
                   {decor.tip && (
                     <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'10px 14px', marginBottom:20, fontSize:13, color:'#92400e' }}>
-                      💡 {decor.tip}
+                      {decor.tip}
                     </div>
                   )}
                   <div style={{ display:'flex', gap:8 }}>
@@ -10073,8 +10073,7 @@ export default function BookLayoutEditor() {
           <div style={{ background:'#fff', borderRadius:16, padding:28, maxWidth:380, width:'100%',
             boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:36, textAlign:'center', marginBottom:12 }}>💾</div>
-            <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', textAlign:'center', marginBottom:6 }}>
+                        <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', textAlign:'center', marginBottom:6 }}>
               Зберегти макет?
             </h2>
             <p style={{ color:'#64748b', fontSize:13, textAlign:'center', marginBottom:24, lineHeight:1.5 }}>
@@ -10087,7 +10086,7 @@ export default function BookLayoutEditor() {
                   opacity: exitSaving ? 0.7 : 1, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                 {exitSaving ? (
                   <><span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid #fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/> Збереження...</>
-                ) : '💾 Зберегти макет і вийти'}
+                ) : 'Зберегти макет і вийти'}
               </button>
               <button onClick={() => {
                 // Exit without saving must also drop the autosaved sessionStorage
@@ -10123,8 +10122,7 @@ export default function BookLayoutEditor() {
           display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
           <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:360, width:'100%',
             textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
-            <div style={{ fontSize:36, marginBottom:12 }}>📤</div>
-            <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:6 }}>
+                        <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', marginBottom:6 }}>
               {uploadState.active ? t('constructor.preparing_print') : t('constructor.saved_success')}
             </h2>
             <p style={{ color:'#64748b', fontSize:13, marginBottom:16 }}>
@@ -10158,8 +10156,7 @@ export default function BookLayoutEditor() {
           <div style={{ background:'#fff', borderRadius:16, padding:32, maxWidth:380, width:'100%',
             textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:40, marginBottom:12 }}>🛒</div>
-            <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
+                        <h2 style={{ fontWeight:800, fontSize:20, color:'#1e2d7d', marginBottom:8 }}>
               {config?.productName || t('constructor.product')} додано до кошика!
             </h2>
             <p style={{ color:'#64748b', fontSize:14, marginBottom:24 }}>

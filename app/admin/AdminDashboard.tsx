@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                                     onClick={() => window.location.href = `/admin/orders/${o.id}`}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                         <span style={{ fontWeight: 700, fontSize: 14, color: '#1e2d7d' }}>
-                                            #{o.order_number}{o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 5, fontSize: 11 }}>🎨</span>}
+                                            #{o.order_number}{o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 5, display: 'inline-flex', verticalAlign: 'middle' }}><Palette size={11}/></span>}
                                         </span>
                                         <span style={{ fontWeight: 700, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</span>
                                     </div>
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
                                         onClick={() => window.location.href = `/admin/orders/${o.id}`}>
                                         <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 13, color: '#1e2d7d', whiteSpace: 'nowrap' }}>
                                             #{o.order_number}
-                                            {o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 6, fontSize: 11 }}>🎨</span>}
+                                            {o.with_designer && <span title="Потрібен дизайнер" style={{ marginLeft: 6, display: 'inline-flex', verticalAlign: 'middle' }}><Palette size={11}/></span>}
                                         </td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{o.customer_name}</td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, color: '#6b7280' }}>{Array.isArray(o.items) ? o.items.length : 0} шт</td>

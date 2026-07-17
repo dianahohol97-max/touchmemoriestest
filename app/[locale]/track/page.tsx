@@ -143,7 +143,7 @@ export default function TrackPage() {
                                         <div style={{ fontSize: 13, color: '#a16207', marginTop: 4 }}>Сума: {Number(order.total).toLocaleString('uk-UA')} ₴ · картка будь-якого банку, Apple Pay чи Google Pay</div>
                                     </div>
                                     <a href={payUrl} style={{ display: 'inline-block', background: '#263A99', color: '#fff', fontWeight: 800, padding: '14px 28px', borderRadius: 10, textDecoration: 'none' }}>
-                                        💳 Оплатити зараз
+                                         Оплатити зараз
                                     </a>
                                 </div>
                             )}

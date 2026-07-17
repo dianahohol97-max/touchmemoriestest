@@ -2015,7 +2015,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                        !u.includes('стандартна');
                         return active ? (
                             <div className="mb-4 flex items-center justify-between bg-orange-50 border border-orange-100 rounded-lg px-4 py-2">
-                                <span className="text-sm text-orange-800 font-medium">🚀 Термінове виготовлення</span>
+                                <span className="text-sm text-orange-800 font-medium">Термінове виготовлення</span>
                                 <span className="text-sm font-bold text-orange-800">+{Math.round(URGENT_MULTIPLIER * 100)}%</span>
                             </div>
                         ) : null;

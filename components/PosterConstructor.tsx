@@ -762,6 +762,11 @@ export default function PosterConstructor() {
     setIsOrdering(true);
     try {
       let fileUrl = '';
+      // Descriptor of the composed 300-DPI print file, pushed into
+      // exportedFiles below so checkout links it as an order_files row.
+      // Before, the print file existed only as a URL inside
+      // personalization_note — invisible on the admin order-files page.
+      let printExport: { path: string; size: number } | null = null;
       // Print-ready layout: redraw the whole poster from the FULL-resolution
       // originals at the physical size × 300 DPI (no upscaling of the small
       // preview canvas). Falls back silently if anything fails — the per-photo
@@ -786,6 +791,7 @@ export default function PosterConstructor() {
           const filePath = `poster-${Date.now()}.jpg`;
           const uploadResult = await uploadOrderFile('poster-exports', filePath, blob);
           fileUrl = uploadResult.url;
+          printExport = { path: filePath, size: blob.size };
         }
       } catch (e) {
         console.warn('poster print render failed:', e);
@@ -811,6 +817,15 @@ export default function PosterConstructor() {
       // here because the projects insert below also references them (saved
       // designs must point at storage paths, not dead blob: URLs).
       const exportedFiles: any[] = [];
+      if (printExport) {
+        exportedFiles.push({
+          path: printExport.path, fileName: 'poster_300dpi.jpg',
+          bucket: 'poster-exports', fileCategory: 'poster-print',
+          productType: 'poster', fileType: 'export',
+          size: printExport.size, mimeType: 'image/jpeg',
+          pageNumber: 0,
+        });
+      }
 
       // Upload originals from the blob URLs to Storage. Poster keeps photos as
       // photoUrl strings (URL.createObjectURL) rather than File refs, so we
@@ -824,7 +839,6 @@ export default function PosterConstructor() {
         );
         const { data: { user } } = await sb.auth.getUser();
         const userKey = user?.id || 'anon';
-        exportedFiles.length = 0;
         for (let i = 0; i < config.photos.length; i++) {
           const p = config.photos[i];
           if (!p.photoUrl) continue;
@@ -1300,8 +1314,7 @@ export default function PosterConstructor() {
                         >
                           <span style={{ color:'rgba(255,255,255,0.6)', fontSize:10 }}>{t('poster.crop_label')} {i+1}:</span>
                           {/* Zoom — explicit −/+ so it's clear you can enlarge/shrink the photo */}
-                          <span style={{ color:'#fff', fontSize:11 }}>🔍</span>
-                          <button onClick={() => updatePhoto(photo.id, { zoom: Math.max(1, +(((photo.zoom||1) - 0.1).toFixed(2))) })}
+                                                    <button onClick={() => updatePhoto(photo.id, { zoom: Math.max(1, +(((photo.zoom||1) - 0.1).toFixed(2))) })}
                             title="Зменшити фото"
                             style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, width:20, height:20, color:'#fff', cursor:'pointer', fontSize:14, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>−</button>
                           <input type="range" min={100} max={300} value={Math.round((photo.zoom||1)*100)}
@@ -1312,15 +1325,15 @@ export default function PosterConstructor() {
                             style={{ background:'rgba(255,255,255,0.15)', border:'none', borderRadius:5, width:20, height:20, color:'#fff', cursor:'pointer', fontSize:14, lineHeight:1, display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>+</button>
                           <span style={{ color:'rgba(255,255,255,0.7)', fontSize:10, minWidth:30 }}>{Math.round((photo.zoom||1)*100)}%</span>
                           {/* Crop X */}
-                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вліво/вправо. Працює, коли фото більше за клітинку — спершу наблизь 🔍">↔</span>
+                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вліво/вправо. Працює, коли фото більше за клітинку — спершу наблизьте його">↔</span>
                           <input type="range" min={0} max={100} value={photo.cropX ?? 50}
-                            title="Зсув фото вліво/вправо (спершу наблизь 🔍, щоб зʼявився запас для руху)"
+                            title="Зсув фото вліво/вправо (спершу наблизьте фото, щоб зʼявився запас для руху)"
                             onChange={e => updatePhoto(photo.id, { cropX: +e.target.value })}
                             style={{ width:60, accentColor:'#3b82f6' }}/>
                           {/* Crop Y */}
-                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вгору/вниз. Працює, коли фото більше за клітинку — спершу наблизь 🔍">↕</span>
+                          <span style={{ color:'#fff', fontSize:10 }} title="Зсув фото вгору/вниз. Працює, коли фото більше за клітинку — спершу наблизьте його">↕</span>
                           <input type="range" min={0} max={100} value={photo.cropY ?? 50}
-                            title="Зсув фото вгору/вниз (спершу наблизь 🔍, щоб зʼявився запас для руху)"
+                            title="Зсув фото вгору/вниз (спершу наблизьте фото, щоб зʼявився запас для руху)"
                             onChange={e => updatePhoto(photo.id, { cropY: +e.target.value })}
                             style={{ width:60, accentColor:'#3b82f6' }}/>
                           {/* Reset */}

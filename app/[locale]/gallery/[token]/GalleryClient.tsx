@@ -77,10 +77,10 @@ export default function GalleryClient({ token }: { token: string }) {
 
   const p = data.photographer;
   const contacts = [
-    p.phone && { label: '📞', value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
-    p.instagram && { label: '📷', value: p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '')}` },
-    p.email && { label: '✉️', value: p.email, href: `mailto:${p.email}` },
-    p.website && { label: '🌐', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
+    p.phone && { label: 'Тел.', value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
+    p.instagram && { label: 'Instagram', value: p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '')}` },
+    p.email && { label: 'Email', value: p.email, href: `mailto:${p.email}` },
+    p.website && { label: 'Сайт', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
   ].filter(Boolean) as { label: string; value: string; href: string }[];
 
   return (

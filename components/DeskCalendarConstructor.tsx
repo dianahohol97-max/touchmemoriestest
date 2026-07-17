@@ -400,7 +400,7 @@ export default function DeskCalendarConstructor(){
           <div>
             <label style={{fontSize:11,fontWeight:700,color:'#374151',display:'block',marginBottom:6}}>{t('deskcal.language_label')}</label>
             <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-              {LANGS.map(l=><button key={l.code} onClick={()=>setLang(l.code)} style={{padding:'4px 7px',borderRadius:14,border:lang===l.code?'2px solid #1e2d7d':'1px solid #e2e8f0',background:lang===l.code?'#1e2d7d':'#fff',color:lang===l.code?'#fff':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>{l.flag} {l.label}</button>)}
+              {LANGS.map(l=><button key={l.code} onClick={()=>setLang(l.code)} style={{padding:'4px 7px',borderRadius:14,border:lang===l.code?'2px solid #1e2d7d':'1px solid #e2e8f0',background:lang===l.code?'#1e2d7d':'#fff',color:lang===l.code?'#fff':'#374151',fontSize:10,fontWeight:700,cursor:'pointer'}}>{l.label}</button>)}
             </div>
           </div>
 
@@ -512,7 +512,8 @@ export default function DeskCalendarConstructor(){
               const cells:React.ReactNode[]=[];
               for(let i=0;i<startOffset;i++)cells.push(<div key={`e${i}`}/>);
               for(let d=1;d<=daysInMonth;d++){const mark=curMarks.find(m=>m.day===d);cells.push(<button key={d} onClick={()=>{if(!paidMarkedDates){toast.error('Обведення дат не включено у замовлення. Оберіть цю опцію на сторінці товару.');return;}toggleMark(d);}} style={{aspectRatio:'1',borderRadius:mark?.shape==='heart'?3:'50%',border:mark?'none':'1px solid #e2e8f0',background:mark?mark.color:'#fff',color:mark?'#fff':'#374151',fontSize:8,fontWeight:mark?700:400,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>{mark?.shape==='heart'&&<span style={{fontSize:10,lineHeight:1,position:'absolute'}}></span>}<span style={{position:mark?.shape==='heart'?'absolute':'static',fontSize:7,fontWeight:700}}>{d}</span></button>);}
-              return(<div><div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:2,marginBottom:2}}>{loc.days.map(d=><div key={d} style={{fontSize:7,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}</div><div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:2}}>{cells}</div></div>);
+              {/* 7 columns — a week has 7 days; repeat(6,1fr) misaligned every header/date */}
+              return(<div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:2}}>{loc.days.map(d=><div key={d} style={{fontSize:7,fontWeight:700,color:'#94a3b8',textAlign:'center'}}>{d}</div>)}</div><div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>{cells}</div></div>);
             })()}
             {curMarks.length>0&&<button onClick={()=>setMarks(prev=>({...prev,[`m${active}`]:[]}))} style={{marginTop:5,fontSize:9,color:'#94a3b8',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>{t('deskcal.clear_marks')}</button>}
           </div>

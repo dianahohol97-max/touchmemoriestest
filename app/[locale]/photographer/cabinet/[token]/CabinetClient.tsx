@@ -93,7 +93,7 @@ function DiscountBanner({ status }: { status: string | null }) {
   if (status === 'verified') {
     return (
       <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-        <div style={{ fontWeight: 800, color: '#065f46', fontSize: 15, marginBottom: 2 }}>💰 Ваша знижка 10% активна</div>
+        <div style={{ fontWeight: 800, color: '#065f46', fontSize: 15, marginBottom: 2 }}>Ваша знижка 10% активна</div>
         <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
           Щоб купувати фотокниги, журнали, фотодрук і тревелбуки зі знижкою — <b>увійдіть у свій акаунт покупця</b> (той самий email і пароль, що при реєстрації). Ціна зі знижкою враховується автоматично в каталозі й кошику.
         </div>
@@ -115,7 +115,7 @@ function DiscountBanner({ status }: { status: string | null }) {
   }
   return (
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>💡 Хочете знижку 10% на друк?</div>
+      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Хочете знижку 10% на друк?</div>
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
         Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки для клієнтських проєктів — подайте коротку заявку фотографа.
       </div>
@@ -344,7 +344,7 @@ function BrandUpload({ token, kind, current, label: title, onDone, flash }: {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={current} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb' }} />
       )}
-      <span style={{ ...btnGhost, display: 'inline-block' }}>{busy ? 'Завантажуємо…' : `${title} ⬆`}</span>
+      <span style={{ ...btnGhost, display: 'inline-block' }}>{busy ? 'Завантажуємо…' : `${title}`}</span>
       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => upload(e.target.files?.[0])} disabled={busy} />
     </label>
   );
@@ -585,19 +585,19 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
               {s.status === 'booked' ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '4px 10px' }}>
-                    ✅ {s.client_name} · {s.client_phone}
+                    ✓ {s.client_name} · {s.client_phone}
                   </span>
                   {/* Payment badge: platform never sees the money — the client
                       claims payment, the photographer verifies in their bank */}
                   {s.payment_status === 'paid' ? (
                     <button onClick={() => markPaid(s.id, false)} title="Зняти позначку"
                       style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#d1fae5', border: 'none', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-                      💰 Оплачено
+                       Оплачено
                     </button>
                   ) : s.payment_status === 'claimed' ? (
                     <button onClick={() => markPaid(s.id, true)} title="Клієнт повідомив про оплату — перевірте банк і підтвердіть"
                       style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-                      💳 Клієнт повідомив про оплату — підтвердити?
+                       Клієнт повідомив про оплату — підтвердити?
                     </button>
                   ) : (
                     <button onClick={() => markPaid(s.id, true)} title="Позначити оплаченим"

@@ -515,7 +515,7 @@ export default function ContentManagementPage() {
                 .insert({
                     title: 'Нова перевага',
                     subtitle: 'Опис переваги',
-                    icon: '✨',
+                    icon: '',
                     sort_order: maxOrder + 1,
                     is_active: true
                 })

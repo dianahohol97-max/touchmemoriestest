@@ -272,7 +272,7 @@ export default function CartPage() {
                                     </div>
                                     {dupDiscount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                                            <span>🎁 Знижка за копії</span>
+                                            <span>Знижка за копії</span>
                                             <span>-{dupDiscount} ₴</span>
                                         </div>
                                     )}

@@ -685,11 +685,11 @@ export default function ReviewsAdminPage() {
                                         className="w-full px-4 py-3 border-2 border-stone-200 rounded-lg focus:border-amber-500 focus:outline-none"
                                     >
                                         <option value={0}>Без рейтингу</option>
-                                        <option value={5}>★★★★★ (5)</option>
-                                        <option value={4}>★★★★ (4)</option>
-                                        <option value={3}>★★★ (3)</option>
-                                        <option value={2}>★★ (2)</option>
-                                        <option value={1}>★ (1)</option>
+                                        <option value={5}>(5)</option>
+                                        <option value={4}>(4)</option>
+                                        <option value={3}>(3)</option>
+                                        <option value={2}>(2)</option>
+                                        <option value={1}>(1)</option>
                                     </select>
                                 </div>
                                 <div>

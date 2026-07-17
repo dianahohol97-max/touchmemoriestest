@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * POST /api/admin/orders/[id]/clone-project-to-me
  *
  * Copies the customer's constructor project linked to this order into the
- * CURRENT staff member's own drafts, named '⭐ {order_number} — переекспорт'.
+ * CURRENT staff member's own drafts, named '{order_number} — переекспорт'.
  * The staff member then opens their drafts in the constructor and re-runs
  * the export on current (fixed) code — the customer is never asked to
  * redo anything. Born from TM-001046: this exact move (done by SQL that
@@ -54,7 +54,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
                 overlays_data: p.overlays_data,
                 cart_payload: p.cart_payload,
                 status: 'draft',
-                name: `⭐ ${order.order_number} — переекспорт`,
+                name: `${order.order_number} — переекспорт`,
             })
             .select('id')
             .single();
@@ -65,6 +65,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({
         ok: true,
         copies: copies.length,
-        message: `Макет скопійовано у ваші чернетки як «⭐ ${order.order_number} — переекспорт». Відкрийте конструктор → Мої чернетки.`,
+        message: `Макет скопійовано у ваші чернетки як «${order.order_number} — переекспорт». Відкрийте конструктор → Мої чернетки.`,
     });
 }

@@ -71,5 +71,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     } catch { /* never block */ }
   }
 
-  return NextResponse.json({ status: 'paid', message: 'Замовлення позначено оплаченим ✅' });
+  return NextResponse.json({ status: 'paid', message: 'Замовлення позначено оплаченим' });
 }

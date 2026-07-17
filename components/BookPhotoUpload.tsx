@@ -231,7 +231,7 @@ export default function BookPhotoUpload() {
             const missing = pageCountFromConfig - photos.length;
             toast(
                 `Завантажено ${photos.length} з ${pageCountFromConfig} фото. ${missing} ${missing === 1 ? 'сторінка залишиться' : 'сторінок залишаться'} без фото — там можна додати написи в редакторі.`,
-                { duration: 5000, icon: 'ℹ️' }
+                { duration: 5000, icon: 'ℹ' }
             );
             // no return — let the customer continue
         }

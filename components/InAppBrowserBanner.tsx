@@ -38,8 +38,7 @@ export default function InAppBrowserBanner() {
             boxShadow: '0 -8px 30px rgba(0,0,0,0.25)',
         }}>
             <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 22, lineHeight: 1 }}>🌐</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>
                         Редактор може не працювати в Instagram
                     </div>

@@ -551,8 +551,7 @@ export default function AccountPage() {
                         {b2b && (
                             <div style={{ background: '#fff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 18px', marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                    <span style={{ fontSize: 18 }}>📷</span>
-                                    <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>{b2b.isB2b ? (b2b.label || 'Партнер') : 'Кабінет фотографа'}</span>
+                                                                        <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>{b2b.isB2b ? (b2b.label || 'Партнер') : 'Кабінет фотографа'}</span>
                                 </div>
                                 {b2b.isB2b ? (
                                     <div style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>
@@ -722,7 +721,7 @@ export default function AccountPage() {
                                                                 {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && ((order as any).monobank_payment_url || (order as any).monobank_invoice_id) && (
                                                                     <a href={(order as any).monobank_payment_url || `https://pay.monobank.ua/${(order as any).monobank_invoice_id}`} target="_blank" rel="noopener noreferrer"
                                                                         style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', border: 'none', borderRadius: 8, color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 13, background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.3)' }}>
-                                                                        💳 Оплатити {order.total} ₴
+                                                                         Оплатити {order.total} ₴
                                                                     </a>
                                                                 )}
                                                                 <Link href={`/track?order=${order.order_number}`}

@@ -667,7 +667,7 @@ export default function CreateOrderPage() {
                         <div style={{ flex: 1 }}>
                             {/* Discount */}
                             <div style={{ marginBottom: 16, padding: '14px 16px', background: discountAmount > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${discountAmount > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10 }}>
-                                <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10 }}>🏷️ Знижка</div>
+                                <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 10 }}>Знижка</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 8 }}>
                                     <div>
                                         <label style={{ ...labelStyle, marginBottom: 4 }}>Тип</label>
@@ -731,7 +731,7 @@ export default function CreateOrderPage() {
                             </div>
                             {discountAmount > 0 && (
                                 <div style={{ ...totalRowStyle, color: '#16a34a', fontWeight: 700 }}>
-                                    <span>🏷️ Знижка {promoCode ? `(${promoCode})` : ''}:</span>
+                                    <span>Знижка {promoCode ? `(${promoCode})` : ''}:</span>
                                     <span>-{discountAmount} ₴</span>
                                 </div>
                             )}
@@ -760,7 +760,7 @@ export default function CreateOrderPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
                             <div style={{ fontWeight: 700, fontSize: 15, color: withDesigner ? '#7c3aed' : '#374151' }}>
-                                🎨 Потрібен дизайн від дизайнера
+                                 Потрібен дизайн від дизайнера
                             </div>
                             <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                                 Дизайнер побачить це замовлення в своєму кабінеті
@@ -768,7 +768,7 @@ export default function CreateOrderPage() {
                         </div>
                         <button type="button" onClick={() => setWithDesigner(v => !v)}
                             style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${withDesigner ? '#7c3aed' : '#d1d5db'}`, background: withDesigner ? '#7c3aed' : '#fff', color: withDesigner ? '#fff' : '#374151', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                            {withDesigner ? '✓ Увімкнено' : 'Увімкнути'}
+                            {withDesigner ? 'Увімкнено' : 'Увімкнути'}
                         </button>
                     </div>
                     {withDesigner && (
