@@ -6,6 +6,7 @@ import { WISHBOOK_PRICES, getWishbookPrice } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { X, ChevronRight, Info, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import TravelBookCoverSelector from './TravelBookCoverSelector';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
@@ -1013,7 +1014,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         const productType = getProductType();
         const isPhotobookProduct = productType === 'photobook';
         if (isPhotobookProduct && selectedCoverType && selectedCoverType !== t('constructor.printed') && !selectedCoverColor) {
-            alert(t('book_config.choose_cover_color_alert'));
+            // Styled toast instead of the jarring native alert() dialog.
+            toast.error(t('book_config.choose_cover_color_alert'));
             return;
         }
         // Store configuration in sessionStorage

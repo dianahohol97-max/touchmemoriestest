@@ -69,6 +69,22 @@ import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
+// Neutral placeholder shown when a photo's preview URL dies (expired signed
+// URL, dead blob:) — without it the browser rendered its broken-image glyph
+// inside the slot with no explanation and no way to notice early.
+const TM_BROKEN_IMG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="100%" height="100%" fill="#f1f5f9"/><g fill="none" stroke="#94a3b8" stroke-width="6"><circle cx="100" cy="82" r="24"/><path d="M58 150l30-34 22 24 16-18 34 28"/></g></svg>'
+);
+function tmImgError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget;
+  if (img.dataset.tmBroken) return; // avoid an error loop on the placeholder
+  img.dataset.tmBroken = '1';
+  img.src = TM_BROKEN_IMG;
+  img.style.objectFit = 'contain';
+  img.style.background = '#f1f5f9';
+}
+
+
 interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
 interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
@@ -923,6 +939,8 @@ export default function BookLayoutEditor() {
   };
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const pushHistory = () => {
+    // A new edit invalidates the redo branch (standard editor semantics).
+    setRedoStack(r => (r.length > 0 ? [] : r));
     setHistory(prev => [...prev.slice(-19), {
       pages: JSON.parse(JSON.stringify(pages)),
       freeSlots: JSON.parse(JSON.stringify(freeSlots)),
@@ -945,18 +963,43 @@ export default function BookLayoutEditor() {
     if (now - lastEditPushRef.current > 500) pushHistory();
     lastEditPushRef.current = now;
   };
+  // Redo stack: filled by undo, cleared by any NEW edit (pushHistory). Without
+  // it an accidental Ctrl+Z was unrecoverable — the single biggest gap for a
+  // session-long editing tool.
+  const [redoStack, setRedoStack] = useState<any[]>([]);
+  const snapshotNow = () => ({
+    pages: JSON.parse(JSON.stringify(pages)),
+    freeSlots: JSON.parse(JSON.stringify(freeSlots)),
+    pageShapes: JSON.parse(JSON.stringify(pageShapes)),
+    pageStickers: JSON.parse(JSON.stringify(pageStickers)),
+    qrOverlays: JSON.parse(JSON.stringify(qrOverlays)),
+    generatedQRCount,
+    pageBgs: JSON.parse(JSON.stringify(pageBgs)),
+    coverState: JSON.parse(JSON.stringify(coverState)),
+  });
+  const applySnapshot = (s: any) => {
+    setPages(s.pages);
+    setFreeSlots(s.freeSlots);
+    setPageShapes(s.pageShapes);
+    setPageStickers(s.pageStickers);
+    setQrOverlays(s.qrOverlays || {});
+    setGeneratedQRCount(s.generatedQRCount || 0);
+    setPageBgs(s.pageBgs);
+    setCoverState(s.coverState);
+  };
   const undo = () => { haptic.light();
     if (history.length === 0) return;
     const prev = history[history.length - 1];
-    setPages(prev.pages);
-    setFreeSlots(prev.freeSlots);
-    setPageShapes(prev.pageShapes);
-    setPageStickers(prev.pageStickers);
-    setQrOverlays(prev.qrOverlays || {});
-    setGeneratedQRCount(prev.generatedQRCount || 0);
-    setPageBgs(prev.pageBgs);
-    setCoverState(prev.coverState);
+    setRedoStack(r => [...r.slice(-19), snapshotNow()]);
+    applySnapshot(prev);
     setHistory(h => h.slice(0, -1));
+  };
+  const redo = () => { haptic.light();
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setHistory(prev => [...prev.slice(-19), snapshotNow()]);
+    applySnapshot(next);
+    setRedoStack(r => r.slice(0, -1));
   };
   // Cover edits (photo move/resize, text, slot, delete) all flow through this.
   // It records an undo snapshot, coalescing rapid changes (a drag fires many
@@ -1118,6 +1161,25 @@ export default function BookLayoutEditor() {
   const [tooltipStep, setTooltipStep] = useState(0);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+
+  // Keyboard avoidance: when a canvas text block enters edit mode on a phone,
+  // the on-screen keyboard covered lower-half blocks and the user typed
+  // blind — nothing scrolled the field into view. Scroll the active block to
+  // the center of the VISUAL viewport, and re-scroll when the keyboard
+  // opening resizes it (visualViewport fires resize on keyboard show/hide).
+  useEffect(() => {
+    if (!editingTextId) return;
+    const scrollToEdited = () => {
+      try {
+        const el = document.querySelector('[data-tm-editing="true"]') as HTMLElement | null;
+        el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } catch { /* ignore */ }
+    };
+    const t = setTimeout(scrollToEdited, 300); // after the keyboard animates in
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    vv?.addEventListener('resize', scrollToEdited);
+    return () => { clearTimeout(t); vv?.removeEventListener('resize', scrollToEdited); };
+  }, [editingTextId]);
   const [tFontSize, setTFontSize] = useState(28);
   const [tFontFamily, setTFontFamily] = useState('Montserrat');
   const [tColor, setTColor] = useState('#1e2d7d');
@@ -1138,9 +1200,30 @@ export default function BookLayoutEditor() {
         e.preventDefault();
         undo();
       }
+      // Redo: Ctrl+Shift+Z or Ctrl+Y (physical keys — layout-independent,
+      // same trick as undo above).
+      if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.code === 'KeyZ') || e.code === 'KeyY')) {
+        e.preventDefault();
+        redo();
+      }
       // Don't capture arrow keys when editing text
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.contentEditable === 'true') return;
+      // Escape — universal deselect: every editor muscle memory expects it.
+      // Clears whatever edit/selection state is active, most specific first.
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setEditSlotKey(null);
+        setPhotoEditSlot(null);
+        setSelectedFreeSlotId(null);
+        setSelectedTextId(null);
+        setEditingTextId(null);
+        setSelectedStickerId(null);
+        setSelectedQrId(null);
+        setSelectedShapeId(null);
+        setTapSelectedPhotoId(null);
+        return;
+      }
       // ↑↓ cycle layout on active page (SmartAlbums style)
       if (e.key === 'ArrowUp' && currentIdx !== 0) {
         e.preventDefault();
@@ -1171,6 +1254,28 @@ export default function BookLayoutEditor() {
           const curShapes = getCurShapes(pi);
           setPageShapes((prev: any) => ({ ...prev, [pi]: curShapes.filter((s: any) => s.id !== selectedShapeId) }));
           setSelectedShapeId(null);
+        } else if (selectedTextId) {
+          // Delete previously covered only shapes and slots — a selected text
+          // block, sticker or QR could not be removed from the keyboard.
+          e.preventDefault();
+          pushHistory();
+          setPages(prev => prev.map(pg => ({ ...pg, textBlocks: (pg.textBlocks || []).filter((tb: any) => tb.id !== selectedTextId) })));
+          setSelectedTextId(null);
+          setEditingTextId(null);
+        } else if (selectedStickerId) {
+          e.preventDefault();
+          pushHistory();
+          setPageStickers((prev: any) => Object.fromEntries(
+            Object.entries(prev).map(([k, arr]) => [k, (arr as any[]).filter((s: any) => s.id !== selectedStickerId)])
+          ));
+          setSelectedStickerId(null);
+        } else if (selectedQrId) {
+          e.preventDefault();
+          pushHistory();
+          setQrOverlays((prev: any) => Object.fromEntries(
+            Object.entries(prev).map(([k, arr]) => [k, (arr as any[]).filter((q: any) => q.id !== selectedQrId)])
+          ));
+          setSelectedQrId(null);
         } else if (activeSlotRef.current) {
           e.preventDefault();
           clearSlot(activeSlotRef.current.pageIdx, activeSlotRef.current.slotIdx);
@@ -1179,7 +1284,7 @@ export default function BookLayoutEditor() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [history, currentIdx, pages]);
+  }, [history, redoStack, currentIdx, pages, selectedShapeId, selectedTextId, selectedStickerId, selectedQrId]);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -1865,16 +1970,14 @@ export default function BookLayoutEditor() {
     if (pageIdx === endpaperLastIdx) return endpaperUnlocked.last;
     return false;
   };
+  // A PAID upsell must not be committed through a bare window.confirm — the
+  // OS dialog is unstyled, easily dismissed without reading, and looks
+  // nothing like the rest of the app. A proper modal renders near the exit
+  // modal; this function only opens it.
+  const [endpaperConfirmIdx, setEndpaperConfirmIdx] = useState<number | null>(null);
   const confirmEndpaperUnlock = (pageIdx: number) => {
-    const isFirst = pageIdx === endpaperFirstIdx;
-    const label = isFirst ? 'перший' : 'останній';
-    const alreadyUnlocked = endpaperUnlocked.first || endpaperUnlocked.last;
-    const confirmed = window.confirm(`Друк на форзаці (${label})${alreadyUnlocked ? '' : ` — доплата +${endpaperSurcharge} ₴ (фіксована ціна за обидва форзаци)`}.\n\nПісля підтвердження ви зможете додати фото або текст на цю сторінку.\n\nПродовжити?`);
-    if (confirmed) {
-      setEndpaperUnlocked(prev => ({ ...prev, [isFirst ? 'first' : 'last']: true }));
-      return true;
-    }
-    return false;
+    setEndpaperConfirmIdx(pageIdx);
+    return false; // unlock happens in the modal's confirm button
   };
   const cur = pages[currentIdx];
 
@@ -2277,7 +2380,7 @@ export default function BookLayoutEditor() {
           ? { ...p, noBgUrl: dataUrl, noBgLoading: false }
           : p
         ));
-        toast.success(' Фон видалено!');
+        toast.success('Фон видалено!');
       };
       reader.readAsDataURL(resultBlob);
     } catch (err: any) {
@@ -2479,7 +2582,7 @@ export default function BookLayoutEditor() {
     const backReserve = hasEndpaper ? 1 : 0;
     const orderedContent = Math.max(minPageCount, pages.length - 1);
     const photoBudget = Math.max(1, orderedContent - frontReserve - backReserve);
-    const result: { pages: { layout: string; photoIds: string[] }[]; coverPhotoId: string | null; totalSpreads: number } = autoBuild({
+    const result: { pages: { layout: string; photoIds: string[] }[]; coverPhotoId: string | null; totalSpreads: number; droppedCount?: number } = autoBuild({
       photos,
       layouts: LAYOUTS.filter(l => {
         if (isSpreadMode && !l.id.startsWith('sp-')) return false;
@@ -2510,8 +2613,17 @@ export default function BookLayoutEditor() {
     const targetPages = pages.length - 1;
 
     // Hard-cap result to targetPages — autoBuild may return slightly more due to spread pairing
+    let cappedDropped = 0;
     if (result.pages.length > targetPages) {
+      cappedDropped = result.pages.slice(targetPages).reduce((s2, p2) => s2 + p2.photoIds.length, 0);
       result.pages = result.pages.slice(0, targetPages);
+    }
+    // Never drop photos silently: whatever didn't fit (over-stuffed groups
+    // or the page-count cap) must be reported so the customer can add
+    // spreads or accept the omission consciously.
+    const totalDropped = (result.droppedCount || 0) + cappedDropped;
+    if (totalDropped > 0) {
+      toast.warning(`${totalDropped} фото не помістилося на сторінки — додайте розворотів і запустіть збірку ще раз, або розмістіть їх вручну з лотка.`, { duration: 9000 });
     }
 
     // Apply cover photos (front + back). The back cover used to be filled only
@@ -3189,16 +3301,71 @@ export default function BookLayoutEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages.length > 0]);
 
+  // Browser-Back / tab-close protection. The exit modal used to open ONLY
+  // from the in-app back button: a phone back-swipe, the browser Back button
+  // or closing the tab left the editor with zero prompt (losing up to 60s of
+  // unsaved work — the autosave debounce window). We push a sentinel history
+  // entry and turn any Back into the same exit modal; confirmed exits leave
+  // via leaveEditor(), which pops both the sentinel and the editor entry.
+  const allowLeaveRef = useRef(false);
+  useEffect(() => {
+    try { window.history.pushState({ tmEditorTrap: true }, ''); } catch { /* ignore */ }
+    const onPop = () => {
+      if (allowLeaveRef.current) return;
+      try { window.history.pushState({ tmEditorTrap: true }, ''); } catch { /* ignore */ }
+      setShowExitModal(true);
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (allowLeaveRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const leaveEditor = () => {
+    allowLeaveRef.current = true;
+    try { window.history.go(-2); } catch { router.back(); }
+  };
+
+  // Whether the visitor is logged in — the exit modal must not promise
+  // «Мої дизайни» to a guest: persistDraft() silently returns false without
+  // a user, so the old copy was a false promise of a server-side save.
+  const [isGuest, setIsGuest] = useState<boolean | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { createClient: mkAuthSb } = await import('@/lib/supabase/client');
+        const { data: { user } } = await mkAuthSb().auth.getUser();
+        setIsGuest(!user);
+      } catch { setIsGuest(true); }
+    })();
+  }, []);
+
   const handleSaveAndExit = async () => {
     setExitSaving(true);
+    let savedToAccount = false;
     try {
-      await persistDraft();
+      savedToAccount = await persistDraft();
     } catch (e: any) {
       console.error('handleSaveAndExit exception:', e?.message || e);
     }
     setExitSaving(false);
     setShowExitModal(false);
-    router.back();
+    if (!savedToAccount) {
+      // Guests (or a failed server save): the sessionStorage draft still
+      // exists, but it dies with the tab — say so honestly instead of
+      // letting the customer believe the design is in their account.
+      try {
+        toast.info('Макет збережено лише в цьому браузері — він зникне після закриття вкладки. Увійдіть в акаунт, щоб зберігати макети назавжди.', { duration: 8000 });
+      } catch { /* ignore */ }
+    }
+    leaveEditor();
   };
   const [uploadState, setUploadState] = useState<{
     active: boolean;
@@ -3207,6 +3374,11 @@ export default function BookLayoutEditor() {
     failed: number;
     orderId: string;
   } | null>(null);
+
+  // Re-entrancy guard + busy state for the order button. Without it the
+  // button stayed clickable through a potentially minutes-long originals
+  // upload — the UI looked frozen and a double-click added the book twice.
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   // Show cart modal after upload completes (or immediately if no files to upload)
   useEffect(() => {
@@ -3220,10 +3392,24 @@ export default function BookLayoutEditor() {
   }, [uploadState?.active]);
 
   const addToCart = async () => {
+    if (isAddingToCart) return; // double-click guard during long uploads
     if (!config) {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
     }
+    setIsAddingToCart(true);
+    try {
+    await addToCartInner();
+    } finally {
+      setIsAddingToCart(false);
+      // The progress overlay must never outlive the flow (early returns
+      // included); the cart modal takes over from here when it opened.
+      setUploadState(null);
+    }
+  };
+
+  const addToCartInner = async () => {
+    if (!config) return; // narrowing for TS; the outer wrapper already toasts
 
     // Order-time layout snapshot — a FRESH persistDraft call from the click
     // closure (never stale), so even if every autosave failed the DB holds
@@ -3286,6 +3472,13 @@ export default function BookLayoutEditor() {
       // cart in the same millisecond — storage paths embed this id and the
       // uploads use upsert, so a collision overwrote another customer's files.
       const uploadOrderId = `pb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      // Live progress for the long part. The old overlay was wired only to the
+      // permanently-disabled html2canvas branch, so this multi-minute upload
+      // ran with zero feedback — the editor looked frozen.
+      const toUpload = photos.filter(p => !(p as any).storagePath);
+      if (toUpload.length > 0) {
+        setUploadState({ active: true, done: 0, total: toUpload.length, failed: 0, orderId: uploadOrderId });
+      }
       for (const ph of photos) {
         if ((ph as any).storagePath) continue; // already uploaded this session
         let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
@@ -3294,14 +3487,24 @@ export default function BookLayoutEditor() {
             try { const r = await fetch(ph.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
           }
         }
-        if (!body) continue;
+        if (!body) {
+          setUploadState(prev => prev ? { ...prev, failed: prev.failed + 1 } : prev);
+          continue;
+        }
         const path = `guest/${uploadOrderId}/originals/${ph.id}.jpg`;
         try {
           const { error: upErr } = await sbUp.storage
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-          if (!upErr) (ph as any).storagePath = path;
-        } catch { /* non-fatal: snapshot falls back to whatever preview exists */ }
+          if (!upErr) {
+            (ph as any).storagePath = path;
+            setUploadState(prev => prev ? { ...prev, done: prev.done + 1 } : prev);
+          } else {
+            setUploadState(prev => prev ? { ...prev, failed: prev.failed + 1 } : prev);
+          }
+        } catch {
+          setUploadState(prev => prev ? { ...prev, failed: prev.failed + 1 } : prev);
+        }
       }
     } catch { /* upload unavailable — continue; existing fallbacks still apply */ }
 
@@ -4623,7 +4826,11 @@ export default function BookLayoutEditor() {
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f4f6fb' }}>
+    <div className="tm-editor-root" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#f4f6fb' }}>
+      {/* 100dvh (where supported) tracks the iOS Safari VISUAL viewport, so the
+          fixed bottom nav no longer hides under the browser toolbar until the
+          URL bar collapses. Inline style keeps the 100vh fallback. */}
+      <style>{`@supports (height: 100dvh) { .tm-editor-root { height: 100dvh; } }`}</style>
 
       {/* TOP BAR */}
       {isMobile ? (
@@ -4644,14 +4851,19 @@ export default function BookLayoutEditor() {
                 <span>Розворот {currentIdx}/{Math.ceil((pages.length-1)/2)}</span>
                 <span>·</span>
                 <span>{photos.length} фото</span>
-                {saveStatus==='saving' && <span style={{color:'#f59e0b'}}> збер...</span>}
-                {saveStatus==='saved' && <span style={{color:'#10b981'}}></span>}
+                {saveStatus==='saving' && <span style={{color:'#f59e0b'}}>зберігаю…</span>}
+                {saveStatus==='saved' && <span style={{color:'#10b981'}}>✓ збережено</span>}
               </div>
             </div>
             {/* Undo */}
-            <button onClick={undo} disabled={history.length===0}
+            <button onClick={undo} disabled={history.length===0} aria-label="Скасувати"
               style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', color:history.length===0?'#cbd5e1':'#374151', opacity:history.length===0?0.4:1, flexShrink:0, touchAction:'manipulation' }}>
               <RotateCcw size={14}/>
+            </button>
+            {/* Redo */}
+            <button onClick={redo} disabled={redoStack.length===0} aria-label="Повернути"
+              style={{ padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:redoStack.length===0?'not-allowed':'pointer', color:redoStack.length===0?'#cbd5e1':'#374151', opacity:redoStack.length===0?0.4:1, flexShrink:0, touchAction:'manipulation' }}>
+              <RotateCcw size={14} style={{ transform:'scaleX(-1)' }}/>
             </button>
             {/* Preview */}
             <button onClick={()=>setShowPreview(true)}
@@ -4665,9 +4877,9 @@ export default function BookLayoutEditor() {
                 Зберегти
               </button>
             ) : (
-              <button onClick={addToCart}
-                style={{ padding:'7px 14px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:12, cursor:'pointer', flexShrink:0, touchAction:'manipulation', boxShadow:'0 2px 8px rgba(22,163,74,0.35)' }}>
-                 Готово
+              <button onClick={addToCart} disabled={isAddingToCart}
+                style={{ padding:'7px 14px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontWeight:800, fontSize:12, cursor: isAddingToCart ? 'wait' : 'pointer', flexShrink:0, touchAction:'manipulation', boxShadow:'0 2px 8px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>
+                {isAddingToCart ? 'Зберігаємо…' : 'Готово'}
               </button>
             )}
           </div>
@@ -4703,7 +4915,8 @@ export default function BookLayoutEditor() {
                 <Shuffle size={14}/>
               </button>
             )}
-            <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Undo</button>
+            <button onClick={undo} disabled={history.length===0} title="Скасувати (Ctrl+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:history.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:history.length===0?'#cbd5e1':'#1e2d7d', opacity:history.length===0?0.5:1 }}><RotateCcw size={14}/> Скасувати</button>
+            <button onClick={redo} disabled={redoStack.length===0} title="Повернути (Ctrl+Shift+Z)" style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#fff', cursor:redoStack.length===0?'not-allowed':'pointer', fontSize:13, fontWeight:600, color:redoStack.length===0?'#cbd5e1':'#1e2d7d', opacity:redoStack.length===0?0.5:1 }}><RotateCcw size={14} style={{ transform:'scaleX(-1)' }}/> Повернути</button>
             <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.max(20,z-10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomOut size={14}/></button>
             <span style={{ fontSize:12, fontWeight:700, color:'#475569', minWidth:36, textAlign:'center' }}>{zoom}%</span>
             <button onPointerDown={()=>{ userZoomedRef.current=true; setZoom(z=>Math.min(150,z+10)); }} style={{ padding:'6px 8px', border:'1px solid #d1d5db', borderRadius:6, background:'#fff', cursor:'pointer', touchAction:'manipulation' }}><ZoomIn size={14}/></button>
@@ -4748,7 +4961,7 @@ export default function BookLayoutEditor() {
                 </button>
               </div>
             ) : (
-              <button onClick={addToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor:'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)' }}> Зберегти та замовити</button>
+              <button onClick={addToCart} disabled={isAddingToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor: isAddingToCart ? 'wait' : 'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>{isAddingToCart ? 'Завантажуємо фото…' : 'Зберегти та замовити'}</button>
             )}
           </div>
         </div>
@@ -4918,7 +5131,7 @@ export default function BookLayoutEditor() {
                         onClick={(e) => { if(e.ctrlKey||e.metaKey){ if(!used){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
                         style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', opacity: used ? 0.6 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : used ? '1px solid #10b981' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
-                          <img loading="lazy" src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                          <img loading="lazy" onError={tmImgError} src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}></div>}
                           {used && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents:'none' }}><span style={{fontSize:9,fontWeight:800,color:'#1d4ed8',background:'rgba(255,255,255,0.9)',padding:'2px 6px',borderRadius:6}}>для заміни</span></div>}
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
@@ -5371,7 +5584,7 @@ export default function BookLayoutEditor() {
                               draggable
                               onDragStart={e => { e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                               style={{ aspectRatio:'1', borderRadius:4, overflow:'hidden', cursor:'grab', border: coverState.photoId===ph.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0' }}>
-                              <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                              <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                             </div>
                           ))}
                         </div>
@@ -5584,7 +5797,7 @@ export default function BookLayoutEditor() {
                     detectFocalPoint(url, newPhoto.id);
                     setLeftTab('photos');
                     setHasAiPortrait(true);
-                    toast.success(' AI портрет додано! +75 ₴');
+                    toast.success('AI портрет додано! +75 ₴');
                   }}
                 />
               </div>
@@ -6710,7 +6923,7 @@ export default function BookLayoutEditor() {
                                   });
                                 }}
                                 onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.3, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
-                                <img src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
+                                <img onError={tmImgError} src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
                               <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
@@ -7239,7 +7452,7 @@ export default function BookLayoutEditor() {
                                 }}
                                 onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
+                                <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
                                   onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                   style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
@@ -7379,7 +7592,7 @@ export default function BookLayoutEditor() {
                               {(() => {
                                 const slotW = Number(s.width) || spreadW;
                                 const slotH = Number(s.height) || cH;
-                                const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, spreadW, cH, prop.w * 2, prop.h);
+                                const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, spreadW, cH, prop.w * 2, prop.h, slot?.zoom, slot?.rotation);
                                 if (!dpiCheck || dpiCheck.level === 'ok') return null;
                                 const isBad = dpiCheck.level === 'bad';
                                 return (
@@ -7501,7 +7714,7 @@ export default function BookLayoutEditor() {
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
                           style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
-                          <div contentEditable={isEd} suppressContentEditableWarning onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
+                          <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
@@ -7957,7 +8170,7 @@ export default function BookLayoutEditor() {
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
+                                  <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
                                     style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
@@ -8058,7 +8271,7 @@ export default function BookLayoutEditor() {
                                 {(() => {
                                   const slotW = Number(s.width) || pageW;
                                   const slotH = Number(s.height) || cH;
-                                  const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, pageW, cH, prop.w, prop.h);
+                                  const dpiCheck = checkPhotoDpi(photo.width, photo.height, slotW, slotH, pageW, cH, prop.w, prop.h, slot?.zoom, slot?.rotation);
                                   if (!dpiCheck || dpiCheck.level === 'ok') return null;
                                   const isBad = dpiCheck.level === 'bad';
                                   return (
@@ -8424,7 +8637,7 @@ export default function BookLayoutEditor() {
                     {/* Back cover (left) */}
                     <div style={{ width: '50%', height: '100%', position: 'relative', overflow: 'hidden', background: isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {!isPrinted && <div style={{ position:'absolute', inset:0, backgroundImage:'repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 5px)', pointerEvents:'none' }}/>}
-                      {backPhoto && <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
+                      {backPhoto && <img onError={tmImgError} src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState.backCoverCropX ?? 50}% ${coverState.backCoverCropY ?? 50}%` }} draggable={false}/>}
                     </div>
                     {/* Spine */}
                     <div style={{ width: 2, height: '100%', background: 'rgba(0,0,0,0.2)', flexShrink: 0 }}/>
@@ -8512,7 +8725,7 @@ export default function BookLayoutEditor() {
                         };
                         return (
                           <div key={i} style={ss}>
-                            {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                            {ph && <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                           </div>
                         );
                       })}
@@ -8546,7 +8759,7 @@ export default function BookLayoutEditor() {
                       };
                       return (
                         <div key={i} style={ss}>
-                          {ph && <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                          {ph && <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                         </div>
                       );
                     })}
@@ -8688,7 +8901,7 @@ export default function BookLayoutEditor() {
                     }
                   }}
                   style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isSel ? '2.5px solid #7c3aed' : isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
-                  <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                  <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                   {isSel && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:22, height:22, borderRadius:999, background:'#7c3aed', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{selOrder}</span></div>}
                   {!isSel && isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
                   {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
@@ -8833,7 +9046,7 @@ export default function BookLayoutEditor() {
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}
                          onMouseEnter={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x && !used) x.style.opacity = '1'; }}
                          onMouseLeave={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x) x.style.opacity = '0'; }}>
-                      <img loading="lazy" src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                      <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
@@ -10172,6 +10385,47 @@ export default function BookLayoutEditor() {
       )}
 
       {/* Exit confirmation modal */}
+      {/* Endpaper (форзац) paid-unlock confirmation — replaces the old bare
+          window.confirm for a decision that adds money to the order. */}
+      {endpaperConfirmIdx !== null && (() => {
+        const isFirstEp = endpaperConfirmIdx === endpaperFirstIdx;
+        const epLabel = isFirstEp ? 'перший' : 'останній';
+        const epAlready = endpaperUnlocked.first || endpaperUnlocked.last;
+        return (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:10000,
+            display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+            onClick={() => setEndpaperConfirmIdx(null)}>
+            <div style={{ background:'#fff', borderRadius:16, padding:28, maxWidth:380, width:'100%',
+              boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}
+              onClick={e => e.stopPropagation()}>
+              <h2 style={{ fontWeight:800, fontSize:18, color:'#1e2d7d', textAlign:'center', marginBottom:6 }}>
+                Друк на форзаці
+              </h2>
+              <p style={{ color:'#64748b', fontSize:13, textAlign:'center', marginBottom:20, lineHeight:1.55 }}>
+                {epAlready
+                  ? `Ви розблоковуєте ${epLabel} форзац. Доплата вже врахована — фіксована ціна покриває обидва форзаци.`
+                  : `Друк на форзаці (${epLabel}) додає до замовлення +${endpaperSurcharge} ₴ — це фіксована ціна одразу за обидва форзаци. Після підтвердження ви зможете додати фото або текст на цю сторінку.`}
+              </p>
+              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                <button onClick={() => {
+                  setEndpaperUnlocked(prev => ({ ...prev, [isFirstEp ? 'first' : 'last']: true }));
+                  setEndpaperConfirmIdx(null);
+                }}
+                  style={{ width:'100%', padding:'13px', background:'#1e2d7d', color:'#fff',
+                    borderRadius:10, fontWeight:800, fontSize:15, border:'none', cursor:'pointer' }}>
+                  {epAlready ? 'Розблокувати форзац' : `Додати друк на форзацах (+${endpaperSurcharge} ₴)`}
+                </button>
+                <button onClick={() => setEndpaperConfirmIdx(null)}
+                  style={{ width:'100%', padding:'13px', background:'#f1f5f9', color:'#374151',
+                    borderRadius:10, fontWeight:600, fontSize:14, border:'none', cursor:'pointer' }}>
+                  Скасувати
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {showExitModal && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:9997,
           display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
@@ -10183,7 +10437,9 @@ export default function BookLayoutEditor() {
               Зберегти макет?
             </h2>
             <p style={{ color:'#64748b', fontSize:13, textAlign:'center', marginBottom:24, lineHeight:1.5 }}>
-              Ви можете зберегти поточний макет у розділі «Мої дизайни» і повернутись до нього пізніше.
+              {isGuest
+                ? 'Ви не ввійшли в акаунт, тому макет збережеться лише в цьому браузері до закриття вкладки. Щоб зберегти його назавжди в розділі «Мої дизайни», спершу увійдіть в акаунт.'
+                : 'Ви можете зберегти поточний макет у розділі «Мої дизайни» і повернутись до нього пізніше.'}
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <button onClick={handleSaveAndExit} disabled={exitSaving}
@@ -10192,7 +10448,7 @@ export default function BookLayoutEditor() {
                   opacity: exitSaving ? 0.7 : 1, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                 {exitSaving ? (
                   <><span style={{ display:'inline-block', width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTop:'2px solid #fff', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/> Збереження...</>
-                ) : 'Зберегти макет і вийти'}
+                ) : (isGuest ? 'Зберегти в цій вкладці і вийти' : 'Зберегти макет і вийти')}
               </button>
               <button onClick={() => {
                 // Exit without saving must also drop the autosaved sessionStorage
@@ -10205,7 +10461,7 @@ export default function BookLayoutEditor() {
                   sessionStorage.removeItem('bookEditorDraft');
                 } catch {}
                 setShowExitModal(false);
-                router.back();
+                leaveEditor();
               }}
                 style={{ width:'100%', padding:'13px', background:'#fff', color:'#ef4444',
                   borderRadius:10, fontWeight:700, fontSize:14, border:'1px solid #fee2e2', cursor:'pointer' }}>
@@ -10233,8 +10489,8 @@ export default function BookLayoutEditor() {
             </h2>
             <p style={{ color:'#64748b', fontSize:13, marginBottom:16 }}>
               {uploadState.active
-                ? `Сторінка ${uploadState.done} з ${uploadState.total}${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`
-                : `${uploadState.total} сторінок збережено${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`}
+                ? `Фото ${uploadState.done + uploadState.failed} з ${uploadState.total}${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`
+                : `${uploadState.total} фото збережено${uploadState.failed > 0 ? ` · ${uploadState.failed} не вдалося` : ''}`}
             </p>
             <div style={{ width:'100%', height:8, background:'#e2e8f0', borderRadius:8, overflow:'hidden', marginBottom:12 }}>
               <div style={{

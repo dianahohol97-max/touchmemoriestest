@@ -179,6 +179,28 @@ export default function BookPhotoUpload() {
         setPhotos(photos.filter(p => p.id !== id));
     };
 
+    // Touch devices: HTML5 drag-and-drop never fires and hover-revealed
+    // controls are invisible, so phone users could neither delete nor reorder
+    // photos — a hard dead-end on the primary upload step. On touch we show
+    // the controls permanently and offer ←/→ swap buttons instead of drag.
+    const [isTouch, setIsTouch] = useState(false);
+    useEffect(() => {
+        try {
+            setIsTouch(window.matchMedia('(hover: none)').matches || navigator.maxTouchPoints > 0);
+        } catch { /* keep desktop behaviour */ }
+    }, []);
+
+    const movePhoto = (photoId: string, dir: -1 | 1) => {
+        setPhotos(prev => {
+            const i = prev.findIndex(p => p.id === photoId);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= prev.length) return prev;
+            const next = [...prev];
+            [next[i], next[j]] = [next[j], next[i]];
+            return next;
+        });
+    };
+
     // Drag and drop reordering
     const handlePhotoGroupDragStart = (e: React.DragEvent, photoId: string) => {
         setDraggedPhotoId(photoId);
@@ -656,7 +678,7 @@ export default function BookPhotoUpload() {
                             {t('photo_upload.uploaded_photos')} ({photos.length})
                         </h3>
                         <p className="text-sm text-gray-500">
-                            {t('photo_upload.drag_to_reorder')}
+                            {isTouch ? 'Стрілки під фото переставляють його місцями, хрестик — видаляє.' : t('photo_upload.drag_to_reorder')}
                         </p>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4 max-h-[40vh] sm:max-h-[600px] overflow-y-auto p-1 sm:p-2">
@@ -678,10 +700,12 @@ export default function BookPhotoUpload() {
                                         {index + 1}
                                     </div>
 
-                                    {/* Drag Handle */}
-                                    <div className="absolute top-2 right-10 bg-black/70 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <GripVertical className="w-4 h-4" />
-                                    </div>
+                                    {/* Drag Handle (pointless on touch — hidden there) */}
+                                    {!isTouch && (
+                                        <div className="absolute top-2 right-10 bg-black/70 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <GripVertical className="w-4 h-4" />
+                                        </div>
+                                    )}
 
                                     {/* Photo Thumbnail */}
                                     <div className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
@@ -701,20 +725,46 @@ export default function BookPhotoUpload() {
                                         </div>
                                     )}
 
-                                    {/* Remove Button */}
+                                    {/* Remove Button — always visible and finger-sized on touch */}
                                     <button
                                         onClick={() => removePhoto(photo.id)}
-                                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                                        aria-label="Видалити фото"
+                                        className={`absolute top-2 right-2 bg-red-500 text-white rounded-full transition-opacity hover:bg-red-600 z-10 ${
+                                            isTouch ? 'p-2 opacity-100' : 'p-1 opacity-0 group-hover:opacity-100'
+                                        }`}
+                                        style={isTouch ? { touchAction: 'manipulation' } : undefined}
                                     >
-                                        <X className="w-4 h-4" />
+                                        <X className={isTouch ? 'w-5 h-5' : 'w-4 h-4'} />
                                     </button>
 
-                                    {/* Photo Info on Hover */}
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <p className="text-white text-xs truncate">
-                                            {photo.width}×{photo.height}px
-                                        </p>
-                                    </div>
+                                    {/* Touch reorder: swap with the neighbour left/right */}
+                                    {isTouch && (
+                                        <div className="absolute inset-x-0 bottom-0 flex justify-between p-1 z-10">
+                                            <button
+                                                onClick={() => movePhoto(photo.id, -1)}
+                                                disabled={index === 0}
+                                                aria-label="Пересунути фото лівіше"
+                                                className="bg-black/60 text-white rounded-md px-2.5 py-1.5 text-base leading-none disabled:opacity-30"
+                                                style={{ touchAction: 'manipulation' }}
+                                            >←</button>
+                                            <button
+                                                onClick={() => movePhoto(photo.id, 1)}
+                                                disabled={index === photos.length - 1}
+                                                aria-label="Пересунути фото правіше"
+                                                className="bg-black/60 text-white rounded-md px-2.5 py-1.5 text-base leading-none disabled:opacity-30"
+                                                style={{ touchAction: 'manipulation' }}
+                                            >→</button>
+                                        </div>
+                                    )}
+
+                                    {/* Photo Info on Hover (desktop only — touch uses that space for arrows) */}
+                                    {!isTouch && (
+                                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <p className="text-white text-xs truncate">
+                                                {photo.width}×{photo.height}px
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
