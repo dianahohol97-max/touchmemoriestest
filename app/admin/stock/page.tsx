@@ -42,16 +42,16 @@ export default function StockPage() {
 
         if (!products) { setLoading(false); return; }
 
-        const { data: stockRows } = await supabase.from('product_stock').select('*');
-        const stockMap: Record<string, any> = {};
-        (stockRows || []).forEach((r: any) => { stockMap[r.product_id] = r; });
-
+        // Single source of truth = products.stock_quantity (this is what the
+        // payment webhook decrements, the storefront gates on, and the feeds
+        // read). The old product_stock table is no longer read as an override,
+        // otherwise a sale would drop stock_quantity while the page kept showing
+        // a stale product_stock value.
         const mapped: StockItem[] = products.map((p: any) => {
-            const ps = stockMap[p.id];
-            const qty = ps?.quantity_in_stock ?? p.stock_quantity ?? 0;
-            const reserved = ps?.quantity_reserved ?? p.stock_reserved ?? 0;
+            const qty = p.stock_quantity ?? 0;
+            const reserved = p.stock_reserved ?? 0;
             return {
-                id: ps?.id || p.id,
+                id: p.id,
                 product_id: p.id,
                 name: p.name,
                 slug: p.slug,
@@ -59,7 +59,7 @@ export default function StockPage() {
                 quantity_in_stock: qty,
                 quantity_reserved: reserved,
                 quantity_available: qty - reserved,
-                min_level: ps?.min_level ?? p.low_stock_threshold ?? 0,
+                min_level: p.low_stock_threshold ?? 0,
             };
         });
         setItems(mapped);
@@ -79,19 +79,27 @@ export default function StockPage() {
 
     const saveEdit = async (item: StockItem) => {
         setSaving(true);
-        await supabase.from('product_stock').upsert({ product_id: item.product_id, quantity_in_stock: editQty, quantity_reserved: item.quantity_reserved, min_level: editMin, updated_at: new Date().toISOString() }, { onConflict: 'product_id' });
-        await supabase.from('products').update({ stock_quantity: editQty, low_stock_threshold: editMin, track_inventory: true }).eq('id', item.product_id);
-        toast.success('Збережено'); setEditId(null); load(); setSaving(false);
+        // Canonical write: products.stock_quantity (+ turn tracking on for this
+        // product). product_stock is kept only as an audit mirror.
+        const { error } = await supabase.from('products')
+            .update({ stock_quantity: editQty, low_stock_threshold: editMin, track_inventory: true })
+            .eq('id', item.product_id);
+        supabase.from('product_stock').upsert({ product_id: item.product_id, quantity_in_stock: editQty, quantity_reserved: item.quantity_reserved, min_level: editMin, updated_at: new Date().toISOString() }, { onConflict: 'product_id' }).then(() => {});
+        setSaving(false);
+        if (error) { toast.error('Помилка збереження: ' + error.message); return; }
+        toast.success('Збережено'); setEditId(null); load();
     };
 
     const saveAdjust = async () => {
         if (!adjustModal || adjustDelta === 0) return;
         setSaving(true);
         const newQty = Math.max(0, adjustModal.quantity_in_stock + adjustDelta);
-        await supabase.from('product_stock').upsert({ product_id: adjustModal.product_id, quantity_in_stock: newQty, quantity_reserved: adjustModal.quantity_reserved, min_level: adjustModal.min_level, updated_at: new Date().toISOString() }, { onConflict: 'product_id' });
-        await supabase.from('products').update({ stock_quantity: newQty, track_inventory: true }).eq('id', adjustModal.product_id);
-        await supabase.from('inventory_movements').insert({ product_id: adjustModal.product_id, type: adjustDelta > 0 ? 'in' : 'out', quantity: Math.abs(adjustDelta), quantity_before: adjustModal.quantity_in_stock, quantity_after: newQty, notes: adjustNote || null, action_type: 'manual_adjust', created_at: new Date().toISOString() });
-        toast.success(`Залишок: ${newQty}`); setAdjustModal(null); setAdjustDelta(0); setAdjustNote(''); load(); setSaving(false);
+        const { error } = await supabase.from('products').update({ stock_quantity: newQty, track_inventory: true }).eq('id', adjustModal.product_id);
+        supabase.from('product_stock').upsert({ product_id: adjustModal.product_id, quantity_in_stock: newQty, quantity_reserved: adjustModal.quantity_reserved, min_level: adjustModal.min_level, updated_at: new Date().toISOString() }, { onConflict: 'product_id' }).then(() => {});
+        supabase.from('inventory_movements').insert({ product_id: adjustModal.product_id, type: adjustDelta > 0 ? 'in' : 'out', quantity: Math.abs(adjustDelta), quantity_before: adjustModal.quantity_in_stock, quantity_after: newQty, notes: adjustNote || null, action_type: 'manual_adjust', created_at: new Date().toISOString() }).then(() => {});
+        setSaving(false);
+        if (error) { toast.error('Помилка: ' + error.message); return; }
+        toast.success(`Залишок: ${newQty}`); setAdjustModal(null); setAdjustDelta(0); setAdjustNote(''); load();
     };
 
     const exportXlsx = () => {

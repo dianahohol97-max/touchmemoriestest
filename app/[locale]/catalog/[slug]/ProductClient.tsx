@@ -1537,31 +1537,43 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                         </div>
 
                         {/* In-stock ready-made products: simple add-to-cart / order, no editor */}
-                        {product.fulfillment_type === 'in_stock' ? (
+                        {product.fulfillment_type === 'in_stock' ? (() => {
+                            const tracked = !!(product as any).track_inventory && product.product_type === 'physical';
+                            const outOfStock = tracked && Number((product as any).stock_available ?? 0) <= 0;
+                            const optsOk = areAllRequiredOptionsFilled(product.slug || '', customProductOptions);
+                            const canBuy = optsOk && !outOfStock;
+                            return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
-                                {!areAllRequiredOptionsFilled(product.slug || '', customProductOptions) && (
+                                {outOfStock ? (
+                                    <div style={{ padding: '16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '14px', color: '#991b1b', textAlign: 'center', fontWeight: 700 }}>
+                                        Наразі немає в наявності
+                                    </div>
+                                ) : !optsOk ? (
                                     <div style={{ padding: '16px', backgroundColor: '#dbeafe', border: '1px solid rgba(30, 45, 125, 0.2)', borderRadius: '8px', fontSize: '14px', color: '#1e2d7d', textAlign: 'center' }}>
                                         {t('product_page.select_required_options')}
                                     </div>
-                                )}
+                                ) : null}
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
+                                    disabled={!canBuy}
                                     className="rounded-md hover:bg-[#1a2966]"
-                                    style={{ width: '100%', padding: '18px', backgroundColor: '#263a99', color: 'white', border: 'none', opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5, cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
+                                    style={{ width: '100%', padding: '18px', backgroundColor: '#263a99', color: 'white', border: 'none', opacity: canBuy ? 1 : 0.5, cursor: canBuy ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
                                 >
-                                    {t('product.add_to_cart')}
+                                    {outOfStock ? 'Немає в наявності' : t('product.add_to_cart')}
                                 </button>
-                                <button
-                                    onClick={() => { if (!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)) return; handleAddToCart(); router.push('/cart'); }}
-                                    disabled={!areAllRequiredOptionsFilled(product.slug || '', customProductOptions)}
-                                    className="hover:bg-[#f0f3ff]"
-                                    style={{ width: '100%', padding: '18px', backgroundColor: 'white', color: 'var(--primary)', border: '2px solid var(--primary)', borderRadius: '6px', opacity: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 1 : 0.5, cursor: areAllRequiredOptionsFilled(product.slug || '', customProductOptions) ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
-                                >
-                                    {t('product.order_now')}
-                                </button>
+                                {!outOfStock && (
+                                    <button
+                                        onClick={() => { if (!canBuy) return; handleAddToCart(); router.push('/cart'); }}
+                                        disabled={!canBuy}
+                                        className="hover:bg-[#f0f3ff]"
+                                        style={{ width: '100%', padding: '18px', backgroundColor: 'white', color: 'var(--primary)', border: '2px solid var(--primary)', borderRadius: '6px', opacity: canBuy ? 1 : 0.5, cursor: canBuy ? 'pointer' : 'not-allowed', fontSize: '16px', fontWeight: 700, transition: 'background-color 0.2s' }}
+                                    >
+                                        {t('product.order_now')}
+                                    </button>
+                                )}
                             </div>
-                        ) : (product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
+                            );
+                        })() : (product.slug?.includes('photoprint') || product.slug?.includes('polaroid') || product.slug?.includes('полароїд') || product.slug?.includes('поляроїд') || product.slug?.includes('poster') || product.slug?.includes('magnet') || product.slug?.includes('polotni') || product.slug?.includes('canvas') || product.slug?.includes('puzzle') || product.slug?.includes('pazl')) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
                                 <button
                                     onClick={() => requireAuth(
