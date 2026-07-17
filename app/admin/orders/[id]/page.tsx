@@ -271,8 +271,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     };
 
     const fetchTags = async () => {
-        const { data } = await supabase.from('order_tags').select('*');
-        if (data) setAvailableTags(data);
+        // Load via the admin API (service role) — the same source the orders LIST
+        // uses. Reading order_tags with the browser client is subject to RLS and
+        // came back empty, so the "Оберіть тег" picker showed no tags at all.
+        try {
+            const res = await fetch('/api/admin/tags');
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data)) setAvailableTags(data);
+            }
+        } catch { /* picker just stays empty on failure */ }
     };
 
     const fetchStaff = async () => {
@@ -2090,7 +2098,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 <div style={overlayStyle} onClick={() => setShowTagDropdown(false)}>
                     <div style={dropdownStyle} onClick={e => e.stopPropagation()}>
                         <div style={{ fontWeight: 800, fontSize: '14px', padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>Оберіть тег</div>
-                        {availableTags.map(tag => (
+                        {availableTags.length === 0 ? (
+                            <div style={{ padding: '14px 16px', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                                Тегів ще немає. Створіть їх у розділі <a href="/admin/settings/tags" style={{ color: '#263A99', fontWeight: 700 }}>Налаштування → Теги</a>.
+                            </div>
+                        ) : availableTags.map(tag => (
                             <button key={tag.id} onClick={() => handleAddTag(tag.id)} style={dropdownOptionStyle}>
                                 <span>{tag.icon}</span> {tag.name}
                             </button>
