@@ -65,6 +65,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const router = useRouter();
 
     const [order, setOrder] = useState<any>(null);
+    // Fallback thumbnails: order items often don't carry an image, so we pull the
+    // product's catalog image (products.images[0]) by slug/id to show it on the card.
+    const [itemImages, setItemImages] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
@@ -296,6 +299,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             const data = json.order;
         if (data) {
             setOrder(data);
+            // Load catalog images for the order's products (fallback thumbnails).
+            (async () => {
+                try {
+                    const items: any[] = Array.isArray(data.items) ? data.items : [];
+                    const slugs = Array.from(new Set(items.map(it => it.slug || it.product_slug).filter(Boolean)));
+                    const ids = Array.from(new Set(items.map(it => it.product_id).filter(Boolean)));
+                    if (slugs.length === 0 && ids.length === 0) return;
+                    // Bound .in() filters (never string-interpolated) — no PostgREST injection.
+                    const [bySlug, byId] = await Promise.all([
+                        slugs.length ? supabase.from('products').select('id, slug, images').in('slug', slugs) : Promise.resolve({ data: [] as any[] }),
+                        ids.length ? supabase.from('products').select('id, slug, images').in('id', ids) : Promise.resolve({ data: [] as any[] }),
+                    ]);
+                    const map: Record<string, string> = {};
+                    for (const p of ([...(bySlug.data || []), ...(byId.data || [])]) as any[]) {
+                        const img = Array.isArray(p.images) ? p.images.find(Boolean) : (typeof p.images === 'string' ? p.images : null);
+                        if (!img) continue;
+                        if (p.slug) map[p.slug] = img;
+                        if (p.id) map[p.id] = img;
+                    }
+                    setItemImages(map);
+                } catch { /* non-critical: card just shows the placeholder */ }
+            })();
             setNotes(data.notes || '');
             setClientComment(data.client_comment || '');
             setFilesUrl(data.files_url || '');
@@ -930,7 +955,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 return (
                                 <div key={idx} style={itemRowStyle}>
                                     <div style={itemThumbStyle}>
-                                        {item.image ? <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Package size={24} color="#cbd5e1" />}
+                                        {(() => {
+                                            const thumb = item.image || itemImages[item.slug || item.product_slug] || itemImages[item.product_id];
+                                            return thumb
+                                                ? <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                : <Package size={24} color="#cbd5e1" />;
+                                        })()}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
