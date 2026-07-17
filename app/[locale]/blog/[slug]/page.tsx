@@ -124,8 +124,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         }
     }
 
-    const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
-    const currentUrl = `${domain}/blog/${post?.slug || slug}`;
+    // Canonical (locale-prefixed) URL of this post — used for share buttons and
+    // breadcrumb JSON-LD. Non-prefixed ${domain}/blog/... URLs only exist as
+    // 308 redirects, so structured data must not reference them.
+    const loc = (locale || 'uk') as Locale;
+    const currentUrl = getCanonicalUrl(loc, `/blog/${post?.slug || slug}`);
 
     const jsonLdArticle = {
         '@context': 'https://schema.org',
@@ -150,13 +153,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         'itemListElement': [
-            { '@type': 'ListItem', 'position': 1, 'name': 'Головна', 'item': domain },
-            { '@type': 'ListItem', 'position': 2, 'name': 'Блог', 'item': `${domain}/blog` },
+            { '@type': 'ListItem', 'position': 1, 'name': 'Головна', 'item': getCanonicalUrl(loc) },
+            { '@type': 'ListItem', 'position': 2, 'name': 'Блог', 'item': getCanonicalUrl(loc, '/blog') },
             {
                 '@type': 'ListItem',
                 'position': 3,
                 'name': stripEmoji(post?.blog_categories?.name || 'Стаття'),
-                'item': post?.blog_categories ? `${domain}/blog?category=${post.blog_categories.slug}` : `${domain}/blog`
+                'item': post?.blog_categories ? `${getCanonicalUrl(loc, '/blog')}?category=${post.blog_categories.slug}` : getCanonicalUrl(loc, '/blog')
             },
             { '@type': 'ListItem', 'position': 4, 'name': getLocalized(post, locale, 'title') || '' }
         ]
