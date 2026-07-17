@@ -13,8 +13,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const STATIC_ROUTES = [
     { path: '', priority: 1.0, changeFreq: 'daily' as const },
     { path: '/catalog', priority: 0.9, changeFreq: 'daily' as const },
-    { path: '/about', priority: 0.6, changeFreq: 'monthly' as const },
-    { path: '/contact', priority: 0.6, changeFreq: 'monthly' as const },
+    // Real page routes are /pro-nas and /kontakty; /about and /contact are
+    // 308 redirect aliases (next.config.ts) and must not be listed here —
+    // sitemap URLs should always resolve with a 200, not a redirect hop.
+    { path: '/pro-nas', priority: 0.6, changeFreq: 'monthly' as const },
+    { path: '/kontakty', priority: 0.6, changeFreq: 'monthly' as const },
+    { path: '/photographers', priority: 0.5, changeFreq: 'monthly' as const },
     { path: '/blog', priority: 0.8, changeFreq: 'weekly' as const },
     { path: '/privacy', priority: 0.3, changeFreq: 'yearly' as const },
     { path: '/terms', priority: 0.3, changeFreq: 'yearly' as const },
