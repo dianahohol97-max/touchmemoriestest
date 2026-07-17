@@ -510,13 +510,37 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             // text would overflow the safe width.
             const sizeFraction = /велик/i.test(sizeLabel) ? 0.16 : /мал/i.test(sizeLabel) ? 0.085 : 0.12; // середній default
             const safeWidth = SIZE * 0.86;
+            const safeHeight = SIZE * 0.86;
+            const LINE_H = 1.25;
             let fontSize = Math.round(SIZE * sizeFraction);
             const setF = (s: number) => { ctx.font = `${s}px '${font || 'Marck Script'}', cursive`; };
+            // Wrap the text into lines that fit the safe width — the same way the
+            // customer-facing colour preview wraps it — so the B/W production
+            // master matches what the client sees instead of being one long line.
+            // Explicit newlines are honoured as hard breaks.
+            const wrapLines = (t: string): string[] => {
+                const out: string[] = [];
+                for (const seg of String(t).split('\n')) {
+                    const words = seg.split(/\s+/).filter(Boolean);
+                    if (words.length === 0) { out.push(''); continue; }
+                    let line = words[0];
+                    for (let i = 1; i < words.length; i++) {
+                        if (ctx.measureText(`${line} ${words[i]}`).width > safeWidth) { out.push(line); line = words[i]; }
+                        else line = `${line} ${words[i]}`;
+                    }
+                    out.push(line);
+                }
+                return out;
+            };
             setF(fontSize);
-            while (ctx.measureText(text).width > safeWidth && fontSize > 24) {
-                fontSize -= 6; setF(fontSize);
+            let lines = wrapLines(text);
+            // Shrink until every line fits the width AND all lines fit the height.
+            while (fontSize > 24 && (lines.length * fontSize * LINE_H > safeHeight || lines.some(l => ctx.measureText(l).width > safeWidth))) {
+                fontSize -= 6; setF(fontSize); lines = wrapLines(text);
             }
-            ctx.fillText(text, SIZE / 2, SIZE / 2);
+            const lh = fontSize * LINE_H;
+            let y = SIZE / 2 - (lines.length - 1) * lh / 2;
+            for (const l of lines) { ctx.fillText(l, SIZE / 2, y); y += lh; }
             const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
             canvas.toBlob((blob) => {
                 if (!blob) { toast.error('Не вдалося створити макет'); return; }
@@ -970,7 +994,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             <span style={{
                                                                 fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
                                                                 fontSize: inscrSizePx, color: inscrColorHex, lineHeight: 1.2,
-                                                                textAlign: 'center', wordBreak: 'break-word',
+                                                                textAlign: 'center', wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                                                                 textShadow: inscrColorHex.toLowerCase() === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
                                                             }}>
                                                                 {inscrText}
@@ -988,7 +1012,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             <span style={{
                                                                 fontFamily: `'${inscrFont || 'Marck Script'}', cursive`,
                                                                 fontSize: inscrSizePx, color: '#000000', lineHeight: 1.2,
-                                                                textAlign: 'center', whiteSpace: 'nowrap',
+                                                                textAlign: 'center', wordBreak: 'break-word', whiteSpace: 'pre-wrap',
                                                             }}>
                                                                 {inscrText}
                                                             </span>
