@@ -101,13 +101,18 @@ export async function POST(request: NextRequest) {
   const admin = getAdminClient();
   let productId: string | null = null;
   let productName = productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  let basePrice = 0;
   try {
     const { data: prod } = await admin
       .from('products')
-      .select('id, name')
+      .select('id, name, price')
       .eq('slug', productSlug)
       .maybeSingle();
-    if (prod) { productId = prod.id; productName = prod.name || productName; }
+    if (prod) {
+      productId = prod.id;
+      productName = prod.name || productName;
+      basePrice = Math.max(0, Math.round(Number(prod.price) || 0));
+    }
   } catch (e) {
     console.warn('designer-brief: product lookup failed', e);
   }
@@ -118,7 +123,16 @@ export async function POST(request: NextRequest) {
   // Price the customer saw in the configurator (carried via the ?price= param).
   // Lands the designer order with the SAME price as the constructor instead of 0;
   // the manager can still adjust it after the designer lays the book out.
-  const estPrice = Math.max(0, Math.round(Number(body.price) || 0));
+  //
+  // SECURITY: body.price is client-controlled and becomes order.total, which
+  // /api/monobank/create-invoice charges verbatim. Without a floor a tampered
+  // payload (price:1) yields a 1 ₴ invoice for a real product. The price of a
+  // product is the same whether it is ordered through the configurator or the
+  // designer service, so the product's base price is a valid lower bound — it
+  // never affects a legitimate order (which is always ≥ base) and blocks the
+  // gross-underpayment case. The manager can still raise it after layout.
+  const clientPrice = Math.max(0, Math.round(Number(body.price) || 0));
+  const estPrice = Math.max(basePrice, clientPrice);
 
   const notes = [
     body.tripDestination && productSlug.toLowerCase().includes('travel')
