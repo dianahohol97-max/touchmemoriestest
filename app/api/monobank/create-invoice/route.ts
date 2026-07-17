@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
+import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,15 +9,40 @@ const MONOBANK_API_URL = 'https://api.monobank.ua/api/merchant/invoice/create';
 
 export async function POST(req: Request) {
     try {
-        const { orderId, paymentRegion = 'ua' } = await req.json();
+        const { orderId } = await req.json();
 
         if (!orderId) {
             return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
         }
 
-        const isInternational = paymentRegion === 'international';
-
         const supabase = getAdminClient();
+
+        // The payment region is derived SERVER-SIDE from the order itself.
+        // The route used to trust a paymentRegion field from the request body
+        // (and even wrote it back onto the order), so anyone who knew an order
+        // UUID could re-issue the invoice with paymentRegion='international'
+        // and steer a Ukrainian order's money onto the other ФОП's account.
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount, monobank_invoice_id, payment_region, payment_status, delivery_method, delivery_address')
+            .eq('id', orderId)
+            .single();
+
+        if (orderError || !order) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        // A paid order never needs a new invoice — re-issuing one for it is
+        // either a stale client or someone probing with a leaked UUID.
+        if (order.payment_status === 'paid') {
+            return NextResponse.json({ error: 'Замовлення вже оплачено — нове посилання на оплату не потрібне.' }, { status: 409 });
+        }
+
+        const paymentRegion: 'ua' | 'international' =
+            order.payment_region === 'international' || order.payment_region === 'ua'
+                ? order.payment_region
+                : deliveryToPaymentRegion(order.delivery_method, (order.delivery_address as any)?.country);
+        const isInternational = paymentRegion === 'international';
 
         // ──────────────────────────────────────────────────────────────
         // Account routing: take the Monobank api_key from the active
@@ -62,20 +88,14 @@ export async function POST(req: Request) {
             );
         }
 
-        const { data: order, error: orderError } = await supabase
-            .from('orders')
-            .select('id, total, customer_name, customer_email, customer_phone, order_number, payment_type, prepaid_amount, monobank_invoice_id')
-            .eq('id', orderId)
-            .single();
-
-        if (orderError || !order) {
-            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        // Persist the derived region only when the order didn't carry one yet
+        // (legacy/manual orders) — never overwrite an existing value.
+        if (order.payment_region !== paymentRegion) {
+            await supabase.from('orders')
+                .update({ payment_region: paymentRegion, updated_at: new Date().toISOString() })
+                .eq('id', orderId)
+                .is('payment_region', null);
         }
-
-        // Save payment_region to order
-        await supabase.from('orders')
-            .update({ payment_region: paymentRegion, updated_at: new Date().toISOString() })
-            .eq('id', orderId);
 
         // ──────────────────────────────────────────────────────────────
         // Invoice amount:
