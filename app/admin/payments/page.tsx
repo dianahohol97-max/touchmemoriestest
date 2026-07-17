@@ -192,15 +192,14 @@ export default function PaymentsPage() {
 
     const markAsPaid = async (orderId: string) => {
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({
-                    payment_status: 'paid',
-                    paid_at: new Date().toISOString()
-                })
-                .eq('id', orderId);
-
-            if (error) throw error;
+            // Go through the server endpoint so a manual paid-transition runs the
+            // same accruals as the webhook (partner commission + referral bonus).
+            // A direct orders update from here skipped them entirely.
+            const res = await fetch(`/api/admin/orders/${orderId}/mark-paid`, { method: 'POST' });
+            if (!res.ok) {
+                const j = await res.json().catch(() => ({}));
+                throw new Error(j.error || 'mark-paid failed');
+            }
 
             toast.success('Платіж позначено як оплачений');
             await fetchData();
