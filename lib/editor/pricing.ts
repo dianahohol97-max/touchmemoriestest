@@ -27,14 +27,18 @@ export interface PriceTable {
 
 // Normalize a free-form cover type label to the canonical Ukrainian name
 // stored in cover_types.name. The DB has five canonical names; everything
-// else maps to one of them.
-function canonicalCoverType(coverType: string): string {
+// else maps to one of them. Keyword lists cover ALL FIVE locales — the
+// configurator passes t('constructor.velour') etc., so pl 'Welur',
+// ro 'Velur', de 'Stoff'/'Kunstleder', pl 'Ekoskóra'/'Drukowana',
+// ro 'Pânză'/'Imitație de piele'/'Tipărită' must resolve too; previously
+// only uk/en matched and other locales fell to the printed default.
+export function canonicalCoverType(coverType: string): string {
     const ct = (coverType || '').toLowerCase().trim();
-    if (ct.includes('велюр') || ct.includes('velour')) return 'Велюр';
-    if (ct.includes('тканин') || ct.includes('fabric')) return 'Тканина';
-    if (ct.includes('шкір') || ct.includes('leather') || ct.includes('faux')) return 'Шкірзамінник';
-    if (ct.includes('випуск') || ct.includes('graduation')) return 'Випускна';
-    if (ct.includes('друков') || ct.includes('print')) return 'Друкована';
+    if (ct.includes('велюр') || ct.includes('velour') || ct.includes('velur') || ct.includes('welur')) return 'Велюр';
+    if (ct.includes('тканин') || ct.includes('fabric') || ct.includes('tkanin') || ct.includes('stoff') || ct.includes('pânz') || ct.includes('panz')) return 'Тканина';
+    if (ct.includes('шкір') || ct.includes('leather') || ct.includes('faux') || ct.includes('skór') || ct.includes('skor') || ct.includes('leder') || ct.includes('piele')) return 'Шкірзамінник';
+    if (ct.includes('випуск') || ct.includes('gradu')) return 'Випускна';
+    if (ct.includes('друков') || ct.includes('print') || ct.includes('drukowan') || ct.includes('gedruckt') || ct.includes('tipărit') || ct.includes('tiparit')) return 'Друкована';
     // Default: assume printed if we cannot identify. This matches the old
     // behaviour for unknown labels but is logged so we can spot drift.
     if (typeof window !== 'undefined') {

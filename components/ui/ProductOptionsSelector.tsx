@@ -4,6 +4,7 @@ import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
 import { useT } from '@/lib/i18n/context';
 import { getMagazinePrice, TYPESETTING_PRICE, MAGAZINE_PRICES_WITHOUT_TYPESETTING, getPhotojournalHardPrice, getTravelBookPrice, PHOTO_JOURNAL_HARD, TRAVEL_BOOK, LAMINATION_PRICE_PER_PAGE, URGENT_MULTIPLIER } from '@/lib/products';
+import { canonicalCoverType } from '@/lib/editor/pricing';
 
 type ProductOption = {
   name: string;
@@ -58,7 +59,21 @@ export const WISHBOOK_PRICES: Record<string, Record<string, Record<string, numbe
 };
 
 export function getWishbookPrice(coverType: string, pageColor: string, size: string): number | undefined {
-  return WISHBOOK_PRICES[coverType]?.[pageColor]?.[size];
+  // The table is keyed by the canonical UKRAINIAN labels, but callers pass
+  // localized ones (t('constructor.velour') → 'Welur' on /pl, 'Velur' on
+  // /ro, ...). A raw lookup returned undefined for every non-uk locale and
+  // the price silently fell back to the generic base — an undercharge for
+  // velour/fabric wishbooks. Canonicalize all three axes before the lookup.
+  const cover = canonicalCoverType(coverType);
+  const pc = (pageColor || '').toLowerCase();
+  const color =
+    (pc.includes('чорн') || pc.includes('black') || pc.includes('schwarz') || pc.includes('czarn') || pc.includes('negr')) ? 'Чорні'
+    : (pc.includes('крем') || pc.includes('cream') || pc.includes('krem') || pc.includes('creme') || pc.includes('crem')) ? 'Кремові'
+    : 'Білі';
+  const sz = (size || '').replace(/[х×*]/gi, 'x');
+  return WISHBOOK_PRICES[cover]?.[color]?.[sz]
+    ?? WISHBOOK_PRICES[cover]?.[color]?.[size]
+    ?? WISHBOOK_PRICES[coverType]?.[pageColor]?.[size];
 }
 
 const PHOTOPRINT_STANDARD_PRICES: Record<string, number> = {
