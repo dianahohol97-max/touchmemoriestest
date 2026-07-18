@@ -1,0 +1,19 @@
+name: Manual Vercel Deploy
+
+# Manual trigger only. Runs on GitHub's infrastructure, which can reach
+# api.vercel.com — used to kick a production deploy when the Git→Vercel
+# auto-deploy webhook stalls. The deploy-hook URL is already documented in
+# CLAUDE.md; move it to a repo secret if you prefer.
+on:
+  workflow_dispatch:
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel production deploy hook
+        run: |
+          echo "Triggering Vercel deploy hook…"
+          curl -sS -X POST \
+            "https://api.vercel.com/v1/integrations/deploy/prj_Oz13dkGF3W1JvSVToT8WvZBseBba/e1HuPQmmq1" \
+            -w "\nHTTP %{http_code}\n"
