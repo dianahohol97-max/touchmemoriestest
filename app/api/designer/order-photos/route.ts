@@ -56,6 +56,23 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'order_id required' }, { status: 400 });
     }
 
+    // Travel-book cover: the chosen cover URL never reaches order.items[] — it
+    // only lives in the saved design (projects.overlays_data.config.selectedCover).
+    // Resolve it here so the admin card can show which cover the client picked.
+    let coverImageUrl: string | null = null;
+    try {
+        const { data: projs } = await admin
+            .from('projects')
+            .select('overlays_data')
+            .eq('order_id', orderId)
+            .limit(5);
+        for (const p of (projs || []) as any[]) {
+            const sc = p?.overlays_data?.config?.selectedCover;
+            const url = sc?.image_url || sc?.thumbnail_url;
+            if (url) { coverImageUrl = url; break; }
+        }
+    } catch { /* non-critical: card falls back to files/catalog */ }
+
     const { data: files, error } = await admin
         .from('order_files')
         .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type')
@@ -69,7 +86,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!files || files.length === 0) {
-        return NextResponse.json({ photos: [] });
+        return NextResponse.json({ photos: [], coverImageUrl });
     }
 
     // Sign in batches per bucket (createSignedUrls returns results aligned to
@@ -114,5 +131,5 @@ export async function GET(req: NextRequest) {
     // layout at the top of the grid; raw customer uploads follow.
     photos.sort((a, b) => (Number(b.isExport) - Number(a.isExport)) || (Number(b.isCover) - Number(a.isCover)));
 
-    return NextResponse.json({ photos });
+    return NextResponse.json({ photos, coverImageUrl });
 }

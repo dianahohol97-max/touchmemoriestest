@@ -97,8 +97,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       try {
         const res = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
         if (!res.ok) return;
-        const { photos } = await res.json();
+        const { photos, coverImageUrl } = await res.json();
         if (!cancelled && Array.isArray(photos)) setUploadedFiles(photos);
+        if (!cancelled && coverImageUrl) setDesignCoverUrl(coverImageUrl);
       } catch { /* non-blocking */ }
     })();
     return () => { cancelled = true; };
@@ -152,6 +153,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [clientComment, setClientComment] = useState('');
     const [filesUrl, setFilesUrl] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+    // Travel-book cover chosen by the client (from the saved design) — not on the order item.
+    const [designCoverUrl, setDesignCoverUrl] = useState<string | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [rerendering, setRerendering] = useState(false);
@@ -231,7 +234,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (res.ok && data.ok) {
                 toast.success(data.skipped ? 'Обкладинка вже існує' : 'Обкладинку згенеровано');
                 const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
-                if (pr.ok) { const { photos } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); }
+                if (pr.ok) { const { photos, coverImageUrl } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); }
                 fetchOrder();
             } else {
                 toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
@@ -982,7 +985,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <div key={idx} style={itemRowStyle}>
                                     <div style={itemThumbStyle}>
                                         {(() => {
-                                            const thumb = item.image || itemImages[item.slug || item.product_slug] || itemImages[item.product_id];
+                                            const catalog = item.image || itemImages[item.slug || item.product_slug] || itemImages[item.product_id];
+                                            // For products where the meaningful image is the CUSTOMER'S choice, not the
+                                            // generic catalog photo: magnets show the uploaded/exported print, travel
+                                            // books show the chosen cover. Those files are already loaded into
+                                            // uploadedFiles from /api/designer/order-photos (signed URLs).
+                                            const key = `${item.slug || item.product_slug || ''} ${item.product_name || item.name || ''}`.toLowerCase();
+                                            const isMagnet = /magn|магн/.test(key);
+                                            const isTravel = /travel|тревел/.test(key);
+                                            const coverUrl = uploadedFiles.find((f: any) => f.isCover)?.url;
+                                            const exportUrl = uploadedFiles.find((f: any) => f.isExport)?.url;
+                                            const thumb = isMagnet ? (exportUrl || catalog)
+                                                : isTravel ? (designCoverUrl || coverUrl || exportUrl || catalog)
+                                                : (catalog || coverUrl);
                                             return thumb
                                                 ? <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 : <Package size={24} color="#cbd5e1" />;
