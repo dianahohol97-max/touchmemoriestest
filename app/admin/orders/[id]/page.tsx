@@ -993,11 +993,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             const key = `${item.slug || item.product_slug || ''} ${item.product_name || item.name || ''}`.toLowerCase();
                                             const isMagnet = /magn|магн/.test(key);
                                             const isTravel = /travel|тревел/.test(key);
+                                            // A file whose product_id matches THIS item (magnet prints are stored
+                                            // per-product under the customer folder) — so each item shows its own
+                                            // image instead of borrowing the first export in the order.
+                                            const productMatch = uploadedFiles.find((f: any) => f.product_id && f.product_id === item.product_id)?.url;
                                             const coverUrl = uploadedFiles.find((f: any) => f.isCover)?.url;
                                             const exportUrl = uploadedFiles.find((f: any) => f.isExport)?.url;
-                                            const thumb = isMagnet ? (exportUrl || catalog)
-                                                : isTravel ? (designCoverUrl || coverUrl || exportUrl || catalog)
-                                                : (catalog || coverUrl);
+                                            const thumb = isMagnet ? (productMatch || exportUrl || catalog)
+                                                : isTravel ? (designCoverUrl || coverUrl || productMatch || exportUrl || catalog)
+                                                : (catalog || productMatch || coverUrl);
                                             return thumb
                                                 ? <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 : <Package size={24} color="#cbd5e1" />;

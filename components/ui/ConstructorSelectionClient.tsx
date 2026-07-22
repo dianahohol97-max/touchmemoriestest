@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer';
 import { Play } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import DesignerConfigModal from '../DesignerConfigModal';
 
 interface ConstructorMediaMeta {
@@ -45,6 +45,21 @@ function TrimmedVideo({ src, poster, start, end }: { src: string; poster?: strin
     const s = Number(start) > 0 ? Number(start) : 0;
     const e = Number(end) > 0 ? Number(end) : 0;
     const managed = s > 0 || e > 0;
+    // Attach the source and start playback once the element is in view. We set
+    // `src` on the element and call load()/play() explicitly: appending a
+    // <source> child to an already-mounted <video> does NOT trigger the resource
+    // selection algorithm, so the old lazy `{inView && <source/>}` never loaded
+    // and the video stayed frozen on the poster image.
+    useEffect(() => {
+        const v = ref.current;
+        if (!v || !inView) return;
+        if (v.getAttribute('src') !== src) {
+            v.setAttribute('src', src);
+            v.load();
+        }
+        const p = v.play();
+        if (p && typeof (p as any).catch === 'function') (p as Promise<void>).catch(() => {});
+    }, [inView, src]);
     return (
         <video
             ref={(node) => { ref.current = node; inViewRef(node as any); }}
@@ -60,9 +75,7 @@ function TrimmedVideo({ src, poster, start, end }: { src: string; poster?: strin
                 if (stop > 0 && v.currentTime >= stop - 0.05) { try { v.currentTime = s; v.play(); } catch {} }
             }}
             onEnded={() => { const v = ref.current; if (v) { try { v.currentTime = s; v.play(); } catch {} } }}
-        >
-            {inView && <source src={src} type="video/mp4" />}
-        </video>
+        />
     );
 }
 
