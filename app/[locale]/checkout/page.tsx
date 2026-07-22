@@ -755,6 +755,11 @@ export default function CheckoutPage() {
             // the customer left unchecked stays in the cart for a separate order.
             removeItems(cartItemIds);
             try { sessionStorage.removeItem('tmCheckoutItemIds'); } catch { /* ignore */ }
+            // The referral/promo code has now been consumed by this order — clear
+            // it so a stale code doesn't silently auto-apply to a future order.
+            // (ReferralCapture intentionally no longer deletes it, so checkout owns
+            // the end of its lifecycle.)
+            try { localStorage.removeItem('tm_ref_code'); localStorage.removeItem('tm_ref_captured'); } catch { /* ignore */ }
             toast.dismiss();
             window.location.href = invoiceData.pageUrl;
 
