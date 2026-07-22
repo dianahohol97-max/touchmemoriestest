@@ -24,7 +24,8 @@ function itemTotal(item: any): number {
  * Idempotent (a UNIQUE(order_id) on agency_commissions + an existence check
  * make webhook retries safe). Looks up the agency by the order's promo_code,
  * splits the order items into travelbook vs other subtotals, applies the
- * agency's rates (default 10% travelbook / 3% other), writes one
+ * agency's OWN per-partner rates (travelbook_rate / other_rate — set at
+ * approval, defaulting to 5% travelbook / 3% other), writes one
  * agency_commissions row, and bumps the agency's total_earned.
  *
  * Returns the commission amount granted, or 0 if no agency code applied.
