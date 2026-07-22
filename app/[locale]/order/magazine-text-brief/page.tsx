@@ -379,6 +379,11 @@ function MagazineTextBriefContent() {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
+          // Denormalised full name the admin orders list/queue renders in the
+          // «Клієнт» column. Without it the order showed up blank there even
+          // though the contact fields below were saved — looking like "paid but
+          // no data". Fall back to whichever name part is present.
+          customer_name: [firstName, lastName].map(s => s.trim()).filter(Boolean).join(' ') || null,
           customer_first_name: firstName,
           customer_last_name: lastName,
           customer_phone: phone,

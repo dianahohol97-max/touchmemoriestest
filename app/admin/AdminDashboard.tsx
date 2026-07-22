@@ -238,7 +238,7 @@ export default function AdminDashboard() {
                                         </span>
                                         <span style={{ fontWeight: 700, fontSize: 14, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</span>
                                     </div>
-                                    <div style={{ fontSize: 13, color: '#374151', marginTop: 3 }}>{o.customer_name} · {Array.isArray(o.items) ? o.items.length : 0} шт</div>
+                                    <div style={{ fontSize: 13, color: '#374151', marginTop: 3 }}>{o.customer_name || o.customer_phone || o.customer_email || o.customer_telegram || '—'} · {Array.isArray(o.items) ? o.items.length : 0} шт</div>
                                     <OrderTags order={o} />
 
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, flexWrap: 'wrap' }}>
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
                                             </div>
                                             <OrderTags order={o} />
                                         </td>
-                                        <td style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{o.customer_name}</td>
+                                        <td style={{ padding: '10px 14px', fontSize: 13, color: '#374151' }}>{o.customer_name || o.customer_phone || o.customer_email || o.customer_telegram || '—'}</td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, color: '#6b7280' }}>{Array.isArray(o.items) ? o.items.length : 0} шт</td>
                                         <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap' }}>{fmt(Number(o.total || 0))} ₴</td>
                                         <td style={{ padding: '10px 14px' }}>

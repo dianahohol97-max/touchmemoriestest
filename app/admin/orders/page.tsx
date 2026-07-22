@@ -403,10 +403,10 @@ export default function OrdersPage() {
                                 </td>
                                 <td style={tdStyle}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={avatarStyle}>{order.customer_name?.[0]}</div>
+                                        <div style={avatarStyle}>{(order.customer_name || order.customer_phone || '?')?.[0]}</div>
                                         <div>
                                             <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                {order.customer_name}
+                                                {order.customer_name || order.customer_email || order.customer_telegram || 'Без імені'}
 
                                             </div>
                                             <div style={{ fontSize: '12px', color: '#64748b' }}>{order.customer_phone}</div>
@@ -545,9 +545,9 @@ export default function OrdersPage() {
 
                         {/* Customer */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <div style={avatarStyle}>{order.customer_name?.[0]}</div>
+                            <div style={avatarStyle}>{(order.customer_name || order.customer_phone || '?')?.[0]}</div>
                             <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer_name}</div>
+                                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer_name || order.customer_email || order.customer_telegram || 'Без імені'}</div>
                                 <div style={{ fontSize: 12, color: '#64748b' }}>{order.customer_phone}</div>
                             </div>
                         </div>
