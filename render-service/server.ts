@@ -159,6 +159,17 @@ app.post('/render', async (req, res) => {
     const { project, printSpec } = await metaRes.json();
     const config = project?.overlays_data?.config || {};
 
+    // Travel books and magazines are printed page-by-page (one file per physical
+    // page) rather than as the 2-page spreads photobooks use. Detected the same
+    // way resolveSizeKey picks the size — by product slug.
+    const _slug = String(config?.productSlug || '').toLowerCase();
+    const splitToPages =
+      _slug.includes('travel') ||
+      _slug.includes('magazine') ||
+      _slug.includes('journal') ||
+      _slug.includes('zhurnal') ||
+      _slug.includes('fotozhurnal');
+
     // Derive the user/order path so we store next to the originals. Books store
     // under .../originals/...; calendars store originals in order-files under
     // {user}/{cartItemId}/... — handle both so output lands in a sane folder.
@@ -337,27 +348,57 @@ app.post('/render', async (req, res) => {
           .resize(contentPxW, contentPxH, { fit: 'fill' })  // aspect already matches within 1%
           .toBuffer();
 
-        const jpeg = await sharp(scaled)
-          .extend({
-            left: Math.floor(dx / 2),
-            right: dx - Math.floor(dx / 2),
-            top: Math.floor(dy / 2),
-            bottom: dy - Math.floor(dy / 2),
-            extendWith: 'copy',   // replicate edge pixels = bleed / cover wrap
-          })
-          .withMetadata({ density: DPI })
-          .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
-          .toBuffer();
+        const bx = Math.floor(dx / 2);   // per-side horizontal bleed
+        const by = Math.floor(dy / 2);   // per-side vertical bleed
 
-        console.log(`[render] spread ${spread}: content ${contentPxW}x${contentPxH} + bleed → ${pxW}x${pxH}`);
+        if (splitToPages && !isCover) {
+          // Travel books / magazines: cut the clean 2-page content down the
+          // gutter and bleed each half on all four sides, so the workshop gets
+          // one 300-DPI file per physical page instead of a 2-page spread.
+          const halfW = Math.floor(contentPxW / 2);
+          const leftPageNo = (spread - 1) * 2 + 1;   // spread 1 → pages 1,2; spread 2 → 3,4; …
+          const halves = [
+            { left: 0, width: halfW, pageNo: leftPageNo },
+            { left: halfW, width: contentPxW - halfW, pageNo: leftPageNo + 1 },
+          ];
+          for (const h of halves) {
+            const pageJpeg = await sharp(scaled)
+              .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
+              .extend({ left: bx, right: bx, top: by, bottom: by, extendWith: 'copy' })
+              .withMetadata({ density: DPI })
+              .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+              .toBuffer();
+            const storagePath = `${orderPrefix}/print/${String(h.pageNo).padStart(2, '0')}_page.jpg`;
+            const { error: upErr } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .upload(storagePath, pageJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+            if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
+            uploaded.push(storagePath);
+          }
+          console.log(`[render] spread ${spread}: split into pages ${leftPageNo},${leftPageNo + 1}`);
+        } else {
+          const jpeg = await sharp(scaled)
+            .extend({
+              left: bx,
+              right: dx - bx,
+              top: by,
+              bottom: dy - by,
+              extendWith: 'copy',   // replicate edge pixels = bleed / cover wrap
+            })
+            .withMetadata({ density: DPI })
+            .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+            .toBuffer();
 
-        const fileName = isCover ? '00_cover.jpg' : `${String(spread).padStart(2, '0')}_spread.jpg`;
-        const storagePath = `${orderPrefix}/print/${fileName}`;
-        const { error: upErr } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(storagePath, jpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-        if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
-        uploaded.push(storagePath);
+          console.log(`[render] spread ${spread}: content ${contentPxW}x${contentPxH} + bleed → ${pxW}x${pxH}`);
+
+          const fileName = isCover ? '00_cover.jpg' : `${String(spread).padStart(2, '0')}_spread.jpg`;
+          const storagePath = `${orderPrefix}/print/${fileName}`;
+          const { error: upErr } = await supabase.storage
+            .from(STORAGE_BUCKET)
+            .upload(storagePath, jpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+          if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
+          uploaded.push(storagePath);
+        }
       } finally {
         await page.close();
         await recycleBrowserIfNeeded();
