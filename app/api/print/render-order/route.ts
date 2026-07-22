@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
         const rows = uploaded.map((path) => {
           const fileName = path.split('/').pop() || path;
           const isCover = /(^|\/)00_cover\.jpg$/i.test(path) || /cover/i.test(fileName);
+          // Travel books / magazines export one file per page (NN_page.jpg);
+          // photobooks export 2-page spreads (NN_spread.jpg).
+          const isPage = /_page\.jpg$/i.test(fileName);
           // 00_cover -> page 1, 01_spread -> page 2, ... (cover first).
           const m = fileName.match(/^(\d+)_/);
           const pageNumber = m ? parseInt(m[1], 10) + 1 : null;
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
             file_path: path,
             file_name: fileName,
             file_type: 'export',
-            file_category: isCover ? 'book-cover' : 'book-spread',
+            file_category: isCover ? 'book-cover' : isPage ? 'book-page' : 'book-spread',
             product_type: project.product_type || 'photobook',
             bucket_name: 'photobook-uploads',
             mime_type: 'image/jpeg',
