@@ -197,7 +197,8 @@
     "read_more": "Czytaj więcej",
     "ideas_title": "Pomysły i Inspiracja",
     "read": "Czytaj",
-    "read_all": "Czytaj wszystkie artykuły"
+    "read_all": "Czytaj wszystkie artykuły",
+    "min_read": "min czytania"
   },
   "wedding": {
     "newspaper": "Gazeta ślubna",
@@ -295,7 +296,10 @@
     "loading": "Ładowanie...",
     "not_found": "Produkt nie znaleziony",
     "upload_photos": "Prześlij zdjęcia",
-    "or_drag": "lub przeciągnij tutaj"
+    "or_drag": "lub przeciągnij tutaj",
+    "select_photos_btn": "Wybierz zdjęcia",
+    "glossy": "Błyszczący",
+    "matte": "Matowy"
   },
   "constructor": {
     "cover": "Okładka",
@@ -2174,5 +2178,21 @@
       "title": "Marketingowe",
       "description": "Umożliwiają wyświetlanie odpowiednich reklam w mediach społecznościowych (Meta Pixel)."
     }
+  },
+  "qr_generator": {
+    "label_compact": "KOD QR DO ZAMÓWIENIA",
+    "placeholder": "URL lub tekst dla QR...",
+    "hint_enter": "Wpisz URL i naciśnij ↵",
+    "hint_enter_above": "Wpisz URL powyżej",
+    "size_label": "Rozmiar",
+    "color_label": "Kolor",
+    "url_text_label": "URL lub tekst",
+    "generate_title": "Wygeneruj kod QR",
+    "download": "Pobierz PNG",
+    "downloading": "Pobieranie...",
+    "copy_url": "Kopiuj URL",
+    "copied": "Skopiowano!",
+    "add_to_design": "Dodaj do projektu",
+    "note": "Kod QR można pobrać i dodać do dowolnego edytora jako obraz"
   }
 }
