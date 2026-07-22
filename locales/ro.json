@@ -197,7 +197,8 @@
     "read_more": "Citește mai mult",
     "ideas_title": "Idei și Inspirație",
     "read": "Citește",
-    "read_all": "Citește toate articolele"
+    "read_all": "Citește toate articolele",
+    "min_read": "min de citire"
   },
   "wedding": {
     "newspaper": "Ziar de nuntă",
@@ -295,7 +296,10 @@
     "loading": "Se încarcă...",
     "not_found": "Produs negăsit",
     "upload_photos": "Încărcați fotografii",
-    "or_drag": "sau trageți aici"
+    "or_drag": "sau trageți aici",
+    "select_photos_btn": "Alege fotografii",
+    "glossy": "Lucios",
+    "matte": "Mat"
   },
   "constructor": {
     "cover": "Copertă",
@@ -2174,5 +2178,21 @@
       "title": "Marketing",
       "description": "Permit afișarea de reclame relevante pe rețele sociale (Meta Pixel)."
     }
+  },
+  "qr_generator": {
+    "label_compact": "COD QR PENTRU COMANDĂ",
+    "placeholder": "URL sau text pentru QR...",
+    "hint_enter": "Introdu URL și apasă ↵",
+    "hint_enter_above": "Introdu URL-ul mai sus",
+    "size_label": "Dimensiune",
+    "color_label": "Culoare",
+    "url_text_label": "URL sau text",
+    "generate_title": "Generează cod QR",
+    "download": "Descarcă PNG",
+    "downloading": "Se descarcă...",
+    "copy_url": "Copiază URL",
+    "copied": "Copiat!",
+    "add_to_design": "Adaugă în design",
+    "note": "Codul QR poate fi descărcat și adăugat în orice editor ca imagine"
   }
 }

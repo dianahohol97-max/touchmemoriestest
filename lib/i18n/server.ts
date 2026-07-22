@@ -10,17 +10,20 @@ import de from '@/locales/de.json';
 
 const TRANSLATIONS: Record<string, any> = { uk, en, ro, pl, de };
 
-function getNestedValue(obj: any, path: string): string {
+function getNestedValue(obj: any, path: string): string | undefined {
   const keys = path.split('.');
   let val = obj;
   for (const key of keys) {
-    if (val == null) return path;
+    if (val == null) return undefined;
     val = val[key];
   }
-  return typeof val === 'string' ? val : path;
+  return typeof val === 'string' ? val : undefined;
 }
 
 export function getServerT(locale: string) {
   const dict = TRANSLATIONS[locale] || TRANSLATIONS['uk'];
-  return (key: string): string => getNestedValue(dict, key);
+  // Fall back to Ukrainian for any key missing in this locale, then to the raw
+  // key as a last resort — previously a missing key returned the dotted path.
+  return (key: string): string =>
+    getNestedValue(dict, key) ?? getNestedValue(TRANSLATIONS['uk'], key) ?? key;
 }

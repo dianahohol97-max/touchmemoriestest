@@ -197,7 +197,8 @@
     "read_more": "Mehr lesen",
     "ideas_title": "Ideen & Inspiration",
     "read": "Lesen",
-    "read_all": "Alle Artikel lesen"
+    "read_all": "Alle Artikel lesen",
+    "min_read": "Min. Lesezeit"
   },
   "wedding": {
     "newspaper": "Hochzeitszeitung",
@@ -295,7 +296,10 @@
     "loading": "Wird geladen...",
     "not_found": "Produkt nicht gefunden",
     "upload_photos": "Fotos hochladen",
-    "or_drag": "oder hierher ziehen"
+    "or_drag": "oder hierher ziehen",
+    "select_photos_btn": "Fotos auswählen",
+    "glossy": "Glänzend",
+    "matte": "Matt"
   },
   "constructor": {
     "cover": "Umschlag",
@@ -2174,5 +2178,21 @@
       "title": "Marketing",
       "description": "Ermöglichen relevante Werbung in sozialen Netzwerken (Meta Pixel)."
     }
+  },
+  "qr_generator": {
+    "label_compact": "QR-CODE FÜR BESTELLUNG",
+    "placeholder": "URL oder Text für QR...",
+    "hint_enter": "URL eingeben und ↵ drücken",
+    "hint_enter_above": "URL oben eingeben",
+    "size_label": "Größe",
+    "color_label": "Farbe",
+    "url_text_label": "URL oder Text",
+    "generate_title": "QR-Code generieren",
+    "download": "PNG herunterladen",
+    "downloading": "Wird heruntergeladen...",
+    "copy_url": "URL kopieren",
+    "copied": "Kopiert!",
+    "add_to_design": "Zum Design hinzufügen",
+    "note": "Der QR-Code kann heruntergeladen und als Bild in jeden Editor eingefügt werden"
   }
 }

@@ -34,14 +34,18 @@ const I18nContext = createContext<I18nContextType>({
     isInternational: false,
 });
 
-function getNestedValue(obj: any, path: string): string {
+// Returns undefined (not the key) on a miss, so t()'s `|| getNestedValue('uk')`
+// fallback actually runs. Previously this returned `path`, which is truthy, so
+// the uk fallback was dead code and any missing key rendered as the raw dotted
+// key string in the UI.
+function getNestedValue(obj: any, path: string): string | undefined {
     const keys = path.split('.');
     let val = obj;
     for (const key of keys) {
-        if (val == null) return path;
+        if (val == null) return undefined;
         val = val[key];
     }
-    return typeof val === 'string' ? val : path;
+    return typeof val === 'string' ? val : undefined;
 }
 
 export function I18nProvider({
