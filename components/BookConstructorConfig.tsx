@@ -619,7 +619,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     // `product` so it only fires once the product is actually loaded.
     useEffect(() => {
         if (loading || !product) return;
-        trackFunnelStep('constructor_start', {
+        trackFunnelStep('open_constructor', {
             product_slug: productSlug,
             product_type: getProductType(),
         });

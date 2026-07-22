@@ -469,7 +469,7 @@ export default function BookPhotoUpload() {
             currentParams.set('product', config?.productSlug || '');
             // Photos are in — the customer has committed real effort. Drop-off
             // after this step is an editor problem, before it is an upload problem.
-            trackFunnelStep('photos_uploaded', {
+            trackFunnelStep('upload_photo', {
                 product_slug: config?.productSlug || undefined,
                 photo_count: photos.length,
             });
