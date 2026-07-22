@@ -3259,7 +3259,7 @@ export default function BookLayoutEditor() {
   persistDraftRef.current = persistDraft;
 
   // "Real work started" signal. Anyone who has filled three spreads has spent
-  // ~10 minutes here; the gap between photos_uploaded and this step is where a
+  // ~10 minutes here; the gap between upload_photo and this step is where a
   // confusing editor shows up in the data. Uses freeSlots too — free placement
   // is a valid way to fill a spread and ignoring it would undercount.
   const filledSpreads = React.useMemo(() => {

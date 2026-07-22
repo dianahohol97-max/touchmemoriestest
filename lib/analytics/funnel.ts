@@ -9,9 +9,9 @@
  * These events fill the gap:
  *
  *   view_item            (product page — already fired by AnalyticsProvider)
- *   → constructor_start    opened the configurator (/order/book)
+ *   → open_constructor     opened the configurator (/order/book)
  *   → constructor_config   picked size/cover/pages, moved on to upload
- *   → photos_uploaded      uploaded photos, entered the layout editor
+ *   → upload_photo         uploaded photos, entered the layout editor
  *   → spread_completed     filled ≥3 spreads (first "real work" signal)
  *   → draft_saved          a draft persisted to Supabase (recoverable customer)
  *   → add_to_cart          finished the book
@@ -27,9 +27,9 @@
  */
 
 export type FunnelStep =
-  | 'constructor_start'
+  | 'open_constructor'
   | 'constructor_config'
-  | 'photos_uploaded'
+  | 'upload_photo'
   | 'spread_completed'
   | 'draft_saved';
 
@@ -106,9 +106,9 @@ export function trackFunnelStep(step: FunnelStep, params: FunnelParams = {}): vo
 export function resetFunnel(productSlug?: string): void {
   if (typeof window === 'undefined') return;
   const steps: FunnelStep[] = [
-    'constructor_start',
+    'open_constructor',
     'constructor_config',
-    'photos_uploaded',
+    'upload_photo',
     'spread_completed',
     'draft_saved',
   ];
