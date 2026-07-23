@@ -7,6 +7,7 @@ import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, sh
 import { getEurRate, getIntlShippingConfig } from '@/lib/i18n/exchangeRate';
 import { getB2bSession } from '@/lib/b2b/session';
 import { getRoleConfig } from '@/lib/b2b/config';
+import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { checkCertificateForPayment, reserveCertificateForOrder, releaseCertificateReservation } from '@/lib/certificates/redeemCertificate';
 import type { Currency } from '@/lib/i18n/currency';
 
@@ -238,13 +239,16 @@ export async function POST(request: NextRequest) {
   //   (promo codes, split-payment rounding). Options can only add to
   //   the base price, never subtract below it, so this is a safe floor.
   // ──────────────────────────────────────────────────────────────
-  // The 0.8×base floor (in BASE UAH) computed below, hoisted so the CHARGED
-  // amount can be floored too — not just `subtotal`. Without this, the floor
-  // guarded subtotal while the money followed the client's `total`, and the
-  // raw `subtotal − total` discount was unbounded: subtotal=2000 (passes the
-  // floor) with total=1 produced a 1 ₴ order that create-invoice + webhook
-  // faithfully billed. 0 means "no floor known" (unknown slugs) → no cap.
+  // The (B2B-adjusted) base price in BASE UAH, computed below and hoisted so the
+  // CHARGED amount can be floored too — not just `subtotal`. Without this, the
+  // floor guarded subtotal while the money followed the client's `total`, and
+  // the raw `subtotal − total` discount was unbounded: subtotal=2000 (passes the
+  // floor) with total=1 produced a 1 ₴ order. 0 means "no floor known" (unknown
+  // slugs) → no cap.
   let priceFloorBase = 0;
+  // Integer-rounding tolerance only (per-item B2B rounding, split-payment halves).
+  // NOT a discount allowance — the discount ceiling below is the exact rule amount.
+  const PRICE_EPS = 5;
   {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
@@ -280,9 +284,11 @@ export async function POST(request: NextRequest) {
           const b2bFactor = (cat && b2bCats.has(cat)) ? (1 - b2bPct / 100) : 1;
           return sum + base * qty * b2bFactor;
         }, 0);
-        // Allow up to 20% below the (B2B-adjusted) base, but never less than 1₴
-        const floor = Math.max(1, Math.round(baseFloor * 0.80));
-        priceFloorBase = floor; // hoisted for the charged-amount floor below
+        // No buffer: the subtotal must cover the full (B2B-adjusted) base price.
+        // Options only ADD to the base, so an honest subtotal is always >= this;
+        // a tampered low subtotal is rejected. PRICE_EPS is rounding tolerance only.
+        priceFloorBase = Math.round(baseFloor); // exact base (+ any certificate below)
+        const floor = Math.max(1, priceFloorBase - PRICE_EPS);
         if (subtotal < floor) {
           console.warn(`orders/submit: subtotal ${subtotal} < floor ${floor} (base ${baseFloor}) for slugs [${slugs.join(', ')}]`);
           return NextResponse.json(
@@ -318,9 +324,8 @@ export async function POST(request: NextRequest) {
           { status: 422 },
         );
       }
-      // Fold into the charged-amount floor so no promo/discount can drop the
-      // paid total below the certificate value either.
-      priceFloorBase += certFloor;
+      // (The charged total is separately required to cover the full certificate
+      // face value in the discount-ceiling block below.)
     }
   }
 
@@ -493,17 +498,52 @@ export async function POST(request: NextRequest) {
   // in it — they are re-validated and applied server-side below).
   const baseDiscount = Math.max(0, Math.min(subtotal, subtotal - total));
 
-  // Cap that client discount against the SAME 0.8×base floor used for
-  // subtotal, so the charged product amount can't be discounted below the
-  // floor via a tampered `total`. The floor already bakes in the 20% promo
-  // buffer and any B2B discount, so legitimate promos pass untouched;
-  // certificate/bonus (applied after) may still legitimately lower the total.
-  if (priceFloorBase > 0 && (subtotal - baseDiscount) < priceFloorBase) {
-    console.warn(`orders/submit: discounted product amount ${subtotal - baseDiscount} < floor ${priceFloorBase} (subtotal ${subtotal}, total ${total})`);
+  // No buffer: the applied product discount may not exceed the EXACT rule-based
+  // amount — the promo code's own rate (percent/fixed) plus the automatic
+  // duplicate-copies discount. Anything above that (the old blanket 20% buffer,
+  // or a tampered `total`) is rejected. Server and client compute the same way,
+  // so legitimate discounts match to the ₴.
+  let allowedDiscount = duplicateDiscountForCart(
+    (body.items as any[]).map((it) => ({ slug: it.slug, price: Number(it.unit_price) || 0, qty: Number(it.quantity) || 1 }))
+  );
+  const capPromoId = (body as any).promo_id;
+  if (capPromoId && typeof capPromoId === 'string') {
+    const { data: capPromo } = await admin
+      .from('promo_codes')
+      .select('type, value')
+      .eq('id', capPromoId)
+      .maybeSingle();
+    if (capPromo?.type === 'percent') {
+      allowedDiscount += Math.round(subtotal * (Number(capPromo.value) / 100) * 100) / 100;
+    } else if (capPromo?.type === 'fixed') {
+      allowedDiscount += Math.min(Number(capPromo.value), subtotal);
+    }
+  } else if ((body as any).referral_code_id) {
+    // Flat-10% referral_codes path.
+    allowedDiscount += Math.round(subtotal * 0.10 * 100) / 100;
+  }
+
+  if (baseDiscount > allowedDiscount + PRICE_EPS) {
+    console.warn(`orders/submit: applied discount ${baseDiscount} > allowed ${allowedDiscount} (subtotal ${subtotal}, total ${total})`);
     return NextResponse.json(
-      { error: 'discount_too_high', detail: 'The applied discount exceeds the maximum allowed for these products.' },
+      { error: 'discount_too_high', detail: 'The applied discount exceeds the amount the rules allow for these products.' },
       { status: 422 },
     );
+  }
+
+  // A gift certificate is never discountable — the charged total must still
+  // cover its full face value even after any legitimate product discount.
+  {
+    const certFace = (body.items as any[]).reduce((sum, it) => {
+      const isCert = it?.metadata?.certificateType || it?.options?.['Номер'];
+      return isCert ? sum + Math.max(0, Math.round(Number(it?.metadata?.amount ?? it?.unit_price ?? 0))) : sum;
+    }, 0);
+    if (certFace > 0 && total < certFace - PRICE_EPS) {
+      return NextResponse.json(
+        { error: 'discount_too_high', detail: 'A gift certificate must be paid at its full face value.' },
+        { status: 422 },
+      );
+    }
   }
 
   const markedSubtotal = Math.round(subtotal * priceMultiplier);
