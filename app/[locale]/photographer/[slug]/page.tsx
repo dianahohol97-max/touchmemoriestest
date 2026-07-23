@@ -4,6 +4,7 @@ import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, type
 import { getLandingTheme } from '@/lib/photographers/themes';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 import BookingSection, { type PublicSlot } from './BookingSection';
+import PortfolioGallery from './PortfolioGallery';
 
 export const revalidate = 300;
 
@@ -158,13 +159,6 @@ export default async function PhotographerLandingPage({ params }: Props) {
     </div>
   );
 
-  // Portfolio grid presets — genuinely different rhythm per theme.
-  const gridStyle: React.CSSProperties =
-    t.grid === 'portrait'
-      ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }
-      : { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 };
-  const tileAspect = t.grid === 'portrait' ? '4 / 5' : '1 / 1';
-
   return (
     <div style={{ minHeight: '100vh', background: t.bg, color: t.ink }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
@@ -238,21 +232,7 @@ export default async function PhotographerLandingPage({ params }: Props) {
       {portfolio.length > 0 && (
         <section style={{ maxWidth: 1000, margin: '0 auto', padding: '8px 16px 16px' }}>
           {sectionH2('Портфоліо', 'Роботи')}
-          <div style={t.grid === 'portrait' ? gridStyle : { ...gridStyle, gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 45%), 1fr))' }}>
-            {portfolio.map((url, i) => {
-              const feature = t.grid === 'feature' && i === 0 && portfolio.length >= 3;
-              return (
-                <div key={url} style={{
-                  position: 'relative', overflow: 'hidden', borderRadius: t.radius, background: t.tileBg,
-                  ...(feature ? { gridColumn: 'span 2', gridRow: 'span 2' } : {}),
-                }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={`${p.name} — портфоліо, фото ${i + 1}`} loading={i < 3 ? 'eager' : 'lazy'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', aspectRatio: tileAspect, display: 'block', transition: 'transform .5s' }} />
-                </div>
-              );
-            })}
-          </div>
+          <PortfolioGallery photos={portfolio} name={p.name} grid={t.grid} radius={t.radius} tileBg={t.tileBg} />
         </section>
       )}
 
