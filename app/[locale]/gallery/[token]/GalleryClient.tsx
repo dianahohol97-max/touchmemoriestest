@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import styles from './GalleryClient.module.css';
 
-interface Photo { id: string; file_name: string; size_bytes: number | null; url: string }
+interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean }
 interface GalleryData {
   title: string;
   client_name: string | null;
@@ -30,6 +30,7 @@ export default function GalleryClient({ token }: { token: string }) {
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [zipping, setZipping] = useState(false);
   const [zipProgress, setZipProgress] = useState(0);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -43,16 +44,44 @@ export default function GalleryClient({ token }: { token: string }) {
     })();
   }, [token]);
 
+  // Photos currently on screen (all, or the client's selection when filtering).
+  const visible = useMemo(
+    () => (data ? (onlyFavorites ? data.photos.filter(p => p.favorite) : data.photos) : []),
+    [data, onlyFavorites],
+  );
+
+  // If the client clears their last pick while filtering, drop back to all
+  // photos so they aren't stranded on an empty view (the filter toggle hides
+  // itself once the count reaches 0).
+  useEffect(() => {
+    if (onlyFavorites && data && !data.photos.some(p => p.favorite)) setOnlyFavorites(false);
+  }, [onlyFavorites, data]);
+
   useEffect(() => {
     if (lightbox === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setLightbox(null);
-      if (e.key === 'ArrowRight') setLightbox(i => (i === null ? null : Math.min(i + 1, (data?.photos.length || 1) - 1)));
+      if (e.key === 'ArrowRight') setLightbox(i => (i === null ? null : Math.min(i + 1, visible.length - 1)));
       if (e.key === 'ArrowLeft') setLightbox(i => (i === null ? null : Math.max(i - 1, 0)));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [lightbox, data?.photos.length]);
+  }, [lightbox, visible.length]);
+
+  const toggleFavorite = async (photoId: string, next: boolean) => {
+    // Optimistic: flip locally first, revert if the request fails.
+    setData(d => d ? { ...d, photos: d.photos.map(p => p.id === photoId ? { ...p, favorite: next } : p) } : d);
+    try {
+      const res = await fetch(`/api/gallery/${encodeURIComponent(token)}/favorite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoId, favorite: next }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setData(d => d ? { ...d, photos: d.photos.map(p => p.id === photoId ? { ...p, favorite: !next } : p) } : d);
+    }
+  };
 
   const downloadAll = async () => {
     if (!data || zipping) return;
@@ -98,6 +127,9 @@ export default function GalleryClient({ token }: { token: string }) {
     p.website && { label: 'Сайт', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
   ].filter(Boolean) as { label: string; value: string; href: string }[];
 
+  const favCount = data.photos.filter(ph => ph.favorite).length;
+  const current = lightbox !== null ? visible[lightbox] : null;
+
   return (
     <div className={styles.page}>
       {/* Photographer business-card header */}
@@ -134,10 +166,26 @@ export default function GalleryClient({ token }: { token: string }) {
         </div>
       ) : (
         <>
+          {data.photos.length > 0 && (
+            <div className={styles.selectHint}>
+              Натисніть <span className={styles.heartInline}>♡</span> на фото, які хочете надрукувати — фотограф побачить ваш вибір.
+            </div>
+          )}
+
           <div className={styles.toolbar}>
             <span className={styles.countdown}>
               ⏳ Доступно ще {data.days_left} {data.days_left === 1 ? 'день' : data.days_left < 5 ? 'дні' : 'днів'}
             </span>
+            {favCount > 0 && (
+              <button
+                type="button"
+                onClick={() => { setOnlyFavorites(v => !v); setLightbox(null); }}
+                className={`${styles.favFilter} ${onlyFavorites ? styles.favFilterOn : ''}`}
+                aria-pressed={onlyFavorites}
+              >
+                ♥ Обрані · {favCount}{onlyFavorites ? ' — показати всі' : ''}
+              </button>
+            )}
             {data.photos.length > 0 && (
               <button onClick={downloadAll} disabled={zipping} className={styles.downloadBtn}>
                 {zipping ? `Пакуємо… ${zipProgress}%` : '⬇ Завантажити все (ZIP)'}
@@ -145,31 +193,53 @@ export default function GalleryClient({ token }: { token: string }) {
             )}
           </div>
 
-          <div className={styles.grid}>
-            {data.photos.map((photo, i) => (
-              <button key={photo.id} onClick={() => setLightbox(i)} className={styles.tile} aria-label={`Відкрити фото ${i + 1}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.url} alt={photo.file_name} loading="lazy" />
-              </button>
-            ))}
-          </div>
+          {visible.length === 0 ? (
+            <div className={styles.emptyFav}>Ви ще не обрали жодного фото.</div>
+          ) : (
+            <div className={styles.grid}>
+              {visible.map((photo, i) => (
+                <div key={photo.id} className={styles.tile}>
+                  <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`Відкрити фото ${i + 1}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.url} alt={photo.file_name} loading="lazy" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleFavorite(photo.id, !photo.favorite)}
+                    className={`${styles.heart} ${photo.favorite ? styles.heartOn : ''}`}
+                    aria-label={photo.favorite ? 'Прибрати з обраних' : 'Додати в обрані'}
+                    aria-pressed={photo.favorite}
+                  >
+                    {photo.favorite ? '♥' : '♡'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
       {/* Lightbox */}
-      {lightbox !== null && data.photos[lightbox] && (
+      {current && (
         <div onClick={() => setLightbox(null)} className={styles.lb}>
           <div className={styles.lbCounter} onClick={e => e.stopPropagation()}>
-            {lightbox + 1} / {data.photos.length}
+            {(lightbox ?? 0) + 1} / {visible.length}
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.photos[lightbox].url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
+          <img src={current.url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
           <div className={styles.lbBar} onClick={e => e.stopPropagation()}>
-            <button className={styles.lbBtn} onClick={() => setLightbox(Math.max(lightbox - 1, 0))} disabled={lightbox === 0}>← Попереднє</button>
-            <a href={data.photos[lightbox].url} download={data.photos[lightbox].file_name} className={styles.lbDownload}>
+            <button className={styles.lbBtn} onClick={() => setLightbox(Math.max((lightbox ?? 0) - 1, 0))} disabled={lightbox === 0}>← Попереднє</button>
+            <button
+              type="button"
+              className={`${styles.lbBtn} ${current.favorite ? styles.lbHeartOn : ''}`}
+              onClick={() => toggleFavorite(current.id, !current.favorite)}
+            >
+              {current.favorite ? '♥ В обраних' : '♡ В обрані'}
+            </button>
+            <a href={current.url} download={current.file_name} className={styles.lbDownload}>
               Завантажити
             </a>
-            <button className={styles.lbBtn} onClick={() => setLightbox(Math.min(lightbox + 1, data.photos.length - 1))} disabled={lightbox === data.photos.length - 1}>Наступне →</button>
+            <button className={styles.lbBtn} onClick={() => setLightbox(Math.min((lightbox ?? 0) + 1, visible.length - 1))} disabled={lightbox === visible.length - 1}>Наступне →</button>
             <button className={styles.lbBtn} onClick={() => setLightbox(null)}>✕</button>
           </div>
         </div>

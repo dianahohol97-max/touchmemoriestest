@@ -83,7 +83,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const admin = getAdminClient();
   const { data: photos, error } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes, created_at')
+    .select('id, storage_path, file_name, size_bytes, favorite, created_at')
     .eq('gallery_id', galleryId)
     .order('created_at', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

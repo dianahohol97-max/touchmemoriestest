@@ -52,14 +52,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   const { data: photos } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes')
+    .select('id, storage_path, file_name, size_bytes, favorite')
     .eq('gallery_id', gallery.id)
     .order('created_at', { ascending: true });
 
   return NextResponse.json({
     gallery: {
       ...base,
-      photos: (photos || []).map(p => ({ id: p.id, file_name: p.file_name, size_bytes: p.size_bytes, url: publicUrl(p.storage_path) })),
+      photos: (photos || []).map(p => ({ id: p.id, file_name: p.file_name, size_bytes: p.size_bytes, favorite: !!p.favorite, url: publicUrl(p.storage_path) })),
     },
   });
 }
