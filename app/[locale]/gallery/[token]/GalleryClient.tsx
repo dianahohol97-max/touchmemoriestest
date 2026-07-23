@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import styles from './GalleryClient.module.css';
 
 interface Photo { id: string; file_name: string; size_bytes: number | null; url: string }
 interface GalleryData {
@@ -17,6 +18,10 @@ interface GalleryData {
     slug: string | null;
   };
 }
+
+// Fixed skeleton heights so the loading grid has a natural masonry rhythm
+// without needing Math.random (which would differ per render).
+const SKELETON_HEIGHTS = [220, 300, 180, 260, 340, 200, 280, 240, 320, 190, 300, 230];
 
 export default function GalleryClient({ token }: { token: string }) {
   const [data, setData] = useState<GalleryData | null>(null);
@@ -72,32 +77,42 @@ export default function GalleryClient({ token }: { token: string }) {
     } finally { setZipping(false); }
   };
 
-  if (loading) return <Centered>Завантаження…</Centered>;
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.grid} aria-hidden>
+          {SKELETON_HEIGHTS.map((h, i) => (
+            <div key={i} className={styles.skeletonTile} style={{ height: h }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (error || !data) return <Centered>{error || 'Галерею не знайдено'}</Centered>;
 
   const p = data.photographer;
   const contacts = [
     p.phone && { label: 'Тел.', value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
-    p.instagram && { label: 'Instagram', value: p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '')}` },
+    p.instagram && { label: 'Instagram', value: '@' + p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '')}` },
     p.email && { label: 'Email', value: p.email, href: `mailto:${p.email}` },
     p.website && { label: 'Сайт', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
   ].filter(Boolean) as { label: string; value: string; href: string }[];
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '36px 16px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
+    <div className={styles.page}>
       {/* Photographer business-card header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', borderBottom: '1px solid #e5e7eb', paddingBottom: 20, marginBottom: 20 }}>
+      <div className={styles.header}>
         {(p.logo_url || p.avatar_url) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.logo_url || p.avatar_url!} alt={p.name} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #e5e7eb' }} />
+          <img src={p.logo_url || p.avatar_url!} alt={p.name} className={styles.avatar} />
         )}
         <div style={{ flex: 1, minWidth: 220 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d' }}>
-            {p.slug ? <a href={`/uk/photographer/${p.slug}`} style={{ color: '#1e2d7d', textDecoration: 'none' }}>{p.name}</a> : p.name}
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+          {p.slug
+            ? <a href={`/uk/photographer/${p.slug}`} className={styles.brandName}>{p.name}</a>
+            : <span className={styles.brandName}>{p.name}</span>}
+          <div className={styles.contacts}>
             {contacts.map(c => (
-              <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#475569', textDecoration: 'none' }}>
+              <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className={styles.contactChip}>
                 {c.label} {c.value}
               </a>
             ))}
@@ -105,38 +120,36 @@ export default function GalleryClient({ token }: { token: string }) {
         </div>
       </div>
 
-      <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px', color: '#1e2d7d' }}>{data.title}</h1>
-      <div style={{ color: '#64748b', marginBottom: 16 }}>
+      <h1 className={styles.title}>{data.title}</h1>
+      <div className={styles.meta}>
         {data.client_name && <span>{data.client_name} · </span>}
         {data.shoot_date && <span>{new Date(data.shoot_date).toLocaleDateString('uk-UA')} · </span>}
         <span>{data.photos.length} фото</span>
       </div>
 
       {data.expired ? (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 24, textAlign: 'center', color: '#991b1b' }}>
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: 26, textAlign: 'center', color: '#991b1b' }}>
           <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Термін зберігання галереї минув</div>
           <div>Фото зберігалися 30 днів і були видалені. Зверніться до фотографа{p.name ? ` — ${p.name}` : ''}.</div>
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-            <span style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: 999, padding: '6px 14px', fontSize: 13, fontWeight: 600 }}>
+          <div className={styles.toolbar}>
+            <span className={styles.countdown}>
               ⏳ Доступно ще {data.days_left} {data.days_left === 1 ? 'день' : data.days_left < 5 ? 'дні' : 'днів'}
             </span>
             {data.photos.length > 0 && (
-              <button onClick={downloadAll} disabled={zipping}
-                style={{ background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: zipping ? 'default' : 'pointer', opacity: zipping ? 0.7 : 1 }}>
-                {zipping ? `Пакуємо… ${zipProgress}%` : 'Завантажити все (ZIP)'}
+              <button onClick={downloadAll} disabled={zipping} className={styles.downloadBtn}>
+                {zipping ? `Пакуємо… ${zipProgress}%` : '⬇ Завантажити все (ZIP)'}
               </button>
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
+          <div className={styles.grid}>
             {data.photos.map((photo, i) => (
-              <button key={photo.id} onClick={() => setLightbox(i)}
-                style={{ padding: 0, border: 'none', background: '#f1f5f9', borderRadius: 8, overflow: 'hidden', cursor: 'zoom-in', aspectRatio: '1' }}>
+              <button key={photo.id} onClick={() => setLightbox(i)} className={styles.tile} aria-label={`Відкрити фото ${i + 1}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.url} alt={photo.file_name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img src={photo.url} alt={photo.file_name} loading="lazy" />
               </button>
             ))}
           </div>
@@ -145,18 +158,19 @@ export default function GalleryClient({ token }: { token: string }) {
 
       {/* Lightbox */}
       {lightbox !== null && data.photos[lightbox] && (
-        <div onClick={() => setLightbox(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div onClick={() => setLightbox(null)} className={styles.lb}>
+          <div className={styles.lbCounter} onClick={e => e.stopPropagation()}>
+            {lightbox + 1} / {data.photos.length}
+          </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.photos[lightbox].url} alt="" style={{ maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain' }} onClick={e => e.stopPropagation()} />
-          <div style={{ display: 'flex', gap: 12, marginTop: 14 }} onClick={e => e.stopPropagation()}>
-            <LbBtn onClick={() => setLightbox(Math.max(lightbox - 1, 0))} disabled={lightbox === 0}>← Попереднє</LbBtn>
-            <a href={data.photos[lightbox].url} download={data.photos[lightbox].file_name}
-              style={{ background: '#fff', color: '#111', borderRadius: 8, padding: '9px 16px', fontWeight: 700, textDecoration: 'none', fontSize: 14 }}>
+          <img src={data.photos[lightbox].url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
+          <div className={styles.lbBar} onClick={e => e.stopPropagation()}>
+            <button className={styles.lbBtn} onClick={() => setLightbox(Math.max(lightbox - 1, 0))} disabled={lightbox === 0}>← Попереднє</button>
+            <a href={data.photos[lightbox].url} download={data.photos[lightbox].file_name} className={styles.lbDownload}>
               Завантажити
             </a>
-            <LbBtn onClick={() => setLightbox(Math.min(lightbox + 1, data.photos.length - 1))} disabled={lightbox === data.photos.length - 1}>Наступне →</LbBtn>
-            <LbBtn onClick={() => setLightbox(null)}>✕</LbBtn>
+            <button className={styles.lbBtn} onClick={() => setLightbox(Math.min(lightbox + 1, data.photos.length - 1))} disabled={lightbox === data.photos.length - 1}>Наступне →</button>
+            <button className={styles.lbBtn} onClick={() => setLightbox(null)}>✕</button>
           </div>
         </div>
       )}
@@ -164,15 +178,6 @@ export default function GalleryClient({ token }: { token: string }) {
   );
 }
 
-function LbBtn({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      style={{ background: 'rgba(255,255,255,0.14)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 14px', fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 14 }}>
-      {children}
-    </button>
-  );
-}
-
 function Centered({ children }: { children: React.ReactNode }) {
-  return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontFamily: 'Arial, sans-serif' }}>{children}</div>;
+  return <div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontFamily: 'system-ui, sans-serif' }}>{children}</div>;
 }
