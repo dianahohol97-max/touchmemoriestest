@@ -25,8 +25,9 @@ interface PriceRow { title: string; price: string; description?: string }
 interface Gallery {
   id: string; client_token: string; title: string; client_name: string | null;
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
-  photo_count: number; days_left: number;
+  photo_count: number; favorite_count: number; days_left: number;
 }
+interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean }
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 20 };
 const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 4, marginTop: 12 };
@@ -137,6 +138,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   const [shootDate, setShootDate] = useState('');
   const [creating, setCreating] = useState(false);
   const [openUpload, setOpenUpload] = useState<string | null>(null);
+  const [openPicks, setOpenPicks] = useState<string | null>(null);
 
   const create = async () => {
     if (!title.trim() || creating) return;
@@ -198,22 +200,81 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
                 <span>{g.photo_count} фото</span>
               </div>
             </div>
-            {g.files_purged_at
-              ? <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', background: '#fef2f2', borderRadius: 999, padding: '4px 10px' }}>Термін минув</span>
-              : <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '4px 10px' }}>⏳ ще {g.days_left} дн.</span>}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+              {g.favorite_count > 0 && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#c0343a', background: '#fff1f2', borderRadius: 999, padding: '4px 10px' }}>
+                  ♥ {g.favorite_count} обрано клієнтом
+                </span>
+              )}
+              {g.files_purged_at
+                ? <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', background: '#fef2f2', borderRadius: 999, padding: '4px 10px' }}>Термін минув</span>
+                : <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '4px 10px' }}>⏳ ще {g.days_left} дн.</span>}
+            </div>
           </div>
           {!g.files_purged_at && (
             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               <button style={btnGhost} onClick={() => copyLink(g)}>Скопіювати посилання</button>
               <a href={`/uk/gallery/${g.client_token}`} target="_blank" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block' }}>Переглянути</a>
-              <button style={btnGhost} onClick={() => setOpenUpload(openUpload === g.id ? null : g.id)}>
+              {g.favorite_count > 0 && (
+                <button
+                  style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a' }}
+                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); }}
+                >
+                  {openPicks === g.id ? 'Згорнути' : `♥ Обрані клієнтом (${g.favorite_count})`}
+                </button>
+              )}
+              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); }}>
                 {openUpload === g.id ? 'Згорнути' : 'Завантажити фото'}
               </button>
             </div>
           )}
+          {openPicks === g.id && <ClientPicks token={token} galleryId={g.id} />}
           {openUpload === g.id && <UploadZone token={token} galleryId={g.id} onDone={onChanged} flash={flash} />}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Read-only grid of the photos the client hearted — what the photographer
+ *  should print. Fetched on demand when the card is expanded. */
+function ClientPicks({ token, galleryId }: { token: string; galleryId: string }) {
+  const [photos, setPhotos] = useState<CabinetPhoto[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/photographers/galleries/${galleryId}/photos?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) { setError(json?.error || 'Не вдалося завантажити'); return; }
+        setPhotos((json.photos as CabinetPhoto[]).filter(p => p.favorite));
+      } catch { if (!cancelled) setError('Не вдалося завантажити'); }
+    })();
+    return () => { cancelled = true; };
+  }, [token, galleryId]);
+
+  if (error) return <div style={{ marginTop: 10, color: '#991b1b', fontSize: 13 }}>{error}</div>;
+  if (!photos) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Завантаження…</div>;
+  if (photos.length === 0) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Клієнт ще нічого не обрав.</div>;
+
+  return (
+    <div style={{ marginTop: 10, background: '#fff8f8', border: '1px solid #fde3e4', borderRadius: 10, padding: 12 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: '#c0343a', marginBottom: 8 }}>
+        Клієнт обрав {photos.length} фото для друку:
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+        {photos.map(p => (
+          <a key={p.id} href={p.url} download={p.file_name} target="_blank" rel="noopener noreferrer"
+             title={`Завантажити ${p.file_name}`} style={{ display: 'block' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.url} alt={p.file_name} loading="lazy"
+                 style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8, border: '1px solid #f1d4d5' }} />
+          </a>
+        ))}
+      </div>
     </div>
   );
 }

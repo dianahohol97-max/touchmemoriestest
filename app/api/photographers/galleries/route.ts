@@ -18,10 +18,24 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // How many photos the client hearted in each gallery (what to print).
+  // Favorite selections are small, so one flat query + JS tally is cheapest.
+  const galleryIds = (galleries || []).map((g: any) => g.id);
+  const favByGallery: Record<string, number> = {};
+  if (galleryIds.length) {
+    const { data: favRows } = await admin
+      .from('photographer_gallery_photos')
+      .select('gallery_id')
+      .in('gallery_id', galleryIds)
+      .eq('favorite', true);
+    for (const r of favRows || []) favByGallery[r.gallery_id] = (favByGallery[r.gallery_id] || 0) + 1;
+  }
+
   return NextResponse.json({
     galleries: (galleries || []).map((g: any) => ({
       ...g,
       photo_count: g.photographer_gallery_photos?.[0]?.count || 0,
+      favorite_count: favByGallery[g.id] || 0,
       days_left: g.files_purged_at ? 0 : daysLeft(g.expires_at),
       photographer_gallery_photos: undefined,
     })),
