@@ -1,9 +1,18 @@
+import type { Metadata } from 'next';
 import B2bRegisterPage from '@/components/b2b/B2bRegisterPage';
+import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
 
-export const metadata = {
-    title: 'Для весільних агенцій — Touch.Memories',
-    description: 'Партнерська програма для весільних агенцій: постійна знижка 7% на книги побажань та весільні газети для ваших клієнтів.',
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale } = await params;
+    return {
+        title: 'Для весільних агенцій — Touch.Memories',
+        description: 'Партнерська програма для весільних агенцій: постійна знижка 7% на книги побажань та весільні газети для ваших клієнтів.',
+        alternates: {
+            canonical: getCanonicalUrl(locale as Locale, '/wedding-agencies'),
+            languages: getAlternateLanguages('/wedding-agencies'),
+        },
+    };
+}
 
 export default function WeddingAgenciesPage() {
     return (
