@@ -494,9 +494,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             }
             toast.success('Тег додано');
             fetchOrder();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Add tag failed:', err);
-            toast.error('Помилка');
+            toast.error(err?.message ? `Помилка: ${err.message}` : 'Помилка');
         }
     };
 
@@ -507,12 +507,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tag_id: tagId }),
             });
-            if (!res.ok) throw new Error(`API ${res.status}`);
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || `API ${res.status}`);
+            }
             toast.success('Тег видалено');
             fetchOrder();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Remove tag failed:', err);
-            toast.error('Помилка');
+            toast.error(err?.message ? `Помилка: ${err.message}` : 'Помилка');
         }
     };
 
