@@ -31,27 +31,39 @@ export default function TagsSettingsPage() {
     };
 
     const handleAdd = async () => {
-        if (!newName.trim() || !newIcon.trim()) return;
+        // Both are required by the DB (name/icon are NOT NULL). Previously an
+        // empty icon made this return silently — the button looked broken.
+        if (!newName.trim()) { toast.error('Вкажіть назву тегу'); return; }
+        if (!newIcon.trim()) { toast.error('Вкажіть іконку (емодзі)'); return; }
         setIsAdding(true);
-        const res = await fetch('/api/admin/tags', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: newName,
-                color: newColor,
-                icon: newIcon,
-                sort_order: tags.length
-            })
-        });
+        try {
+            const res = await fetch('/api/admin/tags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newName.trim(),
+                    color: newColor,
+                    icon: newIcon.trim(),
+                    sort_order: tags.length
+                })
+            });
 
-        if (res.ok) {
-            toast.success('Тег додано');
-            setNewName('');
-            fetchTags();
-        } else {
-            toast.error('Помилка додавання');
+            if (res.ok) {
+                toast.success('Тег додано');
+                setNewName('');
+                setNewIcon('');
+                fetchTags();
+            } else {
+                // Surface the API's real reason instead of a generic string, so a
+                // permission/config failure is diagnosable from the toast itself.
+                const data = await res.json().catch(() => ({}));
+                toast.error(data?.error ? `Помилка: ${data.error}` : `Помилка додавання (${res.status})`);
+            }
+        } catch (err: any) {
+            toast.error(`Помилка мережі: ${err?.message || 'спробуйте ще раз'}`);
+        } finally {
+            setIsAdding(false);
         }
-        setIsAdding(false);
     };
 
     const handleDelete = async (id: string) => {
