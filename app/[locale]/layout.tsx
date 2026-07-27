@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { I18nServerProvider } from '@/lib/i18n/server-provider';
 import { AuthModalProvider } from '@/lib/auth-modal-context';
-import { LOCALES, getBaseUrl, getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { LOCALES, getBaseUrl, getCanonicalUrl, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 // NOTE: Do NOT use force-dynamic here — it conflicts with generateStaticParams.
 // Child pages (admin, checkout, editor) set force-dynamic themselves as needed.
@@ -34,10 +34,11 @@ export async function generateMetadata({
     return {
         title: m.title,
         description: m.description,
-        alternates: {
-            canonical: getCanonicalUrl(locale),
-            languages: getAlternateLanguages(),
-        },
+        // NOTE: deliberately NO `alternates` here. A layout's canonical/hreflang
+        // is inherited by every child page that doesn't set its own, which made
+        // dozens of pages canonicalize to the home URL (and point every hreflang
+        // at home) — a real duplicate-content signal. Each page now owns its
+        // canonical; the home page sets its own alternates (see page.tsx).
         openGraph: {
             title: m.title,
             description: m.description,

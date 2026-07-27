@@ -27,8 +27,23 @@ import { TravelBookCTA } from '@/components/TravelBookCTA';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import LandingLinks from '@/components/seo/LandingLinks';
+import type { Metadata } from 'next';
+import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
 
 export const revalidate = 14400; // Cache for 4 hours — homepage content rarely changes
+
+// Home owns its canonical + hreflang. (The locale layout no longer emits
+// alternates — see the note there — so the homepage must set them itself, and
+// title/description/OG still merge in from the layout.)
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    alternates: {
+      canonical: getCanonicalUrl(locale as Locale),
+      languages: getAlternateLanguages(),
+    },
+  };
+}
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

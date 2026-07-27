@@ -1,11 +1,20 @@
+import type { Metadata } from 'next';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { RefreshCcw, Package, Clock, ShieldCheck, CreditCard, Truck } from 'lucide-react';
+import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
 
-export const metadata = {
-  title: 'Доставка та оплата | Touch.Memories',
-  description: 'Умови доставки по Україні та за кордон. Способи оплати: переказ, онлайн оплата. Гарантія якості та порядок обміну.',
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: 'Доставка та оплата | Touch.Memories',
+    description: 'Умови доставки по Україні та за кордон. Способи оплати: переказ, онлайн оплата. Гарантія якості та порядок обміну.',
+    alternates: {
+      canonical: getCanonicalUrl(locale as Locale, '/shipping-returns'),
+      languages: getAlternateLanguages('/shipping-returns'),
+    },
+  };
+}
 
 export default function ShippingReturnsPage() {
     return (

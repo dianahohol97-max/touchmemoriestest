@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Clock, User, ArrowLeft } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
 
 export const revalidate = 3600;
 
@@ -27,6 +28,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return {
         title: `${stripEmoji(category.name)} | TouchMemories Блог`,
         description: category.description || `Читайте статті в категорії ${stripEmoji(category.name)}`,
+        alternates: {
+            canonical: getCanonicalUrl(locale as Locale, `/blog/category/${slug}`),
+            languages: getAlternateLanguages(`/blog/category/${slug}`),
+        },
     };
 }
 
