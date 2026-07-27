@@ -152,6 +152,9 @@ export default async function ProductPage({ params }: Props) {
     const image = product.og_image || (product.images && (product.images as any[])[0]) || `${base}/og-image.jpg`;
     const price = Number(product.price || 0);
     const category = (product.categories as any) || null;
+    // Real availability: only products that actually track stock can be out of
+    // stock. stock_available is generated = stock_quantity - reserved.
+    const inStock = !(product as any).track_inventory || Number((product as any).stock_available) > 0;
 
     jsonLdProduct = {
       '@context': 'https://schema.org',
@@ -170,7 +173,7 @@ export default async function ProductPage({ params }: Props) {
               url: productUrl,
               priceCurrency: 'UAH',
               price: price.toFixed(2),
-              availability: 'https://schema.org/InStock',
+              availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
               itemCondition: 'https://schema.org/NewCondition',
               seller: { '@type': 'Organization', name: 'Touch.Memories' },
             },
@@ -183,7 +186,7 @@ export default async function ProductPage({ params }: Props) {
       'product:price:amount': price > 0 ? price.toFixed(2) : '',
       'product:price:currency': 'UAH',
       'product:retailer_item_id': String((product as any).id ?? ''),
-      'product:availability': 'in stock',
+      'product:availability': inStock ? 'in stock' : 'out of stock',
       'product:condition': 'new',
       'product:brand': 'Touch.Memories',
     };
