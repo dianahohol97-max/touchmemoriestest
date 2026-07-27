@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/kontakty', priority: 0.6, changeFreq: 'monthly' as const },
     { path: '/photographers', priority: 0.5, changeFreq: 'monthly' as const },
     { path: '/blog', priority: 0.8, changeFreq: 'weekly' as const },
+    { path: '/faq', priority: 0.5, changeFreq: 'monthly' as const },
     { path: '/privacy', priority: 0.3, changeFreq: 'yearly' as const },
     { path: '/terms', priority: 0.3, changeFreq: 'yearly' as const },
     { path: '/cookies', priority: 0.3, changeFreq: 'yearly' as const },
@@ -44,8 +45,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: products } = await admin
     .from('products')
-    .select('slug, updated_at')
+    .select('slug, updated_at, category_id')
     .eq('is_active', true);
+
+  // Categories that actually have an active product. A category with none
+  // permanentRedirects to /catalog (see category/[slug]/page.tsx), so listing
+  // it here would put a 301 hop in the sitemap.
+  const categoriesWithProducts = new Set(
+    (products || []).map((p: any) => p.category_id).filter(Boolean),
+  );
 
   for (const p of products || []) {
     const path = `/catalog/${p.slug}`;
@@ -63,10 +71,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: categories } = await admin
     .from('categories')
-    .select('slug, created_at')
+    .select('id, slug, created_at')
     .eq('is_active', true);
 
   for (const c of categories || []) {
+    if (!categoriesWithProducts.has(c.id)) continue; // skip empty (redirecting) categories
     const path = `/category/${toPublicCategorySlug(c.slug)}`;
     const alternates = getAlternateLanguages(path);
     for (const locale of LOCALES) {
