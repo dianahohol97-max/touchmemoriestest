@@ -9,7 +9,7 @@ import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
-import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
+import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 // ISR: revalidate every 2 hours — blog posts rarely change
@@ -133,7 +133,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
     const jsonLdArticle = {
         '@context': 'https://schema.org',
-        '@type': 'Article',
+        '@type': 'BlogPosting',
+        'mainEntityOfPage': { '@type': 'WebPage', '@id': currentUrl },
         'headline': getLocalized(post, locale, 'title') || '',
         'image': post?.cover_image ? [post.cover_image] : [],
         'author': {
@@ -143,7 +144,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         'publisher': {
             '@type': 'Organization',
             'name': 'TouchMemories',
-            // 'logo': { '@type': 'ImageObject', 'url': `${domain}/logo.png` }
+            // Article rich results require publisher.logo as an ImageObject. We
+            // don't ship a dedicated logo asset, so reuse the OG banner image.
+            'logo': { '@type': 'ImageObject', 'url': `${getBaseUrl()}/og-image.jpg`, 'width': 1200, 'height': 630 },
         },
         'datePublished': post?.published_at || new Date().toISOString(),
         'dateModified': post?.updated_at || post?.published_at || new Date().toISOString(),
@@ -160,7 +163,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 '@type': 'ListItem',
                 'position': 3,
                 'name': stripEmoji(post?.blog_categories?.name || 'Стаття'),
-                'item': post?.blog_categories ? `${getCanonicalUrl(loc, '/blog')}?category=${post.blog_categories.slug}` : getCanonicalUrl(loc, '/blog')
+                // Point at the crawlable category page, not /blog?category= (that
+                // query form is disallowed in robots.txt).
+                'item': post?.blog_categories ? getCanonicalUrl(loc, `/blog/category/${post.blog_categories.slug}`) : getCanonicalUrl(loc, '/blog')
             },
             { '@type': 'ListItem', 'position': 4, 'name': getLocalized(post, locale, 'title') || '' }
         ]
