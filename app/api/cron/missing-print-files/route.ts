@@ -95,6 +95,21 @@ export async function GET(request: Request) {
       continue;
     }
 
+    // The customer's design often lives in the linked constructor `projects`
+    // row, NOT in order_files — the print files are only rendered on payment.
+    // So an order with 0 order_files can still have a complete design (e.g. it
+    // is simply unpaid). Do NOT tell staff "макет відсутній, попросіть клієнта
+    // оформити ще раз" when a real design with photos is sitting right there.
+    const { data: designProjs } = await admin
+      .from('projects')
+      .select('id, uploaded_photos')
+      .eq('order_id', order.id)
+      .limit(1);
+    const hasDesign = (designProjs || []).some(
+      (p: any) => Array.isArray(p?.uploaded_photos) && p.uploaded_photos.length > 0,
+    );
+    if (hasDesign) { stats.ok++; continue; }
+
     // Zero files on an order that needs them. For a wishbook we can generate
     // the cover server-side from the order options — try that FIRST and only
     // flag if it fails. For other products (photobooks etc.) we can't
