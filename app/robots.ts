@@ -36,6 +36,11 @@ export default function robots(): MetadataRoute.Robots {
           // stay crawlable.
           '/*/gallery/',
           '/*/photographer/cabinet/',
+          // Other token/personal pages (all also carry a noindex meta): design
+          // briefs, partner cabinets, and the magazine-text brief.
+          '/*/brief/',
+          '/*/partner/',
+          '/*/magazine-brief/',
         ],
       },
     ],
