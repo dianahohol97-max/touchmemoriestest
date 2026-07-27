@@ -1744,7 +1744,14 @@ export default function BookLayoutEditor() {
     const initLayout: LayoutType = isPhotobook ? 'sp-full' : 'p-full';
     const ps: Page[] = [];
     ps.push({ id: 0, label: t('constructor.cover'), layout: 'p-full', slots: makeSlots(1), textBlocks: [] });
-    for (let i = 1; i <= total; i++) {
+    // Endpaper products (travelbook / magazine / journal) build 2 EXTRA physical
+    // pages for the forzats, so the customer keeps all `total` ordered pages as
+    // photo pages (the forzats are the first & last, priced via the +100 ₴
+    // surcharge, not the per-page price). Slug-based, mirroring hasEndpaper.
+    const initSlugLc = (config.productSlug || '').toLowerCase();
+    const initHasEndpaper = (initSlugLc.includes('travelbook') || initSlugLc.includes('magazine') || initSlugLc.includes('journal') || initSlugLc.includes('fotozhurnal'));
+    const physicalTotal = total + (initHasEndpaper ? 2 : 0);
+    for (let i = 1; i <= physicalTotal; i++) {
       ps.push({ id: i, label: `${i}`, layout: initLayout, slots: makeSlots(1), textBlocks: [] });
     }
     if (hasKalka) {
@@ -1970,6 +1977,25 @@ export default function BookLayoutEditor() {
   const endpaperFirstIdx = hasEndpaper ? 1 : -1;
   const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
   const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
+
+  // ── Forzats-as-extra-pages model ──────────────────────────────────────────
+  // Historically the 2 endpapers (forzats) were the FIRST and LAST of the
+  // ordered pages, so a "16 сторінок" travelbook gave the customer only 14 photo
+  // pages while the +100 ₴ forzat print was billed on top — effectively paying
+  // twice for the same 2 pages. New designs build 2 EXTRA physical pages for the
+  // forzats, so "16 сторінок" = 16 photo pages + 2 forzats. The base/lamination
+  // price and the displayed "N сторінок" must therefore stay on the ordered
+  // photo-page count, i.e. exclude those 2 forzat pages.
+  //
+  // Detection is by ARRAY SHAPE, not a saved flag: only a fresh endpaper build
+  // (physical content == ordered + 2) opts in. OLD designs (physical == ordered,
+  // forzats within) get forzatBillableAdjust = 0 and are left 100% unchanged.
+  const forzatReservePages = hasEndpaper ? 2 : 0;
+  const orderedPhotoPages = parseInt(String(config?.selectedPageCount || '').match(/\d+/)?.[0] || '0', 10) || 0;
+  const usesForzatExtra = forzatReservePages > 0 && orderedPhotoPages > 0 && (pages.length - 1) >= (orderedPhotoPages + forzatReservePages);
+  const forzatBillableAdjust = usesForzatExtra ? forzatReservePages : 0;
+  // Billable / displayed content pages (photo pages the customer paid for).
+  const billableContentPages = Math.max(0, (pages.length - 1) - forzatBillableAdjust);
   // Друк на форзаці: 200 ₴ для журналу з м'якою обкладинкою, 100 ₴ для
   // твердої обкладинки та Travel Book (фіксована ціна за обидва форзаци).
   const endpaperSurcharge = (isMagazine && !isHardCoverJournal) ? 200 : 100;
@@ -3135,7 +3161,7 @@ export default function BookLayoutEditor() {
           title: config?.productName || t('constructor.layout'),
           format: config?.selectedSize || '',
           cover_type: config?.selectedCoverType || '',
-          page_count: pages.length - 1,
+          page_count: billableContentPages,
           // FULL editor state. Previously only pages+coverState were saved,
           // so a designer's free-positioned photos, backgrounds, stickers,
           // shapes, frames and QR codes vanished on every save→reopen.
@@ -3171,7 +3197,7 @@ export default function BookLayoutEditor() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return false;
 
-      const contentPages = isWishbook ? 32 : (pages.length - 1);
+      const contentPages = isWishbook ? 32 : billableContentPages;
       const sizeLabel = config?.selectedSize || '';
       const name = `${config?.productName || t('constructor.photobooktype')} ${sizeLabel} · ${contentPages} стор.`;
       const draftId = currentProjectIdRef.current || `draft-${Date.now()}`;
@@ -3547,7 +3573,7 @@ export default function BookLayoutEditor() {
     // Wishbook (книга побажань) is always a fixed 32-page block regardless of
     // how many spreads the cover editor shows — the inner pages aren't designed
     // here, only the cover. Other books use the actual content page count.
-    const contentPages = isWishbook ? 32 : (pages.length - 1);
+    const contentPages = isWishbook ? 32 : billableContentPages;
 
     // Build a small, PERSISTENT thumbnail for the cart. The previous code put
     // the first photo's blob: URL straight into the cart item — but blob: URLs
@@ -3608,7 +3634,7 @@ export default function BookLayoutEditor() {
         const lines: Array<{ label: string; amount: number }> = [];
         if (decorationExtra > 0) lines.push({ label: 'Оздоблення обкладинки', amount: decorationExtra });
         if (endpaperExtra > 0) lines.push({ label: 'Друк на форзацах', amount: endpaperExtra });
-        if (laminationExtra > 0) lines.push({ label: `Ламінування сторінок (7 ₴ × ${Math.max(0, pages.length - 1)})`, amount: laminationExtra });
+        if (laminationExtra > 0) lines.push({ label: `Ламінування сторінок (7 ₴ × ${billableContentPages})`, amount: laminationExtra });
         if (typesettingExtra > 0) lines.push({ label: 'Верстка тексту', amount: typesettingExtra });
         if (inscriptionExtra > 0) lines.push({ label: `Напис на обкладинці (${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'})`, amount: inscriptionExtra });
         if (qrExtra > 0) lines.push({ label: `QR-код × ${generatedQRCount}`, amount: qrExtra });
@@ -4661,7 +4687,10 @@ export default function BookLayoutEditor() {
 
 
 //  Pricing (imported from @/lib/editor/pricing)
-  const currentPageCount = Math.max(0, pages.length - 1);
+  // Price on the BILLABLE page count (photo pages), excluding the 2 forzat pages
+  // on the new endpaper model — the forzats are covered by the +100 ₴ surcharge,
+  // not the per-page price. On old designs billableContentPages == pages.length-1.
+  const currentPageCount = billableContentPages;
 
   // ── Configurator-only price components the editor must NOT lose ────────
   // The configurator folds two things into config.totalPrice that the
@@ -4836,7 +4865,8 @@ export default function BookLayoutEditor() {
     || searchParams?.get('lamination')
     || '';
   const hasPageLamination = isPageLaminationSelected(pageLamRaw);
-  const laminationExtra = hasPageLamination ? LAMINATION_PRICE_PER_PAGE * Math.max(0, pages.length - 1) : 0;
+  // Bill lamination per BILLABLE page (photo pages), not the 2 extra forzats.
+  const laminationExtra = hasPageLamination ? LAMINATION_PRICE_PER_PAGE * billableContentPages : 0;
   // decorationExtra is NOT part of priceDiff: the decoration was chosen and
   // priced at the configurator, so it exists in both the ordered and the
   // current total — only editor-added extras contribute to the "+N ₴" badge.
@@ -4917,7 +4947,7 @@ export default function BookLayoutEditor() {
             <div>
               <div style={{ fontWeight:800, fontSize:15, color:'#1e2d7d' }}>{config.productName || t('constructor.photobooktype')}</div>
               <div style={{ fontSize:11, color:'#64748b' }}>
-                Редактор • {photos.length} фото • {isWishbook ? '32 сторінки (фіксовано)' : `${pages.length - 1} сторінок`}
+                Редактор • {photos.length} фото • {isWishbook ? '32 сторінки (фіксовано)' : `${billableContentPages} сторінок`}
                 {_slug.includes('travel') ? ' • 20×30 см' : (_slug.includes('magazine')||_slug.includes('journal')||_slug.includes('zhurnal')) ? ' • A4' : config?.selectedSize ? ` • ${config.selectedSize} см` : ''}
                 {saveStatus === 'saving' && <span style={{ color:'#f59e0b', marginLeft:6, fontSize:10 }}> Зберігаю...</span>}
                 {saveStatus === 'saved' && <span style={{ color:'#10b981', marginLeft:6, fontSize:10 }}> Збережено</span>}
