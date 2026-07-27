@@ -102,8 +102,9 @@ export async function generateMetadata({
       siteName: 'Touch.Memories',
       locale: OG_LOCALE_MAP[locale],
       type: 'website',
-      ...(cat.cover_image ? { images: [{ url: cat.cover_image }] } : {}),
+      images: [cat.cover_image ? { url: cat.cover_image, width: 1200, height: 630 } : { url: '/og-image.jpg', width: 1200, height: 630 }],
     },
+    twitter: { card: 'summary_large_image', title, description, images: [cat.cover_image || '/og-image.jpg'] },
   };
 }
 

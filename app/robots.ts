@@ -41,6 +41,8 @@ export default function robots(): MetadataRoute.Robots {
           '/*/brief/',
           '/*/partner/',
           '/*/magazine-brief/',
+          // Private authoring surface (also noindex).
+          '/*/editor',
         ],
       },
     ],
