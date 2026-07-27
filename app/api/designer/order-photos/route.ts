@@ -179,6 +179,50 @@ export async function GET(req: NextRequest) {
         } catch { /* non-critical: card falls back to catalog image */ }
     }
 
+    // Fallback: constructor / "оформити повторно" orders keep the customer's
+    // photos in the linked `projects` row (uploaded_photos), NOT in order_files —
+    // the print files only get rendered on payment. So an order that hasn't been
+    // rendered yet (typically still unpaid) showed an EMPTY card even though the
+    // full design exists, and the missing-print-files cron even flagged it as
+    // "макет відсутній". If we surfaced no customer uploads above, read them from
+    // the linked project(s) and sign them from their own bucket.
+    const hasUploads = photos.some(p => !p.isExport);
+    if (!hasUploads) {
+        try {
+            const { data: projs } = await admin
+                .from('projects')
+                .select('uploaded_photos, cover_data')
+                .eq('order_id', orderId)
+                .limit(5);
+            for (const pr of (projs || []) as any[]) {
+                const ups = Array.isArray(pr?.uploaded_photos) ? pr.uploaded_photos : [];
+                const coverPhotoId = pr?.cover_data?.photoId || null;
+                const byB: Record<string, any[]> = {};
+                for (const up of ups) {
+                    if (up?.path) (byB[up.bucket || 'photobook-uploads'] ||= []).push(up);
+                }
+                for (const [bucket, list] of Object.entries(byB)) {
+                    const paths = list.map((u: any) => u.path);
+                    const { data: signed } = await admin.storage.from(bucket).createSignedUrls(paths, ONE_DAY);
+                    (signed || []).forEach((s: any, i: number) => {
+                        const u = list[i];
+                        photos.push({
+                            id: `project:${u.id}`,
+                            name: u.name || 'photo',
+                            url: s?.signedUrl || null,
+                            category: 'upload',
+                            isCover: !!coverPhotoId && u.id === coverPhotoId,
+                            isExport: false,
+                            page_number: null,
+                            mime_type: null,
+                            product_id: null,
+                        });
+                    });
+                }
+            }
+        } catch { /* non-critical: card falls back to catalog image */ }
+    }
+
     // Export (print-ready) files first, then covers, so staff see the final
     // layout at the top of the grid; raw customer uploads follow.
     photos.sort((a, b) => (Number(b.isExport) - Number(a.isExport)) || (Number(b.isCover) - Number(a.isCover)));
