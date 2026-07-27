@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation';
 import { getDesignBriefByToken } from '@/lib/designer-service/brief-helpers';
 import BriefPageClient from './BriefPageClient';
 
+// Private, token-gated design brief — never index (also disallowed in robots).
+export const metadata = { robots: { index: false, follow: false } };
+
 interface PageProps {
   params: {
     token: string;
