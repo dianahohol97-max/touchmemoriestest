@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
 import { ConsentProvider } from '@/lib/consent/ConsentProvider';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/next';
 import { NewsletterPopup } from '@/components/ui/NewsletterPopup';
 import { CookieBanner } from '@/components/cookies/CookieBanner';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
@@ -174,6 +175,7 @@ export default function RootLayout({
               <AnalyticsProvider />
             </Suspense>
             <SpeedInsights />
+            <Analytics />
             <Suspense fallback={null}>
               <OAuthCallbackHandler />
             </Suspense>
