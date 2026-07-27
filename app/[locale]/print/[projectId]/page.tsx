@@ -154,8 +154,17 @@ export default function PrintPage() {
   // isPrinted may not be saved as a flag in older/newer configs — derive it from
   // the cover type ("Друкована" = printed cover) too, otherwise the printed-cover
   // photo renders down the wrong (velour/fabric) branch and the cover looks empty.
+  //
+  // Travelbooks, magazines and wishbooks ONLY ever ship a printed photo cover —
+  // there is no fabric/velour variant. Some saved configs (e.g. TM-001091) carry
+  // neither isPrinted nor a cover-type string, so the two checks above both fail
+  // and the cover renders BLANK. Force printed for those product types, mirroring
+  // the PRODUCT_SIZE fallback above (derive from product_type when config is empty).
+  const PRINTED_COVER_TYPES = new Set(['travelbook', 'magazine', 'magazine-a4', 'journal', 'zhurnal', 'wishbook']);
   const coverTypeStr = String(config.selectedCoverType || config.coverType || '');
-  const isPrintedCover = !!config.isPrinted || /друков|printed/i.test(coverTypeStr);
+  const isPrintedCover = !!config.isPrinted
+    || /друков|printed/i.test(coverTypeStr)
+    || PRINTED_COVER_TYPES.has(String(project.product_type || '').toLowerCase());
 
   const common = {
     pages, photos, propW: pw, propH: ph,
