@@ -92,9 +92,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, rendered: 0, note: 'no project for order' });
   }
 
+  // Self-composed products (poster, star/city/love maps, monogram, zodiac,
+  // polaroid/photo-print) build their OWN print file client-side and upload it
+  // as an export at order time. They are NOT books: the Railway renderer only
+  // knows the book (spreads) / calendar (printSpec) paths, so pointing it at a
+  // poster project screenshots the book /print page with empty slots and
+  // produces a BLANK 00_cover.jpg — which then, via "replace mode" below,
+  // DELETES the correct client-side composite. So never send these to Railway;
+  // their existing export is already the print-ready file.
+  const SELF_COMPOSED = /poster|star-?map|city-?map|love-?map|monogram|zodiac|polaroid|photo-?print/i;
+
   const results: Array<{ projectId: string; ok: boolean; detail?: unknown }> = [];
   const allUploaded: string[] = []; // every path the render produced, across projects
   for (const project of projects) {
+    if (SELF_COMPOSED.test(String(project.product_type || ''))) {
+      console.log('[render-order] skipping self-composed product', { orderId, projectId: project.id, product_type: project.product_type });
+      results.push({ projectId: project.id, ok: true, detail: `skipped: self-composed (${project.product_type})` });
+      continue;
+    }
     try {
       const res = await fetch(`${renderUrl.replace(/\/$/, '')}/render`, {
         method: 'POST',
@@ -165,10 +180,17 @@ export async function POST(request: NextRequest) {
     const newSet = new Set(allUploaded);
     const { data: oldFiles } = await admin
       .from('order_files')
-      .select('id, file_path, bucket_name')
+      .select('id, file_path, bucket_name, product_type, file_category')
       .eq('order_id', orderId)
       .eq('file_type', 'export');
-    const stale = (oldFiles || []).filter((f: any) => !newSet.has(f.file_path));
+    // Never delete a self-composed product's export (poster/map/portrait): the
+    // book render that triggered replace-mode (a book in the same order) must
+    // not wipe the poster's own print file. Only prune stale BOOK exports.
+    const stale = (oldFiles || []).filter((f: any) =>
+      !newSet.has(f.file_path) &&
+      !SELF_COMPOSED.test(String(f.product_type || '')) &&
+      !/poster-print|poster/i.test(String(f.file_category || '')),
+    );
     if (stale.length) {
       const byBucket = new Map<string, string[]>();
       for (const f of stale) {
