@@ -4526,6 +4526,9 @@ export default function BookLayoutEditor() {
           keepalive: true,
           body: JSON.stringify({
             cartItemId: cartPayload.id,
+            // Full payload so the account "Замовити ще раз" button can replay
+            // this design into the cart verbatim (correct price / options).
+            cartPayload,
             design: designSnapshot,
             productType: uploadProductType,
             productName: config?.productName || undefined,
@@ -4594,122 +4597,21 @@ export default function BookLayoutEditor() {
     setShowCartModal(true);
   };
 
-  const saveDesignToProjects = async (contentPages: number, productImage: string, orderId?: string, cartPayload?: any) => {
-    try {
-      const { createClient } = await import('@/lib/supabase/client');
-      const sb = createClient();
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) {
-        console.warn('saveDesignToProjects: no user logged in');
-        return;
-      }
-
-      // Normalise the size — config.selectedSize can come through as
-      // "20×30" (Unicode ×, U+00D7) or "20х30" (Cyrillic х) or "20x30 см".
-      // The DB used to have a CHECK constraint that rejected anything except
-      // ASCII "x"; the constraint is now dropped, but we still want clean values.
-      const sizeLabelRaw = config?.selectedSize || '';
-      const sizeLabel = normalizeSizeKey(sizeLabelRaw);
-      const coverLabel = config?.selectedCoverType || '';
-
-      // Derive product_type from the slug — same editor handles photobook,
-      // travelbook, magazine, wishbook, journal, planner, etc.
-      const slug = (config?.productSlug || '').toLowerCase();
-      let productType: string = 'photobook';
-      if (slug.includes('travel')) productType = 'travelbook';
-      else if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('fotozhurnal')) productType = 'magazine';
-      else if (slug.includes('wish') || slug.includes('pobazhan') || slug.includes('guest')) productType = 'wishbook';
-      else if (slug.includes('journal')) productType = 'journal';
-      else if (slug.includes('planner')) productType = 'planner';
-
-      const name = `${config?.productName || t('constructor.photobooktype')} ${sizeLabel} · ${contentPages} стор.`;
-
-      // Overlays bundle — everything the editor renders on top of pages_data
-      // that wasn't being saved before. This is what lets us reconstruct a
-      // user's design across sessions and verify what actually goes to print.
-      // Previously only pages_data + cover_data were persisted, so any QR
-      // codes, stickers, custom shapes, page backgrounds and free-floating
-      // slots were lost on save. Stored as a single jsonb column to avoid
-      // schema churn each time we add a new overlay type.
-      const overlaysData = {
-        pageStickers,
-        pageShapes,
-        pageBgs,
-        freeSlots,
-        qrOverlays,
-        generatedQRCount,
-        // Full constructor config — lets a saved design be reopened with the
-        // exact product/size/cover/options instead of a best-effort guess.
-        config,
-      };
-
-      // Upload the ORIGINAL customer photos to storage so a server-side renderer
-      // (the /print page + render service) can rebuild each page from the saved
-      // JSON. Originals otherwise live only as browser blobs and vanish after
-      // checkout. Stored at {userId}/{orderId}/originals/{photoId}.jpg; the path
-      // is written into each uploaded_photos entry so /print resolves photos by id.
-      // Best-effort and non-blocking: a failed upload just omits that path.
-      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> =
-        photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
-      if (orderId) {
-        console.log('[print-originals] start', { orderId, photoCount: photos.length, withOriginalFile: photos.filter(p => (p as any).originalFile).length });
-        for (let i = 0; i < photos.length; i++) {
-          const ph = photos[i];
-          // Already uploaded earlier this session (restored draft, or saved
-          // once already) — reuse the path, skip re-uploading.
-          const existingPath = (ph as any).storagePath as string | undefined;
-          if (existingPath) { uploadedPhotosMeta[i].path = existingPath; continue; }
-          // Prefer the high-quality original File (set when the photo was added
-          // this session). If the photo came from a restored draft, the File is
-          // gone (it can't be serialised), so fall back to fetching the preview
-          // URL into a blob — lower res but still a real photo for rendering.
-          let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
-          if (!body && ph.preview) {
-            try {
-              const r = await fetch(ph.preview);
-              if (r.ok) body = await r.blob();
-            } catch (e) {
-              console.warn('preview fetch for original failed', ph.id, e);
-            }
-          }
-          if (!body) continue;
-          const oPath = `${user.id}/${orderId}/originals/${ph.id}.jpg`;
-          try {
-            const { error: oErr } = await sb.storage
-              .from('photobook-uploads')
-              .upload(oPath, body, { cacheControl: '31536000', upsert: true, contentType: (body as any).type || 'image/jpeg' });
-            if (!oErr) { uploadedPhotosMeta[i].path = oPath; (ph as any).storagePath = oPath; }
-            else console.warn('original upload error', ph.id, oErr.message);
-          } catch (e) {
-            console.warn('original photo upload failed', ph.id, e);
-          }
-        }
-        console.log('[print-originals] done', { uploaded: uploadedPhotosMeta.filter(m => m.path).length, total: photos.length });
-      }
-
-      const { error } = await sb.from('projects').insert({
-        user_id: user.id,
-        order_id: orderId ?? null,
-        name,
-        product_type: productType,
-        format: sizeLabel,
-        cover_type: coverLabel,
-        total_pages: contentPages,
-        status: 'draft',
-        pages_data: pages,
-        cover_data: coverState,
-        overlays_data: overlaysData,
-        cart_payload: cartPayload ?? null,
-        uploaded_photos: uploadedPhotosMeta,
-        updated_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error('saveDesignToProjects error:', error.message, error.details, error.hint);
-      }
-    } catch (e: any) {
-      console.error('saveDesignToProjects exception:', e?.message || e);
-    }
+  // Design persistence at add-to-cart now happens SERVER-SIDE via the
+  // /api/projects/save-design POST in the design-snapshot block above — for
+  // guests and logged-in users alike, keyed by the cart item id and carrying
+  // the full cartPayload (so the account "Замовити ще раз" button replays it),
+  // with order_id stamped later by /api/projects/link-order at checkout.
+  //
+  // This client-side insert is deliberately retired: it required a logged-in
+  // user (so it never covered guests — the real design-loss root cause) and it
+  // wrote the temporary `pb-…` cart id into projects.order_id, which is a UUID
+  // column, so the insert threw every time and created nothing. Running it
+  // alongside the server save would now also duplicate the project row (double
+  // render + double cabinet entry). Kept as a no-op stub so the single call
+  // site stays valid; safe to delete once no branch references it.
+  const saveDesignToProjects = async (_contentPages: number, _productImage: string, _orderId?: string, _cartPayload?: any) => {
+    /* no-op: superseded by /api/projects/save-design (see note above) */
   };
 
   if (!config || pages.length === 0) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Завантаження...</div>;
