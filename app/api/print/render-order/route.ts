@@ -92,22 +92,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, rendered: 0, note: 'no project for order' });
   }
 
-  // Self-composed products (poster, star/city/love maps, monogram, zodiac,
-  // polaroid/photo-print) build their OWN print file client-side and upload it
-  // as an export at order time. They are NOT books: the Railway renderer only
-  // knows the book (spreads) / calendar (printSpec) paths, so pointing it at a
-  // poster project screenshots the book /print page with empty slots and
-  // produces a BLANK 00_cover.jpg — which then, via "replace mode" below,
-  // DELETES the correct client-side composite. So never send these to Railway;
-  // their existing export is already the print-ready file.
-  const SELF_COMPOSED = /poster|star-?map|city-?map|love-?map|monogram|zodiac|polaroid|photo-?print/i;
+  // ALLOWLIST, on purpose. Only the book and calendar constructors have a
+  // Railway render path (spreads / printSpec). Everything else — poster,
+  // photo-print, photo-magnets, star map, and any FUTURE self-composed product
+  // — builds its OWN print file client-side and uploads it as an export at
+  // order time. Sending one of those to Railway screenshots the book /print
+  // page with empty slots → a BLANK 00_cover.jpg, which "replace mode" below
+  // then treats as the new export and DELETES the real client composite.
+  //
+  // A denylist would silently wreck the next new self-composed product the day
+  // it ships. An allowlist fails SAFE instead: an unrecognised product_type is
+  // skipped, and if it were actually a new BOOK type the design-loss safety net
+  // above flags the order as "no print files" rather than replacing a good file
+  // with a blank one.
+  const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fotozhurnal|journal|planner|wish|calendar|kalendar/i;
 
   const results: Array<{ projectId: string; ok: boolean; detail?: unknown }> = [];
   const allUploaded: string[] = []; // every path the render produced, across projects
   for (const project of projects) {
-    if (SELF_COMPOSED.test(String(project.product_type || ''))) {
-      console.log('[render-order] skipping self-composed product', { orderId, projectId: project.id, product_type: project.product_type });
-      results.push({ projectId: project.id, ok: true, detail: `skipped: self-composed (${project.product_type})` });
+    if (!RAILWAY_RENDERABLE.test(String(project.product_type || ''))) {
+      console.log('[render-order] skipping non-renderable (self-composed) product', { orderId, projectId: project.id, product_type: project.product_type });
+      results.push({ projectId: project.id, ok: true, detail: `skipped: not railway-renderable (${project.product_type})` });
       continue;
     }
     try {
@@ -183,13 +188,13 @@ export async function POST(request: NextRequest) {
       .select('id, file_path, bucket_name, product_type, file_category')
       .eq('order_id', orderId)
       .eq('file_type', 'export');
-    // Never delete a self-composed product's export (poster/map/portrait): the
-    // book render that triggered replace-mode (a book in the same order) must
-    // not wipe the poster's own print file. Only prune stale BOOK exports.
+    // Only prune stale exports of RENDERABLE (book/calendar) products. A
+    // self-composed export (poster/map/magnet) in a mixed order — or any export
+    // whose product_type we don't recognise — is left untouched, so a book
+    // render that triggered replace-mode can never wipe a poster's own file.
     const stale = (oldFiles || []).filter((f: any) =>
       !newSet.has(f.file_path) &&
-      !SELF_COMPOSED.test(String(f.product_type || '')) &&
-      !/poster-print|poster/i.test(String(f.file_category || '')),
+      RAILWAY_RENDERABLE.test(String(f.product_type || '')),
     );
     if (stale.length) {
       const byBucket = new Map<string, string[]>();
