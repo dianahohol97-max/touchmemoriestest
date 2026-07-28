@@ -181,6 +181,10 @@ export function BookPreviewModal({
 
   const isPrint = typeof printSpreadIndex === 'number';
   const [spread, setSpread] = useState(isPrint ? printSpreadIndex : 0);
+  // Trim / safe-zone guide in the preview (customer editor + admin). Default ON
+  // so people SEE what the printer may crop; toggle to hide. Never shown in the
+  // print-capture path (isPrint branch), so it can't leak into the print files.
+  const [showTrim, setShowTrim] = useState(true);
   const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
 
   const navigate = useCallback((dir: 'next' | 'prev') => {
@@ -727,6 +731,26 @@ export function BookPreviewModal({
             <div style={{ position: 'relative', width: spreadW + spineW, height: pageH, overflow: 'visible', display: 'flex', justifyContent: 'center' }}>
               {renderSpread(spread)}
               <div style={{ position: 'absolute', bottom: -5, left: '8%', right: '8%', height: 10, background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.2), transparent)', borderRadius: '50%', filter: 'blur(3px)', pointerEvents: 'none' }} />
+
+              {/* Trim / safe-zone guide — preview ONLY. The print-capture path
+                  (isPrint branch above) renders no overlay, so these lines never
+                  reach the print files. Content outside the dashed line risks
+                  being trimmed off; the small label explains it. */}
+              {showTrim && (
+                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
+                  <div style={{ position: 'absolute', left: '6%', right: '6%', top: '5%', bottom: '5%', border: '1.5px dashed rgba(220,38,38,0.75)', borderRadius: 2 }} />
+                  <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', background: 'rgba(220,38,38,0.92)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>
+                    ✂ Лінія обрізки — за пунктиром може обрізатись
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowTrim(v => !v); }}
+                style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 61, background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0', borderRadius: 8, padding: '4px 9px', fontSize: 11, fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                title="Показати/сховати межі обрізки"
+              >
+                {showTrim ? 'Сховати межі' : 'Межі обрізки'}
+              </button>
             </div>
             {spread === 0 && <div style={{ width: spineW, height: pageH, flexShrink: 0, background: 'linear-gradient(to right, #a08b6e, #8b7355)', borderRadius: '0 3px 3px 0', boxShadow: 'inset 1px 0 3px rgba(0,0,0,0.3)' }} />}
           </div>
