@@ -201,6 +201,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }, []);
 
     // Nova Poshta TTN
+    const [editingClient, setEditingClient] = useState(false);
+    const [savingClient, setSavingClient] = useState(false);
+    const [clientForm, setClientForm] = useState({
+        customer_name: '', customer_phone: '', customer_email: '',
+        customer_telegram: '', customer_instagram: '', city: '', branch: '',
+    });
     const [showTTNModal, setShowTTNModal] = useState(false);
     const [creatingTTN, setCreatingTTN] = useState(false);
     const [trackingTTN, setTrackingTTN] = useState(false);
@@ -640,6 +646,55 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             fetchOrder();
         } catch (e: any) {
             toast.error(e.message || 'Помилка оновлення');
+        }
+    };
+
+    // Recipient editing. The PATCH endpoint already allows customer_* and
+    // delivery_address for staff; the UI just never exposed them. City/branch
+    // live inside the delivery_address jsonb ({ city, branch }).
+    const openClientEditor = () => {
+        const addr = (order.delivery_address || {}) as any;
+        setClientForm({
+            customer_name: order.customer_name || '',
+            customer_phone: order.customer_phone || '',
+            customer_email: order.customer_email || '',
+            customer_telegram: order.customer_telegram || order.customers?.telegram || '',
+            customer_instagram: order.customer_instagram || order.customers?.instagram || '',
+            city: addr.city || '',
+            branch: addr.branch || '',
+        });
+        setEditingClient(true);
+    };
+
+    const saveClient = async () => {
+        setSavingClient(true);
+        try {
+            // Preserve any other keys already in delivery_address (e.g. INTL
+            // address fields); only overwrite city/branch.
+            const prevAddr = (order.delivery_address && typeof order.delivery_address === 'object')
+                ? order.delivery_address : {};
+            const payload: Record<string, unknown> = {
+                customer_name: clientForm.customer_name.trim(),
+                customer_phone: clientForm.customer_phone.trim(),
+                customer_email: clientForm.customer_email.trim() || null,
+                customer_telegram: clientForm.customer_telegram.trim() || null,
+                customer_instagram: clientForm.customer_instagram.trim() || null,
+                delivery_address: { ...prevAddr, city: clientForm.city.trim(), branch: clientForm.branch.trim() },
+                updated_at: new Date().toISOString(),
+            };
+            const resp = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || `API ${resp.status}`);
+            toast.success('Дані отримувача оновлено');
+            setEditingClient(false);
+            fetchOrder();
+        } catch (e: any) {
+            toast.error(e.message || 'Не вдалося зберегти');
+        } finally {
+            setSavingClient(false);
         }
     };
 
@@ -1758,43 +1813,90 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     </div>
                     <PrintSheetsCard orderId={order.id} />
                     <div style={cardStyle}>
-                        <h3 style={cardTitleStyle}><User size={20} /> Клієнт</h3>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                            <div style={avatarStyle}>{order.customer_name?.[0]}</div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '18px', fontWeight: 900 }}>{order.customer_name}</div>
-                                <div style={{ fontSize: '13px', color: '#64748b' }}>{order.customer_phone}</div>
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <h3 style={cardTitleStyle}><User size={20} /> Клієнт</h3>
+                            {!editingClient && (
+                                <button onClick={openClientEditor}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#263A99', border: '1.5px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                    ✏️ Редагувати
+                                </button>
+                            )}
                         </div>
-                        {previousOrdersCount > 0 && (
-                            <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#166534' }}>
-                                 Попередніх замовлень: {previousOrdersCount}
+
+                        {!editingClient ? (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                                <div style={avatarStyle}>{order.customer_name?.[0]}</div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '18px', fontWeight: 900 }}>{order.customer_name}</div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>{order.customer_phone}</div>
+                                </div>
                             </div>
-                        )}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <a href={`mailto:${order.customer_email}`} style={contactLinkStyle}><Mail size={16} /> {order.customer_email}</a>
-
-                            {(order.customer_instagram || order.customers?.instagram) && (
-                                <a href={`https://instagram.com/${(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                                    @{(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}
-                                </a>
-                            )}
-
-                            {(order.customer_telegram || order.customers?.telegram) && (
-                                <a href={`https://t.me/${(order.customer_telegram || order.customers?.telegram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
-                                    <Send size={16} /> {order.customer_telegram || order.customers?.telegram}
-                                </a>
-                            )}
-
-                            {order.customer_birthday && (
-                                <div style={contactLinkStyle}>
-                                    <Calendar size={16} /> {formatDateOnly(order.customer_birthday)}
+                            {previousOrdersCount > 0 && (
+                                <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', fontWeight: 600, color: '#166534' }}>
+                                     Попередніх замовлень: {previousOrdersCount}
                                 </div>
                             )}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <a href={`mailto:${order.customer_email}`} style={contactLinkStyle}><Mail size={16} /> {order.customer_email}</a>
 
-                            <button onClick={() => setShowReplyModal(true)} style={{ ...contactLinkStyle, border: 'none', cursor: 'pointer', backgroundColor: '#eff6ff', color: '#263A99', width: '100%', textAlign: 'left' }}><MessageSquare size={16} /> Написати клієнту</button>
-                        </div>
+                                {(order.customer_instagram || order.customers?.instagram) && (
+                                    <a href={`https://instagram.com/${(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                                        @{(order.customer_instagram || order.customers?.instagram || '').replace('@', '')}
+                                    </a>
+                                )}
+
+                                {(order.customer_telegram || order.customers?.telegram) && (
+                                    <a href={`https://t.me/${(order.customer_telegram || order.customers?.telegram || '').replace('@', '')}`} target="_blank" rel="noopener noreferrer" style={contactLinkStyle}>
+                                        <Send size={16} /> {order.customer_telegram || order.customers?.telegram}
+                                    </a>
+                                )}
+
+                                {order.customer_birthday && (
+                                    <div style={contactLinkStyle}>
+                                        <Calendar size={16} /> {formatDateOnly(order.customer_birthday)}
+                                    </div>
+                                )}
+
+                                <button onClick={() => setShowReplyModal(true)} style={{ ...contactLinkStyle, border: 'none', cursor: 'pointer', backgroundColor: '#eff6ff', color: '#263A99', width: '100%', textAlign: 'left' }}><MessageSquare size={16} /> Написати клієнту</button>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                            {([
+                                ['Отримувач (ПІБ)', 'customer_name', 'Ім’я та прізвище'],
+                                ['Телефон', 'customer_phone', '+380…'],
+                                ['Email', 'customer_email', 'email@example.com'],
+                                ['Telegram', 'customer_telegram', '@username'],
+                                ['Instagram', 'customer_instagram', '@username'],
+                                ['Місто (доставка)', 'city', 'Місто'],
+                                ['Відділення / адреса', 'branch', 'Відділення №… або адреса'],
+                            ] as const).map(([label, key, ph]) => (
+                                <div key={key}>
+                                    <label style={smallLabelStyle}>{label}</label>
+                                    <input
+                                        type="text"
+                                        value={(clientForm as any)[key]}
+                                        placeholder={ph}
+                                        onChange={e => setClientForm(f => ({ ...f, [key]: e.target.value }))}
+                                        style={{ ...modalInputStyle, width: '100%' }}
+                                    />
+                                </div>
+                            ))}
+                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                                <button onClick={saveClient} disabled={savingClient}
+                                    style={{ flex: 1, padding: '10px 14px', background: savingClient ? '#93c5fd' : '#263A99', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingClient ? 'default' : 'pointer' }}>
+                                    {savingClient ? 'Збереження…' : 'Зберегти'}
+                                </button>
+                                <button onClick={() => setEditingClient(false)} disabled={savingClient}
+                                    style={{ padding: '10px 14px', background: '#fff', color: '#64748b', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                                    Скасувати
+                                </button>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>Зміни зберігаються одразу в замовленні. ТТН, якщо ще не створена, підхопить нові дані.</div>
+                          </div>
+                        )}
                     </div>
 
                     {/*  Designer Project Block  */}
