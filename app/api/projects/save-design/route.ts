@@ -32,12 +32,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid body' }, { status: 400 });
   }
 
-  const { orderId, cartItemId, design, productType, productName, format, coverType, totalPages } = body;
+  const { orderId, cartItemId, cartPayload, design, productType, productName, format, coverType, totalPages } = body;
 
-  // Need the design plus something to key it on. cartItemId (add-to-cart) or
+  // The cart line id we key on. Prefer the explicit cartItemId; fall back to the
+  // id inside a full cartPayload (add-to-cart sends the whole payload so the
+  // account "Замовити ще раз" button can replay it verbatim with the right price).
+  const cartId: string | null = cartItemId ? String(cartItemId) : (cartPayload?.id ? String(cartPayload.id) : null);
+
+  // Need the design plus something to key it on. cartId (add-to-cart) or
   // orderId (checkout) — either is enough.
-  if (!design || (!orderId && !cartItemId)) {
-    return NextResponse.json({ error: 'design and (orderId or cartItemId) required' }, { status: 400 });
+  if (!design || (!orderId && !cartId)) {
+    return NextResponse.json({ error: 'design and (orderId or cartId) required' }, { status: 400 });
   }
 
   // Resolve the authenticated user if any (guests have no session → null).
@@ -54,11 +59,11 @@ export async function POST(request: NextRequest) {
   // add-to-cart (keyed by cart_payload->>id) or at a previous checkout attempt
   // (keyed by order_id). Look it up by cartItemId first, then by orderId.
   let existing: { id: string; order_id: string | null } | null = null;
-  if (cartItemId) {
+  if (cartId) {
     const { data } = await admin
       .from('projects')
       .select('id, order_id')
-      .eq('cart_payload->>id', String(cartItemId))
+      .eq('cart_payload->>id', cartId)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -80,6 +85,14 @@ export async function POST(request: NextRequest) {
 
   const name = productName || `${productType || 'photobook'} ${format || ''} · ${totalPages || 0} стор.`;
 
+  // Full cart payload when provided (drives account "Замовити ще раз"), else a
+  // minimal { id } marker so link-order can still stamp order_id by cart id.
+  const cartPayloadToStore = cartPayload && typeof cartPayload === 'object'
+    ? cartPayload
+    : (cartId ? { id: cartId } : null);
+
+  // Base row WITHOUT cart_payload — it's handled per-path below so a thin
+  // { id } update at checkout never overwrites the full payload from add-to-cart.
   const row = {
     user_id: userId,
     name,
@@ -91,7 +104,6 @@ export async function POST(request: NextRequest) {
     pages_data: pages || [],
     cover_data: coverState || null,
     overlays_data: overlaysData,
-    cart_payload: cartItemId ? { id: cartItemId } : null,
     uploaded_photos: uploadedPhotos || [],
     updated_at: new Date().toISOString(),
   };
@@ -106,6 +118,9 @@ export async function POST(request: NextRequest) {
     if (!userId) delete patch.user_id;                 // never overwrite a real owner with null
     if (orderId && !existing.order_id) patch.order_id = orderId;
     else if (!orderId) delete (patch as any).order_id; // leave existing link untouched
+    // Only write cart_payload when we received the FULL payload; a thin { id }
+    // update at checkout must not overwrite the rich payload saved at add-to-cart.
+    if (cartPayload && typeof cartPayload === 'object') patch.cart_payload = cartPayloadToStore;
 
     const { data, error } = await admin
       .from('projects')
@@ -115,7 +130,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('[save-design] update failed', { orderId, cartItemId, error: error.message });
+      console.error('[save-design] update failed', { orderId, cartId, error: error.message });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     return NextResponse.json({ ok: true, updated: true, projectId: data.id });
@@ -123,12 +138,12 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await admin
     .from('projects')
-    .insert({ ...row, order_id: orderId || null })
+    .insert({ ...row, cart_payload: cartPayloadToStore, order_id: orderId || null })
     .select('id')
     .single();
 
   if (error) {
-    console.error('[save-design] insert failed', { orderId, cartItemId, error: error.message });
+    console.error('[save-design] insert failed', { orderId, cartId, error: error.message });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
