@@ -964,11 +964,14 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         }
       };
 
-      // Now render and upload each photo at print resolution
+      // Now render and upload each photo at print resolution.
+      // ALL-OR-NOTHING: every selected photo must render AND upload. A single
+      // failure aborts the whole order below — see the guard after the loop.
+      let uploadFailed = false;
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         let blob = polaroidActive ? await renderPolaroid(photo) : await renderStandard(photo);
-        if (!blob) continue;
+        if (!blob) { uploadFailed = true; break; }
         // Patch JPEG metadata for the print shop:
         //   • DPI tag 300×300 (was 96×96 from the browser default)
         //   • Embed standard sRGB ICC v2 profile
@@ -990,7 +993,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         const { error: uploadError } = await uploadImageToStorage(
           supabase, 'order-files', path, fileObj, { upsert: true, cacheControl: '31536000' },
         );
-        if (uploadError) { console.warn('photo-print render upload failed:', uploadError); continue; }
+        if (uploadError) { console.warn('photo-print render upload failed:', uploadError); uploadFailed = true; break; }
         exportedFiles.push({
           path, fileName, bucket: 'order-files',
           fileCategory: isMagnet ? 'photomagnets' : (polaroidActive ? 'polaroid-print' : 'photo-print'),
@@ -999,16 +1002,25 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           pageNumber: i + 1,
         });
       }
-      if (exportedFiles.length > 0) {
-        sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
-      } else if (photos.length > 0) {
-        // HARD GUARD — same class as the blank photobook (TM-001034): every
-        // render upload failed, so the order would reach the admin with zero
-        // print files and nobody would notice until production. Refuse the
-        // add-to-cart instead of silently creating an unprintable order.
-        try { toast.error('Не вдалося зберегти фото для друку. Перевірте інтернет і спробуйте ще раз — замовлення без фото ми не приймаємо.', { duration: 10000 }); } catch {}
+      // HARD GUARD (all-or-nothing). Previously a single failed photo was
+      // silently skipped (continue) and only an ALL-fail was blocked — so a
+      // partial failure (e.g. TM-001095 concern: some of N photos not uploaded)
+      // produced a PAID order missing photos that nobody noticed until
+      // production. Now ANY failure — or any mismatch between selected photos
+      // and successfully-saved files — aborts the whole add-to-cart.
+      if (photos.length > 0 && (uploadFailed || exportedFiles.length !== photos.length)) {
+        try {
+          toast.error(
+            `Не вдалося зберегти всі фото для друку (${exportedFiles.length} із ${photos.length}). ` +
+            'Замовлення з неповним набором ми не приймаємо — перевірте інтернет і спробуйте ще раз.',
+            { duration: 10000 },
+          );
+        } catch {}
         removeItem(cartItemId);
         return;
+      }
+      if (exportedFiles.length > 0) {
+        sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
       }
     } catch (e) {
       console.warn('photo-print storage step skipped:', e);
