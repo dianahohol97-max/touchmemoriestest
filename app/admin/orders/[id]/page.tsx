@@ -1866,12 +1866,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             const isOriginal = (f: any) => (f.category || '').toLowerCase() === 'original';
                             const originals = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && isOriginal(f));
                             const photos = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && !isOriginal(f));
+                            // Composed print layouts (posters, covers, spreads — the `big`
+                            // thumbs) are shown with objectFit:contain so the WHOLE layout is
+                            // visible. A tall poster (21×30) in a square tile with `cover`
+                            // showed only a thin centre strip and read as "нічого не видно".
+                            // Raw client photos keep `cover` — a filled square reads better
+                            // as a gallery thumbnail.
                             const thumb = (f: any, big = false) => (
                                 <a key={f.id} href={f.url || '#'} target="_blank" rel="noopener noreferrer" download={f.name}
                                     title={f.name}
                                     style={{ position: 'relative', display: 'block', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: big ? '2px solid #7c3aed' : '1px solid #e2e8f0', background: '#f8fafc' }}>
                                     {f.url
-                                        ? <img src={f.url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ? <img src={f.url} alt={f.name} style={{ width: '100%', height: '100%', objectFit: big ? 'contain' : 'cover' }} />
                                         : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', color: '#cbd5e1' }}><FileText size={20} /></div>}
                                 </a>
                             );
