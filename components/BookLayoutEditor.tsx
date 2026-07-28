@@ -4509,6 +4509,35 @@ export default function BookLayoutEditor() {
       // updated design never reached the renderer.
       sessionStorage.setItem(`design_${cartPayload.id}`, JSON.stringify(designSnapshot));
 
+      // ROOT-CAUSE FIX for lost book designs: persist the design to the server
+      // THE MOMENT it's added to the cart, keyed by the cart item id — for
+      // everyone, guests included. Previously the only server copy was written
+      // at checkout from sessionStorage; if that storage was cleared/expired,
+      // or the guest never reached the save step, the design was gone and the
+      // paid order arrived with empty pages. save-design is idempotent (keyed on
+      // cart_payload->>id) and links order_id later at checkout, so this extra
+      // write costs nothing and safely deduplicates. Fire-and-forget: never
+      // block or fail add-to-cart on it — the sessionStorage path still runs.
+      try {
+        const sizeForSave = normalizeSizeKey(config?.selectedSize || '');
+        void fetch('/api/projects/save-design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({
+            cartItemId: cartPayload.id,
+            design: designSnapshot,
+            productType: uploadProductType,
+            productName: config?.productName || undefined,
+            format: sizeForSave || undefined,
+            coverType: config?.selectedCoverType || undefined,
+            totalPages: contentPages,
+          }),
+        }).catch((e) => console.warn('[design-snapshot] server save failed (non-blocking)', e));
+      } catch (e) {
+        console.warn('[design-snapshot] server save threw (non-blocking)', e);
+      }
+
       // The export_failed guard used to live only in the html2canvas branch,
       // which is permanently disabled (SKIP_CLIENT_HTML2CANVAS) — so partial
       // original-upload failures became invisible: the project row was still
