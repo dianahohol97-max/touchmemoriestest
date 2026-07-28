@@ -364,7 +364,10 @@ app.post('/render', async (req, res) => {
           for (const h of halves) {
             const pageJpeg = await sharp(scaled)
               .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
-              .extend({ left: bx, right: bx, top: by, bottom: by, extendWith: 'copy' })
+              // 'mirror' reflects the edge instead of stretching a single pixel
+              // row ('copy'), which produced a smeared/blurry band absent from
+              // the original photo. Mirror gives a clean bleed that trims away.
+              .extend({ left: bx, right: bx, top: by, bottom: by, extendWith: 'mirror' })
               .withMetadata({ density: DPI })
               .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
               .toBuffer();
@@ -383,7 +386,11 @@ app.post('/render', async (req, res) => {
               right: dx - bx,
               top: by,
               bottom: dy - by,
-              extendWith: 'copy',   // replicate edge pixels = bleed / cover wrap
+              // 'mirror' (reflect the edge) instead of 'copy' (stretch one pixel
+              // row) — 'copy' produced a smeared/blurry band on the cover wrap
+              // that wasn't in the original photo. Mirror looks clean; the wrap
+              // is folded/trimmed away on the finished cover either way.
+              extendWith: 'mirror',
             })
             .withMetadata({ density: DPI })
             .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
