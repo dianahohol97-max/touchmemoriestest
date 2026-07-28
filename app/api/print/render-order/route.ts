@@ -53,6 +53,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
   if (!projects || projects.length === 0) {
+    // SAFETY NET (runs on payment, since the Monobank webhook calls this route):
+    // a BOOK order that reaches payment with no saved design AND no print files
+    // means the layout was lost during checkout (e.g. the guest-save gap). Flag
+    // the order immediately so staff catch it in seconds instead of at
+    // production. Non-book products legitimately have no design — skip them.
+    // Non-blocking + idempotent; never affects the payment flow.
+    try {
+      const { data: ord } = await admin
+        .from('orders')
+        .select('items, notes')
+        .eq('id', orderId)
+        .maybeSingle();
+      const items = Array.isArray((ord as any)?.items) ? (ord as any).items : [];
+      const BOOK = /photobook|fotoknig|travel|magazine|zhurnal|journal|planner|wish|album|альбом|книг/i;
+      const needsDesign = items.some((it: any) => BOOK.test(`${it?.slug || ''} ${it?.name || it?.product_name || ''}`));
+      const MARKER = 'дизайн не збережено';
+      if (needsDesign && !((ord as any)?.notes || '').includes(MARKER)) {
+        const { count } = await admin
+          .from('order_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', orderId);
+        if ((count ?? 0) === 0) {
+          const warn =
+            `⚠️ УВАГА: ${MARKER} — оплачене книжкове замовлення без макета й без файлів друку. ` +
+            `Дизайн, найпевніше, втрачено при оформленні. Терміново звʼяжіться з клієнтом. ` +
+            `(автоперевірка при оплаті)`;
+          const prev = ((ord as any)?.notes || '').trim();
+          await admin.from('orders').update({ notes: prev ? `${warn}\n\n${prev}` : warn }).eq('id', orderId);
+          console.warn('[render-order] flagged design-loss', { orderId });
+        }
+      }
+    } catch (e) {
+      console.error('[render-order] design-loss flag failed', { orderId, e });
+    }
     // No constructor project for this order (e.g. a non-book product, or an
     // order placed before order_id linking shipped). Nothing to render.
     return NextResponse.json({ ok: true, rendered: 0, note: 'no project for order' });
