@@ -813,6 +813,22 @@ export default function PosterConstructor() {
 
       addItem(cartPayload);
 
+      // Safety net: if the print-ready composite failed to render (canvas/blob
+      // error, tainted image, etc.), printExport is null. The 6 photos still
+      // upload below, but there is NO assembled poster file — so flag the order
+      // (same `export_failed_<id>` marker books/photo-prints use) and tell the
+      // customer, instead of silently shipping an order a manager can't print.
+      // This is what stops "the poster came through empty" from ever being
+      // invisible again.
+      if (!printExport) {
+        try { sessionStorage.setItem(`export_failed_${cartPayload.id}`, '1'); } catch { /* quota */ }
+        toast.error(
+          'Не вдалося зібрати файл постера. Ваші фото збережено — ми складемо макет вручну й звʼяжемось, якщо щось не так. Можна також спробувати оформити ще раз.',
+          { duration: 12000 },
+        );
+        console.error('[poster] print composite missing — flagged export_failed', { cartItemId: cartPayload.id, layout: layout.id });
+      }
+
       // Durable storage descriptors of the uploaded originals — declared out
       // here because the projects insert below also references them (saved
       // designs must point at storage paths, not dead blob: URLs).
