@@ -2115,7 +2115,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
-                                        {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.slug || ''}`)) && (
+                                        {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.product_name || ''} ${it?.slug || ''}`)) && (
                                         <button
                                             onClick={rebuildPoster}
                                             disabled={rebuildingPoster}
