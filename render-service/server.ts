@@ -351,6 +351,29 @@ app.post('/render', async (req, res) => {
         const bx = Math.floor(dx / 2);   // per-side horizontal bleed
         const by = Math.floor(dy / 2);   // per-side vertical bleed
 
+        // Real-photo bleed. Instead of smearing the 1px edge row across the
+        // 4–10 mm bleed (extendWith:'copy' → a visible streak that isn't in the
+        // original photo), fill the bleed with the ACTUAL photo — the whole trim
+        // image scaled up to the bleed target — then composite the EXACT,
+        // unscaled trim content back on top. Everything inside the trim line
+        // (the part that survives the cut) is pixel-for-pixel the customer's
+        // layout — no zoom of the visible area — while the trimmed-off bleed
+        // shows real photo continuation instead of a smear. The bleed pixels are
+        // stretched a few %, but they are cut away, so it never reaches the
+        // finished product. Contained to the render service; the /print DOM is
+        // unchanged, so the aspect guard above still holds.
+        const bleedFill = async (
+          content: Buffer, cw: number, ch: number,
+          left: number, right: number, top: number, bottom: number,
+        ): Promise<Buffer> => {
+          const l = Math.max(0, left), r = Math.max(0, right), t = Math.max(0, top), b = Math.max(0, bottom);
+          const outW = cw + l + r;
+          const outH = ch + t + b;
+          if (outW === cw && outH === ch) return content;
+          const filler = await sharp(content).resize(outW, outH, { fit: 'fill' }).toBuffer();
+          return await sharp(filler).composite([{ input: content, left: l, top: t }]).toBuffer();
+        };
+
         if (splitToPages && !isCover) {
           // Travel books / magazines: cut the clean 2-page content down the
           // gutter and bleed each half on all four sides, so the workshop gets
@@ -362,9 +385,11 @@ app.post('/render', async (req, res) => {
             { left: halfW, width: contentPxW - halfW, pageNo: leftPageNo + 1 },
           ];
           for (const h of halves) {
-            const pageJpeg = await sharp(scaled)
+            const half = await sharp(scaled)
               .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
-              .extend({ left: bx, right: bx, top: by, bottom: by, extendWith: 'copy' })
+              .toBuffer();
+            const filled = await bleedFill(half, h.width, contentPxH, bx, bx, by, by);
+            const pageJpeg = await sharp(filled)
               .withMetadata({ density: DPI })
               .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
               .toBuffer();
@@ -377,14 +402,8 @@ app.post('/render', async (req, res) => {
           }
           console.log(`[render] spread ${spread}: split into pages ${leftPageNo},${leftPageNo + 1}`);
         } else {
-          const jpeg = await sharp(scaled)
-            .extend({
-              left: bx,
-              right: dx - bx,
-              top: by,
-              bottom: dy - by,
-              extendWith: 'copy',   // replicate edge pixels = bleed / cover wrap
-            })
+          const filled = await bleedFill(scaled, contentPxW, contentPxH, bx, dx - bx, by, dy - by);
+          const jpeg = await sharp(filled)
             .withMetadata({ density: DPI })
             .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
             .toBuffer();
