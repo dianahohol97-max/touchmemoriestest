@@ -150,13 +150,18 @@ export async function GET(req: NextRequest) {
     // so the card can match each file to the right order item.
     if (customerFolder) {
         try {
+            // Paths already registered in order_files are served above with their
+            // REAL category. Re-surfacing them here would duplicate each photo as
+            // a fake isExport tile — poster orders showed their raw slot photos
+            // under "Макет для друку · готовий" even when no composite existed.
+            const registered = new Set(fileRows.map((f) => f.file_path));
             const { data: subdirs } = await admin.storage.from('order-files').list(customerFolder, { limit: 200 });
             for (const dir of (subdirs || []) as any[]) {
                 if (!dir?.name || dir.id) continue; // folders have id === null; skip stray top-level files
                 const productId = String(dir.name).split('_')[0] || null;
                 const prefix = `${customerFolder}/${dir.name}`;
                 const { data: entries } = await admin.storage.from('order-files').list(prefix, { limit: 200 });
-                const dirFiles = ((entries || []) as any[]).filter((f) => f?.id && f.name);
+                const dirFiles = ((entries || []) as any[]).filter((f) => f?.id && f.name && !registered.has(`${prefix}/${f.name}`));
                 if (!dirFiles.length) continue;
                 const paths = dirFiles.map((f) => `${prefix}/${f.name}`);
                 const { data: signed } = await admin.storage.from('order-files').createSignedUrls(paths, ONE_DAY);

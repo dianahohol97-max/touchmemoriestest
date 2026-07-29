@@ -158,6 +158,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [rerendering, setRerendering] = useState(false);
+    const [rebuildingPoster, setRebuildingPoster] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
     const [sendingPayLink, setSendingPayLink] = useState(false);
@@ -631,6 +632,78 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (resp.ok) toast.success('Дані збережено');
         else toast.error('НЕ збережено — спробуйте ще раз');
         setSaving(false);
+    };
+
+    // Rebuild a lost poster composite from the saved design — the exact same
+    // renderer the customer's constructor used (renderPosterPrintBlob), fed by
+    // the saved per-slot crops/zoom and the slot photos from storage. Runs in
+    // THIS browser: compose → upload to poster-exports → register in
+    // order_files (the API route replaces older poster-print rows).
+    const rebuildPoster = async () => {
+        setRebuildingPoster(true);
+        try {
+            const r = await fetch(`/api/admin/orders/${id}/poster-rebuild`);
+            const j = await r.json();
+            if (!r.ok) throw new Error(j.error || `API ${r.status}`);
+            const { config, format, slotUrls } = j;
+
+            const [{ renderPosterPrintBlob }, posterMod] = await Promise.all([
+                import('@/lib/poster-render'),
+                import('@/components/PosterConstructor'),
+            ]);
+            const { LAYOUTS, SIZES, PREVIEW_W } = posterMod as any;
+
+            const sizeObj = SIZES.find((s: any) => s.id === config.size)
+                || SIZES.find((s: any) => s.label === format)
+                || SIZES[0];
+            const layout = LAYOUTS.find((l: any) => l.id === config.layoutId) || LAYOUTS[0];
+
+            const photos = (config.photos || []).map((p: any, i: number) => ({
+                ...p,
+                photoUrl: slotUrls[i] || '',
+            }));
+            const missing = photos.filter((p: any, i: number) => (config.photos?.[i]?.photoUrl || config.photos?.[i]?.id) && !p.photoUrl).length;
+            if (missing > 0) throw new Error(`Бракує ${missing} фото у сховищі — постер зібрати неможливо`);
+
+            const blob = await renderPosterPrintBlob(
+                {
+                    bgColor: config.bgColor,
+                    padding: config.padding,
+                    frameStyle: config.frameStyle,
+                    frameColor: config.frameColor,
+                    photos,
+                    textBlocks: config.textBlocks || [],
+                },
+                sizeObj.wCm,
+                sizeObj.hCm,
+                layout.getSlots,
+                PREVIEW_W,
+            );
+            if (!blob) throw new Error('Рендер постера не вдався');
+
+            const { createClient } = await import('@/lib/supabase/client');
+            const sb = createClient();
+            const path = `rebuilt/${id}-${Date.now()}.jpg`;
+            const { error: upErr } = await sb.storage
+                .from('poster-exports')
+                .upload(path, blob, { cacheControl: '31536000', contentType: 'image/jpeg' });
+            if (upErr) throw new Error(`Завантаження: ${upErr.message}`);
+
+            const reg = await fetch(`/api/admin/orders/${id}/poster-rebuild`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, size: blob.size }),
+            });
+            const regJ = await reg.json();
+            if (!reg.ok) throw new Error(regJ.error || 'Не вдалося зареєструвати файл');
+
+            toast.success('Постер зібрано з дизайну — файл у «Макет для друку»');
+            fetchOrder();
+        } catch (e: any) {
+            toast.error(e.message || 'Не вдалося зібрати постер');
+        } finally {
+            setRebuildingPoster(false);
+        }
     };
 
     const updateOrderAccount = async (field: 'bank_account_id' | 'np_account_id', value: string) => {
@@ -2042,6 +2115,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
+                                        {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.slug || ''}`)) && (
+                                        <button
+                                            onClick={rebuildPoster}
+                                            disabled={rebuildingPoster}
+                                            title="Відтворює 300-DPI постер із збереженого дизайну (та сама розкладка, кадрування й рамка, що зібрав клієнт). Для постерів, у яких зник готовий макет."
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: rebuildingPoster ? 'default' : 'pointer' }}>
+                                            {rebuildingPoster ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                            {rebuildingPoster ? 'Збираю постер…' : 'Зібрати постер з дизайну'}
+                                        </button>
+                                        )}
                                         <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}

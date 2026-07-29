@@ -65,7 +65,7 @@ interface Layout {
 
 //  Layouts 
 
-const LAYOUTS: Layout[] = [
+export const LAYOUTS: Layout[] = [
   //  1 фото 
   {
     id: 'single',
@@ -267,9 +267,9 @@ const LAYOUTS: Layout[] = [
 const SHOW_AI_PORTRAIT = false;
 
 // On-screen preview width in px. Print export scales padding/fonts against this.
-const PREVIEW_W = 480;
+export const PREVIEW_W = 480;
 
-const SIZES = [
+export const SIZES = [
   { id: 'a4',    label: 'A4 (21×30)',  price: 350, ratio: 21/30, wCm: 21, hCm: 30 },
   { id: 'a3',    label: 'A3 (30×42)',  price: 450, ratio: 30/42, wCm: 30, hCm: 42 },
 ];
