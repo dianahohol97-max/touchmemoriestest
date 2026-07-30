@@ -211,9 +211,14 @@ const { addItem } = useCartStore();
                     productType: 'monogram', fileType: 'export',
                     size: blob.size, mimeType: 'application/json',
                 }));
+            } else {
+                throw new Error(uploadError.message || 'upload failed');
             }
         } catch (e) {
-            console.warn('monogram config save skipped:', e);
+            // The config JSON IS the production file — fail LOUD, not silent.
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти налаштування монограми на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення деталей — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('monogram config save FAILED:', e);
         }
 
         toast.success(t('monogram.monogram_added'));

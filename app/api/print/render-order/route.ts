@@ -18,6 +18,99 @@ export const maxDuration = 300;
  * returns 200-ish JSON describing what happened; the caller ignores the body
  * and never lets a render problem break payment confirmation.
  */
+
+// ── Universal print-artifact audit ──────────────────────────────────────────
+// Runs for EVERY paid order (this route fires on the first paid transition and
+// from the render-paid-orders backstop cron). For each order item it knows the
+// class of print artifact production needs, and flags the order the moment a
+// paid item has none — so a lost design/export surfaces in the admin within
+// seconds of payment instead of at the print shop. This is deliberately
+// server-side and constructor-agnostic: it does not trust any client-side
+// save/upload code, so a bug in ANY current or future constructor is caught
+// here as long as its product name matches a class below. Unknown products are
+// not flagged (no false alarms), known ones fail LOUD.
+const MARKER = 'бракує файлів для друку';
+const LEGACY_MARKER = 'дизайн не збережено';
+const RX = {
+  // no customer artwork needed at all
+  exclude: /сертифікат|certificate|gift.?card/i,
+  // books & calendars — rendered by Railway from a saved projects row
+  book: /photobook|fotoknig|фотокниг|travel|тревел|magazine|журнал|zhurnal|journal|planner|планер|wish|побажан|альбом|книг|календар|calendar|kalendar/i,
+  // client-composed single-file products — their print file is an export row
+  self: /постер|poster|мапа|map\b|зорян|star.?map|монограм|monogram|зодіак|zodiac|портрет|portrait|cartoon|мультяш|pixar|піксар/i,
+  // photo sets — customer photos as uploads (files may live only in storage)
+  photoset: /фотодрук|фото.?друк|photo.?print|полароїд|polaroid|магніт|magnet|пазл|puzzle/i,
+};
+
+async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, orderId: string) {
+  try {
+    const { data: ord } = await admin
+      .from('orders')
+      .select('items, notes, customer_id')
+      .eq('id', orderId)
+      .maybeSingle();
+    const items = Array.isArray((ord as any)?.items) ? (ord as any).items : [];
+    if (!items.length) return;
+    const notes: string = (ord as any)?.notes || '';
+    if (notes.includes(MARKER) || notes.includes(LEGACY_MARKER)) return; // already flagged
+
+    const [{ data: files }, { count: projCount }] = await Promise.all([
+      admin.from('order_files').select('file_type, product_type, file_category').eq('order_id', orderId),
+      admin.from('projects').select('id', { count: 'exact', head: true }).eq('order_id', orderId),
+    ]);
+    const rows = files || [];
+    const hasProject = (projCount ?? 0) > 0;
+    const isBookFile = (f: any) =>
+      RX.book.test(String(f.product_type || '')) || /^book-/.test(String(f.file_category || ''));
+    // legacy rows without product_type count for everyone (lenient — no false alarms)
+    const hasBookExport = rows.some(f => f.file_type === 'export' && (!f.product_type || isBookFile(f)));
+    const hasOtherExport = rows.some(f => f.file_type === 'export' && (!f.product_type || !isBookFile(f)));
+    const hasAnyRow = rows.length > 0;
+
+    // Photo sets sometimes live ONLY in storage (order-files/{customer}/{item}/…)
+    // with no order_files rows at all — scan before declaring them missing.
+    let hasStorageFiles = false;
+    const needsStorageScan = !hasAnyRow && items.some((it: any) =>
+      RX.photoset.test(`${it?.slug || ''} ${it?.name || it?.product_name || ''}`));
+    if (needsStorageScan && (ord as any)?.customer_id) {
+      try {
+        const folder = String((ord as any).customer_id);
+        const { data: subdirs } = await admin.storage.from('order-files').list(folder, { limit: 100 });
+        for (const d of (subdirs || []) as any[]) {
+          if (!d?.name || d.id) continue; // folders have id === null
+          const { data: entries } = await admin.storage.from('order-files').list(`${folder}/${d.name}`, { limit: 1 });
+          if (((entries || []) as any[]).some(f => f?.id)) { hasStorageFiles = true; break; }
+        }
+      } catch { /* scan unavailable — stay lenient below */ }
+    }
+
+    const missing: string[] = [];
+    for (const it of items) {
+      const label = `${it?.slug || ''} ${it?.name || it?.product_name || ''}`.trim();
+      if (!label || RX.exclude.test(label)) continue;
+      if (RX.book.test(label)) {
+        if (!hasProject && !hasBookExport) missing.push(label);
+      } else if (RX.self.test(label)) {
+        if (!hasOtherExport) missing.push(label);
+      } else if (RX.photoset.test(label)) {
+        if (!hasAnyRow && !hasStorageFiles) missing.push(label);
+      }
+      // unknown product classes: no requirement, no false alarm
+    }
+    if (!missing.length) return;
+
+    const warn =
+      `⚠️ УВАГА: ${MARKER} — оплачене замовлення, але для позицій нема макета/файлів: ` +
+      `${missing.join('; ')}. НЕ ВІДПРАВЛЯТИ В ДРУК — перевірте файли і звʼяжіться з клієнтом. ` +
+      `(автоперевірка при оплаті)`;
+    await admin.from('orders')
+      .update({ notes: notes.trim() ? `${warn}\n\n${notes.trim()}` : warn })
+      .eq('id', orderId);
+    console.warn('[render-order] flagged missing print artifacts', { orderId, missing });
+  } catch (e) {
+    console.error('[render-order] artifact audit failed', { orderId, e });
+  }
+}
 export async function POST(request: NextRequest) {
   // Internal auth — same secret the webhook uses for fiscalize / email.
   const secret = request.headers.get('x-cron-secret');
@@ -53,42 +146,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
   if (!projects || projects.length === 0) {
-    // SAFETY NET (runs on payment, since the Monobank webhook calls this route):
-    // a BOOK order that reaches payment with no saved design AND no print files
-    // means the layout was lost during checkout (e.g. the guest-save gap). Flag
-    // the order immediately so staff catch it in seconds instead of at
-    // production. Non-book products legitimately have no design — skip them.
-    // Non-blocking + idempotent; never affects the payment flow.
-    try {
-      const { data: ord } = await admin
-        .from('orders')
-        .select('items, notes')
-        .eq('id', orderId)
-        .maybeSingle();
-      const items = Array.isArray((ord as any)?.items) ? (ord as any).items : [];
-      const BOOK = /photobook|fotoknig|travel|magazine|zhurnal|journal|planner|wish|album|альбом|книг/i;
-      const needsDesign = items.some((it: any) => BOOK.test(`${it?.slug || ''} ${it?.name || it?.product_name || ''}`));
-      const MARKER = 'дизайн не збережено';
-      if (needsDesign && !((ord as any)?.notes || '').includes(MARKER)) {
-        const { count } = await admin
-          .from('order_files')
-          .select('id', { count: 'exact', head: true })
-          .eq('order_id', orderId);
-        if ((count ?? 0) === 0) {
-          const warn =
-            `⚠️ УВАГА: ${MARKER} — оплачене книжкове замовлення без макета й без файлів друку. ` +
-            `Дизайн, найпевніше, втрачено при оформленні. Терміново звʼяжіться з клієнтом. ` +
-            `(автоперевірка при оплаті)`;
-          const prev = ((ord as any)?.notes || '').trim();
-          await admin.from('orders').update({ notes: prev ? `${warn}\n\n${prev}` : warn }).eq('id', orderId);
-          console.warn('[render-order] flagged design-loss', { orderId });
-        }
-      }
-    } catch (e) {
-      console.error('[render-order] design-loss flag failed', { orderId, e });
-    }
-    // No constructor project for this order (e.g. a non-book product, or an
-    // order placed before order_id linking shipped). Nothing to render.
+    // No constructor project — audit whether that's legitimate (e.g. a poster
+    // whose print file is an export row) or a real loss, and flag if so.
+    await auditPrintArtifacts(admin, orderId);
     return NextResponse.json({ ok: true, rendered: 0, note: 'no project for order' });
   }
 
@@ -210,6 +270,11 @@ export async function POST(request: NextRequest) {
       await admin.from('order_files').delete().in('id', stale.map((f: any) => f.id));
     }
   }
+
+  // Even with projects present, individual items can still lack artifacts
+  // (failed render, mixed order where the poster's export vanished, …) —
+  // audit after rendering so freshly produced files count.
+  await auditPrintArtifacts(admin, orderId);
 
   const okCount = results.filter(r => r.ok).length;
   return NextResponse.json({ ok: okCount === results.length, rendered: okCount, total: results.length, results });

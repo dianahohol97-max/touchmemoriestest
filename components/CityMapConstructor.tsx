@@ -185,9 +185,16 @@ export default function CityMapConstructor() {
                     productType: 'citymap', fileType: 'export',
                     size: blob.size, mimeType: 'application/json',
                 }));
+            } else {
+                throw new Error(uploadError.message || 'upload failed');
             }
         } catch (e) {
-            console.warn('citymap config save skipped:', e);
+            // The config JSON IS this product's production file — without it the
+            // designer can't lay out the map. Flag the cart item so checkout
+            // writes a loud warning onto the order, and tell the customer.
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти налаштування мапи на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення деталей — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('citymap config save FAILED:', e);
         }
 
         toast.success(t('citymap.add_to_cart_success'));

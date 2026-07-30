@@ -54,11 +54,19 @@ export async function GET(request: Request) {
 //  Editor projects lifecycle 
 
 async function processEditorProjects(supabase: any, now: Date, stats: any) {
-    // Fetch all draft projects with owner email (via auth.users)
+    // Fetch all draft projects with owner email (via auth.users).
+    //
+    // CRITICAL: order_id IS NULL. Every project row carries status 'draft'
+    // (nothing ever flips it), so before this filter the 60-day purge below was
+    // deleting the SAVED DESIGNS OF PAID ORDERS too — after 60 days the admin
+    // "Перегенерувати макет" had nothing to render from and the design was
+    // simply gone. A project linked to an order is production data, not an
+    // abandoned draft: it must never be lifecycle-nagged or deleted.
     const { data: projects, error } = await supabase
         .from('projects')
         .select('id, name, product_type, format, status, created_at, updated_at, user_id, notified_24h_at, notified_10d_at, notified_55d_at, notified_59d_at')
         .eq('status', 'draft')
+        .is('order_id', null)
         .not('user_id', 'is', null);
 
     if (error) { console.error('[lifecycle] projects fetch error:', error); return; }

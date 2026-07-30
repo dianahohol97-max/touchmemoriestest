@@ -223,6 +223,7 @@ export default function StarMapConstructor() {
         // Export canvas if available. The preview canvas is now rendered at
         // ~300 DPI (PRINT_SCALE in StarMapPreview), so we export it directly as
         // a JPEG instead of upscaling a small screen canvas. q=0.95 for print.
+        let exportOk = false;
         if (canvas && canvas.width > 0) {
             try {
                 setExporting(true);
@@ -244,14 +245,24 @@ export default function StarMapConstructor() {
                     size: blob.size,
                 }));
 
+                exportOk = true;
                 setExportDone(true);
                 await new Promise(r => setTimeout(r, 800));
             } catch (err) {
-                console.error('Export failed (non-blocking):', err);
+                console.error('starmap export FAILED:', err);
             } finally {
                 setExporting(false);
                 setExportDone(false);
             }
+        }
+        // No canvas (preview not painted yet) or export/upload failed — the
+        // 300-DPI print file does NOT exist. Previously this proceeded in total
+        // silence and the paid order arrived with nothing to print. Flag the
+        // cart item (checkout writes a loud warning onto the order) and tell
+        // the customer.
+        if (!exportOk) {
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти файл зоряної мапи для друку. Замовлення можна оформити, але ми звʼяжемось для уточнення — або поверніться на крок назад і спробуйте ще раз.', { duration: 10000 });
         }
 
         const cartPayload = {
