@@ -1683,6 +1683,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     Надіслати посилання клієнту
                                                 </button>
                                             )}
+                                            {/* Monobank invoices expire (~24h). With a stale link the old UI
+                                                showed only «Копіювати» — the create button lived in the
+                                                else-branch, so a manager had NO way to re-issue an expired
+                                                link. Re-issuing is safe: create-invoice refuses paid orders
+                                                and always mints a fresh 24h invoice for the same order. */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Створити НОВЕ посилання на оплату? Старе перестане діяти, нове буде чинне 24 години.')) return;
+                                                    await createMonobankPaymentLink();
+                                                }}
+                                                disabled={creatingPaymentLink}
+                                                title="Перевипустити рахунок Monobank — коли старе посилання протухло (діють 24 години)"
+                                                style={{ marginTop: 8, width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                    padding: '9px 12px', background: '#fff', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: 8,
+                                                    fontSize: 13, fontWeight: 700, cursor: creatingPaymentLink ? 'default' : 'pointer' }}>
+                                                {creatingPaymentLink ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                                {creatingPaymentLink ? 'Створюю…' : 'Створити нове посилання (24 год)'}
+                                            </button>
                                         </div>
                                     ) : (
                                         <button
