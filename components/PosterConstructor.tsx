@@ -410,6 +410,11 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
       if (config.frameStyle !== 'none') {
         ctx.save();
         const unit = W / 400; // scale reference
+        // 1 cm inset from the paper edge (matches renderPosterPrintBlob): the
+        // print shop trims 5–7 mm, so an edge-tight frame came back cut. The
+        // preview must show the same inset the print file gets.
+        const fix = Math.round(W * (1 / sizeObj.wCm));
+        const fiy = Math.round(H * (1 / sizeObj.hCm));
         const fw = config.frameStyle === 'thick' ? Math.round(10 * unit)
                  : config.frameStyle === 'double' ? Math.round(3 * unit)
                  : Math.round(4 * unit);
@@ -417,14 +422,14 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
         ctx.lineWidth = fw;
         if (config.frameStyle === 'rounded') {
           const r = Math.round(16 * unit);
-          ctx.beginPath(); ctx.roundRect(fw / 2, fw / 2, W - fw, H - fw, r); ctx.stroke();
+          ctx.beginPath(); ctx.roundRect(fix + fw / 2, fiy + fw / 2, W - 2 * fix - fw, H - 2 * fiy - fw, r); ctx.stroke();
         } else {
-          ctx.strokeRect(fw / 2, fw / 2, W - fw, H - fw);
+          ctx.strokeRect(fix + fw / 2, fiy + fw / 2, W - 2 * fix - fw, H - 2 * fiy - fw);
         }
         if (config.frameStyle === 'double') {
           const gap = Math.round(7 * unit);
           ctx.lineWidth = Math.max(1, Math.round(1.5 * unit));
-          ctx.strokeRect(fw + gap, fw + gap, W - 2 * (fw + gap), H - 2 * (fw + gap));
+          ctx.strokeRect(fix + fw + gap, fiy + fw + gap, W - 2 * (fix + fw + gap), H - 2 * (fiy + fw + gap));
         }
         ctx.restore();
       }
