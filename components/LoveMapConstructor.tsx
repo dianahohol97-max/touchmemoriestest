@@ -204,9 +204,14 @@ export default function LoveMapConstructor() {
                     productType: 'lovemap', fileType: 'export',
                     size: blob.size, mimeType: 'application/json',
                 }));
+            } else {
+                throw new Error(uploadError.message || 'upload failed');
             }
         } catch (e) {
-            console.warn('lovemap config save skipped:', e);
+            // The config JSON IS the production file — fail LOUD, not silent.
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти налаштування мапи на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення деталей — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('lovemap config save FAILED:', e);
         }
 
         toast.success(t('lovemap.add_to_cart_success'));

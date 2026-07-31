@@ -619,17 +619,26 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
 
         // Upload all originals IN PARALLEL (not one-by-one), so 20 photos take a
         // few seconds instead of over a minute. Each lands at its pre-computed
-        // path. Failures are logged but never block the flow.
+        // path. The export_ descriptors above point at these paths — so if ANY
+        // upload fails, the order would list files that don't exist (phantom
+        // paths). That must be LOUD: flag the cart item so checkout writes the
+        // warning onto the order, and tell the customer.
+        let failedUploads = 0;
         try {
             await Promise.all(uploadPlan.map(async (it) => {
                 const { error: uploadError } = await uploadImageToStorage(
                     supabase, 'order-files', it.path, it.file,
                     { cacheControl: '31536000', downscale: true },
                 );
-                if (uploadError) console.warn('wall-cal upload failed:', it.path, uploadError);
+                if (uploadError) { failedUploads++; console.error('wall-cal upload FAILED:', it.path, uploadError); }
             }));
         } catch (e) {
-            console.warn('wall-cal storage step skipped:', e);
+            failedUploads = uploadPlan.length;
+            console.error('wall-cal storage step FAILED:', e);
+        }
+        if (failedUploads > 0) {
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error(`${failedUploads} з ${uploadPlan.length} фото не завантажились на сервер. Перевірте інтернет і додайте календар у кошик ще раз — інакше цих фото не буде в друці.`, { duration: 12000 });
         }
 
         toast.success(t('wallcal.calendar_added_to_cart'));

@@ -288,17 +288,19 @@ export default function DeskCalendarConstructor(){
       const userKey = user?.id || 'anon';
       exportedFiles.length = 0;
       let pageIdx = 0;
+      let attempted = 0;
       for (let m = 0; m < monthPhotos.length; m++) {
         for (let s = 0; s < monthPhotos[m].length; s++) {
           const url = monthPhotos[m][s]?.url;
           if (!url) continue;
           pageIdx++;
+          attempted++;
           try {
             const blob = await (await fetch(url)).blob();
             const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
             const path = `${userKey}/${cartItemId}/m${String(m + 1).padStart(2, '0')}-s${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`;
             const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
-            if (uploadError) { console.warn('desk-cal upload failed:', uploadError); continue; }
+            if (uploadError) { console.error('desk-cal upload FAILED:', uploadError); continue; }
             exportedFiles.push({
               path, fileName: `month_${m + 1}_slot_${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,
               bucket: 'order-files', fileCategory: 'photo-upload',
@@ -307,15 +309,24 @@ export default function DeskCalendarConstructor(){
               pageNumber: pageIdx,
             });
           } catch (e) {
-            console.warn('desk-cal blob fetch failed:', e);
+            console.error('desk-cal blob fetch FAILED:', e);
           }
         }
       }
       if (exportedFiles.length > 0) {
         sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
       }
+      // Partial silent loss was possible here: a failed photo was skipped with
+      // `continue` and the calendar shipped without it. Any shortfall must be
+      // LOUD — flag the item so checkout warns the manager, and tell the customer.
+      if (attempted > 0 && exportedFiles.length < attempted) {
+        try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+        toast.error(`${attempted - exportedFiles.length} з ${attempted} фото не завантажились на сервер. Перевірте інтернет і додайте календар у кошик ще раз — інакше цих фото не буде в друці.`, { duration: 12000 });
+      }
     } catch (e) {
-      console.warn('desk-cal storage step skipped:', e);
+      try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+      toast.error('Не вдалося завантажити фото календаря на сервер. Перевірте інтернет і спробуйте ще раз.', { duration: 12000 });
+      console.error('desk-cal storage step FAILED:', e);
     }
 
     // Persist as a project so the calendar appears in "Мої дизайни" (it only

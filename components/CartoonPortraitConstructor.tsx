@@ -434,8 +434,19 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
             if (exportedFiles.length > 0) {
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
             }
+            // The AI portrait is UNREPRODUCIBLE — it exists only in this tab.
+            // If the generated file (or everything) failed to upload, the paid
+            // order would arrive with nothing to print. Fail LOUD.
+            const generatedSaved = exportedFiles.some(f => f.fileCategory === 'ai-generated');
+            if ((config.generatedPortrait && !generatedSaved) || exportedFiles.length === 0) {
+                try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+                toast.error('Не вдалося зберегти портрет на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+                console.error('[cartoon] portrait not persisted', { generated: !!config.generatedPortrait, saved: exportedFiles.length });
+            }
         } catch (e) {
-            console.warn('cartoon storage step skipped:', e);
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти портрет на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('cartoon storage step FAILED:', e);
         }
 
         toast.success('Портрет додано до кошика!');

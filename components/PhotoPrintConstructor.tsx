@@ -1023,7 +1023,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
       }
     } catch (e) {
-      console.warn('photo-print storage step skipped:', e);
+      // A THROWN exception (auth hiccup, DPI/ICC patcher, storage client) used
+      // to bypass the all-or-nothing guard above entirely: the item stayed in
+      // the cart with no files and no flag. Same rule as the guard — abort the
+      // add-to-cart and tell the customer.
+      console.error('photo-print storage step FAILED:', e);
+      try {
+        toast.error('Не вдалося зберегти фото для друку. Перевірте інтернет і спробуйте додати в кошик ще раз.', { duration: 10000 });
+      } catch {}
+      removeItem(cartItemId);
+      return;
     }
 
     try {
