@@ -92,9 +92,15 @@ export async function drawPosterCanvas(
   H: number,
   config: PosterDrawConfig,
   slots: PosterSlot[],
-  opts: { placeholders?: boolean } = {},
+  opts: { placeholders?: boolean; frameInsetX?: number; frameInsetY?: number } = {},
 ) {
   const placeholders = opts.placeholders ?? false;
+  // Frame inset in px. The print shop trims 5–7 mm from the edge, so a frame
+  // drawn AT the edge came back cut/asymmetric. Diana's rule: the frame sits
+  // at least 1 cm from the paper edge — callers convert 1 cm to px for their
+  // canvas size and pass it here (0 keeps the legacy edge-tight look).
+  const fix = Math.max(0, Math.round(opts.frameInsetX ?? 0));
+  const fiy = Math.max(0, Math.round(opts.frameInsetY ?? 0));
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
@@ -146,6 +152,7 @@ export async function drawPosterCanvas(
 
   // Frame — widths scale to canvas width via the same `unit` reference as the
   // preview, so Товста/Подвійна/Округла look identical at any resolution.
+  // The whole frame is shifted inward by (fix, fiy) so it survives trimming.
   if (config.frameStyle !== 'none') {
     ctx.save();
     const unit = W / 400;
@@ -156,14 +163,14 @@ export async function drawPosterCanvas(
     ctx.lineWidth = fw;
     if (config.frameStyle === 'rounded') {
       const r = Math.round(16 * unit);
-      ctx.beginPath(); ctx.roundRect(fw / 2, fw / 2, W - fw, H - fw, r); ctx.stroke();
+      ctx.beginPath(); ctx.roundRect(fix + fw / 2, fiy + fw / 2, W - 2 * fix - fw, H - 2 * fiy - fw, r); ctx.stroke();
     } else {
-      ctx.strokeRect(fw / 2, fw / 2, W - fw, H - fw);
+      ctx.strokeRect(fix + fw / 2, fiy + fw / 2, W - 2 * fix - fw, H - 2 * fiy - fw);
     }
     if (config.frameStyle === 'double') {
       const gap = Math.round(7 * unit);
       ctx.lineWidth = Math.max(1, Math.round(1.5 * unit));
-      ctx.strokeRect(fw + gap, fw + gap, W - 2 * (fw + gap), H - 2 * (fw + gap));
+      ctx.strokeRect(fix + fw + gap, fiy + fw + gap, W - 2 * (fix + fw + gap), H - 2 * (fiy + fw + gap));
     }
     ctx.restore();
   }
@@ -214,7 +221,13 @@ export async function renderPosterPrintBlob(
   // Make sure fonts are ready so text isn't drawn in a fallback face.
   try { await (document as any).fonts?.ready; } catch {}
 
-  await drawPosterCanvas(ctx, W, H, config, slots, { placeholders: false });
+  // Frame inset from the paper edge: 0.7 cm trim zone + 1 cm clearance от неї
+  // (Diana: «хоча б 1 см від безпечної зони») = 1.7 cm of the physical
+  // width/height, converted to px.
+  const FRAME_INSET_CM = 1.7;
+  const frameInsetX = W * (FRAME_INSET_CM / widthCm);
+  const frameInsetY = H * (FRAME_INSET_CM / heightCm);
+  await drawPosterCanvas(ctx, W, H, config, slots, { placeholders: false, frameInsetX, frameInsetY });
 
   return await new Promise<Blob | null>((resolve) => {
     canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
