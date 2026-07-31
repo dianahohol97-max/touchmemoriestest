@@ -2,6 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 /** Reward amount credited to the referrer when their friend qualifies. */
 export const REFERRAL_REWARD = 50;
+/** Reward credited to the FRIEND (referred customer) on the same qualifying order. */
+export const REFERRAL_FRIEND_REWARD = 50;
 /** Minimum paid order total (UAH) for the friend's first order to qualify. */
 export const REFERRAL_MIN_ORDER = 1000;
 /** Max share of an order's total that can be paid with bonuses. */
@@ -122,6 +124,26 @@ export async function processReferralReward(
         order_id: orderId,
         referral_id: referral.id,
         note: 'Бонус за приведеного друга',
+    });
+
+    // The FRIEND gets a welcome bonus on the same qualifying order (Diana's
+    // rule: both sides get 50 ₴, friend's first paid order ≥ 1000 ₴). Sits
+    // inside the atomically-claimed branch, so webhook retries can't
+    // double-credit either side.
+    const { data: friend } = await admin
+        .from('customers')
+        .select('bonus_balance')
+        .eq('id', customerId)
+        .maybeSingle();
+    const friendBalance = Number(friend?.bonus_balance || 0) + REFERRAL_FRIEND_REWARD;
+    await admin.from('customers').update({ bonus_balance: friendBalance }).eq('id', customerId);
+    await admin.from('bonus_transactions').insert({
+        customer_id: customerId,
+        amount: REFERRAL_FRIEND_REWARD,
+        kind: 'referral_friend_reward',
+        order_id: orderId,
+        referral_id: referral.id,
+        note: 'Вітальний бонус за реєстрацію за запрошенням',
     });
 
     return true;

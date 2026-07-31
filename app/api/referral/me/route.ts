@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { ensureReferralCode, REFERRAL_REWARD, REFERRAL_MIN_ORDER } from '@/lib/referral/referral';
+import { ensureReferralCode, REFERRAL_REWARD, REFERRAL_FRIEND_REWARD, REFERRAL_MIN_ORDER } from '@/lib/referral/referral';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +47,7 @@ export async function GET(request: Request) {
         rewardedCount: rewardedCount ?? 0,
         earned: (rewardedCount ?? 0) * REFERRAL_REWARD,
         reward: REFERRAL_REWARD,
+        friendReward: REFERRAL_FRIEND_REWARD,
         minOrder: REFERRAL_MIN_ORDER,
     });
 }
