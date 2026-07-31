@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { CartSuccessModal } from '@/components/ui/CartSuccessModal';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -757,8 +757,54 @@ export default function PosterConstructor() {
   const hasMeaningfulText = config.textBlocks.some(tb => (tb.text || '').trim().length > 0);
   const isPosterEmpty = config.photos.length === 0 && !hasMeaningfulText;
 
+  // ── Друкарська безпечна зона ─────────────────────────────────────────────
+  // Друк залишає/зрізає 5–7 мм від краю аркуша, тож текст (і будь-що важливе)
+  // не можна ставити впритул до краю — інакше його обріжуть. Тримаємо 7 мм
+  // (безпечний край діапазону). Фото, що тягнуться до краю, — ок (це bleed):
+  // зрізана смуга фото не псує композицію, а зрізаний текст — псує.
+  const SAFE_MM = 7;
+  const posterH = PREVIEW_W / sizeObj.ratio;
+  const safeInsX = PREVIEW_W * (SAFE_MM / (sizeObj.wCm * 10));   // px прев'ю по горизонталі
+  const safeInsY = posterH * (SAFE_MM / (sizeObj.hCm * 10));     // px прев'ю по вертикалі
+  // Оцінка bbox текстового блока у px прев'ю (та сама формула шрифту, що в
+  // drawPosterCanvas: fontSize * W/600). Ширину міряємо реальним canvas.
+  const textBlocksOutOfSafe = useMemo(() => {
+    const bad: string[] = [];
+    if (typeof document === 'undefined') return bad;
+    const cv = document.createElement('canvas');
+    const ctx = cv.getContext('2d');
+    if (!ctx) return bad;
+    for (const tb of config.textBlocks) {
+      if (!(tb.text || '').trim()) continue;
+      const fs = tb.fontSize * (PREVIEW_W / 600);
+      ctx.font = `${tb.italic ? 'italic ' : ''}${tb.bold ? 'bold ' : ''}${fs}px '${tb.fontFamily}', sans-serif`;
+      const w = ctx.measureText(tb.text).width + (tb.letterSpacing || 0) * Math.max(0, tb.text.length - 1);
+      const cx = (tb.x / 100) * PREVIEW_W;
+      const cy = (tb.y / 100) * posterH;
+      const left = tb.align === 'left' ? cx : tb.align === 'right' ? cx - w : cx - w / 2;
+      const right = left + w;
+      const top = cy - fs / 2;
+      const bottom = cy + fs / 2;
+      if (left < safeInsX || right > PREVIEW_W - safeInsX || top < safeInsY || bottom > posterH - safeInsY) {
+        bad.push(tb.id);
+      }
+    }
+    return bad;
+  }, [config.textBlocks, config.size, sizeObj.wCm, sizeObj.hCm, posterH, safeInsX, safeInsY]);
+
   const handleOrder = async () => {
     if (isPosterEmpty) { toast.error(t('poster.add_photo_first')); return; }
+    // Текст у зоні обрізки = гарантована скарга після друку. Блокуємо
+    // замовлення, поки текст не пересунуть усередину безпечної зони (7 мм).
+    if (textBlocksOutOfSafe.length > 0) {
+      toast.error(
+        `Текст занадто близько до краю (${textBlocksOutOfSafe.length} шт) — при друці його може зрізати. ` +
+        `Пересуньте текст усередину пунктирної лінії на прев'ю і спробуйте ще раз.`,
+        { duration: 10000 },
+      );
+      setStep('text');
+      return;
+    }
     setIsOrdering(true);
     try {
       let fileUrl = '';
@@ -1292,6 +1338,27 @@ export default function PosterConstructor() {
                 // Click on canvas to deselect crop
                 onClick={() => setCropSlotIdx(null)}
               >
+                {/* Безпечна зона друку (7 мм) — тільки прев'ю, у друк не потрапляє.
+                    Все важливе (текст!) має бути всередині пунктиру: смугу за ним
+                    може зрізати друкарня. */}
+                <div style={{
+                  position:'absolute',
+                  left: `${(safeInsX / PREVIEW_W) * 100}%`,
+                  right: `${(safeInsX / PREVIEW_W) * 100}%`,
+                  top: `${(safeInsY / posterH) * 100}%`,
+                  bottom: `${(safeInsY / posterH) * 100}%`,
+                  border: '1.5px dashed rgba(220,38,38,0.55)',
+                  borderRadius: 2,
+                  pointerEvents: 'none',
+                  zIndex: 4,
+                }} />
+                <div style={{
+                  position:'absolute', top: 4, left: '50%', transform: 'translateX(-50%)',
+                  background: 'rgba(220,38,38,0.85)', color: '#fff', fontSize: 9, fontWeight: 700,
+                  padding: '1px 7px', borderRadius: 999, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 4,
+                }}>
+                  ✂ 7 мм — зона обрізки: текст лише всередині пунктиру
+                </div>
                 {/* Photo slot crop zones */}
                 {slots.map((slot, i) => {
                   const photo = config.photos[i];
@@ -1374,8 +1441,10 @@ export default function PosterConstructor() {
                 {/* Draggable text blocks */}
                 {config.textBlocks.map(tb => {
                   const isDragging = draggingTextId === tb.id;
+                  const inDanger = textBlocksOutOfSafe.includes(tb.id);
                   return (
                     <div key={tb.id}
+                      title={inDanger ? 'Занадто близько до краю — при друці текст може зрізати. Пересуньте всередину пунктирної лінії.' : undefined}
                       style={{
                         position:'absolute',
                         left: `${tb.x}%`,
@@ -1384,9 +1453,9 @@ export default function PosterConstructor() {
                         cursor:'move',
                         zIndex:25,
                         padding:'3px 6px',
-                        border: isDragging ? '1.5px solid #3b82f6' : '1.5px dashed rgba(59,130,246,0.5)',
+                        border: inDanger ? '2px solid #dc2626' : isDragging ? '1.5px solid #3b82f6' : '1.5px dashed rgba(59,130,246,0.5)',
                         borderRadius:4,
-                        background: isDragging ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.05)',
+                        background: inDanger ? 'rgba(220,38,38,0.12)' : isDragging ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.05)',
                         userSelect:'none',
                       }}
                       onPointerDown={e => {
