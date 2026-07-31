@@ -221,10 +221,12 @@ export async function renderPosterPrintBlob(
   // Make sure fonts are ready so text isn't drawn in a fallback face.
   try { await (document as any).fonts?.ready; } catch {}
 
-  // Frame sits 1 cm inside the paper edge (print trims 5–7 mm — an edge-tight
-  // frame came back cut). 1 cm of the physical width/height, converted to px.
-  const frameInsetX = W * (1 / widthCm);
-  const frameInsetY = H * (1 / heightCm);
+  // Frame inset from the paper edge: 0.7 cm trim zone + 1 cm clearance от неї
+  // (Diana: «хоча б 1 см від безпечної зони») = 1.7 cm of the physical
+  // width/height, converted to px.
+  const FRAME_INSET_CM = 1.7;
+  const frameInsetX = W * (FRAME_INSET_CM / widthCm);
+  const frameInsetY = H * (FRAME_INSET_CM / heightCm);
   await drawPosterCanvas(ctx, W, H, config, slots, { placeholders: false, frameInsetX, frameInsetY });
 
   return await new Promise<Blob | null>((resolve) => {

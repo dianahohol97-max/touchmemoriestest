@@ -410,11 +410,11 @@ function PosterPreview({ config, canvasRef, W }: { config: PosterConfig; canvasR
       if (config.frameStyle !== 'none') {
         ctx.save();
         const unit = W / 400; // scale reference
-        // 1 cm inset from the paper edge (matches renderPosterPrintBlob): the
-        // print shop trims 5–7 mm, so an edge-tight frame came back cut. The
-        // preview must show the same inset the print file gets.
-        const fix = Math.round(W * (1 / sizeObj.wCm));
-        const fiy = Math.round(H * (1 / sizeObj.hCm));
+        // Frame inset from the paper edge (matches renderPosterPrintBlob):
+        // 0.7 cm trim zone + 1 cm clearance = 1.7 cm. The preview must show
+        // the same inset the print file gets.
+        const fix = Math.round(W * (1.7 / sizeObj.wCm));
+        const fiy = Math.round(H * (1.7 / sizeObj.hCm));
         const fw = config.frameStyle === 'thick' ? Math.round(10 * unit)
                  : config.frameStyle === 'double' ? Math.round(3 * unit)
                  : Math.round(4 * unit);
