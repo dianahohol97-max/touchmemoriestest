@@ -95,15 +95,24 @@ let browser: Browser | null = null;
 // (exit_code=9) on a heavier book. Recycle the browser every few spreads —
 // a relaunch costs ~1s and resets the whole address space.
 const SPREADS_PER_BROWSER = 5;
+// Above this surface, recycle after EVERY spread. A 20×30 travel book renders
+// 4961×3602 = 17.9 MP per page; TM-001096 killed Chromium on page 2
+// ('Target page, context or browser has been closed') and then took the whole
+// service down with it (502 'Application failed to respond'). Five spreads
+// between relaunches is too many at that size — the ~1 s relaunch is far
+// cheaper than a dead container.
+const HEAVY_SURFACE_PX = 12_000_000;
 let spreadsOnCurrentBrowser = 0;
 
-export async function recycleBrowserIfNeeded(): Promise<void> {
-  if (++spreadsOnCurrentBrowser < SPREADS_PER_BROWSER) return;
+export async function recycleBrowserIfNeeded(surfacePx = 0): Promise<void> {
+  spreadsOnCurrentBrowser++;
+  const heavy = surfacePx >= HEAVY_SURFACE_PX;
+  if (!heavy && spreadsOnCurrentBrowser < SPREADS_PER_BROWSER) return;
   spreadsOnCurrentBrowser = 0;
   if (browser) {
     try { await browser.close(); } catch { /* already gone */ }
     browser = null;
-    console.log('[render] browser recycled');
+    console.log(`[render] browser recycled${heavy ? ` (heavy surface ${surfacePx} px)` : ''}`);
   }
 }
 
@@ -242,8 +251,8 @@ app.post('/render', async (req, res) => {
           console.error(`[render] page ${i} failed, skipping:`, pageErr?.message || pageErr);
           failed.push({ page: i, error: String(pageErr?.message || pageErr) });
         } finally {
-          await page.close();
-        await recycleBrowserIfNeeded();
+          await page.close().catch(() => { /* the browser may already be gone */ });
+          await recycleBrowserIfNeeded(pxW * pxH);
         }
       }
       return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded, failed });
@@ -471,8 +480,8 @@ app.post('/render', async (req, res) => {
           uploaded.push(storagePath);
         }
       } finally {
-        await page.close();
-        await recycleBrowserIfNeeded();
+        await page.close().catch(() => { /* the browser may already be gone */ });
+        await recycleBrowserIfNeeded(pxW * pxH);
       }
     }
 

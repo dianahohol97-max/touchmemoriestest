@@ -2242,12 +2242,36 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             onClick={async () => {
                                                 if (!confirm('Обрізати розвороти до готового розміру — прибрати припуск на виліт?\n\nВиліт домальовує рендер, це не дизайн клієнта. Обкладинки не чіпаються: їхні 18–20 мм — це загин на палітурку, а не виліт.')) return;
                                                 setStrippingBleed(true);
+                                                // Crop in batches. One request per book blew the function's
+                                                // time budget on an 18-spread order and died with no response,
+                                                // so the toast could only say «Не вдалося обрізати». Walk the
+                                                // offsets instead and show real progress.
                                                 try {
-                                                    const r = await fetch(`/api/admin/orders/${id}/strip-bleed`, { method: 'POST' });
-                                                    const j = await r.json();
-                                                    if (r.ok) { toast.success(`${j.summary} · готовий розмір ${j.finished}`); fetchOrder(); }
-                                                    else toast.error(j.error || 'Не вдалося обрізати');
-                                                } catch { toast.error('Не вдалося обрізати'); }
+                                                    let offset = 0, cropped = 0, skipped = 0, failed = 0, total = 0, guardCount = 0;
+                                                    const problems: string[] = [];
+                                                    for (;;) {
+                                                        if (++guardCount > 200) { toast.error('Забагато партій — зупиняюсь'); break; }
+                                                        const r = await fetch(`/api/admin/orders/${id}/strip-bleed?offset=${offset}&limit=3`, { method: 'POST' });
+                                                        const j = await r.json().catch(() => null);
+                                                        if (!r.ok || !j) {
+                                                            toast.error(j?.error || `Обрізка обірвалась на файлі ${offset + 1} (HTTP ${r.status})`);
+                                                            break;
+                                                        }
+                                                        cropped += j.cropped || 0; skipped += j.skipped || 0; failed += j.failed || 0;
+                                                        total = j.total || total;
+                                                        for (const it of (j.report || [])) {
+                                                            if (it.status === 'error') problems.push(`${it.file}: ${it.reason}`);
+                                                        }
+                                                        offset = j.nextOffset ?? (offset + 3);
+                                                        if (j.done) {
+                                                            toast.success(`Обрізано ${cropped}, пропущено ${skipped}, помилок ${failed} · готовий розмір ${j.finished}`);
+                                                            break;
+                                                        }
+                                                        toast.info(`Обрізаю… ${Math.min(offset, total)} з ${total}`, { id: 'strip-bleed-progress' });
+                                                    }
+                                                    if (problems.length) console.warn('[strip-bleed]', problems);
+                                                    fetchOrder();
+                                                } catch (e: any) { toast.error(`Не вдалося обрізати: ${e?.message || e}`); }
                                                 setStrippingBleed(false);
                                             }}
                                             disabled={strippingBleed}
