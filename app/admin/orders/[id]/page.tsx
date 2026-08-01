@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
+import { matchCoverColor, readCoverSelection, formatCoverColor, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import {
     ArrowLeft,
     User,
@@ -111,6 +112,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (!cancelled && Array.isArray(ls)) setLayouts(ls);
       } catch { /* non-blocking */ }
     })();
+    // Cover-colour codes. Orders placed before the code was stamped at submit
+    // carry only the colour NAME, which the workshop can't order material from
+    // («Темно-зелений» is В-13 in velour, Ш-21 in leatherette). Resolve those
+    // here so every order — old or new — shows a code.
+    (async () => {
+      try {
+        const r = await fetch('/api/admin/cover-colors');
+        if (!r.ok) return;
+        const { colors } = await r.json();
+        if (!cancelled && Array.isArray(colors)) setCoverColorIndex(colors);
+      } catch { /* non-blocking */ }
+    })();
     return () => { cancelled = true; };
   }, [order?.id]);
 
@@ -165,6 +178,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Customer's saved constructor layout(s) for this order — shown even when
     // nothing has been rendered yet, so a linked design is never invisible.
     const [layouts, setLayouts] = useState<any[]>([]);
+    // Active cover colours (code · name · hex per cover type) — used to show the
+    // workshop code next to the colour name instead of the name alone.
+    const [coverColorIndex, setCoverColorIndex] = useState<CoverColorRow[]>([]);
     // Travel-book cover chosen by the client (from the saved design) — not on the order item.
     const [designCoverUrl, setDesignCoverUrl] = useState<string | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
@@ -1075,6 +1091,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // (or lack the line). Normalise for display so the manager
                                 // always sees the correct count.
                                 const _isWishbook = /wish|guest|pobazhan/i.test(String(item.slug || '')) || /побажан/i.test(String(item.name || item.product_name || ''));
+                                // Cover colour → workshop code. The cover TYPE and the colour
+                                // may sit in different bags (options vs selected_options), so
+                                // read the pair from the merged raw item before normalising.
+                                const _rawOpts = { ...(item.options || {}), ...(item.selected_options || {}) };
+                                const _coverSel = readCoverSelection(_rawOpts);
+                                const _coverMatch = _coverSel.colorName
+                                    ? matchCoverColor(coverColorIndex, _coverSel.coverType, _coverSel.colorName)
+                                    : null;
+                                // The code stored on the order wins — it is what the customer
+                                // actually ordered. The index is only a fallback for orders
+                                // placed before codes were stamped at submit.
+                                const _coverCode = _coverSel.code || _coverMatch?.code || '';
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1096,6 +1124,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         if (/варіант\s*акрил/i.test(k) && !isAcrylic) delete out[k];
                                         if (/варіант\s*фото/i.test(k) && !isPhotoInsert) delete out[k];
                                     }
+                                    // Show the colour the way the workshop needs it —
+                                    // «Велюр В-13 · Темно-зелений» — and drop the separate
+                                    // code line so it isn't repeated twice.
+                                    if (_coverCode) {
+                                        for (const k of Object.keys(out)) {
+                                            if (k === COVER_COLOR_CODE_KEY) { delete out[k]; continue; }
+                                            if (/колір\s*обкладинки/i.test(k)) {
+                                                out[k] = formatCoverColor(_coverSel.coverType, _coverCode, String(out[k]));
+                                            }
+                                        }
+                                    }
                                     return out;
                                 };
                                 const _selOpts = normalizeOpts(item.selected_options);
@@ -1114,15 +1153,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 const inscrColorLabel = findOpt(/колір напису/i);
                                 const inscrFont = findOpt(/шрифт напису/i);
                                 const inscrSizeLabel = findOpt(/розмір напису/i);
-                                const coverColorLabel = findOpt(/колір обкладинки/i);
                                 const inscrColorHex = ({
                                     'золотий': '#C9A24B', 'срібний': '#C7CBD1', 'білий': '#FFFFFF', 'чорний': '#1A1A1A',
                                 }[inscrColorLabel.toLowerCase()] || '#C9A24B');
-                                const coverColorHex = ({
+                                // Prefer the real swatch from cover_colors. The ten-entry
+                                // hardcode below never had «Темно-зелений», so TM-001094's
+                                // inscription preview was drawn on a grey-brown cover that
+                                // the customer never ordered.
+                                const coverColorHex = _coverMatch?.hex || ({
                                     'зелений': '#3f5e50', 'чорний': '#1A1A1A', 'синій': '#26364f', 'бордовий': '#5e2a30',
                                     'сірий': '#6b6f76', 'бежевий': '#c9b79c', 'рожевий': '#c98a95', 'білий': '#e8e6e1',
                                     'коричневий': '#5a4634', 'фіолетовий': '#4a3a5c',
-                                }[coverColorLabel.toLowerCase()] || '#6f675c');
+                                }[_coverSel.colorName.toLowerCase()] || '#6f675c');
                                 const inscrSizePx = /велик/i.test(inscrSizeLabel) ? 34 : /мал/i.test(inscrSizeLabel) ? 20 : 26;
                                 return (
                                 <div key={idx} style={itemRowStyle}>
@@ -1167,6 +1209,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             .map(([k, v]) => `${k}: ${v}`).join(' • ')
                                                     }
                                                 </div>
+                                                {/* Material line for the workshop. A colour NAME alone is
+                                                    not orderable — thirteen names exist in two materials at
+                                                    once — so state the code explicitly, or say out loud that
+                                                    it could not be resolved instead of leaving a guess. */}
+                                                {_coverSel.colorName && (
+                                                    _coverCode ? (
+                                                        <div style={{ fontSize: 12, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '3px 8px' }}>
+                                                            <span style={{ width: 12, height: 12, borderRadius: 3, background: coverColorHex, border: '1px solid rgba(0,0,0,0.15)', flexShrink: 0 }} />
+                                                            <span style={{ fontWeight: 700, color: '#334155' }}>{formatCoverColor(_coverSel.coverType, _coverCode, _coverSel.colorName)}</span>
+                                                        </div>
+                                                    ) : coverColorIndex.length > 0 ? (
+                                                        <div style={{ fontSize: 12, marginTop: 4, color: '#b45309' }}>
+                                                            ⚠️ Код кольору не визначено для «{_coverSel.coverType || 'тип обкладинки не вказано'} · {_coverSel.colorName}» — уточніть у /admin/velour-colors перед друком.
+                                                        </div>
+                                                    ) : null
+                                                )}
                                                 {(item.pages || item.qty > 1) && (
                                                     <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: 2 }}>
                                                         {item.pages ? `${item.pages} стор.` : ''}{item.pages && item.qty > 1 ? ' · ' : ''}{item.qty > 1 ? `${item.qty} шт` : ''}
@@ -1253,7 +1311,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 8 }}>
                                                     <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                                                        {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{coverColorLabel && ` · обкладинка ${coverColorLabel.toLowerCase()}`}
+                                                        {inscrFont && `${inscrFont}`}{inscrColorLabel && ` · ${inscrColorLabel}`}{inscrSizeLabel && ` · ${inscrSizeLabel}`}{_coverSel.colorName && ` · обкладинка ${_coverCode ? formatCoverColor(_coverSel.coverType, _coverCode, _coverSel.colorName) : _coverSel.colorName.toLowerCase()}`}
                                                     </div>
                                                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                                         <button
