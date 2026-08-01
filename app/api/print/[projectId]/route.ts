@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { requireStaff } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,18 +20,20 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ projectId: string }> },
 ) {
-  // --- auth: shared secret ---
-  const expected = process.env.PRINT_RENDER_TOKEN;
-  if (!expected) {
-    return NextResponse.json(
-      { error: 'PRINT_RENDER_TOKEN not configured on the server' },
-      { status: 500 },
-    );
-  }
+  // --- auth: the render service's shared secret, OR a logged-in staff member ---
+  // Staff need to SEE a customer's layout. The admin order page only ever
+  // showed RENDERED print files, so a linked-but-not-yet-rendered design read
+  // as "макета немає" (TM-001106) even though it was there. Allowing a staff
+  // session here makes the layout something you can simply look at — no render,
+  // no cloning into personal drafts. Customers still get 401.
   const url = new URL(req.url);
+  const expected = process.env.PRINT_RENDER_TOKEN;
   const token = url.searchParams.get('token') || req.headers.get('x-print-token');
-  if (token !== expected) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!expected || token !== expected) {
+    const guard = await requireStaff();
+    if (!guard.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
 
   const { projectId } = await params;
