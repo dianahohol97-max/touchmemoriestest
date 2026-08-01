@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
+import { deriveGeometry, normalizeSizeKey, type SizeRow } from '@/lib/print/geometry';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,36 @@ export async function GET(
   // service uses spread math); calendars describe themselves explicitly.
   const printSpec = buildPrintSpec(data);
 
-  return NextResponse.json({ project: { ...data, uploaded_photos: withUrls }, printSpec });
+  // Sheet geometry, derived from photobook_sizes. Serving it here makes the
+  // /print page and the render service read the SAME numbers the editor drew
+  // against, instead of each keeping its own copy of the printer's table —
+  // which is how the render service ended up treating the customer's full
+  // sheet as if it were only the finished page.
+  const geometry = await resolveGeometry(supabase, data);
+
+  return NextResponse.json({ project: { ...data, uploaded_photos: withUrls }, printSpec, geometry });
+}
+
+/** Look up the project's size in photobook_sizes and derive its geometry. */
+async function resolveGeometry(supabase: ReturnType<typeof getAdminClient>, data: any) {
+  const config = (data as any)?.overlays_data?.config || {};
+  const PRODUCT_SIZE: Record<string, string> = { travelbook: '20x30' };
+  const rawSize = String(
+    config.selectedSize || data.format || PRODUCT_SIZE[String(data.product_type || '')] || ''
+  );
+  const sizeKey = normalizeSizeKey(rawSize);
+  if (!sizeKey) return null;
+
+  let row: SizeRow | null = null;
+  try {
+    const { data: sizes } = await supabase
+      .from('photobook_sizes')
+      .select('name, width_cm, height_cm, spread_width_mm, spread_height_mm, cover_width_mm, cover_height_mm, bleed_top_mm, bleed_bottom_mm, bleed_left_mm, bleed_right_mm, cover_fold_margin_mm');
+    row = ((sizes || []) as SizeRow[]).find((s) => normalizeSizeKey(String(s.name || '')) === sizeKey) || null;
+  } catch {
+    /* fall through to the built-in table */
+  }
+  return deriveGeometry(sizeKey, row);
 }
 
 // Physical print sizes (mm) for non-book products that render via /print.
