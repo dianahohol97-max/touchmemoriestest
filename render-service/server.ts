@@ -346,22 +346,26 @@ app.post('/render', async (req, res) => {
 
         const scaled = await sharp(raw)
           .resize(contentPxW, contentPxH, { fit: 'fill' })  // aspect already matches within 1%
+          .png({ compressionLevel: 1 })                     // lossless intermediate — see bleedFill
           .toBuffer();
 
         const bx = Math.floor(dx / 2);   // per-side horizontal bleed
         const by = Math.floor(dy / 2);   // per-side vertical bleed
 
-        // Real-photo bleed. Instead of smearing the 1px edge row across the
-        // 4–10 mm bleed (extendWith:'copy' → a visible streak that isn't in the
-        // original photo), fill the bleed with the ACTUAL photo — the whole trim
-        // image scaled up to the bleed target — then composite the EXACT,
-        // unscaled trim content back on top. Everything inside the trim line
-        // (the part that survives the cut) is pixel-for-pixel the customer's
-        // layout — no zoom of the visible area — while the trimmed-off bleed
-        // shows real photo continuation instead of a smear. The bleed pixels are
-        // stretched a few %, but they are cut away, so it never reaches the
-        // finished product. Contained to the render service; the /print DOM is
-        // unchanged, so the aspect guard above still holds.
+        // Mirrored bleed. Everything inside the trim line is pixel-for-pixel the
+        // customer's layout (no zoom of the visible area); the bleed outside it
+        // is each edge band mirrored outward — the same construction as the
+        // client-side extendBleed(), and the standard fallback when the artwork
+        // carries no bleed of its own. A mirrored band continues the image
+        // across the cut by definition: the pixel just outside the trim is the
+        // pixel just inside it.
+        //
+        // It used to scale the WHOLE spread up to the bleed size and paste the
+        // exact content on top. That is seamless only for a single full-bleed
+        // photo. On a collage the filler underneath is offset by the bleed width
+        // (~10 mm at 20×30), so the strip outside the trim showed a DIFFERENT
+        // photo than the one it borders, with a hard seam along the trim line —
+        // that is the "незрозуміло обрізане" on TM-001094's 17_spread.jpg.
         const bleedFill = async (
           content: Buffer, cw: number, ch: number,
           left: number, right: number, top: number, bottom: number,
@@ -370,8 +374,41 @@ app.post('/render', async (req, res) => {
           const outW = cw + l + r;
           const outH = ch + t + b;
           if (outW === cw && outH === ch) return content;
-          const filler = await sharp(content).resize(outW, outH, { fit: 'fill' }).toBuffer();
-          return await sharp(filler).composite([{ input: content, left: l, top: t }]).toBuffer();
+
+          const band = async (x: number, y: number, w: number, h: number, flopIt: boolean, flipIt: boolean) => {
+            let p = sharp(content).extract({ left: x, top: y, width: w, height: h });
+            if (flopIt) p = p.flop();   // mirror horizontally
+            if (flipIt) p = p.flip();   // mirror vertically
+            return await p.png({ compressionLevel: 1 }).toBuffer();
+          };
+
+          // Bands are clamped to the content, so a bleed wider than the artwork
+          // can never over-extract (sharp throws on an out-of-bounds region).
+          const lw = Math.min(l, cw), rw = Math.min(r, cw);
+          const th = Math.min(t, ch), bh = Math.min(b, ch);
+
+          const layers: { input: Buffer; left: number; top: number }[] = [
+            { input: await sharp(content).png({ compressionLevel: 1 }).toBuffer(), left: l, top: t },
+          ];
+          if (lw > 0) layers.push({ input: await band(0, 0, lw, ch, true, false), left: l - lw, top: t });
+          if (rw > 0) layers.push({ input: await band(cw - rw, 0, rw, ch, true, false), left: l + cw, top: t });
+          if (th > 0) layers.push({ input: await band(0, 0, cw, th, false, true), left: l, top: t - th });
+          if (bh > 0) layers.push({ input: await band(0, ch - bh, cw, bh, false, true), left: l, top: t + ch });
+          // Corners — mirrored on both axes.
+          if (lw > 0 && th > 0) layers.push({ input: await band(0, 0, lw, th, true, true), left: l - lw, top: t - th });
+          if (rw > 0 && th > 0) layers.push({ input: await band(cw - rw, 0, rw, th, true, true), left: l + cw, top: t - th });
+          if (lw > 0 && bh > 0) layers.push({ input: await band(0, ch - bh, lw, bh, true, true), left: l - lw, top: t + ch });
+          if (rw > 0 && bh > 0) layers.push({ input: await band(cw - rw, ch - bh, rw, bh, true, true), left: l + cw, top: t + ch });
+
+          return await sharp({
+            create: { width: outW, height: outH, channels: 3, background: '#ffffff' },
+          })
+            .composite(layers)
+            // Keep the intermediate lossless. sharp's default toBuffer() on a
+            // JPEG input re-encodes at q80 / 4:2:0, so every spread carried a
+            // hidden extra generation of loss before the final q92 encode.
+            .png({ compressionLevel: 1 })
+            .toBuffer();
         };
 
         if (splitToPages && !isCover) {
@@ -387,6 +424,7 @@ app.post('/render', async (req, res) => {
           for (const h of halves) {
             const half = await sharp(scaled)
               .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
+              .png({ compressionLevel: 1 })
               .toBuffer();
             const filled = await bleedFill(half, h.width, contentPxH, bx, bx, by, by);
             const pageJpeg = await sharp(filled)
