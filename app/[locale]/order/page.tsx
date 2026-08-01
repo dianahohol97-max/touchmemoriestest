@@ -747,6 +747,15 @@ function OrderForm() {
   const [savedConfig, setSavedConfig] = useState<any>(null)
   const [orderId, setOrderId] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
+  // Live upload progress. 40+ phone photos are ~100 MB over LTE; the button
+  // used to just say "Відправляємо..." for 5–15 minutes with zero feedback,
+  // so customers assumed it had frozen and abandoned the order (Софія, 01.08:
+  // two abandoned attempts, no order created). Show real numbers instead.
+  const [progress, setProgress] = useState<{ done: number; total: number; failed: number } | null>(null)
+  // Stable across retries: a retry reuses the same folder and SKIPS files that
+  // already made it, instead of re-uploading everything from zero.
+  const sessionIdRef = useRef<string>('')
+  const uploadedRef = useRef<Map<number, { path: string; name: string; size: number; type: string }>>(new Map())
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -791,19 +800,49 @@ function OrderForm() {
       // and returns 413 ("Сталася помилка"). Uploading client-side to
       // Storage (same approach as the magazine-text brief) sidesteps the
       // limit entirely and actually persists the order.
-      const sessionId = `designer-order-${Date.now()}`
+      // One folder per form session, kept across retries (see uploadedRef).
+      if (!sessionIdRef.current) sessionIdRef.current = `designer-order-${Date.now()}`
+      const sessionId = sessionIdRef.current
       const uploaded: Array<{ path: string; name: string; size: number; type: string; cover?: boolean }> = []
       let lastUploadError: any = null
 
-      for (let i = 0; i < formData.files.length; i++) {
-        const f = formData.files[i]
-        const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-        const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
-        // uploadImageToStorage now routes order-files through the server-side
-        // service-role endpoint internally, so RLS never blocks the customer.
-        const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
-        if (upErr) { console.error('photo upload error:', upErr); lastUploadError = upErr; continue }
-        uploaded.push({ path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
+      const total = formData.files.length
+      setProgress({ done: uploadedRef.current.size, total, failed: 0 })
+
+      // Upload in parallel (4 at a time) instead of strictly one-by-one.
+      // Sequential uploads meant one slow photo stalled everything — in the
+      // real failure a single file took 12m43s and blocked the other 40.
+      // Each file gets one retry before it counts as failed.
+      const CONCURRENCY = 4
+      let cursor = 0
+      const worker = async () => {
+        while (cursor < total) {
+          const i = cursor++
+          // Already uploaded on a previous attempt — don't send the bytes again.
+          if (uploadedRef.current.has(i)) continue
+          const f = formData.files[i]
+          const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const path = `${sessionId}/${String(i + 1).padStart(3, '0')}_${safeName}`
+          // uploadImageToStorage now routes order-files through the server-side
+          // service-role endpoint internally, so RLS never blocks the customer.
+          let ok = false
+          for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+            const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
+            if (upErr) { console.error('photo upload error:', upErr); lastUploadError = upErr; continue }
+            uploadedRef.current.set(i, { path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
+            ok = true
+          }
+          setProgress(prev => prev
+            ? { ...prev, done: uploadedRef.current.size, failed: prev.failed + (ok ? 0 : 1) }
+            : prev)
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker))
+
+      // Keep the customer's original order of photos.
+      for (let i = 0; i < total; i++) {
+        const u = uploadedRef.current.get(i)
+        if (u) uploaded.push(u)
       }
 
       if (uploaded.length === 0) {
@@ -948,11 +987,26 @@ function OrderForm() {
           user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
         }).then(() => {}, () => {});
       } catch { /* logging must never break the handler */ }
-      setError(e?.message ? `Сталася помилка: ${e.message}` : "Сталася помилка. Спробуйте ще раз або зв'яжіться з нами напряму.")
+      // Retrying is now cheap: already-uploaded photos are skipped, so say so —
+      // otherwise the customer fears starting a 100 MB upload from scratch.
+      const done = uploadedRef.current.size
+      const hint = done > 0
+        ? ` Уже завантажено ${done} фото — вони збережені, повторна спроба продовжить з того місця.`
+        : ''
+      setError(e?.message ? `Сталася помилка: ${e.message}.${hint}` : `Сталася помилка. Спробуйте ще раз.${hint}`)
     } finally {
       setSubmitting(false)
+      setProgress(null)
     }
   }
+
+  // While photos are uploading, a closed tab loses the order. Warn on exit.
+  useEffect(() => {
+    if (!submitting) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [submitting])
 
   if (submitted) return <SuccessScreen orderNumber={orderNumber} />
 
@@ -1168,6 +1222,23 @@ function OrderForm() {
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
+          {submitting && progress && progress.total > 0 && (
+            <div className="mt-4 bg-blue-50 rounded-lg px-4 py-3">
+              <div className="flex items-center justify-between text-sm text-[#1e2d7d] font-semibold">
+                <span>Завантажуємо ваші фото — {progress.done} з {progress.total}</span>
+                <span>{Math.round((progress.done / progress.total) * 100)}%</span>
+              </div>
+              <div className="mt-2 h-2 w-full bg-blue-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#1e2d7d] transition-all duration-300"
+                  style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Не закривайте сторінку. Багато фото можуть вантажитись кілька хвилин — це нормально.
+              </p>
+            </div>
+          )}
           {error && <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>}
           <div className="flex justify-between mt-8 gap-4">
             <button
@@ -1190,7 +1261,11 @@ function OrderForm() {
                 disabled={submitting}
                 className="flex items-center gap-2 px-8 py-3 rounded-lg font-semibold bg-[#1e2d7d] hover:bg-[#263a99] text-white transition-colors disabled:opacity-60"
               >
-                {submitting ? 'Відправляємо...' : 'Підтвердити замовлення'} <Check className="w-4 h-4" />
+                {submitting
+                  ? (progress && progress.total > 0
+                      ? `Завантажуємо фото ${progress.done} з ${progress.total}…`
+                      : 'Відправляємо...')
+                  : 'Підтвердити замовлення'} <Check className="w-4 h-4" />
               </button>
             )}
           </div>
