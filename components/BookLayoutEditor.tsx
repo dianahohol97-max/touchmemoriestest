@@ -1371,7 +1371,19 @@ export default function BookLayoutEditor() {
           const withoutPreview = valid.filter(p =>
             !p.preview || (!p.preview.startsWith('data:image') && !p.preview.startsWith('blob:') && !p.preview.startsWith('https://'))
           );
-          setPhotos(valid);
+          // Carry the draft's durable `path` onto `storagePath` for EVERY photo
+          // that has one — not just the ones whose preview died.
+          //
+          // This is the bug that silently emptied TM-001106: a restored draft
+          // keeps `path` (the file IS in storage), but only the preview-less
+          // "ghosts" below were given `storagePath`. Photos whose signed https
+          // preview survived kept `path` alone, so at add-to-cart the uploader
+          // saw no storagePath, tried to re-fetch the (by then expired) signed
+          // URL, failed, and `continue`d — leaving that photo with NO path in
+          // the saved design. The layout was stored with 54 photos and zero
+          // usable files. Inheriting the path here means a draft-persisted
+          // photo is never re-uploaded and never lost.
+          setPhotos(valid.map((p: any) => (p.path && !p.storagePath ? { ...p, storagePath: p.path } : p)));
           // Ghosts WITH a storagePath (draft-persisted photos): rehydrate their
           // previews from the server via signed URLs — the customer gets the
           // full book back with zero re-uploading. This is the fix for the
@@ -4472,7 +4484,10 @@ export default function BookLayoutEditor() {
         // Already uploaded in this session (e.g. restored from a saved draft
         // via reopenDesign, or uploaded earlier by handleSaveAndExit) — reuse
         // the existing path instead of re-uploading the same bytes.
-        const existingPath = (ph as any).storagePath as string | undefined;
+        // Belt-and-braces: accept `path` too (draft-restored photos carry it),
+        // so a photo that is already in storage is never re-uploaded — and
+        // never silently dropped when the re-upload can't find bytes.
+        const existingPath = ((ph as any).storagePath || (ph as any).path) as string | undefined;
         if (existingPath) {
           uploadedPhotosMeta[i].path = existingPath;
           continue;
