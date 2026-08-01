@@ -28,9 +28,18 @@ export const maxDuration = 300;
  *
  * Idempotent: a file already at the finished size is reported as `skipped`.
  */
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireStaff();
   if (!guard.ok) return guard.response;
+
+  // Cropping runs in BATCHES. Decoding a 4961×3602 JPEG in jimp takes seconds,
+  // and an 18-spread book in one invocation blew the function's time budget —
+  // it died with no response at all, so the admin only saw «Не вдалося
+  // обрізати» with nothing to go on. The caller walks `nextOffset` until it
+  // reaches `total`, so each request stays comfortably inside the limit.
+  const url = new URL(req.url);
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0', 10) || 0);
+  const limit = Math.min(6, Math.max(1, parseInt(url.searchParams.get('limit') || '3', 10) || 3));
 
   const { id } = await params;
   const admin = getAdminClient();
@@ -70,13 +79,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   // Spreads are two pages wide; travel-book/magazine page files are one.
   // Covers and the acrylic insert are not spreads and are left alone.
-  const targets = (files || []).filter((f: any) => /_(spread|page)\.jpe?g$/i.test(String(f.file_name || '')));
+  const targets = (files || [])
+    .filter((f: any) => /_(spread|page)\.jpe?g$/i.test(String(f.file_name || '')))
+    .sort((a: any, b: any) => String(a.file_name).localeCompare(String(b.file_name)));
   if (targets.length === 0) {
     return NextResponse.json({ error: 'Немає розворотів чи сторінок для обрізки (обкладинки й вставки не чіпаємо)' }, { status: 400 });
   }
 
+  const batch = targets.slice(offset, offset + limit);
   const report: any[] = [];
-  for (const f of targets) {
+  for (const f of batch) {
     const bucket = f.bucket_name || 'photobook-uploads';
     const isSinglePage = /_page\.jpe?g$/i.test(String(f.file_name));
     const targetW = mmToPx(isSinglePage ? geo.page.w : geo.finished.w);
@@ -127,12 +139,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const skipped = report.filter((r) => r.status === 'skipped').length;
   const failed = report.filter((r) => r.status === 'error').length;
 
+  const nextOffset = offset + batch.length;
+
   return NextResponse.json({
     ok: failed === 0,
     orderNumber: order.order_number,
     sizeKey,
     finished: `${geo.finished.w}×${geo.finished.h} мм`,
     page: `${geo.page.w}×${geo.page.h} мм`,
+    total: targets.length,
+    nextOffset,
+    done: nextOffset >= targets.length,
+    cropped: ok,
+    skipped,
+    failed,
     summary: `обрізано ${ok}, пропущено ${skipped}, помилок ${failed}`,
     report,
   });

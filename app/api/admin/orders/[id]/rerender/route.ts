@@ -44,8 +44,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         headers: { 'Content-Type': 'application/json', 'x-cron-secret': secret },
         body: JSON.stringify({ orderId: order.id }),
       });
-      const detail = await res.json().catch(() => ({}));
+      const detail: any = await res.json().catch(() => ({}));
       console.log('[rerender] render-order done', { order: order.order_number, status: res.status, detail });
+
+      // A failed render used to be invisible: the click answered «Рендер
+      // запущено — файли оновляться за 1–2 хв» and then nothing ever appeared,
+      // with the reason sitting only in the Vercel log. TM-001096 was clicked
+      // twice that way while Railway was crashing. Put the reason on the order
+      // so the next person reads it instead of clicking again.
+      if (detail && detail.ok === false) {
+        const why = (detail.results || [])
+          .map((r: any) => r?.error || r?.detail?.message || r?.detail?.error)
+          .filter(Boolean)
+          .join('; ');
+        await admin.from('orders').update({
+          notes: `⚠️ РЕНДЕР НЕ ВДАВСЯ (${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC): `
+            + `зібрано ${detail.rendered ?? 0} з ${detail.total ?? '?'}. `
+            + (why ? `Причина: ${why}. ` : '')
+            + 'Файлів для друку немає — не відправляти в друк.',
+        }).eq('id', order.id);
+      }
     } catch (e: any) {
       console.error('[rerender] render-order trigger failed', { order: order.order_number, error: e?.message });
     }
