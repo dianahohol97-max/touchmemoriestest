@@ -1061,7 +1061,7 @@ export default function AccountPage() {
                                         <div style={{ background: 'linear-gradient(135deg,#263A99,#1a2a73)', borderRadius: 14, padding: 28, color: 'white' }}>
                                             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Як це працює</div>
                                             <p style={{ fontSize: 14, lineHeight: 1.7, opacity: 0.92, margin: 0 }}>
-                                                Поділіться своїм посиланням із друзями. Коли друг зареєструється та зробить перше замовлення від {referral.minOrder} ₴, ви отримаєте <strong>{referral.reward} ₴</strong> на бонусний рахунок. Бонусами можна оплатити до 50% наступних замовлень.
+                                                Поділіться своїм посиланням із друзями. Коли друг зареєструється та зробить перше замовлення від {referral.minOrder} ₴ — ви отримаєте <strong>{referral.reward} ₴</strong>, і друг теж отримає <strong>{referral.friendReward ?? 50} ₴</strong> на бонусний рахунок. Бонусами можна оплатити до 50% наступних замовлень.
                                             </p>
                                         </div>
 
