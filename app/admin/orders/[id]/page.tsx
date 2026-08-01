@@ -2257,8 +2257,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                                     {exportFiles.length > 0 && (
                                         <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                <Printer size={13} /> Макет для друку ({exportFiles.length}) · готовий
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    <Printer size={13} /> Макет для друку ({exportFiles.length}) · готовий
+                                                </div>
+                                                {/* The toolbar's "Завантажити всі" ZIP holds EVERYTHING — print
+                                                    files, originals and client photos in one archive. The
+                                                    workshop needs only the print set, so give it its own button
+                                                    next to the files it actually covers. */}
+                                                <button onClick={() => downloadAllAsZip(exportFiles, 'макет')} disabled={downloadingZip}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                    Тільки макет (ZIP)
+                                                </button>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
                                                 {exportFiles.map((f: any) => thumb(f, true))}
