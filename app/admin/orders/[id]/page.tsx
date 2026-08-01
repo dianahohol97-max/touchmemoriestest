@@ -186,6 +186,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [rerendering, setRerendering] = useState(false);
+    const [strippingBleed, setStrippingBleed] = useState(false);
     const [rebuildingPoster, setRebuildingPoster] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
@@ -2236,6 +2237,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#ea580c', border: '1.5px solid #ea580c', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: rerendering ? 'default' : 'pointer' }}>
                                             {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!confirm('Обрізати розвороти до готового розміру — прибрати припуск на виліт?\n\nВиліт домальовує рендер, це не дизайн клієнта. Обкладинки не чіпаються: їхні 18–20 мм — це загин на палітурку, а не виліт.')) return;
+                                                setStrippingBleed(true);
+                                                try {
+                                                    const r = await fetch(`/api/admin/orders/${id}/strip-bleed`, { method: 'POST' });
+                                                    const j = await r.json();
+                                                    if (r.ok) { toast.success(`${j.summary} · готовий розмір ${j.finished}`); fetchOrder(); }
+                                                    else toast.error(j.error || 'Не вдалося обрізати');
+                                                } catch { toast.error('Не вдалося обрізати'); }
+                                                setStrippingBleed(false);
+                                            }}
+                                            disabled={strippingBleed}
+                                            title="Зрізає припуск на виліт із розворотів, лишаючи макет клієнта рівно в готовому розмірі. Пікселі не перераховуються — просто відкидається кільце, яке домалював рендер."
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0891b2', border: '1.5px solid #0891b2', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: strippingBleed ? 'default' : 'pointer' }}>
+                                            {strippingBleed ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                            {strippingBleed ? 'Обрізаю…' : 'Прибрати виліт'}
                                         </button>
                                         {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.product_name || ''} ${it?.slug || ''}`)) && (
                                         <button
