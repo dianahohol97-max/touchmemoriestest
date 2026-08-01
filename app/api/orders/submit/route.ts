@@ -9,6 +9,7 @@ import { getB2bSession } from '@/lib/b2b/session';
 import { getRoleConfig } from '@/lib/b2b/config';
 import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { checkCertificateForPayment, reserveCertificateForOrder, releaseCertificateReservation } from '@/lib/certificates/redeemCertificate';
+import { buildCoverColorIndex, matchCoverColor, readCoverSelection, COVER_COLOR_CODE_KEY } from '@/lib/cover-colors';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -164,6 +165,44 @@ export async function POST(request: NextRequest) {
       }
     }
   }
+
+  // Stamp the workshop's colour code onto every item that carries a cover
+  // colour. The order used to store only the NAME — and «Темно-зелений» is
+  // В-13 in velour but Ш-21 in leatherette (thirteen names collide like this),
+  // so the code had to be guessed at production time. Resolve it here, once,
+  // scoped to the item's own cover type. Fail-soft: an unresolvable colour
+  // leaves the item untouched — a colour code must never block a paid order.
+  try {
+    const needsCode = (body.items as any[]).some((it) => {
+      for (const bag of [it?.options, it?.selected_options]) {
+        const sel = readCoverSelection(bag);
+        if (sel.colorName && !sel.code) return true;
+      }
+      return false;
+    });
+    if (needsCode) {
+      const colorAdmin = getAdminClient();
+      const { data: colorRows } = await colorAdmin
+        .from('cover_colors')
+        .select('code, name, hex_approx, cover_type:cover_types(name)')
+        .eq('active', true);
+      const index = buildCoverColorIndex(colorRows || []);
+      if (index.length > 0) {
+        for (const it of body.items as any[]) {
+          for (const bag of [it?.options, it?.selected_options]) {
+            if (!bag || typeof bag !== 'object') continue;
+            const sel = readCoverSelection(bag);
+            if (!sel.colorName || sel.code) continue;
+            const hit = matchCoverColor(index, sel.coverType, sel.colorName);
+            if (hit) bag[COVER_COLOR_CODE_KEY] = hit.code;
+          }
+        }
+      }
+    }
+  } catch {
+    /* non-critical: the admin order page resolves the code at display time too */
+  }
+
   const subtotal = Number(body.subtotal);
   const delivery_cost = Number(body.delivery_cost);
   const total = Number(body.total);
