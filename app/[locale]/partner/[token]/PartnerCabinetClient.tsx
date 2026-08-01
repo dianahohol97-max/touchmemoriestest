@@ -42,6 +42,9 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
     const [saved, setSaved] = useState(false);
     const [requesting, setRequesting] = useState(false);
     const [notice, setNotice] = useState('');
+    const [certNominal, setCertNominal] = useState(1725);
+    const [certQty, setCertQty] = useState(1);
+    const [certBuying, setCertBuying] = useState(false);
 
     const flash = (m: string) => { setNotice(m); setTimeout(() => setNotice(''), 2500); };
 
@@ -92,12 +95,42 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
         flash(msg);
     };
 
+    // Buy gift certificates at the partner −10%: create the order, then send
+    // the partner straight to Monobank payment (the certs are auto-issued and
+    // emailed after payment by the standard certificate flow).
+    const buyCertificates = async () => {
+        if (certBuying) return;
+        setCertBuying(true);
+        try {
+            const res = await fetch('/api/partnership/certificates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, nominal: certNominal, qty: certQty }),
+            });
+            const json = await res.json();
+            if (!res.ok) { alert(json?.error || 'Помилка'); return; }
+            const inv = await fetch('/api/monobank/create-invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: json.orderId }),
+            });
+            const invJson = await inv.json();
+            if (!inv.ok || !invJson?.pageUrl) { alert(invJson?.error || 'Не вдалося створити оплату — напишіть нам, замовлення ' + json.orderNumber); return; }
+            window.location.href = invJson.pageUrl;
+        } finally { setCertBuying(false); }
+    };
+
     if (loading) return <Centered>Завантаження…</Centered>;
     if (error || !data) return <Centered>{error || 'Партнера не знайдено'}</Centered>;
 
     const canPayout = data.pending_payout >= minPayout;
     const isBlogger = data.partner_kind === 'travel_blogger';
+    const isPhotographer = data.partner_kind === 'photographer';
+    const kindLabel = isPhotographer ? 'Фотограф' : isBlogger ? 'Блогер' : 'Агенція';
     const refLink = `https://touchmemories.com.ua/?ref=${data.referral_code}`;
+    const CERT_NOMINALS = [675, 825, 975, 1125, 1425, 1725, 2025, 2350, 2900];
+    const certUnit = Math.round(certNominal * 0.9 * 100) / 100;
+    const certTotal = Math.round(certUnit * certQty * 100) / 100;
 
     return (
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px 60px', fontFamily: 'Arial, sans-serif', color: '#0f172a' }}>
@@ -105,7 +138,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>{data.agency_name}</h1>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: isBlogger ? '#fce7f3' : '#e0e7ff', color: isBlogger ? '#be185d' : '#3730a3' }}>{isBlogger ? 'Блогер' : 'Агенція'}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 999, background: isPhotographer ? '#fef3c7' : isBlogger ? '#fce7f3' : '#e0e7ff', color: isPhotographer ? '#92400e' : isBlogger ? '#be185d' : '#3730a3' }}>{kindLabel}</span>
             </div>
             <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>Ваш партнерський кабінет touch.memories</p>
 
@@ -153,6 +186,48 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                 {canPayout && data.payout_requested_at && (
                     <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: '#047857' }}>⏳ Запит в обробці</div>
                 )}
+            </div>
+
+            {/* Gift certificates at the partner −10% */}
+            <div style={{ ...card, border: '1px solid #c7d2fe' }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>Сертифікати зі знижкою −10%</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+                    Купуйте подарункові сертифікати на Travel Book за партнерською ціною (−10% від номіналу) і даруйте клієнтам.
+                    Сертифікат зберігає повний номінал, діє 3 місяці. Після оплати сертифікати автоматично надійдуть на ваш email.
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 700 }}>
+                        Номінал
+                        <select value={certNominal} onChange={e => setCertNominal(Number(e.target.value))}
+                            style={{ display: 'block', marginTop: 4, padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, minWidth: 130 }}>
+                            {CERT_NOMINALS.map(n => <option key={n} value={n}>{n} ₴</option>)}
+                        </select>
+                    </label>
+                    <label style={{ fontSize: 12, color: '#475569', fontWeight: 700 }}>
+                        Кількість
+                        <select value={certQty} onChange={e => setCertQty(Number(e.target.value))}
+                            style={{ display: 'block', marginTop: 4, padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, minWidth: 80 }}>
+                            {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
+                    </label>
+                    <button style={{ ...btn, background: certBuying ? '#94a3b8' : '#263A99' }} onClick={buyCertificates} disabled={certBuying}>
+                        {certBuying ? 'Створюємо оплату…' : `Купити за ${certTotal.toLocaleString('uk-UA')} грн`}
+                    </button>
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+                    {certQty} × сертифікат {certNominal} ₴ → ви платите {certUnit.toLocaleString('uk-UA')} грн за шт (замість {certNominal} ₴). Оплата картою онлайн.
+                </div>
+            </div>
+
+            {/* Terms */}
+            <div style={{ ...card, background: '#f8fafc' }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Умови партнерства</div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#475569', lineHeight: 1.8 }}>
+                    <li>Ваша комісія: <b>{data.travelbook_rate}%</b> з тревелбуків, <b>{data.other_rate}%</b> з решти товарів — нараховується автоматично після оплати замовлення за вашим кодом чи посиланням.</li>
+                    <li>Клієнт за вашим кодом отримує знижку на замовлення.</li>
+                    <li>Сертифікати для дарування — зі знижкою <b>10%</b> (у цьому кабінеті), діють 3 місяці, зберігають повний номінал.</li>
+                    <li>Виплата комісії — від <b>{uah(minPayout)}</b>, на вказаний вами рахунок.</li>
+                </ul>
             </div>
 
             {/* Commission history */}

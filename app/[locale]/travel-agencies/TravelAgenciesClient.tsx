@@ -11,7 +11,7 @@ const MODELS = [
         icon: Gift,
         title: 'Подарункові сертифікати',
         tagline: 'Дбайливий подарунок після туру',
-        description: 'Даруйте клієнтам сертифікат на тревелбук після подорожі — приємний бонус, який збереже спогади про їхню поїздку. Ви купуєте сертифікати зі знижкою 10% на тревелбуки, а клієнти повертаються до вас із теплими емоціями. Сертифікати діють 3 місяці з моменту видачі.',
+        description: 'Даруйте клієнтам сертифікат на тревелбук після подорожі — приємний бонус, який збереже спогади про їхню поїздку. Ви купуєте сертифікати зі знижкою 10% прямо у своєму партнерському кабінеті, а клієнти повертаються до вас із теплими емоціями. Сертифікати діють 3 місяці з моменту видачі.',
         perks: ['Знижка 10% на тревелбуки', 'Сертифікати діють 3 місяці', 'Ваші клієнти отримують подарунок', 'Нічого не потрібно виробляти самим'],
     },
     {
@@ -19,7 +19,7 @@ const MODELS = [
         icon: Percent,
         title: 'Реферальна програма',
         tagline: 'Заробляйте на рекомендаціях',
-        description: 'Ваша агенція отримує персональний промокод зі знижкою для клієнтів, а ви — винагороду з кожного замовлення за цим кодом: 5% від вартості тревелбуків і 3% від вартості решти товарів. Клієнт за вашим кодом отримує знижку 5%. Менеджерам вигідно рекомендувати нас — це додатковий дохід без жодних витрат.',
+        description: 'Ви (агенція, блогер чи фотограф) отримуєте персональний промокод зі знижкою для клієнтів, а самі — винагороду з кожного замовлення за цим кодом: 5% від вартості тревелбуків і 3% від вартості решти товарів. Клієнт за вашим кодом отримує знижку 5%. Це додатковий дохід без жодних витрат. Нарахування й виплати — у партнерському кабінеті (виплата від 500 грн).',
         perks: ['Персональний промокод агенції', '5% за тревелбуки, 3% за інші товари', 'Оплата лише за реальні продажі'],
     },
     // Co-branded travelbooks — hidden for now (terms not finalised). Restore
@@ -45,14 +45,15 @@ export default function TravelAgenciesClient() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState(false);
-    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger'>('travel_agency');
+    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger' | 'photographer'>('travel_agency');
     const isBlogger = kind === 'travel_blogger';
+    const isPhotographer = kind === 'photographer';
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         if (!agencyName.trim() || !email.trim()) {
-            setError('Вкажіть назву агенції та email.');
+            setError('Вкажіть назву та email.');
             return;
         }
         setLoading(true);
@@ -82,10 +83,10 @@ export default function TravelAgenciesClient() {
                             <Globe size={15} /> Партнерська програма
                         </div>
                         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 44, fontWeight: 900, lineHeight: 1.05, margin: '0 0 18px' }}>
-                            Співпраця для тревел-агенцій
+                            Співпраця для агенцій, блогерів і фотографів
                         </h1>
                         <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.9, maxWidth: 620, margin: '0 auto' }}>
-                            Ваші клієнти повертаються з подорожей із сотнями фото. Допоможіть їм зберегти ці спогади — і зробіть це частиною свого сервісу. Оберіть модель співпраці, яка підходить саме вашій агенції.
+                            Ваші клієнти повертаються з подорожей із сотнями фото. Допоможіть їм зберегти ці спогади — і зробіть це частиною свого сервісу. Оберіть модель співпраці, яка підходить саме вам — для тревел-агенцій, блогерів і фотографів.
                         </p>
                     </div>
                 </section>
@@ -139,8 +140,8 @@ export default function TravelAgenciesClient() {
                                     <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови співпраці</p>
 
                                     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                            {([['travel_agency', 'Агенція'], ['travel_blogger', 'Блогер']] as const).map(([val, label]) => (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                            {([['travel_agency', 'Агенція'], ['travel_blogger', 'Блогер'], ['photographer', 'Фотограф']] as const).map(([val, label]) => (
                                                 <button key={val} type="button" onClick={() => setKind(val)}
                                                     style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                                         border: kind === val ? '2px solid #263A99' : '1px solid #e2e8f0',
@@ -149,8 +150,8 @@ export default function TravelAgenciesClient() {
                                                 </button>
                                             ))}
                                         </div>
-                                        <Field label={isBlogger ? 'Імʼя / назва блогу' : 'Назва агенції'} required>
-                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder={isBlogger ? 'Ваше імʼя або назва блогу' : 'Назва вашої агенції'} style={inputStyle} />
+                                        <Field label={isPhotographer ? 'Імʼя / назва студії' : isBlogger ? 'Імʼя / назва блогу' : 'Назва агенції'} required>
+                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder={isPhotographer ? 'Ваше імʼя або назва студії' : isBlogger ? 'Ваше імʼя або назва блогу' : 'Назва вашої агенції'} style={inputStyle} />
                                         </Field>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                             <Field label="Контактна особа">
