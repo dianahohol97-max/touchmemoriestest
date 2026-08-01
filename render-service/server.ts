@@ -156,7 +156,7 @@ app.post('/render', async (req, res) => {
       const body = await metaRes.text();
       return res.status(502).json({ error: `print API ${metaRes.status}`, body });
     }
-    const { project, printSpec } = await metaRes.json();
+    const { project, printSpec, geometry } = await metaRes.json();
     const config = project?.overlays_data?.config || {};
 
     // Travel books and magazines are printed page-by-page (one file per physical
@@ -251,7 +251,16 @@ app.post('/render', async (req, res) => {
 
     // ── Book path (spreads) ─────────────────────────────────────────────────
     const sizeKey = resolveSizeKey(config).replace(/\s*см.*/i, '').trim();
-    const dims = PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4'];
+    // Sheet size comes from the app, derived from photobook_sizes, so the
+    // editor, /print and this service all read ONE table. PRINT_DIMS_MM below
+    // stays as a fallback for an app deploy that predates `geometry` — it is a
+    // hand-copy of the printer's spec and has drifted from the DB before.
+    const dims = geometry?.sheet?.w > 0 && geometry?.cover?.w > 0
+      ? { spread: { ...geometry.sheet }, cover: { ...geometry.cover } }
+      : (PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4']);
+    if (!geometry) {
+      console.warn(`[render] app sent no geometry for '${sizeKey}' — falling back to the local table`);
+    }
     const pages = project?.pages_data || [];
     const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
 
@@ -314,7 +323,12 @@ app.post('/render', async (req, res) => {
         // extendBleed() does, and what a printer expects to trim away.
         const named = PAGE_MM[sizeKey];
         const sizeParts = sizeKey.split(/[x×]/).map((n) => parseFloat(n));
-        const pageMm = named
+        // Same source as the sheet above: the app's derived geometry first, the
+        // local parse only as a fallback. Deriving the finished page here and
+        // the sheet there from two different tables is exactly how the two
+        // drifted apart.
+        const pageMm = (geometry?.page?.w > 0 && geometry?.page?.h > 0 ? { ...geometry.page } : null)
+          || named
           || (sizeParts.length === 2 && sizeParts.every((n) => n > 0)
             ? { w: sizeParts[0] * 10, h: sizeParts[1] * 10 }   // '20x30' = centimetres
             : null);
