@@ -157,7 +157,9 @@ export async function POST(request: Request) {
   // Welcome email to the partner with their code + terms. Fire-and-forget:
   // a mail failure must never fail the approval (the partner row already exists).
   if (getBrevoApiKey() && email) {
-    const kindWord = partnerKind === 'travel_blogger' ? 'блогером' : 'агенцією';
+    const kindWord = partnerKind === 'travel_blogger' ? 'блогером'
+    : partnerKind === 'photographer' ? 'фотографом'
+    : 'агенцією';
     const refLink = `https://touchmemories.com.ua/?ref=${code}`;
     const cabinetLink = `https://touchmemories.com.ua/uk/partner/${partner.cabinet_token}`;
     try {

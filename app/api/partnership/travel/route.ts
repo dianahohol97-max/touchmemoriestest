@@ -18,10 +18,16 @@ export async function POST(request: Request) {
         const body = await request.json();
         // travel_agency (default) | travel_blogger — same referral program,
         // label only. Kept back-compatible: existing callers send no kind.
-        const kind = body?.kind === 'travel_blogger' ? 'travel_blogger' : 'travel_agency';
+        const kind = body?.kind === 'travel_blogger' ? 'travel_blogger'
+            : body?.kind === 'photographer' ? 'photographer'
+            : 'travel_agency';
+        const kindLabel = kind === 'travel_blogger' ? 'тревел-блогера'
+            : kind === 'photographer' ? 'фотографа'
+            : 'тревел-агенції';
         const isBlogger = kind === 'travel_blogger';
-        const kindLabel = isBlogger ? 'тревел-блогера' : 'тревел-агенції';
-        const nameLabel = isBlogger ? 'імʼя / блог' : 'назву агенції';
+        const kindNoun = kind === 'travel_blogger' ? 'тревел-блогер' : kind === 'photographer' ? 'фотограф' : 'тревел-агенція';
+        const kindWho = kind === 'travel_blogger' ? 'Блогер' : kind === 'photographer' ? 'Фотограф' : 'Агенція';
+        const nameLabel = isBlogger ? 'імʼя / блог' : kind === 'photographer' ? 'імʼя / студію' : 'назву агенції';
         const agencyName = String(body?.agencyName || '').trim();
         const contactName = String(body?.contactName || '').trim();
         const email = String(body?.email || '').trim().toLowerCase();
@@ -61,9 +67,9 @@ export async function POST(request: Request) {
                     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
                       <div style="background:#263A99;padding:20px 28px"><span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:.08em">TOUCH.MEMORIES</span></div>
                       <div style="padding:28px;background:#fff;border:1px solid #e2e8f0">
-                        <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 16px">Заявка на партнерство (${isBlogger ? 'тревел-блогер' : 'тревел-агенція'})</h2>
+                        <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 16px">Заявка на партнерство (${kindNoun})</h2>
                         <table style="width:100%;font-size:14px;border-collapse:collapse">
-                          <tr><td style="padding:6px 0;color:#6b7280;width:130px">${isBlogger ? 'Блогер' : 'Агенція'}:</td><td style="padding:6px 0;font-weight:600">${agencyName}</td></tr>
+                          <tr><td style="padding:6px 0;color:#6b7280;width:130px">${kindWho}:</td><td style="padding:6px 0;font-weight:600">${agencyName}</td></tr>
                           ${contactName ? `<tr><td style="padding:6px 0;color:#6b7280">Контакт:</td><td style="padding:6px 0">${contactName}</td></tr>` : ''}
                           <tr><td style="padding:6px 0;color:#6b7280">Email:</td><td style="padding:6px 0">${email}</td></tr>
                           ${phone ? `<tr><td style="padding:6px 0;color:#6b7280">Телефон:</td><td style="padding:6px 0">${phone}</td></tr>` : ''}
