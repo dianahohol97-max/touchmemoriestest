@@ -102,6 +102,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (!cancelled && coverImageUrl) setDesignCoverUrl(coverImageUrl);
       } catch { /* non-blocking */ }
     })();
+    // The customer's saved layout — independent of whether print files exist.
+    (async () => {
+      try {
+        const r = await fetch(`/api/admin/orders/${order.id}/layout`);
+        if (!r.ok) return;
+        const { layouts: ls } = await r.json();
+        if (!cancelled && Array.isArray(ls)) setLayouts(ls);
+      } catch { /* non-blocking */ }
+    })();
     return () => { cancelled = true; };
   }, [order?.id]);
 
@@ -153,6 +162,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [clientComment, setClientComment] = useState('');
     const [filesUrl, setFilesUrl] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+    // Customer's saved constructor layout(s) for this order — shown even when
+    // nothing has been rendered yet, so a linked design is never invisible.
+    const [layouts, setLayouts] = useState<any[]>([]);
     // Travel-book cover chosen by the client (from the saved design) — not on the order item.
     const [designCoverUrl, setDesignCoverUrl] = useState<string | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
@@ -2053,6 +2065,40 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 style={{ width: '100%', padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none' }}
                             />
                         </div>
+                        {/* Customer's saved layout — visible WITHOUT rendering.
+                            Before this, a linked design was indistinguishable
+                            from no design at all until you rendered it. */}
+                        {layouts.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                                {layouts.map((L: any) => (
+                                    <div key={L.id} style={{
+                                        padding: 12, borderRadius: 10, marginBottom: 8,
+                                        background: L.ready ? '#f0fdf4' : '#fffbeb',
+                                        border: `1px solid ${L.ready ? '#bbf7d0' : '#fde68a'}`,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: L.ready ? '#16a34a' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                {L.ready ? '✓ Макет клієнта збережений' : '⚠️ Макет клієнта неповний'}
+                                            </div>
+                                            <a href={L.previewUrl} target="_blank" rel="noopener noreferrer"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#263A99', border: '1.5px solid #263A99', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>
+                                                <ImageIcon size={14} /> Переглянути макет
+                                            </a>
+                                        </div>
+                                        <div style={{ fontSize: 13, color: '#334155', marginTop: 6 }}>
+                                            {L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}
+                                        </div>
+                                        {!L.ready && (
+                                            <div style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
+                                                {L.filledSlots === 0
+                                                    ? 'У макеті НЕ розставлено жодного фото — це порожня чернетка, друкувати не можна.'
+                                                    : `Не всі фото доступні у сховищі (${L.photosPresentInStorage} з ${L.photosWithPath}) — макет може вийти з порожніми місцями.`}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {uploadedFiles.length > 0 && (() => {
                             const exportFiles = uploadedFiles.filter((f: any) => f.isExport);
                             const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);
