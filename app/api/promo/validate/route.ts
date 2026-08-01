@@ -45,27 +45,11 @@ export async function POST(request: Request) {
             .single();
 
         if (promoErr || !promo) {
-            // Fallback: Check Referral Code (separate flat-10% codes table)
-            const { data: refCode, error: refErr } = await supabase
-                .from('referral_codes')
-                .select('*')
-                .ilike('code', code)
-                .single();
-
-            if (refErr || !refCode) {
-                return NextResponse.json({ valid: false, message: 'Промокод або реферальний код не знайдено' }, { status: 404 });
-            }
-
-            const discount_amount = Math.round((cart_total * 0.10) * 100) / 100;
-            return NextResponse.json({
-                valid: true,
-                type: 'percent',
-                value: 10,
-                discount_amount,
-                message: `Знижка -${discount_amount} грн (Реферальний код)`,
-                promo_id: null,
-                referral_code_id: refCode.id,
-            });
+            // NOTE: the legacy referral_codes fallback (flat -10% on the whole
+            // cart, no commission, no usage limits) was removed on Diana's
+            // request — the table was empty and unused, but any row added to it
+            // would have become a silent unlimited -10% code.
+            return NextResponse.json({ valid: false, message: 'Промокод не знайдено' }, { status: 404 });
         }
 
         // 2. Active

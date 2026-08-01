@@ -518,10 +518,10 @@ export async function POST(request: NextRequest) {
     } else if (capPromo?.type === 'fixed') {
       allowedDiscount += Math.min(Number(capPromo.value), subtotal);
     }
-  } else if ((body as any).referral_code_id) {
-    // Flat-10% referral_codes path.
-    allowedDiscount += Math.round(subtotal * 0.10 * 100) / 100;
   }
+  // The legacy flat-10% referral_codes path was removed (Diana, 31.07.2026):
+  // the table was empty and no order ever used it, but any code in it would
+  // have silently granted -10% on the whole cart with no commission ledger.
 
   if (baseDiscount > allowedDiscount + PRICE_EPS) {
     console.warn(`orders/submit: applied discount ${baseDiscount} > allowed ${allowedDiscount} (subtotal ${subtotal}, total ${total})`);
