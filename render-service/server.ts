@@ -264,11 +264,34 @@ app.post('/render', async (req, res) => {
     // editor, /print and this service all read ONE table. PRINT_DIMS_MM below
     // stays as a fallback for an app deploy that predates `geometry` — it is a
     // hand-copy of the printer's spec and has drifted from the DB before.
-    const dims = geometry?.sheet?.w > 0 && geometry?.cover?.w > 0
+    const sheetDims = geometry?.sheet?.w > 0 && geometry?.cover?.w > 0
       ? { spread: { ...geometry.sheet }, cover: { ...geometry.cover } }
       : (PRINT_DIMS_MM[sizeKey] || PRINT_DIMS_MM['A4']);
     if (!geometry) {
       console.warn(`[render] app sent no geometry for '${sizeKey}' — falling back to the local table`);
+    }
+
+    // NO BLEED on inner spreads and pages. The sheet size (420×305 for a 20×30)
+    // is bigger than the finished spread (400×300), and the difference was
+    // filled with pixels this service invented — first a shifted copy of the
+    // whole spread, then a mirrored edge. Neither is the customer's design, and
+    // both reached print. The file is now exactly the finished size: what the
+    // customer laid out, nothing added.
+    //
+    // The COVER keeps its sheet size. Its extra 35 mm per side is not bleed —
+    // it is the fold-in that physically wraps the board, so cutting it would
+    // ruin the binding. It is still padded here, which is wrong in its own way
+    // (TM-001101's wrap carries a squashed second copy of the artwork); the
+    // real fix is rendering the cover natively at 470×328 so the artwork itself
+    // reaches into the fold. Until then it is loud, not silent.
+    const dims = {
+      spread: geometry?.finished?.w > 0
+        ? { ...geometry.finished }
+        : sheetDims.spread,
+      cover: sheetDims.cover,
+    };
+    if (!(geometry?.finished?.w > 0)) {
+      console.warn(`[render] no finished size for '${sizeKey}' — spreads keep the sheet size and WILL be padded`);
     }
     const pages = project?.pages_data || [];
     const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
@@ -365,6 +388,16 @@ app.post('/render', async (req, res) => {
         const dy = pxH - contentPxH;
         if (dx < 0 || dy < 0) {
           throw new Error(`print target ${pxW}x${pxH} smaller than content ${contentPxW}x${contentPxH}`);
+        }
+        if (dx > 0 || dy > 0) {
+          // Inner spreads must land here with dx = dy = 0. Anything else means
+          // pixels are being invented, so name it in the log rather than let it
+          // pass as a normal render.
+          console.warn(
+            `[render] ${isCover ? 'cover' : `spread ${spread}`}: padding ${dx}x${dy} px of SYNTHESIZED edge `
+            + `(${(dx / 2 / 300 * 25.4).toFixed(1)}x${(dy / 2 / 300 * 25.4).toFixed(1)} mm per side) — `
+            + (isCover ? 'fold-in, pending a sheet-native cover render' : 'THIS SHOULD BE ZERO'),
+          );
         }
 
         const scaled = await sharp(raw)
