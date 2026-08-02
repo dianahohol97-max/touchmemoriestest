@@ -7771,9 +7771,14 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:'4px 8px', borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*(cH/700)}px ${8*(cH/700)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
-                            style={{ fontSize:tb.fontSize, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
+                            /* Scaled by the SAME cH/700 factor the print page uses.
+                               Raw px here meant the canvas shrank with zoom while the text did
+                               not, so at 70% zoom a paragraph covered ~43% more of the page than
+                               it will in print — the customer was never looking at what she would
+                               get, and at no zoom was she told which view was true. */
+                            style={{ fontSize: tb.fontSize * (cH / 700), fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
                           {isSel && !isEd && (

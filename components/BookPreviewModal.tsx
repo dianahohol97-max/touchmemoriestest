@@ -383,7 +383,11 @@ export function BookPreviewModal({
         {/* Text blocks — fontSize is authored against the editor's 700px base page
             height, so scale it to this preview page height to match the editor. */}
         {(page.textBlocks || []).map(tb => (
-          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), width: 'max-content', maxWidth: '90%' }}>
+          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), width: 'max-content', maxWidth: '90%',
+            /* Mirrors the editor's text box padding, scaled the same way. It eats
+               into the 90% max width, so leaving it out here made lines wrap at a
+               different point than the customer saw. */
+            padding: `${4 * (cH / 700)}px ${8 * (cH / 700)}px` }}>
             <span style={{
               fontSize: tb.fontSize * (cH / 700), fontFamily: tb.fontFamily, color: tb.color,
               fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal',
