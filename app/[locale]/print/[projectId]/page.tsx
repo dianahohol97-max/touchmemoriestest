@@ -175,6 +175,22 @@ export default function PrintPage() {
     ? Math.round(printPageW * 2 * (coverMm.h / coverMm.w))
     : undefined;
 
+  // Refuse rather than fall back. Without coverMm the cover height silently
+  // dropped to the PAGE aspect — a 470×328 sheet drawn as 471×332 — and only
+  // the render service's 1 % aspect tolerance caught it (TM-001108). A product
+  // whose page proportion happens to land INSIDE that tolerance would sail
+  // through and reach the printer as a wrong-size cover. At print resolution
+  // (?w given) an unknown cover sheet is a stop, not a guess.
+  if (printPageW && !coverMm && spreadsToRender.includes(0)) {
+    return (
+      <div style={{ padding: 40, fontFamily: 'sans-serif', color: '#dc2626' }}>
+        Print render unavailable: не вдалося визначити розмір аркуша обкладинки
+        для «{sizeKey}». Рендер зупинено, щоб обкладинка не пішла в друк
+        у пропорції сторінки замість пропорції аркуша.
+      </div>
+    );
+  }
+
   // isPrinted may not be saved as a flag in older/newer configs — derive it from
   // the cover type ("Друкована" = printed cover) too, otherwise the printed-cover
   // photo renders down the wrong (velour/fabric) branch and the cover looks empty.

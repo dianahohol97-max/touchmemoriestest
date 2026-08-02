@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
-import { deriveGeometry, normalizeSizeKey, type SizeRow } from '@/lib/print/geometry';
+import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, type SizeRow } from '@/lib/print/geometry';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,14 +85,32 @@ export async function GET(
   return NextResponse.json({ project: { ...data, uploaded_photos: withUrls }, printSpec, geometry });
 }
 
-/** Look up the project's size in photobook_sizes and derive its geometry. */
+/**
+ * Look up the project's size in photobook_sizes and derive its geometry.
+ *
+ * The size MUST be resolved by resolveProjectSizeKey — the same rule the /print
+ * page and the render service use. This function used to carry a fourth private
+ * copy of that rule (`PRODUCT_SIZE = { travelbook: '20x30' }`), which listed no
+ * magazine. TM-001108 is a glossy magazine whose config saved `selectedSize: ""`
+ * and whose `projects.format` is null, so the private table produced an empty
+ * key and this endpoint answered `geometry: null` — while the other two callers
+ * happily resolved 'magazine-A4' from the slug.
+ *
+ * Null geometry is not a harmless omission: the /print page needs `geometry.cover`
+ * to lay the cover out on its own sheet, and without it the cover height falls
+ * back to the PAGE aspect (2776 × 297/210 = 3926 px instead of the sheet's
+ * 3875 px). The render service, which had resolved the size fine and was
+ * targeting 470×328 mm, then measured a 1.34 % aspect drift against its 1 %
+ * tolerance and aborted the whole job — «зібрано 0 з 1», zero print files on a
+ * paid order.
+ */
 async function resolveGeometry(supabase: ReturnType<typeof getAdminClient>, data: any) {
   const config = (data as any)?.overlays_data?.config || {};
-  const PRODUCT_SIZE: Record<string, string> = { travelbook: '20x30' };
-  const rawSize = String(
-    config.selectedSize || data.format || PRODUCT_SIZE[String(data.product_type || '')] || ''
-  );
-  const sizeKey = normalizeSizeKey(rawSize);
+  const sizeKey = resolveProjectSizeKey({
+    product_type: data.product_type,
+    format: data.format,
+    config,
+  });
   if (!sizeKey) return null;
 
   let row: SizeRow | null = null;
