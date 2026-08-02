@@ -2806,6 +2806,9 @@ export default function BookLayoutEditor() {
 
     const tryCommit = () => {
       done++;
+      // Exactly one tryCommit per file, success or failure — so this is the
+      // right place to release the next slot in the queue.
+      startNext();
       if (done < total) return;
       // All files processed — commit in original order, skip failures
       const loaded = results
@@ -2837,7 +2840,22 @@ export default function BookLayoutEditor() {
       }
     };
 
-    files.forEach((origFile: File, idx: number) => {
+    // Decode at most CONCURRENCY photos at a time.
+    //
+    // This used to be files.forEach(...), which starts EVERY selected photo at
+    // once. The heap cost is not the file size — a 4 MB phone photo decodes to
+    // a ~48 MB bitmap — so a 40-photo selection asked the browser for close to
+    // two gigabytes simultaneously and Chrome killed the tab. To the customer
+    // that reads as «вибиває з сайту» the moment she moves on to editing.
+    //
+    // An earlier pass fixed the cost PER photo (object URLs instead of base64)
+    // but left the count unbounded, so it came back on big batches. A queue
+    // caps peak memory at three decodes regardless of how many were chosen;
+    // throughput barely changes, because the bottleneck is the decoder and the
+    // disk, not parallelism.
+    const CONCURRENCY = 3;
+    let nextIdx = 0;
+    const processOne = (origFile: File, idx: number) => {
       // Convert HEIC/HEIF (iPhone) to JPEG before the decode pipeline, so
       // those photos load instead of being silently dropped by img.onerror.
       normalizeImageFile(origFile).then((file: File) => {
@@ -2922,7 +2940,13 @@ export default function BookLayoutEditor() {
         img.src = objectUrl;
       }
       }).catch(() => { finishNormalize(); results.push({ idx, photo: null }); tryCommit(); });
-    });
+    };
+    const startNext = () => {
+      if (nextIdx >= files.length) return;
+      const i = nextIdx++;
+      processOne(files[i], i);
+    };
+    for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) startNext();
     e.target.value = '';
   };
 
