@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
+import { resolveProjectSizeKey, pageMm } from '@/lib/print/geometry';
 
 /**
  * /print/[projectId] — clean, controls-free render of a saved book design.
@@ -115,16 +116,17 @@ export default function PrintPage() {
   // travelbook ('captured 4963x2481, target 4961x3602' in the Railway logs) —
   // geometrically wrong print files that look like a successful render.
   // Order of truth: saved config → projects.format → the product's fixed size.
-  const PRODUCT_SIZE: Record<string, string> = {
-    travelbook: '20x30', // travelbook-20x30 has exactly one size
-  };
-  const rawSize = String(
-    config.selectedSize || project.format || PRODUCT_SIZE[String(project.product_type || '')] || ''
-  )
-    .replace(/[×х]/g, 'x')
-    .replace(/\s|см|cm/gi, '');
-  const sizeMatch = rawSize.match(/(\d+)x(\d+)/);
-  if (!sizeMatch) {
+  // Resolved by the SAME rule the render service uses, so the two can never
+  // disagree about what a project's size is. They did on TM-001108: the service
+  // resolved the magazine from its slug while this page's fallback listed only
+  // travelbook, so a paid order rendered nothing and showed this red box.
+  const sizeKey = resolveProjectSizeKey({
+    product_type: project.product_type,
+    format: project.format,
+    config,
+  });
+  const page = sizeKey ? pageMm(sizeKey) : null;
+  if (!page) {
     return (
       <div style={{ padding: 40, fontFamily: 'sans-serif', color: '#dc2626' }}>
         Print render unavailable: розмір виробу не збережено в макеті
@@ -133,8 +135,12 @@ export default function PrintPage() {
       </div>
     );
   }
-  const pw = parseInt(sizeMatch[1], 10);
-  const ph = parseInt(sizeMatch[2], 10);
+  // BookPreviewModal expects CENTIMETRES here, not millimetres: besides the
+  // aspect it uses propW to compute px-per-mm for the cover decoration
+  // (`pageW / (propW * 10)`), so passing mm would shrink an acrylic plate
+  // tenfold. Keep the unit the old '20x30' parse produced.
+  const pw = page.w / 10;
+  const ph = page.h / 10;
 
   // Spread count mirrors BookPreviewModal: cover (0) + content spreads.
   const spreadCount = Math.ceil((pages.length - 1) / 2) + 1;
