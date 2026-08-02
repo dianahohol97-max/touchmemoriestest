@@ -91,6 +91,36 @@ export function pageMm(sizeKey: string): { w: number; h: number } | null {
   return w > 0 && h > 0 ? { w, h } : null;
 }
 
+/**
+ * Which size key a saved project renders at.
+ *
+ * Mirrors resolveSizeKey() in render-service/server.ts — the two MUST agree.
+ * TM-001108 is what happens when they don't: a paid glossy magazine whose
+ * config carried no size at all. The render service resolved it from the slug
+ * ('…magazine' → A4) and was ready to render, while the /print page's fallback
+ * table listed only travelbook, so the page refused with «розмір виробу не
+ * збережено в макеті» and the order sat with zero print files.
+ *
+ * Order of truth: saved config → projects.format → the product's fixed size.
+ * Products with exactly one possible size are resolved from their type/slug;
+ * anything genuinely variable (photobooks, wishbooks) must carry its own size
+ * and returns '' so the caller can refuse rather than guess.
+ */
+export function resolveProjectSizeKey(project: {
+  product_type?: string | null;
+  format?: string | null;
+  config?: { selectedSize?: string | null; productSlug?: string | null } | null;
+}): string {
+  const cfg = project.config || {};
+  const explicit = normalizeSizeKey(String(cfg.selectedSize || project.format || ''));
+  if (explicit) return explicit;
+
+  const hay = `${cfg.productSlug || ''} ${project.product_type || ''}`.toLowerCase();
+  if (/travel/.test(hay)) return '20x30';
+  if (/magazine|zhurnal|journal|fotozhurnal|журнал/.test(hay)) return 'magazine-A4';
+  return '';
+}
+
 /** A `photobook_sizes` row, as selected from the DB. */
 export type SizeRow = {
   name?: string | null;
