@@ -222,6 +222,23 @@ export async function POST(request: NextRequest) {
           };
         });
 
+        // Re-rendering the same project writes the SAME storage paths (the
+        // service uploads with upsert), so the replace-mode sweep below can
+        // never clean these up — it only prunes paths missing from the new set,
+        // and these are in it. Without this delete every re-render appended a
+        // second full set of rows: TM-001108 carried 30 rows for 15 files, each
+        // page number listed twice in the admin file list. Clear this project's
+        // own paths first so registering is idempotent.
+        const { error: dupErr } = await admin
+          .from('order_files')
+          .delete()
+          .eq('order_id', orderId)
+          .eq('file_type', 'export')
+          .in('file_path', uploaded);
+        if (dupErr) {
+          console.error('[render-order] stale row cleanup failed', { orderId, projectId: project.id, error: dupErr.message });
+        }
+
         const { error: ofErr } = await admin.from('order_files').insert(rows);
         if (ofErr) {
           console.error('[render-order] order_files insert failed', { orderId, projectId: project.id, error: ofErr.message });
