@@ -990,8 +990,20 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         // rows were created, and the print-sheet generator had nothing to work
         // with (the "no A4 sheets in admin" bug on polaroid/photo-print orders).
         const fileObj = new File([blob], fileName, { type: 'image/jpeg' });
+        // context carries the position in the batch. TM-001095 is why: the log
+        // held ten plain successes and then nothing at all — no error row, no
+        // 413, no 500 — because the tab died mid-loop and the all-or-nothing
+        // guard below is code that never got to run. From the log alone it was
+        // impossible to tell "11 of 11, fine" from "11 of 66, truncated"; the
+        // total had to be read off the customer's order. Stamping i/total makes
+        // an interrupted batch self-evident and queryable.
         const { error: uploadError } = await uploadImageToStorage(
-          supabase, 'order-files', path, fileObj, { upsert: true, cacheControl: '31536000' },
+          supabase, 'order-files', path, fileObj,
+          {
+            upsert: true,
+            cacheControl: '31536000',
+            context: `${isMagnet ? 'photomagnets' : polaroidActive ? 'polaroid' : 'photo-print'} ${i + 1}/${photos.length}`,
+          },
         );
         if (uploadError) { console.warn('photo-print render upload failed:', uploadError); uploadFailed = true; break; }
         exportedFiles.push({

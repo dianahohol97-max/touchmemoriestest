@@ -173,7 +173,7 @@ export default function WeddingNewspaperConstructor() {
       const slotIdx = (design?.slots.findIndex(s => s.key === slotKey) ?? 0) + 1;
       const fileName = `${String(slotIdx).padStart(2, '0')}_${slotKey}.${ext}`;
       const path = `${userKey}/${cartItemId}/${fileName}`;
-      const { error, file: up } = await uploadImageToStorage(supabase, 'order-files', path, file, { downscale: true, cacheControl: '31536000' });
+      const { error, file: up } = await uploadImageToStorage(supabase, 'order-files', path, file, { downscale: true, cacheControl: '31536000', context: `wedding-newspaper slot ${slotKey}` });
       if (error) throw error;
       setSlots(p => ({ ...p, [slotKey]: { ...p[slotKey], path, fileName, size: up.size, uploading: false } }));
     } catch (e: any) {

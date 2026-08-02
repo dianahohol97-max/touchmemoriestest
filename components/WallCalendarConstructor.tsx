@@ -625,10 +625,10 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         // warning onto the order, and tell the customer.
         let failedUploads = 0;
         try {
-            await Promise.all(uploadPlan.map(async (it) => {
+            await Promise.all(uploadPlan.map(async (it, ix) => {
                 const { error: uploadError } = await uploadImageToStorage(
                     supabase, 'order-files', it.path, it.file,
-                    { cacheControl: '31536000', downscale: true },
+                    { cacheControl: '31536000', downscale: true, context: `wall-calendar ${ix + 1}/${uploadPlan.length}` },
                 );
                 if (uploadError) { failedUploads++; console.error('wall-cal upload FAILED:', it.path, uploadError); }
             }));

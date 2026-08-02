@@ -165,7 +165,7 @@ export default function DesignerOrderFlow() {
         const items: Array<{path: string; name: string; size: number; type: string}> = [];
         const sessionId = `designer-${Date.now()}`;
 
-        for (const photo of photos) {
+        for (const [photoIdx, photo] of photos.entries()) {
             if (photo.uploaded && photo.storagePath) {
                 items.push({
                     path: photo.storagePath,
@@ -183,7 +183,14 @@ export default function DesignerOrderFlow() {
             const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${sessionId}/${photo.id}_${safeName}`;
 
-            const { error, file: up } = await uploadImageToStorage(supabase, 'order-files', path, photo.file, { downscale: true });
+            // Every logged upload error so far has come from this flow — mostly
+            // 413 on large iPhone originals. Stamping the flow and the position
+            // means the log answers "which constructor, and how far in" without
+            // reverse-engineering the storage path.
+            const { error, file: up } = await uploadImageToStorage(
+                supabase, 'order-files', path, photo.file,
+                { downscale: true, context: `designer-order ${photoIdx + 1}/${photos.length}` },
+            );
 
             if (error) {
                 console.error('Upload error:', error);

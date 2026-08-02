@@ -113,7 +113,7 @@ export default function CanvasPrintConstructor() {
             const userKey = user?.id || 'anon';
             const safeName = photo.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
             const path = `${userKey}/${cartItemId}/${safeName}`;
-            const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, photo.file, { cacheControl: '31536000' });
+            const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, photo.file, { cacheControl: '31536000', context: 'canvas-print' });
             if (!uploadError) {
                 sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify({
                     path, fileName: photo.file.name, bucket: 'order-files',

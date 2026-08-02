@@ -394,7 +394,7 @@ ${config.addDate ? `Дата: ${new Date().toLocaleDateString('uk-UA')}` : ''}
             if (config.uploadedPhoto) {
                 const safeName = config.uploadedPhoto.name.replace(/[^a-zA-Z0-9._-]/g, '_');
                 const path = `${userKey}/${cartItemId}/source_${safeName}`;
-                const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, config.uploadedPhoto, { cacheControl: '31536000', downscale: true });
+                const { error: uploadError, file: up } = await uploadImageToStorage(sb, 'order-files', path, config.uploadedPhoto, { cacheControl: '31536000', downscale: true, context: 'cartoon-portrait source' });
                 if (!uploadError) {
                     exportedFiles.push({
                         path, fileName: `source_${config.uploadedPhoto.name}`,

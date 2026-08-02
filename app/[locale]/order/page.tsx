@@ -827,7 +827,7 @@ function OrderForm() {
           // service-role endpoint internally, so RLS never blocks the customer.
           let ok = false
           for (let attempt = 0; attempt < 2 && !ok; attempt++) {
-            const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true })
+            const { error: upErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, f.file, { downscale: true, context: `order-page ${i + 1}/${total} try ${attempt + 1}` })
             if (upErr) { console.error('photo upload error:', upErr); lastUploadError = upErr; continue }
             uploadedRef.current.set(i, { path, name: f.name, size: up.size, type: up.type || 'image/jpeg' })
             ok = true
@@ -855,7 +855,7 @@ function OrderForm() {
         const cf = formData.coverPhoto
         const safeName = cf.name.replace(/[^a-zA-Z0-9._-]/g, '_')
         const path = `${sessionId}/cover_${safeName}`
-        const { error: cErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, cf.file, { downscale: true })
+        const { error: cErr, file: up } = await uploadImageToStorage(supabase, 'order-files', path, cf.file, { downscale: true, context: 'order-page cover' })
         if (!cErr) {
           coverPath = path
           uploaded.push({ path, name: `[ОБКЛАДИНКА] ${cf.name}`, size: up.size, type: up.type || 'image/jpeg', cover: true })
