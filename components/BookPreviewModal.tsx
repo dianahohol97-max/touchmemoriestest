@@ -164,6 +164,10 @@ interface BookPreviewProps {
   // render service screenshots. printPageW lets the caller fix the exact pixel
   // width (e.g. print size at 300dpi) instead of the viewport-derived preview size.
   printSpreadIndex?: number;
+  /** Exact print height in px for THIS spread. The cover sheet is not two pages
+   *  tall-for-wide (470×328 vs 2×200×300), so its height cannot be derived from
+   *  the page aspect — it must be given. */
+  printPageH?: number;
   printPageW?: number;
 }
 
@@ -176,7 +180,7 @@ export function BookPreviewModal({
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
-  printSpreadIndex, printPageW,
+  printSpreadIndex, printPageW, printPageH,
 }: BookPreviewProps) {
 
   const isPrint = typeof printSpreadIndex === 'number';
@@ -212,7 +216,11 @@ export function BookPreviewModal({
   const pageW = isPrint && printPageW
     ? printPageW
     : Math.min(Math.floor(maxW / 2), Math.round(maxH * aspect), isMobile ? 999 : 380);
-  const pageH = Math.round(pageW / aspect);
+  // The cover sheet has its own proportion (fold-in + spine), so when the
+  // caller knows the exact print height it wins over the page aspect. Deriving
+  // the cover's height from the page aspect is what made the render service
+  // treat a 470×328 cover as 400×300 and pad the fold-in with invented pixels.
+  const pageH = isPrint && printPageH ? printPageH : Math.round(pageW / aspect);
   const spineW = Math.max(4, Math.min(12, Math.round(pages.length * 0.4)));
   const spreadW = pageW * 2;
 

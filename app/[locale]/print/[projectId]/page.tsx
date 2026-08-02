@@ -30,6 +30,9 @@ export default function PrintPage() {
 
   const [project, setProject] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // Sheet geometry from /api/print/[projectId] — needed for the cover, whose
+  // proportion is its own (470×328) and not two pages side by side.
+  const [geometry, setGeometry] = useState<any>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +45,7 @@ export default function PrintPage() {
           return;
         }
         const body = await res.json();
-        if (!cancelled) setProject(body.project);
+        if (!cancelled) { setProject(body.project); setGeometry(body.geometry || null); }
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load');
       }
@@ -157,6 +160,21 @@ export default function PrintPage() {
     ? [singleSpread]
     : Array.from({ length: spreadCount }, (_, i) => i);
 
+  // The COVER sheet has its own proportion — 470×328 mm for a 20×30 book, not
+  // two 200×300 pages side by side. The customer designs on exactly that sheet
+  // (the constructor draws the fold-in guide at 20/18 mm of it), but this page
+  // derived the cover's height from the PAGE aspect, so a 470×328 design was
+  // laid out as 400×300 and the render service then padded the fold-in with
+  // pixels it invented — TM-001101's wrap carries a squashed second copy of the
+  // artwork, which is why the cover reads as overlapping itself.
+  //
+  // Given the exact print width per half sheet, the cover's height follows from
+  // its own millimetres: h = (w * 2) * coverH / coverW.
+  const coverMm = geometry?.cover?.w > 0 && geometry?.cover?.h > 0 ? geometry.cover : null;
+  const coverPrintH = printPageW && coverMm
+    ? Math.round(printPageW * 2 * (coverMm.h / coverMm.w))
+    : undefined;
+
   // isPrinted may not be saved as a flag in older/newer configs — derive it from
   // the cover type ("Друкована" = printed cover) too, otherwise the printed-cover
   // photo renders down the wrong (velour/fabric) branch and the cover looks empty.
@@ -208,7 +226,13 @@ export default function PrintPage() {
         [aria-label*="Notification" i] { display: none !important; }
       `}</style>
       {spreadsToRender.map((idx) => (
-        <BookPreviewModal key={idx} {...common} printSpreadIndex={idx} printPageW={printPageW} />
+        <BookPreviewModal
+          key={idx}
+          {...common}
+          printSpreadIndex={idx}
+          printPageW={printPageW}
+          printPageH={idx === 0 ? coverPrintH : undefined}
+        />
       ))}
     </div>
   );
