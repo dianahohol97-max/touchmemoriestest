@@ -367,8 +367,16 @@ app.post('/render', async (req, res) => {
         if (!pageMm) {
           throw new Error(`cannot derive page size from '${sizeKey}' — refusing to guess bleed`);
         }
-        const contentMmW = 2 * pageMm.w;   // spread = two pages wide
-        const contentMmH = pageMm.h;
+        // The COVER is one sheet with its own proportion (470×328 for a 20×30),
+        // NOT two pages side by side: the extra area is fold-in that wraps the
+        // board, and the customer designs on that whole sheet. Treating it as
+        // 2×page is what made this service shrink a 470×328 cover to 400×300
+        // and then fill the fold with pixels it invented — TM-001101's wrap
+        // carries a squashed second copy of the artwork. /print now lays the
+        // cover out at its own size, so the capture already IS the target and
+        // nothing is added.
+        const contentMmW = isCover ? mm.w : 2 * pageMm.w;   // spread = two pages wide
+        const contentMmH = isCover ? mm.h : pageMm.h;
         const contentPxW = mmToPx(contentMmW);
         const contentPxH = mmToPx(contentMmH);
 
