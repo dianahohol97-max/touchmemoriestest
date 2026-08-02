@@ -553,6 +553,31 @@ const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[]
   { id: 'sp-6-pairs',          label: '2 великих + 2 пари',   slots: 6, group: 'Розворот 5+ фото' },
 ];
 
+/**
+ * Focal-point detection is memory-heavy per photo (it decodes the preview into
+ * an <img>), and it is triggered for a whole batch at once. Module scope so the
+ * limit holds across renders and across every call site — the draft-restore
+ * loop fires it for every restored photo too.
+ */
+const FOCAL_CONCURRENCY = 2;
+const focalQueue: Array<() => void> = [];
+let focalActive = 0;
+function pumpFocalQueue() {
+  while (focalActive < FOCAL_CONCURRENCY && focalQueue.length > 0) {
+    const job = focalQueue.shift()!;
+    focalActive++;
+    try { job(); } catch { focalActive--; }
+  }
+}
+function releaseFocalSlot() {
+  focalActive = Math.max(0, focalActive - 1);
+  pumpFocalQueue();
+}
+function enqueueFocal(job: () => void) {
+  focalQueue.push(job);
+  pumpFocalQueue();
+}
+
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   '20x20': { w: 200, h: 200 }, '20×20': { w: 200, h: 200 },
   '25x25': { w: 250, h: 250 }, '25×25': { w: 250, h: 250 },
@@ -2340,8 +2365,19 @@ export default function BookLayoutEditor() {
     if (Object.keys(buf).length === 0) return;
     setPhotos(prev => prev.map(p => buf[p.id] ? { ...p, focalX: buf[p.id].focalX, focalY: buf[p.id].focalY, hasFace: false } : p));
   };
+  // Focal-point detection decodes the 1600px preview into an <img> before it
+  // can sample it — about 7 MB of bitmap per photo. It used to be fired for
+  // EVERY photo at once the moment a batch committed, which for 120 photos is
+  // close to a gigabyte requested in one go, right at the point the customer
+  // moves on to editing. That is the second half of «вибиває з сайту»: the
+  // decode queue covers selection, this covers the commit. Two at a time.
   const detectFocalPoint = (previewDataUrl: string, photoId: string) => {
+    enqueueFocal(() => runDetectFocalPoint(previewDataUrl, photoId));
+  };
+
+  const runDetectFocalPoint = (previewDataUrl: string, photoId: string) => {
     const img = new window.Image();
+    img.onerror = () => releaseFocalSlot();
     img.onload = () => {
       try {
         // Downsample to 64x64 for fast processing
@@ -2395,6 +2431,8 @@ export default function BookLayoutEditor() {
         }
       } catch {
         // Silent fail
+      } finally {
+        releaseFocalSlot();
       }
     };
     img.src = previewDataUrl;
@@ -2806,6 +2844,9 @@ export default function BookLayoutEditor() {
 
     const tryCommit = () => {
       done++;
+      // Exactly one tryCommit per file, success or failure — so this is the
+      // right place to release the next slot in the queue.
+      startNext();
       if (done < total) return;
       // All files processed — commit in original order, skip failures
       const loaded = results
@@ -2837,7 +2878,22 @@ export default function BookLayoutEditor() {
       }
     };
 
-    files.forEach((origFile: File, idx: number) => {
+    // Decode at most CONCURRENCY photos at a time.
+    //
+    // This used to be files.forEach(...), which starts EVERY selected photo at
+    // once. The heap cost is not the file size — a 4 MB phone photo decodes to
+    // a ~48 MB bitmap — so a 40-photo selection asked the browser for close to
+    // two gigabytes simultaneously and Chrome killed the tab. To the customer
+    // that reads as «вибиває з сайту» the moment she moves on to editing.
+    //
+    // An earlier pass fixed the cost PER photo (object URLs instead of base64)
+    // but left the count unbounded, so it came back on big batches. A queue
+    // caps peak memory at three decodes regardless of how many were chosen;
+    // throughput barely changes, because the bottleneck is the decoder and the
+    // disk, not parallelism.
+    const CONCURRENCY = 3;
+    let nextIdx = 0;
+    const processOne = (origFile: File, idx: number) => {
       // Convert HEIC/HEIF (iPhone) to JPEG before the decode pipeline, so
       // those photos load instead of being silently dropped by img.onerror.
       normalizeImageFile(origFile).then((file: File) => {
@@ -2922,7 +2978,13 @@ export default function BookLayoutEditor() {
         img.src = objectUrl;
       }
       }).catch(() => { finishNormalize(); results.push({ idx, photo: null }); tryCommit(); });
-    });
+    };
+    const startNext = () => {
+      if (nextIdx >= files.length) return;
+      const i = nextIdx++;
+      processOne(files[i], i);
+    };
+    for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) startNext();
     e.target.value = '';
   };
 
