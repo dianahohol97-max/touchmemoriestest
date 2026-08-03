@@ -7830,9 +7830,12 @@ export default function BookLayoutEditor() {
                         fontFamily: tb.fontFamily,
                         bold: tb.bold,
                         italic: tb.italic,
-                        // cW, not spreadW: tb.x is a percentage of the PAGE box —
-                        // the same width startTxtDragForPage is handed below when
-                        // it converts a drag back into a percentage.
+                        // cW here is the FULL SPREAD width (spreadW === cW —
+                        // spreadW is pageW*2 and pageW is cW/2). Spread-mode text
+                        // blocks live on the spread container and tb.x is a % of
+                        // it, and the print page reproduces exactly that: for
+                        // spread books it renders the left page at the full
+                        // spread width, so both sides measure 90% of the same box.
                         maxWidthPx: cW * 0.9 - txtPadX * 2,
                         availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
                       });
@@ -8534,7 +8537,7 @@ export default function BookLayoutEditor() {
                         // now, so all three agree at any zoom.
                         const txtAnchorsY = (page?.textBlocks || []).map((b: any) => b.y);
                         const txtBasePx = tb.fontSize * (cH / 700);
-                        const txtPadX = 4;
+                        const txtPadX = 8 * (cH / 700);
                         const txtScale = isEd ? 1 : fitFontScale({
                           text: tb.text,
                           fontPx: txtBasePx,
@@ -8559,7 +8562,13 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,padding:'2px 4px',background:isSel?'rgba(255,255,255,0.1)':'transparent',width:'max-content',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
+                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,
+                              /* Scaled 4/8 like the spread branch and the print
+                                 page — this padding eats into the 90% max width,
+                                 so raw '2px 4px' put the wrap point a few px away
+                                 from where the print wraps, and a word could sit
+                                 on a different line in the editor than on paper. */
+                              padding:`${4*(cH/700)}px ${8*(cH/700)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',width:'max-content',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
                             {isSel && !isEd && (
                               <ZOrderToolbar
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
