@@ -112,12 +112,29 @@ export function resolveProjectSizeKey(project: {
   config?: { selectedSize?: string | null; productSlug?: string | null } | null;
 }): string {
   const cfg = project.config || {};
-  const explicit = normalizeSizeKey(String(cfg.selectedSize || project.format || ''));
-  if (explicit) return explicit;
-
   const hay = `${cfg.productSlug || ''} ${project.product_type || ''}`.toLowerCase();
+
+  // Products whose size is FIXED by the product itself are resolved from the
+  // product first, before any stored value. A travel book is 20×30 and a
+  // magazine is A4 — there is no size to choose, so anything sitting in
+  // `format` for them can only be noise, and trusting it is how a book gets
+  // printed on the wrong sheet.
+  //
+  // It is not hypothetical noise either. The editor saves the format through a
+  // DIFFERENT helper of the same name — normalizeSizeKey in lib/editor/utils —
+  // and that one returns '20x20' for an empty string, being the default for
+  // products that genuinely do pick a size. A travel book has no selectedSize,
+  // so it was stored as 20x20, and this function handed that square straight
+  // back to the render service. Two saved travel books already carry it.
+  // (The normalizeSizeKey in THIS file returns '' for empty input, which is why
+  // a project with no size at all still resolved correctly — only a poisoned
+  // `format` got through.) Checking the product first makes the resolver immune
+  // to that field regardless of which helper wrote it.
   if (/travel/.test(hay)) return '20x30';
   if (/magazine|zhurnal|journal|fotozhurnal|журнал/.test(hay)) return 'magazine-A4';
+
+  const explicit = normalizeSizeKey(String(cfg.selectedSize || project.format || ''));
+  if (explicit) return explicit;
   return '';
 }
 

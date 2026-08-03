@@ -4597,7 +4597,12 @@ export default function BookLayoutEditor() {
       // write costs nothing and safely deduplicates. Fire-and-forget: never
       // block or fail add-to-cart on it — the sessionStorage path still runs.
       try {
-        const sizeForSave = normalizeSizeKey(config?.selectedSize || '');
+        // Only normalise a size that EXISTS. normalizeSizeKey returns '20x20'
+        // for an empty string — a sane default for products that pick a size,
+        // and poison for the ones whose size is fixed by the product. A travel
+        // book has no selectedSize, so this line was stamping every one of them
+        // with format '20x20' and the print pipeline believed it.
+        const sizeForSave = config?.selectedSize ? normalizeSizeKey(config.selectedSize) : '';
         void fetch('/api/projects/save-design', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
