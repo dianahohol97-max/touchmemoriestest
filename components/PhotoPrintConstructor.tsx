@@ -1207,6 +1207,15 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       if (exportedFiles.length > 0) {
         sessionStorage.setItem(`export_${cartItemId}`, JSON.stringify(exportedFiles));
       }
+      // This cart item is complete — drop the resume state so the NEXT item
+      // starts a fresh folder. The cache and folder exist to survive a FAILED
+      // attempt of the same item; carrying them across items is dangerous:
+      // filenames are position-based (001_, 002_…), so a second photo set in
+      // the same session would upsert onto the first set's paths and silently
+      // overwrite its print files — e.g. the same photos re-added at another
+      // size would corrupt the already-carted item.
+      uploadedRef.current.clear();
+      exportFolderRef.current = '';
     } catch (e) {
       // A THROWN exception (auth hiccup, DPI/ICC patcher, storage client) used
       // to bypass the all-or-nothing guard above entirely: the item stayed in
