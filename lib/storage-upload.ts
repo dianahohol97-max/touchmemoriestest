@@ -56,7 +56,7 @@ export interface UploadOpts extends PrepareOpts {
  * (the file 400'd, so no storage row and no order were created), so we could
  * never answer "how many people failed to upload". Now every attempt is counted.
  */
-function logUploadAttempt(
+export function logUploadAttempt(
   supabase: any,
   row: {
     bucket: string;

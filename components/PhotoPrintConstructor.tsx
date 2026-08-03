@@ -5,7 +5,7 @@ import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef } from 'react';
 import { Upload, ShoppingCart } from 'lucide-react';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
-import { uploadImageToStorage } from '@/lib/storage-upload';
+import { uploadImageToStorage, logUploadAttempt } from '@/lib/storage-upload';
 import { useCartStore } from '@/store/cart-store';
 import { useB2b } from '@/lib/b2b/useB2b';
 import { toast } from 'sonner';
@@ -968,10 +968,42 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // ALL-OR-NOTHING: every selected photo must render AND upload. A single
       // failure aborts the whole order below — see the guard after the loop.
       let uploadFailed = false;
+      // Why the RENDER step is logged at all: a render that returns null left no
+      // trace anywhere. upload_attempt_log only records upload attempts, so when
+      // a customer hit «0 із 30» the log held not one row — not an error, not a
+      // 413, nothing — because the loop broke before the first upload was ever
+      // attempted. The failure was only visible on the customer's screen.
+      const kind = isMagnet ? 'photomagnets' : polaroidActive ? 'polaroid' : 'photo-print';
+      // Named so a systemic render failure is legible in the log at a glance.
+      // renderPolaroid bails on `!polSize || !html2canvas` — an unparsed size
+      // string or a failed dynamic import makes EVERY photo return null, which
+      // is exactly the «0 із N» shape.
+      const renderPrereq = polaroidActive
+        ? (!polSize ? 'polaroid size unresolved' : !html2canvas ? 'html2canvas unavailable' : null)
+        : null;
+      let renderFailed = 0;
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         let blob = polaroidActive ? await renderPolaroid(photo) : await renderStandard(photo);
-        if (!blob) { uploadFailed = true; break; }
+        if (!blob) {
+          renderFailed++;
+          uploadFailed = true;
+          logUploadAttempt(supabase, {
+            bucket: 'order-files',
+            file_name: photo?.file?.name || `photo_${i + 1}`,
+            file_size: photo?.file?.size,
+            status: 'error',
+            error_message: `render returned null${renderPrereq ? ` (${renderPrereq})` : ''}`,
+            context: `${kind} RENDER ${i + 1}/${photos.length}`,
+          });
+          // Keep going instead of breaking. The order is still refused by the
+          // guard below — but rendering the rest is what tells us whether ONE
+          // photo is bad or the whole batch is, and that difference decides
+          // whether the customer should retry or we have a product-wide bug.
+          // A systemic failure costs nothing here: renderPolaroid's prerequisite
+          // check returns immediately, so all N fail instantly.
+          continue;
+        }
         // Patch JPEG metadata for the print shop:
         //   • DPI tag 300×300 (was 96×96 from the browser default)
         //   • Embed standard sRGB ICC v2 profile
@@ -1022,10 +1054,20 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // and successfully-saved files — aborts the whole add-to-cart.
       if (photos.length > 0 && (uploadFailed || exportedFiles.length !== photos.length)) {
         try {
+          // Say what actually went wrong. The old message blamed the connection
+          // in every case, so a customer whose photos never even got rendered
+          // was told to check her internet and retried into the same wall. When
+          // nothing uploaded because nothing rendered, the connection is not the
+          // problem and telling her to check it wastes her time and ours.
+          const allRenderFailed = renderFailed === photos.length;
+          const reason = allRenderFailed
+            ? 'Фото не вдалося підготувати до друку у вашому браузері. Спробуйте, будь ласка, інший браузер або комп\'ютер, і напишіть нам — ми допоможемо оформити замовлення вручну.'
+            : renderFailed > 0
+              ? `Частина фото не підготувалася до друку (${renderFailed} із ${photos.length}). Спробуйте прибрати останнє додане фото і повторити, або напишіть нам.`
+              : 'Замовлення з неповним набором ми не приймаємо — перевірте інтернет і спробуйте ще раз.';
           toast.error(
-            `Не вдалося зберегти всі фото для друку (${exportedFiles.length} із ${photos.length}). ` +
-            'Замовлення з неповним набором ми не приймаємо — перевірте інтернет і спробуйте ще раз.',
-            { duration: 10000 },
+            `Не вдалося зберегти всі фото для друку (${exportedFiles.length} із ${photos.length}). ${reason}`,
+            { duration: 12000 },
           );
         } catch {}
         removeItem(cartItemId);
