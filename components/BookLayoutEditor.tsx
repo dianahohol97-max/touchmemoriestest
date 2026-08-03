@@ -10041,8 +10041,19 @@ export default function BookLayoutEditor() {
 
             {/* TEXT */}
             {leftTab === 'text' && (() => {
-              const spi = currentIdx===0 ? 0 : (currentIdx-1)*2+1+activeSide;
-              const curPage = pages[currentIdx];
+              // getActivePageIdx() is the PHYSICAL page being looked at —
+              // currentIdx is the view (spread) counter and only coincides with
+              // a page index on the first spread. Everything in this tab used
+              // to write to pages[currentIdx]: «+ Додати текст на сторінку» on
+              // spread 2 put the block on page 2 while the customer was looking
+              // at pages 3–4 — the reported «тексту на самому макеті не видно».
+              // Every saved travel book in projects has 0 text blocks, which is
+              // what a button that misses its page produces. The templates
+              // block below always used getActivePageIdx() and always worked;
+              // the canvas click-to-place path was correct too — only this tab
+              // was aimed wrong.
+              const spi = getActivePageIdx();
+              const curPage = pages[spi];
               const textBlocks = currentIdx === 0 ? [] : (curPage?.textBlocks || []);
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -10137,17 +10148,18 @@ export default function BookLayoutEditor() {
                   <button
                     onClick={() => {
                       const id = 'txt-' + Date.now();
-                      setPages(prev => prev.map((p, i) => i !== currentIdx ? p : {
+                      pushHistory();
+                      setPages(prev => prev.map((p, i) => i !== spi ? p : {
                         ...p,
                         textBlocks: [...p.textBlocks, {
                           id, text: t('constructor.text'), x: 50, y: 50,
                           fontSize: tFontSize, fontFamily: tFontFamily,
                           color: tColor, bold: tBold, italic: tItalic,
-                          zOrder: nextOverlayZ(currentIdx),
+                          zOrder: nextOverlayZ(spi),
                         }]
                       }));
                       setSelectedTextId(id);
-                      setSelectedTextPageIdx(currentIdx);
+                      setSelectedTextPageIdx(spi);
                     }}
                     style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', border:'2px dashed #c7d2fe', borderRadius:10, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:13, color:'#1e2d7d' }}>
                     <span style={{fontSize:18}}>T</span> + Додати текст на сторінку
@@ -10195,10 +10207,10 @@ export default function BookLayoutEditor() {
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:8 }}>Тексти на сторінці:</div>
                       {textBlocks.map(tb => (
                         <div key={tb.id}
-                          onClick={() => { setSelectedTextId(tb.id); setSelectedTextPageIdx(currentIdx); setTFontFamily(tb.fontFamily); setTFontSize(tb.fontSize); setTColor(tb.color); setTBold(tb.bold); setTItalic(!!tb.italic); }}
+                          onClick={() => { setSelectedTextId(tb.id); setSelectedTextPageIdx(spi); setTFontFamily(tb.fontFamily); setTFontSize(tb.fontSize); setTColor(tb.color); setTBold(tb.bold); setTItalic(!!tb.italic); }}
                           style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', border:selectedTextId===tb.id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:selectedTextId===tb.id?'#f0f3ff':'#fff', cursor:'pointer', marginBottom:6 }}>
                           <span style={{ flex:1, fontSize:13, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?700:400, fontStyle:tb.italic?'italic':'normal', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tb.text}</span>
-                          <button onClick={e => { e.stopPropagation(); deleteTxtForPage(tb.id, currentIdx); if (selectedTextId===tb.id) setSelectedTextId(null); }}
+                          <button onClick={e => { e.stopPropagation(); deleteTxtForPage(tb.id, spi); if (selectedTextId===tb.id) setSelectedTextId(null); }}
                             style={{ width:24, height:24, borderRadius:'50%', background:'#fee2e2', border:'none', color:'#ef4444', cursor:'pointer', fontSize:14, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
                         </div>
                       ))}
