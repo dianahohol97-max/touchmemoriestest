@@ -48,6 +48,7 @@ import {
   bringForward, sendBackward, bringToFront, sendToBack,
   nextZOrder, zIndexFor,
 } from '@/lib/editor/zOrder';
+import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -7752,6 +7753,28 @@ export default function BookLayoutEditor() {
                     {spreadPage?.textBlocks?.map(tb => {
                       const isSel = selectedTextId === tb.id;
                       const isEd = editingTextId === tb.id;
+                      // Auto-fit, shared with the print page via lib/editor/text-fit
+                      // so the customer's screen and her print file cannot disagree.
+                      // Shrinks ONLY when a block would otherwise grow into its
+                      // neighbour — a layout that already fits renders unchanged.
+                      // While the block is being edited we leave the size alone, so
+                      // the type does not jump under the caret mid-sentence; it
+                      // settles the moment the field loses focus.
+                      const txtAnchorsY = (spreadPage?.textBlocks || []).map((b: any) => b.y);
+                      const txtBasePx = tb.fontSize * (cH / 700);
+                      const txtPadX = 8 * (cH / 700);
+                      const txtScale = isEd ? 1 : fitFontScale({
+                        text: tb.text,
+                        fontPx: txtBasePx,
+                        fontFamily: tb.fontFamily,
+                        bold: tb.bold,
+                        italic: tb.italic,
+                        // cW, not spreadW: tb.x is a percentage of the PAGE box —
+                        // the same width startTxtDragForPage is handed below when
+                        // it converts a drag back into a percentage.
+                        maxWidthPx: cW * 0.9 - txtPadX * 2,
+                        availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
+                      });
                       return (
                         <div key={tb.id}
                           onPointerDown={e => {
@@ -7778,7 +7801,7 @@ export default function BookLayoutEditor() {
                                not, so at 70% zoom a paragraph covered ~43% more of the page than
                                it will in print — the customer was never looking at what she would
                                get, and at no zoom was she told which view was true. */
-                            style={{ fontSize: tb.fontSize * (cH / 700), fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
+                            style={{ fontSize: txtBasePx * txtScale, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', lineHeight: TEXT_LINE_HEIGHT, outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
                           {isSel && !isEd && (

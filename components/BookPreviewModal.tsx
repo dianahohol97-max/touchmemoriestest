@@ -8,6 +8,7 @@ import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
+import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
 
 /**
  * Renders a printed-cover caption the same way the editor's FitText does:
@@ -382,19 +383,39 @@ export function BookPreviewModal({
 
         {/* Text blocks — fontSize is authored against the editor's 700px base page
             height, so scale it to this preview page height to match the editor. */}
-        {(page.textBlocks || []).map(tb => (
+        {(() => {
+          // Auto-fit, shared with the editor via lib/editor/text-fit so the two
+          // cannot drift. Anchors are centre points, so a block's room is the
+          // smaller of its gaps to the neighbours above and below.
+          const anchorsY = (page.textBlocks || []).map(b => b.y);
+          return (page.textBlocks || []).map(tb => {
+            const basePx = tb.fontSize * (cH / 700);
+            const padX = 8 * (cH / 700);
+            const scale = fitFontScale({
+              text: tb.text,
+              fontPx: basePx,
+              fontFamily: tb.fontFamily,
+              bold: tb.bold,
+              italic: tb.italic,
+              maxWidthPx: cW * 0.9 - padX * 2,
+              availableHeightPx: (availableHeightPct(tb.y, anchorsY) / 100) * cH,
+            });
+            return (
           <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), width: 'max-content', maxWidth: '90%',
             /* Mirrors the editor's text box padding, scaled the same way. It eats
                into the 90% max width, so leaving it out here made lines wrap at a
                different point than the customer saw. */
-            padding: `${4 * (cH / 700)}px ${8 * (cH / 700)}px` }}>
+            padding: `${4 * (cH / 700)}px ${padX}px` }}>
             <span style={{
-              fontSize: tb.fontSize * (cH / 700), fontFamily: tb.fontFamily, color: tb.color,
+              fontSize: basePx * scale, fontFamily: tb.fontFamily, color: tb.color,
               fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal',
+              lineHeight: TEXT_LINE_HEIGHT,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'block', textShadow: '0 1px 2px rgba(0,0,0,0.2)',
             }}>{tb.text}</span>
           </div>
-        ))}
+            );
+          });
+        })()}
 
         {renderShapes(shapes)}
         {renderFrame(fc, cW, cH)}
