@@ -460,6 +460,19 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const [polaroidFont,  setPolaroidFont]  = useState(POLAROID_FONTS[0].value);
   const [polaroidColor, setPolaroidColor] = useState(POLAROID_COLORS[0].value);
   const [showCartModal, setShowCartModal] = useState(false);
+  // Export progress. A 66-photo order spends minutes rendering at 300 DPI with
+  // nothing on screen to say so; a silent wait is exactly when people close the
+  // tab, and a closed tab is what truncated TM-001095 at 11 of 66.
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
+  // Files already uploaded in this browser session, so a retry after a failure
+  // does not send the same bytes again. Keyed by photo id and fingerprinted by
+  // everything that changes the rendered output — reusing an upload after the
+  // customer re-cropped would print the OLD crop, which is worse than re-sending.
+  const uploadedRef = useRef<Map<string, { fp: string; descriptor: any }>>(new Map());
+  // One folder per browser session rather than per attempt, so retried exports
+  // land beside the files that already made it instead of scattering across a
+  // new folder each time.
+  const exportFolderRef = useRef<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -731,6 +744,18 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const qtyOk     = photos.length>0 && totalQty>=minQty && (multiple<=1 || totalQty%multiple===0);
 
   // ── Add to cart ────────────────────────────────────────────────────────────
+  // Ask before the page closes mid-export. The whole TM-001095 failure was a
+  // batch that simply stopped — no error, no rejected upload, just silence after
+  // photo 11 of 66 — which is what a closed or discarded tab looks like from the
+  // outside. The browser dialog cannot stop the OS reclaiming a background tab,
+  // but it does stop the deliberate close, which is the common half.
+  useEffect(() => {
+    if (!exportProgress) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [exportProgress]);
+
   const handleAddToCart = async () => {
     if (photos.length===0) { toast.error(t('photo_print.add_photo_first')); return; }
     if (totalQty<minQty) { toast.error(`Мінімальне замовлення: ${minQty} шт. Зараз: ${totalQty}.`); return; }
@@ -915,7 +940,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 ctx.fillRect(0, 0, bw, targetH);                     // left
                 ctx.fillRect(targetW - bw, 0, bw, targetH);          // right
               }
-              canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+              canvas.toBlob((b) => {
+                // Drop the backing store the moment the JPEG exists. A 20×30 cm
+                // canvas at 300 DPI is 2362×3543×4 B ≈ 33 MB, and on a phone the
+                // collector does not keep up with a tight render loop — the
+                // pressure builds until the OS kills the tab, which is what ends
+                // a batch with no error logged anywhere. Zeroing the dimensions
+                // frees it immediately instead of whenever GC gets around to it.
+                canvas.width = 0; canvas.height = 0;
+                resolve(b);
+              }, 'image/jpeg', 0.95);
             } catch (e) {
               console.warn('renderStandard failed:', e);
               resolve(null);
@@ -996,7 +1030,13 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             height: canvasH,
           });
           return await new Promise<Blob | null>((resolve) => {
-            snap.toBlob((b) => resolve(b), 'image/jpeg', 0.95);
+            snap.toBlob((b) => {
+              // Same reasoning as renderStandard: release html2canvas's snapshot
+              // canvas as soon as the JPEG is out of it, so the next photo does
+              // not start on top of the previous one's memory.
+              snap.width = 0; snap.height = 0;
+              resolve(b);
+            }, 'image/jpeg', 0.95);
           });
         } catch (e) {
           console.warn('renderPolaroid failed:', e);
@@ -1025,8 +1065,30 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         ? (!polSize ? 'polaroid size unresolved' : !html2canvas ? 'html2canvas unavailable' : null)
         : null;
       let renderFailed = 0;
+      if (!exportFolderRef.current) exportFolderRef.current = `pp_${Date.now()}`;
+      const exportFolder = exportFolderRef.current;
+      // Everything that changes the rendered pixels. If this is unchanged since
+      // a successful upload, re-rendering and re-sending would produce an
+      // identical file, so the cached one is reused. If ANY of it changed the
+      // cache is ignored — a stale reuse would print the old crop.
+      const renderFingerprint = (p: any) => JSON.stringify([
+        p.cropX, p.cropY, p.zoom, p.rotation, p.orientation, p.border,
+        p.sizeOverride, p.polaroidText, p.showCaption, p.filter,
+        selectedSize, selectedBorder, polaroidActive, polaroidColor, isNonstandard,
+      ]);
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
+        setExportProgress({ done: i, total: photos.length });
+        // Skip work already done in this session. This is what makes a retry
+        // after a failure cheap: the customer who got «11 із 66» re-sends the
+        // 55 that are missing, not all 66 again — and every re-send was another
+        // chance for the tab to die before finishing.
+        const fp = renderFingerprint(photo);
+        const cached = uploadedRef.current.get(photo.id);
+        if (cached && cached.fp === fp) {
+          exportedFiles.push({ ...cached.descriptor, pageNumber: i + 1 });
+          continue;
+        }
         // Clear before each render so a reason can never leak from the previous
         // photo onto this one's log row.
         renderReason = null;
@@ -1060,7 +1122,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           .replace(/[^a-zA-Z0-9._-]/g, '_')
           .replace(/\.(jpe?g|png|webp|heic|heif|tiff?)$/i, '');
         const fileName = `${String(i + 1).padStart(3, '0')}_${baseRaw}_print.jpg`;
-        const path = `${userKey}/${cartItemId}/${fileName}`;
+        const path = `${userKey}/${exportFolder}/${fileName}`;
         // Upload via uploadImageToStorage, which routes order-files through the
         // server-side service-role endpoint — direct browser uploads here hit
         // "new row violates row-level security policy" for guests, so the file
@@ -1075,23 +1137,46 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         // impossible to tell "11 of 11, fine" from "11 of 66, truncated"; the
         // total had to be read off the customer's order. Stamping i/total makes
         // an interrupted batch self-evident and queryable.
-        const { error: uploadError } = await uploadImageToStorage(
-          supabase, 'order-files', path, fileObj,
-          {
-            upsert: true,
-            cacheControl: '31536000',
-            context: `${isMagnet ? 'photomagnets' : polaroidActive ? 'polaroid' : 'photo-print'} ${i + 1}/${photos.length}`,
-          },
-        );
-        if (uploadError) { console.warn('photo-print render upload failed:', uploadError); uploadFailed = true; break; }
-        exportedFiles.push({
+        // Retry once before giving up. There was NO retry here at all, so a
+        // single transient hiccup — one 500, one dropped connection on a phone
+        // walking between cells — threw away the whole order, including the
+        // photos that had already uploaded. The order page has done two attempts
+        // per file for a while; this is the same rule.
+        let uploadError: any = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const res = await uploadImageToStorage(
+            supabase, 'order-files', path, fileObj,
+            {
+              upsert: true,
+              cacheControl: '31536000',
+              context: `${kind} ${i + 1}/${photos.length} try ${attempt + 1}`,
+            },
+          );
+          uploadError = res.error;
+          if (!uploadError) break;
+          console.warn(`photo-print upload attempt ${attempt + 1} failed:`, uploadError);
+          if (attempt === 0) await new Promise<void>(r => { setTimeout(r, 800); });
+        }
+        // Don't break — same reasoning as the render failure above. The guard
+        // still refuses the order; carrying on is what makes the log show the
+        // real shape of the failure instead of just its first photo.
+        if (uploadError) { uploadFailed = true; continue; }
+        const descriptor = {
           path, fileName, bucket: 'order-files',
           fileCategory: isMagnet ? 'photomagnets' : (polaroidActive ? 'polaroid-print' : 'photo-print'),
           productType: isMagnet ? 'photomagnets' : 'photoprint',
           fileType: 'export', size: blob.size, mimeType: 'image/jpeg',
           pageNumber: i + 1,
-        });
+        };
+        exportedFiles.push(descriptor);
+        uploadedRef.current.set(photo.id, { fp, descriptor });
+        // Hand the main thread back between photos. A tight await-chain over
+        // dozens of 300-DPI renders starves paint and GC, which is how a phone
+        // decides the page is unresponsive and kills it — the failure mode that
+        // truncated TM-001095 with no error anywhere.
+        await new Promise<void>(r => { setTimeout(r, 0); });
       }
+      setExportProgress(null);
       // HARD GUARD (all-or-nothing). Previously a single failed photo was
       // silently skipped (continue) and only an ALL-fail was blocked — so a
       // partial failure (e.g. TM-001095 concern: some of N photos not uploaded)
@@ -1133,6 +1218,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       } catch {}
       removeItem(cartItemId);
       return;
+    } finally {
+      // Whatever happened, stop showing progress — otherwise a thrown error
+      // leaves the bar frozen mid-count and the page looks stuck.
+      setExportProgress(null);
     }
 
     try {
@@ -1563,13 +1652,33 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             </div>
           </div>
 
-          <button onClick={handleAddToCart} disabled={!qtyOk}
+          <button onClick={handleAddToCart} disabled={!qtyOk || !!exportProgress}
             style={{ width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
               padding:'14px', borderRadius:10, border:'none', fontWeight:800, fontSize:16,
-              background:qtyOk?'#1e2d7d':'#94a3b8', color:'#fff',
-              cursor:qtyOk?'pointer':'not-allowed', transition:'all 0.2s' }}>
-            <ShoppingCart size={18}/> {t('photo_print.add_to_cart')}
+              background:(qtyOk && !exportProgress)?'#1e2d7d':'#94a3b8', color:'#fff',
+              cursor:(qtyOk && !exportProgress)?'pointer':'not-allowed', transition:'all 0.2s' }}>
+            <ShoppingCart size={18}/> {exportProgress
+              ? `Готуємо фото ${exportProgress.done + 1} із ${exportProgress.total}`
+              : t('photo_print.add_to_cart')}
           </button>
+
+          {/* Preparing 60 photos at 300 DPI takes minutes. With nothing on screen
+              saying so, people assume the button did not work — they press it
+              again or close the tab, and a closed tab is what left TM-001095 with
+              11 of 66 photos and no error anywhere. Show the count, and disable
+              the button while it runs so a second press cannot start a parallel
+              export on top of the first. */}
+          {exportProgress && (
+            <div style={{ marginTop:10 }}>
+              <div style={{ height:6, borderRadius:99, background:'#e2e8f0', overflow:'hidden' }}>
+                <div style={{ height:'100%', width:`${Math.round((exportProgress.done / Math.max(1, exportProgress.total)) * 100)}%`,
+                  background:'#1e2d7d', transition:'width 0.2s' }}/>
+              </div>
+              <div style={{ marginTop:6, fontSize:12, color:'#475569', textAlign:'center' }}>
+                Не закривайте цю сторінку, доки готуються файли для друку.
+              </div>
+            </div>
+          )}
 
           {/* Explain exactly WHY "Додати до кошика" is greyed out — used
               to be invisible reasoning, customers couldn't tell whether
