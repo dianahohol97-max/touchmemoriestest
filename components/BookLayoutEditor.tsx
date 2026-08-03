@@ -3190,7 +3190,10 @@ export default function BookLayoutEditor() {
     const cW = rect.width; // actual canvas width (pageW for page mode, spreadW for spread mode)
     pushHistory();
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: [...p.textBlocks, { id, text: t('constructor.text'), x: ((e.clientX - rect.left) / cW) * 100, y: ((e.clientY - rect.top) / cH) * 100, fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold, italic: tItalic, zOrder: nextOverlayZ(pageIdx) }] }));
-    setSelectedTextId(id); setEditingTextId(id); setTextTool(false);
+    // Record WHICH page the new block lives on, or the style controls (size
+    // slider, colour, bold) keep aiming at the previously-selected page and
+    // appear dead until the customer clicks the block a second time.
+    setSelectedTextId(id); setSelectedTextPageIdx(pageIdx); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
   const deleteTxtForPage = (id: string, pageIdx: number) => {
@@ -3233,9 +3236,6 @@ export default function BookLayoutEditor() {
     );
   };
 
-  const updateTxt = (id: string, ch: Partial<TextBlock>) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
-  const deleteTxt = (id: string) => { setPages(prev => prev.map((p, i) => i !== currentIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) })); setSelectedTextId(null); setEditingTextId(null); };
-
   //  z-order: bring forward / send backward / to top / to bottom
   //  Applies to the currently-selected overlay. All four overlay types
   //  (text, shape, sticker, QR) share one zOrder namespace per page so the
@@ -3258,26 +3258,12 @@ export default function BookLayoutEditor() {
     }
   };
 
-  const startTxtDrag = (e: React.PointerEvent, id: string, tx: number, ty: number) => {
-    e.stopPropagation(); e.preventDefault();
-    haptic.light();
-    startPointerDrag(e,
-      (dx, dy) => {
-        const SNAP = 2;
-        let nx = Math.max(0, Math.min(95, tx + (dx / cW) * 100));
-        let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
-        const gx: number[] = [];
-        const gy: number[] = [];
-        for (const target of [0, 50, 100]) {
-          if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * cW); }
-          if (Math.abs(ny - target) < SNAP) { ny = target; gy.push(target / 100 * cH); }
-        }
-        setTextGuides({ x: gx, y: gy });
-        updateTxt(id, { x: nx, y: ny });
-      },
-      () => setTextGuides({ x: [], y: [] })
-    );
-  };
+  // startTxtDrag / updateTxt / deleteTxt (the currentIdx-addressed text helpers)
+  // are gone. They indexed pages by the VIEW counter, which is a page index only
+  // on the first spread — the exact bug family that broke the mobile add-text
+  // button. Nothing called them except each other and one slider that now uses
+  // updateTxtForPage; keeping them around was a loaded trap for the next change.
+  // All text mutations go through the *ForPage helpers, which take the real page.
 
   const saveDesignerProject = async (action: 'save' | 'send_for_review' = 'save') => {
     if (!designerOrderId) return;
@@ -7821,6 +7807,12 @@ export default function BookLayoutEditor() {
                       // While the block is being edited we leave the size alone, so
                       // the type does not jump under the caret mid-sentence; it
                       // settles the moment the field loses focus.
+                      //
+                      // Position is drawn UNCLAMPED (tb.x/tb.y verbatim), like the
+                      // print page. The drag can store x=0 via edge snap; the old
+                      // Math.max(5,…) clamp here drew that block at 5% while the
+                      // print put it at 0% with half the text past the trim — the
+                      // customer never saw what would actually print.
                       const txtAnchorsY = (spreadPage?.textBlocks || []).map((b: any) => b.y);
                       const txtBasePx = tb.fontSize * (cH / 700);
                       const txtPadX = 8 * (cH / 700);
@@ -7858,7 +7850,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${Math.max(5,Math.min(95,tb.x))}%`, top:`${Math.max(3,Math.min(97,tb.y))}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*(cH/700)}px ${8*(cH/700)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*(cH/700)}px ${8*(cH/700)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             /* Scaled by the SAME cH/700 factor the print page uses.
                                Raw px here meant the canvas shrank with zoom while the text did
@@ -8562,7 +8554,7 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:Math.max(5,Math.min(95,tb.x))+'%',top:Math.max(3,Math.min(97,tb.y))+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,
+                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,
                               /* Scaled 4/8 like the spread branch and the print
                                  page — this padding eats into the 90% max width,
                                  so raw '2px 4px' put the wrap point a few px away
@@ -9526,7 +9518,7 @@ export default function BookLayoutEditor() {
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:600 }}>
                  Редагувати текст
               </button>
-              <button onClick={()=>{ haptic.error(); if (ctxMenu.pageIdx !== undefined) deleteTxtForPage(ctxMenu.id, ctxMenu.pageIdx); else deleteTxt(ctxMenu.id); closeCtxMenu(); }}
+              <button onClick={()=>{ haptic.error(); deleteTxtForPage(ctxMenu.id, ctxMenu.pageIdx !== undefined ? ctxMenu.pageIdx : selectedTextPageIdx); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#ef4444', fontWeight:600 }}>
                  Видалити
               </button>
@@ -10176,7 +10168,7 @@ export default function BookLayoutEditor() {
                       <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>{tFontSize}px</span>
                     </div>
                     <input type="range" min={8} max={120} value={tFontSize}
-                      onChange={e => { const v=+e.target.value; setTFontSize(v); if (selectedTextId) updateTxt(selectedTextId, { fontSize: v }); }}
+                      onChange={e => { const v=+e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }}
                       style={{ width:'100%' }} />
 
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Колір</div>
