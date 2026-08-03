@@ -2827,7 +2827,13 @@ export default function BookLayoutEditor() {
         label: `${pageIdx}`,
         layout,
         slots,
-        textBlocks: [],
+        // Carry the page's existing text over. Backgrounds, shapes, stickers
+        // and QR codes all live in index-keyed stores and SURVIVE a magic
+        // rebuild — text lives inside the page object and was silently wiped,
+        // deleting every caption the customer had typed, with the modal only
+        // warning about photos. Same physical index: the front forzat reserve
+        // is pushed 1:1 before this loop, so old and new indices line up.
+        textBlocks: pages[pageIdx]?.textBlocks || [],
       });
     }
 
@@ -6578,11 +6584,15 @@ export default function BookLayoutEditor() {
                         fr.onerror = () => reject(new Error('FileReader failed'));
                         fr.readAsDataURL(blob);
                       });
-                      // Place on the LEFT page of the current spread for
-                      // photobooks. spreadPageIdx points at the right page,
-                      // (spreadPageIdx-1) at the left. For single-page formats
-                      // (magazine/travelbook) just use currentIdx.
-                      const targetPageIdx = currentIdx;
+                      // getActivePageIdx(), NOT currentIdx: currentIdx is the
+                      // VIEW counter and equals a page index only on the first
+                      // spread — the same wrong-page family as the mobile
+                      // add-text bug. A QR added on «Розворот 2» went to page 2
+                      // (qrOverlays is keyed by PHYSICAL page) while the
+                      // customer was looking at pages 3–4, so nothing appeared.
+                      // The helper returns the left page in spread mode and the
+                      // active side's page in page mode — both correct here.
+                      const targetPageIdx = getActivePageIdx();
                       const newQR: QROverlay = {
                         id: `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                         kind: 'generated',
@@ -6633,7 +6643,9 @@ export default function BookLayoutEditor() {
                           fr.readAsDataURL(f);
                         });
                         pushHistory();
-                        const targetPageIdx = currentIdx;
+                        // Same rule as the generated-QR branch above: the
+                        // physical page, not the view counter.
+                        const targetPageIdx = getActivePageIdx();
                         const newQR: QROverlay = {
                           id: `qr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                           kind: 'uploaded',
