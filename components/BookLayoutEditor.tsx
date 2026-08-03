@@ -1096,6 +1096,10 @@ export default function BookLayoutEditor() {
   const canvasViewportRef = useRef<HTMLDivElement>(null);
   const dimsRef = useRef<{ baseW: number; baseH: number }>({ baseW: 0, baseH: 0 });
   const autoFitDoneRef = useRef(false);
+  // One warning per editor session when a reopened design holds fewer pages than
+  // the page count currently selected — the effect below re-runs on config
+  // changes and would otherwise repeat the toast.
+  const pageCountWarnedRef = useRef(false);
   // True once the user manually changes zoom (buttons / pinch). While true, the
   // per-spread auto-fit stops overriding their choice — until they hit "Вмістити".
   const userZoomedRef = useRef(false);
@@ -1768,10 +1772,52 @@ export default function BookLayoutEditor() {
         if (d.pages?.length) {
           const draftContent = d.pages.length - 1; // exclude cover
           const isReopen = !!sessionStorage.getItem('bookReopenProjectId') || !!sessionStorage.getItem('bookEditCartItemId');
-          // Keep the draft only if it has at least the ordered pages (kalka adds
+          // Compare against the PHYSICAL length, not the ordered one. «16
+          // сторінок» means 16 photo pages plus 2 forzats, so a correct travel
+          // book draft holds 18 — and a draft of 80 for an 80-page order is two
+          // pages SHORT, not exact. Measuring against `total` called that short
+          // draft healthy and kept it, which is how an 80-page book ended up with
+          // 78 photo pages and 2 forzats eating the difference. One such design
+          // is saved right now.
+          const draftSlugLc = (config.productSlug || '').toLowerCase();
+          const draftHasEndpaper = (draftSlugLc.includes('travelbook') || draftSlugLc.includes('magazine') || draftSlugLc.includes('journal') || draftSlugLc.includes('fotozhurnal'));
+          const expectedContent = total + (draftHasEndpaper ? 2 : 0);
+          // Keep the draft only if it has at least the expected pages (kalka adds
           // up to +4). A short draft is stale → fall through and rebuild to the
           // ordered count. Mirrors the restore-effect rule above.
-          if (isReopen || (draftContent >= total && draftContent - total <= 4)) return;
+          // A reopened design is authoritative — we never rebuild over someone's
+          // work. But silently keeping it also meant a NEW page-count choice did
+          // nothing at all: one saved design has 36 selected and 30 pages built,
+          // so the customer picked 36, saw 30, and was billed for 30 with no word
+          // anywhere. Say it out loud instead; changing the count is then the
+          // customer's deliberate act (add pages) rather than our silent refusal.
+          // A draft short by EXACTLY the forzat reserve is not stale — it is the
+          // old model, built when the forzats came out of the ordered count, and
+          // it holds real work. Rebuilding would wipe every photo the customer
+          // has already placed to fix a two-page discrepancy, which is a far
+          // worse trade than telling them. Keep it and say so. A draft that is
+          // short by more than that really is from another configuration and
+          // still gets rebuilt, exactly as before.
+          const isOldForzatShape = draftHasEndpaper && draftContent === total;
+          if (isOldForzatShape && !pageCountWarnedRef.current) {
+            pageCountWarnedRef.current = true;
+            setTimeout(() => {
+              try {
+                toast(`У цьому макеті ${total - 2} сторінок під фото, бо два форзаци взяті з ваших ${total}. Додайте дві сторінки, щоб отримати повні ${total}.`, { duration: 9000, icon: '⚠️' });
+              } catch {}
+            }, 800);
+            return;
+          }
+          if (isReopen && draftContent < expectedContent && !pageCountWarnedRef.current) {
+            pageCountWarnedRef.current = true;
+            const photoPages = draftContent - (draftHasEndpaper ? 2 : 0);
+            setTimeout(() => {
+              try {
+                toast(`У цьому макеті ${photoPages} сторінок, а обрано ${total}. Ми залишили ваш макет без змін — додайте сторінки вручну, якщо потрібно ${total}.`, { duration: 9000, icon: '⚠️' });
+              } catch {}
+            }, 800);
+          }
+          if (isReopen || (draftContent >= expectedContent && draftContent - expectedContent <= 4)) return;
           // Stale draft for a different page count — drop it and rebuild.
           sessionStorage.removeItem(initSlug ? `bookEditorDraft_${initSlug}` : 'bookEditorDraft');
         }
@@ -2015,6 +2061,16 @@ export default function BookLayoutEditor() {
   const endpaperFirstIdx = hasEndpaper ? 1 : -1;
   const endpaperLastIdx = hasEndpaper ? pages.length - 1 : -1;
   const isEndpaperPage = (pageIdx: number) => hasEndpaper && (pageIdx === endpaperFirstIdx || pageIdx === endpaperLastIdx);
+  // What the customer should SEE on a page. «16 сторінок» means 16 photo pages
+  // plus the two forzats, so the forzats must not consume numbers 1 and 18 —
+  // the photo pages are the customer's 1…16 and the forzats are named, not
+  // numbered. Showing the raw physical index made a 16-page book read as pages
+  // 1–18, which looks like being charged for 16 and handed 18.
+  const pageDisplayLabel = (pageIdx: number): string => {
+    if (!hasEndpaper) return String(pageIdx);
+    if (isEndpaperPage(pageIdx)) return 'Форзац';
+    return String(pageIdx - 1); // page 1 is the first forzat, so shift by one
+  };
 
   // ── Forzats-as-extra-pages model ──────────────────────────────────────────
   // Historically the 2 endpapers (forzats) were the FIRST and LAST of the
@@ -8728,7 +8784,7 @@ export default function BookLayoutEditor() {
                       {side===0 && <div style={{position:'absolute',right:0,top:0,width:4,height:'100%',background:'linear-gradient(to right,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {side===1 && <div style={{position:'absolute',left:0,top:0,width:4,height:'100%',background:'linear-gradient(to left,transparent,rgba(0,0,0,0.08))',pointerEvents:'none',zIndex:5}}/>}
                       {/* Page number */}
-                      <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',fontSize:8,color:'#94a3b8',fontWeight:600,pointerEvents:'none'}}>{pageIdx}</div>
+                      <div style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',fontSize:8,color:isThisEndpaper?'#059669':'#94a3b8',fontWeight:600,pointerEvents:'none'}}>{pageDisplayLabel(pageIdx)}</div>
                     </div>
                   );
                 })}
