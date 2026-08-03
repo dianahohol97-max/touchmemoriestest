@@ -17,6 +17,10 @@ const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = 
   '9x13':  { w: 9,  h: 13, label: '9×13 см'  },
   '10x15': { w: 10, h: 15, label: '10×15 см' },
   '13x18': { w: 13, h: 18, label: '13×18 см' },
+  // The photoprint-standard product sells «15×20 см — 23 грн», and this table
+  // only had 15x21 — so that size resolved to nothing. Kept alongside 15x21
+  // rather than replacing it: 15x21 is referenced by other size lists.
+  '15x20': { w: 15, h: 20, label: '15×20 см' },
   '15x21': { w: 15, h: 21, label: '15×21 см' },
   '20x25': { w: 20, h: 25, label: '20×25 см' },
   '20x30': { w: 20, h: 30, label: '20×30 см' },
@@ -790,11 +794,30 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       const dpi = 300;
       const cmToPx = (cm: number) => Math.round((cm / 2.54) * dpi);
 
-      const stdKey = (selectedSize || '').replace(/\s*\(.*\)/g, '').trim()
-        .replace(/([0-9])х([0-9])/g, '$1×$2').replace(/([0-9])×([0-9])/g, '$1x$2');
+      // Resolve the size with getSizeKey — the SAME helper the size picker above
+      // uses. These two lines each rolled their own parse, and both were wrong
+      // against the labels the products actually store:
+      //   • selectedSize holds the option LABEL, not its value: fetchProduct maps
+      //     `options.map(o => ({ name: o.label }))`.
+      //   • polaroid: 'Міні 8.6×5.4 см (кратно 10)' → strip everything but digits
+      //     /.x× → '8.6x5.410' (the 10 from «кратно 10» glued on) → no match →
+      //     polSize undefined → renderPolaroid returns null for EVERY photo.
+      //     That is the «0 із 30» a customer hit on 2026-08-03, with the cart
+      //     emptied and the connection blamed.
+      //   • standard: '20×30 см — 44 грн' → '20x30 см — 44 грн' → no match → the
+      //     silent `sized ? sized.w : 10` fallback below rendered it at 10×15.
+      //     EVERY standard size missed, so every print file came out 10×15 cm no
+      //     matter what was ordered — a wrong-size print, not a failed one, which
+      //     is the kind that reaches the customer.
+      // getSizeKey matches the first «NxM» pair and stops, so it is right for
+      // both the clean value and the decorated label.
+      const stdKey = getSizeKey(selectedSize);
       const stdSize = STANDARD_SIZES[stdKey];
-      const polKey = (selectedSize || '').replace(/[^\d.x×]/g, '').replace('×', 'x').replace(/x+/, 'x');
+      const polKey = getSizeKey(selectedSize);
       const polSize = POLAROID_SIZES[polKey];
+      // Set by renderStandard when it refuses, so the loop can log WHY rather
+      // than a bare 'render returned null'.
+      let renderReason: string | null = null;
 
       // Render one standard print (crop + zoom + rotation, no frame)
       const renderStandard = async (photo: any): Promise<Blob | null> => {
@@ -806,13 +829,21 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               // Decide the print size in pixels at 300 DPI. Take the
               // per-photo sizeOverride if the customer set one (used by
               // nonstandard); otherwise use the cart-level size.
-              const sizeKey = (photo.sizeOverride || selectedSize || '10x15')
-                .replace(/\s*\(.*\)/g, '').trim()
-                .replace(/([0-9])х([0-9])/g, '$1×$2').replace(/([0-9])×([0-9])/g, '$1x$2');
+              const sizeKey = getSizeKey(photo.sizeOverride || selectedSize || '10x15');
               const sized = STANDARD_SIZES[sizeKey];
-              // Default to 10×15 cm if the size string is unrecognised.
-              const baseW = sized ? sized.w : 10;
-              const baseH = sized ? sized.h : 15;
+              // REFUSE an unrecognised size instead of quietly printing 10×15.
+              // The old fallback turned "we don't know this size" into a
+              // confident wrong answer: the customer paid for 20×30 and the
+              // print shop received a 10×15 file, which nobody can spot from the
+              // order. A refused photo is caught by the all-or-nothing guard and
+              // surfaces immediately; a wrong-size print ships.
+              if (!sized) {
+                renderReason = `unknown print size "${sizeKey || photo.sizeOverride || selectedSize}"`;
+                resolve(null);
+                return;
+              }
+              const baseW = sized.w;
+              const baseH = sized.h;
               // Honour landscape orientation by swapping dimensions.
               const isLandscape = photo.orientation === 'landscape';
               const targetW = cmToPx(isLandscape ? baseH : baseW);
@@ -984,6 +1015,9 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       let renderFailed = 0;
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
+        // Clear before each render so a reason can never leak from the previous
+        // photo onto this one's log row.
+        renderReason = null;
         let blob = polaroidActive ? await renderPolaroid(photo) : await renderStandard(photo);
         if (!blob) {
           renderFailed++;
@@ -993,7 +1027,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             file_name: photo?.file?.name || `photo_${i + 1}`,
             file_size: photo?.file?.size,
             status: 'error',
-            error_message: `render returned null${renderPrereq ? ` (${renderPrereq})` : ''}`,
+            error_message: `render returned null${renderPrereq ? ` (${renderPrereq})` : renderReason ? ` (${renderReason})` : ''}`,
             context: `${kind} RENDER ${i + 1}/${photos.length}`,
           });
           // Keep going instead of breaking. The order is still refused by the
