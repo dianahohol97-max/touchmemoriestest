@@ -13,7 +13,19 @@ import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
 
+// Every physical print size the export path can be asked for — standard AND
+// nonstandard. The nonstandard ones were missing entirely, so renderStandard's
+// lookup failed for them and the old `sized ? sized.w : 10` fallback rendered
+// them at 10×15: TM-001107 ordered 7.5×10 cm and its print files are 10×15.
+// They must live here, not only in NONSTANDARD_CONFIG (which knows order
+// multiples, not geometry), or the renderer has no way to size the canvas.
 const STANDARD_SIZES: Record<string, { w: number; h: number; label: string }> = {
+  // nonstandard sizes (see NONSTANDARD_CONFIG for their order multiples)
+  '5x7.5':  { w: 5,   h: 7.5, label: '5×7.5 см'  },
+  '6x9':    { w: 6,   h: 9,   label: '6×9 см'    },
+  '7.5x10': { w: 7.5, h: 10,  label: '7.5×10 см' },
+  '9x9':    { w: 9,   h: 9,   label: '9×9 см'    },
+  '10x10':  { w: 10,  h: 10,  label: '10×10 см'  },
   '9x13':  { w: 9,  h: 13, label: '9×13 см'  },
   '10x15': { w: 10, h: 15, label: '10×15 см' },
   '13x18': { w: 13, h: 18, label: '13×18 см' },
