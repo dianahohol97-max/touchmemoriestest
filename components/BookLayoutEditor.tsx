@@ -8460,6 +8460,29 @@ export default function BookLayoutEditor() {
                       {page?.textBlocks?.map(tb => {
                         const isSel = selectedTextId === tb.id;
                         const isEd = editingTextId === tb.id;
+                        // PAGE mode — travel books, magazines, journals. This
+                        // branch was still sizing text by `tb.fontSize * zoom/100`
+                        // long after the spread branch moved to cH/700, so the two
+                        // editors and the print page all disagreed. Two consequences,
+                        // both reported: at the auto-fitted zoom a phone often sits
+                        // near 20–40 %, which turned a 28 px caption into 6–11 px —
+                        // «тексту на макеті не видно» — and whatever size it did show
+                        // bore no relation to what the print would produce, because
+                        // zoom is a viewing preference and cH/700 is the page's real
+                        // scale. Same formula as the spread branch and the print page
+                        // now, so all three agree at any zoom.
+                        const txtAnchorsY = (page?.textBlocks || []).map((b: any) => b.y);
+                        const txtBasePx = tb.fontSize * (cH / 700);
+                        const txtPadX = 4;
+                        const txtScale = isEd ? 1 : fitFontScale({
+                          text: tb.text,
+                          fontPx: txtBasePx,
+                          fontFamily: tb.fontFamily,
+                          bold: tb.bold,
+                          italic: tb.italic,
+                          maxWidthPx: pageW * 0.9 - txtPadX * 2,
+                          availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
+                        });
                         return (
                           <div key={tb.id}
                             onPointerDown={e => {
@@ -8492,11 +8515,11 @@ export default function BookLayoutEditor() {
                 onChange={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);}}
                 onClick={e=>e.stopPropagation()}
                 onMouseDown={e=>e.stopPropagation()}
-                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,display:'block',padding:'2px'}}
+                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:txtBasePx+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,display:'block',padding:'2px'}}
                 rows={2}
               />
                             ):(
-                              <span style={{fontSize:(tb.fontSize*(zoom/100))+'px',fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
+                              <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
                             )}
                             {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                           </div>
