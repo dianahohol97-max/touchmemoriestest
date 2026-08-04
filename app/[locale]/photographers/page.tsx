@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 const TITLE = 'Для фотографів — Touch.Memories';
@@ -52,7 +54,12 @@ const BENEFITS: { title: string; text: string }[] = [
 
 export default function PhotographersPage() {
     return (
-        <div style={{ background: '#f8fafc', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif' }}>
+            {/* Same shell as B2bRegisterPage — the first cut of this chooser
+                rendered bare, so the site header and footer vanished from the
+                page. paddingTop clears the fixed Navigation. */}
+            <Navigation />
+            <main style={{ flex: 1, paddingTop: 120 }}>
             <div style={{ maxWidth: 1160, margin: '0 auto', padding: '48px 16px 80px' }}>
                 <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1e2d7d', margin: '0 0 10px', textAlign: 'center' }}>
                     Кабінет фотографа Touch.Memories
@@ -84,6 +91,8 @@ export default function PhotographersPage() {
                     ))}
                 </div>
             </div>
+            </main>
+            <Footer categories={[]} />
         </div>
     );
 }
