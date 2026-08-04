@@ -20,20 +20,16 @@ export const maxDuration = 60;
 const DEMO_EMAIL = 'demo-gallery@touchmemories.com.ua';
 const DEMO_CLIENT_TOKEN = 'a0000000-0000-4000-8000-000000000001';
 // Wedding photos from Pexels (license: free commercial use, no attribution
-// required). Ids verified via pexels.com photo pages; the CDN URL pattern
-// serves a resized jpeg. Photos no longer in this list are removed from the
-// demo gallery on the next seed run, so swapping the set is a redeploy+call.
+// required). Only these two ids survive the Pexels CDN's datacenter blocking
+// — the rest of the gallery is topped up from Openverse below.
 const DEMO_PHOTOS: { id: number; desc: string }[] = [
-  { id: 19679440, desc: 'wedding couple outdoors — cover' },
-  { id: 19816898, desc: 'bride in flowing gown on rustic path' },
-  { id: 31048922, desc: 'wedding rings and bouquet close-up' },
-  { id: 19639,    desc: 'bride and groom embracing with bouquet' },
-  { id: 16910979, desc: 'bride portrait in forest' },
-  { id: 3578784,  desc: 'beach ceremony under bamboo arch' },
-  { id: 11309259, desc: 'rings by flower bouquet' },
+  { id: 16910979, desc: 'bride portrait in forest — cover' },
   { id: 1721942,  desc: 'bride in white gown with bouquet' },
-  { id: 8845902,  desc: 'couple holding hands at ceremony' },
 ];
+// Target size of the demo gallery; missing slots are filled from Openverse
+// (api.openverse.org — public search over openly-licensed images). We ask
+// for CC0/PDM only: public domain, no attribution required, safe to show.
+const DEMO_TARGET = 9;
 // Pexels' CDN serves some photos as .jpeg and some as .jpg, and rejects
 // requests without a browser-like User-Agent — try both suffixes with UA.
 const PEXELS_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
@@ -108,46 +104,91 @@ export async function GET() {
       gallery = created;
     }
 
-    const wantedPaths = new Set(DEMO_PHOTOS.map(p => `${ph!.id}/${gallery!.id}/demo-${p.id}.jpg`));
+    const pexelsPaths = new Set(DEMO_PHOTOS.map(p => `${ph!.id}/${gallery!.id}/demo-${p.id}.jpg`));
+    const isWanted = (path: string) =>
+      pexelsPaths.has(path) || path.includes('/demo-ov-');
 
     const { data: existing } = await admin
       .from('photographer_gallery_photos')
       .select('id, storage_path')
       .eq('gallery_id', gallery.id);
 
-    // Drop photos that fell out of the curated list (e.g. the first picsum
-    // placeholders after the switch to wedding photos).
+    // Drop leftovers from earlier seeding attempts (picsum placeholders,
+    // pexels ids that never downloaded).
     let removed = 0;
     for (const row of existing || []) {
-      if (wantedPaths.has(row.storage_path)) continue;
+      if (isWanted(row.storage_path)) continue;
       await admin.storage.from(GALLERY_BUCKET).remove([row.storage_path]);
       await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
       removed += 1;
     }
-    const have = new Set((existing || []).map(p => p.storage_path).filter(p => wantedPaths.has(p)));
+    const have = new Set((existing || []).map(p => p.storage_path).filter(isWanted));
+
+    const saveBuf = async (path: string, fileName: string, buf: Buffer) => {
+      const { error: upErr } = await admin.storage
+        .from(GALLERY_BUCKET)
+        .upload(path, buf, { contentType: 'image/jpeg', upsert: true });
+      if (upErr) return upErr.message;
+      await admin.from('photographer_gallery_photos').insert({
+        gallery_id: gallery!.id,
+        storage_path: path,
+        file_name: fileName,
+        size_bytes: buf.length,
+      });
+      have.add(path);
+      return null;
+    };
 
     let added = 0;
-    const failures: Record<number, string> = {};
+    const failures: Record<string, string> = {};
+
     for (const photo of DEMO_PHOTOS) {
       const path = `${ph.id}/${gallery.id}/demo-${photo.id}.jpg`;
       if (have.has(path)) continue;
-      await sleep(800); // space requests out — bursts trip the CDN's 503
       const got = await fetchPexels(photo.id);
-      if ('fail' in got) { failures[photo.id] = got.fail; continue; }
-      const { error: upErr } = await admin.storage
-        .from(GALLERY_BUCKET)
-        .upload(path, got.buf, { contentType: 'image/jpeg', upsert: true });
-      if (upErr) { failures[photo.id] = upErr.message; continue; }
-      await admin.from('photographer_gallery_photos').insert({
-        gallery_id: gallery.id,
-        storage_path: path,
-        file_name: `demo-${photo.id}.jpg`,
-        size_bytes: got.buf.length,
-      });
+      if ('fail' in got) { failures[String(photo.id)] = got.fail; continue; }
+      const err = await saveBuf(path, `demo-${photo.id}.jpg`, got.buf);
+      if (err) { failures[String(photo.id)] = err; continue; }
       added += 1;
     }
 
-    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, removed, total: have.size + added, failures });
+    // Top the gallery up to DEMO_TARGET with public-domain wedding photos
+    // from Openverse (direct source URLs, mostly Flickr — fetchable from
+    // serverless without the CDN games Pexels plays).
+    if (have.size < DEMO_TARGET) {
+      try {
+        const ovRes = await fetch(
+          'https://api.openverse.org/v1/images/?q=wedding%20bride%20groom&license=cc0,pdm&per_page=30',
+          { headers: { 'User-Agent': PEXELS_UA, Accept: 'application/json' } },
+        );
+        const ov = ovRes.ok ? await ovRes.json() : null;
+        const candidates: any[] = (ov?.results || []).filter(
+          (r: any) => (r.width || 0) >= 900 && typeof r.url === 'string' && /\.jpe?g(\?|$)/i.test(r.url),
+        );
+        for (const cand of candidates) {
+          if (have.size >= DEMO_TARGET) break;
+          const safeId = String(cand.id || '').replace(/[^\w-]/g, '').slice(0, 40);
+          if (!safeId) continue;
+          const path = `${ph.id}/${gallery.id}/demo-ov-${safeId}.jpg`;
+          if (have.has(path)) continue;
+          try {
+            const res = await fetch(cand.url, { redirect: 'follow', headers: { 'User-Agent': PEXELS_UA, Accept: 'image/*' } });
+            if (!res.ok) { failures[`ov-${safeId}`] = String(res.status); continue; }
+            const buf = Buffer.from(await res.arrayBuffer());
+            if (buf.length < 40_000) continue; // skip thumbnails/broken files
+            const err = await saveBuf(path, `demo-ov-${safeId}.jpg`, buf);
+            if (err) { failures[`ov-${safeId}`] = err; continue; }
+            added += 1;
+          } catch (e: any) {
+            failures[`ov-${safeId}`] = e?.message || 'fetch failed';
+          }
+        }
+      } catch (e: any) {
+        failures['openverse'] = e?.message || 'search failed';
+      }
+    }
+
+    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, removed, total: have.size, failures });
   } catch (err: any) {
     console.error('[photographers/demo-seed]', err);
     return NextResponse.json({ error: err.message || 'Помилка' }, { status: 500 });
