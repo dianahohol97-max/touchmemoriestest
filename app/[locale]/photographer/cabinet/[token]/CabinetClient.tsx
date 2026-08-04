@@ -66,10 +66,16 @@ export default function CabinetClient({ token }: { token: string }) {
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 16px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937', background: '#f8fafc' }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', margin: '0 0 4px' }}>Кабінет фотографа</h1>
-      <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
-        Ваша сторінка: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d' }}>/photographer/{profile.slug}</a>
-        {profile.custom_domain_paid && profile.custom_domain && <> · домен: <b>{profile.custom_domain}</b></>}
-      </p>
+      {profile.landing_enabled ? (
+        <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
+          Ваша сторінка: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d' }}>/photographer/{profile.slug}</a>
+          {profile.custom_domain_paid && profile.custom_domain && <> · домен: <b>{profile.custom_domain}</b></>}
+        </p>
+      ) : (
+        <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
+          Галереї для передачі фото клієнтам — створюйте, завантажуйте і діліться посиланням.
+        </p>
+      )}
 
       {/* Two logins are easy to confuse: this token-based cabinet manages
           galleries/landing, while BUYING with the 10% partner discount needs
@@ -80,9 +86,17 @@ export default function CabinetClient({ token }: { token: string }) {
 
       <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
       <ReferralSection token={token} flash={flash} />
-      <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
-      <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
-      <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+      {/* The public landing («візитка») and booking are behind the
+          landing_enabled feature flag while their design is finished
+          (Diana, 2026-08-04) — only the test photographer sees these
+          sections. Re-enable per photographer from the admin panel. */}
+      {profile.landing_enabled && (
+        <>
+          <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+          <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+          <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+        </>
+      )}
     </div>
   );
 }
