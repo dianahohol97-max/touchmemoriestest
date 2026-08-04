@@ -18,7 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // sitemap URLs should always resolve with a 200, not a redirect hop.
     { path: '/pro-nas', priority: 0.6, changeFreq: 'monthly' as const },
     { path: '/kontakty', priority: 0.6, changeFreq: 'monthly' as const },
-    { path: '/photographers', priority: 0.5, changeFreq: 'monthly' as const },
+    // The photographer landing is a real acquisition page now (galleries,
+    // pricing, FAQ) — it deserves more weight than a static info page.
+    { path: '/photographers', priority: 0.8, changeFreq: 'weekly' as const },
     { path: '/blog', priority: 0.8, changeFreq: 'weekly' as const },
     { path: '/faq', priority: 0.5, changeFreq: 'monthly' as const },
     { path: '/privacy', priority: 0.3, changeFreq: 'yearly' as const },

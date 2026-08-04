@@ -5,6 +5,7 @@ import {
   MAX_VIDEO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
 import { presignUpload, fileExists, fileUrl, activeProvider } from '@/lib/photographers/storage';
+import { checkQuota } from '@/lib/photographers/usage';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if ((count || 0) + 1 > MAX_PHOTOS_PER_GALLERY) {
       return NextResponse.json({ error: `Ліміт ${MAX_PHOTOS_PER_GALLERY} файлів на галерею` }, { status: 400 });
     }
+
+    // Storage plan limit — refused BEFORE the signed URL is minted, so a
+    // over-quota video never reaches the bucket at all.
+    const quotaErr = await checkQuota(ctx.photographer, size);
+    if (quotaErr) return NextResponse.json({ error: quotaErr, quota: true }, { status: 402 });
 
     const path = galleryPhotoPath(ctx.photographer.id, galleryId, fileName);
     const signed = await presignUpload(path, contentType);

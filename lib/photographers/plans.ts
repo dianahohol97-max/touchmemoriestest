@@ -84,6 +84,23 @@ export function getPlan(id?: string | null): GalleryPlan {
   return GALLERY_PLANS.find(p => p.id === id) || GALLERY_PLANS[0];
 }
 
+/**
+ * The plan actually in force. A paid plan lasts until plan_expires_at; once
+ * that passes the photographer falls back to free automatically. Computed at
+ * read time on purpose — no cron can forget to run, and a late cron can never
+ * leave someone on a plan they stopped paying for.
+ *
+ * NOTE: dropping to free does NOT delete anything. Over-quota photographers
+ * simply cannot upload more until they pay or free up space; their existing
+ * galleries keep working until their own expiry date.
+ */
+export function effectivePlanId(photographer: { plan?: string | null; plan_expires_at?: string | null }): PlanId {
+  const id = (photographer.plan || DEFAULT_PLAN) as PlanId;
+  if (id === 'free') return 'free';
+  const until = photographer.plan_expires_at ? new Date(photographer.plan_expires_at).getTime() : 0;
+  return until > Date.now() ? id : 'free';
+}
+
 /** Storage cap in bytes for a plan id. */
 export function planLimitBytes(id?: string | null): number {
   return getPlan(id).storageGb * 1024 * 1024 * 1024;

@@ -146,7 +146,12 @@ export default function CabinetClient({ token }: { token: string }) {
 
       {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 10, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
 
-      {tab === 'galleries' && <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />}
+      {tab === 'galleries' && (
+        <>
+          <StorageSection token={token} />
+          <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
+        </>
+      )}
       {tab === 'earnings' && <ReferralSection token={token} flash={flash} />}
       {tab === 'orders' && <OrdersSection token={token} />}
       {/* Booking/візитка live behind the landing_enabled feature flag while
@@ -386,6 +391,128 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
               </span>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Місце і тариф ───────────────────────────────────────────────────── */
+
+interface UsageInfo {
+  usage: { usedBytes: number; limitBytes: number; planId: string; planName: string; ratio: number; over: boolean };
+  plan: { id: string; stored: string; expires_at: string | null };
+  plans: { id: string; name: string; priceUah: number; storageGb: number; blurb: string; perks: string[] }[];
+}
+
+const fmtBytes = (b: number) => {
+  const gb = b / 1024 / 1024 / 1024;
+  if (gb < 1) return `${Math.round(b / 1024 / 1024)} МБ`;
+  return `${gb < 10 ? gb.toFixed(1) : Math.round(gb)} ГБ`;
+};
+
+/** Storage meter + plan picker. Opens the plan list automatically once the
+ *  photographer is close to the cap, which is exactly when they need it
+ *  (Diana: «як тільки перевищив 4 ГБ, одразу пропонувалось оплатити»). */
+function StorageSection({ token }: { token: string }) {
+  const [info, setInfo] = useState<UsageInfo | null>(null);
+  const [showPlans, setShowPlans] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const res = await fetch(`/api/photographers/subscription?token=${encodeURIComponent(token)}`);
+      const json = await res.json();
+      if (!res.ok) return;
+      setInfo(json);
+      if (json?.usage?.ratio >= 0.8) setShowPlans(true);
+    } catch { /* the meter is informational — never break the cabinet */ }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
+
+  const pay = async (planId: string) => {
+    if (paying) return;
+    setPaying(planId);
+    try {
+      const res = await fetch('/api/photographers/subscription', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, plan: planId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.payment_url) { alert(json?.error || 'Не вдалося створити рахунок'); return; }
+      window.location.href = json.payment_url;
+    } finally { setPaying(null); }
+  };
+
+  if (!info) return null;
+  const { usage, plan, plans } = info;
+  const pct = Math.round(usage.ratio * 100);
+  const warn = usage.ratio >= 0.8;
+  const barColor = usage.over ? '#b91c1c' : warn ? '#b45309' : '#263A99';
+
+  return (
+    <div style={{ ...card, border: warn ? '1px solid #fcd9a5' : card.border, background: warn ? '#fffdf7' : '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <h2 style={sectionTitle}>Місце для галерей</h2>
+        <button style={{ ...btnGhost, padding: '7px 14px' }} onClick={() => setShowPlans(v => !v)}>
+          {showPlans ? 'Згорнути тарифи' : 'Змінити тариф'}
+        </button>
+      </div>
+
+      <div style={{ fontSize: 13.5, color: '#55504a', marginTop: 8 }}>
+        Тариф «{usage.planName}» — зайнято {fmtBytes(usage.usedBytes)} з {fmtBytes(usage.limitBytes)}
+        {plan.expires_at && plan.id !== 'free' && (
+          <> · діє до {new Date(plan.expires_at).toLocaleDateString('uk-UA')}</>
+        )}
+      </div>
+      <div style={{ height: 8, borderRadius: 999, background: '#eee7db', marginTop: 8, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.max(2, pct)}%`, height: '100%', background: barColor, transition: 'width .3s' }} />
+      </div>
+
+      {usage.over && (
+        <div style={{ marginTop: 10, fontSize: 13.5, color: '#b91c1c', fontWeight: 600 }}>
+          Місце закінчилося — нові фото не завантажуються. Оберіть більший тариф або видаліть непотрібні галереї.
+        </div>
+      )}
+      {!usage.over && warn && (
+        <div style={{ marginTop: 10, fontSize: 13.5, color: '#b45309' }}>
+          Залишилося менше пʼятої частини місця. Варто перейти на більший тариф, щоб не зупинитися посеред зйомки.
+        </div>
+      )}
+
+      {showPlans && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10, marginTop: 14 }}>
+          {plans.map(p => {
+            const isCurrent = p.id === usage.planId;
+            return (
+              <div key={p.id} style={{
+                border: isCurrent ? '2px solid #263A99' : '1px solid #E8DCC8',
+                borderRadius: 12, padding: '14px 14px 12px', background: '#fff',
+              }}>
+                <div style={{ fontFamily: 'var(--font-heading), sans-serif', fontWeight: 800, fontSize: 15 }}>{p.name}</div>
+                <div style={{ fontFamily: 'var(--font-heading), sans-serif', fontWeight: 900, fontSize: 22, color: '#263A99', margin: '4px 0 2px' }}>
+                  {p.priceUah === 0 ? 'Безкоштовно' : `${p.priceUah} ₴`}
+                  {p.priceUah > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: '#8B8378' }}> / міс</span>}
+                </div>
+                <div style={{ fontSize: 13, color: '#55504a', marginBottom: 8 }}>{p.storageGb} ГБ</div>
+                <div style={{ fontSize: 12, color: '#8B8378', lineHeight: 1.5, marginBottom: 10 }}>{p.blurb}</div>
+                {isCurrent ? (
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#065f46', textAlign: 'center', padding: '8px 0' }}>Ваш тариф</div>
+                ) : p.priceUah === 0 ? (
+                  <div style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', padding: '8px 0' }}>Базовий</div>
+                ) : (
+                  <button style={{ ...btn, width: '100%', padding: '9px 0' }} disabled={!!paying} onClick={() => pay(p.id)}>
+                    {paying === p.id ? 'Створюємо рахунок…' : 'Оплатити'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {showPlans && (
+        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+          Оплата карткою через Monobank, тариф вмикається одразу після оплати і діє 30 днів. Коли термін мине, кабінет повертається на безкоштовний тариф — уже завантажені галереї при цьому не видаляються.
         </div>
       )}
     </div>

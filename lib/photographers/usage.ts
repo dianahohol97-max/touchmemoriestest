@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { planLimitBytes, getPlan } from './plans';
+import { planLimitBytes, getPlan, effectivePlanId } from './plans';
 
 /**
  * How much gallery storage a photographer occupies right now, and what their
@@ -20,10 +20,14 @@ export interface StorageUsage {
   over: boolean;
 }
 
-export async function getStorageUsage(photographer: { id: string; plan?: string | null }): Promise<StorageUsage> {
+export async function getStorageUsage(
+  photographer: { id: string; plan?: string | null; plan_expires_at?: string | null },
+): Promise<StorageUsage> {
   const admin = getAdminClient();
-  const plan = getPlan(photographer.plan);
-  const limitBytes = planLimitBytes(photographer.plan);
+  // A paid plan that ran out counts as free — see effectivePlanId.
+  const planId = effectivePlanId(photographer);
+  const plan = getPlan(planId);
+  const limitBytes = planLimitBytes(planId);
 
   const { data: galleries } = await admin
     .from('photographer_galleries')
@@ -62,11 +66,11 @@ export async function getStorageUsage(photographer: { id: string; plan?: string 
 /** Guard for upload routes: refuse when the incoming file would exceed the
  *  plan's storage cap. Returns an error message or null. */
 export async function checkQuota(
-  photographer: { id: string; plan?: string | null },
+  photographer: { id: string; plan?: string | null; plan_expires_at?: string | null },
   incomingBytes: number,
 ): Promise<string | null> {
   const usage = await getStorageUsage(photographer);
   if (usage.usedBytes + incomingBytes <= usage.limitBytes) return null;
-  const plan = getPlan(photographer.plan);
-  return `Досягнуто ліміт вашого тарифу «${plan.name}» — ${plan.storageGb} ГБ. Видаліть непотрібні галереї або перейдіть на більший тариф.`;
+  const plan = getPlan(effectivePlanId(photographer));
+  return `Місце на тарифі «${plan.name}» закінчилося — зайнято ${plan.storageGb} ГБ з ${plan.storageGb} ГБ. Оберіть більший тариф у кабінеті або видаліть непотрібні галереї.`;
 }

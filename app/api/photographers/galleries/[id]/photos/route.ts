@@ -5,6 +5,7 @@ import {
   MAX_PHOTO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
 import { putFile, fileUrl, removeFiles } from '@/lib/photographers/storage';
+import { checkQuota } from '@/lib/photographers/usage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -57,6 +58,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (file.size > MAX_PHOTO_BYTES) {
       return NextResponse.json({ error: `«${file.name}» більший за 25 МБ` }, { status: 400 });
     }
+    // Storage plan limit. Checked per file so a long batch stops exactly at
+    // the cap instead of overshooting it; 402 tells the cabinet to show the
+    // upgrade dialog rather than a generic error.
+    const quotaErr = await checkQuota(ctx.photographer, file.size);
+    if (quotaErr) return NextResponse.json({ error: quotaErr, quota: true, uploaded }, { status: 402 });
     const path = galleryPhotoPath(ctx.photographer.id, galleryId, file.name);
     const put = await putFile(path, Buffer.from(await file.arrayBuffer()), file.type);
     if ('error' in put) return NextResponse.json({ error: `Аплоад «${file.name}»: ${put.error}` }, { status: 500 });
