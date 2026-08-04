@@ -105,16 +105,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
     }
 
-    // Remember whether this PATCH is the order's FIRST transition to paid —
-    // needs the pre-update state, so read it before writing.
+    // Remember whether this PATCH is the order's FIRST transition to paid or to
+    // cancelled — both need the pre-update state, so read it before writing.
     let becamePaid = false;
-    if (body.payment_status === 'paid') {
+    let becameCancelled = false;
+    if (body.payment_status === 'paid' || body.order_status === 'cancelled') {
         const { data: before } = await supabase
             .from('orders')
-            .select('payment_status')
+            .select('payment_status, order_status')
             .eq('id', id)
             .maybeSingle();
-        becamePaid = !!before && before.payment_status !== 'paid';
+        becamePaid = body.payment_status === 'paid' && !!before && before.payment_status !== 'paid';
+        becameCancelled = body.order_status === 'cancelled' && !!before && before.order_status !== 'cancelled';
     }
 
     const { data, error } = await supabase
@@ -148,6 +150,55 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 orderTotal: Number((data as any)?.total) || 0,
             });
         } catch (e) { console.error('[order-patch] referral reward failed (order still updated):', e); }
+    }
+
+    // Bonus refund on cancellation. Bonuses are debited at SUBMIT — before any
+    // payment — so an order that was never paid and got cancelled permanently
+    // ate the customer's bonuses: no code anywhere returned them. Refund
+    // used_bonus on the first transition to cancelled, idempotently: the
+    // bonus_transactions ledger is the guard, so re-cancelling (or a retried
+    // request) can never credit twice.
+    if (becameCancelled) {
+        try {
+            const usedBonus = Number((data as any)?.used_bonus) || 0;
+            const custId = (data as any)?.customer_id || null;
+            if (usedBonus > 0 && custId) {
+                const { data: already } = await supabase
+                    .from('bonus_transactions')
+                    .select('id')
+                    .eq('order_id', id)
+                    .eq('kind', 'order_cancel_refund')
+                    .limit(1);
+                if (!already || already.length === 0) {
+                    // Same compare-and-swap pattern as the debit in orders/submit,
+                    // so a concurrent balance change can't be overwritten.
+                    for (let attempt = 0; attempt < 3; attempt++) {
+                        const { data: fresh } = await supabase
+                            .from('customers')
+                            .select('bonus_balance')
+                            .eq('id', custId)
+                            .maybeSingle();
+                        const live = Number(fresh?.bonus_balance || 0);
+                        const { data: updated } = await supabase
+                            .from('customers')
+                            .update({ bonus_balance: live + usedBonus })
+                            .eq('id', custId)
+                            .eq('bonus_balance', live)
+                            .select('id');
+                        if (updated && updated.length > 0) {
+                            await supabase.from('bonus_transactions').insert({
+                                customer_id: custId,
+                                amount: usedBonus,
+                                kind: 'order_cancel_refund',
+                                order_id: id,
+                                note: `Повернення бонусів за скасоване замовлення ${(data as any)?.order_number || id}`,
+                            });
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (e) { console.error('[order-patch] bonus refund failed (order still updated):', e); }
     }
 
     return NextResponse.json({ order: data });
