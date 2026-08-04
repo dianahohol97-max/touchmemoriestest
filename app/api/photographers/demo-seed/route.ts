@@ -56,9 +56,10 @@ async function fetchPexels(id: number): Promise<{ buf: Buffer } | { fail: string
   return { fail: last };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const admin = getAdminClient();
+    const mode = new URL(req.url).searchParams.get('mode') || '';
 
     let { data: ph } = await admin
       .from('photographers')
@@ -105,6 +106,10 @@ export async function GET() {
     }
 
     const pexelsPaths = new Set(DEMO_PHOTOS.map(p => `${ph!.id}/${gallery!.id}/demo-${p.id}.jpg`));
+    // Stock = files this seeder itself placed (demo-*). Anything else is a
+    // MANUAL upload (Diana's real photos via the demo cabinet) — the seeder
+    // must never touch those.
+    const isStock = (path: string) => /\/demo-[\w-]+\.jpg$/.test(path);
     const isWanted = (path: string) =>
       pexelsPaths.has(path) || path.includes('/demo-ov-');
 
@@ -112,6 +117,29 @@ export async function GET() {
       .from('photographer_gallery_photos')
       .select('id, storage_path')
       .eq('gallery_id', gallery.id);
+    const manualCount = (existing || []).filter(r => !isStock(r.storage_path)).length;
+
+    // mode=clear-stock: real photos have been uploaded manually — remove the
+    // stock set and stop. Guarded so the gallery can never end up empty.
+    if (mode === 'clear-stock') {
+      if (manualCount < 4) {
+        return NextResponse.json({ error: `Замало власних фото (${manualCount}) — спершу завантажте їх у демо-кабінеті`, manual: manualCount }, { status: 400 });
+      }
+      let cleared = 0;
+      for (const row of existing || []) {
+        if (!isStock(row.storage_path)) continue;
+        await admin.storage.from(GALLERY_BUCKET).remove([row.storage_path]);
+        await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
+        cleared += 1;
+      }
+      return NextResponse.json({ ok: true, cleared, manual: manualCount });
+    }
+
+    // With manual photos present the gallery is real content now — never
+    // top it up with stock or delete anything.
+    if (manualCount > 0) {
+      return NextResponse.json({ ok: true, manual: manualCount, note: 'manual photos present — seeding skipped' });
+    }
 
     // Drop leftovers from earlier seeding attempts (picsum placeholders,
     // pexels ids that never downloaded).
