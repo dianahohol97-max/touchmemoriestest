@@ -19,16 +19,23 @@ export const maxDuration = 60;
  */
 const DEMO_EMAIL = 'demo-gallery@touchmemories.com.ua';
 const DEMO_CLIENT_TOKEN = 'a0000000-0000-4000-8000-000000000001';
-const DEMO_PHOTOS: { id: number; w: number; h: number }[] = [
-  { id: 1011, w: 1600, h: 1067 },  // canoe on a lake — cover
-  { id: 1027, w: 1200, h: 1600 },  // portrait
-  { id: 1035, w: 1600, h: 1067 },  // mountains
-  { id: 64,   w: 1200, h: 1600 },  // portrait
-  { id: 177,  w: 1600, h: 1067 },  // forest road
-  { id: 342,  w: 1200, h: 1600 },  // architecture
-  { id: 429,  w: 1600, h: 1067 },  // beach
-  { id: 823,  w: 1200, h: 1600 },  // couple silhouette
+// Wedding photos from Pexels (license: free commercial use, no attribution
+// required). Ids verified via pexels.com photo pages; the CDN URL pattern
+// serves a resized jpeg. Photos no longer in this list are removed from the
+// demo gallery on the next seed run, so swapping the set is a redeploy+call.
+const DEMO_PHOTOS: { id: number; desc: string }[] = [
+  { id: 19679440, desc: 'wedding couple outdoors — cover' },
+  { id: 19816898, desc: 'bride in flowing gown on rustic path' },
+  { id: 31048922, desc: 'wedding rings and bouquet close-up' },
+  { id: 19639,    desc: 'bride and groom embracing with bouquet' },
+  { id: 16910979, desc: 'bride portrait in forest' },
+  { id: 3578784,  desc: 'beach ceremony under bamboo arch' },
+  { id: 11309259, desc: 'rings by flower bouquet' },
+  { id: 1721942,  desc: 'bride in white gown with bouquet' },
+  { id: 8845902,  desc: 'couple holding hands at ceremony' },
 ];
+const pexelsUrl = (id: number) =>
+  `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1800`;
 
 export async function GET() {
   try {
@@ -78,17 +85,29 @@ export async function GET() {
       gallery = created;
     }
 
+    const wantedPaths = new Set(DEMO_PHOTOS.map(p => `${ph!.id}/${gallery!.id}/demo-${p.id}.jpg`));
+
     const { data: existing } = await admin
       .from('photographer_gallery_photos')
-      .select('storage_path')
+      .select('id, storage_path')
       .eq('gallery_id', gallery.id);
-    const have = new Set((existing || []).map(p => p.storage_path));
+
+    // Drop photos that fell out of the curated list (e.g. the first picsum
+    // placeholders after the switch to wedding photos).
+    let removed = 0;
+    for (const row of existing || []) {
+      if (wantedPaths.has(row.storage_path)) continue;
+      await admin.storage.from(GALLERY_BUCKET).remove([row.storage_path]);
+      await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
+      removed += 1;
+    }
+    const have = new Set((existing || []).map(p => p.storage_path).filter(p => wantedPaths.has(p)));
 
     let added = 0;
     for (const photo of DEMO_PHOTOS) {
       const path = `${ph.id}/${gallery.id}/demo-${photo.id}.jpg`;
       if (have.has(path)) continue;
-      const res = await fetch(`https://picsum.photos/id/${photo.id}/${photo.w}/${photo.h}.jpg`, { redirect: 'follow' });
+      const res = await fetch(pexelsUrl(photo.id), { redirect: 'follow' });
       if (!res.ok) continue;
       const buf = Buffer.from(await res.arrayBuffer());
       const { error: upErr } = await admin.storage
@@ -104,7 +123,7 @@ export async function GET() {
       added += 1;
     }
 
-    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, total: have.size + added });
+    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, removed, total: have.size + added });
   } catch (err: any) {
     console.error('[photographers/demo-seed]', err);
     return NextResponse.json({ error: err.message || 'Помилка' }, { status: 500 });
