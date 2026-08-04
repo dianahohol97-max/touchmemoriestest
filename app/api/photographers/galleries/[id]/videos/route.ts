@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
-  getPhotographerByToken, galleryPhotoPath, publicUrl,
-  GALLERY_BUCKET, MAX_VIDEO_BYTES, MAX_PHOTOS_PER_GALLERY,
+  getPhotographerByToken, galleryPhotoPath,
+  MAX_VIDEO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
+import { presignUpload, fileExists, fileUrl, activeProvider } from '@/lib/photographers/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,13 +65,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const path = galleryPhotoPath(ctx.photographer.id, galleryId, fileName);
-    const { data: signed, error } = await admin.storage
-      .from(GALLERY_BUCKET)
-      .createSignedUploadUrl(path);
-    if (error || !signed) {
-      return NextResponse.json({ error: error?.message || 'Не вдалося підготувати аплоад' }, { status: 500 });
-    }
-    return NextResponse.json({ signed_url: signed.signedUrl, path });
+    const signed = await presignUpload(path, contentType);
+    if ('error' in signed) return NextResponse.json({ error: signed.error }, { status: 500 });
+    return NextResponse.json({ signed_url: signed.url, path, provider: signed.provider });
   }
 
   if (stage === 'confirm') {
@@ -81,12 +78,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!path.startsWith(`${ctx.photographer.id}/${galleryId}/`)) {
       return NextResponse.json({ error: 'Некоректний шлях файлу' }, { status: 400 });
     }
-    // Trust storage, not the client, for existence and size.
-    const dir = path.slice(0, path.lastIndexOf('/'));
-    const base = path.slice(path.lastIndexOf('/') + 1);
-    const { data: objects } = await admin.storage.from(GALLERY_BUCKET).list(dir, { search: base, limit: 1 });
-    const obj = (objects || []).find(o => o.name === base);
-    if (!obj) return NextResponse.json({ error: 'Файл не знайдено у сховищі — повторіть завантаження' }, { status: 400 });
+    // Trust storage, not the client, for existence and size. The provider is
+    // taken from the current config: the signed URL was minted moments ago.
+    const provider = activeProvider();
+    const head = await fileExists(path, provider);
+    if (!head.ok) return NextResponse.json({ error: 'Файл не знайдено у сховищі — повторіть завантаження' }, { status: 400 });
 
     const { data: row, error } = await admin
       .from('photographer_gallery_photos')
@@ -94,13 +90,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         gallery_id: galleryId,
         storage_path: path,
         file_name: fileName,
-        size_bytes: (obj.metadata as any)?.size ?? null,
+        size_bytes: head.size ?? null,
         media_type: 'video',
+        storage_provider: provider,
       })
-      .select('id, storage_path, file_name, size_bytes, created_at')
+      .select('id, storage_path, file_name, size_bytes, storage_provider, created_at')
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ uploaded: { ...row, url: publicUrl(path) } });
+    return NextResponse.json({ uploaded: { ...row, url: fileUrl(path, provider) } });
   }
 
   return NextResponse.json({ error: 'Невідомий stage' }, { status: 400 });

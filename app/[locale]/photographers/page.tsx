@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { fileUrl } from '@/lib/photographers/storage';
 
 const TITLE = 'Для фотографів — Touch.Memories';
 const DESCRIPTION = 'Кабінет фотографа Touch.Memories: онлайн-галереї для передачі фото клієнтам, сторінка-візитка з портфоліо, знижка 10% на друк і заробіток з рекомендацій.';
@@ -60,7 +62,33 @@ const BENEFITS: { n: string; title: string; text: string }[] = [
     },
 ];
 
-export default function PhotographersPage() {
+/** First photos of the demo gallery — rendered as a strip under the cover so
+ *  the landing shows the actual work, not just the hero (Diana: «показуй і
+ *  фото, хоча б перших 6»). Server-side query, no client fetch. */
+async function demoPhotos(limit = 6): Promise<string[]> {
+    try {
+        const admin = getAdminClient();
+        const { data: gallery } = await admin
+            .from('photographer_galleries')
+            .select('id')
+            .eq('client_token', DEMO_GALLERY_TOKEN)
+            .maybeSingle();
+        if (!gallery) return [];
+        const { data: photos } = await admin
+            .from('photographer_gallery_photos')
+            .select('storage_path, storage_provider')
+            .eq('gallery_id', gallery.id)
+            .eq('media_type', 'photo')
+            .order('created_at', { ascending: true })
+            .limit(limit);
+        return (photos || []).map(p => fileUrl(p.storage_path, p.storage_provider));
+    } catch {
+        return [];
+    }
+}
+
+export default async function PhotographersPage() {
+    const photos = await demoPhotos();
     return (
         <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)' }}>
             <Navigation />
@@ -129,9 +157,20 @@ export default function PhotographersPage() {
                                     style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none' }}
                                 />
                             </div>
+                            {/* Real photos from the demo gallery, so the page
+                                shows the work and not only the cover. */}
+                            {photos.length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 4, padding: 4, background: '#fff' }}>
+                                    {photos.map(url => (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img key={url} src={url} alt="" loading="lazy"
+                                            style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }} />
+                                    ))}
+                                </div>
+                            )}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderTop: '1px solid #F0EAE0' }}>
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                    {['3 кольори фону', '4 шрифти', '4 обкладинки', '9 мов', 'фото і відео'].map(chip => (
+                                    {['3 кольори фону', '4 шрифти', '4 обкладинки', '10 мов', 'фото і відео'].map(chip => (
                                         <span key={chip} style={{ fontSize: 12.5, color: '#8B8378', border: '1px solid #E8DCC8', borderRadius: 999, padding: '5px 12px' }}>{chip}</span>
                                     ))}
                                 </div>

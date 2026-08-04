@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { getPhotographerByToken, daysLeft, publicUrl } from '@/lib/photographers/helpers';
+import { getPhotographerByToken, daysLeft } from '@/lib/photographers/helpers';
+import { fileUrl } from '@/lib/photographers/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,20 +59,20 @@ export async function GET(req: NextRequest) {
     if (g.cover_photo_id) {
       const { data: c } = await admin
         .from('photographer_gallery_photos')
-        .select('storage_path')
+        .select('storage_path, storage_provider')
         .eq('id', g.cover_photo_id)
         .maybeSingle();
-      if (c?.storage_path) { coverByGallery[g.id] = publicUrl(c.storage_path); return; }
+      if (c?.storage_path) { coverByGallery[g.id] = fileUrl(c.storage_path, c.storage_provider); return; }
     }
     const { data: first } = await admin
       .from('photographer_gallery_photos')
-      .select('storage_path')
+      .select('storage_path, storage_provider')
       .eq('gallery_id', g.id)
       .eq('media_type', 'photo')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();
-    coverByGallery[g.id] = first?.storage_path ? publicUrl(first.storage_path) : null;
+    coverByGallery[g.id] = first?.storage_path ? fileUrl(first.storage_path, first.storage_provider) : null;
   }));
 
   return NextResponse.json({

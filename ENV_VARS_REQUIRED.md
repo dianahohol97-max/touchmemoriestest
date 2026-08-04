@@ -43,3 +43,8 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `CRON_SECRET` | Secret for cron job auth |
 | `CHECKBOX_LOGIN` | Checkbox ПРРО login |
 | `CHECKBOX_LICENSE_KEY` | Checkbox license key |
+| `R2_ACCOUNT_ID` | Cloudflare account id — enables R2 for gallery files |
+| `R2_ACCESS_KEY_ID` | R2 API token key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_BUCKET` | R2 bucket name for gallery photos/videos |
+| `R2_PUBLIC_BASE_URL` | Public bucket URL (r2.dev or custom domain) |

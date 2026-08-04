@@ -22,6 +22,10 @@ export async function getPhotographerByToken(token: string) {
   return data;
 }
 
+/** Supabase-only public URL. Gallery photos/videos must NOT use this — they
+ *  may live on R2, so they go through fileUrl() in ./storage, which resolves
+ *  the row's own provider. Branding files (logo/avatar/portfolio) are tiny,
+ *  few and stay on Supabase, so they keep using this. */
 export function publicUrl(path: string): string {
   const admin = getAdminClient();
   return admin.storage.from(GALLERY_BUCKET).getPublicUrl(path).data.publicUrl;

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
-  getPhotographerByToken, galleryPhotoPath, publicUrl,
-  GALLERY_BUCKET, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_GALLERY,
+  getPhotographerByToken, galleryPhotoPath,
+  MAX_PHOTO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
+import { putFile, fileUrl, removeFiles } from '@/lib/photographers/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -57,18 +58,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: `«${file.name}» більший за 25 МБ` }, { status: 400 });
     }
     const path = galleryPhotoPath(ctx.photographer.id, galleryId, file.name);
-    const { error: upErr } = await admin.storage
-      .from(GALLERY_BUCKET)
-      .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type, upsert: false });
-    if (upErr) return NextResponse.json({ error: `Аплоад «${file.name}»: ${upErr.message}` }, { status: 500 });
+    const put = await putFile(path, Buffer.from(await file.arrayBuffer()), file.type);
+    if ('error' in put) return NextResponse.json({ error: `Аплоад «${file.name}»: ${put.error}` }, { status: 500 });
 
     const { data: row, error: insErr } = await admin
       .from('photographer_gallery_photos')
-      .insert({ gallery_id: galleryId, storage_path: path, file_name: file.name, size_bytes: file.size })
-      .select('id, storage_path, file_name, size_bytes, created_at')
+      .insert({
+        gallery_id: galleryId, storage_path: path, file_name: file.name,
+        size_bytes: file.size, storage_provider: put.provider,
+      })
+      .select('id, storage_path, file_name, size_bytes, storage_provider, created_at')
       .single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
-    uploaded.push({ ...row, url: publicUrl(path) });
+    uploaded.push({ ...row, url: fileUrl(path, put.provider) });
   }
 
   return NextResponse.json({ uploaded });
@@ -83,11 +85,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const admin = getAdminClient();
   const { data: photos, error } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes, favorite, media_type, created_at')
+    .select('id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, created_at')
     .eq('gallery_id', galleryId)
     .order('created_at', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ photos: (photos || []).map(p => ({ ...p, url: publicUrl(p.storage_path) })) });
+  return NextResponse.json({ photos: (photos || []).map(p => ({ ...p, url: fileUrl(p.storage_path, p.storage_provider) })) });
 }
 
 /** Delete one photo (body: token, photo_id). */
@@ -100,13 +102,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const admin = getAdminClient();
   const { data: photo } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path')
+    .select('id, storage_path, storage_provider')
     .eq('id', String(body?.photo_id || ''))
     .eq('gallery_id', galleryId)
     .maybeSingle();
   if (!photo) return NextResponse.json({ error: 'Фото не знайдено' }, { status: 404 });
 
-  await admin.storage.from(GALLERY_BUCKET).remove([photo.storage_path]);
+  await removeFiles([{ path: photo.storage_path, provider: photo.storage_provider }]);
   const { error } = await admin.from('photographer_gallery_photos').delete().eq('id', photo.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

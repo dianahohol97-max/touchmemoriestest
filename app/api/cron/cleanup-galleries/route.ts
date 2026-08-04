@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { GALLERY_BUCKET } from '@/lib/photographers/helpers';
+import { removeFiles } from '@/lib/photographers/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -35,19 +35,19 @@ export async function GET(req: Request) {
   for (const g of galleries || []) {
     const { data: photos } = await admin
       .from('photographer_gallery_photos')
-      .select('storage_path')
+      .select('storage_path, storage_provider')
       .eq('gallery_id', g.id);
 
-    const paths = (photos || []).map(p => p.storage_path);
-    // Remove in chunks of 100 (storage API limit safety).
-    for (let i = 0; i < paths.length; i += 100) {
-      const chunk = paths.slice(i, i + 100);
-      const { error: rmErr } = await admin.storage.from(GALLERY_BUCKET).remove(chunk);
+    // Files may live on Supabase Storage or Cloudflare R2 — removeFiles()
+    // groups them by the provider each row recorded and chunks per backend.
+    const files = (photos || []).map(p => ({ path: p.storage_path, provider: p.storage_provider }));
+    if (files.length) {
+      const rmErr = await removeFiles(files);
       if (rmErr) {
-        console.error('[cleanup-galleries] remove failed', { gallery: g.id, error: rmErr.message });
-        return NextResponse.json({ error: rmErr.message, purgedGalleries, purgedFiles }, { status: 500 });
+        console.error('[cleanup-galleries] remove failed', { gallery: g.id, error: rmErr });
+        return NextResponse.json({ error: rmErr, purgedGalleries, purgedFiles }, { status: 500 });
       }
-      purgedFiles += chunk.length;
+      purgedFiles += files.length;
     }
 
     await admin.from('photographer_gallery_photos').delete().eq('gallery_id', g.id);

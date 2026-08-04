@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { publicUrl, daysLeft } from '@/lib/photographers/helpers';
+import { daysLeft } from '@/lib/photographers/helpers';
+import { fileUrl } from '@/lib/photographers/storage';
 import { sanitizeDesign } from '@/lib/photographers/gallery-design';
 
 export const dynamic = 'force-dynamic';
@@ -54,14 +55,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   const { data: photos } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes, favorite, media_type')
+    .select('id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider')
     .eq('gallery_id', gallery.id)
     .order('created_at', { ascending: true });
 
   const list = (photos || []).map(p => ({
     id: p.id, file_name: p.file_name, size_bytes: p.size_bytes,
     favorite: !!p.favorite, media_type: p.media_type === 'video' ? 'video' : 'photo',
-    url: publicUrl(p.storage_path),
+    url: fileUrl(p.storage_path, p.storage_provider),
   }));
   // Cover for the fullscreen hero: the photographer's pick, else the first
   // PHOTO (a video only becomes the cover by explicit choice — an accidental

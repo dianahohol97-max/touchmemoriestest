@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { GALLERY_BUCKET } from '@/lib/photographers/helpers';
+import { putFile, removeFiles } from '@/lib/photographers/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -115,7 +115,7 @@ export async function GET(req: Request) {
 
     const { data: existing } = await admin
       .from('photographer_gallery_photos')
-      .select('id, storage_path')
+      .select('id, storage_path, storage_provider')
       .eq('gallery_id', gallery.id);
     const manualCount = (existing || []).filter(r => !isStock(r.storage_path)).length;
 
@@ -128,7 +128,7 @@ export async function GET(req: Request) {
       let cleared = 0;
       for (const row of existing || []) {
         if (!isStock(row.storage_path)) continue;
-        await admin.storage.from(GALLERY_BUCKET).remove([row.storage_path]);
+        await removeFiles([{ path: row.storage_path, provider: (row as any).storage_provider }]);
         await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
         cleared += 1;
       }
@@ -146,22 +146,21 @@ export async function GET(req: Request) {
     let removed = 0;
     for (const row of existing || []) {
       if (isWanted(row.storage_path)) continue;
-      await admin.storage.from(GALLERY_BUCKET).remove([row.storage_path]);
+      await removeFiles([{ path: row.storage_path, provider: (row as any).storage_provider }]);
       await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
       removed += 1;
     }
     const have = new Set((existing || []).map(p => p.storage_path).filter(isWanted));
 
     const saveBuf = async (path: string, fileName: string, buf: Buffer) => {
-      const { error: upErr } = await admin.storage
-        .from(GALLERY_BUCKET)
-        .upload(path, buf, { contentType: 'image/jpeg', upsert: true });
-      if (upErr) return upErr.message;
+      const put = await putFile(path, buf, 'image/jpeg');
+      if ('error' in put) return put.error;
       await admin.from('photographer_gallery_photos').insert({
         gallery_id: gallery!.id,
         storage_path: path,
         file_name: fileName,
         size_bytes: buf.length,
+        storage_provider: put.provider,
       });
       have.add(path);
       return null;
