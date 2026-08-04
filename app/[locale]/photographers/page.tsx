@@ -53,7 +53,7 @@ const BENEFITS: { title: string; text: string }[] = [
 export default function PhotographersPage() {
     return (
         <div style={{ background: '#f8fafc', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
-            <div style={{ maxWidth: 920, margin: '0 auto', padding: '48px 16px 80px' }}>
+            <div style={{ maxWidth: 1160, margin: '0 auto', padding: '48px 16px 80px' }}>
                 <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1e2d7d', margin: '0 0 10px', textAlign: 'center' }}>
                     Кабінет фотографа Touch.Memories
                 </h1>
@@ -72,7 +72,10 @@ export default function PhotographersPage() {
                     </a>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                {/* All four cards on ONE row on desktop (Diana's ask). minmax
+                    240px: at the 1160px container four columns fit with room to
+                    spare; on phones auto-fit collapses them into a column. */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
                     {BENEFITS.map(b => (
                         <div key={b.title} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '22px 20px' }}>
                             <div style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{b.title}</div>
