@@ -28,6 +28,7 @@ interface Gallery {
   id: string; client_token: string; title: string; client_name: string | null;
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
+  photo_downloads: number; zip_downloads: number;
   cover_photo_id: string | null;
   cover_url: string | null;
   design: Record<string, string> | null;
@@ -475,11 +476,14 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   const [title, setTitle] = useState('');
   const [clientName, setClientName] = useState('');
   const [shootDate, setShootDate] = useState('');
+  const [termDays, setTermDays] = useState(30);
   const [creating, setCreating] = useState(false);
   const [openUpload, setOpenUpload] = useState<string | null>(null);
   const [openPicks, setOpenPicks] = useState<string | null>(null);
   const [openCover, setOpenCover] = useState<string | null>(null);
   const [openDesign, setOpenDesign] = useState<string | null>(null);
+  const [openEdit, setOpenEdit] = useState<string | null>(null);
+  const closeAll = () => { setOpenUpload(null); setOpenPicks(null); setOpenCover(null); setOpenDesign(null); setOpenEdit(null); };
 
   const create = async () => {
     if (!title.trim() || creating) return;
@@ -487,7 +491,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
     try {
       const res = await fetch('/api/photographers/galleries', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, title, client_name: clientName, shoot_date: shootDate || null }),
+        body: JSON.stringify({ token, title, client_name: clientName, shoot_date: shootDate || null, term_days: termDays }),
       });
       const json = await res.json();
       if (!res.ok) { alert(json?.error || 'Помилка'); return; }
@@ -530,6 +534,19 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               <input style={input} type="date" value={shootDate} onChange={e => setShootDate(e.target.value)} />
             </div>
           </div>
+          <label style={label}>Термін зберігання</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {[30, 60, 90].map(d => (
+              <button key={d} type="button" onClick={() => setTermDays(d)}
+                style={{
+                  padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  border: termDays === d ? '2px solid #263A99' : '1px solid #e2e8f0',
+                  background: termDays === d ? '#eef3ff' : '#fff', color: '#1f2937',
+                }}>
+                {d} днів
+              </button>
+            ))}
+          </div>
           <button style={{ ...btn, marginTop: 14 }} onClick={create} disabled={creating}>{creating ? 'Створюємо…' : 'Створити'}</button>
         </div>
       )}
@@ -560,6 +577,12 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
                   ♥ {g.favorite_count}
                 </span>
               )}
+              {(g.zip_downloads > 0 || g.photo_downloads > 0) && (
+                <span title={`Завантажень: ZIP-архів ${g.zip_downloads} раз(ів), окремих фото ${g.photo_downloads}`}
+                  style={{ fontSize: 12, fontWeight: 800, color: '#263A99', background: '#eef1fb', borderRadius: 999, padding: '4px 10px' }}>
+                  ⬇ {g.zip_downloads + g.photo_downloads}
+                </span>
+              )}
               {g.files_purged_at
                 ? <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', background: '#fef2f2', borderRadius: 999, padding: '4px 10px' }}>Термін минув</span>
                 : <span style={{ fontSize: 12, fontWeight: 700, color: '#8B8378', background: '#F5EFE6', borderRadius: 999, padding: '4px 10px' }}>ще {g.days_left} дн.</span>}
@@ -571,22 +594,25 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               <a href={`/uk/gallery/${g.client_token}`} target="_blank" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block' }}>Переглянути</a>
               {g.favorite_count > 0 && (
                 <button
-                  style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a' }}
-                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); setOpenCover(null); setOpenDesign(null); }}
+                  style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a', border: '1px solid #f2d7d8' }}
+                  onClick={() => { const open = openPicks === g.id; closeAll(); if (!open) setOpenPicks(g.id); }}
                 >
                   {openPicks === g.id ? 'Згорнути' : `♥ Обрані клієнтом (${g.favorite_count})`}
                 </button>
               )}
-              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); setOpenCover(null); setOpenDesign(null); }}>
+              <button style={btnGhost} onClick={() => { const open = openUpload === g.id; closeAll(); if (!open) setOpenUpload(g.id); }}>
                 {openUpload === g.id ? 'Згорнути' : 'Завантажити фото/відео'}
               </button>
               {g.photo_count > 0 && (
-                <button style={btnGhost} onClick={() => { setOpenCover(openCover === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); setOpenDesign(null); }}>
+                <button style={btnGhost} onClick={() => { const open = openCover === g.id; closeAll(); if (!open) setOpenCover(g.id); }}>
                   {openCover === g.id ? 'Згорнути' : 'Обкладинка'}
                 </button>
               )}
-              <button style={btnGhost} onClick={() => { setOpenDesign(openDesign === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); setOpenCover(null); }}>
+              <button style={btnGhost} onClick={() => { const open = openDesign === g.id; closeAll(); if (!open) setOpenDesign(g.id); }}>
                 {openDesign === g.id ? 'Згорнути' : 'Дизайн'}
+              </button>
+              <button style={btnGhost} onClick={() => { const open = openEdit === g.id; closeAll(); if (!open) setOpenEdit(g.id); }}>
+                {openEdit === g.id ? 'Згорнути' : 'Редагувати'}
               </button>
             </div>
           )}
@@ -599,6 +625,9 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           {openDesign === g.id && (
             <DesignPanel token={token} galleryId={g.id} design={g.design}
               clientToken={g.client_token} photoCount={g.photo_count} onDone={onChanged} flash={flash} />
+          )}
+          {openEdit === g.id && (
+            <EditGalleryPanel token={token} gallery={g} onDone={onChanged} flash={flash} />
           )}
         </div>
       ))}
@@ -649,6 +678,71 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
   );
 }
 
+/** Edit gallery basics (назва/клієнт/дата) + storage term. The term buttons
+ *  extend from "now or current expiry, whichever is later", capped at 90
+ *  days from today by the API. */
+function EditGalleryPanel({ token, gallery, onDone, flash }: {
+  token: string; gallery: Gallery; onDone: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [title, setTitle] = useState(gallery.title);
+  const [clientName, setClientName] = useState(gallery.client_name || '');
+  const [shootDate, setShootDate] = useState(gallery.shoot_date || '');
+  const [saving, setSaving] = useState(false);
+
+  const patch = async (body: Record<string, unknown>, okMsg: string) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/photographers/galleries/${gallery.id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, ...body }),
+      });
+      if (!res.ok) { alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
+      await onDone();
+      flash(okMsg);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+      <label style={label}>Назва галереї</label>
+      <input style={input} value={title} onChange={e => setTitle(e.target.value)} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div>
+          <label style={label}>Ім&apos;я клієнта</label>
+          <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} />
+        </div>
+        <div>
+          <label style={label}>Дата зйомки</label>
+          <input style={input} type="date" value={shootDate} onChange={e => setShootDate(e.target.value)} />
+        </div>
+      </div>
+      <button style={{ ...btn, marginTop: 12 }} disabled={saving}
+        onClick={() => patch({ title, client_name: clientName, shoot_date: shootDate || null }, 'Збережено')}>
+        Зберегти
+      </button>
+
+      <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 16, paddingTop: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#55504a', marginBottom: 6 }}>
+          Термін дії — до {new Date(gallery.expires_at).toLocaleDateString('uk-UA')}
+          {!gallery.files_purged_at && <span style={{ color: '#8B8378', fontWeight: 400 }}> (лишилось {g_daysWord(gallery.days_left)})</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {[30, 60, 90].map(d => (
+            <button key={d} style={btnGhost} disabled={saving || !!gallery.files_purged_at}
+              onClick={() => patch({ extend_days: d }, `Термін продовжено на ${d} дн.`)}>
+              +{d} днів
+            </button>
+          ))}
+          <span style={{ fontSize: 12, color: '#94a3b8' }}>Максимум — 90 днів від сьогодні. Після завершення терміну файли видаляються автоматично.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const g_daysWord = (n: number) => `${n} ${n === 1 ? 'день' : n >= 2 && n <= 4 ? 'дні' : 'днів'}`;
+
 /** Gallery design constructor: background, display font, font size and cover
  *  layout. Each click saves immediately via PATCH (the server merges and
  *  validates against the whitelists in lib/photographers/gallery-design). */
@@ -661,6 +755,7 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
     font: design?.font || 'playfair',
     font_scale: design?.font_scale || 'm',
     cover: design?.cover || 'classic',
+    layout: design?.layout || 'masonry',
     lang: design?.lang || 'uk',
   });
   const [saving, setSaving] = useState(false);
@@ -699,6 +794,7 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
     { key: 'font', label: 'Шрифт заголовків', items: [['playfair', 'Playfair — класичний'], ['cormorant', 'Cormorant — витончений'], ['montserrat', 'Montserrat — сучасний'], ['caveat', 'Caveat — рукописний']] },
     { key: 'font_scale', label: 'Розмір шрифту', items: [['s', 'Компактний'], ['m', 'Стандартний'], ['l', 'Великий']] },
     { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
+    { key: 'layout', label: 'Розкладка фото', items: [['masonry', 'Мозаїка — як у Pinterest'], ['grid', 'Рівна сітка — квадрати'], ['large', 'Великі фото — 2 колонки']] },
     // Для фотографів, що знімають закордоном: мова, якою клієнт бачить галерею.
     { key: 'lang', label: 'Мова галереї (для клієнта)', items: [['uk', 'Українська'], ['en', 'English'], ['pl', 'Polski'], ['de', 'Deutsch'], ['cs', 'Čeština'], ['it', 'Italiano'], ['es', 'Español'], ['fr', 'Français'], ['ro', 'Română']] },
   ];

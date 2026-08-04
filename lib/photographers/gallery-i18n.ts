@@ -16,6 +16,7 @@ export interface GalleryStrings {
   emptyUploading: string;
   emptyFav: string;
   photographerPage: string;
+  contactsTitle: string;
   createdOn: string;
   expiredText: string;
   phone: string;
@@ -48,6 +49,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Фотограф ще завантажує фото — загляньте трохи згодом.',
     emptyFav: 'Ви ще не обрали жодного фото.',
     photographerPage: 'Сторінка фотографа',
+    contactsTitle: 'Звʼязок із фотографом',
     createdOn: 'Галерею створено на',
     expiredText: 'Термін зберігання галереї минув. Фото зберігалися 30 днів і були видалені автоматично. Якщо вони вам потрібні — зверніться до фотографа.',
     phone: 'Телефон', website: 'Сайт',
@@ -65,6 +67,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Your photographer is still uploading photos — check back soon.',
     emptyFav: 'You have not picked any photos yet.',
     photographerPage: 'Photographer page',
+    contactsTitle: 'Contact your photographer',
     createdOn: 'Gallery created on',
     expiredText: 'This gallery has expired. Photos were stored for 30 days and have been deleted automatically. If you still need them, please contact your photographer.',
     phone: 'Phone', website: 'Website',
@@ -82,6 +85,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Fotograf wciąż dodaje zdjęcia — zajrzyj tu wkrótce.',
     emptyFav: 'Nie wybrano jeszcze żadnych zdjęć.',
     photographerPage: 'Strona fotografa',
+    contactsTitle: 'Kontakt z fotografem',
     createdOn: 'Galeria utworzona na',
     expiredText: 'Okres przechowywania galerii minął. Zdjęcia były przechowywane przez 30 dni i zostały automatycznie usunięte. Jeśli ich potrzebujesz — skontaktuj się z fotografem.',
     phone: 'Telefon', website: 'Strona',
@@ -99,6 +103,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Ihr Fotograf lädt noch Fotos hoch — schauen Sie bald wieder vorbei.',
     emptyFav: 'Sie haben noch keine Fotos ausgewählt.',
     photographerPage: 'Seite des Fotografen',
+    contactsTitle: 'Kontakt zum Fotografen',
     createdOn: 'Galerie erstellt auf',
     expiredText: 'Die Speicherfrist dieser Galerie ist abgelaufen. Die Fotos wurden 30 Tage gespeichert und automatisch gelöscht. Bei Bedarf wenden Sie sich bitte an Ihren Fotografen.',
     phone: 'Telefon', website: 'Webseite',
@@ -116,6 +121,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Fotograf ještě nahrává fotky — zkuste to prosím později.',
     emptyFav: 'Zatím jste nevybrali žádné fotky.',
     photographerPage: 'Stránka fotografa',
+    contactsTitle: 'Kontakt na fotografa',
     createdOn: 'Galerie vytvořena na',
     expiredText: 'Doba uložení galerie vypršela. Fotky byly uloženy 30 dní a byly automaticky smazány. Pokud je potřebujete, obraťte se na svého fotografa.',
     phone: 'Telefon', website: 'Web',
@@ -133,6 +139,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Il fotografo sta ancora caricando le foto — torna presto.',
     emptyFav: 'Non hai ancora scelto nessuna foto.',
     photographerPage: 'Pagina del fotografo',
+    contactsTitle: 'Contatta il fotografo',
     createdOn: 'Galleria creata su',
     expiredText: 'Il periodo di conservazione della galleria è scaduto. Le foto sono state conservate per 30 giorni e sono state eliminate automaticamente. Se ti servono, contatta il tuo fotografo.',
     phone: 'Telefono', website: 'Sito',
@@ -150,6 +157,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Tu fotógrafo aún está subiendo fotos — vuelve pronto.',
     emptyFav: 'Aún no has elegido ninguna foto.',
     photographerPage: 'Página del fotógrafo',
+    contactsTitle: 'Contacta con el fotógrafo',
     createdOn: 'Galería creada en',
     expiredText: 'El período de almacenamiento de la galería ha expirado. Las fotos se guardaron durante 30 días y se eliminaron automáticamente. Si las necesitas, contacta con tu fotógrafo.',
     phone: 'Teléfono', website: 'Sitio web',
@@ -167,6 +175,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Votre photographe ajoute encore des photos — revenez bientôt.',
     emptyFav: 'Vous n’avez encore choisi aucune photo.',
     photographerPage: 'Page du photographe',
+    contactsTitle: 'Contacter le photographe',
     createdOn: 'Galerie créée sur',
     expiredText: 'La période de conservation de la galerie est expirée. Les photos ont été conservées 30 jours puis supprimées automatiquement. Si vous en avez besoin, contactez votre photographe.',
     phone: 'Téléphone', website: 'Site',
@@ -184,6 +193,7 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     emptyUploading: 'Fotograful încă încarcă fotografiile — revino în curând.',
     emptyFav: 'Nu ai ales încă nicio fotografie.',
     photographerPage: 'Pagina fotografului',
+    contactsTitle: 'Contactează fotograful',
     createdOn: 'Galerie creată pe',
     expiredText: 'Perioada de stocare a galeriei a expirat. Fotografiile au fost păstrate 30 de zile și au fost șterse automat. Dacă ai nevoie de ele, contactează fotograful.',
     phone: 'Telefon', website: 'Site',

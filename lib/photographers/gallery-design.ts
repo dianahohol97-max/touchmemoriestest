@@ -6,6 +6,9 @@ export const GALLERY_BG = ['light', 'cream', 'dark'] as const;
 export const GALLERY_FONTS = ['playfair', 'cormorant', 'montserrat', 'caveat'] as const;
 export const GALLERY_FONT_SCALES = ['s', 'm', 'l'] as const;
 export const GALLERY_COVERS = ['classic', 'bottom', 'split', 'minimal'] as const;
+// How the photo grid is laid out: masonry columns, an even cropped grid, or
+// a large editorial two-column flow.
+export const GALLERY_LAYOUTS = ['masonry', 'grid', 'large'] as const;
 // Languages the client gallery can speak — picked for where Ukrainian
 // photographers actually work abroad (Diana, 2026-08-04): PL/DE/CZ plus the
 // big Western European markets and the site's existing RO locale.
@@ -15,6 +18,7 @@ export type GalleryBg = typeof GALLERY_BG[number];
 export type GalleryFont = typeof GALLERY_FONTS[number];
 export type GalleryFontScale = typeof GALLERY_FONT_SCALES[number];
 export type GalleryCover = typeof GALLERY_COVERS[number];
+export type GalleryLayout = typeof GALLERY_LAYOUTS[number];
 export type GalleryLang = typeof GALLERY_LANGS[number];
 
 export interface GalleryDesign {
@@ -22,6 +26,7 @@ export interface GalleryDesign {
   font: GalleryFont;
   font_scale: GalleryFontScale;
   cover: GalleryCover;
+  layout: GalleryLayout;
   lang: GalleryLang;
 }
 
@@ -30,6 +35,7 @@ export const DEFAULT_DESIGN: GalleryDesign = {
   font: 'playfair',
   font_scale: 'm',
   cover: 'classic',
+  layout: 'masonry',
   lang: 'uk',
 };
 
@@ -46,6 +52,7 @@ export function sanitizeDesign(current: Partial<GalleryDesign> | null, patch: un
     font: pick(GALLERY_FONTS, p.font, current?.font, DEFAULT_DESIGN.font),
     font_scale: pick(GALLERY_FONT_SCALES, p.font_scale, current?.font_scale, DEFAULT_DESIGN.font_scale),
     cover: pick(GALLERY_COVERS, p.cover, current?.cover, DEFAULT_DESIGN.cover),
+    layout: pick(GALLERY_LAYOUTS, p.layout, current?.layout, DEFAULT_DESIGN.layout),
     lang: pick(GALLERY_LANGS, p.lang, current?.lang, DEFAULT_DESIGN.lang),
   };
 }

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     // between these tables, and an unhinted embed makes PostgREST fail with
     // "more than one relationship was found" (broke the cabinet list,
     // 2026-08-04). Count through the child's gallery_id relationship.
-    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design, photographer_gallery_photos!gallery_id(count)')
+    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design, zip_downloads, photographer_gallery_photos!gallery_id(count)')
     .eq('photographer_id', photographer.id)
     .order('created_at', { ascending: false });
   if (error) {
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   // Favorite selections are small, so one flat query + JS tally is cheapest.
   const galleryIds = (galleries || []).map((g: any) => g.id);
   const favByGallery: Record<string, number> = {};
+  const photoDlByGallery: Record<string, number> = {};
   if (galleryIds.length) {
     const { data: favRows } = await admin
       .from('photographer_gallery_photos')
@@ -38,6 +39,15 @@ export async function GET(req: NextRequest) {
       .in('gallery_id', galleryIds)
       .eq('favorite', true);
     for (const r of favRows || []) favByGallery[r.gallery_id] = (favByGallery[r.gallery_id] || 0) + 1;
+
+    // Single-photo download tally per gallery (ZIP counts live on the
+    // gallery row itself).
+    const { data: dlRows } = await admin
+      .from('photographer_gallery_photos')
+      .select('gallery_id, download_count')
+      .in('gallery_id', galleryIds)
+      .gt('download_count', 0);
+    for (const r of dlRows || []) photoDlByGallery[r.gallery_id] = (photoDlByGallery[r.gallery_id] || 0) + (r.download_count || 0);
   }
 
   // Cover thumbnail for the cabinet list: the photographer's explicit pick,
@@ -69,6 +79,7 @@ export async function GET(req: NextRequest) {
       ...g,
       photo_count: g.photographer_gallery_photos?.[0]?.count || 0,
       favorite_count: favByGallery[g.id] || 0,
+      photo_downloads: photoDlByGallery[g.id] || 0,
       days_left: g.files_purged_at ? 0 : daysLeft(g.expires_at),
       cover_url: coverByGallery[g.id] || null,
       photographer_gallery_photos: undefined,
@@ -85,6 +96,9 @@ export async function POST(req: NextRequest) {
 
     const title = String(body?.title || '').trim();
     if (!title) return NextResponse.json({ error: 'Вкажіть назву галереї' }, { status: 400 });
+    // Storage term picked at creation (30 is the default the column carries).
+    const termDays = Number(body?.term_days || 30);
+    if (![30, 60, 90].includes(termDays)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
 
     const admin = getAdminClient();
     const { data: gallery, error } = await admin
@@ -94,6 +108,7 @@ export async function POST(req: NextRequest) {
         title,
         client_name: String(body?.client_name || '').trim() || null,
         shoot_date: body?.shoot_date || null,
+        expires_at: new Date(Date.now() + termDays * 86400000).toISOString(),
       })
       .select('id, client_token, title, client_name, shoot_date, expires_at, created_at')
       .single();

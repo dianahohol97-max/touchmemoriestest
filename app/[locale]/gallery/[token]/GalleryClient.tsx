@@ -105,6 +105,17 @@ export default function GalleryClient({ token }: { token: string }) {
     }
   };
 
+  // Supabase serves public files inline; the ?download= param flips
+  // Content-Disposition to attachment so single photos actually download
+  // (the <a download> attribute is ignored cross-origin).
+  const dlHref = (url: string, name: string) => `${url}${url.includes('?') ? '&' : '?'}download=${encodeURIComponent(name || 'photo.jpg')}`;
+  // Fire-and-forget download telemetry for the photographer's stats.
+  const track = (payload: { type: 'zip' } | { type: 'photo'; photoId: string }) => {
+    fetch(`/api/gallery/${encodeURIComponent(token)}/track`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    }).catch(() => {});
+  };
+
   const downloadAll = async () => {
     if (!data || zipping) return;
     setZipping(true); setZipProgress(0);
@@ -123,6 +134,7 @@ export default function GalleryClient({ token }: { token: string }) {
       a.download = `${data.title.replace(/[^\wа-яіїєґА-ЯІЇЄҐ -]+/g, '').trim() || 'gallery'}.zip`;
       a.click();
       URL.revokeObjectURL(a.href);
+      track({ type: 'zip' });
     } catch {
       alert((GALLERY_I18N[data.design?.lang] || GALLERY_I18N.uk).zipError);
     } finally { setZipping(false); }
@@ -247,9 +259,7 @@ export default function GalleryClient({ token }: { token: string }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={p.logo_url || p.avatar_url!} alt="" className={styles.barAvatar} />
             )}
-            {p.slug
-              ? <a href={`/uk/photographer/${p.slug}`} className={styles.barName}>{p.name}</a>
-              : <span className={styles.barName}>{p.name}</span>}
+            <span className={styles.barName}>{p.name}</span>
           </div>
           <div className={styles.barActions}>
             <span className={styles.countdown}>{t.daysLeft(data.days_left)}</span>
@@ -285,7 +295,7 @@ export default function GalleryClient({ token }: { token: string }) {
             {data.photos.length === 0 ? t.emptyUploading : t.emptyFav}
           </div>
         ) : (
-          <div className={styles.grid}>
+          <div className={`${styles.grid} ${design.layout === 'grid' ? styles.gridUniform : design.layout === 'large' ? styles.gridLarge : ''}`}>
             {visible.map((photo, i) => (
               <div key={photo.id} className={styles.tile}>
                 <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`${t.view} ${i + 1}`}>
@@ -308,6 +318,13 @@ export default function GalleryClient({ token }: { token: string }) {
                 >
                   {photo.favorite ? '♥' : '♡'}
                 </button>
+                <a
+                  href={dlHref(photo.url, photo.file_name)}
+                  className={styles.tileDl}
+                  onClick={() => track({ type: 'photo', photoId: photo.id })}
+                  aria-label={t.ariaDownload}
+                  title={t.ariaDownload}
+                >⬇</a>
               </div>
             ))}
           </div>
@@ -322,13 +339,17 @@ export default function GalleryClient({ token }: { token: string }) {
         )}
         <div className={styles.footerName}>{p.name}</div>
         {p.bio && <p className={styles.footerBio}>{p.bio}</p>}
-        <div className={styles.contactRow}>
-          {contacts.map(c => (
-            <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className={styles.contactChip}>{c.value}</a>
-          ))}
-        </div>
-        {p.slug && (
-          <a href={`/uk/photographer/${p.slug}`} className={styles.footerCta}>{t.photographerPage}</a>
+        {/* The public photographer page is feature-flagged off for now
+            (Diana) — the gallery offers direct contacts instead. */}
+        {contacts.length > 0 && (
+          <>
+            <div className={styles.contactsTitle}>{t.contactsTitle}</div>
+            <div className={styles.contactRow}>
+              {contacts.map(c => (
+                <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className={styles.contactChip}>{c.value}</a>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -361,7 +382,8 @@ export default function GalleryClient({ token }: { token: string }) {
               >
                 {current.favorite ? '♥' : '♡'}
               </button>
-              <a href={current.url} download={current.file_name} className={styles.lbIconBtn} aria-label={t.ariaDownload}>⬇</a>
+              <a href={dlHref(current.url, current.file_name)} className={styles.lbIconBtn}
+                 onClick={() => track({ type: 'photo', photoId: current.id })} aria-label={t.ariaDownload}>⬇</a>
               <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label={t.ariaClose}>✕</button>
             </div>
           </div>

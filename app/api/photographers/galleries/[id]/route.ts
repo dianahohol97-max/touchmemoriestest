@@ -5,10 +5,14 @@ import { sanitizeDesign } from '@/lib/photographers/gallery-design';
 
 export const dynamic = 'force-dynamic';
 
-/** Update gallery settings (auth = cabinet token): the cover photo/video for
- *  the client gallery hero and the design options (bg, font, size, cover
- *  layout). Only the fields present in the body are touched — a design-only
- *  PATCH must not clear the cover and vice versa. */
+// Free storage terms the photographer can pick; the purge cron deletes files
+// after expires_at, so this is the single knob for gallery lifetime.
+const MAX_TERM_DAYS = 90;
+
+/** Update gallery settings (auth = cabinet token): title/client/date, the
+ *  cover photo/video, design options, and the storage term. Only the fields
+ *  present in the body are touched — a design-only PATCH must not clear the
+ *  cover and vice versa. */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -19,13 +23,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const admin = getAdminClient();
     const { data: gallery } = await admin
       .from('photographer_galleries')
-      .select('id, design')
+      .select('id, design, expires_at, files_purged_at')
       .eq('id', id)
       .eq('photographer_id', photographer.id)
       .maybeSingle();
     if (!gallery) return NextResponse.json({ error: 'Галерею не знайдено' }, { status: 404 });
 
     const update: Record<string, unknown> = {};
+
+    if ('title' in body) {
+      const title = String(body.title || '').trim();
+      if (!title || title.length > 200) return NextResponse.json({ error: 'Вкажіть назву' }, { status: 400 });
+      update.title = title;
+    }
+    if ('client_name' in body) update.client_name = String(body.client_name || '').trim() || null;
+    if ('shoot_date' in body) update.shoot_date = body.shoot_date || null;
+
+    if ('extend_days' in body) {
+      if (gallery.files_purged_at) return NextResponse.json({ error: 'Файли галереї вже видалено — продовжити неможливо' }, { status: 400 });
+      const days = Number(body.extend_days);
+      if (![30, 60, 90].includes(days)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
+      // Extend from "now or current expiry, whichever is later", capped so a
+      // gallery can't be pushed further than MAX_TERM_DAYS from today.
+      const base = Math.max(Date.now(), new Date(gallery.expires_at).getTime());
+      const cap = Date.now() + MAX_TERM_DAYS * 86400000;
+      update.expires_at = new Date(Math.min(base + days * 86400000, cap)).toISOString();
+    }
 
     if ('cover_photo_id' in body) {
       const coverPhotoId = body.cover_photo_id ? String(body.cover_photo_id) : null;
