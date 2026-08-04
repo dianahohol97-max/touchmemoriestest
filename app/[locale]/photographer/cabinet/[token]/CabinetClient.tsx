@@ -123,7 +123,7 @@ function DiscountBanner({ status }: { status: string | null }) {
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
         Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки та <b>відсоток з замовлень клієнтів</b> за вашим посиланням — подайте коротку заявку фотографа з портфоліо, ми розглянемо її вручну.
       </div>
-      <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+      <a href="/uk/photographers/apply" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
         Подати заявку фотографа
       </a>
     </div>
@@ -187,7 +187,7 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
         <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 12px' }}>
           Рекомендуйте нас клієнтам і отримуйте відсоток з кожного їхнього оплаченого замовлення, а клієнт — знижку 5%. Ця опція вмикається після підтвердження заявки фотографа, разом зі знижкою 10% на друк. Подайте заявку з посиланням на портфоліо, і ми розглянемо її вручну.
         </p>
-        <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, textDecoration: 'none' }}>
+        <a href="/uk/photographers/apply" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, textDecoration: 'none' }}>
           Подати заявку фотографа
         </a>
       </div>

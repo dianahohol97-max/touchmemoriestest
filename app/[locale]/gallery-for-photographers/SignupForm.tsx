@@ -71,7 +71,7 @@ export default function SignupForm({ locale }: { locale: string }) {
         {loading ? 'Створюємо…' : 'Створити кабінет безкоштовно'}
       </button>
       <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>
-        Щоб увімкнути в кабінеті знижку 10% і заробіток з рекомендацій — <a href={`/${locale}/photographers`} style={{ color: '#1e2d7d' }}>подайте заявку фотографа з портфоліо</a>
+        Щоб увімкнути в кабінеті знижку 10% і заробіток з рекомендацій — <a href={`/${locale}/photographers/apply`} style={{ color: '#1e2d7d' }}>подайте заявку фотографа з портфоліо</a>
       </div>
     </form>
   );

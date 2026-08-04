@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import B2bRegisterPage from '@/components/b2b/B2bRegisterPage';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 const TITLE = 'Для фотографів — Touch.Memories';
-const DESCRIPTION = 'Партнерська програма для фотографів: знижка 10% на друк, заробіток з рекомендацій, онлайн-галереї для передачі фото клієнтам і сторінка-візитка з портфоліо.';
+const DESCRIPTION = 'Кабінет фотографа Touch.Memories: онлайн-галереї для передачі фото клієнтам, сторінка-візитка з портфоліо, знижка 10% на друк і заробіток з рекомендацій.';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale: rawLocale } = await params;
@@ -27,40 +26,61 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * The MODERATED photographer application (Diana's decision, 2026-08-04 second
- * pass — an instant-signup version lived here for a few hours and was
- * reverted). The application carries a portfolio link and is reviewed by hand;
- * approval unlocks the two money-bearing perks — the 10% buying discount and
- * the referral earnings — in the photographer cabinet. The cabinet itself
- * (galleries + landing) stays open self-service at /gallery-for-photographers.
+ * Two-button chooser (Diana's ask): «Увійти в кабінет» and «Зареєструватися»,
+ * each leading to its own path. The moderated application form lives at
+ * /photographers/apply; the cabinet entry finds a logged-in photographer's
+ * cabinet or walks a guest through login.
  */
+const BENEFITS: { title: string; text: string }[] = [
+    {
+        title: 'Онлайн-галереї для клієнтів',
+        text: 'Завантажуйте фото зйомки і надсилайте клієнту особисте посилання з вашим логотипом. Фото зберігаються 30 днів, клієнт забирає їх одним ZIP-архівом, реєстрація йому не потрібна.',
+    },
+    {
+        title: 'Сторінка-візитка з бронюванням',
+        text: 'Ваша публічна сторінка з портфоліо, прайсом, контактами і онлайн-записом на зйомку. Оптимізована під пошук Google і може працювати на вашому власному домені.',
+    },
+    {
+        title: 'Знижка 10% на друк',
+        text: 'Постійна знижка на фотокниги, глянцеві журнали, фотодрук і тревелбуки для ваших клієнтських проєктів. Вмикається після схвалення заявки з портфоліо.',
+    },
+    {
+        title: 'Заробіток за рекомендації',
+        text: 'Діліться особистим посиланням із клієнтами після зйомки. Клієнт отримує знижку 5%, а ви — відсоток з кожного оплаченого замовлення, з виплатою на карту від 500 ₴.',
+    },
+];
+
 export default function PhotographersPage() {
     return (
-        <B2bRegisterPage
-            role="photographer"
-            title="Для фотографів"
-            subtitle="Партнерська програма для фотографів: знижка 10% на друк, заробіток з рекомендацій вашим клієнтам, онлайн-галереї для передачі фото та власна сторінка-візитка з портфоліо і прайсом. Заявка розглядається вручну — вкажіть портфоліо або офіційну сторінку."
-            benefits={[
-                'Постійна знижка 10% на фотокниги, глянцеві журнали, фотодрук і travel book — діє автоматично після підтвердження заявки',
-                'Заробіток з рекомендацій: клієнт за вашим посиланням отримує знижку 5%, а ви — відсоток з кожного його оплаченого замовлення, з виплатою на карту від 500 ₴',
-                'Онлайн-галереї для передачі фото клієнтам: особисте посилання, зберігання 30 днів, ZIP-завантаження',
-                'Власна сторінка-візитка з портфоліо, прайсом, контактами і онлайн-записом — оптимізована під Google',
-                'Якісний друк і збірка для ваших клієнтських проєктів',
-                'Зручний онлайн-конструктор для верстки фотокниг',
-            ]}
-            portfolioLabel="Портфоліо або офіційна сторінка"
-            portfolioPlaceholder="Instagram, сайт, Behance — де можна побачити ваші роботи"
-            discountPercent={10}
-            altLink={{
-                text: 'Хочете почати вже зараз? Створіть кабінет — галереї та візитка запрацюють одразу, а знижка й заробіток увімкнуться в ньому після схвалення заявки →',
-                href: '/uk/gallery-for-photographers#signup',
-            }}
-            loginPanel={{
-                title: 'Вже маєте кабінет фотографа?',
-                text: 'Галереї, сторінка-візитка, знижка і реферальна програма живуть в одному кабінеті. Увійдіть тим самим email і паролем, що при реєстрації — і ми відкриємо ваш кабінет.',
-                buttonText: 'Увійти в кабінет',
-                buttonHref: '/uk/photographer/cabinet',
-            }}
-        />
+        <div style={{ background: '#f8fafc', minHeight: '100vh', fontFamily: 'Arial, sans-serif' }}>
+            <div style={{ maxWidth: 920, margin: '0 auto', padding: '48px 16px 80px' }}>
+                <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1e2d7d', margin: '0 0 10px', textAlign: 'center' }}>
+                    Кабінет фотографа Touch.Memories
+                </h1>
+                <p style={{ fontSize: 16, lineHeight: 1.7, color: '#475569', maxWidth: 640, margin: '0 auto 28px', textAlign: 'center' }}>
+                    Один кабінет із усім, що потрібно фотографу для роботи з клієнтами: галереї для передачі фото, власна сторінка з портфоліо, знижка 10% на друк і заробіток з рекомендацій.
+                </p>
+
+                <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 44 }}>
+                    <a href="/uk/photographer/cabinet"
+                        style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
+                        Увійти в кабінет
+                    </a>
+                    <a href="/uk/photographers/apply"
+                        style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#1e2d7d', color: '#fff', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
+                        Зареєструватися
+                    </a>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                    {BENEFITS.map(b => (
+                        <div key={b.title} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: '22px 20px' }}>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>{b.title}</div>
+                            <div style={{ fontSize: 14, lineHeight: 1.65, color: '#475569' }}>{b.text}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 }

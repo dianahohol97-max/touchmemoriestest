@@ -105,7 +105,7 @@ export async function POST(request: Request) {
                 <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Ваш кабінет фотографа створено: галереї для передачі фото клієнтам (зберігання 30 днів) і сторінка-візитка з портфоліо та прайсом.</p>
                 <p style="margin:18px 0 0"><a href="${cabinetUrl}" style="background:#1e2d7d;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет</a></p>
                 <p style="font-size:13px;color:#94a3b8;margin:14px 0 0">Посилання особисте — не передавайте його стороннім. Ваша публічна сторінка: <a href="${site}/uk/photographer/${created.slug}">${site}/uk/photographer/${created.slug}</a></p>
-                <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Хочете знижку 10% на друк і заробіток з рекомендацій? Подайте заявку фотографа з портфоліо: <a href="${site}/uk/photographers">touchmemories.com.ua/uk/photographers</a> — після підтвердження обидві опції увімкнуться у вашому кабінеті.</p>
+                <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Хочете знижку 10% на друк і заробіток з рекомендацій? Подайте заявку фотографа з портфоліо: <a href="${site}/uk/photographers/apply">touchmemories.com.ua/uk/photographers/apply</a> — після підтвердження обидві опції увімкнуться у вашому кабінеті.</p>
               </div>
             </div>`,
         });
