@@ -1,6 +1,8 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { requireStaff, requireAdmin } from '@/lib/auth/guards';
+import { processAgencyCommission } from '@/lib/agency/commission';
+import { processReferralReward } from '@/lib/referral/referral';
 
 // Column allowlist for PATCH. Previously the raw request body went straight
 // into .update(body) under a requireStaff guard, so ANY active staff member
@@ -103,6 +105,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
     }
 
+    // Remember whether this PATCH is the order's FIRST transition to paid —
+    // needs the pre-update state, so read it before writing.
+    let becamePaid = false;
+    if (body.payment_status === 'paid') {
+        const { data: before } = await supabase
+            .from('orders')
+            .select('payment_status')
+            .eq('id', id)
+            .maybeSingle();
+        becamePaid = !!before && before.payment_status !== 'paid';
+    }
+
     const { data, error } = await supabase
         .from('orders')
         .update(body)
@@ -111,5 +125,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // Paid-transition side effects. Every other way an order becomes paid —
+    // the Monobank webhook, «Позначити оплаченим», check-payment, admin
+    // create — runs these two; editing payment_status through this generic
+    // endpoint was the one path that did not. An admin flipping the field in
+    // the order editor therefore silently cost the agency its commission and
+    // the referrer their bonus. Both processors are idempotent, so a repeat
+    // transition is harmless.
+    if (becamePaid) {
+        try {
+            await processAgencyCommission(supabase, {
+                orderId: id,
+                promoCode: (data as any)?.promo_code || null,
+                items: Array.isArray((data as any)?.items) ? (data as any).items : [],
+            });
+        } catch (e) { console.error('[order-patch] agency commission failed (order still updated):', e); }
+        try {
+            await processReferralReward(supabase, {
+                orderId: id,
+                customerId: (data as any)?.customer_id || null,
+                orderTotal: Number((data as any)?.total) || 0,
+            });
+        } catch (e) { console.error('[order-patch] referral reward failed (order still updated):', e); }
+    }
+
     return NextResponse.json({ order: data });
 }

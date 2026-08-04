@@ -236,9 +236,15 @@ export async function proxy(request: NextRequest) {
         `/${targetLocale}${pathname === '/' ? '' : pathname}`,
         request.url
     );
-    // Preserve search params
+    // Preserve search params — INCLUDING ?ref. This used to strip ref from the
+    // redirect and park it in a tm_ref cookie that no code anywhere reads. The
+    // whole client-side referral chain starts with ReferralCapture seeing ?ref
+    // in the URL it mounts on — so for the typical shared link WITHOUT a locale
+    // prefix (touchmemories.com.ua/?ref=CODE) the code silently vanished:
+    // no client discount, no agency commission, no referral. Links that already
+    // carried /uk survived only because they skip this redirect entirely.
     request.nextUrl.searchParams.forEach((v, k) => {
-        if (k !== 'ref') redirectUrl.searchParams.set(k, v);
+        redirectUrl.searchParams.set(k, v);
     });
 
     const response = NextResponse.redirect(redirectUrl);

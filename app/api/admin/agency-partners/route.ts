@@ -146,6 +146,10 @@ export async function POST(request: Request) {
     .select('*')
     .single();
   if (partnerErr) {
+    // Roll the promo row back — without this, a failed partner insert left an
+    // ACTIVE discount code with no partner behind it: a live -N% code nobody
+    // knows exists, invisible in the partners list, redeemable at checkout.
+    await admin.from('promo_codes').delete().eq('id', promo.id);
     return NextResponse.json({ error: `partner create failed: ${partnerErr.message}` }, { status: 500 });
   }
 
