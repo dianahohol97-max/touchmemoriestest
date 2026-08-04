@@ -115,18 +115,16 @@ function DiscountBanner({ status }: { status: string | null }) {
       </div>
     );
   }
-  // No linked customer account yet (b2b status unknown). Since 2026-08-04 the
-  // discount comes WITH the cabinet — new signups get it automatically — so
-  // this branch only shows for cabinets whose customer link is missing, and
-  // logging in with the cabinet's email is what connects the two.
+  // No approved application yet — the discount and referral earnings are
+  // moderated (Diana, 2026-08-04 second pass), so steer to the application.
   return (
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Ваша знижка 10% на друк</div>
+      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Хочете знижку 10% і заробіток з рекомендацій?</div>
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
-        Знижка 10% на фотокниги, журнали, фотодрук і тревелбуки входить у кабінет фотографа. Щоб вона застосувалася, <b>увійдіть в акаунт покупця</b> з тією самою поштою, що й цей кабінет — ціни в каталозі й кошику перерахуються автоматично.
+        Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки та <b>відсоток з замовлень клієнтів</b> за вашим посиланням — подайте коротку заявку фотографа з портфоліо, ми розглянемо її вручну.
       </div>
-      <a href="/uk/login" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-        Увійти в акаунт покупця
+      <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        Подати заявку фотографа
       </a>
     </div>
   );
@@ -166,6 +164,7 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
         const j = await r.json();
         if (!r.ok) throw new Error(j?.error || 'Не вдалося завантажити');
         if (cancelled) return;
+        if (j.pending) { setData({ pending: true }); return; }
         setPartnerToken(j.partner_token);
         await loadSummary(j.partner_token);
       } catch (e: any) {
@@ -178,6 +177,22 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
 
   if (err) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#b91c1c', marginTop: 10, fontSize: 14 }}>{err}</div></div>;
   if (!data) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#94a3b8', marginTop: 10 }}>Завантаження…</div></div>;
+
+  // Gated until the moderated photographer application is approved — the same
+  // review that unlocks the 10% discount unlocks earnings.
+  if (data.pending) {
+    return (
+      <div style={card}>
+        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2>
+        <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 12px' }}>
+          Рекомендуйте нас клієнтам і отримуйте відсоток з кожного їхнього оплаченого замовлення, а клієнт — знижку 5%. Ця опція вмикається після підтвердження заявки фотографа, разом зі знижкою 10% на друк. Подайте заявку з посиланням на портфоліо, і ми розглянемо її вручну.
+        </p>
+        <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, textDecoration: 'none' }}>
+          Подати заявку фотографа
+        </a>
+      </div>
+    );
+  }
 
   const p = data.partner;
   const link = `https://touchmemories.com.ua/?ref=${p.referral_code}`;
@@ -219,7 +234,7 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
     <div style={card}>
       <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2>
       <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 14px' }}>
-        Діліться посиланням із клієнтами після зйомки. Клієнт отримує знижку 5% на замовлення, а ви — {Number(p.travelbook_rate)}% з тревелбуків і {Number(p.other_rate)}% з решти товарів кожного оплаченого замовлення за вашим кодом. Виплата доступна від {minPayout} ₴.
+        Діліться посиланням із клієнтами після зйомки. Клієнт отримує знижку 5% на замовлення, а ви — {Number(p.travelbook_rate)}% з тревелбуків і глянцевих журналів та {Number(p.other_rate)}% з решти товарів кожного оплаченого замовлення за вашим кодом. Виплата доступна від {minPayout} ₴.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>

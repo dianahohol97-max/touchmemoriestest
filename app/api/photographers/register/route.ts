@@ -81,15 +81,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: phError?.message || 'Не вдалося створити кабінет' }, { status: 500 });
     }
 
-    // The cabinet now INCLUDES the 10% buying discount (Diana, 2026-08-04) —
-    // no separate B2B application needed. Grant the verified photographer role
-    // on the linked customer account; the guard keeps an existing
-    // wedding_agency role from being clobbered.
-    await admin
-      .from('customers')
-      .update({ b2b_role: 'photographer', b2b_status: 'verified' })
-      .eq('id', customerId)
-      .or('b2b_role.is.null,b2b_role.eq.photographer');
+    // NO automatic discount here — Diana's decision (2026-08-04, second pass):
+    // the 10% discount and the referral earnings are MODERATED. The cabinet
+    // (galleries + landing) is open self-service, but the money-bearing perks
+    // require the photographer application with a portfolio link, reviewed by
+    // hand. An earlier version auto-granted b2b verified at signup; that lasted
+    // a few hours before being reverted — don't reintroduce it.
 
     const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
     const cabinetUrl = `${site}/uk/photographer/cabinet/${created.cabinet_token}`;
@@ -105,10 +102,10 @@ export async function POST(request: Request) {
               <div style="background:#263A99;padding:24px 28px;text-align:center"><span style="color:#fff;font-size:20px;font-weight:900;letter-spacing:.1em">TOUCH.MEMORIES</span></div>
               <div style="padding:32px 28px;background:#fff;border:1px solid #e2e8f0">
                 <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${escapeHtml(name)}!</h2>
-                <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Ваш кабінет фотографа створено: галереї для передачі фото клієнтам (зберігання 30 днів), сторінка-візитка з портфоліо та прайсом, знижка 10% на фотокниги, журнали, фотодрук і тревелбуки для власних замовлень, а також реферальна програма — діліться посиланням із клієнтами й отримуйте відсоток з їхніх замовлень.</p>
+                <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Ваш кабінет фотографа створено: галереї для передачі фото клієнтам (зберігання 30 днів) і сторінка-візитка з портфоліо та прайсом.</p>
                 <p style="margin:18px 0 0"><a href="${cabinetUrl}" style="background:#1e2d7d;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет</a></p>
                 <p style="font-size:13px;color:#94a3b8;margin:14px 0 0">Посилання особисте — не передавайте його стороннім. Ваша публічна сторінка: <a href="${site}/uk/photographer/${created.slug}">${site}/uk/photographer/${created.slug}</a></p>
-                <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Знижка 10% діє автоматично, коли ви замовляєте, увійшовши в акаунт із цією поштою.</p>
+                <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Хочете знижку 10% на друк і заробіток з рекомендацій? Подайте заявку фотографа з портфоліо: <a href="${site}/uk/photographers">touchmemories.com.ua/uk/photographers</a> — після підтвердження обидві опції увімкнуться у вашому кабінеті.</p>
               </div>
             </div>`,
         });

@@ -28,6 +28,20 @@ export async function GET(req: NextRequest) {
 
   const admin = getAdminClient();
 
+  // MODERATION GATE (Diana, 2026-08-04 second pass): referral earnings are a
+  // money-bearing perk and require the approved photographer application, the
+  // same review that unlocks the 10% discount. Without it the section shows a
+  // "подайте заявку" state instead of enrolling. Checked on every call, so an
+  // approval later unlocks it with no extra step — and a partner row that
+  // already exists (enrolled while verified) keeps working.
+  const { data: cust } = photographer.customer_id
+    ? await admin.from('customers').select('b2b_role, b2b_status').eq('id', photographer.customer_id).maybeSingle()
+    : { data: null };
+  const isVerified = cust?.b2b_role === 'photographer' && cust?.b2b_status === 'verified';
+  if (!isVerified && !(photographer as any).partner_id) {
+    return NextResponse.json({ pending: true });
+  }
+
   // Already enrolled?
   if ((photographer as any).partner_id) {
     const { data: partner } = await admin

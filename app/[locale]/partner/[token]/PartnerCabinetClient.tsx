@@ -147,7 +147,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                 <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ваш промокод</div>
                 <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '0.1em', color: '#1e2d7d' }}>{data.referral_code}</div>
                 <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
-                    Комісія: {data.travelbook_rate}% з тревелбуків · {data.other_rate}% з решти товарів
+                    Комісія: {data.travelbook_rate}% з тревелбуків і журналів · {data.other_rate}% з решти товарів
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 }}>
                     <button style={btnGhost} onClick={() => copy(data.referral_code, 'Промокод скопійовано')}>Скопіювати код</button>
@@ -223,7 +223,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             <div style={{ ...card, background: '#f8fafc' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Умови партнерства</div>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#475569', lineHeight: 1.8 }}>
-                    <li>Ваша комісія: <b>{data.travelbook_rate}%</b> з тревелбуків, <b>{data.other_rate}%</b> з решти товарів — нараховується автоматично після оплати замовлення за вашим кодом чи посиланням.</li>
+                    <li>Ваша комісія: <b>{data.travelbook_rate}%</b> з тревелбуків і глянцевих журналів, <b>{data.other_rate}%</b> з решти товарів — нараховується автоматично після оплати замовлення за вашим кодом чи посиланням.</li>
                     <li>Клієнт за вашим кодом отримує знижку на замовлення.</li>
                     <li>Сертифікати для дарування — зі знижкою <b>10%</b> (у цьому кабінеті), діють 3 місяці, зберігають повний номінал.</li>
                     <li>Виплата комісії — від <b>{uah(minPayout)}</b>, на вказаний вами рахунок.</li>

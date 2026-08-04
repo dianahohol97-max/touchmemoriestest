@@ -1,13 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * A travelbook item is identified by its slug. All travelbook products use a
- * slug starting with "travelbook" and sit in the "travelbooks" category. We
- * match on the slug prefix (robust to size variants like travelbook-20x30).
+ * The PREMIUM commission bucket — earns travelbook_rate (default 5%); every
+ * other item earns other_rate (default 3%).
+ *
+ * Diana's rule (2026-08-04): «5% на тревелбуки і журнали, решта 3%». The
+ * bucket therefore holds travelbooks AND glossy magazines. The column keeps
+ * its historical name travelbook_rate — renaming it would touch every payout
+ * query for no behavioural gain; this matcher is the single place that
+ * decides what the rate applies to.
+ *
+ * Matched by slug/name substrings, robust to size variants
+ * (travelbook-20x30) and to the magazine slugs actually in the catalog
+ * (personalized-glossy-magazine, фотожурнал…).
  */
-function isTravelbookItem(item: any): boolean {
-  const slug = String(item?.slug || '').toLowerCase();
-  return slug.startsWith('travelbook') || slug.includes('travel-book');
+function isPremiumRateItem(item: any): boolean {
+  const hay = `${String(item?.slug || '')} ${String(item?.product_name || item?.name || '')}`.toLowerCase();
+  return hay.includes('travelbook') || hay.includes('travel-book') || hay.includes('travel book')
+    || hay.includes('magazine') || hay.includes('zhurnal') || hay.includes('журнал');
 }
 
 function itemTotal(item: any): number {
@@ -60,7 +70,7 @@ export async function processAgencyCommission(
   let otherSubtotal = 0;
   for (const item of Array.isArray(items) ? items : []) {
     const total = itemTotal(item);
-    if (isTravelbookItem(item)) travelbookSubtotal += total;
+    if (isPremiumRateItem(item)) travelbookSubtotal += total;
     else otherSubtotal += total;
   }
 
