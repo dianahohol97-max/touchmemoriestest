@@ -27,8 +27,9 @@ interface Gallery {
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
   cover_photo_id: string | null;
+  design: Record<string, string> | null;
 }
-interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean }
+interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean; media_type?: 'photo' | 'video' }
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 20 };
 const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 4, marginTop: 12 };
@@ -335,6 +336,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   const [openUpload, setOpenUpload] = useState<string | null>(null);
   const [openPicks, setOpenPicks] = useState<string | null>(null);
   const [openCover, setOpenCover] = useState<string | null>(null);
+  const [openDesign, setOpenDesign] = useState<string | null>(null);
 
   const create = async () => {
     if (!title.trim() || creating) return;
@@ -414,19 +416,22 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               {g.favorite_count > 0 && (
                 <button
                   style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a' }}
-                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); setOpenCover(null); }}
+                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); setOpenCover(null); setOpenDesign(null); }}
                 >
                   {openPicks === g.id ? 'Згорнути' : `♥ Обрані клієнтом (${g.favorite_count})`}
                 </button>
               )}
-              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); setOpenCover(null); }}>
-                {openUpload === g.id ? 'Згорнути' : 'Завантажити фото'}
+              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); setOpenCover(null); setOpenDesign(null); }}>
+                {openUpload === g.id ? 'Згорнути' : 'Завантажити фото/відео'}
               </button>
               {g.photo_count > 0 && (
-                <button style={btnGhost} onClick={() => { setOpenCover(openCover === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); }}>
+                <button style={btnGhost} onClick={() => { setOpenCover(openCover === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); setOpenDesign(null); }}>
                   {openCover === g.id ? 'Згорнути' : 'Обкладинка'}
                 </button>
               )}
+              <button style={btnGhost} onClick={() => { setOpenDesign(openDesign === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); setOpenCover(null); }}>
+                {openDesign === g.id ? 'Згорнути' : 'Дизайн'}
+              </button>
             </div>
           )}
           {openPicks === g.id && <ClientPicks token={token} galleryId={g.id} />}
@@ -434,6 +439,10 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           {openCover === g.id && (
             <CoverPicker token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
               onDone={async () => { await onChanged(); }} flash={flash} />
+          )}
+          {openDesign === g.id && (
+            <DesignPanel token={token} galleryId={g.id} design={g.design}
+              clientToken={g.client_token} onDone={onChanged} flash={flash} />
           )}
         </div>
       ))}
@@ -484,8 +493,76 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
   );
 }
 
-/** Pick the photo shown fullscreen at the top of the client gallery.
- *  Reuses the cabinet photos endpoint; saving goes through PATCH
+/** Gallery design constructor: background, display font, font size and cover
+ *  layout. Each click saves immediately via PATCH (the server merges and
+ *  validates against the whitelists in lib/photographers/gallery-design). */
+function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
+  token: string; galleryId: string; design: Record<string, string> | null;
+  clientToken: string; onDone: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [current, setCurrent] = useState<Record<string, string>>({
+    bg: design?.bg || 'light',
+    font: design?.font || 'playfair',
+    font_scale: design?.font_scale || 'm',
+    cover: design?.cover || 'classic',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const save = async (key: string, value: string) => {
+    if (saving) return;
+    const prev = current;
+    setCurrent(c => ({ ...c, [key]: value }));
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/photographers/galleries/${galleryId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, design: { [key]: value } }),
+      });
+      if (!res.ok) { setCurrent(prev); alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
+      await onDone();
+      flash('Дизайн збережено');
+    } finally { setSaving(false); }
+  };
+
+  const group: React.CSSProperties = { marginTop: 12 };
+  const groupLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 };
+  const row: React.CSSProperties = { display: 'flex', gap: 6, flexWrap: 'wrap' };
+  const opt = (active: boolean): React.CSSProperties => ({
+    padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    border: active ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+    background: active ? '#eef3ff' : '#fff', color: '#1f2937',
+  });
+
+  const OPTIONS: { key: string; label: string; items: [string, string][] }[] = [
+    { key: 'bg', label: 'Колір фону', items: [['light', 'Світлий'], ['cream', 'Кремовий'], ['dark', 'Темний']] },
+    { key: 'font', label: 'Шрифт заголовків', items: [['playfair', 'Playfair — класичний'], ['cormorant', 'Cormorant — витончений'], ['montserrat', 'Montserrat — сучасний'], ['caveat', 'Caveat — рукописний']] },
+    { key: 'font_scale', label: 'Розмір шрифту', items: [['s', 'Компактний'], ['m', 'Стандартний'], ['l', 'Великий']] },
+    { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
+  ];
+
+  return (
+    <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+      {OPTIONS.map(o => (
+        <div key={o.key} style={o.key === 'bg' ? undefined : group}>
+          <div style={groupLabel}>{o.label}</div>
+          <div style={row}>
+            {o.items.map(([val, label]) => (
+              <button key={val} type="button" style={opt(current[o.key] === val)} onClick={() => save(o.key, val)} disabled={saving}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12 }}>
+        Зміни зберігаються одразу — <a href={`/uk/gallery/${clientToken}`} target="_blank" rel="noreferrer" style={{ color: '#1e2d7d' }}>відкрийте галерею</a>, щоб побачити результат.
+      </div>
+    </div>
+  );
+}
+
+/** Pick the photo (or video) shown fullscreen at the top of the client
+ *  gallery. Reuses the cabinet photos endpoint; saving goes through PATCH
  *  /api/photographers/galleries/[id]. */
 function CoverPicker({ token, galleryId, coverPhotoId, onDone, flash }: {
   token: string; galleryId: string; coverPhotoId: string | null;
@@ -533,16 +610,26 @@ function CoverPicker({ token, galleryId, coverPhotoId, onDone, flash }: {
   return (
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 12 }}>
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
-        Оберіть фото для обкладинки — клієнт побачить його на весь екран, відкривши галерею. Без вибору використовується перше фото.
+        Оберіть фото або відео для обкладинки — клієнт побачить його на весь екран, відкривши галерею. Без вибору використовується перше фото.
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
         {photos.map(p => (
           <button key={p.id} type="button" onClick={() => save(p.id)} disabled={saving}
             title={p.file_name}
             style={{ padding: 0, border: selected === p.id ? '3px solid #1e2d7d' : '3px solid transparent', borderRadius: 10, cursor: 'pointer', background: 'none', position: 'relative' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={p.file_name} loading="lazy"
-                 style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+            {p.media_type === 'video' ? (
+              <video src={p.url} muted playsInline preload="metadata"
+                     style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={p.url} alt={p.file_name} loading="lazy"
+                   style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+            )}
+            {p.media_type === 'video' && (
+              <span style={{ position: 'absolute', left: 4, bottom: 4, background: 'rgba(15,18,30,0.65)', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '2px 7px' }}>
+                ▶ відео
+              </span>
+            )}
             {selected === p.id && (
               <span style={{ position: 'absolute', top: 4, right: 4, background: '#1e2d7d', color: '#fff', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '2px 8px' }}>
                 Обкладинка
@@ -562,34 +649,65 @@ function UploadZone({ token, galleryId, onDone, flash }: {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
 
+  // Фото йдуть multipart через наш API (один файл на запит — перевірений у
+  // проєкті патерн). Відео більші за ліміт тіла функції, тож ідуть напряму в
+  // сховище: API видає одноразовий підписаний URL → браузер робить PUT →
+  // API підтверджує і реєструє запис (media_type 'video').
+  const uploadVideo = async (f: File): Promise<string | null> => {
+    const signRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, stage: 'sign', file_name: f.name, size: f.size, content_type: f.type }),
+    });
+    const signJson = await signRes.json();
+    if (!signRes.ok) return signJson?.error || 'Не вдалося підготувати аплоад';
+
+    const putRes = await fetch(signJson.signed_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': f.type || 'video/mp4' },
+      body: f,
+    });
+    if (!putRes.ok) return `Аплоад «${f.name}» не вдався (${putRes.status})`;
+
+    const confirmRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, stage: 'confirm', path: signJson.path, file_name: f.name }),
+    });
+    const confirmJson = await confirmRes.json();
+    if (!confirmRes.ok) return confirmJson?.error || 'Не вдалося зареєструвати відео';
+    return null;
+  };
+
   const upload = async (files: FileList | null) => {
     if (!files || files.length === 0 || busy) return;
     setBusy(true);
     try {
       const all = Array.from(files);
-      // Один файл на запит — перевірений у проєкті патерн (/api/upload/order-file):
-      // великі multipart-тіла з кількох фото ризикують упертись у ліміт функції.
       let done = 0;
       for (const f of all) {
-        const fd = new FormData();
-        fd.append('token', token);
-        fd.append('files', f);
-        const res = await fetch(`/api/photographers/galleries/${galleryId}/photos`, { method: 'POST', body: fd });
-        const json = await res.json();
-        if (!res.ok) { alert(json?.error || 'Помилка аплоаду'); break; }
+        if (f.type.startsWith('video/')) {
+          const err = await uploadVideo(f);
+          if (err) { alert(err); break; }
+        } else {
+          const fd = new FormData();
+          fd.append('token', token);
+          fd.append('files', f);
+          const res = await fetch(`/api/photographers/galleries/${galleryId}/photos`, { method: 'POST', body: fd });
+          const json = await res.json();
+          if (!res.ok) { alert(json?.error || 'Помилка аплоаду'); break; }
+        }
         done += 1;
         setProgress(`${done}/${all.length}`);
       }
       await onDone();
-      if (done > 0) flash(`Завантажено ${done} фото`);
+      if (done > 0) flash(`Завантажено ${done} файл(ів)`);
     } finally { setBusy(false); setProgress(''); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   return (
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
-      <input ref={fileRef} type="file" accept="image/*" multiple onChange={e => upload(e.target.files)} disabled={busy} />
+      <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={e => upload(e.target.files)} disabled={busy} />
       {busy && <div style={{ marginTop: 8, color: '#1e2d7d', fontWeight: 700, fontSize: 14 }}>Завантажуємо… {progress}</div>}
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Лише зображення, до 25 МБ кожне, до 500 фото в галереї.</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Фото до 25 МБ, відео до 200 МБ, разом до 500 файлів у галереї.</div>
     </div>
   );
 }

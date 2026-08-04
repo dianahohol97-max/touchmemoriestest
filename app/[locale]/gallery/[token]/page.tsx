@@ -1,18 +1,32 @@
 import type { Metadata } from 'next';
-import { Playfair_Display } from 'next/font/google';
+import { Playfair_Display, Cormorant_Garamond, Caveat } from 'next/font/google';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getBaseUrl } from '@/lib/seo/locales';
 import GalleryClient from './GalleryClient';
 
 export const dynamic = 'force-dynamic';
 
-// Elegant serif for the gallery hero/title — the Pixieset-style look Diana
-// asked for. Cyrillic subset is required: gallery titles are Ukrainian.
+// Display fonts the photographer can pick in the gallery design constructor.
+// Cyrillic subsets are required — gallery titles are Ukrainian. Montserrat is
+// NOT loaded here: the root layout already provides it as --font-heading.
 const serif = Playfair_Display({
   subsets: ['latin', 'cyrillic'],
   weight: ['400', '500', '600'],
   style: ['normal', 'italic'],
   variable: '--font-gallery-serif',
+  display: 'swap',
+});
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-gallery-cormorant',
+  display: 'swap',
+});
+const caveat = Caveat({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '600'],
+  variable: '--font-gallery-caveat',
   display: 'swap',
 });
 
@@ -60,7 +74,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ClientGalleryPage({ params }: Props) {
   const { token } = await params;
   return (
-    <div className={serif.variable}>
+    <div className={`${serif.variable} ${cormorant.variable} ${caveat.variable}`}>
       <GalleryClient token={token} />
     </div>
   );

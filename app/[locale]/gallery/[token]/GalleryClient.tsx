@@ -2,8 +2,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './GalleryClient.module.css';
+import type { GalleryDesign } from '@/lib/photographers/gallery-design';
 
-interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean }
+interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean; media_type: 'photo' | 'video' }
 interface GalleryData {
   title: string;
   client_name: string | null;
@@ -12,6 +13,8 @@ interface GalleryData {
   days_left: number;
   expired: boolean;
   cover_url: string | null;
+  cover_type: 'photo' | 'video';
+  design: GalleryDesign;
   photos: Photo[];
   photographer: {
     name: string; bio: string | null; phone: string | null; instagram: string | null;
@@ -23,6 +26,15 @@ interface GalleryData {
 // Fixed skeleton heights so the loading grid has a natural masonry rhythm
 // without needing Math.random (which would differ per render).
 const SKELETON_HEIGHTS = [220, 300, 180, 260, 340, 200, 280, 240, 320, 190, 300, 230];
+
+// Design constructor → CSS. Montserrat comes from the root layout var.
+const FONT_VARS: Record<GalleryDesign['font'], string> = {
+  playfair: 'var(--font-gallery-serif), Georgia, serif',
+  cormorant: 'var(--font-gallery-cormorant), Georgia, serif',
+  montserrat: 'var(--font-heading), system-ui, sans-serif',
+  caveat: 'var(--font-gallery-caveat), cursive',
+};
+const FONT_SCALES: Record<GalleryDesign['font_scale'], number> = { s: 0.82, m: 1, l: 1.22 };
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -122,7 +134,7 @@ export default function GalleryClient({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <div className={styles.page}>
+      <div className={`${styles.page} ${styles.themeLight}`}>
         <div className={styles.heroSkeleton} aria-hidden />
         <div className={styles.container}>
           <div className={styles.grid} aria-hidden>
@@ -135,6 +147,13 @@ export default function GalleryClient({ token }: { token: string }) {
     );
   }
   if (error || !data) return <Centered>{error || 'Галерею не знайдено'}</Centered>;
+
+  const design = data.design;
+  const themeClass = design.bg === 'dark' ? styles.themeDark : design.bg === 'cream' ? styles.themeCream : styles.themeLight;
+  const designStyle = {
+    '--g-display': FONT_VARS[design.font] || FONT_VARS.playfair,
+    '--g-scale': FONT_SCALES[design.font_scale] ?? 1,
+  } as React.CSSProperties;
 
   const p = data.photographer;
   const contacts = [
@@ -154,12 +173,12 @@ export default function GalleryClient({ token }: { token: string }) {
 
   if (data.expired) {
     return (
-      <div className={styles.page}>
+      <div className={`${styles.page} ${themeClass}`} style={designStyle}>
         <div className={styles.expiredWrap}>
           <div className={styles.expiredCard}>
-            <div className={styles.heroKicker}>{p.name}</div>
+            <div className={`${styles.heroKicker} ${styles.onPanel}`}>{p.name}</div>
             <h1 className={styles.expiredTitle}>{data.title}</h1>
-            <div className={styles.heroDivider} style={{ background: '#d8cdbb' }} />
+            <div className={`${styles.heroDivider} ${styles.dividerPanel}`} />
             <p className={styles.expiredText}>
               Термін зберігання галереї минув. Фото зберігалися 30 днів і були видалені автоматично.
               Якщо вони вам потрібні — зверніться до фотографа.
@@ -175,26 +194,52 @@ export default function GalleryClient({ token }: { token: string }) {
     );
   }
 
+  const coverMedia = data.cover_url
+    ? (data.cover_type === 'video'
+      ? <video src={data.cover_url} className={styles.heroImg} autoPlay muted loop playsInline />
+      // eslint-disable-next-line @next/next/no-img-element
+      : <img src={data.cover_url} alt="" className={styles.heroImg} />)
+    : <div className={styles.heroFallback} />;
+
+  const heroText = (onMedia: boolean) => (
+    <>
+      <div className={`${styles.heroKicker} ${onMedia ? '' : styles.onPanel}`}>{p.name}</div>
+      <h1 className={styles.heroTitle}>{data.title}</h1>
+      <div className={`${styles.heroDivider} ${onMedia ? '' : styles.dividerPanel}`} />
+      {meta && <div className={`${styles.heroMeta} ${onMedia ? '' : styles.onPanel}`}>{meta}</div>}
+      <button
+        type="button"
+        className={`${styles.heroScroll} ${onMedia ? '' : styles.heroScrollPanel}`}
+        onClick={scrollToGrid}
+        aria-label="Перейти до фото"
+      >
+        <span className={styles.heroScrollText}>Переглянути</span>
+        <span className={styles.heroChevron} aria-hidden>⌄</span>
+      </button>
+    </>
+  );
+
   return (
-    <div className={styles.page}>
-      {/* ── Fullscreen cover hero ── */}
-      <section className={styles.hero}>
-        {data.cover_url
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={data.cover_url} alt="" className={styles.heroImg} />
-          : <div className={styles.heroFallback} />}
-        <div className={styles.heroShade} />
-        <div className={styles.heroContent}>
-          <div className={styles.heroKicker}>{p.name}</div>
-          <h1 className={styles.heroTitle}>{data.title}</h1>
-          <div className={styles.heroDivider} />
-          {meta && <div className={styles.heroMeta}>{meta}</div>}
-        </div>
-        <button type="button" className={styles.heroScroll} onClick={scrollToGrid} aria-label="Перейти до фото">
-          <span className={styles.heroScrollText}>Переглянути</span>
-          <span className={styles.heroChevron} aria-hidden>⌄</span>
-        </button>
-      </section>
+    <div className={`${styles.page} ${themeClass}`} style={designStyle}>
+      {/* ── Cover hero: the layout the photographer picked ── */}
+      {design.cover === 'split' ? (
+        <section className={styles.heroSplit}>
+          <div className={styles.splitPanel}>
+            <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>{heroText(false)}</div>
+          </div>
+          <div className={styles.splitMedia}>{coverMedia}</div>
+        </section>
+      ) : design.cover === 'minimal' ? (
+        <section className={styles.heroMinimal}>
+          <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>{heroText(false)}</div>
+        </section>
+      ) : (
+        <section className={`${styles.hero} ${design.cover === 'bottom' ? styles.heroBottom : ''}`}>
+          {coverMedia}
+          <div className={styles.heroShade} />
+          <div className={styles.heroContent}>{heroText(true)}</div>
+        </section>
+      )}
 
       {/* ── Sticky toolbar ── */}
       <div className={styles.bar}>
@@ -247,9 +292,16 @@ export default function GalleryClient({ token }: { token: string }) {
           <div className={styles.grid}>
             {visible.map((photo, i) => (
               <div key={photo.id} className={styles.tile}>
-                <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`Відкрити фото ${i + 1}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo.url} alt={photo.file_name} loading="lazy" />
+                <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`Відкрити ${photo.media_type === 'video' ? 'відео' : 'фото'} ${i + 1}`}>
+                  {photo.media_type === 'video' ? (
+                    <>
+                      <video src={photo.url} className={styles.tileVideo} preload="metadata" muted playsInline />
+                      <span className={styles.playBadge} aria-hidden>▶</span>
+                    </>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photo.url} alt={photo.file_name} loading="lazy" />
+                  )}
                 </button>
                 <button
                   type="button"
@@ -313,7 +365,7 @@ export default function GalleryClient({ token }: { token: string }) {
               >
                 {current.favorite ? '♥' : '♡'}
               </button>
-              <a href={current.url} download={current.file_name} className={styles.lbIconBtn} aria-label="Завантажити фото">⬇</a>
+              <a href={current.url} download={current.file_name} className={styles.lbIconBtn} aria-label="Завантажити">⬇</a>
               <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label="Закрити">✕</button>
             </div>
           </div>
@@ -335,8 +387,13 @@ export default function GalleryClient({ token }: { token: string }) {
             >›</button>
           )}
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current.url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
+          {current.media_type === 'video' ? (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video src={current.url} className={styles.lbImg} controls autoPlay playsInline onClick={e => e.stopPropagation()} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={current.url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
+          )}
         </div>
       )}
     </div>
