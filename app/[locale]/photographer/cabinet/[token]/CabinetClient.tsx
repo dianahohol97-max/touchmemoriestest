@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { LANDING_THEMES } from '@/lib/photographers/themes';
+import { Navigation } from '@/components/ui/Navigation';
+import { Footer } from '@/components/ui/Footer';
 
 interface Profile {
   id: string; slug: string; name: string; bio: string | null; email: string;
@@ -66,7 +68,12 @@ export default function CabinetClient({ token }: { token: string }) {
   if (error || !profile) return <Centered>{error || 'Кабінет не знайдено'}</Centered>;
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 16px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937', background: '#f8fafc' }}>
+    // Site header + footer wrap the cabinet (Diana: «в кабінеті фотографа
+    // немає хедера та футера») — paddingTop clears the fixed Navigation.
+    <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Navigation />
+    <main style={{ flex: 1, paddingTop: 110 }}>
+    <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 16px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', margin: '0 0 4px' }}>Кабінет фотографа</h1>
       {profile.landing_enabled ? (
         <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
@@ -100,6 +107,9 @@ export default function CabinetClient({ token }: { token: string }) {
         </>
       )}
     </div>
+    </main>
+    <Footer categories={[]} />
+    </div>
   );
 }
 
@@ -113,11 +123,16 @@ function DiscountBanner({ status }: { status: string | null }) {
       <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
         <div style={{ fontWeight: 800, color: '#065f46', fontSize: 15, marginBottom: 2 }}>Ваша знижка 10% активна</div>
         <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
-          Щоб купувати фотокниги, журнали, фотодрук і тревелбуки зі знижкою — <b>увійдіть у свій акаунт покупця</b> (той самий email і пароль, що при реєстрації). Ціна зі знижкою враховується автоматично в каталозі й кошику.
+          Замовлення робиться як звичайна покупка на сайті: <b>увійдіть у свій акаунт покупця</b> (той самий email і пароль, що при реєстрації), оберіть товар у каталозі — і ціна зі знижкою застосується автоматично в каталозі та кошику, жодних промокодів вводити не треба.
         </div>
-        <a href="/uk/login" style={{ display: 'inline-block', background: '#065f46', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-          Увійти в акаунт, щоб купувати зі знижкою
-        </a>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <a href="/uk" style={{ display: 'inline-block', background: '#065f46', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+            Перейти до каталогу
+          </a>
+          <a href="/uk/login" style={{ display: 'inline-block', background: '#fff', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+            Увійти в акаунт
+          </a>
+        </div>
       </div>
     );
   }

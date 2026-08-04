@@ -16,7 +16,12 @@ export async function GET(req: NextRequest) {
     .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design, photographer_gallery_photos(count)')
     .eq('photographer_id', photographer.id)
     .order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    // 500s here showed up in Vercel logs with no cause (2026-08-04, PostgREST
+    // schema-cache staleness after adding columns) — always log the reason.
+    console.error('[photographers/galleries] list failed:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   // How many photos the client hearted in each gallery (what to print).
   // Favorite selections are small, so one flat query + JS tally is cheapest.
