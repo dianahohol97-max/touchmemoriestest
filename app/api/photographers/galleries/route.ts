@@ -13,7 +13,11 @@ export async function GET(req: NextRequest) {
   const admin = getAdminClient();
   const { data: galleries, error } = await admin
     .from('photographer_galleries')
-    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design, photographer_gallery_photos(count)')
+    // The !gallery_id hint is REQUIRED: cover_photo_id added a second FK
+    // between these tables, and an unhinted embed makes PostgREST fail with
+    // "more than one relationship was found" (broke the cabinet list,
+    // 2026-08-04). Count through the child's gallery_id relationship.
+    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design, photographer_gallery_photos!gallery_id(count)')
     .eq('photographer_id', photographer.id)
     .order('created_at', { ascending: false });
   if (error) {
