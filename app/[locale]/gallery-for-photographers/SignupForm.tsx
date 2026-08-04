@@ -55,7 +55,7 @@ export default function SignupForm({ locale }: { locale: string }) {
   return (
     <form onSubmit={submit} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px 22px', maxWidth: 460, margin: '0 auto', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
       <div style={{ fontWeight: 800, fontSize: 18, color: '#1e2d7d' }}>Створити кабінет</div>
-      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Без заявок і модерації — одразу. Знижка 10% оформлюється окремо.</div>
+      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Галереї та сторінка-візитка запрацюють одразу, без модерації. Знижка 10% і заробіток з рекомендацій увімкнуться в цьому ж кабінеті після схвалення вашої заявки фотографа.</div>
 
       <label style={label}>Ім&apos;я або назва студії *</label>
       <input style={input} value={name} onChange={e => setName(e.target.value)} placeholder="Олена Коваленко" />
@@ -71,7 +71,7 @@ export default function SignupForm({ locale }: { locale: string }) {
         {loading ? 'Створюємо…' : 'Створити кабінет безкоштовно'}
       </button>
       <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>
-        Хочете ще й знижку 10% на товари? <a href={`/${locale}/photographers`} style={{ color: '#1e2d7d' }}>Подайте заявку фотографа</a>
+        Щоб увімкнути в кабінеті знижку 10% і заробіток з рекомендацій — <a href={`/${locale}/photographers`} style={{ color: '#1e2d7d' }}>подайте заявку фотографа з портфоліо</a>
       </div>
     </form>
   );

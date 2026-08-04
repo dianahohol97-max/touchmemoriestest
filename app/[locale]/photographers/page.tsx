@@ -52,7 +52,7 @@ export default function PhotographersPage() {
             portfolioPlaceholder="Instagram, сайт, Behance — де можна побачити ваші роботи"
             discountPercent={10}
             altLink={{
-                text: 'Не потрібна знижка? Створіть лише кабінет галерей і візитку — без заявки →',
+                text: 'Хочете почати вже зараз? Створіть кабінет — галереї та візитка запрацюють одразу, а знижка й заробіток увімкнуться в ньому після схвалення заявки →',
                 href: '/uk/gallery-for-photographers#signup',
             }}
             cabinetLink={{
