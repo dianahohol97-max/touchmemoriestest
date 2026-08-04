@@ -463,7 +463,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           )}
           {openDesign === g.id && (
             <DesignPanel token={token} galleryId={g.id} design={g.design}
-              clientToken={g.client_token} onDone={onChanged} flash={flash} />
+              clientToken={g.client_token} photoCount={g.photo_count} onDone={onChanged} flash={flash} />
           )}
         </div>
       ))}
@@ -517,9 +517,9 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
 /** Gallery design constructor: background, display font, font size and cover
  *  layout. Each click saves immediately via PATCH (the server merges and
  *  validates against the whitelists in lib/photographers/gallery-design). */
-function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
+function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone, flash }: {
   token: string; galleryId: string; design: Record<string, string> | null;
-  clientToken: string; onDone: () => Promise<void>; flash: (m: string) => void;
+  clientToken: string; photoCount: number; onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [current, setCurrent] = useState<Record<string, string>>({
     bg: design?.bg || 'light',
@@ -529,6 +529,9 @@ function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
     lang: design?.lang || 'uk',
   });
   const [saving, setSaving] = useState(false);
+  // Bumped after every saved change — remounts the preview iframe so the
+  // photographer sees the result immediately, without leaving the cabinet.
+  const [previewKey, setPreviewKey] = useState(0);
 
   const save = async (key: string, value: string) => {
     if (saving) return;
@@ -542,6 +545,7 @@ function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
       });
       if (!res.ok) { setCurrent(prev); alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
       await onDone();
+      setPreviewKey(k => k + 1);
       flash('Дизайн збережено');
     } finally { setSaving(false); }
   };
@@ -578,8 +582,29 @@ function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
           </div>
         </div>
       ))}
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 12 }}>
-        Зміни зберігаються одразу — <a href={`/uk/gallery/${clientToken}`} target="_blank" rel="noreferrer" style={{ color: '#1e2d7d' }}>відкрийте галерею</a>, щоб побачити результат.
+      {/* Live preview: the REAL client page in a scaled-down iframe (2× size,
+          0.5 scale ≈ desktop viewport), remounted after each save. Honest by
+          construction — no separate preview markup to drift out of sync. */}
+      <div style={{ marginTop: 16, border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid #eef2f7', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Так галерею побачить клієнт</span>
+          <a href={`/uk/gallery/${clientToken}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#1e2d7d', fontWeight: 700 }}>
+            Відкрити повністю ↗
+          </a>
+        </div>
+        <div style={{ height: 460, overflow: 'hidden' }}>
+          <iframe
+            key={previewKey}
+            src={`/uk/gallery/${clientToken}`}
+            title="Попередній перегляд галереї"
+            style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none' }}
+          />
+        </div>
+        {photoCount === 0 && (
+          <div style={{ fontSize: 12, color: '#94a3b8', padding: '8px 12px', borderTop: '1px solid #eef2f7' }}>
+            Поки в галереї немає фото, обкладинка показується як заглушка — завантажте фото, і превʼю оновиться з вашим знімком.
+          </div>
+        )}
       </div>
     </div>
   );
