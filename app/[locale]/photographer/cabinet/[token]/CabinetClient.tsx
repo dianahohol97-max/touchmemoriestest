@@ -79,6 +79,7 @@ export default function CabinetClient({ token }: { token: string }) {
       {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 8, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
 
       <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
+      <ReferralSection token={token} flash={flash} />
       <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
       <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
@@ -114,15 +115,179 @@ function DiscountBanner({ status }: { status: string | null }) {
       </div>
     );
   }
+  // No linked customer account yet (b2b status unknown). Since 2026-08-04 the
+  // discount comes WITH the cabinet — new signups get it automatically — so
+  // this branch only shows for cabinets whose customer link is missing, and
+  // logging in with the cabinet's email is what connects the two.
   return (
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Хочете знижку 10% на друк?</div>
+      <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Ваша знижка 10% на друк</div>
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
-        Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки для клієнтських проєктів — подайте коротку заявку фотографа.
+        Знижка 10% на фотокниги, журнали, фотодрук і тревелбуки входить у кабінет фотографа. Щоб вона застосувалася, <b>увійдіть в акаунт покупця</b> з тією самою поштою, що й цей кабінет — ціни в каталозі й кошику перерахуються автоматично.
       </div>
-      <a href="/uk/photographers" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-        Подати заявку на знижку 10%
+      <a href="/uk/login" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+        Увійти в акаунт покупця
       </a>
+    </div>
+  );
+}
+
+/* ── Реферальна програма ─────────────────────────────────────────────── */
+
+/**
+ * The photographer's referral block. Enrolment and all money movement live in
+ * the SAME program travel agencies use: GET /api/photographers/referral
+ * lazily creates the agency_partners row (kind 'photographer') and hands back
+ * that partner's token; summary + payout account + payout requests then go
+ * through the existing /api/partnership/partner API, so there is exactly one
+ * payout pipeline and the photographer appears in the admin partners list.
+ */
+function ReferralSection({ token, flash }: { token: string; flash: (m: string) => void }) {
+  const [data, setData] = useState<any>(null);
+  const [partnerToken, setPartnerToken] = useState<string>('');
+  const [err, setErr] = useState('');
+  const [account, setAccount] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const loadSummary = async (pt: string) => {
+    const r = await fetch(`/api/partnership/partner?token=${encodeURIComponent(pt)}`);
+    const j = await r.json();
+    if (!r.ok) throw new Error(j?.error || 'Не вдалося завантажити');
+    setData(j);
+    setAccount(j?.partner?.payout_account || '');
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/photographers/referral?token=${encodeURIComponent(token)}`);
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.error || 'Не вдалося завантажити');
+        if (cancelled) return;
+        setPartnerToken(j.partner_token);
+        await loadSummary(j.partner_token);
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message || 'Помилка завантаження');
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  if (err) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#b91c1c', marginTop: 10, fontSize: 14 }}>{err}</div></div>;
+  if (!data) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#94a3b8', marginTop: 10 }}>Завантаження…</div></div>;
+
+  const p = data.partner;
+  const link = `https://touchmemories.com.ua/?ref=${p.referral_code}`;
+  const minPayout = Number(data.min_payout) || 500;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+
+  const saveAccount = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch('/api/partnership/partner', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: partnerToken, payout_account: account }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || 'Не вдалося зберегти');
+      flash('Рахунок збережено');
+      await loadSummary(partnerToken);
+    } catch (e: any) { flash(e?.message || 'Помилка'); } finally { setBusy(false); }
+  };
+
+  const requestPayout = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch('/api/partnership/partner', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: partnerToken, action: 'request_payout' }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || 'Не вдалося надіслати запит');
+      flash('Запит на виплату надіслано');
+      await loadSummary(partnerToken);
+    } catch (e: any) { flash(e?.message || 'Помилка'); } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={card}>
+      <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2>
+      <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 14px' }}>
+        Діліться посиланням із клієнтами після зйомки. Клієнт отримує знижку 5% на замовлення, а ви — {Number(p.travelbook_rate)}% з тревелбуків і {Number(p.other_rate)}% з решти товарів кожного оплаченого замовлення за вашим кодом. Виплата доступна від {minPayout} ₴.
+      </p>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+        <input readOnly value={link}
+          style={{ flex: 1, minWidth: 220, padding: '11px 13px', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13.5, background: '#f8fafc', color: '#475569' }} />
+        <button onClick={copyLink}
+          style={{ padding: '11px 18px', background: copied ? '#16a34a' : '#1e2d7d', color: '#fff', borderRadius: 9, border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 13.5, whiteSpace: 'nowrap' }}>
+          {copied ? 'Скопійовано' : 'Копіювати'}
+        </button>
+      </div>
+      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+        Ваш код: <b style={{ color: '#1e2d7d', letterSpacing: '0.04em' }}>{p.referral_code}</b> — клієнт може ввести його і вручну на касі, результат той самий.
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+        <div style={{ background: '#eff3ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#1e2d7d' }}>{Number(p.pending_payout).toFixed(0)} ₴</div>
+          <div style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>До виплати</div>
+        </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#1e2d7d' }}>{Number(p.total_earned).toFixed(0)} ₴</div>
+          <div style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>Зароблено всього</div>
+        </div>
+        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#1e2d7d' }}>{Number(p.total_paid_out).toFixed(0)} ₴</div>
+          <div style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>Виплачено</div>
+        </div>
+      </div>
+
+      <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Рахунок для виплат (IBAN або номер картки)</div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <input value={account} onChange={e => setAccount(e.target.value)} placeholder="UA…"
+            style={{ flex: 1, minWidth: 200, padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5 }} />
+          <button onClick={saveAccount} disabled={busy}
+            style={{ padding: '10px 16px', background: '#374151', color: '#fff', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+            Зберегти
+          </button>
+        </div>
+        {p.payout_requested_at ? (
+          <div style={{ marginTop: 10, fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+            Запит на виплату надіслано {new Date(p.payout_requested_at).toLocaleDateString('uk-UA')} — очікуйте переказ.
+          </div>
+        ) : Number(p.pending_payout) >= minPayout ? (
+          <button onClick={requestPayout} disabled={busy}
+            style={{ marginTop: 10, padding: '10px 18px', background: '#16a34a', color: '#fff', borderRadius: 8, border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 13.5 }}>
+            Запросити виплату ({Number(p.pending_payout).toFixed(0)} ₴)
+          </button>
+        ) : (
+          <div style={{ marginTop: 10, fontSize: 12.5, color: '#94a3b8' }}>
+            Виплату можна запросити, коли назбирається {minPayout} ₴.
+          </div>
+        )}
+      </div>
+
+      {Array.isArray(data.commissions) && data.commissions.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Останні нарахування</div>
+          {data.commissions.slice(0, 8).map((c: any) => (
+            <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <span style={{ color: '#64748b' }}>{c.order_number} · {new Date(c.created_at).toLocaleDateString('uk-UA')}</span>
+              <span style={{ fontWeight: 700, color: c.payout_status === 'paid' ? '#16a34a' : '#1e2d7d' }}>
+                +{Number(c.total_commission).toFixed(0)} ₴{c.payout_status === 'paid' ? ' · виплачено' : ''}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

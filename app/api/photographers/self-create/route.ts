@@ -60,5 +60,17 @@ export async function POST() {
   if (error || !created) {
     return NextResponse.json({ error: error?.message || 'Не вдалося створити кабінет' }, { status: 500 });
   }
+
+  // Same rule as /api/photographers/register: the cabinet includes the 10%
+  // buying discount (Diana, 2026-08-04), so grant the verified photographer
+  // role right here. The guard keeps an existing wedding_agency role intact.
+  if (customer?.id) {
+    await admin
+      .from('customers')
+      .update({ b2b_role: 'photographer', b2b_status: 'verified' })
+      .eq('id', customer.id)
+      .or('b2b_role.is.null,b2b_role.eq.photographer');
+  }
+
   return NextResponse.json({ photographer: { cabinet_token: created.cabinet_token, slug: created.slug } });
 }
