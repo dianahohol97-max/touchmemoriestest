@@ -28,11 +28,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Two-button chooser styled per the touch.memories brand guide v1.1: warm
- * Cream/Sand neutrals as the 70%, Charcoal text, Brand Blue #263A99 reserved
- * for the primary CTA and small accents, Montserrat headings + Open Sans body
- * (the site's --font-heading / --font-body). The first cut used Arial and
- * plain grey — the off-brand look Diana flagged.
+ * Two-button chooser mirroring /travel-agencies and /wedding-agencies: blue
+ * gradient hero (Diana's call — «зроби синій назад» after a cream version),
+ * white cards on Soft White below, Montserrat headings + Open Sans body via
+ * the site's --font-heading / --font-body vars.
  */
 const BENEFITS: { n: string; title: string; text: string }[] = [
     {
@@ -62,29 +61,30 @@ export default function PhotographersPage() {
         <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)' }}>
             <Navigation />
             <main style={{ flex: 1, paddingTop: 110 }}>
-                {/* Hero on Cream — the brand's warm neutral, not a blue wall */}
-                <section style={{ background: '#F5EFE6', padding: '72px 16px 64px' }}>
+                {/* Blue gradient hero — Diana's call («зроби синій назад»),
+                    matching the /travel-agencies hero exactly. */}
+                <section style={{ background: 'linear-gradient(135deg, #263A99 0%, #1a2a73 100%)', padding: '64px 16px 72px', color: '#fff' }}>
                     <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-block', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#263A99', marginBottom: 18 }}>
-                            — партнерська програма —
+                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>
+                            Партнерська програма
                         </div>
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 40, lineHeight: 1.15, color: '#1A1A1A', margin: '0 0 16px' }}>
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: 42, lineHeight: 1.1, margin: '0 0 16px' }}>
                             Кабінет фотографа
                         </h1>
-                        <p style={{ fontSize: 16.5, lineHeight: 1.7, color: '#8B8378', maxWidth: 600, margin: '0 auto 32px' }}>
+                        <p style={{ fontSize: 16.5, lineHeight: 1.7, opacity: 0.9, maxWidth: 600, margin: '0 auto 32px' }}>
                             Один кабінет із усім, що потрібно для роботи з клієнтами: галереї для передачі фото, власна сторінка з портфоліо, знижка 10% на друк і заробіток з рекомендацій.
                         </p>
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                             <a href="/uk/photographers/apply"
-                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: '#263A99', color: '#fff', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: '#fff', color: '#263A99', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                                 Зареєструватися
                             </a>
                             <a href="/uk/photographer/cabinet"
-                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: 'transparent', color: '#1A1A1A', border: '1.5px solid #1A1A1A', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.7)', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                                 Увійти в кабінет
                             </a>
                         </div>
-                        <p style={{ fontSize: 13, color: '#8B8378', marginTop: 16 }}>
+                        <p style={{ fontSize: 13, opacity: 0.75, marginTop: 16 }}>
                             Реєстрація — це коротка заявка з портфоліо, яку ми розглядаємо вручну.
                         </p>
                     </div>

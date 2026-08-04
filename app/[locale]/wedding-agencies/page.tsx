@@ -16,9 +16,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Two-button chooser in the touch.memories brand style — mirrors /photographers
- * and /travel-agencies: Cream hero, Charcoal text, Brand Blue only on the
- * primary CTA, Montserrat/Open Sans via the site font vars. The moderated
+ * Two-button chooser mirroring /photographers and /travel-agencies: blue
+ * gradient hero (Diana's call — «зроби синій назад»), white cards on Soft White
+ * below, Montserrat/Open Sans via the site font vars. The moderated
  * application form lives at /wedding-agencies/apply.
  */
 const BENEFITS: { n: string; title: string; text: string }[] = [
@@ -44,28 +44,28 @@ export default function WeddingAgenciesPage() {
         <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)' }}>
             <Navigation />
             <main style={{ flex: 1, paddingTop: 110 }}>
-                <section style={{ background: '#F5EFE6', padding: '72px 16px 64px' }}>
+                <section style={{ background: 'linear-gradient(135deg, #263A99 0%, #1a2a73 100%)', padding: '64px 16px 72px', color: '#fff' }}>
                     <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-block', fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#263A99', marginBottom: 18 }}>
-                            — партнерська програма —
+                        <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>
+                            Партнерська програма
                         </div>
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 40, lineHeight: 1.15, color: '#1A1A1A', margin: '0 0 16px' }}>
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: 42, lineHeight: 1.1, margin: '0 0 16px' }}>
                             Для весільних агенцій
                         </h1>
-                        <p style={{ fontSize: 16.5, lineHeight: 1.7, color: '#8B8378', maxWidth: 600, margin: '0 auto 32px' }}>
+                        <p style={{ fontSize: 16.5, lineHeight: 1.7, opacity: 0.9, maxWidth: 600, margin: '0 auto 32px' }}>
                             Додайте до своїх послуг книги побажань і весільні газети — деталі, які ваші пари забирають додому і зберігають роками.
                         </p>
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                             <a href="/uk/wedding-agencies/apply"
-                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: '#263A99', color: '#fff', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: '#fff', color: '#263A99', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                                 Зареєструватися
                             </a>
                             <a href="/uk/wedding-agency/cabinet"
-                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: 'transparent', color: '#1A1A1A', border: '1.5px solid #1A1A1A', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+                                style={{ display: 'inline-block', minWidth: 210, textAlign: 'center', padding: '15px 30px', background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.7)', borderRadius: 12, fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                                 Увійти в кабінет
                             </a>
                         </div>
-                        <p style={{ fontSize: 13, color: '#8B8378', marginTop: 16 }}>
+                        <p style={{ fontSize: 13, opacity: 0.75, marginTop: 16 }}>
                             Реєстрація — це коротка заявка з посиланням на вашу агенцію, яку ми розглядаємо вручну.
                         </p>
                     </div>
