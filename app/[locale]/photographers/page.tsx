@@ -33,6 +33,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
  * white cards on Soft White below, Montserrat headings + Open Sans body via
  * the site's --font-heading / --font-body vars.
  */
+// The fixed client token of the demo gallery seeded by
+// /api/photographers/demo-seed — the page embeds the REAL client gallery.
+const DEMO_GALLERY_TOKEN = 'a0000000-0000-4000-8000-000000000001';
+
 const BENEFITS: { n: string; title: string; text: string }[] = [
     {
         n: '01',
@@ -92,7 +96,7 @@ export default function PhotographersPage() {
                 </section>
 
                 {/* Benefits — Sand-numbered cards, one row on desktop */}
-                <section style={{ padding: '56px 16px 80px' }}>
+                <section style={{ padding: '56px 16px 56px' }}>
                     <div style={{ maxWidth: 1160, margin: '0 auto' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
                             {BENEFITS.map(b => (
@@ -103,6 +107,43 @@ export default function PhotographersPage() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </section>
+
+                {/* Live demo gallery — the real client page (seeded via
+                    /api/photographers/demo-seed) embedded scaled-down, so a
+                    photographer sees the product before registering. */}
+                <section style={{ padding: '0 16px 80px' }}>
+                    <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+                        <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 26, color: '#1A1A1A', textAlign: 'center', margin: '0 0 10px' }}>
+                            Подивіться, як галерею побачить ваш клієнт
+                        </h2>
+                        <p style={{ fontSize: 14.5, lineHeight: 1.7, color: '#8B8378', textAlign: 'center', maxWidth: 640, margin: '0 auto 24px' }}>
+                            Нижче — жива демо-галерея з прикладами фото. У кабінеті до кожної галереї є конструктор дизайну: ви обираєте колір фону, шрифт і його розмір, один із чотирьох варіантів обкладинки та мову галереї — і одразу бачите результат у превʼю.
+                        </p>
+                        <div style={{ background: '#FFFFFF', border: '1px solid #E8DCC8', borderRadius: 16, overflow: 'hidden' }}>
+                            <div style={{ height: 520, overflow: 'hidden' }}>
+                                <iframe
+                                    src={`/uk/gallery/${DEMO_GALLERY_TOKEN}`}
+                                    title="Демо-галерея"
+                                    style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderTop: '1px solid #F0EAE0' }}>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                    {['3 кольори фону', '4 шрифти', '4 обкладинки', '9 мов', 'фото і відео'].map(chip => (
+                                        <span key={chip} style={{ fontSize: 12.5, color: '#8B8378', border: '1px solid #E8DCC8', borderRadius: 999, padding: '5px 12px' }}>{chip}</span>
+                                    ))}
+                                </div>
+                                <a href={`/uk/gallery/${DEMO_GALLERY_TOKEN}`} target="_blank"
+                                    style={{ display: 'inline-block', background: '#263A99', color: '#fff', borderRadius: 10, padding: '11px 22px', fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                                    Відкрити демо-галерею
+                                </a>
+                            </div>
+                        </div>
+                        <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#8B8378', textAlign: 'center', maxWidth: 640, margin: '20px auto 0' }}>
+                            Кабінет, галереї та сторінка-візитка — безкоштовні. Постійна знижка 10% на друк і заробіток з рекомендацій вмикаються після схвалення вашої заявки з портфоліо.
+                        </p>
                     </div>
                 </section>
             </main>
