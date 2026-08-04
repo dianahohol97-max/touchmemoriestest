@@ -12,6 +12,17 @@ export const dynamic = 'force-dynamic';
  * referral link. Links the current customer to the referrer and creates a
  * pending referral. Idempotent: does nothing if the customer is already
  * referred or the code is invalid/self.
+ *
+ * DESIGN DECISION — registration is REQUIRED, guests are excluded on purpose
+ * (confirmed by Diana, 2026-08-04). The referrer↔friend link is created only
+ * here, behind requireAuth: a friend who buys as a guest never creates a
+ * referral, and there is deliberately no back-fill when they register later.
+ * Rationale: an email typed at guest checkout is unverified, so crediting
+ * guest orders would let anyone farm the 50+50 ₴ bonus by "referring"
+ * themselves with throwaway addresses; requiring a signed-up account makes
+ * self-referral materially harder and makes the qualifying order auditable.
+ * The customer-facing terms in the account cabinet («Запросити друга») state
+ * this rule explicitly. Do NOT "fix" the guest gap without a product decision.
  */
 export async function POST(request: Request) {
     const guard = await requireAuth();

@@ -100,6 +100,8 @@ The photo product editor is the most complex component and the place where bugs 
 
 8. **Diana is not pregnant** — do not assume or reference pregnancy in advice.
 
+9. **Referral program excludes guest checkout BY DESIGN** (Diana, 2026-08-04). The friend↔referrer link is created only in `/api/referral/capture`, which requires a signed-up account — a friend who buys as a guest creates no referral, and there is no back-fill when they register later. This is anti-abuse (guest emails are unverified, so crediting them would allow self-referral with throwaway addresses), NOT a missing feature. The rule is stated in the customer-facing terms on the account page («Запросити друга» tab). Don't "fix" it without an explicit product decision from Diana. Full rationale: comment in `app/api/referral/capture/route.ts`.
+
 ---
 
 ## Git workflow
