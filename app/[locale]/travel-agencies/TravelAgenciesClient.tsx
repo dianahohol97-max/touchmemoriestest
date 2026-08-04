@@ -164,8 +164,12 @@ export default function TravelAgenciesClient() {
                                         <Field label="Email" required>
                                             <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="агенція@пошта.com" style={inputStyle} />
                                         </Field>
-                                        <Field label="Сайт або сторінка агенції">
-                                            <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="Instagram або вебсайт" style={inputStyle} />
+                                        <Field label={isBlogger ? 'Ваш блог або сторінка' : isPhotographer ? 'Портфоліо або офіційна сторінка' : 'Сайт або сторінка агенції'} required>
+                                            {/* Required — the application is reviewed BY HAND (Diana,
+                                                2026-08-04), and the page/portfolio link is what the
+                                                review actually looks at. An optional field here meant
+                                                applications arrived with nothing to check. */}
+                                            <input value={website} onChange={e => setWebsite(e.target.value)} required placeholder="Instagram або вебсайт" style={inputStyle} />
                                         </Field>
                                         <Field label="Яка модель вас цікавить?">
                                             <select value={interestedModel} onChange={e => setInterestedModel(e.target.value)} style={inputStyle}>

@@ -32,7 +32,12 @@ export async function POST(request: Request) {
         const contactName = String(body?.contactName || '').trim();
         const email = String(body?.email || '').trim().toLowerCase();
         const phone = body?.phone ? String(body.phone).trim() : null;
+        // Required since 2026-08-04: applications are reviewed by hand, and
+        // the site / Instagram / portfolio link is what the review looks at.
         const website = body?.website ? String(body.website).trim() : null;
+        if (!website) {
+            return NextResponse.json({ error: 'Вкажіть сайт, Instagram або сторінку — заявки розглядаються вручну, і нам потрібно побачити вашу роботу' }, { status: 400 });
+        }
         const interestedModel = body?.interestedModel ? String(body.interestedModel) : null;
         const message = body?.message ? String(body.message).trim().slice(0, 2000) : null;
 
