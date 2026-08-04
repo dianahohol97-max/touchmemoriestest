@@ -34,8 +34,23 @@ const DEMO_PHOTOS: { id: number; desc: string }[] = [
   { id: 1721942,  desc: 'bride in white gown with bouquet' },
   { id: 8845902,  desc: 'couple holding hands at ceremony' },
 ];
-const pexelsUrl = (id: number) =>
-  `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1800`;
+// Pexels' CDN serves some photos as .jpeg and some as .jpg, and rejects
+// requests without a browser-like User-Agent — try both suffixes with UA.
+const PEXELS_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+async function fetchPexels(id: number): Promise<{ buf: Buffer } | { fail: string }> {
+  let last = '';
+  for (const ext of ['jpeg', 'jpg']) {
+    const url = `https://images.pexels.com/photos/${id}/pexels-photo-${id}.${ext}?auto=compress&cs=tinysrgb&w=1800`;
+    try {
+      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': PEXELS_UA, Accept: 'image/*' } });
+      if (res.ok) return { buf: Buffer.from(await res.arrayBuffer()) };
+      last = `${ext}:${res.status}`;
+    } catch (e: any) {
+      last = `${ext}:${e?.message || 'fetch failed'}`;
+    }
+  }
+  return { fail: last };
+}
 
 export async function GET() {
   try {
@@ -104,26 +119,26 @@ export async function GET() {
     const have = new Set((existing || []).map(p => p.storage_path).filter(p => wantedPaths.has(p)));
 
     let added = 0;
+    const failures: Record<number, string> = {};
     for (const photo of DEMO_PHOTOS) {
       const path = `${ph.id}/${gallery.id}/demo-${photo.id}.jpg`;
       if (have.has(path)) continue;
-      const res = await fetch(pexelsUrl(photo.id), { redirect: 'follow' });
-      if (!res.ok) continue;
-      const buf = Buffer.from(await res.arrayBuffer());
+      const got = await fetchPexels(photo.id);
+      if ('fail' in got) { failures[photo.id] = got.fail; continue; }
       const { error: upErr } = await admin.storage
         .from(GALLERY_BUCKET)
-        .upload(path, buf, { contentType: 'image/jpeg', upsert: true });
-      if (upErr) continue;
+        .upload(path, got.buf, { contentType: 'image/jpeg', upsert: true });
+      if (upErr) { failures[photo.id] = upErr.message; continue; }
       await admin.from('photographer_gallery_photos').insert({
         gallery_id: gallery.id,
         storage_path: path,
         file_name: `demo-${photo.id}.jpg`,
-        size_bytes: buf.length,
+        size_bytes: got.buf.length,
       });
       added += 1;
     }
 
-    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, removed, total: have.size + added });
+    return NextResponse.json({ ok: true, gallery_id: gallery.id, added, removed, total: have.size + added, failures });
   } catch (err: any) {
     console.error('[photographers/demo-seed]', err);
     return NextResponse.json({ error: err.message || 'Помилка' }, { status: 500 });
