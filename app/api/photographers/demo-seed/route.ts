@@ -37,16 +37,24 @@ const DEMO_PHOTOS: { id: number; desc: string }[] = [
 // Pexels' CDN serves some photos as .jpeg and some as .jpg, and rejects
 // requests without a browser-like User-Agent — try both suffixes with UA.
 const PEXELS_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+// The CDN answers 503 to bursts from datacenter IPs — space the attempts out
+// and retry with backoff before giving up on a photo.
 async function fetchPexels(id: number): Promise<{ buf: Buffer } | { fail: string }> {
   let last = '';
-  for (const ext of ['jpeg', 'jpg']) {
-    const url = `https://images.pexels.com/photos/${id}/pexels-photo-${id}.${ext}?auto=compress&cs=tinysrgb&w=1800`;
-    try {
-      const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': PEXELS_UA, Accept: 'image/*' } });
-      if (res.ok) return { buf: Buffer.from(await res.arrayBuffer()) };
-      last = `${ext}:${res.status}`;
-    } catch (e: any) {
-      last = `${ext}:${e?.message || 'fetch failed'}`;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await sleep(1500 * attempt);
+    for (const ext of ['jpeg', 'jpg']) {
+      const url = `https://images.pexels.com/photos/${id}/pexels-photo-${id}.${ext}?auto=compress&cs=tinysrgb&w=1800`;
+      try {
+        const res = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': PEXELS_UA, Accept: 'image/*' } });
+        if (res.ok) return { buf: Buffer.from(await res.arrayBuffer()) };
+        last = `${ext}:${res.status}`;
+        if (res.status === 404) break; // wrong suffix won't fix a missing asset
+      } catch (e: any) {
+        last = `${ext}:${e?.message || 'fetch failed'}`;
+      }
+      await sleep(400);
     }
   }
   return { fail: last };
@@ -123,6 +131,7 @@ export async function GET() {
     for (const photo of DEMO_PHOTOS) {
       const path = `${ph.id}/${gallery.id}/demo-${photo.id}.jpg`;
       if (have.has(path)) continue;
+      await sleep(800); // space requests out — bursts trip the CDN's 503
       const got = await fetchPexels(photo.id);
       if ('fail' in got) { failures[photo.id] = got.fail; continue; }
       const { error: upErr } = await admin.storage
