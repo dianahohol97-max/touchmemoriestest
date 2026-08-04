@@ -5,8 +5,10 @@ import React, { useState } from 'react';
 const input: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '11px 14px', fontSize: 15, boxSizing: 'border-box' };
 const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 4, marginTop: 14, textAlign: 'left' };
 
-/** Standalone cabinet signup — no application, no moderation. The 10% discount
- *  has its own flow at /photographers; this creates only galleries + landing. */
+/** Standalone cabinet signup — no application, no moderation. Since 2026-08-04
+ *  the cabinet includes the 10% buying discount too (granted automatically by
+ *  /api/photographers/register), alongside galleries, the landing page and the
+ *  referral program. Used by both /gallery-for-photographers and /photographers. */
 export default function SignupForm({ locale }: { locale: string }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
