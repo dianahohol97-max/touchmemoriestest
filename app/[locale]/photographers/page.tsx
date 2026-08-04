@@ -55,9 +55,11 @@ export default function PhotographersPage() {
                 text: 'Хочете почати вже зараз? Створіть кабінет — галереї та візитка запрацюють одразу, а знижка й заробіток увімкнуться в ньому після схвалення заявки →',
                 href: '/uk/gallery-for-photographers#signup',
             }}
-            cabinetLink={{
-                text: 'Вже маєте кабінет фотографа? Увійти →',
-                href: '/uk/photographer/cabinet',
+            loginPanel={{
+                title: 'Вже маєте кабінет фотографа?',
+                text: 'Галереї, сторінка-візитка, знижка і реферальна програма живуть в одному кабінеті. Увійдіть тим самим email і паролем, що при реєстрації — і ми відкриємо ваш кабінет.',
+                buttonText: 'Увійти в кабінет',
+                buttonHref: '/uk/photographer/cabinet',
             }}
         />
     );

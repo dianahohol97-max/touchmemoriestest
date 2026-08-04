@@ -21,10 +21,15 @@ interface B2bRegisterPageProps {
     /** Optional "already have a cabinet? sign in" link for returning partners
      *  who lost their emailed cabinet URL (e.g. photographers). */
     cabinetLink?: { text: string; href: string };
+    /** Optional PROMINENT login card rendered beside the application form —
+     *  Diana's ask for photographers: «дві форми — подати заявку та збоку
+     *  увійти». A footer link was too easy to miss for returning cabinet
+     *  owners. When set, the small cabinetLink footer is not rendered. */
+    loginPanel?: { title: string; text: string; buttonText: string; buttonHref: string };
 }
 
 export default function B2bRegisterPage({
-    role, title, subtitle, benefits, portfolioLabel, portfolioPlaceholder, discountPercent, altLink, cabinetLink,
+    role, title, subtitle, benefits, portfolioLabel, portfolioPlaceholder, discountPercent, altLink, cabinetLink, loginPanel,
 }: B2bRegisterPageProps) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -100,7 +105,18 @@ export default function B2bRegisterPage({
                                 </div>
                             </div>
 
-                            {/* Right: form */}
+                            {/* Right: application form + optional login card */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                            {loginPanel && (
+                                <div style={{ background: '#eef3ff', border: '1px solid #c7d2fe', borderRadius: 16, padding: '22px 24px' }}>
+                                    <h2 style={{ fontSize: 17, fontWeight: 800, color: '#1e2d7d', margin: '0 0 6px' }}>{loginPanel.title}</h2>
+                                    <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 14px' }}>{loginPanel.text}</p>
+                                    <a href={loginPanel.buttonHref}
+                                        style={{ display: 'block', textAlign: 'center', padding: 13, background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 10, fontWeight: 700, fontSize: 14.5, textDecoration: 'none' }}>
+                                        {loginPanel.buttonText}
+                                    </a>
+                                </div>
+                            )}
                             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '32px 28px', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
                                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>Подати заявку</h2>
                                 <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 24 }}>Після перевірки портфоліо вам відкриється знижка {discountPercent}%</p>
@@ -136,8 +152,9 @@ export default function B2bRegisterPage({
                                     </button>
                                     {/* When a cabinet link is present it already covers "already
                                         registered? sign in" — showing the generic account login too
-                                        just gives two near-identical "Увійти" links. */}
-                                    {cabinetLink ? (
+                                        just gives two near-identical "Увійти" links. With the
+                                        prominent loginPanel card the footer link is redundant too. */}
+                                    {loginPanel ? null : cabinetLink ? (
                                         <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0 }}>
                                             <a href={cabinetLink.href} style={{ color: '#1e2d7d', fontWeight: 600 }}>{cabinetLink.text}</a>
                                         </p>
@@ -152,6 +169,7 @@ export default function B2bRegisterPage({
                                         </p>
                                     )}
                                 </form>
+                            </div>
                             </div>
                         </div>
                     )}
