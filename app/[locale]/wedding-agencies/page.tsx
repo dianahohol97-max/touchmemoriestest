@@ -49,7 +49,8 @@ export default function WeddingAgenciesPage() {
                         <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>
                             Партнерська програма
                         </div>
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: 42, lineHeight: 1.1, margin: '0 0 16px' }}>
+                        {/* explicit #fff — globals.css h1 { color: var(--primary) } beats inheritance */}
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontWeight: 900, fontSize: 42, lineHeight: 1.1, color: '#fff', margin: '0 0 16px' }}>
                             Для весільних агенцій
                         </h1>
                         <p style={{ fontSize: 16.5, lineHeight: 1.7, opacity: 0.9, maxWidth: 600, margin: '0 auto 32px' }}>

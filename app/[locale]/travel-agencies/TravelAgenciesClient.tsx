@@ -88,7 +88,8 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 20 }}>
                             <Globe size={15} /> Партнерська програма
                         </div>
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 44, fontWeight: 900, lineHeight: 1.05, margin: '0 0 18px' }}>
+                        {/* explicit #fff — globals.css h1 { color: var(--primary) } beats inheritance */}
+                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 44, fontWeight: 900, lineHeight: 1.05, color: '#fff', margin: '0 0 18px' }}>
                             Співпраця для агенцій, блогерів і фотографів
                         </h1>
                         <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.9, maxWidth: 620, margin: '0 auto' }}>
