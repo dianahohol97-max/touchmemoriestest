@@ -505,6 +505,7 @@ function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
     font: design?.font || 'playfair',
     font_scale: design?.font_scale || 'm',
     cover: design?.cover || 'classic',
+    lang: design?.lang || 'uk',
   });
   const [saving, setSaving] = useState(false);
 
@@ -538,6 +539,8 @@ function DesignPanel({ token, galleryId, design, clientToken, onDone, flash }: {
     { key: 'font', label: 'Шрифт заголовків', items: [['playfair', 'Playfair — класичний'], ['cormorant', 'Cormorant — витончений'], ['montserrat', 'Montserrat — сучасний'], ['caveat', 'Caveat — рукописний']] },
     { key: 'font_scale', label: 'Розмір шрифту', items: [['s', 'Компактний'], ['m', 'Стандартний'], ['l', 'Великий']] },
     { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
+    // Для фотографів, що знімають закордоном: мова, якою клієнт бачить галерею.
+    { key: 'lang', label: 'Мова галереї (для клієнта)', items: [['uk', 'Українська'], ['en', 'English'], ['pl', 'Polski'], ['de', 'Deutsch'], ['cs', 'Čeština'], ['it', 'Italiano'], ['es', 'Español'], ['fr', 'Français'], ['ro', 'Română']] },
   ];
 
   return (

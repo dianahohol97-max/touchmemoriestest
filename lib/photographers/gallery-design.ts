@@ -6,17 +6,23 @@ export const GALLERY_BG = ['light', 'cream', 'dark'] as const;
 export const GALLERY_FONTS = ['playfair', 'cormorant', 'montserrat', 'caveat'] as const;
 export const GALLERY_FONT_SCALES = ['s', 'm', 'l'] as const;
 export const GALLERY_COVERS = ['classic', 'bottom', 'split', 'minimal'] as const;
+// Languages the client gallery can speak — picked for where Ukrainian
+// photographers actually work abroad (Diana, 2026-08-04): PL/DE/CZ plus the
+// big Western European markets and the site's existing RO locale.
+export const GALLERY_LANGS = ['uk', 'en', 'pl', 'de', 'cs', 'it', 'es', 'fr', 'ro'] as const;
 
 export type GalleryBg = typeof GALLERY_BG[number];
 export type GalleryFont = typeof GALLERY_FONTS[number];
 export type GalleryFontScale = typeof GALLERY_FONT_SCALES[number];
 export type GalleryCover = typeof GALLERY_COVERS[number];
+export type GalleryLang = typeof GALLERY_LANGS[number];
 
 export interface GalleryDesign {
   bg: GalleryBg;
   font: GalleryFont;
   font_scale: GalleryFontScale;
   cover: GalleryCover;
+  lang: GalleryLang;
 }
 
 export const DEFAULT_DESIGN: GalleryDesign = {
@@ -24,6 +30,7 @@ export const DEFAULT_DESIGN: GalleryDesign = {
   font: 'playfair',
   font_scale: 'm',
   cover: 'classic',
+  lang: 'uk',
 };
 
 /** Merge an untrusted partial design over the current one, dropping unknown
@@ -39,5 +46,6 @@ export function sanitizeDesign(current: Partial<GalleryDesign> | null, patch: un
     font: pick(GALLERY_FONTS, p.font, current?.font, DEFAULT_DESIGN.font),
     font_scale: pick(GALLERY_FONT_SCALES, p.font_scale, current?.font_scale, DEFAULT_DESIGN.font_scale),
     cover: pick(GALLERY_COVERS, p.cover, current?.cover, DEFAULT_DESIGN.cover),
+    lang: pick(GALLERY_LANGS, p.lang, current?.lang, DEFAULT_DESIGN.lang),
   };
 }

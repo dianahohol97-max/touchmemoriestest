@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './GalleryClient.module.css';
 import type { GalleryDesign } from '@/lib/photographers/gallery-design';
+import { GALLERY_I18N } from '@/lib/photographers/gallery-i18n';
 
 interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean; media_type: 'photo' | 'video' }
 interface GalleryData {
@@ -35,9 +36,6 @@ const FONT_VARS: Record<GalleryDesign['font'], string> = {
   caveat: 'var(--font-gallery-caveat), cursive',
 };
 const FONT_SCALES: Record<GalleryDesign['font_scale'], number> = { s: 0.82, m: 1, l: 1.22 };
-
-const formatDate = (d: string) =>
-  new Date(d).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export default function GalleryClient({ token }: { token: string }) {
   const [data, setData] = useState<GalleryData | null>(null);
@@ -126,7 +124,7 @@ export default function GalleryClient({ token }: { token: string }) {
       a.click();
       URL.revokeObjectURL(a.href);
     } catch {
-      alert('Не вдалося сформувати архів. Спробуйте ще раз.');
+      alert((GALLERY_I18N[data.design?.lang] || GALLERY_I18N.uk).zipError);
     } finally { setZipping(false); }
   };
 
@@ -149,6 +147,9 @@ export default function GalleryClient({ token }: { token: string }) {
   if (error || !data) return <Centered>{error || 'Галерею не знайдено'}</Centered>;
 
   const design = data.design;
+  const t = GALLERY_I18N[design.lang] || GALLERY_I18N.uk;
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString(t.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' });
   const themeClass = design.bg === 'dark' ? styles.themeDark : design.bg === 'cream' ? styles.themeCream : styles.themeLight;
   const designStyle = {
     '--g-display': FONT_VARS[design.font] || FONT_VARS.playfair,
@@ -157,10 +158,10 @@ export default function GalleryClient({ token }: { token: string }) {
 
   const p = data.photographer;
   const contacts = [
-    p.phone && { label: 'Телефон', value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
+    p.phone && { label: t.phone, value: p.phone, href: `tel:${p.phone.replace(/[^\d+]/g, '')}` },
     p.instagram && { label: 'Instagram', value: '@' + p.instagram.replace(/^@/, ''), href: `https://instagram.com/${p.instagram.replace(/^@/, '')}` },
     p.email && { label: 'Email', value: p.email, href: `mailto:${p.email}` },
-    p.website && { label: 'Сайт', value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
+    p.website && { label: t.website, value: p.website.replace(/^https?:\/\//, ''), href: p.website.startsWith('http') ? p.website : `https://${p.website}` },
   ].filter(Boolean) as { label: string; value: string; href: string }[];
 
   const favCount = data.photos.filter(ph => ph.favorite).length;
@@ -168,7 +169,7 @@ export default function GalleryClient({ token }: { token: string }) {
   const meta = [
     data.client_name,
     data.shoot_date ? formatDate(data.shoot_date) : null,
-    `${data.photos.length} фото`,
+    t.photosCount(data.photos.length),
   ].filter(Boolean).join('  ·  ');
 
   if (data.expired) {
@@ -179,10 +180,7 @@ export default function GalleryClient({ token }: { token: string }) {
             <div className={`${styles.heroKicker} ${styles.onPanel}`}>{p.name}</div>
             <h1 className={styles.expiredTitle}>{data.title}</h1>
             <div className={`${styles.heroDivider} ${styles.dividerPanel}`} />
-            <p className={styles.expiredText}>
-              Термін зберігання галереї минув. Фото зберігалися 30 днів і були видалені автоматично.
-              Якщо вони вам потрібні — зверніться до фотографа.
-            </p>
+            <p className={styles.expiredText}>{t.expiredText}</p>
             <div className={styles.contactRow}>
               {contacts.map(c => (
                 <a key={c.href} href={c.href} target="_blank" rel="noopener noreferrer" className={styles.contactChip}>{c.value}</a>
@@ -211,9 +209,9 @@ export default function GalleryClient({ token }: { token: string }) {
         type="button"
         className={`${styles.heroScroll} ${onMedia ? '' : styles.heroScrollPanel}`}
         onClick={scrollToGrid}
-        aria-label="Перейти до фото"
+        aria-label={t.view}
       >
-        <span className={styles.heroScrollText}>Переглянути</span>
+        <span className={styles.heroScrollText}>{t.view}</span>
         <span className={styles.heroChevron} aria-hidden>⌄</span>
       </button>
     </>
@@ -254,9 +252,7 @@ export default function GalleryClient({ token }: { token: string }) {
               : <span className={styles.barName}>{p.name}</span>}
           </div>
           <div className={styles.barActions}>
-            <span className={styles.countdown} title={`Галерея доступна ще ${data.days_left} дн.`}>
-              ще {data.days_left} {data.days_left === 1 ? 'день' : data.days_left < 5 ? 'дні' : 'днів'}
-            </span>
+            <span className={styles.countdown}>{t.daysLeft(data.days_left)}</span>
             {favCount > 0 && (
               <button
                 type="button"
@@ -269,7 +265,7 @@ export default function GalleryClient({ token }: { token: string }) {
             )}
             {data.photos.length > 0 && (
               <button onClick={downloadAll} disabled={zipping} className={styles.downloadBtn}>
-                {zipping ? `${zipProgress}%` : 'Завантажити все'}
+                {zipping ? `${zipProgress}%` : t.downloadAll}
               </button>
             )}
           </div>
@@ -280,19 +276,19 @@ export default function GalleryClient({ token }: { token: string }) {
       <div className={styles.container} ref={gridRef}>
         {data.photos.length > 0 && (
           <div className={styles.selectHint}>
-            Позначайте серцем <span className={styles.heartInline}>♡</span> фото, які хочете надрукувати — фотограф побачить ваш вибір.
+            {t.hintBefore} <span className={styles.heartInline}>♡</span> {t.hintAfter}
           </div>
         )}
 
         {visible.length === 0 ? (
           <div className={styles.emptyFav}>
-            {data.photos.length === 0 ? 'Фотограф ще завантажує фото — загляньте трохи згодом.' : 'Ви ще не обрали жодного фото.'}
+            {data.photos.length === 0 ? t.emptyUploading : t.emptyFav}
           </div>
         ) : (
           <div className={styles.grid}>
             {visible.map((photo, i) => (
               <div key={photo.id} className={styles.tile}>
-                <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`Відкрити ${photo.media_type === 'video' ? 'відео' : 'фото'} ${i + 1}`}>
+                <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`${t.view} ${i + 1}`}>
                   {photo.media_type === 'video' ? (
                     <>
                       <video src={photo.url} className={styles.tileVideo} preload="metadata" muted playsInline />
@@ -307,7 +303,7 @@ export default function GalleryClient({ token }: { token: string }) {
                   type="button"
                   onClick={() => toggleFavorite(photo.id, !photo.favorite)}
                   className={`${styles.heart} ${photo.favorite ? styles.heartOn : ''}`}
-                  aria-label={photo.favorite ? 'Прибрати з обраних' : 'Додати в обрані'}
+                  aria-label={photo.favorite ? t.favRemove : t.favAdd}
                   aria-pressed={photo.favorite}
                 >
                   {photo.favorite ? '♥' : '♡'}
@@ -332,12 +328,12 @@ export default function GalleryClient({ token }: { token: string }) {
           ))}
         </div>
         {p.slug && (
-          <a href={`/uk/photographer/${p.slug}`} className={styles.footerCta}>Сторінка фотографа</a>
+          <a href={`/uk/photographer/${p.slug}`} className={styles.footerCta}>{t.photographerPage}</a>
         )}
       </div>
 
       <div className={styles.poweredBy}>
-        Галерею створено на <a href="/uk/gallery-for-photographers">Touch.Memories</a>
+        {t.createdOn} <a href="/uk/gallery-for-photographers">Touch.Memories</a>
       </div>
 
       {/* ── Lightbox ── */}
@@ -361,12 +357,12 @@ export default function GalleryClient({ token }: { token: string }) {
                 type="button"
                 className={`${styles.lbIconBtn} ${current.favorite ? styles.lbHeartOn : ''}`}
                 onClick={() => toggleFavorite(current.id, !current.favorite)}
-                aria-label={current.favorite ? 'Прибрати з обраних' : 'Додати в обрані'}
+                aria-label={current.favorite ? t.favRemove : t.favAdd}
               >
                 {current.favorite ? '♥' : '♡'}
               </button>
-              <a href={current.url} download={current.file_name} className={styles.lbIconBtn} aria-label="Завантажити">⬇</a>
-              <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label="Закрити">✕</button>
+              <a href={current.url} download={current.file_name} className={styles.lbIconBtn} aria-label={t.ariaDownload}>⬇</a>
+              <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label={t.ariaClose}>✕</button>
             </div>
           </div>
 
@@ -375,7 +371,7 @@ export default function GalleryClient({ token }: { token: string }) {
               type="button"
               className={`${styles.lbNav} ${styles.lbNavLeft}`}
               onClick={e => { e.stopPropagation(); setLightbox(Math.max((lightbox ?? 0) - 1, 0)); }}
-              aria-label="Попереднє фото"
+              aria-label={t.ariaPrev}
             >‹</button>
           )}
           {lightbox !== null && lightbox < visible.length - 1 && (
@@ -383,7 +379,7 @@ export default function GalleryClient({ token }: { token: string }) {
               type="button"
               className={`${styles.lbNav} ${styles.lbNavRight}`}
               onClick={e => { e.stopPropagation(); setLightbox(Math.min((lightbox ?? 0) + 1, visible.length - 1)); }}
-              aria-label="Наступне фото"
+              aria-label={t.ariaNext}
             >›</button>
           )}
 
