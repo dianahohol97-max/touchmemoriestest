@@ -34,7 +34,12 @@ const MODELS = [
     // },
 ];
 
-export default function TravelAgenciesClient() {
+/**
+ * mode 'landing' — hero + models + the two-button chooser (увійти /
+ * зареєструватися), same workflow as /photographers (Diana, 2026-08-04).
+ * mode 'apply' — the application form alone, hosted at /travel-agencies/apply.
+ */
+export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'landing' | 'apply' }) {
     const [agencyName, setAgencyName] = useState('');
     const [contactName, setContactName] = useState('');
     const [email, setEmail] = useState('');
@@ -77,6 +82,7 @@ export default function TravelAgenciesClient() {
             <Navigation />
             <main style={{ flex: 1, paddingTop: 110, paddingBottom: 80 }}>
                 {/* Hero */}
+                {mode === 'landing' && (
                 <section style={{ background: 'linear-gradient(135deg, #263A99 0%, #1a2a73 100%)', padding: '64px 0 72px', color: '#fff' }}>
                     <div className="container" style={{ maxWidth: 880, textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 20 }}>
@@ -90,8 +96,10 @@ export default function TravelAgenciesClient() {
                         </p>
                     </div>
                 </section>
+                )}
 
                 {/* Models */}
+                {mode === 'landing' && (
                 <section style={{ padding: '64px 0' }}>
                     <div className="container" style={{ maxWidth: 1100 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
@@ -119,9 +127,32 @@ export default function TravelAgenciesClient() {
                         </div>
                     </div>
                 </section>
+                )}
+
+                {/* Two-button chooser on the landing; the form lives at /apply */}
+                {mode === 'landing' && (
+                <section style={{ padding: '0 0 56px' }}>
+                    <div className="container" style={{ maxWidth: 620, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <a href="/uk/partner/cabinet"
+                                style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
+                                Увійти в кабінет
+                            </a>
+                            <a href="/uk/travel-agencies/apply"
+                                style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#1e2d7d', color: '#fff', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
+                                Зареєструватися
+                            </a>
+                        </div>
+                        <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 14 }}>
+                            Реєстрація — це коротка заявка з посиланням на вашу роботу, яку ми розглядаємо вручну. Після схвалення ви отримаєте персональний промокод і кабінет партнера.
+                        </p>
+                    </div>
+                </section>
+                )}
 
                 {/* Form */}
-                <section style={{ padding: '0 0 40px' }}>
+                {mode === 'apply' && (
+                <section style={{ padding: '40px 0 40px' }}>
                     <div className="container" style={{ maxWidth: 620 }}>
                         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '40px 36px', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
                             {done ? (
@@ -200,6 +231,7 @@ export default function TravelAgenciesClient() {
                         </div>
                     </div>
                 </section>
+                )}
             </main>
             <Footer categories={[]} />
         </div>

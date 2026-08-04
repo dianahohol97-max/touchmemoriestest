@@ -67,7 +67,7 @@ export default function PartnerCabinetEntry() {
         <div style={{ maxWidth: 460 }}>
           До цього акаунта не прив'язане партнерство. Переконайтеся, що ви увійшли <b>на ту саму пошту</b>, на яку ми оформили вашу співпрацю. Якщо ви ще не партнер — залиште заявку.
         </div>
-        <a href="/uk/travel-agencies" style={btn}>Стати партнером</a>
+        <a href="/uk/travel-agencies/apply" style={btn}>Стати партнером</a>
         <a href="/uk/login?next=/uk/partner/cabinet" style={{ color: '#94a3b8', fontSize: 13 }}>Увійти під іншою поштою →</a>
       </div>
     );
