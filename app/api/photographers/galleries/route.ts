@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { getPhotographerByToken, daysLeft } from '@/lib/photographers/helpers';
+import { getPhotographerByToken, daysLeft, publicUrl } from '@/lib/photographers/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,12 +40,37 @@ export async function GET(req: NextRequest) {
     for (const r of favRows || []) favByGallery[r.gallery_id] = (favByGallery[r.gallery_id] || 0) + 1;
   }
 
+  // Cover thumbnail for the cabinet list: the photographer's explicit pick,
+  // else the first uploaded photo — same rule as the client gallery hero.
+  // One photographer has few galleries, so per-gallery lookups are cheap.
+  const coverByGallery: Record<string, string | null> = {};
+  await Promise.all((galleries || []).map(async (g: any) => {
+    if (g.cover_photo_id) {
+      const { data: c } = await admin
+        .from('photographer_gallery_photos')
+        .select('storage_path')
+        .eq('id', g.cover_photo_id)
+        .maybeSingle();
+      if (c?.storage_path) { coverByGallery[g.id] = publicUrl(c.storage_path); return; }
+    }
+    const { data: first } = await admin
+      .from('photographer_gallery_photos')
+      .select('storage_path')
+      .eq('gallery_id', g.id)
+      .eq('media_type', 'photo')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    coverByGallery[g.id] = first?.storage_path ? publicUrl(first.storage_path) : null;
+  }));
+
   return NextResponse.json({
     galleries: (galleries || []).map((g: any) => ({
       ...g,
       photo_count: g.photographer_gallery_photos?.[0]?.count || 0,
       favorite_count: favByGallery[g.id] || 0,
       days_left: g.files_purged_at ? 0 : daysLeft(g.expires_at),
+      cover_url: coverByGallery[g.id] || null,
       photographer_gallery_photos: undefined,
     })),
   });

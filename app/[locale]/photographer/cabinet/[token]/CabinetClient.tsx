@@ -29,15 +29,21 @@ interface Gallery {
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
   cover_photo_id: string | null;
+  cover_url: string | null;
   design: Record<string, string> | null;
 }
 interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean; media_type?: 'photo' | 'video' }
 
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, marginBottom: 20 };
-const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 4, marginTop: 12 };
-const input: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 12px', fontSize: 14, boxSizing: 'border-box' };
-const btn: React.CSSProperties = { background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontSize: 14 };
-const btnGhost: React.CSSProperties = { ...btn, background: '#f1f5f9', color: '#1e2d7d' };
+// Brand-styled building blocks (touch.memories palette: Soft White bg, Sand
+// borders, Charcoal text, Brand Blue accents, Montserrat headings).
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #E8DCC8', borderRadius: 16, padding: 22, marginBottom: 18 };
+const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#55504a', marginBottom: 4, marginTop: 12 };
+const input: React.CSSProperties = { width: '100%', border: '1px solid #ddd2bd', borderRadius: 10, padding: '10px 13px', fontSize: 14, boxSizing: 'border-box', background: '#fff' };
+const btn: React.CSSProperties = { background: '#263A99', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font-heading), sans-serif' };
+const btnGhost: React.CSSProperties = { ...btn, background: '#fff', color: '#263A99', border: '1px solid #c9d0ee' };
+const sectionTitle: React.CSSProperties = { fontFamily: 'var(--font-heading), sans-serif', fontSize: 19, fontWeight: 800, color: '#1A1A1A', margin: 0 };
+
+type CabinetTab = 'galleries' | 'earnings' | 'orders' | 'booking' | 'landing';
 
 export default function CabinetClient({ token }: { token: string }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -46,6 +52,7 @@ export default function CabinetClient({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [tab, setTab] = useState<CabinetTab>('galleries');
 
   const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(''), 2500); };
 
@@ -67,42 +74,86 @@ export default function CabinetClient({ token }: { token: string }) {
   if (loading) return <Centered>Завантаження…</Centered>;
   if (error || !profile) return <Centered>{error || 'Кабінет не знайдено'}</Centered>;
 
+  // Tab navigation instead of one endless scroll — Diana's UX complaint
+  // («незручна і не юзабельна»). Booking/візитка tabs appear only behind the
+  // landing_enabled feature flag.
+  const TABS: { id: CabinetTab; label: string }[] = [
+    { id: 'galleries', label: 'Галереї' },
+    { id: 'earnings', label: 'Заробіток' },
+    { id: 'orders', label: 'Замовлення' },
+    ...(profile.landing_enabled
+      ? [{ id: 'booking' as const, label: 'Запис на зйомку' }, { id: 'landing' as const, label: 'Візитка' }]
+      : []),
+  ];
+  const favTotal = galleries.reduce((s, g) => s + (g.favorite_count || 0), 0);
+
   return (
-    // Site header + footer wrap the cabinet (Diana: «в кабінеті фотографа
-    // немає хедера та футера») — paddingTop clears the fixed Navigation.
-    <div style={{ background: '#f8fafc', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    // Site header + footer wrap the cabinet — paddingTop clears the fixed
+    // Navigation.
+    <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
     <Navigation />
     <main style={{ flex: 1, paddingTop: 110 }}>
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '32px 16px 80px', fontFamily: 'Arial, sans-serif', color: '#1f2937' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1e2d7d', margin: '0 0 4px' }}>Кабінет фотографа</h1>
-      {profile.landing_enabled ? (
-        <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
-          Ваша сторінка: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d' }}>/photographer/{profile.slug}</a>
-          {profile.custom_domain_paid && profile.custom_domain && <> · домен: <b>{profile.custom_domain}</b></>}
-        </p>
-      ) : (
-        <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>
-          Галереї для передачі фото клієнтам — створюйте, завантажуйте і діліться посиланням.
-        </p>
-      )}
+    <div style={{ maxWidth: 880, margin: '0 auto', padding: '28px 16px 80px', fontFamily: 'var(--font-body), sans-serif', color: '#1A1A1A' }}>
 
-      {/* Two logins are easy to confuse: this token-based cabinet manages
-          galleries/landing, while BUYING with the 10% partner discount needs
-          the customer account (email+password). Steer photographers there. */}
+      {/* Header: identity + quick stats */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-heading), sans-serif', fontSize: 27, fontWeight: 900, color: '#1A1A1A', margin: 0 }}>
+            Кабінет фотографа
+          </h1>
+          <p style={{ color: '#8B8378', margin: '4px 0 0', fontSize: 14 }}>
+            {profile.name}
+            {profile.landing_enabled && (
+              <> · <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#263A99', fontWeight: 600 }}>ваша публічна сторінка ↗</a></>
+            )}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ background: '#fff', border: '1px solid #E8DCC8', borderRadius: 12, padding: '8px 16px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-heading), sans-serif', fontWeight: 800, fontSize: 18, color: '#263A99' }}>{galleries.length}</div>
+            <div style={{ fontSize: 11.5, color: '#8B8378' }}>галерей</div>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #E8DCC8', borderRadius: 12, padding: '8px 16px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-heading), sans-serif', fontWeight: 800, fontSize: 18, color: '#a5504f' }}>♥ {favTotal}</div>
+            <div style={{ fontSize: 11.5, color: '#8B8378' }}>обрано клієнтами</div>
+          </div>
+        </div>
+      </div>
+
       <DiscountBanner status={b2bStatus} />
 
-      {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 8, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
+      {/* Tab bar — sticky so navigation survives long lists; scrolls
+          horizontally on narrow screens instead of wrapping into a mess. */}
+      <div style={{ position: 'sticky', top: 86, zIndex: 40, background: '#FAF8F5', margin: '0 -4px 18px', padding: '6px 4px' }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: '#fff', border: '1px solid #E8DCC8', borderRadius: 999, padding: 5 }}>
+          {TABS.map(t => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)}
+              style={{
+                flex: '0 0 auto', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                borderRadius: 999, padding: '9px 18px', fontSize: 14, fontWeight: 700,
+                fontFamily: 'var(--font-heading), sans-serif',
+                background: tab === t.id ? '#263A99' : 'transparent',
+                color: tab === t.id ? '#fff' : '#55504a',
+                transition: 'background .15s, color .15s',
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
-      <ReferralSection token={token} flash={flash} />
-      <OrdersSection token={token} />
-      {/* The public landing («візитка») and booking are behind the
-          landing_enabled feature flag while their design is finished
-          (Diana, 2026-08-04) — only the test photographer sees these
-          sections. Re-enable per photographer from the admin panel. */}
-      {profile.landing_enabled && (
+      {notice && <div style={{ position: 'fixed', top: 16, right: 16, background: '#065f46', color: '#fff', borderRadius: 10, padding: '10px 16px', zIndex: 100, fontSize: 14 }}>{notice}</div>}
+
+      {tab === 'galleries' && <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />}
+      {tab === 'earnings' && <ReferralSection token={token} flash={flash} />}
+      {tab === 'orders' && <OrdersSection token={token} />}
+      {/* Booking/візитка live behind the landing_enabled feature flag while
+          their design is finished (Diana, 2026-08-04). */}
+      {tab === 'booking' && profile.landing_enabled && (
+        <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
+      )}
+      {tab === 'landing' && profile.landing_enabled && (
         <>
-          <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
           <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
           <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
         </>
@@ -207,15 +258,15 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  if (err) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#b91c1c', marginTop: 10, fontSize: 14 }}>{err}</div></div>;
-  if (!data) return <div style={card}><h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2><div style={{ color: '#94a3b8', marginTop: 10 }}>Завантаження…</div></div>;
+  if (err) return <div style={card}><h2 style={sectionTitle}>Реферальна програма</h2><div style={{ color: '#b91c1c', marginTop: 10, fontSize: 14 }}>{err}</div></div>;
+  if (!data) return <div style={card}><h2 style={sectionTitle}>Реферальна програма</h2><div style={{ color: '#94a3b8', marginTop: 10 }}>Завантаження…</div></div>;
 
   // Gated until the moderated photographer application is approved — the same
   // review that unlocks the 10% discount unlocks earnings.
   if (data.pending) {
     return (
       <div style={card}>
-        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2>
+        <h2 style={sectionTitle}>Реферальна програма</h2>
         <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 12px' }}>
           Рекомендуйте нас клієнтам і отримуйте відсоток з кожного їхнього оплаченого замовлення, а клієнт — знижку 5%. Ця опція вмикається після підтвердження заявки фотографа, разом зі знижкою 10% на друк. Подайте заявку з посиланням на портфоліо, і ми розглянемо її вручну.
         </p>
@@ -264,7 +315,7 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
 
   return (
     <div style={card}>
-      <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Реферальна програма</h2>
+      <h2 style={sectionTitle}>Реферальна програма</h2>
       <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.65, margin: '10px 0 14px' }}>
         Діліться посиланням із клієнтами після зйомки. Клієнт отримує знижку 5% на замовлення, а ви — {Number(p.travelbook_rate)}% з тревелбуків і глянцевих журналів та {Number(p.other_rate)}% з решти товарів кожного оплаченого замовлення за вашим кодом. Виплата доступна від {minPayout} ₴.
       </p>
@@ -377,7 +428,7 @@ function OrdersSection({ token }: { token: string }) {
   return (
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Мої замовлення</h2>
+        <h2 style={sectionTitle}>Мої замовлення</h2>
         <a href="/uk/account" style={{ fontSize: 13, color: '#1e2d7d', fontWeight: 700 }}>Всі деталі в акаунті →</a>
       </div>
       <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>
@@ -460,7 +511,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   return (
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Галереї клієнтів</h2>
+        <h2 style={sectionTitle}>Галереї клієнтів</h2>
         <button style={btn} onClick={() => setShowNew(v => !v)}>{showNew ? 'Скасувати' : '+ Нова галерея'}</button>
       </div>
       <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Фото зберігаються 30 днів від створення галереї, після чого видаляються автоматично.</p>
@@ -486,25 +537,32 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
       {galleries.length === 0 && !showNew && <div style={{ color: '#94a3b8', marginTop: 12 }}>Поки що немає галерей.</div>}
 
       {galleries.map(g => (
-        <div key={g.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, marginTop: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <div>
-              <div style={{ fontWeight: 800 }}>{g.title}</div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+        <div key={g.id} style={{ border: '1px solid #E8DCC8', background: '#fff', borderRadius: 14, padding: 14, marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+            {/* Cover thumbnail — a gallery you can recognise at a glance. */}
+            {g.cover_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={g.cover_url} alt="" style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: 64, height: 64, borderRadius: 10, background: '#F5EFE6', color: '#c9bda6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>▦</div>
+            )}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontFamily: 'var(--font-heading), sans-serif', fontWeight: 800, fontSize: 15.5, color: '#1A1A1A' }}>{g.title}</div>
+              <div style={{ fontSize: 13, color: '#8B8378', marginTop: 3 }}>
                 {g.client_name && <span>{g.client_name} · </span>}
                 {g.shoot_date && <span>{new Date(g.shoot_date).toLocaleDateString('uk-UA')} · </span>}
                 <span>{g.photo_count} фото</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {g.favorite_count > 0 && (
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#c0343a', background: '#fff1f2', borderRadius: 999, padding: '4px 10px' }}>
-                  ♥ {g.favorite_count} обрано клієнтом
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#a5504f', background: '#fbf1f0', borderRadius: 999, padding: '4px 10px' }}>
+                  ♥ {g.favorite_count}
                 </span>
               )}
               {g.files_purged_at
                 ? <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', background: '#fef2f2', borderRadius: 999, padding: '4px 10px' }}>Термін минув</span>
-                : <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '4px 10px' }}>⏳ ще {g.days_left} дн.</span>}
+                : <span style={{ fontSize: 12, fontWeight: 700, color: '#8B8378', background: '#F5EFE6', borderRadius: 999, padding: '4px 10px' }}>ще {g.days_left} дн.</span>}
             </div>
           </div>
           {!g.files_purged_at && (
@@ -866,7 +924,7 @@ function ProfileSection({ token, profile, onChanged, flash }: {
 
   return (
     <div style={card}>
-      <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Профіль (візитка)</h2>
+      <h2 style={sectionTitle}>Профіль (візитка)</h2>
       <label style={label}>Ім&apos;я / назва студії</label>
       <input style={input} value={form.name} onChange={set('name')} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -967,7 +1025,7 @@ function LandingSection({ token, profile, onChanged, flash }: {
   return (
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Лендинг: прайс і портфоліо</h2>
+        <h2 style={sectionTitle}>Лендинг: прайс і портфоліо</h2>
         <a href={`/uk/photographer/${profile.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}>
           Переглянути мою сторінку ↗
         </a>
@@ -1104,7 +1162,7 @@ function BookingCabinetSection({ token, profile, onChanged, flash }: {
   return (
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Запис на зйомку</h2>
+        <h2 style={sectionTitle}>Запис на зйомку</h2>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
           {/* Зберігається одразу — вимкнув і блок зник зі сторінки, без окремої кнопки */}
           <input type="checkbox" checked={pay.booking_enabled}
