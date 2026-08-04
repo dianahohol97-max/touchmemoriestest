@@ -44,7 +44,9 @@ export default function GalleryEditorClient({ token, galleryId }: { token: strin
     <div style={{ background: '#FAF8F5', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navigation />
       <main style={{ flex: 1, paddingTop: 110 }}>
-        <div style={{ maxWidth: 880, margin: '0 auto', padding: '20px 16px 80px', fontFamily: 'var(--font-body), sans-serif', color: '#1A1A1A' }}>
+        {/* Wider than the cabinet list: the design section puts the live
+            preview beside the options on desktop. */}
+        <div style={{ maxWidth: 1180, margin: '0 auto', padding: '20px 16px 80px', fontFamily: 'var(--font-body), sans-serif', color: '#1A1A1A' }}>
           <a href={back} style={{ display: 'inline-block', fontSize: 14, fontWeight: 700, color: '#263A99', textDecoration: 'none', marginBottom: 14 }}>
             ← Усі галереї
           </a>

@@ -798,7 +798,9 @@ export function DesignPanel({ token, galleryId, design, clientToken, photoCount,
     { key: 'font', label: 'Шрифт заголовків', items: [['playfair', 'Playfair — класичний'], ['cormorant', 'Cormorant — витончений'], ['montserrat', 'Montserrat — сучасний'], ['caveat', 'Caveat — рукописний']] },
     { key: 'font_scale', label: 'Розмір шрифту', items: [['s', 'Компактний'], ['m', 'Стандартний'], ['l', 'Великий']] },
     { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
-    { key: 'layout', label: 'Розкладка фото', items: [['masonry', 'Мозаїка — як у Pinterest'], ['grid', 'Рівна сітка — квадрати'], ['large', 'Великі фото — 2 колонки']] },
+    // «Мозаїка» зберігає пропорції, тож при однакових вертикальних фото вона
+    // виглядає як рівна сітка — для ритму є «журнальна» розкладка.
+    { key: 'layout', label: 'Розкладка фото', items: [['masonry', 'Мозаїка — за пропорціями фото'], ['grid', 'Рівна сітка — квадрати'], ['large', 'Великі фото — 2 колонки'], ['mixed', 'Журнальна — різні розміри']] },
     { key: 'radius', label: 'Заокруглення кутів', items: [['none', 'Без заокруглення'], ['s', 'Ледь помітне'], ['m', 'Середнє'], ['l', 'Сильне']] },
     { key: 'gap', label: 'Відстань між фото', items: [['none', 'Впритул'], ['s', 'Вузька'], ['m', 'Середня'], ['l', 'Широка']] },
     // Для фотографів, що знімають закордоном: мова, якою клієнт бачить
@@ -808,6 +810,18 @@ export function DesignPanel({ token, galleryId, design, clientToken, photoCount,
 
   return (
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+      {/* On wide screens the preview sits beside the options and sticks while
+          scrolling, so the photographer sees each change without jumping up
+          and down the page (Diana, 2026-08-04). Narrow screens stack. */}
+      <style>{`
+        .tmDesignGrid { display: grid; gap: 18px; align-items: start; }
+        @media (min-width: 1000px) {
+          .tmDesignGrid { grid-template-columns: minmax(0, 1fr) minmax(340px, 44%); }
+          .tmDesignPreview { position: sticky; top: 96px; }
+        }
+      `}</style>
+      <div className="tmDesignGrid">
+      <div>
       {OPTIONS.map(o => (
         <div key={o.key} style={o.key === 'bg' ? undefined : group}>
           <div style={groupLabel}>{o.label}</div>
@@ -861,10 +875,12 @@ export function DesignPanel({ token, galleryId, design, clientToken, photoCount,
         )}
       </div>
 
+      </div>
+
       {/* Live preview: the REAL client page in a scaled-down iframe (2× size,
           0.5 scale ≈ desktop viewport), remounted after each save. Honest by
           construction — no separate preview markup to drift out of sync. */}
-      <div style={{ marginTop: 16, border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+      <div className="tmDesignPreview" style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid #eef2f7', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Так побачить клієнт:</span>
@@ -898,6 +914,7 @@ export function DesignPanel({ token, galleryId, design, clientToken, photoCount,
             Поки в галереї немає фото, обкладинка показується як заглушка — завантажте фото, і превʼю оновиться з вашим знімком.
           </div>
         )}
+      </div>
       </div>
     </div>
   );

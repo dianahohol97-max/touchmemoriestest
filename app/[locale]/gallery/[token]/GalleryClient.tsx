@@ -337,7 +337,11 @@ const formatDate = (d: string) =>
             {data.photos.length === 0 ? t.emptyUploading : t.emptyFav}
           </div>
         ) : (
-          <div className={`${styles.grid} ${design.layout === 'grid' ? styles.gridUniform : design.layout === 'large' ? styles.gridLarge : ''}`}>
+          <div className={`${styles.grid} ${
+            design.layout === 'grid' ? styles.gridUniform
+            : design.layout === 'large' ? styles.gridLarge
+            : design.layout === 'mixed' ? styles.gridMixed
+            : ''}`}>
             {visible.map((photo, i) => (
               <div key={photo.id} className={styles.tile}>
                 <button onClick={() => setLightbox(i)} className={styles.tileOpen} aria-label={`${t.view} ${i + 1}`}>

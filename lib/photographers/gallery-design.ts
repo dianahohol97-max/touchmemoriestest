@@ -8,7 +8,7 @@ export const GALLERY_FONT_SCALES = ['s', 'm', 'l'] as const;
 export const GALLERY_COVERS = ['classic', 'bottom', 'split', 'minimal'] as const;
 // How the photo grid is laid out: masonry columns, an even cropped grid, or
 // a large editorial two-column flow.
-export const GALLERY_LAYOUTS = ['masonry', 'grid', 'large'] as const;
+export const GALLERY_LAYOUTS = ['masonry', 'grid', 'large', 'mixed'] as const;
 // Corner rounding and spacing of the photo tiles.
 export const GALLERY_RADII = ['none', 's', 'm', 'l'] as const;
 export const GALLERY_GAPS = ['none', 's', 'm', 'l'] as const;
