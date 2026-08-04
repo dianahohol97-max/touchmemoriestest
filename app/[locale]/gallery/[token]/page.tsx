@@ -1,9 +1,20 @@
 import type { Metadata } from 'next';
+import { Playfair_Display } from 'next/font/google';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getBaseUrl } from '@/lib/seo/locales';
 import GalleryClient from './GalleryClient';
 
 export const dynamic = 'force-dynamic';
+
+// Elegant serif for the gallery hero/title — the Pixieset-style look Diana
+// asked for. Cyrillic subset is required: gallery titles are Ukrainian.
+const serif = Playfair_Display({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-gallery-serif',
+  display: 'swap',
+});
 
 interface Props {
   params: Promise<{ token: string; locale: string }>;
@@ -48,5 +59,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ClientGalleryPage({ params }: Props) {
   const { token } = await params;
-  return <GalleryClient token={token} />;
+  return (
+    <div className={serif.variable}>
+      <GalleryClient token={token} />
+    </div>
+  );
 }

@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   const { data: gallery } = await admin
     .from('photographer_galleries')
     .select(`
-      id, title, client_name, shoot_date, expires_at, files_purged_at, created_at,
+      id, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id,
       photographer:photographers(name, bio, phone, instagram, website, email, logo_url, avatar_url, slug, is_active, landing_enabled)
     `)
     .eq('client_token', token)
@@ -56,10 +56,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     .eq('gallery_id', gallery.id)
     .order('created_at', { ascending: true });
 
+  const list = (photos || []).map(p => ({ id: p.id, file_name: p.file_name, size_bytes: p.size_bytes, favorite: !!p.favorite, url: publicUrl(p.storage_path) }));
+  // Cover for the fullscreen hero: the photographer's pick, else the first photo.
+  const cover = list.find(p => p.id === gallery.cover_photo_id) || list[0] || null;
+
   return NextResponse.json({
     gallery: {
       ...base,
-      photos: (photos || []).map(p => ({ id: p.id, file_name: p.file_name, size_bytes: p.size_bytes, favorite: !!p.favorite, url: publicUrl(p.storage_path) })),
+      cover_url: cover?.url || null,
+      photos: list,
     },
   });
 }

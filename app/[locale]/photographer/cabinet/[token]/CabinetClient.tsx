@@ -26,6 +26,7 @@ interface Gallery {
   id: string; client_token: string; title: string; client_name: string | null;
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
+  cover_photo_id: string | null;
 }
 interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean }
 
@@ -333,6 +334,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   const [creating, setCreating] = useState(false);
   const [openUpload, setOpenUpload] = useState<string | null>(null);
   const [openPicks, setOpenPicks] = useState<string | null>(null);
+  const [openCover, setOpenCover] = useState<string | null>(null);
 
   const create = async () => {
     if (!title.trim() || creating) return;
@@ -412,18 +414,27 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               {g.favorite_count > 0 && (
                 <button
                   style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a' }}
-                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); }}
+                  onClick={() => { setOpenPicks(openPicks === g.id ? null : g.id); setOpenUpload(null); setOpenCover(null); }}
                 >
                   {openPicks === g.id ? 'Згорнути' : `♥ Обрані клієнтом (${g.favorite_count})`}
                 </button>
               )}
-              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); }}>
+              <button style={btnGhost} onClick={() => { setOpenUpload(openUpload === g.id ? null : g.id); setOpenPicks(null); setOpenCover(null); }}>
                 {openUpload === g.id ? 'Згорнути' : 'Завантажити фото'}
               </button>
+              {g.photo_count > 0 && (
+                <button style={btnGhost} onClick={() => { setOpenCover(openCover === g.id ? null : g.id); setOpenPicks(null); setOpenUpload(null); }}>
+                  {openCover === g.id ? 'Згорнути' : 'Обкладинка'}
+                </button>
+              )}
             </div>
           )}
           {openPicks === g.id && <ClientPicks token={token} galleryId={g.id} />}
           {openUpload === g.id && <UploadZone token={token} galleryId={g.id} onDone={onChanged} flash={flash} />}
+          {openCover === g.id && (
+            <CoverPicker token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
+              onDone={async () => { await onChanged(); }} flash={flash} />
+          )}
         </div>
       ))}
     </div>
@@ -467,6 +478,77 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
             <img src={p.url} alt={p.file_name} loading="lazy"
                  style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8, border: '1px solid #f1d4d5' }} />
           </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Pick the photo shown fullscreen at the top of the client gallery.
+ *  Reuses the cabinet photos endpoint; saving goes through PATCH
+ *  /api/photographers/galleries/[id]. */
+function CoverPicker({ token, galleryId, coverPhotoId, onDone, flash }: {
+  token: string; galleryId: string; coverPhotoId: string | null;
+  onDone: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [photos, setPhotos] = useState<CabinetPhoto[] | null>(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState<string | null>(coverPhotoId);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/photographers/galleries/${galleryId}/photos?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) { setError(json?.error || 'Не вдалося завантажити'); return; }
+        setPhotos(json.photos as CabinetPhoto[]);
+      } catch { if (!cancelled) setError('Не вдалося завантажити'); }
+    })();
+    return () => { cancelled = true; };
+  }, [token, galleryId]);
+
+  const save = async (photoId: string) => {
+    if (saving) return;
+    const prev = selected;
+    setSelected(photoId);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/photographers/galleries/${galleryId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, cover_photo_id: photoId }),
+      });
+      if (!res.ok) { setSelected(prev); alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
+      await onDone();
+      flash('Обкладинку збережено');
+    } finally { setSaving(false); }
+  };
+
+  if (error) return <div style={{ marginTop: 10, color: '#991b1b', fontSize: 13 }}>{error}</div>;
+  if (!photos) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Завантаження…</div>;
+  if (photos.length === 0) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Спершу завантажте фото.</div>;
+
+  return (
+    <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 12 }}>
+      <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
+        Оберіть фото для обкладинки — клієнт побачить його на весь екран, відкривши галерею. Без вибору використовується перше фото.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+        {photos.map(p => (
+          <button key={p.id} type="button" onClick={() => save(p.id)} disabled={saving}
+            title={p.file_name}
+            style={{ padding: 0, border: selected === p.id ? '3px solid #1e2d7d' : '3px solid transparent', borderRadius: 10, cursor: 'pointer', background: 'none', position: 'relative' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.url} alt={p.file_name} loading="lazy"
+                 style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+            {selected === p.id && (
+              <span style={{ position: 'absolute', top: 4, right: 4, background: '#1e2d7d', color: '#fff', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '2px 8px' }}>
+                Обкладинка
+              </span>
+            )}
+          </button>
         ))}
       </div>
     </div>

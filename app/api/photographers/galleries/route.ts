@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const admin = getAdminClient();
   const { data: galleries, error } = await admin
     .from('photographer_galleries')
-    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, photographer_gallery_photos(count)')
+    .select('id, client_token, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, photographer_gallery_photos(count)')
     .eq('photographer_id', photographer.id)
     .order('created_at', { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
