@@ -163,6 +163,24 @@
   transition: color 0.2s;
 }
 .heroScroll:hover { color: #fff; }
+/* In-flow variant for the panel covers (split / minimal), where the cue sits
+   under the text instead of being pinned to the bottom of the section. */
+.heroScrollStatic {
+  position: static;
+  transform: none;
+  margin: 26px auto 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  color: var(--g-muted);
+  transition: color 0.2s;
+}
+.heroScrollStatic:hover { color: var(--g-text); }
 .heroScrollText {
   font-size: 11px;
   letter-spacing: 0.28em;
@@ -210,13 +228,6 @@
   animation: heroFade 1.1s ease-out both;
   padding: 0;
 }
-.heroContentPanel .heroScroll {
-  position: static;
-  transform: none;
-  margin: 26px auto 0;
-  color: var(--g-muted);
-}
-.heroContentPanel .heroScroll:hover { color: var(--g-text); }
 @media (max-width: 760px) {
   .heroSplit {
     grid-template-columns: 1fr;
@@ -241,11 +252,6 @@
 .heroMinimal .heroContent {
   position: static;
   color: var(--g-text);
-}
-.heroMinimal .heroScroll {
-  position: static;
-  transform: none;
-  margin: 26px auto 0;
 }
 .heroScrollPanel {
   color: var(--g-muted);

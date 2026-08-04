@@ -12,7 +12,7 @@ export const GALLERY_LAYOUTS = ['masonry', 'grid', 'large'] as const;
 // Languages the client gallery can speak — picked for where Ukrainian
 // photographers actually work abroad (Diana, 2026-08-04): PL/DE/CZ plus the
 // big Western European markets and the site's existing RO locale.
-export const GALLERY_LANGS = ['uk', 'en', 'pl', 'de', 'cs', 'it', 'es', 'fr', 'ro'] as const;
+export const GALLERY_LANGS = ['uk', 'en', 'pl', 'de', 'cs', 'it', 'es', 'pt', 'fr', 'ro'] as const;
 
 export type GalleryBg = typeof GALLERY_BG[number];
 export type GalleryFont = typeof GALLERY_FONTS[number];
@@ -28,6 +28,10 @@ export interface GalleryDesign {
   cover: GalleryCover;
   layout: GalleryLayout;
   lang: GalleryLang;
+  /** Focal point of the cover crop, in percent (object-position). 50/50 is
+   *  dead centre — the photographer shifts it when the crop cuts faces. */
+  cover_x: number;
+  cover_y: number;
 }
 
 export const DEFAULT_DESIGN: GalleryDesign = {
@@ -37,6 +41,8 @@ export const DEFAULT_DESIGN: GalleryDesign = {
   cover: 'classic',
   layout: 'masonry',
   lang: 'uk',
+  cover_x: 50,
+  cover_y: 50,
 };
 
 /** Merge an untrusted partial design over the current one, dropping unknown
@@ -47,6 +53,15 @@ export function sanitizeDesign(current: Partial<GalleryDesign> | null, patch: un
     for (const v of vals) if (typeof v === 'string' && (allowed as readonly string[]).includes(v)) return v as T[number];
     return allowed[0];
   };
+  // Percent values arrive from a slider; clamp and round so nothing weird
+  // (NaN, 900, "50px") can reach the CSS object-position of the hero.
+  const pct = (...vals: unknown[]): number => {
+    for (const v of vals) {
+      const n = typeof v === 'string' ? Number(v) : v;
+      if (typeof n === 'number' && Number.isFinite(n)) return Math.min(100, Math.max(0, Math.round(n)));
+    }
+    return 50;
+  };
   return {
     bg: pick(GALLERY_BG, p.bg, current?.bg, DEFAULT_DESIGN.bg),
     font: pick(GALLERY_FONTS, p.font, current?.font, DEFAULT_DESIGN.font),
@@ -54,5 +69,7 @@ export function sanitizeDesign(current: Partial<GalleryDesign> | null, patch: un
     cover: pick(GALLERY_COVERS, p.cover, current?.cover, DEFAULT_DESIGN.cover),
     layout: pick(GALLERY_LAYOUTS, p.layout, current?.layout, DEFAULT_DESIGN.layout),
     lang: pick(GALLERY_LANGS, p.lang, current?.lang, DEFAULT_DESIGN.lang),
+    cover_x: pct(p.cover_x, current?.cover_x, DEFAULT_DESIGN.cover_x),
+    cover_y: pct(p.cover_y, current?.cover_y, DEFAULT_DESIGN.cover_y),
   };
 }

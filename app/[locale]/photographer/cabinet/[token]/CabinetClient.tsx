@@ -580,7 +580,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               {(g.zip_downloads > 0 || g.photo_downloads > 0) && (
                 <span title={`Завантажень: ZIP-архів ${g.zip_downloads} раз(ів), окремих фото ${g.photo_downloads}`}
                   style={{ fontSize: 12, fontWeight: 800, color: '#263A99', background: '#eef1fb', borderRadius: 999, padding: '4px 10px' }}>
-                  ⬇ {g.zip_downloads + g.photo_downloads}
+                  ↓ {g.zip_downloads + g.photo_downloads}
                 </span>
               )}
               {g.files_purged_at
@@ -605,7 +605,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
               </button>
               {g.photo_count > 0 && (
                 <button style={btnGhost} onClick={() => { const open = openCover === g.id; closeAll(); if (!open) setOpenCover(g.id); }}>
-                  {openCover === g.id ? 'Згорнути' : 'Обкладинка'}
+                  {openCover === g.id ? 'Згорнути' : `Фото та обкладинка (${g.photo_count})`}
                 </button>
               )}
               <button style={btnGhost} onClick={() => { const open = openDesign === g.id; closeAll(); if (!open) setOpenDesign(g.id); }}>
@@ -619,12 +619,13 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           {openPicks === g.id && <ClientPicks token={token} galleryId={g.id} />}
           {openUpload === g.id && <UploadZone token={token} galleryId={g.id} onDone={onChanged} flash={flash} />}
           {openCover === g.id && (
-            <CoverPicker token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
+            <PhotoManager token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
               onDone={async () => { await onChanged(); }} flash={flash} />
           )}
           {openDesign === g.id && (
             <DesignPanel token={token} galleryId={g.id} design={g.design}
-              clientToken={g.client_token} photoCount={g.photo_count} onDone={onChanged} flash={flash} />
+              clientToken={g.client_token} photoCount={g.photo_count} coverUrl={g.cover_url}
+              onDone={onChanged} flash={flash} />
           )}
           {openEdit === g.id && (
             <EditGalleryPanel token={token} gallery={g} onDone={onChanged} flash={flash} />
@@ -666,7 +667,10 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
         {photos.map(p => (
-          <a key={p.id} href={p.url} download={p.file_name} target="_blank" rel="noopener noreferrer"
+          // ?download= forces Content-Disposition: attachment — the <a download>
+          // attribute is ignored for cross-origin storage URLs.
+          <a key={p.id} href={`${p.url}${p.url.includes('?') ? '&' : '?'}download=${encodeURIComponent(p.file_name || 'photo.jpg')}`}
+             target="_blank" rel="noopener noreferrer"
              title={`Завантажити ${p.file_name}`} style={{ display: 'block' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.url} alt={p.file_name} loading="lazy"
@@ -746,10 +750,15 @@ const g_daysWord = (n: number) => `${n} ${n === 1 ? 'день' : n >= 2 && n <= 
 /** Gallery design constructor: background, display font, font size and cover
  *  layout. Each click saves immediately via PATCH (the server merges and
  *  validates against the whitelists in lib/photographers/gallery-design). */
-function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone, flash }: {
-  token: string; galleryId: string; design: Record<string, string> | null;
-  clientToken: string; photoCount: number; onDone: () => Promise<void>; flash: (m: string) => void;
+function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverUrl, onDone, flash }: {
+  token: string; galleryId: string; design: Record<string, any> | null;
+  clientToken: string; photoCount: number; coverUrl: string | null;
+  onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
+  // Cover focal point (object-position). Sliders move it live; the PATCH is
+  // sent when the photographer lets go, not on every pixel.
+  const [cx, setCx] = useState<number>(Number(design?.cover_x ?? 50));
+  const [cy, setCy] = useState<number>(Number(design?.cover_y ?? 50));
   const [current, setCurrent] = useState<Record<string, string>>({
     bg: design?.bg || 'light',
     font: design?.font || 'playfair',
@@ -762,23 +771,40 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
   // Bumped after every saved change — remounts the preview iframe so the
   // photographer sees the result immediately, without leaving the cabinet.
   const [previewKey, setPreviewKey] = useState(0);
+  // Which part of the gallery the preview shows. Layout changes only matter
+  // below the fold, so picking a layout switches the preview to the grid
+  // automatically (Diana: «я б хотіла бачити відразу як фото будуть
+  // розміщені»).
+  const [previewView, setPreviewView] = useState<'cover' | 'photos'>('cover');
+
+  const savePatch = async (patch: Record<string, string | number>, view?: 'cover' | 'photos') => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/photographers/galleries/${galleryId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, design: patch }),
+      });
+      if (!res.ok) { alert((await res.json())?.error || 'Не вдалося зберегти'); return false; }
+      await onDone();
+      if (view) setPreviewView(view);
+      setPreviewKey(k => k + 1);
+      flash('Дизайн збережено');
+      return true;
+    } finally { setSaving(false); }
+  };
 
   const save = async (key: string, value: string) => {
     if (saving) return;
     const prev = current;
     setCurrent(c => ({ ...c, [key]: value }));
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/photographers/galleries/${galleryId}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, design: { [key]: value } }),
-      });
-      if (!res.ok) { setCurrent(prev); alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
-      await onDone();
-      setPreviewKey(k => k + 1);
-      flash('Дизайн збережено');
-    } finally { setSaving(false); }
+    const ok = await savePatch({ [key]: value }, key === 'layout' ? 'photos' : key === 'cover' ? 'cover' : undefined);
+    if (!ok) setCurrent(prev);
   };
+
+  const saveFocal = () => savePatch({ cover_x: cx, cover_y: cy }, 'cover');
+
+  const previewSrc = `/uk/gallery/${clientToken}${previewView === 'photos' ? '#photos' : ''}`;
 
   const group: React.CSSProperties = { marginTop: 12 };
   const groupLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 6 };
@@ -796,7 +822,7 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
     { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
     { key: 'layout', label: 'Розкладка фото', items: [['masonry', 'Мозаїка — як у Pinterest'], ['grid', 'Рівна сітка — квадрати'], ['large', 'Великі фото — 2 колонки']] },
     // Для фотографів, що знімають закордоном: мова, якою клієнт бачить галерею.
-    { key: 'lang', label: 'Мова галереї (для клієнта)', items: [['uk', 'Українська'], ['en', 'English'], ['pl', 'Polski'], ['de', 'Deutsch'], ['cs', 'Čeština'], ['it', 'Italiano'], ['es', 'Español'], ['fr', 'Français'], ['ro', 'Română']] },
+    { key: 'lang', label: 'Мова галереї (для клієнта)', items: [['uk', 'Українська'], ['en', 'English'], ['pl', 'Polski'], ['de', 'Deutsch'], ['cs', 'Čeština'], ['it', 'Italiano'], ['es', 'Español'], ['pt', 'Português'], ['fr', 'Français'], ['ro', 'Română']] },
   ];
 
   return (
@@ -813,20 +839,75 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
           </div>
         </div>
       ))}
+
+      {/* Cover focal point — the crop that the fullscreen hero applies.
+          Drag the sliders and the mini-preview shows exactly what will be
+          visible; the marker is where the crop centres. */}
+      <div style={group}>
+        <div style={groupLabel}>Центрування обкладинки</div>
+        {coverUrl ? (
+          <>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 380, aspectRatio: '16 / 9', borderRadius: 10, overflow: 'hidden', border: '1px solid #E8DCC8', background: '#efece7' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${cx}% ${cy}%`, display: 'block' }} />
+              <span aria-hidden style={{
+                position: 'absolute', left: `${cx}%`, top: `${cy}%`, transform: 'translate(-50%, -50%)',
+                width: 22, height: 22, borderRadius: '50%', border: '2px solid #fff',
+                boxShadow: '0 0 0 1px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.35)', pointerEvents: 'none',
+              }} />
+            </div>
+            <div style={{ maxWidth: 380, marginTop: 10 }}>
+              {([['По горизонталі', cx, setCx], ['По вертикалі', cy, setCy]] as const).map(([lbl, val, setter]) => (
+                <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: '#8B8378', width: 104, flexShrink: 0 }}>{lbl}</span>
+                  <input type="range" min={0} max={100} value={val} disabled={saving}
+                    onChange={e => setter(Number(e.target.value))}
+                    onPointerUp={saveFocal} onKeyUp={saveFocal} onTouchEnd={saveFocal}
+                    style={{ flex: 1, accentColor: '#263A99' }} />
+                  <span style={{ fontSize: 12, color: '#8B8378', width: 34, textAlign: 'right' }}>{val}%</span>
+                </div>
+              ))}
+              <button type="button" style={{ ...btnGhost, marginTop: 4 }} disabled={saving}
+                onClick={() => { setCx(50); setCy(50); savePatch({ cover_x: 50, cover_y: 50 }, 'cover'); }}>
+                Скинути до центру
+              </button>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 12.5, color: '#94a3b8' }}>
+            Спершу завантажте фото — тоді тут зʼявиться превʼю обкладинки з центруванням.
+          </div>
+        )}
+      </div>
+
       {/* Live preview: the REAL client page in a scaled-down iframe (2× size,
           0.5 scale ≈ desktop viewport), remounted after each save. Honest by
           construction — no separate preview markup to drift out of sync. */}
       <div style={{ marginTop: 16, border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid #eef2f7', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Так галерею побачить клієнт</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Так побачить клієнт:</span>
+            {([['cover', 'обкладинку'], ['photos', 'розміщення фото']] as const).map(([v, lbl]) => (
+              <button key={v} type="button"
+                onClick={() => { setPreviewView(v); setPreviewKey(k => k + 1); }}
+                style={{
+                  border: 'none', cursor: 'pointer', borderRadius: 999, padding: '5px 12px',
+                  fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-heading), sans-serif',
+                  background: previewView === v ? '#263A99' : '#eef2f7',
+                  color: previewView === v ? '#fff' : '#55504a',
+                }}>
+                {lbl}
+              </button>
+            ))}
+          </div>
           <a href={`/uk/gallery/${clientToken}`} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#1e2d7d', fontWeight: 700 }}>
             Відкрити повністю ↗
           </a>
         </div>
         <div style={{ height: 460, overflow: 'hidden' }}>
           <iframe
-            key={previewKey}
-            src={`/uk/gallery/${clientToken}`}
+            key={`${previewKey}-${previewView}`}
+            src={previewSrc}
             title="Попередній перегляд галереї"
             style={{ width: '200%', height: '200%', border: 'none', transform: 'scale(0.5)', transformOrigin: 'top left', pointerEvents: 'none' }}
           />
@@ -841,37 +922,36 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, onDone
   );
 }
 
-/** Pick the photo (or video) shown fullscreen at the top of the client
- *  gallery. Reuses the cabinet photos endpoint; saving goes through PATCH
- *  /api/photographers/galleries/[id]. */
-function CoverPicker({ token, galleryId, coverPhotoId, onDone, flash }: {
+/** Photo manager: the one place where the photographer sees every file in a
+ *  gallery, sets the cover and deletes what they don't want. Deletion had no
+ *  UI at all before (Diana: «як видалити старі фото»), although the API
+ *  supported it. Hover a tile → «На обкладинку» / «Видалити». */
+function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: {
   token: string; galleryId: string; coverPhotoId: string | null;
   onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [photos, setPhotos] = useState<CabinetPhoto[] | null>(null);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(coverPhotoId);
+  const [hover, setHover] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/photographers/galleries/${galleryId}/photos?token=${encodeURIComponent(token)}`);
-        const json = await res.json();
-        if (cancelled) return;
-        if (!res.ok) { setError(json?.error || 'Не вдалося завантажити'); return; }
-        setPhotos(json.photos as CabinetPhoto[]);
-      } catch { if (!cancelled) setError('Не вдалося завантажити'); }
-    })();
-    return () => { cancelled = true; };
-  }, [token, galleryId]);
+  const load = async () => {
+    try {
+      const res = await fetch(`/api/photographers/galleries/${galleryId}/photos?token=${encodeURIComponent(token)}`);
+      const json = await res.json();
+      if (!res.ok) { setError(json?.error || 'Не вдалося завантажити'); return; }
+      setPhotos(json.photos as CabinetPhoto[]);
+    } catch { setError('Не вдалося завантажити'); }
+  };
 
-  const save = async (photoId: string) => {
-    if (saving) return;
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token, galleryId]);
+
+  const setCover = async (photoId: string) => {
+    if (busy) return;
     const prev = selected;
     setSelected(photoId);
-    setSaving(true);
+    setBusy(true);
     try {
       const res = await fetch(`/api/photographers/galleries/${galleryId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -880,43 +960,97 @@ function CoverPicker({ token, galleryId, coverPhotoId, onDone, flash }: {
       if (!res.ok) { setSelected(prev); alert((await res.json())?.error || 'Не вдалося зберегти'); return; }
       await onDone();
       flash('Обкладинку збережено');
-    } finally { setSaving(false); }
+    } finally { setBusy(false); }
+  };
+
+  const remove = async (p: CabinetPhoto) => {
+    if (busy) return;
+    // Deleting a client's photo is irreversible (file leaves storage), so it
+    // always asks — and warns when the client had picked it for print.
+    const warn = p.favorite ? '\n\nУВАГА: це фото клієнт обрав для друку.' : '';
+    if (!confirm(`Видалити «${p.file_name}»? Файл буде стерто назавжди.${warn}`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/photographers/galleries/${galleryId}/photos`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, photo_id: p.id }),
+      });
+      if (!res.ok) { alert((await res.json())?.error || 'Не вдалося видалити'); return; }
+      setPhotos(list => (list || []).filter(x => x.id !== p.id));
+      if (selected === p.id) setSelected(null);
+      await onDone();
+      flash('Фото видалено');
+    } finally { setBusy(false); }
   };
 
   if (error) return <div style={{ marginTop: 10, color: '#991b1b', fontSize: 13 }}>{error}</div>;
   if (!photos) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Завантаження…</div>;
   if (photos.length === 0) return <div style={{ marginTop: 10, color: '#94a3b8', fontSize: 13 }}>Спершу завантажте фото.</div>;
 
+  const tileBtn: React.CSSProperties = {
+    border: 'none', borderRadius: 8, padding: '5px 9px', fontSize: 11.5, fontWeight: 700,
+    cursor: 'pointer', fontFamily: 'var(--font-heading), sans-serif',
+  };
+
   return (
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 12 }}>
-      <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>
-        Оберіть фото або відео для обкладинки — клієнт побачить його на весь екран, відкривши галерею. Без вибору використовується перше фото.
+      <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
+        Наведіть на фото, щоб поставити його на обкладинку або видалити. Обкладинку клієнт бачить на весь екран, відкриваючи галерею; без вибору береться перше фото.
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(108px, 1fr))', gap: 8 }}>
         {photos.map(p => (
-          <button key={p.id} type="button" onClick={() => save(p.id)} disabled={saving}
+          <div key={p.id}
+            onMouseEnter={() => setHover(p.id)} onMouseLeave={() => setHover(h => (h === p.id ? null : h))}
             title={p.file_name}
-            style={{ padding: 0, border: selected === p.id ? '3px solid #1e2d7d' : '3px solid transparent', borderRadius: 10, cursor: 'pointer', background: 'none', position: 'relative' }}>
+            style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: selected === p.id ? '3px solid #263A99' : '3px solid transparent', background: '#e9e4db' }}>
             {p.media_type === 'video' ? (
               <video src={p.url} muted playsInline preload="metadata"
-                     style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+                     style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={p.url} alt={p.file_name} loading="lazy"
-                   style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 7, display: 'block', opacity: saving && selected !== p.id ? 0.6 : 1 }} />
+                   style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
             )}
+
             {p.media_type === 'video' && (
-              <span style={{ position: 'absolute', left: 4, bottom: 4, background: 'rgba(15,18,30,0.65)', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '2px 7px' }}>
+              <span style={{ position: 'absolute', left: 5, bottom: 5, background: 'rgba(15,18,30,0.65)', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 800, padding: '2px 7px' }}>
                 ▶ відео
               </span>
             )}
+            {p.favorite && (
+              <span title="Клієнт обрав це фото для друку"
+                style={{ position: 'absolute', left: 5, top: 5, background: '#a5504f', color: '#fff', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '2px 7px' }}>♥</span>
+            )}
             {selected === p.id && (
-              <span style={{ position: 'absolute', top: 4, right: 4, background: '#1e2d7d', color: '#fff', borderRadius: 999, fontSize: 11, fontWeight: 800, padding: '2px 8px' }}>
+              <span style={{ position: 'absolute', top: 5, right: 5, background: '#263A99', color: '#fff', borderRadius: 999, fontSize: 10.5, fontWeight: 800, padding: '2px 8px' }}>
                 Обкладинка
               </span>
             )}
-          </button>
+
+            {/* Action overlay — appears on hover, always visible on touch. */}
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 6,
+              background: 'rgba(15,18,30,0.55)', backdropFilter: 'blur(2px)',
+              opacity: hover === p.id ? 1 : 0, transition: 'opacity .15s',
+              pointerEvents: hover === p.id ? 'auto' : 'none',
+            }}>
+              {selected !== p.id && (
+                <button type="button" disabled={busy} onClick={() => setCover(p.id)}
+                  style={{ ...tileBtn, background: '#fff', color: '#263A99' }}>
+                  На обкладинку
+                </button>
+              )}
+              <button type="button" disabled={busy} onClick={() => remove(p)}
+                style={{ ...tileBtn, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.6)' }}>
+                Видалити
+              </button>
+            </div>
+          </div>
         ))}
+      </div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+        Усього {photos.length} файл(ів) у галереї. Видалення незворотне — файл стирається зі сховища.
       </div>
     </div>
   );

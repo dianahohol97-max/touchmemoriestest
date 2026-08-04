@@ -142,6 +142,17 @@ export default function GalleryClient({ token }: { token: string }) {
 
   const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  // Opening the gallery with #photos lands straight on the grid — used by the
+  // cabinet's design preview so the photographer sees the chosen layout
+  // without scrolling past the fullscreen cover. Must run AFTER the photos
+  // render (the browser's own anchor jump fires before the fetch resolves).
+  useEffect(() => {
+    if (!data || typeof window === 'undefined') return;
+    if (window.location.hash !== '#photos') return;
+    const id = window.setTimeout(() => gridRef.current?.scrollIntoView({ block: 'start' }), 60);
+    return () => window.clearTimeout(id);
+  }, [data]);
+
   if (loading) {
     return (
       <div className={`${styles.page} ${styles.themeLight}`}>
@@ -160,7 +171,18 @@ export default function GalleryClient({ token }: { token: string }) {
 
   const design = data.design;
   const t = GALLERY_I18N[design.lang] || GALLERY_I18N.uk;
-  const formatDate = (d: string) =>
+  /** Plain vector download arrow. The ⬇ character renders as a blue emoji on
+ *  macOS/iOS (Diana's screenshot) — an inline SVG looks the same everywhere. */
+const DownloadIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">
+    <path d="M12 3v12" />
+    <path d="m7 12 5 5 5-5" />
+    <path d="M5 21h14" />
+  </svg>
+);
+
+const formatDate = (d: string) =>
     new Date(d).toLocaleDateString(t.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' });
   const themeClass = design.bg === 'dark' ? styles.themeDark : design.bg === 'cream' ? styles.themeCream : styles.themeLight;
   const designStyle = {
@@ -204,29 +226,38 @@ export default function GalleryClient({ token }: { token: string }) {
     );
   }
 
+  // Focal point of the cover crop, set by the photographer in the cabinet.
+  const coverPos = `${design.cover_x ?? 50}% ${design.cover_y ?? 50}%`;
   const coverMedia = data.cover_url
     ? (data.cover_type === 'video'
-      ? <video src={data.cover_url} className={styles.heroImg} autoPlay muted loop playsInline />
+      ? <video src={data.cover_url} className={styles.heroImg} style={{ objectPosition: coverPos }} autoPlay muted loop playsInline />
       // eslint-disable-next-line @next/next/no-img-element
-      : <img src={data.cover_url} alt="" className={styles.heroImg} />)
+      : <img src={data.cover_url} alt="" className={styles.heroImg} style={{ objectPosition: coverPos }} />)
     : <div className={styles.heroFallback} />;
 
+  // Text block only — the scroll cue is rendered separately, because on the
+  // media covers it is pinned to the bottom of the SECTION. Keeping it inside
+  // this block made it absolute-position against the text and overlap the
+  // title (Diana's screenshot, 2026-08-04).
   const heroText = (onMedia: boolean) => (
     <>
       <div className={`${styles.heroKicker} ${onMedia ? '' : styles.onPanel}`}>{p.name}</div>
       <h1 className={styles.heroTitle}>{data.title}</h1>
       <div className={`${styles.heroDivider} ${onMedia ? '' : styles.dividerPanel}`} />
       {meta && <div className={`${styles.heroMeta} ${onMedia ? '' : styles.onPanel}`}>{meta}</div>}
-      <button
-        type="button"
-        className={`${styles.heroScroll} ${onMedia ? '' : styles.heroScrollPanel}`}
-        onClick={scrollToGrid}
-        aria-label={t.view}
-      >
-        <span className={styles.heroScrollText}>{t.view}</span>
-        <span className={styles.heroChevron} aria-hidden>⌄</span>
-      </button>
     </>
+  );
+
+  const scrollCue = (inFlow: boolean) => (
+    <button
+      type="button"
+      className={`${inFlow ? styles.heroScrollStatic : styles.heroScroll} ${inFlow ? styles.heroScrollPanel : ''}`}
+      onClick={scrollToGrid}
+      aria-label={t.view}
+    >
+      <span className={styles.heroScrollText}>{t.view}</span>
+      <span className={styles.heroChevron} aria-hidden>⌄</span>
+    </button>
   );
 
   return (
@@ -235,19 +266,26 @@ export default function GalleryClient({ token }: { token: string }) {
       {design.cover === 'split' ? (
         <section className={styles.heroSplit}>
           <div className={styles.splitPanel}>
-            <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>{heroText(false)}</div>
+            <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>
+              {heroText(false)}
+              {scrollCue(true)}
+            </div>
           </div>
           <div className={styles.splitMedia}>{coverMedia}</div>
         </section>
       ) : design.cover === 'minimal' ? (
         <section className={styles.heroMinimal}>
-          <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>{heroText(false)}</div>
+          <div className={`${styles.heroContent} ${styles.heroContentPanel}`}>
+            {heroText(false)}
+            {scrollCue(true)}
+          </div>
         </section>
       ) : (
         <section className={`${styles.hero} ${design.cover === 'bottom' ? styles.heroBottom : ''}`}>
           {coverMedia}
           <div className={styles.heroShade} />
           <div className={styles.heroContent}>{heroText(true)}</div>
+          {scrollCue(false)}
         </section>
       )}
 
@@ -283,7 +321,7 @@ export default function GalleryClient({ token }: { token: string }) {
       </div>
 
       {/* ── Photo grid ── */}
-      <div className={styles.container} ref={gridRef}>
+      <div className={styles.container} ref={gridRef} id="photos">
         {data.photos.length > 0 && (
           <div className={styles.selectHint}>
             {t.hintBefore} <span className={styles.heartInline}>♡</span> {t.hintAfter}
@@ -324,7 +362,7 @@ export default function GalleryClient({ token }: { token: string }) {
                   onClick={() => track({ type: 'photo', photoId: photo.id })}
                   aria-label={t.ariaDownload}
                   title={t.ariaDownload}
-                >⬇</a>
+                ><DownloadIcon /></a>
               </div>
             ))}
           </div>
@@ -383,7 +421,7 @@ export default function GalleryClient({ token }: { token: string }) {
                 {current.favorite ? '♥' : '♡'}
               </button>
               <a href={dlHref(current.url, current.file_name)} className={styles.lbIconBtn}
-                 onClick={() => track({ type: 'photo', photoId: current.id })} aria-label={t.ariaDownload}>⬇</a>
+                 onClick={() => track({ type: 'photo', photoId: current.id })} aria-label={t.ariaDownload}><DownloadIcon size={17} /></a>
               <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label={t.ariaClose}>✕</button>
             </div>
           </div>
