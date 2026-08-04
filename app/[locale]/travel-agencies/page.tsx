@@ -10,7 +10,7 @@ import { serializeJsonLd } from '@/lib/seo/jsonld';
 const FAQ: Array<{ q: string; a: string }> = [
     {
         q: 'Хто може стати партнером Touch.Memories?',
-        a: 'Тревел-агенції, тревел-блогери та фотографи. Залиште заявку на цій сторінці — після схвалення ви отримаєте персональний промокод і доступ до партнерського кабінету.',
+        a: 'Тревел-агенції та тревел-блогери. Залиште заявку на цій сторінці — після схвалення ви отримаєте персональний промокод і доступ до партнерського кабінету. Для фотографів діє окрема програма на сторінці «Для фотографів».',
     },
     {
         q: 'Скільки заробляє партнер?',
@@ -37,7 +37,7 @@ const FAQ: Array<{ q: string; a: string }> = [
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
     const canonical = getCanonicalUrl(locale as Locale, '/travel-agencies');
-    const title = 'Партнерська програма для тревел-агенцій, блогерів і фотографів | Touch.Memories';
+    const title = 'Партнерська програма для тревел-агенцій і блогерів | Touch.Memories';
     const description =
         'Заробляйте з Touch.Memories: комісія 5% з тревелбуків і 3% з інших товарів, знижка 5% вашим клієнтам, ' +
         'подарункові сертифікати −10% у партнерському кабінеті. Безкоштовна участь, виплати від 500 грн.';
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
         title,
         description,
         keywords: [
-            'партнерська програма', 'співпраця для тревел-агенцій', 'партнерство для фотографів',
+            'партнерська програма', 'співпраця для тревел-агенцій',
             'партнерство для тревел-блогерів', 'реферальна програма', 'подарункові сертифікати тревелбук',
             'заробіток для турагенцій', 'фотокниги для агенцій', 'travel book партнерство',
         ],
@@ -95,7 +95,7 @@ export default async function TravelAgenciesPage({ params }: { params: Promise<{
         '@context': 'https://schema.org',
         '@type': 'Service',
         name: 'Партнерська програма Touch.Memories',
-        serviceType: 'Партнерська (реферальна) програма для тревел-агенцій, блогерів і фотографів',
+        serviceType: 'Партнерська (реферальна) програма для тревел-агенцій і блогерів',
         provider: { '@type': 'Organization', name: 'Touch.Memories', url: base },
         areaServed: 'UA',
         description:

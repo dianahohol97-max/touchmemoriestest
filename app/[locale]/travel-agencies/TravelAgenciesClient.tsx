@@ -19,7 +19,7 @@ const MODELS = [
         icon: Percent,
         title: 'Реферальна програма',
         tagline: 'Заробляйте на рекомендаціях',
-        description: 'Ви (агенція, блогер чи фотограф) отримуєте персональний промокод зі знижкою для клієнтів, а самі — винагороду з кожного замовлення за цим кодом: 5% від вартості тревелбуків і 3% від вартості решти товарів. Клієнт за вашим кодом отримує знижку 5%. Це додатковий дохід без жодних витрат. Нарахування й виплати — у партнерському кабінеті (виплата від 500 грн).',
+        description: 'Ви (агенція чи блогер) отримуєте персональний промокод зі знижкою для клієнтів, а самі — винагороду з кожного замовлення за цим кодом: 5% від вартості тревелбуків і 3% від вартості решти товарів. Клієнт за вашим кодом отримує знижку 5%. Це додатковий дохід без жодних витрат. Нарахування й виплати — у партнерському кабінеті (виплата від 500 грн).',
         perks: ['Персональний промокод агенції', '5% за тревелбуки, 3% за інші товари', 'Оплата лише за реальні продажі'],
     },
     // Co-branded travelbooks — hidden for now (terms not finalised). Restore
@@ -50,9 +50,10 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [done, setDone] = useState(false);
-    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger' | 'photographer'>('travel_agency');
+    // Photographers have their own workflow at /photographers — removed from
+    // this form per Diana («фотографів саме звідси треба забрати»).
+    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger'>('travel_agency');
     const isBlogger = kind === 'travel_blogger';
-    const isPhotographer = kind === 'photographer';
 
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -90,10 +91,10 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                         </div>
                         {/* explicit #fff — globals.css h1 { color: var(--primary) } beats inheritance */}
                         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 44, fontWeight: 900, lineHeight: 1.05, color: '#fff', margin: '0 0 18px' }}>
-                            Співпраця для агенцій, блогерів і фотографів
+                            Співпраця для тревел-агенцій і блогерів
                         </h1>
                         <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.9, maxWidth: 620, margin: '0 auto' }}>
-                            Ваші клієнти повертаються з подорожей із сотнями фото. Допоможіть їм зберегти ці спогади — і зробіть це частиною свого сервісу. Оберіть модель співпраці, яка підходить саме вам — для тревел-агенцій, блогерів і фотографів.
+                            Ваші клієнти повертаються з подорожей із сотнями фото. Допоможіть їм зберегти ці спогади — і зробіть це частиною свого сервісу. Оберіть модель співпраці, яка підходить саме вам — для тревел-агенцій і блогерів.
                         </p>
                     </div>
                 </section>
@@ -172,8 +173,8 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                                     <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови співпраці</p>
 
                                     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                                            {([['travel_agency', 'Агенція'], ['travel_blogger', 'Блогер'], ['photographer', 'Фотограф']] as const).map(([val, label]) => (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                            {([['travel_agency', 'Агенція'], ['travel_blogger', 'Блогер']] as const).map(([val, label]) => (
                                                 <button key={val} type="button" onClick={() => setKind(val)}
                                                     style={{ padding: '10px 12px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                                         border: kind === val ? '2px solid #263A99' : '1px solid #e2e8f0',
@@ -182,8 +183,8 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                                                 </button>
                                             ))}
                                         </div>
-                                        <Field label={isPhotographer ? 'Імʼя / назва студії' : isBlogger ? 'Імʼя / назва блогу' : 'Назва агенції'} required>
-                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder={isPhotographer ? 'Ваше імʼя або назва студії' : isBlogger ? 'Ваше імʼя або назва блогу' : 'Назва вашої агенції'} style={inputStyle} />
+                                        <Field label={isBlogger ? 'Імʼя / назва блогу' : 'Назва агенції'} required>
+                                            <input value={agencyName} onChange={e => setAgencyName(e.target.value)} required placeholder={isBlogger ? 'Ваше імʼя або назва блогу' : 'Назва вашої агенції'} style={inputStyle} />
                                         </Field>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                             <Field label="Контактна особа">
@@ -196,7 +197,7 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                                         <Field label="Email" required>
                                             <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="агенція@пошта.com" style={inputStyle} />
                                         </Field>
-                                        <Field label={isBlogger ? 'Ваш блог або сторінка' : isPhotographer ? 'Портфоліо або офіційна сторінка' : 'Сайт або сторінка агенції'} required>
+                                        <Field label={isBlogger ? 'Ваш блог або сторінка' : 'Сайт або сторінка агенції'} required>
                                             {/* Required — the application is reviewed BY HAND (Diana,
                                                 2026-08-04), and the page/portfolio link is what the
                                                 review actually looks at. An optional field here meant
