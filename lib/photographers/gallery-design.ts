@@ -9,6 +9,9 @@ export const GALLERY_COVERS = ['classic', 'bottom', 'split', 'minimal'] as const
 // How the photo grid is laid out: masonry columns, an even cropped grid, or
 // a large editorial two-column flow.
 export const GALLERY_LAYOUTS = ['masonry', 'grid', 'large'] as const;
+// Corner rounding and spacing of the photo tiles.
+export const GALLERY_RADII = ['none', 's', 'm', 'l'] as const;
+export const GALLERY_GAPS = ['none', 's', 'm', 'l'] as const;
 // Languages the client gallery can speak — picked for where Ukrainian
 // photographers actually work abroad (Diana, 2026-08-04): PL/DE/CZ plus the
 // big Western European markets and the site's existing RO locale.
@@ -19,6 +22,8 @@ export type GalleryFont = typeof GALLERY_FONTS[number];
 export type GalleryFontScale = typeof GALLERY_FONT_SCALES[number];
 export type GalleryCover = typeof GALLERY_COVERS[number];
 export type GalleryLayout = typeof GALLERY_LAYOUTS[number];
+export type GalleryRadius = typeof GALLERY_RADII[number];
+export type GalleryGap = typeof GALLERY_GAPS[number];
 export type GalleryLang = typeof GALLERY_LANGS[number];
 
 export interface GalleryDesign {
@@ -27,6 +32,8 @@ export interface GalleryDesign {
   font_scale: GalleryFontScale;
   cover: GalleryCover;
   layout: GalleryLayout;
+  radius: GalleryRadius;
+  gap: GalleryGap;
   lang: GalleryLang;
   /** Focal point of the cover crop, in percent (object-position). 50/50 is
    *  dead centre — the photographer shifts it when the crop cuts faces. */
@@ -40,6 +47,8 @@ export const DEFAULT_DESIGN: GalleryDesign = {
   font_scale: 'm',
   cover: 'classic',
   layout: 'masonry',
+  radius: 's',
+  gap: 'm',
   lang: 'uk',
   cover_x: 50,
   cover_y: 50,
@@ -68,6 +77,8 @@ export function sanitizeDesign(current: Partial<GalleryDesign> | null, patch: un
     font_scale: pick(GALLERY_FONT_SCALES, p.font_scale, current?.font_scale, DEFAULT_DESIGN.font_scale),
     cover: pick(GALLERY_COVERS, p.cover, current?.cover, DEFAULT_DESIGN.cover),
     layout: pick(GALLERY_LAYOUTS, p.layout, current?.layout, DEFAULT_DESIGN.layout),
+    radius: pick(GALLERY_RADII, p.radius, current?.radius, DEFAULT_DESIGN.radius),
+    gap: pick(GALLERY_GAPS, p.gap, current?.gap, DEFAULT_DESIGN.gap),
     lang: pick(GALLERY_LANGS, p.lang, current?.lang, DEFAULT_DESIGN.lang),
     cover_x: pct(p.cover_x, current?.cover_x, DEFAULT_DESIGN.cover_x),
     cover_y: pct(p.cover_y, current?.cover_y, DEFAULT_DESIGN.cover_y),

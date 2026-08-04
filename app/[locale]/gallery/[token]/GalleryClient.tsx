@@ -36,6 +36,8 @@ const FONT_VARS: Record<GalleryDesign['font'], string> = {
   caveat: 'var(--font-gallery-caveat), cursive',
 };
 const FONT_SCALES: Record<GalleryDesign['font_scale'], number> = { s: 0.82, m: 1, l: 1.22 };
+const TILE_RADII: Record<string, string> = { none: '0px', s: '3px', m: '10px', l: '20px' };
+const TILE_GAPS: Record<string, string> = { none: '2px', s: '8px', m: '14px', l: '26px' };
 
 export default function GalleryClient({ token }: { token: string }) {
   const [data, setData] = useState<GalleryData | null>(null);
@@ -188,6 +190,8 @@ const formatDate = (d: string) =>
   const designStyle = {
     '--g-display': FONT_VARS[design.font] || FONT_VARS.playfair,
     '--g-scale': FONT_SCALES[design.font_scale] ?? 1,
+    '--g-radius': TILE_RADII[design.radius] ?? TILE_RADII.s,
+    '--g-gap': TILE_GAPS[design.gap] ?? TILE_GAPS.m,
   } as React.CSSProperties;
 
   const p = data.photographer;

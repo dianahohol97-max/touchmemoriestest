@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { LANDING_THEMES } from '@/lib/photographers/themes';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
@@ -24,7 +25,7 @@ interface Slot {
   client_name: string | null; client_phone: string | null; client_comment: string | null;
 }
 interface PriceRow { title: string; price: string; description?: string }
-interface Gallery {
+export interface Gallery {
   id: string; client_token: string; title: string; client_name: string | null;
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
@@ -33,16 +34,16 @@ interface Gallery {
   cover_url: string | null;
   design: Record<string, string> | null;
 }
-interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean; media_type?: 'photo' | 'video' }
+export interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean; media_type?: 'photo' | 'video' }
 
 // Brand-styled building blocks (touch.memories palette: Soft White bg, Sand
 // borders, Charcoal text, Brand Blue accents, Montserrat headings).
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #E8DCC8', borderRadius: 16, padding: 22, marginBottom: 18 };
-const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#55504a', marginBottom: 4, marginTop: 12 };
-const input: React.CSSProperties = { width: '100%', border: '1px solid #ddd2bd', borderRadius: 10, padding: '10px 13px', fontSize: 14, boxSizing: 'border-box', background: '#fff' };
-const btn: React.CSSProperties = { background: '#263A99', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font-heading), sans-serif' };
-const btnGhost: React.CSSProperties = { ...btn, background: '#fff', color: '#263A99', border: '1px solid #c9d0ee' };
-const sectionTitle: React.CSSProperties = { fontFamily: 'var(--font-heading), sans-serif', fontSize: 19, fontWeight: 800, color: '#1A1A1A', margin: 0 };
+export const card: React.CSSProperties = { background: '#fff', border: '1px solid #E8DCC8', borderRadius: 16, padding: 22, marginBottom: 18 };
+export const label: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 700, color: '#55504a', marginBottom: 4, marginTop: 12 };
+export const input: React.CSSProperties = { width: '100%', border: '1px solid #ddd2bd', borderRadius: 10, padding: '10px 13px', fontSize: 14, boxSizing: 'border-box', background: '#fff' };
+export const btn: React.CSSProperties = { background: '#263A99', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font-heading), sans-serif' };
+export const btnGhost: React.CSSProperties = { ...btn, background: '#fff', color: '#263A99', border: '1px solid #c9d0ee' };
+export const sectionTitle: React.CSSProperties = { fontFamily: 'var(--font-heading), sans-serif', fontSize: 19, fontWeight: 800, color: '#1A1A1A', margin: 0 };
 
 type CabinetTab = 'galleries' | 'earnings' | 'orders' | 'booking' | 'landing';
 
@@ -478,12 +479,8 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
   const [shootDate, setShootDate] = useState('');
   const [termDays, setTermDays] = useState(30);
   const [creating, setCreating] = useState(false);
-  const [openUpload, setOpenUpload] = useState<string | null>(null);
-  const [openPicks, setOpenPicks] = useState<string | null>(null);
-  const [openCover, setOpenCover] = useState<string | null>(null);
-  const [openDesign, setOpenDesign] = useState<string | null>(null);
-  const [openEdit, setOpenEdit] = useState<string | null>(null);
-  const closeAll = () => { setOpenUpload(null); setOpenPicks(null); setOpenCover(null); setOpenDesign(null); setOpenEdit(null); };
+  const router = useRouter();
+  const editorHref = (id: string) => `/uk/photographer/cabinet/${token}/gallery/${id}`;
 
   const create = async () => {
     if (!title.trim() || creating) return;
@@ -497,13 +494,13 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
       if (!res.ok) { alert(json?.error || 'Помилка'); return; }
       setTitle(''); setClientName(''); setShootDate(''); setShowNew(false);
       await onChanged();
-      // Одразу відкриваємо конструктор дизайну нової галереї (прохання Діани):
-      // фотограф налаштовує вигляд у момент створення, а не шукає кнопку потім.
+      // Створення веде одразу в редактор галереї (прохання Діани): там
+      // завантаження фото, обкладинка, дизайн і налаштування на одному екрані.
       if (json?.gallery?.id) {
-        setOpenDesign(json.gallery.id);
-        setOpenUpload(null); setOpenPicks(null); setOpenCover(null);
+        router.push(`/uk/photographer/cabinet/${token}/gallery/${json.gallery.id}`);
+        return;
       }
-      flash('Галерею створено — налаштуйте її дизайн');
+      flash('Галерею створено');
     } finally { setCreating(false); }
   };
 
@@ -527,11 +524,17 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={label}>Ім&apos;я клієнта</label>
-              <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} />
+              <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Олена та Максим" />
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+                Показується клієнту на обкладинці під назвою. Можна не заповнювати.
+              </div>
             </div>
             <div>
               <label style={label}>Дата зйомки</label>
               <input style={input} type="date" value={shootDate} onChange={e => setShootDate(e.target.value)} />
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+                Теж видно на обкладинці. Можна не заповнювати.
+              </div>
             </div>
           </div>
           <label style={label}>Термін зберігання</label>
@@ -588,48 +591,19 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
                 : <span style={{ fontSize: 12, fontWeight: 700, color: '#8B8378', background: '#F5EFE6', borderRadius: 999, padding: '4px 10px' }}>ще {g.days_left} дн.</span>}
             </div>
           </div>
-          {!g.files_purged_at && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-              <button style={btnGhost} onClick={() => copyLink(g)}>Скопіювати посилання</button>
-              <a href={`/uk/gallery/${g.client_token}`} target="_blank" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block' }}>Переглянути</a>
-              {g.favorite_count > 0 && (
-                <button
-                  style={{ ...btnGhost, background: '#fff1f2', color: '#c0343a', border: '1px solid #f2d7d8' }}
-                  onClick={() => { const open = openPicks === g.id; closeAll(); if (!open) setOpenPicks(g.id); }}
-                >
-                  {openPicks === g.id ? 'Згорнути' : `♥ Обрані клієнтом (${g.favorite_count})`}
-                </button>
-              )}
-              <button style={btnGhost} onClick={() => { const open = openUpload === g.id; closeAll(); if (!open) setOpenUpload(g.id); }}>
-                {openUpload === g.id ? 'Згорнути' : 'Завантажити фото/відео'}
-              </button>
-              {g.photo_count > 0 && (
-                <button style={btnGhost} onClick={() => { const open = openCover === g.id; closeAll(); if (!open) setOpenCover(g.id); }}>
-                  {openCover === g.id ? 'Згорнути' : `Фото та обкладинка (${g.photo_count})`}
-                </button>
-              )}
-              <button style={btnGhost} onClick={() => { const open = openDesign === g.id; closeAll(); if (!open) setOpenDesign(g.id); }}>
-                {openDesign === g.id ? 'Згорнути' : 'Дизайн'}
-              </button>
-              <button style={btnGhost} onClick={() => { const open = openEdit === g.id; closeAll(); if (!open) setOpenEdit(g.id); }}>
-                {openEdit === g.id ? 'Згорнути' : 'Редагувати'}
-              </button>
-            </div>
-          )}
-          {openPicks === g.id && <ClientPicks token={token} galleryId={g.id} />}
-          {openUpload === g.id && <UploadZone token={token} galleryId={g.id} onDone={onChanged} flash={flash} />}
-          {openCover === g.id && (
-            <PhotoManager token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
-              onDone={async () => { await onChanged(); }} flash={flash} />
-          )}
-          {openDesign === g.id && (
-            <DesignPanel token={token} galleryId={g.id} design={g.design}
-              clientToken={g.client_token} photoCount={g.photo_count} coverUrl={g.cover_url}
-              onDone={onChanged} flash={flash} />
-          )}
-          {openEdit === g.id && (
-            <EditGalleryPanel token={token} gallery={g} onDone={onChanged} flash={flash} />
-          )}
+          {/* Everything about a gallery now lives on its own page — the list
+              stays scannable and each card is one click from the editor. */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+            <a href={editorHref(g.id)} style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}>
+              {g.photo_count === 0 ? 'Додати фото' : 'Відкрити галерею'}
+            </a>
+            {!g.files_purged_at && (
+              <>
+                <button style={btnGhost} onClick={() => copyLink(g)}>Скопіювати посилання</button>
+                <a href={`/uk/gallery/${g.client_token}`} target="_blank" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block' }}>Переглянути очима клієнта</a>
+              </>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -638,7 +612,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
 
 /** Read-only grid of the photos the client hearted — what the photographer
  *  should print. Fetched on demand when the card is expanded. */
-function ClientPicks({ token, galleryId }: { token: string; galleryId: string }) {
+export function ClientPicks({ token, galleryId }: { token: string; galleryId: string }) {
   const [photos, setPhotos] = useState<CabinetPhoto[] | null>(null);
   const [error, setError] = useState('');
 
@@ -685,7 +659,7 @@ function ClientPicks({ token, galleryId }: { token: string; galleryId: string })
 /** Edit gallery basics (назва/клієнт/дата) + storage term. The term buttons
  *  extend from "now or current expiry, whichever is later", capped at 90
  *  days from today by the API. */
-function EditGalleryPanel({ token, gallery, onDone, flash }: {
+export function EditGalleryPanel({ token, gallery, onDone, flash }: {
   token: string; gallery: Gallery; onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [title, setTitle] = useState(gallery.title);
@@ -714,7 +688,8 @@ function EditGalleryPanel({ token, gallery, onDone, flash }: {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div>
           <label style={label}>Ім&apos;я клієнта</label>
-          <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} />
+          <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Олена та Максим" />
+          <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>Видно клієнту на обкладинці під назвою.</div>
         </div>
         <div>
           <label style={label}>Дата зйомки</label>
@@ -750,7 +725,7 @@ const g_daysWord = (n: number) => `${n} ${n === 1 ? 'день' : n >= 2 && n <= 
 /** Gallery design constructor: background, display font, font size and cover
  *  layout. Each click saves immediately via PATCH (the server merges and
  *  validates against the whitelists in lib/photographers/gallery-design). */
-function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverUrl, onDone, flash }: {
+export function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverUrl, onDone, flash }: {
   token: string; galleryId: string; design: Record<string, any> | null;
   clientToken: string; photoCount: number; coverUrl: string | null;
   onDone: () => Promise<void>; flash: (m: string) => void;
@@ -765,6 +740,8 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverU
     font_scale: design?.font_scale || 'm',
     cover: design?.cover || 'classic',
     layout: design?.layout || 'masonry',
+    radius: design?.radius || 's',
+    gap: design?.gap || 'm',
     lang: design?.lang || 'uk',
   });
   const [saving, setSaving] = useState(false);
@@ -798,7 +775,8 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverU
     if (saving) return;
     const prev = current;
     setCurrent(c => ({ ...c, [key]: value }));
-    const ok = await savePatch({ [key]: value }, key === 'layout' ? 'photos' : key === 'cover' ? 'cover' : undefined);
+    const gridKeys = ['layout', 'radius', 'gap'];
+    const ok = await savePatch({ [key]: value }, gridKeys.includes(key) ? 'photos' : key === 'cover' ? 'cover' : undefined);
     if (!ok) setCurrent(prev);
   };
 
@@ -821,6 +799,8 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverU
     { key: 'font_scale', label: 'Розмір шрифту', items: [['s', 'Компактний'], ['m', 'Стандартний'], ['l', 'Великий']] },
     { key: 'cover', label: 'Варіант обкладинки', items: [['classic', 'Класична — по центру'], ['bottom', 'Знизу зліва'], ['split', 'Панель + фото'], ['minimal', 'Мінімальна — без фото']] },
     { key: 'layout', label: 'Розкладка фото', items: [['masonry', 'Мозаїка — як у Pinterest'], ['grid', 'Рівна сітка — квадрати'], ['large', 'Великі фото — 2 колонки']] },
+    { key: 'radius', label: 'Заокруглення кутів', items: [['none', 'Без заокруглення'], ['s', 'Ледь помітне'], ['m', 'Середнє'], ['l', 'Сильне']] },
+    { key: 'gap', label: 'Відстань між фото', items: [['none', 'Впритул'], ['s', 'Вузька'], ['m', 'Середня'], ['l', 'Широка']] },
     // Для фотографів, що знімають закордоном: мова, якою клієнт бачить галерею.
     { key: 'lang', label: 'Мова галереї (для клієнта)', items: [['uk', 'Українська'], ['en', 'English'], ['pl', 'Polski'], ['de', 'Deutsch'], ['cs', 'Čeština'], ['it', 'Italiano'], ['es', 'Español'], ['pt', 'Português'], ['fr', 'Français'], ['ro', 'Română']] },
   ];
@@ -926,7 +906,7 @@ function DesignPanel({ token, galleryId, design, clientToken, photoCount, coverU
  *  gallery, sets the cover and deletes what they don't want. Deletion had no
  *  UI at all before (Diana: «як видалити старі фото»), although the API
  *  supported it. Hover a tile → «На обкладинку» / «Видалити». */
-function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: {
+export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: {
   token: string; galleryId: string; coverPhotoId: string | null;
   onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
@@ -1056,7 +1036,7 @@ function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: {
   );
 }
 
-function UploadZone({ token, galleryId, onDone, flash }: {
+export function UploadZone({ token, galleryId, onDone, flash }: {
   token: string; galleryId: string; onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
