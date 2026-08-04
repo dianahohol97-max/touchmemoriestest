@@ -95,6 +95,7 @@ export default function CabinetClient({ token }: { token: string }) {
 
       <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
       <ReferralSection token={token} flash={flash} />
+      <OrdersSection token={token} />
       {/* The public landing («візитка») and booking are behind the
           landing_enabled feature flag while their design is finished
           (Diana, 2026-08-04) — only the test photographer sees these
@@ -334,6 +335,82 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Мої замовлення (покупки зі знижкою) ─────────────────────────────── */
+
+const ORDER_STATUS_UA: Record<string, string> = {
+  new: 'Нове', pending: 'Очікує', confirmed: 'Підтверджено', production: 'У виробництві',
+  shipped: 'Відправлено', delivered: 'Доставлено', cancelled: 'Скасовано', completed: 'Виконано',
+};
+
+interface CabinetOrder {
+  id: string; order_number: string; created_at: string; order_status: string | null;
+  payment_status: string | null; total: number | null; subtotal: number | null;
+  discount_amount: number | null; discount_type: string | null; promo_code: string | null;
+  items_count: number;
+}
+
+/** The photographer's own shop orders — so the discounted purchases live in
+ *  the same cabinet as galleries and referral earnings (Diana, 2026-08-04:
+ *  «адмінка для фотографів — галереї, реферали, замовлення зі знижкою»). */
+function OrdersSection({ token }: { token: string }) {
+  const [orders, setOrders] = useState<CabinetOrder[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/photographers/orders?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) { setError(json?.error || 'Не вдалося завантажити'); return; }
+        setOrders(json.orders || []);
+      } catch { if (!cancelled) setError('Не вдалося завантажити'); }
+    })();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 10 }}>
+        <h2 style={{ fontSize: 19, fontWeight: 800, color: '#1e2d7d', margin: 0 }}>Мої замовлення</h2>
+        <a href="/uk/account" style={{ fontSize: 13, color: '#1e2d7d', fontWeight: 700 }}>Всі деталі в акаунті →</a>
+      </div>
+      <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>
+        Покупки з вашого акаунта — знижка фотографа застосовується автоматично при оформленні.
+      </p>
+
+      {error && <div style={{ color: '#991b1b', fontSize: 13, marginTop: 8 }}>{error}</div>}
+      {!error && orders === null && <div style={{ color: '#94a3b8', fontSize: 13, marginTop: 8 }}>Завантаження…</div>}
+      {orders !== null && orders.length === 0 && (
+        <div style={{ color: '#94a3b8', marginTop: 8, fontSize: 14 }}>
+          Замовлень поки немає. Оберіть щось у <a href="/uk" style={{ color: '#1e2d7d' }}>каталозі</a> — ціна зі знижкою застосується автоматично.
+        </div>
+      )}
+
+      {(orders || []).map(o => (
+        <div key={o.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', marginTop: 10, display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'baseline' }}>
+          <div>
+            <div style={{ fontWeight: 800 }}>№ {o.order_number}</div>
+            <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+              {new Date(o.created_at).toLocaleDateString('uk-UA')} · {o.items_count} тов. · {ORDER_STATUS_UA[o.order_status || ''] || o.order_status || '—'}
+              {o.payment_status === 'paid' ? ' · оплачено' : ''}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 900, color: '#1e2d7d' }}>{Number(o.total || 0).toFixed(0)} ₴</div>
+            {Number(o.discount_amount || 0) > 0 && (
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '2px 10px', marginTop: 4 }}>
+                знижка −{Number(o.discount_amount).toFixed(0)} ₴
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
