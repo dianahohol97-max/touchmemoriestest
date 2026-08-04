@@ -350,7 +350,13 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
       if (!res.ok) { alert(json?.error || 'Помилка'); return; }
       setTitle(''); setClientName(''); setShootDate(''); setShowNew(false);
       await onChanged();
-      flash('Галерею створено');
+      // Одразу відкриваємо конструктор дизайну нової галереї (прохання Діани):
+      // фотограф налаштовує вигляд у момент створення, а не шукає кнопку потім.
+      if (json?.gallery?.id) {
+        setOpenDesign(json.gallery.id);
+        setOpenUpload(null); setOpenPicks(null); setOpenCover(null);
+      }
+      flash('Галерею створено — налаштуйте її дизайн');
     } finally { setCreating(false); }
   };
 
