@@ -41,3 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# nested installs (render-service has its own package.json)
+render-service/node_modules/
+render-service/package-lock.json
