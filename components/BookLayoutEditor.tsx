@@ -3970,7 +3970,14 @@ export default function BookLayoutEditor() {
             'graviruvannya': t('constructor.engraving'),
           };
           opts[t('constructor.decoration')] = decoLabel[coverState.decoType] || coverState.decoType;
-          if (coverState.decoVariant) opts[t('constructor.decoration_variant')] = coverState.decoVariant;
+          // A size/variant only exists for PHYSICAL inserts (acryl / photo
+          // insert / metal plate). Text decorations (гравіювання, flex) have
+          // none — but decoVariant often carries a leftover value from the
+          // auto-selection (e.g. 'foto_100x100'), and showing it made the
+          // order summary claim a photo insert the customer never chose.
+          if (coverState.decoVariant && ['acryl', 'photovstavka', 'metal'].includes(coverState.decoType)) {
+            opts[t('constructor.decoration_variant')] = coverState.decoVariant;
+          }
           if (coverState.decoText) opts[t('constructor.decoration_text')] = coverState.decoText;
           if (coverState.textFontFamily && coverState.decoText) opts[t('constructor.decoration_font')] = coverState.textFontFamily;
         }

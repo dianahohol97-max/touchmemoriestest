@@ -87,6 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // 3. Build the spec + render the cover.
   let jpeg: Buffer;
+  let jpegBw: Buffer | null = null;
   let specSize: string;
   try {
     const spec = specFromOrderOptions(wishItem.options || {});
@@ -102,6 +103,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
       .withMetadata({ density: 300 })
       .toBuffer();
+    // Soft-material covers (велюр / тканина / шкірзамінник) additionally get a
+    // BLACK-AND-WHITE variant: the decoration there is physical (гравіювання /
+    // тиснення / flex), and production works from a monochrome макет alongside
+    // the colour reference (Diana, 2026-08-05).
+    const materialLc = String(spec.material || '').toLowerCase();
+    const isSoftMaterial = materialLc.includes('велюр') || materialLc.includes('velour')
+      || materialLc.includes('ткан') || materialLc.includes('fabric')
+      || materialLc.includes('шкір') || materialLc.includes('leather');
+    if (isSoftMaterial) {
+      jpegBw = await sharp(Buffer.from(png))
+        .flatten({ background: '#ffffff' })
+        .grayscale()
+        .normalise()
+        .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
+        .withMetadata({ density: 300 })
+        .toBuffer();
+    }
   } catch (e: any) {
     console.error('[wishbook-cover] render failed:', e?.message || e);
     return NextResponse.json({ error: 'render failed', detail: String(e?.message || e) }, { status: 500 });
@@ -121,12 +139,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'upload failed', detail: upErr.message }, { status: 500 });
   }
 
-  // 5. Create / refresh the order_files row.
-  //    Remove any stale cover row first when forcing, then insert.
-  if (force) {
-    await admin.from('order_files').delete().eq('order_id', id).eq('file_name', 'cover.jpg');
+  // 4b. Upload the b/w variant next to the colour one (soft materials only).
+  let bwPath: string | null = null;
+  if (jpegBw) {
+    bwPath = `${userKey}/${order.id}/cover_bw.jpg`;
+    const { error: bwErr } = await admin.storage
+      .from(BUCKET)
+      .upload(bwPath, jpegBw, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+    if (bwErr) {
+      // The colour cover is the primary artifact — don't fail the whole call.
+      console.error('[wishbook-cover] b/w upload failed:', bwErr.message);
+      bwPath = null;
+    }
   }
-  const { error: ofErr } = await admin.from('order_files').insert({
+
+  // 5. Create / refresh the order_files rows.
+  //    Remove any stale cover rows first when forcing, then insert.
+  if (force) {
+    await admin.from('order_files').delete().eq('order_id', id).in('file_name', ['cover.jpg', 'cover_bw.jpg']);
+  }
+  const rowsToInsert: any[] = [{
     order_id: id,
     file_path: path,
     file_name: 'cover.jpg',
@@ -137,7 +169,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     file_size: jpeg.length,
     mime_type: 'image/jpeg',
     page_number: 1,
-  });
+  }];
+  if (bwPath && jpegBw) {
+    rowsToInsert.push({
+      order_id: id,
+      file_path: bwPath,
+      file_name: 'cover_bw.jpg',
+      file_type: 'export',
+      file_category: 'book-cover',
+      product_type: 'wishbook',
+      bucket_name: BUCKET,
+      file_size: jpegBw.length,
+      mime_type: 'image/jpeg',
+      page_number: 1,
+    });
+  }
+  const { error: ofErr } = await admin.from('order_files').insert(rowsToInsert);
 
   if (ofErr) {
     console.error('[wishbook-cover] order_files insert failed:', ofErr.message);
