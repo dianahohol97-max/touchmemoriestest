@@ -179,6 +179,22 @@ app.post('/render', async (req, res) => {
       _slug.includes('zhurnal') ||
       _slug.includes('fotozhurnal');
 
+    // SOFT-cover magazines are printed fully page-by-page — the COVER too
+    // (Diana, 2026-08-05): its front and back go to the workshop as separate
+    // pages, not one wide sheet. Hard covers (travel books, тверда обкладинка
+    // journals) stay a single sheet — their fold-in wraps a board and must
+    // never be cut apart.
+    const _productName = String(config?.productName || '').toLowerCase();
+    const _coverType = String(config?.selectedCoverType || '').toLowerCase();
+    const _isMagazineLike =
+      _slug.includes('magazine') || _slug.includes('zhurnal') ||
+      _slug.includes('fotozhurnal') || _slug.includes('journal') ||
+      _productName.includes('журнал');
+    const _isHardCover =
+      _slug.includes('tverd') || _slug.includes('hard-cover') ||
+      _productName.includes('твердою') || _coverType.includes('тверд');
+    const splitCoverPages = splitToPages && _isMagazineLike && !_isHardCover;
+
     // ── Empty forzats stay out of the print files ─────────────────────────
     // Travel books / magazines carry 2 EXTRA physical pages for the forzats
     // (endpapers): content pages 1 and last. Printing on them is a paid
@@ -532,7 +548,34 @@ app.post('/render', async (req, res) => {
             .toBuffer();
         };
 
-        if (splitToPages && !isCover) {
+        if (isCover && splitCoverPages) {
+          // Soft-cover magazine: the cover sheet is cut down the middle and
+          // each half is bled on all four sides — the workshop receives the
+          // back and front covers as two standalone 300-DPI pages.
+          const halfW = Math.floor(contentPxW / 2);
+          const parts = [
+            { left: 0, width: halfW, name: '00_cover_back.jpg' },
+            { left: halfW, width: contentPxW - halfW, name: '00_cover_front.jpg' },
+          ];
+          for (const h of parts) {
+            const half = await sharp(scaled)
+              .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
+              .png({ compressionLevel: 1 })
+              .toBuffer();
+            const filled = await bleedFill(half, h.width, contentPxH, bx, bx, by, by);
+            const coverJpeg = await sharp(filled)
+              .withMetadata({ density: DPI })
+              .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
+              .toBuffer();
+            const storagePath = `${orderPrefix}/print/${h.name}`;
+            const { error: upErr } = await supabase.storage
+              .from(STORAGE_BUCKET)
+              .upload(storagePath, coverJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
+            if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
+            uploaded.push(storagePath);
+          }
+          console.log('[render] cover: split into back/front pages (soft-cover magazine)');
+        } else if (splitToPages && !isCover) {
           // Travel books / magazines: cut the clean 2-page content down the
           // gutter and bleed each half on all four sides, so the workshop gets
           // one 300-DPI file per physical page instead of a 2-page spread.
