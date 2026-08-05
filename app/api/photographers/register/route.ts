@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
+import { findLeadAttribution } from '@/lib/sales/attribution';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,10 +76,28 @@ export async function POST(request: Request) {
         slug: `${baseSlug}-${String(Date.now()).slice(-5)}`,
         customer_id: customerId,
       })
-      .select('cabinet_token, slug')
+      .select('id, cabinet_token, slug')
       .single();
     if (phError || !created) {
       return NextResponse.json({ error: phError?.message || 'Не вдалося створити кабінет' }, { status: 500 });
+    }
+
+    // Хто привів (Diana, 2026-08-06): фотограф міг зареєструватися сам після
+    // розмови з менеджером у директі. Якщо серед лідів менеджерів є ця пошта,
+    // менеджер записується одразу — інакше пʼять відсотків з оплаченого тарифу
+    // памʼяті не нарахувалися б нікому. Збій тут не має ламати реєстрацію.
+    try {
+      const attribution = await findLeadAttribution(admin, { email });
+      if (attribution) {
+        await admin.from('photographers')
+          .update({ sales_manager_id: attribution.managerId })
+          .eq('id', created.id);
+        await admin.from('leads')
+          .update({ status: 'won', updated_at: new Date().toISOString() })
+          .eq('id', attribution.leadId);
+      }
+    } catch (e) {
+      console.error('[photographers/register] manager attribution failed:', e);
     }
 
     // NO automatic discount here — Diana's decision (2026-08-04, second pass):

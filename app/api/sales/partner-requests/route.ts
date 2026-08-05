@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { getManagerByToken } from '@/lib/sales/commission';
 import { DEFAULT_PARTNER_TERMS } from '@/lib/agency/create-partner';
 import { leadTypeToPartnerKind, PARTNER_KINDS } from '@/lib/sales/partner-activation';
+import { attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,20 +49,55 @@ export async function POST(req: NextRequest) {
     ? body.partner_kind
     : leadTypeToPartnerKind(lead.business_type);
 
-  // Партнер із такою поштою вже може існувати — наприклад, фотограф сам
-  // увімкнув реферальний код у своєму кабінеті. Другий код тій самій людині
-  // означав би дві знижки й розбите нарахування.
+  /**
+   * Партнер із такою поштою вже може існувати: людина, з якою менеджер
+   * домовився в директі, часто йде на сайт і реєструється сама — через форму
+   * партнерства або через власний кабінет фотографа. Другий код їй не потрібен
+   * (це були б дві знижки й розбите нарахування), потрібен лише запис, хто її
+   * привів.
+   *
+   * Такий випадок менеджер закриває сам, без черги на підтвердження (рішення
+   * Діани, 2026-08-06) — але тільки якщо партнер ще нічий. Чужого партнера
+   * перезаписати не можна: це вже не «підписати на себе», а забрати.
+   */
   const { data: existingPartner } = await admin
     .from('agency_partners')
     .select('id, agency_name, referral_code, sales_manager_id')
     .ilike('email', email)
     .maybeSingle();
   if (existingPartner) {
+    if (existingPartner.sales_manager_id === manager.id) {
+      return NextResponse.json({
+        error: `«${existingPartner.agency_name}» вже ваш партнер, код ${existingPartner.referral_code}`,
+      }, { status: 409 });
+    }
+    if (existingPartner.sales_manager_id) {
+      return NextResponse.json({
+        error: 'Цього партнера вже веде інший менеджер. Напишіть Діані, якщо це помилка.',
+      }, { status: 409 });
+    }
+
+    await attachManagerToPartner(admin, {
+      partnerId: existingPartner.id,
+      managerId: manager.id,
+      email,
+      leadId: lead.id,
+    });
+    await logAttributionClaim(admin, {
+      leadId: lead.id,
+      managerId: manager.id,
+      partnerId: existingPartner.id,
+      businessName: existingPartner.agency_name || lead.business_name,
+      email,
+      comment: body?.comment
+        ? String(body.comment).slice(0, 2000)
+        : 'Менеджер зарахував собі партнера, який зареєструвався самостійно',
+    });
+
     return NextResponse.json({
-      error: existingPartner.sales_manager_id === manager.id
-        ? `«${existingPartner.agency_name}» вже ваш партнер, код ${existingPartner.referral_code}`
-        : 'Партнер із такою поштою вже є в програмі. Напишіть Діані, щоб перевірити, хто його веде.',
-    }, { status: 409 });
+      claimed: true,
+      partner: { referral_code: existingPartner.referral_code, agency_name: existingPartner.agency_name },
+    });
   }
 
   const { data, error } = await admin

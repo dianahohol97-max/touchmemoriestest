@@ -21,6 +21,8 @@ interface Partner {
   partner_kind?: string;
   payout_account?: string | null;
   payout_requested_at?: string | null;
+  /** Менеджер, який привів партнера — з нього рахується його комісія. */
+  sales_manager_id?: string | null;
 }
 
 interface PendingRequest {
@@ -43,6 +45,9 @@ export default function AgencyPartnersPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [payingOut, setPayingOut] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  // Менеджери з продажів — щоб привʼязку «хто привів» можна було поставити або
+  // виправити просто тут, у списку партнерів, а не окремою сторінкою.
+  const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,6 +60,11 @@ export default function AgencyPartnersPage() {
       const res = await fetch('/api/admin/agency-partners');
       const json = await res.json();
       setPartners(json.partners || []);
+    } catch { /* ignore */ }
+
+    try {
+      const res = await fetch('/api/admin/sales-managers');
+      if (res.ok) setManagers(((await res.json()).managers || []).map((m: any) => ({ id: m.id, name: m.name })));
     } catch { /* ignore */ }
 
     // New travel-agency / travel-blogger requests not yet approved
@@ -80,7 +90,11 @@ export default function AgencyPartnersPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Помилка');
-      toast.success(`Агенцію підтверджено · код ${json.partner.referral_code}`);
+      toast.success(
+        json.credited_manager
+          ? `Агенцію підтверджено · код ${json.partner.referral_code} · зараховано менеджеру ${json.credited_manager}`
+          : `Агенцію підтверджено · код ${json.partner.referral_code}`,
+      );
       await load();
     } catch (e: any) {
       toast.error(e?.message || 'Не вдалося підтвердити');
@@ -210,6 +224,28 @@ export default function AgencyPartnersPage() {
                     {sendingEmail === p.id ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
                     {sendingEmail === p.id ? 'Надсилаю…' : 'Надіслати лист'}
                   </button>
+                </div>
+
+                {/* Хто привів. Ставиться автоматично, коли партнер прийшов
+                    від менеджера або збігся з його лідом; тут це видно й можна
+                    виправити. */}
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Привів менеджер:</span>
+                  <select
+                    value={p.sales_manager_id || ''}
+                    onChange={async e => {
+                      const managerId = e.target.value || null;
+                      const r = await fetch('/api/admin/sales-managers', {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assign: 'partner', target_id: p.id, manager_id: managerId }),
+                      });
+                      if (r.ok) { await load(); toast.success(managerId ? 'Менеджера записано' : 'Привʼязку знято'); }
+                      else toast.error('Не вдалося зберегти');
+                    }}
+                    style={{ fontSize: 12.5, border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 10px', background: '#fff', color: '#475569' }}>
+                    <option value="">Ніхто — прийшов сам</option>
+                    {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>

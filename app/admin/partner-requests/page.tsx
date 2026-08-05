@@ -30,7 +30,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 interface Req {
-    id: string; lead_id: string | null; status: string; business_name: string; contact_name: string | null;
+    id: string; lead_id: string | null; kind: string; status: string; business_name: string; contact_name: string | null;
     email: string; phone: string | null; website: string | null; instagram: string | null;
     partner_kind: string; client_discount: number; travelbook_rate: number; other_rate: number;
     comment: string | null; decline_reason: string | null; partner_id: string | null;
@@ -207,18 +207,26 @@ export default function PartnerRequestsPage() {
             {decided.length > 0 && (
                 <>
                     <h2 className="text-lg font-bold mt-8 mb-3">Опрацьовані</h2>
+                    <p className="text-sm text-gray-500 -mt-2 mb-3">
+                        Сюди ж потрапляють партнери, які зареєструвалися самі: менеджер може записати такого партнера
+                        за собою без окремого підтвердження, а рядок лишається тут, щоб було видно, хто, кого й коли собі
+                        зарахував. Змінити привʼязку можна в списку партнерів.
+                    </p>
                     <div className="flex flex-col gap-2">
                         {decided.map(r => (
                             <div key={r.id} className="border rounded-lg px-4 py-3 bg-white text-sm flex justify-between gap-4 flex-wrap">
                                 <div>
                                     <b>{r.business_name}</b> · {r.email}
                                     <span className="text-gray-500"> · менеджер {r.manager?.name || '—'}</span>
+                                    {r.comment && r.kind === 'claim' && (
+                                        <div className="text-gray-500 mt-1">{r.comment}</div>
+                                    )}
                                     {r.status === 'declined' && r.decline_reason && (
                                         <div className="text-gray-500 mt-1">Причина: {r.decline_reason}</div>
                                     )}
                                 </div>
                                 <div className={r.status === 'approved' ? 'text-green-700 font-semibold' : 'text-red-600 font-semibold'}>
-                                    {r.status === 'approved' ? 'Оформлено' : 'Відхилено'}
+                                    {r.status === 'approved' ? (r.kind === 'claim' ? 'Зараховано менеджеру' : 'Оформлено') : 'Відхилено'}
                                     <span className="text-gray-400 font-normal">
                                         {r.decided_at ? ` · ${new Date(r.decided_at).toLocaleDateString('uk-UA')}` : ''}
                                     </span>

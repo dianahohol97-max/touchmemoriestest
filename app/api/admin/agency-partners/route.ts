@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff, requireAdmin } from '@/lib/auth/guards';
 import { sendPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
+import { findLeadAttribution, attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,6 +142,41 @@ export async function POST(request: Request) {
     await admin.from('partnership_requests').update({ status: 'approved' }).eq('id', requestId);
   }
 
+  /**
+   * Хто привів (Diana, 2026-08-06). Заявка з форми на сайті нічого не знає про
+   * менеджерів, тому партнер тут завжди створювався з порожнім
+   * sales_manager_id — навіть коли менеджер до того місяць вів цю саму студію
+   * в директі, а вона просто дійшла до сайту сама. Шукаємо лід із тими самими
+   * контактами (пошта або нікнейм, зокрема з поля «сайт», куди часто дають
+   * посилання на Instagram) і записуємо його менеджера.
+   *
+   * Привʼязка зворотна: у списку партнерів менеджера видно і можна змінити.
+   */
+  let creditedManager: string | null = null;
+  try {
+    const attribution = await findLeadAttribution(admin, { email, website });
+    if (attribution) {
+      await attachManagerToPartner(admin, {
+        partnerId: partner.id,
+        managerId: attribution.managerId,
+        email,
+        leadId: attribution.leadId,
+      });
+      await logAttributionClaim(admin, {
+        leadId: attribution.leadId,
+        managerId: attribution.managerId,
+        partnerId: partner.id,
+        businessName: agencyName,
+        email,
+        comment: `Партнер зареєструвався самостійно, збіг із лідом за ${attribution.matchedBy === 'email' ? 'поштою' : 'Instagram'} від ${new Date(attribution.leadCreatedAt).toLocaleDateString('uk-UA')}`,
+      });
+      creditedManager = attribution.managerName;
+    }
+  } catch (e) {
+    // Бухгалтерія не має валити оформлення партнера, який уже створений.
+    console.error('[agency-partners] manager attribution failed:', e);
+  }
+
   // Welcome email to the partner with their code + terms. Fire-and-forget:
   // a mail failure must never fail the approval (the partner row already
   // exists). The template lives in lib/agency/welcome-email so this route and
@@ -156,5 +192,5 @@ export async function POST(request: Request) {
     otherRate,
   });
 
-  return NextResponse.json({ partner });
+  return NextResponse.json({ partner, credited_manager: creditedManager });
 }

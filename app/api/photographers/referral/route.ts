@@ -2,8 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import { createAgencyPartner } from '@/lib/agency/create-partner';
+import { findLeadAttribution, attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Фотограф вмикає реферальний код сам, тому цей шлях теж не знав про
+ * менеджерів: партнер створювався з порожнім sales_manager_id, і менеджер, який
+ * привів цього фотографа, не отримував ні відсотка із замовлень за кодом, ні
+ * пʼяти відсотків з оплачених тарифів памʼяті (Diana, 2026-08-06). Якщо серед
+ * лідів менеджерів є та сама пошта — записуємо менеджера і партнеру, і рядку
+ * фотографа. Помилка тут ніколи не валить видачу коду.
+ */
+async function creditManagerIfLeadExists(admin: SupabaseClient, photographer: any, partnerId: string) {
+  try {
+    const attribution = await findLeadAttribution(admin, { email: photographer.email });
+    if (!attribution) return;
+    await attachManagerToPartner(admin, {
+      partnerId,
+      managerId: attribution.managerId,
+      email: photographer.email,
+      leadId: attribution.leadId,
+    });
+    await logAttributionClaim(admin, {
+      leadId: attribution.leadId,
+      managerId: attribution.managerId,
+      partnerId,
+      businessName: photographer.name || 'Фотограф',
+      email: photographer.email || '',
+      comment: 'Фотограф увімкнув реферальний код самостійно, збіг із лідом менеджера',
+    });
+  } catch (e) {
+    console.error('[photographers/referral] manager attribution failed:', e);
+  }
+}
 
 /**
  * GET /api/photographers/referral?token=<cabinet_token>
@@ -68,6 +101,7 @@ export async function GET(req: NextRequest) {
     .maybeSingle();
   if (existing) {
     await admin.from('photographers').update({ partner_id: existing.id }).eq('id', photographer.id);
+    await creditManagerIfLeadExists(admin, photographer, existing.id);
     return NextResponse.json({
       partner_token: existing.cabinet_token,
       code: existing.referral_code,
@@ -86,6 +120,7 @@ export async function GET(req: NextRequest) {
       otherRate: 3,
     });
     await admin.from('photographers').update({ partner_id: partner.id }).eq('id', photographer.id);
+    await creditManagerIfLeadExists(admin, photographer, partner.id);
     return NextResponse.json({
       partner_token: partner.cabinet_token,
       code: partner.referral_code,

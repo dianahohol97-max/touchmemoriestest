@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     // Заявки на оформлення партнера: кабінет показує по кожному ліду, чи вона
     // на розгляді, підтверджена чи відхилена — і з якої причини.
     admin.from('partner_activation_requests')
-      .select('id, lead_id, status, partner_kind, email, client_discount, travelbook_rate, other_rate, decline_reason, partner_id, created_at, decided_at')
+      .select('id, lead_id, kind, status, partner_kind, email, client_discount, travelbook_rate, other_rate, decline_reason, partner_id, created_at, decided_at')
       .eq('manager_id', manager.id)
       .order('created_at', { ascending: false })
       .limit(300),

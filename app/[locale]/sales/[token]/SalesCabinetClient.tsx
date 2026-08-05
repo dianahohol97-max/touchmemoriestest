@@ -47,7 +47,7 @@ interface Commission {
   status: string; note: string | null; created_at: string; paid_at: string | null;
 }
 interface PartnerRequest {
-  id: string; lead_id: string | null; status: string; partner_kind: string; email: string;
+  id: string; lead_id: string | null; kind: string; status: string; partner_kind: string; email: string;
   client_discount: number; travelbook_rate: number; other_rate: number;
   decline_reason: string | null; partner_id: string | null; created_at: string; decided_at: string | null;
 }
@@ -58,7 +58,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'leads' | 'money'>('leads');
+  const [tab, setTab] = useState<'leads' | 'directory' | 'money'>('leads');
   const [notice, setNotice] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [adding, setAdding] = useState(false);
@@ -128,7 +128,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {([['leads', `Ліди (${leads.length})`], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
+        {([['leads', `Мої ліди (${leads.length})`], ['directory', 'Зайняті контакти'], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ ...(tab === k ? btn : btnGhost), padding: '9px 16px' }}>{t}</button>
         ))}
@@ -222,6 +222,8 @@ export default function SalesCabinetClient({ token }: { token: string }) {
           )}
         </>
       )}
+
+      {tab === 'directory' && <Directory token={token} />}
 
       {tab === 'money' && (
         <div style={card}>
@@ -568,7 +570,9 @@ function PartnerActivation({ token, lead, request, partner, onDone, flash }: {
   if (request?.status === 'approved') {
     return (
       <div style={{ ...box, background: '#f2fbf5', border: '1px solid #bbe6c9' }}>
-        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#166534' }}>Партнера оформлено</div>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#166534' }}>
+          {request.kind === 'claim' ? 'Партнера зараховано вам' : 'Партнера оформлено'}
+        </div>
         <p style={{ fontSize: 12.5, color: '#55504a', margin: '5px 0 0' }}>
           {partner?.referral_code
             ? <>Код партнера <code>{partner.referral_code}</code>. Кожне замовлення за ним приносить вам відсоток автоматично.</>
@@ -589,6 +593,7 @@ function PartnerActivation({ token, lead, request, partner, onDone, flash }: {
       <p style={{ fontSize: 12.5, color: '#55504a', margin: '5px 0 0' }}>
         Якщо домовились про співпрацю, подайте заявку. Після підтвердження партнер отримає персональний код,
         клієнти за ним матимуть знижку {request?.client_discount ?? 5}%, а ви — свій відсоток з кожного замовлення.
+        Якщо ця людина вже зареєструвалася партнером сама, кнопка просто запише партнера за вами, без нового коду.
       </p>
 
       {!open ? (
@@ -622,11 +627,96 @@ function PartnerActivation({ token, lead, request, partner, onDone, flash }: {
                 if (!res.ok) { setErr(json?.error || 'Не вдалося подати заявку'); return; }
                 setOpen(false);
                 await onDone();
-                flash('Заявку надіслано на підтвердження');
+                flash(json?.claimed
+                  ? `Партнера записано за вами, код ${json.partner?.referral_code || ''}`
+                  : 'Заявку надіслано на підтвердження');
               } finally { setBusy(false); }
             }}>{busy ? 'Надсилаємо…' : 'Подати заявку'}</button>
             <button style={btnGhost} onClick={() => setOpen(false)}>Скасувати</button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Зайняті контакти — усі ліди всіх менеджерів.
+ *
+ * Потрібно рівно для одного: перевірити студію перед тим, як їй написати, щоб
+ * вона не отримала два однакові листи від тієї самої компанії. Тому з чужого
+ * ліда видно назву, тип, місто, нікнейм і хто його веде, а пошта, телефон,
+ * нотатки й переписка не приходять сюди взагалі — вони для цієї задачі не
+ * потрібні.
+ */
+function Directory({ token }: { token: string }) {
+  const [rows, setRows] = useState<any[] | null>(null);
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async (query: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/sales/directory?token=${encodeURIComponent(token)}&q=${encodeURIComponent(query)}`);
+      if (res.ok) setRows((await res.json()).leads || []);
+    } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => {
+    const t = setTimeout(() => load(q), q ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [q, load]);
+
+  return (
+    <div style={card}>
+      <h2 style={sectionTitle}>Зайняті контакти</h2>
+      <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6 }}>
+        Тут усі контакти, які вже хтось веде. Перевірте студію перед тим, як писати, щоб вона не отримала
+        два однакові листи від нас. Чужі контактні дані й переписка не показуються — лише те, що контакт зайнятий.
+      </p>
+
+      <input
+        style={{ ...input, marginTop: 12 }}
+        placeholder="Пошук за назвою, містом або нікнеймом"
+        value={q}
+        onChange={e => setQ(e.target.value)}
+      />
+
+      {loading && <div style={{ color: '#8B8378', fontSize: 13, marginTop: 12 }}>Шукаємо…</div>}
+
+      {!loading && rows && rows.length === 0 && (
+        <div style={{ color: '#8B8378', fontSize: 14, marginTop: 12 }}>
+          {q ? 'Такого контакту ще ніхто не веде — можна писати.' : 'Поки що жодного ліда немає.'}
+        </div>
+      )}
+
+      {!loading && rows && rows.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map(r => {
+            const sm = statusMeta(r.status);
+            return (
+              <div key={r.id} style={{
+                border: `1px solid ${r.mine ? '#c9d0ee' : '#eee6d8'}`, borderRadius: 12, padding: '10px 13px',
+                background: r.mine ? '#f7f9ff' : '#fff',
+                display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>{r.business_name}</div>
+                  <div style={{ fontSize: 12.5, color: '#8B8378', marginTop: 2 }}>
+                    {TYPE_LABELS[r.business_type] || 'Інше'}
+                    {r.city && ` · ${r.city}`}
+                    {r.instagram && ` · @${r.instagram}`}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: 12.5 }}>
+                  <div style={{ fontWeight: 800, color: sm.color }}>{sm.label}</div>
+                  <div style={{ color: '#8B8378', marginTop: 2 }}>
+                    {r.mine ? 'ваш контакт' : `веде ${r.manager_name || 'інший менеджер'}`}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
