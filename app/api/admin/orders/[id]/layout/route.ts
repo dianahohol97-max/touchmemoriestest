@@ -68,6 +68,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       }
     }
 
+    // A wishbook (книга побажань) has NO photos BY DESIGN — the whole product
+    // is the cover; the inner pages stay blank for guests to write on. The
+    // photo-based completeness verdict branded every wishbook «порожня
+    // чернетка, друкувати не можна», which is wrong for this product: its
+    // print artifact is the server-generated cover, not page photos.
+    const isWishbook = /wish|guest|pobazhan/i.test(String(p.product_type || ''))
+      || /побажан|wishbook/i.test(String(p.name || ''));
+
     layouts.push({
       id: p.id,
       name: p.name,
@@ -80,11 +88,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       photosWithPath: withPath.length,
       photosPresentInStorage: presentInStorage,
       filledSlots,
+      isWishbook,
       updatedAt: p.updated_at,
       // Staff-viewable now that /api/print/[projectId] accepts a staff session.
       previewUrl: `/uk/print/${p.id}`,
       // The honest verdict, so nobody prints an empty draft by mistake.
-      ready: filledSlots > 0 && withPath.length > 0 && presentInStorage === withPath.length,
+      // Wishbooks are complete without photos — their cover carries the design.
+      ready: isWishbook
+        ? true
+        : (filledSlots > 0 && withPath.length > 0 && presentInStorage === withPath.length),
     });
   }
 
