@@ -572,9 +572,15 @@ export function BookPreviewModal({
               );
             }
             if (decoText) {
+              // The editor stores textFontSize in its 700px-tall canvas space
+              // (same convention as page text blocks, see basePx above). The
+              // raw px value on a 300-DPI print canvas (thousands of px tall)
+              // rendered the inscription microscopically — «мізерний напис»
+              // on every velour print макет.
+              const decoPx = (coverState.textFontSize || 24) * (pageH / 700);
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: (coverState.textFontSize || 24) * 0.85, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
+                  <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
                 </div>
               );
             }

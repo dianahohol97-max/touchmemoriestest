@@ -85,12 +85,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
   }
 
+  // 2b. Exact inscription layout from the linked editor project, when there is
+  // one. The options carry only the text and font — position, size and colour
+  // live in the project's cover_data, and rendering without them produced a
+  // мізерний centred напис that looked nothing like the editor (TM-001132).
+  let editorLayout: { xPct?: number; yPct?: number; fontPx700?: number; color?: string } | null = null;
+  try {
+    const { data: proj } = await admin
+      .from('projects')
+      .select('cover_data')
+      .eq('order_id', id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const cd: any = proj?.cover_data;
+    if (cd && (cd.decoText || '').trim()) {
+      editorLayout = {
+        xPct: typeof cd.textX === 'number' ? cd.textX : undefined,
+        yPct: typeof cd.textY === 'number' ? cd.textY : undefined,
+        fontPx700: typeof cd.textFontSize === 'number' ? cd.textFontSize : undefined,
+        color: typeof cd.decoColor === 'string' && cd.decoColor.startsWith('#') ? cd.decoColor : undefined,
+      };
+    }
+  } catch { /* no project — the estimated layout still renders */ }
+
   // 3. Build the spec + render the cover.
   let jpeg: Buffer;
   let jpegBw: Buffer | null = null;
   let specSize: string;
   try {
     const spec = specFromOrderOptions(wishItem.options || {});
+    spec.layout = editorLayout;
     specSize = spec.sizeKey;
     if (!spec.title) {
       // A wishbook with no title is still printable (blank cover), but flag it.
