@@ -68,6 +68,17 @@ export default function OrdersPage() {
     const [availableTags, setAvailableTags] = useState<any[]>([]);
     const [tagFilter, setTagFilter] = useState('all');
 
+    // Замовлення, чиє меню тегів зараз відкрите (одне за раз).
+    const [tagMenuOrderId, setTagMenuOrderId] = useState<string | null>(null);
+
+    // Клік будь-де поза меню тегів закриває його.
+    useEffect(() => {
+        if (!tagMenuOrderId) return;
+        const close = () => setTagMenuOrderId(null);
+        document.addEventListener('click', close);
+        return () => document.removeEventListener('click', close);
+    }, [tagMenuOrderId]);
+
     // Швидкий коментар до замовлення — зберігається в orders.notes.
     const [commentOrder, setCommentOrder] = useState<any | null>(null);
     const [commentText, setCommentText] = useState('');
@@ -168,6 +179,36 @@ export default function OrdersPage() {
         } catch (err) {
             console.error('Assign failed:', err);
             toast.error('Не вдалося призначити — оновлюю список');
+            fetchOrders();
+        }
+    };
+
+    /**
+     * Повісити або зняти тег просто зі списку (Diana, 2026-08-06: «тегів не
+     * видно у вкладці замовлення» — не видно їх було тому, що жодне замовлення
+     * тегів не мало, а вішалися вони тільки зсередини замовлення). Оптимістично
+     * оновлюємо локальний стан, при помилці перезавантажуємо список.
+     */
+    const toggleTag = async (order: any, tag: any) => {
+        const assigned = order.order_tag_assignments?.some((a: any) => a.order_tags?.id === tag.id);
+        setOrders(prev => prev.map(o => o.id === order.id
+            ? {
+                ...o,
+                order_tag_assignments: assigned
+                    ? (o.order_tag_assignments || []).filter((a: any) => a.order_tags?.id !== tag.id)
+                    : [...(o.order_tag_assignments || []), { order_tags: tag }],
+            }
+            : o));
+        try {
+            const res = await fetch(`/api/admin/orders/${order.id}/tags`, {
+                method: assigned ? 'DELETE' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tag_id: tag.id }),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
+        } catch (err) {
+            console.error('Toggle tag failed:', err);
+            toast.error('Не вдалося змінити тег — оновлюю список');
             fetchOrders();
         }
     };
@@ -371,10 +412,50 @@ export default function OrdersPage() {
                                         <span style={{ ...chip, background: delivery.bg, color: delivery.text }}>{order.delivery_status}</span>
                                     )}
                                     {order.order_tag_assignments?.map((a: any) => a.order_tags ? (
-                                        <span key={a.order_tags.id} style={{ ...chip, background: `${a.order_tags.color}14`, color: a.order_tags.color || '#475569' }}>
+                                        <span key={a.order_tags.id}
+                                            title="Прибрати тег"
+                                            onClick={e => { e.stopPropagation(); toggleTag(order, a.order_tags); }}
+                                            style={{ ...chip, background: `${a.order_tags.color || '#64748b'}14`, color: a.order_tags.color || '#475569', cursor: 'pointer' }}>
                                             {a.order_tags.icon && <span>{a.order_tags.icon}</span>}{a.order_tags.name}
                                         </span>
                                     ) : null)}
+                                    {availableTags.length > 0 && (
+                                        <span style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                                            <button
+                                                onClick={() => setTagMenuOrderId(v => v === order.id ? null : order.id)}
+                                                title="Додати тег"
+                                                style={{ ...chip, background: '#f1f5f9', color: '#64748b', border: '1px dashed #cbd5e1', cursor: 'pointer' }}>
+                                                + тег
+                                            </button>
+                                            {tagMenuOrderId === order.id && (
+                                                <span style={{
+                                                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
+                                                    background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+                                                    boxShadow: '0 8px 24px rgba(15,23,42,0.12)', padding: 8,
+                                                    display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180,
+                                                }}>
+                                                    {availableTags.map(t => {
+                                                        const on = order.order_tag_assignments?.some((a: any) => a.order_tags?.id === t.id);
+                                                        return (
+                                                            <button key={t.id}
+                                                                onClick={() => toggleTag(order, t)}
+                                                                style={{
+                                                                    display: 'flex', alignItems: 'center', gap: 7, padding: '6px 9px',
+                                                                    borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left',
+                                                                    background: on ? `${t.color || '#64748b'}14` : 'transparent',
+                                                                    color: '#334155', fontSize: 12.5, fontWeight: 600,
+                                                                }}>
+                                                                <span style={{ width: 8, height: 8, borderRadius: 999, background: t.color || '#94a3b8', flexShrink: 0 }} />
+                                                                {t.icon && <span>{t.icon}</span>}
+                                                                <span style={{ flex: 1 }}>{t.name}</span>
+                                                                {on && <span style={{ color: t.color || '#16a34a', fontWeight: 800 }}>✓</span>}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </span>
+                                            )}
+                                        </span>
+                                    )}
                                     <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
                                         <span style={{
                                             ...chip,

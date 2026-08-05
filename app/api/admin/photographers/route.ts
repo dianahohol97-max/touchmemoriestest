@@ -15,17 +15,30 @@ export async function GET() {
     .order('created_at', { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Скільки місця займає кожен фотограф (Diana, 2026-08-06). Сума size_bytes
-  // усіх фото його галерей — постранично, бо PostgREST віддає максимум 1000
-  // рядків за запит, і без циклу сума була б занижена мовчки.
+  // Скільки місця займає кожен фотограф (Diana, 2026-08-06). Два прості
+  // запити замість вкладеної вибірки: між фото й галереями ДВА звʼязки
+  // (фото→галерея і галерея→обкладинка), тому embed без явного імені FK
+  // двозначний — PostgREST повертає помилку, і перша версія цього коду мовчки
+  // показувала «порожньо» всім. Постранично, бо PostgREST віддає максимум
+  // 1000 рядків за запит.
+  const ownerByGallery: Record<string, string> = {};
+  const { data: galleryOwners } = await admin
+    .from('photographer_galleries')
+    .select('id, photographer_id');
+  (galleryOwners || []).forEach((g: any) => { ownerByGallery[g.id] = g.photographer_id; });
+
   const bytesByPhotographer: Record<string, number> = {};
   for (let from = 0; ; from += 1000) {
-    const { data: photos } = await admin
+    const { data: photos, error: photosError } = await admin
       .from('photographer_gallery_photos')
-      .select('size_bytes, photographer_galleries!inner(photographer_id)')
+      .select('gallery_id, size_bytes')
       .range(from, from + 999);
+    if (photosError) {
+      console.error('[admin/photographers] storage sum failed:', photosError.message);
+      break;
+    }
     (photos || []).forEach((ph: any) => {
-      const pid = ph.photographer_galleries?.photographer_id;
+      const pid = ownerByGallery[ph.gallery_id];
       if (pid) bytesByPhotographer[pid] = (bytesByPhotographer[pid] || 0) + Number(ph.size_bytes || 0);
     });
     if (!photos || photos.length < 1000) break;

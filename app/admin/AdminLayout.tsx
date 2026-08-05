@@ -67,7 +67,11 @@ const menuItems = [
     { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders', group: 'daily' },
     { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production', group: 'daily' },
     { name: 'Кабінет дизайнера', href: '/admin/designer', icon: <Palette size={20} />, section: 'designer', group: 'daily' },
-    { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders', group: 'daily' },
+    // «Макети клієнтів» прихована з меню (Діана, 2026-08-06): дані в
+    // photobook_projects не оновлюються з березня — макети клієнтів давно
+    // течуть через чернетки замовлень, і сторінка показує лише старе.
+    // /admin/projects працює за прямим посиланням; повернути — розкоментувати.
+    // { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders', group: 'daily' },
     { name: 'Кадрування (друк)', href: '/admin/kadruvannya', icon: <LayoutTemplate size={20} />, section: 'production', group: 'daily' },
     { name: 'Аналітика', href: '/admin/analytics', icon: <BarChart2 size={20} />, section: 'analytics', group: 'daily' },
 
