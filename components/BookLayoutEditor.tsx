@@ -3443,7 +3443,12 @@ export default function BookLayoutEditor() {
           return { id: p.id, name: p.name, width: p.width, height: p.height };
         }
         let body: Blob | File | undefined = (p as any).originalFile as File | undefined;
-        if (!body && p.preview?.startsWith('blob:')) {
+        // Same body sources as the order-time upload loop: blob (live session),
+        // data (small previews) and https (draft-restored signed URLs whose
+        // storage path was lost). Reading only blob: left restored photos
+        // permanently path-less — the draft row said «0 із N фото у сховищі»
+        // and the макет rendered empty (TM-001123).
+        if (!body && p.preview && (p.preview.startsWith('blob:') || p.preview.startsWith('data:') || p.preview.startsWith('https://'))) {
           try { const r = await fetch(p.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
         }
         if (!body) return { id: p.id, name: p.name, width: p.width, height: p.height };
