@@ -222,7 +222,11 @@ export function BookPreviewModal({
   // the cover's height from the page aspect is what made the render service
   // treat a 470×328 cover as 400×300 and pad the fold-in with invented pixels.
   const pageH = isPrint && printPageH ? printPageH : Math.round(pageW / aspect);
-  const spineW = Math.max(4, Math.min(12, Math.round(pages.length * 0.4)));
+  // Decorative spine / gutter bands are a PREVIEW illusion (they mimic a
+  // physical book). In print mode they became thin brown/beige stripes down
+  // the middle of every exported file — «технічні лінії» on the customer's
+  // cover. Print files carry the flat artwork only.
+  const spineW = isPrint ? 0 : Math.max(4, Math.min(12, Math.round(pages.length * 0.4)));
   const spreadW = pageW * 2;
 
   const getPhoto = (id: string | null | undefined) => id ? photos.find(p => p.id === id) ?? null : null;
@@ -701,8 +705,9 @@ export function BookPreviewModal({
             {renderContentPage(leftPI, spreadW, pageH)}
             {/* Centre gutter crease only — a full-spread photo bleeds across the
                whole spread, so there is no solid spine band on the side (that
-               trailing band showed up as a white stripe at the right edge). */}
-            <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: '100%', background: 'rgba(0,0,0,0.06)', zIndex: 50, pointerEvents: 'none' }} />
+               trailing band showed up as a white stripe at the right edge).
+               Preview-only: a printed crease line has no place in the files. */}
+            {!isPrint && <div style={{ position: 'absolute', left: '50%', top: 0, width: 1, height: '100%', background: 'rgba(0,0,0,0.06)', zIndex: 50, pointerEvents: 'none' }} />}
           </div>
         </div>
       );
