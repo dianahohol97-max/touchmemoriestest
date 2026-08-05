@@ -7004,8 +7004,23 @@ export default function BookLayoutEditor() {
                   </div>
                 </div>
                 {selectedTextId && (
-                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 6px' }}>Двічі клікніть для редагування</p>
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>Двічі клікніть для редагування</p>
+                    {/* Paste the clipboard into the selected block — typing was
+                        the only way in for customers who have the text ready. */}
+                    <button onClick={async () => {
+                      const blockId = selectedTextId!, pIdx = selectedTextPageIdx;
+                      try {
+                        const clip = (await navigator.clipboard.readText())?.trim();
+                        if (clip) { updateTxtForPage(blockId, { text: clip }, pIdx); toast.success('Текст вставлено з буфера обміну'); return; }
+                        toast('Буфер обміну порожній — скопіюйте текст і спробуйте ще раз');
+                      } catch {
+                        setEditingTextId(blockId);
+                        toast('Дозвольте доступ до буфера, або вставте текст у полі редагування (Ctrl+V)');
+                      }
+                    }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1px solid #c7d2fe', borderRadius: 8, background: '#f0f3ff', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#1e2d7d', width: '100%' }}>
+                      <Type size={13} /> Вставити текст із буфера
+                    </button>
                     <button onClick={() => deleteTxtForPage(selectedTextId!, selectedTextPageIdx)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', border: '1px solid #fee2e2', borderRadius: 8, background: '#fff7f7', cursor: 'pointer', fontWeight: 600, fontSize: 12, color: '#ef4444', width: '100%' }}>
                       <Trash2 size={13} /> Видалити
                     </button>
@@ -9708,6 +9723,34 @@ export default function BookLayoutEditor() {
               <button onClick={()=>{ haptic.light(); setEditingTextId(ctxMenu.id); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:600 }}>
                  Редагувати текст
+              </button>
+              {/* Paste from clipboard straight into the block. Typing was the
+                  only way in — the customer who has the text ready (in Notes,
+                  Telegram, a doc) had to re-type it by hand (Diana, 2026-08-05).
+                  Clipboard access needs a user gesture + permission; when the
+                  browser refuses, fall back to opening the inline editor where
+                  Ctrl+V / long-press paste works natively. */}
+              <button onClick={async ()=>{ haptic.light();
+                const pageIdxForPaste = ctxMenu.pageIdx !== undefined ? ctxMenu.pageIdx : selectedTextPageIdx;
+                const blockId = ctxMenu.id;
+                closeCtxMenu();
+                try {
+                  const clip = (await navigator.clipboard.readText())?.trim();
+                  if (clip) {
+                    updateTxtForPage(blockId, { text: clip }, pageIdxForPaste);
+                    toast.success('Текст вставлено з буфера обміну');
+                    return;
+                  }
+                  toast('Буфер обміну порожній — скопіюйте текст і спробуйте ще раз');
+                } catch {
+                  // Permission denied / unsupported — open the editor so the
+                  // system paste (Ctrl+V, довге натискання → Вставити) works.
+                  setEditingTextId(blockId);
+                  toast('Дозвольте доступ до буфера, або вставте текст у полі редагування (Ctrl+V)');
+                }
+              }}
+                style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#1e2d7d', fontWeight:600 }}>
+                 Вставити текст із буфера
               </button>
               <button onClick={()=>{ haptic.error(); deleteTxtForPage(ctxMenu.id, ctxMenu.pageIdx !== undefined ? ctxMenu.pageIdx : selectedTextPageIdx); closeCtxMenu(); }}
                 style={{ display:'flex', alignItems:'center', gap:8, width:'100%', padding:'10px 16px', border:'none', background:'transparent', cursor:'pointer', fontSize:14, color:'#ef4444', fontWeight:600 }}>
