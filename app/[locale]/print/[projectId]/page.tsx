@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
 import { resolveProjectSizeKey, pageMm } from '@/lib/print/geometry';
+import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 /**
  * /print/[projectId] — clean, controls-free render of a saved book design.
@@ -33,6 +34,21 @@ export default function PrintPage() {
   // Sheet geometry from /api/print/[projectId] — needed for the cover, whose
   // proportion is its own (470×328) and not two pages side by side.
   const [geometry, setGeometry] = useState<any>(null);
+
+  // The editor injects the Google Fonts stylesheet itself; this page never
+  // did, so every custom font the customer picked fell back to a system face
+  // on the print render — text came out in the wrong font and looked bold
+  // when the editor showed it regular (Diana, 2026-08-05). The render service
+  // awaits document.fonts.ready, so declaring the fonts here is sufficient
+  // for the screenshot to wait for them.
+  useEffect(() => {
+    if (document.querySelector('link[data-tm-editor-fonts]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = GOOGLE_FONTS_URL;
+    link.setAttribute('data-tm-editor-fonts', '1');
+    document.head.appendChild(link);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
