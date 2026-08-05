@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { LANDING_THEMES } from '@/lib/photographers/themes';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
@@ -600,36 +599,9 @@ function OrdersSection({ token }: { token: string }) {
 function GalleriesSection({ token, galleries, onChanged, flash }: {
   token: string; galleries: Gallery[]; onChanged: () => Promise<void>; flash: (m: string) => void;
 }) {
-  const [showNew, setShowNew] = useState(false);
-  const [title, setTitle] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [shootDate, setShootDate] = useState('');
-  const [termDays, setTermDays] = useState(30);
-  const [creating, setCreating] = useState(false);
-  const router = useRouter();
+  // Creation moved to its own page (/gallery/new); this section is now a
+  // pure list.
   const editorHref = (id: string) => `/uk/photographer/cabinet/${token}/gallery/${id}`;
-
-  const create = async () => {
-    if (!title.trim() || creating) return;
-    setCreating(true);
-    try {
-      const res = await fetch('/api/photographers/galleries', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, title, client_name: clientName, shoot_date: shootDate || null, term_days: termDays }),
-      });
-      const json = await res.json();
-      if (!res.ok) { alert(json?.error || 'Помилка'); return; }
-      setTitle(''); setClientName(''); setShootDate(''); setShowNew(false);
-      await onChanged();
-      // Створення веде одразу в редактор галереї (прохання Діани): там
-      // завантаження фото, обкладинка, дизайн і налаштування на одному екрані.
-      if (json?.gallery?.id) {
-        router.push(`/uk/photographer/cabinet/${token}/gallery/${json.gallery.id}`);
-        return;
-      }
-      flash('Галерею створено');
-    } finally { setCreating(false); }
-  };
 
   const copyLink = (g: Gallery) => {
     navigator.clipboard.writeText(`${window.location.origin}/uk/gallery/${g.client_token}`);
@@ -640,48 +612,20 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <h2 style={sectionTitle}>Галереї клієнтів</h2>
-        <button style={btn} onClick={() => setShowNew(v => !v)}>{showNew ? 'Скасувати' : '+ Нова галерея'}</button>
+        {/* Creating a gallery lives on its own page — an inline form read as
+            "nothing happened" when the button was pressed (Diana). */}
+        <a href={`/uk/photographer/cabinet/${token}/gallery/new`}
+           style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}>
+          + Нова галерея
+        </a>
       </div>
       <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Фото зберігаються 30 днів від створення галереї, після чого видаляються автоматично.</p>
 
-      {showNew && (
-        <div style={{ background: '#f8fafc', borderRadius: 10, padding: 16, marginTop: 8 }}>
-          <label style={label}>Назва галереї *</label>
-          <input style={input} value={title} onChange={e => setTitle(e.target.value)} placeholder="Весілля Олена та Максим" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={label}>Ім&apos;я клієнта</label>
-              <input style={input} value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Олена та Максим" />
-              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
-                Показується клієнту на обкладинці під назвою. Можна не заповнювати.
-              </div>
-            </div>
-            <div>
-              <label style={label}>Дата зйомки</label>
-              <input style={input} type="date" value={shootDate} onChange={e => setShootDate(e.target.value)} />
-              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
-                Теж видно на обкладинці. Можна не заповнювати.
-              </div>
-            </div>
-          </div>
-          <label style={label}>Термін зберігання</label>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[30, 60, 90].map(d => (
-              <button key={d} type="button" onClick={() => setTermDays(d)}
-                style={{
-                  padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                  border: termDays === d ? '2px solid #263A99' : '1px solid #e2e8f0',
-                  background: termDays === d ? '#eef3ff' : '#fff', color: '#1f2937',
-                }}>
-                {d} днів
-              </button>
-            ))}
-          </div>
-          <button style={{ ...btn, marginTop: 14 }} onClick={create} disabled={creating}>{creating ? 'Створюємо…' : 'Створити'}</button>
+      {galleries.length === 0 && (
+        <div style={{ color: '#8B8378', marginTop: 14, fontSize: 14 }}>
+          Поки що немає галерей. <a href={`/uk/photographer/cabinet/${token}/gallery/new`} style={{ color: '#263A99', fontWeight: 700 }}>Створити першу →</a>
         </div>
       )}
-
-      {galleries.length === 0 && !showNew && <div style={{ color: '#94a3b8', marginTop: 12 }}>Поки що немає галерей.</div>}
 
       {galleries.map(g => (
         <div key={g.id} style={{ border: '1px solid #E8DCC8', background: '#fff', borderRadius: 14, padding: 14, marginTop: 12 }}>
