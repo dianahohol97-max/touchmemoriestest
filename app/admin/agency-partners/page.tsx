@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Copy, Check, Loader2, Plus, Mail } from 'lucide-react';
 
 interface Partner {

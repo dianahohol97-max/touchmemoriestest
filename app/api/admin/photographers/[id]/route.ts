@@ -8,6 +8,57 @@ export const dynamic = 'force-dynamic';
 // Staff-managed fields. Cabinet-editable fields live in /api/photographers/profile.
 const STAFF_FIELDS = ['name', 'email', 'slug', 'is_active', 'custom_domain', 'custom_domain_paid', 'landing_enabled'] as const;
 
+/**
+ * GET — галереї одного фотографа з розмірами (Diana, 2026-08-06: «я б хотіла
+ * переглянути цю галерею і загалом бачити скільки місця вони займають»).
+ *
+ * Розмір рахується з size_bytes кожного фото — це те, що реально лежить у
+ * сховищі, а не оцінка. Посилання на перегляд — клієнтське (client_token):
+ * адміністратор бачить галерею рівно так, як її бачить клієнт фотографа.
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
+  const { id } = await params;
+  const admin = getAdminClient();
+
+  const { data: galleries, error } = await admin
+    .from('photographer_galleries')
+    .select('id, title, client_name, client_token, shoot_date, expires_at, files_purged_at, created_at, zip_downloads')
+    .eq('photographer_id', id)
+    .order('created_at', { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const ids = (galleries || []).map(g => g.id);
+  const bytesByGallery: Record<string, number> = {};
+  const countByGallery: Record<string, number> = {};
+  if (ids.length) {
+    // Постранично, бо PostgREST віддає максимум 1000 рядків за раз, а велика
+    // галерея легко має більше фото — без циклу сума була б занижена.
+    for (let from = 0; ; from += 1000) {
+      const { data: photos } = await admin
+        .from('photographer_gallery_photos')
+        .select('gallery_id, size_bytes')
+        .in('gallery_id', ids)
+        .range(from, from + 999);
+      (photos || []).forEach((ph: any) => {
+        bytesByGallery[ph.gallery_id] = (bytesByGallery[ph.gallery_id] || 0) + Number(ph.size_bytes || 0);
+        countByGallery[ph.gallery_id] = (countByGallery[ph.gallery_id] || 0) + 1;
+      });
+      if (!photos || photos.length < 1000) break;
+    }
+  }
+
+  return NextResponse.json({
+    galleries: (galleries || []).map(g => ({
+      ...g,
+      photo_count: countByGallery[g.id] || 0,
+      size_bytes: bytesByGallery[g.id] || 0,
+    })),
+  });
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
