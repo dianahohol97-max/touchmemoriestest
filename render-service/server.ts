@@ -337,25 +337,18 @@ app.post('/render', async (req, res) => {
     const pages = project?.pages_data || [];
     const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
 
-    // Soft-material covers (велюр / тканина / шкірзамінник) are NOT printed —
-    // the physical cover is fabric with a physical decoration (тиснення /
-    // флекс / металева пластина), produced from the separate inscription
-    // artwork in the admin. Exporting a 00_cover.jpg for them gave the
-    // workshop a misleading mockup (material colour + fake spine bands +
-    // simulated decoration) that looked like a file to print. Skip it.
-    const _coverTypeLc = String(config?.selectedCoverType || '').toLowerCase();
-    const isSoftMaterialCover =
-      _coverTypeLc.includes('велюр') || _coverTypeLc.includes('velour') || _coverTypeLc.includes('velvet') ||
-      _coverTypeLc.includes('ткан') || _coverTypeLc.includes('fabric') ||
-      _coverTypeLc.includes('шкір') || _coverTypeLc.includes('leather');
-    if (isSoftMaterialCover) {
-      console.log(`[render] soft-material cover ('${config?.selectedCoverType}') — 00_cover.jpg not exported (nothing to print on it)`);
-    }
+    // Soft-material covers (велюр / тканина / шкірзамінник) DO get a cover
+    // file, per production requirements: a clean layout at the physical cover
+    // sheet size (300 DPI, fold-in included) that encodes the exact material
+    // colour, the decoration footprint (plate / insert) and the inscription
+    // in the chosen font at the chosen position — same contract as the
+    // wishbook cover generator (lib/print/wishbook-cover.tsx). The preview
+    // artifacts that used to pollute this file (spine gradient bands, «ЗАДНЯ»
+    // label) are stripped by BookPreviewModal's print mode.
 
     // 2. Render each spread (0 = cover) at the exact print pixel size.
     for (let spread = 0; spread < spreadCount; spread++) {
       const isCover = spread === 0;
-      if (isCover && isSoftMaterialCover) continue;
       const mm = isCover ? dims.cover : dims.spread;
       const pxW = mmToPx(mm.w);
       const pxH = mmToPx(mm.h);
