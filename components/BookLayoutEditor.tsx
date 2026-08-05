@@ -86,7 +86,11 @@ function tmImgError(e: React.SyntheticEvent<HTMLImageElement>) {
 }
 
 
-interface PhotoData { id: string; preview: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
+// `thumb` is a small (~360px) JPEG data URL generated in the focal-detection
+// pass. The photo tray, film strip and page-navigator thumbnails render it
+// instead of the full editor preview (up to 5000px) — decoding dozens of
+// full-size bitmaps for 60px tiles was a constant source of scroll/paint jank.
+interface PhotoData { id: string; preview: string; thumb?: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
 interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
@@ -577,6 +581,44 @@ function releaseFocalSlot() {
 function enqueueFocal(job: () => void) {
   focalQueue.push(job);
   pumpFocalQueue();
+}
+
+/**
+ * Average colour of a cover image's outer border ring. Used to auto-fill the
+ * back cover so it matches a ready-made travel cover: the covers table has no
+ * background-colour column, but the designs have a flat background at the
+ * edges, so sampling the border of the artwork recovers it reliably.
+ * Resolves null on CORS/decode failure — callers just skip the auto-fill.
+ */
+function sampleCoverEdgeColor(url: string): Promise<string | null> {
+  return new Promise(resolve => {
+    try {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onerror = () => resolve(null);
+      img.onload = () => {
+        try {
+          const S = 48, M = 5;
+          const c = document.createElement('canvas');
+          c.width = S; c.height = S;
+          const ctx = c.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, S, S);
+          const d = ctx.getImageData(0, 0, S, S).data;
+          let r = 0, g = 0, b = 0, n = 0;
+          for (let y = 0; y < S; y++) {
+            for (let x = 0; x < S; x++) {
+              if (x >= M && x < S - M && y >= M && y < S - M) continue;
+              const i = (y * S + x) * 4;
+              r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+            }
+          }
+          if (!n) return resolve(null);
+          resolve('#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join(''));
+        } catch { resolve(null); }
+      };
+      img.src = url;
+    } catch { resolve(null); }
+  });
 }
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -2414,13 +2456,21 @@ export default function BookLayoutEditor() {
   // setPhotos once PER photo — 50 photos = 50 full re-renders of the editor on
   // load, each also retriggering the autosave + photo-persistence effects.
   // Buffer the results and flush them in a single batched state update.
-  const focalBufferRef = useRef<Record<string, { focalX: number; focalY: number }>>({});
+  const focalBufferRef = useRef<Record<string, { focalX?: number; focalY?: number; thumb?: string }>>({});
   const focalFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flushFocalBuffer = () => {
     const buf = focalBufferRef.current;
     focalBufferRef.current = {};
     if (Object.keys(buf).length === 0) return;
-    setPhotos(prev => prev.map(p => buf[p.id] ? { ...p, focalX: buf[p.id].focalX, focalY: buf[p.id].focalY, hasFace: false } : p));
+    setPhotos(prev => prev.map(p => {
+      const b = buf[p.id];
+      if (!b) return p;
+      return {
+        ...p,
+        ...(b.focalX !== undefined && b.focalY !== undefined ? { focalX: b.focalX, focalY: b.focalY, hasFace: false } : {}),
+        ...(b.thumb ? { thumb: b.thumb } : {}),
+      };
+    }));
   };
   // Focal-point detection decodes the 1600px preview into an <img> before it
   // can sample it — about 7 MB of bitmap per photo. It used to be fired for
@@ -2434,9 +2484,30 @@ export default function BookLayoutEditor() {
 
   const runDetectFocalPoint = (previewDataUrl: string, photoId: string) => {
     const img = new window.Image();
+    // Signed storage URLs (draft-restored photos) taint the canvas without
+    // CORS opt-in — getImageData/toDataURL would throw and both focal
+    // detection and the thumbnail below silently failed for them. Supabase
+    // storage serves Access-Control-Allow-Origin: *, so anonymous is safe.
+    if (/^https?:/i.test(previewDataUrl)) img.crossOrigin = 'anonymous';
     img.onerror = () => releaseFocalSlot();
     img.onload = () => {
       try {
+        // Small tray/strip thumbnail — one decode serves both this and the
+        // saliency sampling below.
+        try {
+          const maxSide = Math.max(img.naturalWidth || 0, img.naturalHeight || 0);
+          if (maxSide > 700) {
+            const s = 360 / maxSide;
+            const tc = document.createElement('canvas');
+            tc.width = Math.max(1, Math.round((img.naturalWidth || 1) * s));
+            tc.height = Math.max(1, Math.round((img.naturalHeight || 1) * s));
+            tc.getContext('2d')!.drawImage(img, 0, 0, tc.width, tc.height);
+            const thumb = tc.toDataURL('image/jpeg', 0.8);
+            focalBufferRef.current[photoId] = { ...(focalBufferRef.current[photoId] || {}), thumb };
+            if (focalFlushTimerRef.current) clearTimeout(focalFlushTimerRef.current);
+            focalFlushTimerRef.current = setTimeout(flushFocalBuffer, 180);
+          }
+        } catch { /* tainted canvas or decode issue — strip falls back to full preview */ }
         // Downsample to 64x64 for fast processing
         const SIZE = 64;
         const canvas = document.createElement('canvas');
@@ -2482,7 +2553,7 @@ export default function BookLayoutEditor() {
         if (totalWeight > 0) {
           const focalX = Math.round(Math.max(20, Math.min(80, (sumX / totalWeight / SIZE) * 100)));
           const focalY = Math.round(Math.max(15, Math.min(75, (sumY / totalWeight / SIZE) * 100)));
-          focalBufferRef.current[photoId] = { focalX, focalY };
+          focalBufferRef.current[photoId] = { ...(focalBufferRef.current[photoId] || {}), focalX, focalY };
           if (focalFlushTimerRef.current) clearTimeout(focalFlushTimerRef.current);
           focalFlushTimerRef.current = setTimeout(flushFocalBuffer, 180);
         }
@@ -3313,11 +3384,41 @@ export default function BookLayoutEditor() {
   // Core save logic, shared between the explicit "Save & exit" button and the
   // silent autosave timer. Returns true on success. Never throws — autosave
   // failures should be invisible to the user, not an error toast every 60s.
+  //
+  // Concurrency guard: the save-on-change debounce (3s), the 60s interval and
+  // visibilitychange/pagehide all call this. Without a guard, a slow save
+  // (first save uploads EVERY photo original — tens of MB on a home uplink)
+  // overlapped with the next tick, which re-uploaded the same photos again
+  // (storagePath is only stamped after an upload finishes). Each edit spawned
+  // another overlapping upload storm, the uplink stayed saturated for the
+  // whole session and the editor felt frozen on every step. One save runs at
+  // a time; a request that arrives mid-save is coalesced into one trailing run.
+  const persistInFlightRef = useRef(false);
+  const persistQueuedRef = useRef(false);
+  // Per-photo failed-upload counter: a photo whose upload failed 3 times stops
+  // retrying for the session (each retry re-sent the full original every 3s).
+  const photoUploadAttemptsRef = useRef<Record<string, number>>({});
   const persistDraft = async (): Promise<boolean> => {
+    if (persistInFlightRef.current) { persistQueuedRef.current = true; return false; }
+    persistInFlightRef.current = true;
+    try {
+      return await persistDraftInner();
+    } finally {
+      persistInFlightRef.current = false;
+      if (persistQueuedRef.current) {
+        persistQueuedRef.current = false;
+        setTimeout(() => { persistDraftRef.current(); }, 500);
+      }
+    }
+  };
+  const persistDraftInner = async (): Promise<boolean> => {
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const sb = createClient();
-      const { data: { user } } = await sb.auth.getUser();
+      // getSession reads the locally cached (auto-refreshed) session — the old
+      // getUser() made a network round-trip to Supabase on every autosave tick.
+      const { data: { session } } = await sb.auth.getSession();
+      const user = session?.user;
       if (!user) return false;
 
       const contentPages = isWishbook ? 32 : billableContentPages;
@@ -3329,10 +3430,17 @@ export default function BookLayoutEditor() {
       // uploaded — they carry a `path` from a previous save in this
       // session). This is what makes "reopen on another device" actually
       // restore the photos instead of asking the user to re-pick them.
-      const uploadedPhotosMeta = await Promise.all(photos.map(async (p) => {
+      // Bounded concurrency: the old Promise.all fired every remaining upload
+      // at once (27 photos = 27 parallel multi-MB uploads), which choked the
+      // connection and the main thread. Three at a time keeps the editor
+      // responsive while the backlog drains.
+      const uploadOne = async (p: PhotoData) => {
         const existingPath = (p as any).storagePath as string | undefined;
         if (existingPath) {
           return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath };
+        }
+        if ((photoUploadAttemptsRef.current[p.id] || 0) >= 3) {
+          return { id: p.id, name: p.name, width: p.width, height: p.height };
         }
         let body: Blob | File | undefined = (p as any).originalFile as File | undefined;
         if (!body && p.preview?.startsWith('blob:')) {
@@ -3344,14 +3452,30 @@ export default function BookLayoutEditor() {
           const { error: upErr } = await sb.storage
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-          if (upErr) { console.warn('[persistDraft] photo upload failed', p.id, upErr.message); return { id: p.id, name: p.name, width: p.width, height: p.height }; }
+          if (upErr) {
+            photoUploadAttemptsRef.current[p.id] = (photoUploadAttemptsRef.current[p.id] || 0) + 1;
+            console.warn('[persistDraft] photo upload failed', p.id, upErr.message);
+            return { id: p.id, name: p.name, width: p.width, height: p.height };
+          }
           (p as any).storagePath = path;
           return { id: p.id, name: p.name, width: p.width, height: p.height, path };
         } catch (e) {
+          photoUploadAttemptsRef.current[p.id] = (photoUploadAttemptsRef.current[p.id] || 0) + 1;
           console.warn('[persistDraft] photo upload exception', p.id, e);
           return { id: p.id, name: p.name, width: p.width, height: p.height };
         }
-      }));
+      };
+      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> = new Array(photos.length);
+      {
+        let nextIdx = 0;
+        const worker = async () => {
+          while (nextIdx < photos.length) {
+            const i = nextIdx++;
+            uploadedPhotosMeta[i] = await uploadOne(photos[i]);
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(3, Math.max(1, photos.length)) }, worker));
+      }
 
       const row = {
         user_id: user.id,
@@ -5243,7 +5367,7 @@ export default function BookLayoutEditor() {
                         onClick={(e) => { if(e.ctrlKey||e.metaKey){ if(!used){ setSelectedPhotoIds(prev=>{const n=new Set(prev);if(n.has(ph.id))n.delete(ph.id);else n.add(ph.id);return n;}); } } else { setSelectedPhotoIds(new Set()); setTapSelectedPhotoId(tapSelectedPhotoId===ph.id?null:ph.id); }}}
                         style={{ display: 'flex', flexDirection: 'column', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', opacity: used ? 0.6 : 1, border: ph.noBgUrl ? '2px solid #7c3aed' : isSel ? '2px solid #7c3aed' : tapSelectedPhotoId === ph.id ? '2px solid #3b82f6' : used ? '1px solid #10b981' : '1px solid #e2e8f0', outline: isSel ? '2px solid rgba(124,58,237,0.3)' : tapSelectedPhotoId === ph.id ? '2px solid rgba(59,130,246,0.4)' : 'none', background: isSel ? '#f5f3ff' : tapSelectedPhotoId === ph.id ? '#eff6ff' : '#fff' }}>
                         <div style={{ position: 'relative', width: '100%', aspectRatio: String(ratio), maxHeight: 120, overflow: 'hidden' }}>
-                          <img loading="lazy" onError={tmImgError} src={ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
+                          <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
                           {used && tapSelectedPhotoId !== ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, pointerEvents:'none' }}></div>}
                           {used && tapSelectedPhotoId === ph.id && <div style={{ position: 'absolute', inset: 0, background: 'rgba(59,130,246,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents:'none' }}><span style={{fontSize:9,fontWeight:800,color:'#1d4ed8',background:'rgba(255,255,255,0.9)',padding:'2px 6px',borderRadius:6}}>для заміни</span></div>}
                           {isSel && <div style={{ position: 'absolute', inset: 0, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#7c3aed', fontWeight: 700 }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
@@ -5433,6 +5557,13 @@ export default function BookLayoutEditor() {
                           printedPhotoSlots: undefined,
                           printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
                         }));
+                        // Fill the back cover in the same colour as the ready
+                        // cover's background, so front and back match without
+                        // hunting for the colour picker. The customer can still
+                        // override it in «Задня обкладинка → Колір фону».
+                        sampleCoverEdgeColor(cover.image_url).then(hex => {
+                          if (hex) setCoverState(p => ({ ...p, backCoverBgColor: hex }));
+                        });
                       }}
                     />
                     <div style={{ height: 1, background: '#e2e8f0', margin: '4px 0' }} />
@@ -5591,7 +5722,7 @@ export default function BookLayoutEditor() {
                     back is the same material colour as the front — so this block
                     is hidden for them. */}
                 {isPrintedBack && (
-                  <div style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
+                  <div id="back-cover-color-block" style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Задня обкладинка</div>
                       <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:6 }}>
@@ -5696,7 +5827,7 @@ export default function BookLayoutEditor() {
                               draggable
                               onDragStart={e => { e.dataTransfer.setData('photoId', ph.id); e.dataTransfer.setData('text/plain', ph.id); e.dataTransfer.effectAllowed='copy'; }}
                               style={{ aspectRatio:'1', borderRadius:4, overflow:'hidden', cursor:'grab', border: coverState.photoId===ph.id ? '2px solid #1e2d7d' : '1px solid #e2e8f0' }}>
-                              <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                              <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                             </div>
                           ))}
                         </div>
@@ -7020,7 +7151,6 @@ export default function BookLayoutEditor() {
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
                           onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
-                          onClick={() => { if (!backPhoto && photos.length > 0) setCoverState(p=>({...p,backCoverPhotoId:photos[0].id})); }}
                           style={{ position:'absolute', left:bSlotPx.x, top:bSlotPx.y, width:bSlotPx.w, height:bSlotPx.h,
                             borderRadius:bBr, overflow:'hidden', cursor: backPhoto ? 'move' : 'default', zIndex:2,
                             border: backPhoto ? 'none' : 'none',
@@ -7070,16 +7200,39 @@ export default function BookLayoutEditor() {
                               </div>
                             </>
                           ) : (
-                            /* No photo yet — show tiny floating hint, NOT a full-bleed placeholder.
-                               The cover colour (backBg) shows through the transparent background,
+                            /* No photo yet — floating hint with BOTH actions. The old version
+                               only offered a photo (and a click anywhere on the back cover
+                               silently inserted photos[0]), so customers who wanted a colour
+                               fill saw "лиш фото просе" and no way to the colour picker. The
+                               cover colour (backBg) shows through the transparent background,
                                so the customer sees exactly what the back cover will look like. */
-                            <div style={{ position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)',
-                              background:'rgba(0,0,0,0.38)', borderRadius:20, padding:'5px 12px',
-                              display:'flex', alignItems:'center', gap:5, pointerEvents:'none', whiteSpace:'nowrap' }}>
-                              <ImageIcon size={11} color="#fff"/>
-                              <span style={{ fontSize:9, fontWeight:600, color:'#fff' }}>
-                                {(isMobile || isTouch) ? 'Торкніться або перетягніть фото' : 'Перетягніть фото сюди'}
-                              </span>
+                            <div data-export-ignore="true"
+                              onClick={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}
+                              style={{ position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)',
+                                display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap', zIndex:6 }}>
+                              <button
+                                onClick={() => { if (photos.length > 0) setCoverState(p=>({...p,backCoverPhotoId:photos[0].id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1})); else { setLeftTab('photos'); if (isMobile) setMobilePanel(true); } }}
+                                style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.55)', border:'none',
+                                  borderRadius:20, padding:'5px 12px', cursor:'pointer' }}>
+                                <ImageIcon size={11} color="#fff"/>
+                                <span style={{ fontSize:9, fontWeight:600, color:'#fff' }}>
+                                  {(isMobile || isTouch) ? 'Фото' : 'Перетягніть або клікніть — фото'}
+                                </span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setLeftTab('cover');
+                                  if (isMobile) setMobilePanel(true);
+                                  setTimeout(() => {
+                                    document.getElementById(isMobile ? 'back-cover-color-block-m' : 'back-cover-color-block')
+                                      ?.scrollIntoView({ behavior:'smooth', block:'center' });
+                                  }, 120);
+                                }}
+                                style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(0,0,0,0.55)', border:'none',
+                                  borderRadius:20, padding:'5px 12px', cursor:'pointer' }}>
+                                <Palette size={11} color="#fff"/>
+                                <span style={{ fontSize:9, fontWeight:600, color:'#fff' }}>Залити кольором</span>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -8940,7 +9093,7 @@ export default function BookLayoutEditor() {
                         };
                         return (
                           <div key={i} style={ss}>
-                            {ph && <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                            {ph && <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                           </div>
                         );
                       })}
@@ -8974,7 +9127,7 @@ export default function BookLayoutEditor() {
                       };
                       return (
                         <div key={i} style={ss}>
-                          {ph && <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
+                          {ph && <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>}
                         </div>
                       );
                     })}
@@ -9116,7 +9269,7 @@ export default function BookLayoutEditor() {
                     }
                   }}
                   style={{ flexShrink:0, width:56, height:56, borderRadius:8, overflow:'hidden', border: isSel ? '2.5px solid #7c3aed' : isTapped ? '2.5px solid #3b82f6' : '2px solid transparent', cursor:'pointer', position:'relative', touchAction:'manipulation' }}>
-                  <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                  <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                   {isSel && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.3)', display:'flex', alignItems:'center', justifyContent:'center' }}><span style={{ width:22, height:22, borderRadius:999, background:'#7c3aed', color:'#fff', fontSize:12, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{selOrder}</span></div>}
                   {!isSel && isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}></div>}
                   {ph.hasFace && <span style={{ position:'absolute', bottom:1, right:1, fontSize:9 }}></span>}
@@ -9261,7 +9414,7 @@ export default function BookLayoutEditor() {
                     <div style={{ position:'relative', width:thumbW, height:thumbH, borderRadius:4, overflow:'hidden', flexShrink:0 }}
                          onMouseEnter={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x && !used) x.style.opacity = '1'; }}
                          onMouseLeave={(e) => { const x = e.currentTarget.querySelector<HTMLElement>('[data-del-photo]'); if (x) x.style.opacity = '0'; }}>
-                      <img loading="lazy" onError={tmImgError} src={ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
+                      <img loading="lazy" onError={tmImgError} src={ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit:'cover' }} draggable={false}/>
                       {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}></div>}
                       {isSel && <div style={{ position:'absolute', top:3, right:3, width:22, height:22, borderRadius:'50%', background:'#7c3aed', color:'#fff', fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 3px rgba(0,0,0,0.3)' }}>{[...selectedPhotoIds].indexOf(ph.id)+1}</div>}
                       <span style={{ position:'absolute', top:3, left:3, background:'rgba(0,0,0,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 5px', borderRadius:3 }}>{i+1}</span>
@@ -9826,7 +9979,7 @@ export default function BookLayoutEditor() {
                             setTapSelectedPhotoId(ph.id);
                             setMobilePanel(false);
                           }}>
-                          <img src={ph.noBgUrl || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
+                          <img src={ph.noBgUrl || ph.thumb || ph.preview} style={{ width:'100%', height:'100%', objectFit: ph.noBgUrl ? 'contain' : 'cover' }} draggable={false}/>
                           {used && <div style={{ position:'absolute', inset:0, background:'rgba(16,185,129,0.25)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}></div>}
                           {isTapped && <div style={{ position:'absolute', inset:0, background:'rgba(59,130,246,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}></div>}
                           {ph.noBgLoading && <div style={{ position:'absolute', inset:0, background:'rgba(124,58,237,0.75)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>⏳</div>}
@@ -10026,7 +10179,7 @@ export default function BookLayoutEditor() {
                     </>
                   )}
                   {/* Back cover */}
-                  <div>
+                  <div id="back-cover-color-block-m">
                     <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Задня обкладинка — колір фону</div>
                     <label style={{ display:'inline-flex', alignItems:'center', gap:10, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', position:'relative', overflow:'hidden' }}>
                       <div style={{ width:32, height:32, borderRadius:6, background: coverState.backCoverBgColor||'#f1f5f9', border:'1px solid rgba(0,0,0,0.15)', flexShrink:0 }}/>
