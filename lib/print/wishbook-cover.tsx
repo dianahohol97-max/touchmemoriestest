@@ -69,6 +69,15 @@ export interface WishbookCoverSpec {
   decoColorName: string;  // 'Золотий' | 'Срібний' | ...
   title: string;          // engraved/printed text
   fontFamily: string;     // e.g. 'Cormorant Garamond'
+  /**
+   * Exact inscription layout from the editor's saved cover_data, when the
+   * order has a linked project. Without it the title is centred at an
+   * estimated size — which is NOT what the customer saw (TM-001132: the
+   * напис came out мізерним and in the wrong colour). xPct/yPct are the
+   * editor's percent position on the FRONT cover; fontPx700 is the editor's
+   * font size in its 700px-tall canvas space; color is the chosen ink.
+   */
+  layout?: { xPct?: number; yPct?: number; fontPx700?: number; color?: string } | null;
 }
 
 // Normalise a raw size label ("30×20 см (горизонтальна)", "23х23") to a key.
@@ -182,9 +191,16 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
   const titleAreaW = onPlate ? plateW * 0.86 : W * 0.78;
   // Rough fit: assume ~0.58 aspect per glyph; clamp to sane bounds.
   const approxFontByWidth = title.length > 0 ? (titleAreaW / (title.length * 0.56)) : W * 0.06;
-  const fontSize = Math.max(W * 0.02, Math.min(onPlate ? plateH * 0.5 : H * 0.16, approxFontByWidth));
+  const estimatedFontSize = Math.max(W * 0.02, Math.min(onPlate ? plateH * 0.5 : H * 0.16, approxFontByWidth));
+  // Editor-exact size when the layout is known: the editor stores font px in
+  // its 700px-tall canvas space, so the print equivalent scales by H/700.
+  const fontSize = (!onPlate && spec.layout?.fontPx700)
+    ? Math.max(W * 0.008, spec.layout.fontPx700 * (H / 700))
+    : estimatedFontSize;
 
-  const titleColor = onPlate ? metal.text : contrastText(bg);
+  const titleColor = onPlate
+    ? metal.text
+    : (spec.layout?.color || contrastText(bg));
 
   // The decoration plate element (for metal/acryl/photo-insert). For engraving
   // / flex / none there's no raised plate — the title sits on the cover.
@@ -228,6 +244,28 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
         {title}
       </div>
     </div>
+  ) : spec.layout && (spec.layout.xPct !== undefined || spec.layout.yPct !== undefined) ? (
+    // Editor-exact placement: xPct/yPct are percentages of the FRONT cover,
+    // which is the RIGHT half of the full sheet (back | spine | front).
+    <div
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        left: `${Math.round(W / 2 + ((spec.layout.xPct ?? 50) / 100) * (W / 2))}px`,
+        top: `${Math.round(((spec.layout.yPct ?? 50) / 100) * H)}px`,
+        transform: 'translate(-50%, -50%)',
+        fontFamily: `"${titleFont}"`,
+        fontWeight: 700,
+        fontSize: `${fontSize}px`,
+        color: titleColor,
+        textAlign: 'center',
+        lineHeight: 1.2,
+        letterSpacing: '0.02em',
+        maxWidth: `${W * 0.46}px`,
+      }}
+    >
+      {title}
+    </div>
   ) : (
     <div
       style={{
@@ -258,6 +296,7 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
       <div
         style={{
           display: 'flex',
+          position: 'relative',
           width: '100%',
           height: '100%',
           background: bg,
