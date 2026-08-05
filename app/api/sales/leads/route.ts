@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getManagerByToken } from '@/lib/sales/commission';
 import { BUSINESS_TYPE_LABELS, type LeadBusinessType } from '@/lib/leads/offers';
+import { normalizeInstagram } from '@/lib/leads/contacts';
+import { likeEscape } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,20 +31,38 @@ export async function POST(req: NextRequest) {
   if (!businessName) return NextResponse.json({ error: 'Вкажіть назву бізнесу' }, { status: 400 });
 
   const email = body?.email ? String(body.email).trim().toLowerCase() : null;
-  if (email) {
-    // A lead already worked by someone else must not be silently re-owned:
-    // the manager is told who has it instead of creating a duplicate.
+  const instagram = normalizeInstagram(body?.instagram);
+  const phone = body?.phone ? String(body.phone).slice(0, 40) : null;
+
+  // Лід без жодного каналу звʼязку — це просто назва: ні написати, ні згодом
+  // оформити партнером.
+  if (!email && !instagram && !phone) {
+    return NextResponse.json({ error: 'Вкажіть email, Instagram або телефон' }, { status: 400 });
+  }
+
+  // A lead already worked by someone else must not be silently re-owned: the
+  // manager is told who has it instead of creating a duplicate. Instagram
+  // рахується так само, як пошта: більшість холодних контактів приходить саме
+  // звідти, і без цієї перевірки двоє менеджерів писали б у той самий директ.
+  const dupChecks: { column: string; value: string; label: string }[] = [];
+  if (email) dupChecks.push({ column: 'email', value: email, label: 'таким email' });
+  if (instagram) dupChecks.push({ column: 'instagram', value: instagram, label: 'таким Instagram' });
+
+  for (const check of dupChecks) {
     const { data: dup } = await admin
       .from('leads')
       .select('id, sales_manager_id, business_name')
-      .ilike('email', email)
+      // likeEscape: ilike трактує _ як «будь-який символ», а підкреслення в
+      // нікнеймах і поштах — норма. Без екранування «studio_svitlo» збігся б
+      // із «studioXsvitlo», і менеджер отримав би відмову через чужий лід.
+      .ilike(check.column, likeEscape(check.value))
       .maybeSingle();
     if (dup) {
       const mine = dup.sales_manager_id === manager.id;
       return NextResponse.json({
         error: mine
           ? `«${dup.business_name}» вже є у вашому списку`
-          : 'Контакт з таким email уже веде інший менеджер',
+          : `Контакт з ${check.label} уже веде інший менеджер`,
       }, { status: 409 });
     }
   }
@@ -55,9 +75,9 @@ export async function POST(req: NextRequest) {
       business_name: businessName.slice(0, 200),
       contact_name: body?.contact_name ? String(body.contact_name).slice(0, 120) : null,
       email,
-      phone: body?.phone ? String(body.phone).slice(0, 40) : null,
+      phone,
       website: body?.website ? String(body.website).slice(0, 300) : null,
-      instagram: body?.instagram ? String(body.instagram).replace(/^@/, '').slice(0, 100) : null,
+      instagram,
       city: body?.city ? String(body.city).slice(0, 100) : null,
       notes: body?.notes ? String(body.notes).slice(0, 2000) : null,
       source: 'manager',
@@ -89,6 +109,26 @@ export async function PATCH(req: NextRequest) {
   if (typeof body?.notes === 'string') patch.notes = body.notes.slice(0, 2000);
   if (typeof body?.contact_name === 'string') patch.contact_name = body.contact_name.slice(0, 120);
   if (typeof body?.phone === 'string') patch.phone = body.phone.slice(0, 40);
+  // Пошта й нікнейм дописуються пізніше: контакт із директу спершу існує без
+  // email, а email зʼявляється в розмові — і без нього не оформити партнера.
+  if (typeof body?.email === 'string') {
+    const email = body.email.trim().toLowerCase();
+    if (email) {
+      const { data: dup } = await admin
+        .from('leads').select('id').ilike('email', likeEscape(email)).neq('id', id).maybeSingle();
+      if (dup) return NextResponse.json({ error: 'Цей email уже стоїть в іншого ліда' }, { status: 409 });
+    }
+    patch.email = email || null;
+  }
+  if (typeof body?.instagram === 'string') {
+    const instagram = normalizeInstagram(body.instagram);
+    if (instagram) {
+      const { data: dup } = await admin
+        .from('leads').select('id').ilike('instagram', likeEscape(instagram)).neq('id', id).maybeSingle();
+      if (dup) return NextResponse.json({ error: 'Цей Instagram уже стоїть в іншого ліда' }, { status: 409 });
+    }
+    patch.instagram = instagram;
+  }
 
   const { error } = await admin.from('leads').update(patch).eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

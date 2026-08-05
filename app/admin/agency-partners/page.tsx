@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Copy, Check, Loader2, Plus, Mail } from 'lucide-react';
 
 interface Partner {
@@ -17,10 +17,14 @@ interface Partner {
   total_earned: number;
   total_paid_out: number;
   pending_payout: number;
+  orders_count: number;
+  orders_revenue: number;
   status: string;
   partner_kind?: string;
   payout_account?: string | null;
   payout_requested_at?: string | null;
+  /** Менеджер, який привів партнера — з нього рахується його комісія. */
+  sales_manager_id?: string | null;
 }
 
 interface PendingRequest {
@@ -43,6 +47,9 @@ export default function AgencyPartnersPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [payingOut, setPayingOut] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  // Менеджери з продажів — щоб привʼязку «хто привів» можна було поставити або
+  // виправити просто тут, у списку партнерів, а не окремою сторінкою.
+  const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,6 +62,11 @@ export default function AgencyPartnersPage() {
       const res = await fetch('/api/admin/agency-partners');
       const json = await res.json();
       setPartners(json.partners || []);
+    } catch { /* ignore */ }
+
+    try {
+      const res = await fetch('/api/admin/sales-managers');
+      if (res.ok) setManagers(((await res.json()).managers || []).map((m: any) => ({ id: m.id, name: m.name })));
     } catch { /* ignore */ }
 
     // New travel-agency / travel-blogger requests not yet approved
@@ -80,7 +92,11 @@ export default function AgencyPartnersPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || 'Помилка');
-      toast.success(`Агенцію підтверджено · код ${json.partner.referral_code}`);
+      toast.success(
+        json.credited_manager
+          ? `Агенцію підтверджено · код ${json.partner.referral_code} · зараховано менеджеру ${json.credited_manager}`
+          : `Агенцію підтверджено · код ${json.partner.referral_code}`,
+      );
       await load();
     } catch (e: any) {
       toast.error(e?.message || 'Не вдалося підтвердити');
@@ -173,7 +189,7 @@ export default function AgencyPartnersPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 16 }}>{p.agency_name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: p.partner_kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: p.partner_kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>{p.partner_kind === 'travel_blogger' ? 'Блогер' : 'Агенція'}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: p.partner_kind === 'travel_blogger' ? '#fce7f3' : p.partner_kind === 'wedding_agency' ? '#fef3c7' : p.partner_kind === 'photographer' ? '#dcfce7' : '#e0e7ff', color: p.partner_kind === 'travel_blogger' ? '#be185d' : p.partner_kind === 'wedding_agency' ? '#92400e' : p.partner_kind === 'photographer' ? '#166534' : '#3730a3' }}>{p.partner_kind === 'travel_blogger' ? 'Блогер' : p.partner_kind === 'wedding_agency' ? 'Весільна агенція' : p.partner_kind === 'photographer' ? 'Фотограф' : 'Агенція'}</span>
                     </div>
                     <div style={{ fontSize: 13, color: '#64748b' }}>{p.contact_name && `${p.contact_name} · `}{p.email}{p.phone && ` · ${p.phone}`}</div>
                   </div>
@@ -212,7 +228,31 @@ export default function AgencyPartnersPage() {
                   </button>
                 </div>
 
+                {/* Хто привів. Ставиться автоматично, коли партнер прийшов
+                    від менеджера або збігся з його лідом; тут це видно й можна
+                    виправити. */}
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Привів менеджер:</span>
+                  <select
+                    value={p.sales_manager_id || ''}
+                    onChange={async e => {
+                      const managerId = e.target.value || null;
+                      const r = await fetch('/api/admin/sales-managers', {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ assign: 'partner', target_id: p.id, manager_id: managerId }),
+                      });
+                      if (r.ok) { await load(); toast.success(managerId ? 'Менеджера записано' : 'Привʼязку знято'); }
+                      else toast.error('Не вдалося зберегти');
+                    }}
+                    style={{ fontSize: 12.5, border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 10px', background: '#fff', color: '#475569' }}>
+                    <option value="">Ніхто — прийшов сам</option>
+                    {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
+                  <Stat label="Замовлень за кодом" value={String(p.orders_count)} hint="лише оплачені" />
+                  <Stat label="Виручка за кодом" value={`${Number(p.orders_revenue).toFixed(0)} ₴`} />
                   <Stat label="Ставки" value={`${p.travelbook_rate}% / ${p.other_rate}%`} hint="тревелбук / інше" />
                   <Stat label="Всього нараховано" value={`${Number(p.total_earned).toFixed(0)} ₴`} />
                   <Stat label="Виплачено" value={`${Number(p.total_paid_out).toFixed(0)} ₴`} />

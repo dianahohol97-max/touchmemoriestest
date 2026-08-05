@@ -10,7 +10,7 @@ import {
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
     Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target,
-    Home, MoreHorizontal, ChevronDown
+    Home, MoreHorizontal, ChevronDown, Handshake
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -86,11 +86,17 @@ const menuItems = [
     { name: 'Тревел-партнери', href: '/admin/agency-partners', icon: <Globe size={20} />, section: 'catalog', group: 'partners' },
     { name: 'Заявки B2B', href: '/admin/b2b-applications', icon: <UserPlus size={20} />, section: 'catalog', group: 'partners' },
     { name: 'Корпоративні запити', href: '/admin/corporate-requests', icon: <Building2 size={20} />, section: 'catalog', group: 'partners' },
-    { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
+    // «B2B Ціни» (role-pricing) прихована з меню на прохання Діани (2026-08-06).
+    // Сторінка /admin/role-pricing лишається робочою за прямим посиланням —
+    // повернути пункт можна, розкоментувавши рядок нижче.
+    // { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
 
     // Продажі — пошук нових партнерів і люди, які цим займаються
+    { name: 'Продажі: дашборд', href: '/admin/sales-dashboard', icon: <BarChart2 size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Мій кабінет продажів', href: '/admin/my-sales', icon: <Banknote size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <Users size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Оформлення партнерів', href: '/admin/partner-requests', icon: <Handshake size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing', group: 'sales' },
 

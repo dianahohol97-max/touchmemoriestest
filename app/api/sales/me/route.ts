@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const manager = await getManagerByToken(admin, req.nextUrl.searchParams.get('token') || '');
   if (!manager) return NextResponse.json({ error: 'Кабінет не знайдено' }, { status: 404 });
 
-  const [{ data: leads }, { data: partners }, { data: photographers }, { data: commissions }] = await Promise.all([
+  const [{ data: leads }, { data: partners }, { data: photographers }, { data: commissions }, { data: partnerRequests }] = await Promise.all([
     admin.from('leads')
       .select('id, business_type, business_name, contact_name, email, phone, website, instagram, city, status, offer_sent_at, notes, created_at')
       .eq('sales_manager_id', manager.id)
@@ -34,6 +34,13 @@ export async function GET(req: NextRequest) {
       .eq('manager_id', manager.id)
       .order('created_at', { ascending: false })
       .limit(300),
+    // Заявки на оформлення партнера: кабінет показує по кожному ліду, чи вона
+    // на розгляді, підтверджена чи відхилена — і з якої причини.
+    admin.from('partner_activation_requests')
+      .select('id, lead_id, kind, status, partner_kind, email, client_discount, travelbook_rate, other_rate, decline_reason, partner_id, created_at, decided_at')
+      .eq('manager_id', manager.id)
+      .order('created_at', { ascending: false })
+      .limit(300),
   ]);
 
   const rows = commissions || [];
@@ -48,6 +55,7 @@ export async function GET(req: NextRequest) {
     leads: leads || [],
     partners: partners || [],
     photographers: photographers || [],
+    partner_requests: partnerRequests || [],
     commissions: rows,
     money: {
       total: Math.round(sum(() => true) * 100) / 100,

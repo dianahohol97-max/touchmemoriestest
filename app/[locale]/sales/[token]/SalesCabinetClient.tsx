@@ -46,6 +46,11 @@ interface Commission {
   id: string; kind: string; base_amount: number; rate: number; amount: number;
   status: string; note: string | null; created_at: string; paid_at: string | null;
 }
+interface PartnerRequest {
+  id: string; lead_id: string | null; kind: string; status: string; partner_kind: string; email: string;
+  client_discount: number; travelbook_rate: number; other_rate: number;
+  decline_reason: string | null; partner_id: string | null; created_at: string; decided_at: string | null;
+}
 
 const money = (n: number) => `${Number(n || 0).toLocaleString('uk-UA', { maximumFractionDigits: 2 })} ₴`;
 
@@ -53,7 +58,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'leads' | 'money'>('leads');
+  const [tab, setTab] = useState<'leads' | 'directory' | 'money'>('leads');
   const [notice, setNotice] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [adding, setAdding] = useState(false);
@@ -87,8 +92,9 @@ export default function SalesCabinetClient({ token }: { token: string }) {
   if (loading) return shell(<div style={{ color: '#8B8378', padding: '40px 0' }}>Завантаження…</div>);
   if (error || !data) return shell(<div style={{ color: '#991b1b', padding: '40px 0' }}>{error || 'Кабінет не знайдено'}</div>);
 
-  const { manager, leads, partners, photographers, commissions, money: sums } = data as {
-    manager: any; leads: Lead[]; partners: any[]; photographers: any[]; commissions: Commission[]; money: any;
+  const { manager, leads, partners, photographers, commissions, money: sums, partner_requests: requests } = data as {
+    manager: any; leads: Lead[]; partners: any[]; photographers: any[]; commissions: Commission[];
+    money: any; partner_requests: PartnerRequest[];
   };
 
   const counts = STATUSES.map(s => ({ ...s, n: leads.filter(l => l.status === s.value).length }));
@@ -122,7 +128,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {([['leads', `Ліди (${leads.length})`], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
+        {([['leads', `Мої ліди (${leads.length})`], ['directory', 'Спільна база'], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ ...(tab === k ? btn : btnGhost), padding: '9px 16px' }}>{t}</button>
         ))}
@@ -177,7 +183,20 @@ export default function SalesCabinetClient({ token }: { token: string }) {
                 </div>
               </div>
 
-              {selected && <LeadPanel token={token} lead={selected} onDone={load} flash={flash} />}
+              {selected && (
+                <LeadPanel
+                  token={token}
+                  lead={selected}
+                  // Найсвіжіша заявка по цьому ліду: відхилену можна подати
+                  // ще раз, тому список приходить відсортованим за датою.
+                  request={(requests || []).find(r => r.lead_id === selected.id) || null}
+                  partner={(partners || []).find(p => (requests || []).some(
+                    r => r.lead_id === selected.id && r.partner_id === p.id,
+                  )) || null}
+                  onDone={load}
+                  flash={flash}
+                />
+              )}
             </div>
           )}
 
@@ -203,6 +222,8 @@ export default function SalesCabinetClient({ token }: { token: string }) {
           )}
         </>
       )}
+
+      {tab === 'directory' && <Directory token={token} onTaken={load} flash={flash} />}
 
       {tab === 'money' && (
         <div style={card}>
@@ -311,12 +332,15 @@ function AddLead({ token, onDone, onCancel }: { token: string; onDone: () => Pro
   );
 }
 
-function LeadPanel({ token, lead, onDone, flash }: {
-  token: string; lead: Lead; onDone: () => Promise<void>; flash: (m: string) => void;
+function LeadPanel({ token, lead, request, partner, onDone, flash }: {
+  token: string; lead: Lead; request: PartnerRequest | null; partner: any | null;
+  onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [notes, setNotes] = useState(lead.notes || '');
   const [custom, setCustom] = useState({ open: false, subject: '', body: '' });
+  const [dm, setDm] = useState({ open: false, direction: 'out' as 'out' | 'in', body: '' });
+  const [emailDraft, setEmailDraft] = useState('');
   const [busy, setBusy] = useState(false);
 
   const loadThread = useCallback(async () => {
@@ -324,7 +348,12 @@ function LeadPanel({ token, lead, onDone, flash }: {
     if (res.ok) setMessages((await res.json()).messages || []);
   }, [token, lead.id]);
 
-  useEffect(() => { setNotes(lead.notes || ''); loadThread(); }, [lead.id, lead.notes, loadThread]);
+  useEffect(() => {
+    setNotes(lead.notes || '');
+    setEmailDraft('');
+    setDm({ open: false, direction: 'out', body: '' });
+    loadThread();
+  }, [lead.id, lead.notes, loadThread]);
 
   const patch = async (body: any, msg: string) => {
     const res = await fetch('/api/sales/leads', {
@@ -384,7 +413,10 @@ function LeadPanel({ token, lead, onDone, flash }: {
 
       <label style={label}>Листування</label>
       {!lead.email ? (
-        <div style={{ fontSize: 13, color: '#8B8378' }}>Щоб надіслати пропозицію, додайте email контакту.</div>
+        <div style={{ fontSize: 13, color: '#8B8378' }}>
+          Пошти в цього контакту поки немає, тому надіслати пропозицію листом не вийде. Запитайте адресу в директі
+          й додайте її нижче — вона ж знадобиться, щоб оформити партнера.
+        </div>
       ) : (
         <>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -407,6 +439,74 @@ function LeadPanel({ token, lead, onDone, flash }: {
         </>
       )}
 
+      {/* Instagram: писати за клієнта ми не можемо, але розмова має жити тут,
+          а не тільки в телефоні менеджера. */}
+      {lead.instagram && (
+        <div style={{ marginTop: 12, border: '1px solid #eee6d8', borderRadius: 12, padding: '12px 13px', background: '#fdfaf5' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700 }}>Розмова в Instagram</div>
+          <p style={{ fontSize: 12.5, color: '#8B8378', margin: '4px 0 0' }}>
+            Напишіть у директ <a href={`https://instagram.com/${lead.instagram}`} target="_blank" rel="noreferrer" style={{ color: '#263A99' }}>@{lead.instagram}</a>,
+            а сюди вставте те, що написали або що вам відповіли. Так уся історія контакту залишиться в кабінеті.
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            <button style={btnGhost} onClick={() => setDm(d => ({ ...d, open: !d.open }))}>
+              {dm.open ? 'Згорнути' : 'Записати повідомлення'}
+            </button>
+          </div>
+          {dm.open && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                {([['out', 'Я написав(ла)'], ['in', 'Мені відповіли']] as const).map(([v, t]) => (
+                  <button key={v} onClick={() => setDm(d => ({ ...d, direction: v }))}
+                    style={{
+                      padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                      border: `1px solid ${dm.direction === v ? '#263A99' : '#e2e8f0'}`,
+                      background: dm.direction === v ? '#263A99' : '#fff',
+                      color: dm.direction === v ? '#fff' : '#64748b',
+                    }}>{t}</button>
+                ))}
+              </div>
+              <textarea style={{ ...input, minHeight: 90, resize: 'vertical' }} placeholder="Текст повідомлення з директу"
+                value={dm.body} onChange={e => setDm(d => ({ ...d, body: e.target.value }))} />
+              <button style={{ ...btn, marginTop: 8 }} disabled={busy || !dm.body.trim()}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const res = await fetch('/api/sales/leads/send', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ token, lead_id: lead.id, mode: 'log', channel: 'instagram', direction: dm.direction, body: dm.body }),
+                    });
+                    const json = await res.json();
+                    if (!res.ok) { alert(json?.error || 'Не вдалося зберегти'); return; }
+                    setDm({ open: false, direction: 'out', body: '' });
+                    await loadThread(); await onDone();
+                    flash('Повідомлення записано');
+                  } finally { setBusy(false); }
+                }}>
+                Зберегти в історію
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!lead.email && (
+        <div style={{ marginTop: 12 }}>
+          <label style={label}>Email контакту</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input style={{ ...input, flex: 1, minWidth: 200 }} placeholder="studio@example.com"
+              value={emailDraft} onChange={e => setEmailDraft(e.target.value)} />
+            <button style={btn} disabled={!emailDraft.trim()}
+              onClick={() => patch({ email: emailDraft.trim() }, 'Email збережено')}>Зберегти</button>
+          </div>
+        </div>
+      )}
+
+      <PartnerActivation
+        token={token} lead={lead} request={request} partner={partner}
+        onDone={onDone} flash={flash}
+      />
+
       {messages.length > 0 && (
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {messages.map(m => (
@@ -415,12 +515,256 @@ function LeadPanel({ token, lead, onDone, flash }: {
               background: m.direction === 'out' ? '#f8fafc' : '#fffbe9',
             }}>
               <div style={{ fontSize: 11.5, color: '#8B8378', marginBottom: 4 }}>
-                {m.direction === 'out' ? 'Ми →' : '← Відповідь'} · {new Date(m.created_at).toLocaleString('uk-UA')}
+                {m.direction === 'out' ? 'Ми →' : '← Відповідь'} · {m.channel === 'instagram' ? 'Instagram' : 'Email'} · {new Date(m.created_at).toLocaleString('uk-UA')}
               </div>
               <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.subject}</div>
               <div style={{ fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap', marginTop: 4 }}>{m.body}</div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Оформлення ліда партнером.
+ *
+ * Одна кнопка замість трьох ручних кроків в адмінці — але вона подає заявку, а
+ * не створює партнера. Партнер означає живий промокод зі знижкою на сайті, а
+ * менеджер має відсоток з кожного залученого партнера, тож рішення лишається
+ * за адміністратором. Умови менеджер не задає: вони стандартні й показані тут
+ * лише для того, щоб він знав, що обіцяти клієнту.
+ */
+function PartnerActivation({ token, lead, request, partner, onDone, flash }: {
+  token: string; lead: Lead; request: PartnerRequest | null; partner: any | null;
+  onDone: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ email: lead.email || '', contact_name: lead.contact_name || '', comment: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    setOpen(false);
+    setErr('');
+    setForm({ email: lead.email || '', contact_name: lead.contact_name || '', comment: '' });
+  }, [lead.id, lead.email, lead.contact_name]);
+
+  const box: React.CSSProperties = {
+    marginTop: 14, border: '1px solid #d9e0f5', borderRadius: 12, padding: '13px 14px', background: '#f7f9ff',
+  };
+
+  if (request?.status === 'pending') {
+    return (
+      <div style={box}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#263A99' }}>Заявка на розгляді</div>
+        <p style={{ fontSize: 12.5, color: '#55504a', margin: '5px 0 0' }}>
+          Подано {new Date(request.created_at).toLocaleDateString('uk-UA')} на {request.email}. Щойно Діана підтвердить,
+          партнер отримає код і посилання на кабінет, а лід стане вашою угодою.
+        </p>
+      </div>
+    );
+  }
+
+  if (request?.status === 'approved') {
+    return (
+      <div style={{ ...box, background: '#f2fbf5', border: '1px solid #bbe6c9' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#166534' }}>
+          {request.kind === 'claim' ? 'Партнера зараховано вам' : 'Партнера оформлено'}
+        </div>
+        <p style={{ fontSize: 12.5, color: '#55504a', margin: '5px 0 0' }}>
+          {partner?.referral_code
+            ? <>Код партнера <code>{partner.referral_code}</code>. Кожне замовлення за ним приносить вам відсоток автоматично.</>
+            : <>Код надіслано партнеру на пошту. Кожне замовлення за ним приносить вам відсоток автоматично.</>}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={box}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#263A99' }}>Оформити партнером</div>
+      {request?.status === 'declined' && (
+        <p style={{ fontSize: 12.5, color: '#b91c1c', margin: '5px 0 0' }}>
+          Попередню заявку відхилено{request.decline_reason ? `: ${request.decline_reason}` : ''}. Можна подати ще раз.
+        </p>
+      )}
+      <p style={{ fontSize: 12.5, color: '#55504a', margin: '5px 0 0' }}>
+        Якщо домовились про співпрацю, подайте заявку. Після підтвердження партнер отримає персональний код,
+        клієнти за ним матимуть знижку {request?.client_discount ?? 5}%, а ви — свій відсоток з кожного замовлення.
+        Якщо ця людина вже зареєструвалася партнером сама, кнопка просто запише партнера за вами, без нового коду.
+      </p>
+
+      {!open ? (
+        <button style={{ ...btn, marginTop: 10 }} onClick={() => setOpen(true)}>Оформити партнером</button>
+      ) : (
+        <div style={{ marginTop: 8 }}>
+          <label style={label}>Email партнера *</label>
+          <input style={input} value={form.email} placeholder="studio@example.com"
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+          <div style={{ fontSize: 12, color: '#8B8378', marginTop: 4 }}>
+            На цю адресу підуть код, умови й посилання на партнерський кабінет. Якщо вели контакт у директі,
+            попросіть пошту там.
+          </div>
+          <label style={label}>Контактна особа</label>
+          <input style={input} value={form.contact_name}
+            onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} />
+          <label style={label}>Про що домовились</label>
+          <textarea style={{ ...input, minHeight: 70, resize: 'vertical' }} value={form.comment}
+            placeholder="Коротко: хто це, що обіцяли, чому варто оформити."
+            onChange={e => setForm(f => ({ ...f, comment: e.target.value }))} />
+          {err && <div style={{ color: '#b91c1c', fontSize: 13, marginTop: 8 }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button style={btn} disabled={busy} onClick={async () => {
+              setBusy(true); setErr('');
+              try {
+                const res = await fetch('/api/sales/partner-requests', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token, lead_id: lead.id, ...form }),
+                });
+                const json = await res.json();
+                if (!res.ok) { setErr(json?.error || 'Не вдалося подати заявку'); return; }
+                setOpen(false);
+                await onDone();
+                flash(json?.claimed
+                  ? `Партнера записано за вами, код ${json.partner?.referral_code || ''}`
+                  : 'Заявку надіслано на підтвердження');
+              } finally { setBusy(false); }
+            }}>{busy ? 'Надсилаємо…' : 'Подати заявку'}</button>
+            <button style={btnGhost} onClick={() => setOpen(false)}>Скасувати</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  google_places: 'з Google',
+  manager: 'додав менеджер',
+  manual: 'додано вручну',
+  inbound: 'написали нам',
+};
+
+/**
+ * Спільна база контактів: усе, що є в системі, крім чужих контактних даних.
+ *
+ * Дві задачі. Вільні контакти — це переважно імпорт із Google, який раніше
+ * лежав тільки в адмінці й до менеджерів не доходив; тут їх видно й можна
+ * взяти в роботу. Зайняті контакти потрібні, щоб перевірити студію перед тим,
+ * як їй написати, і вона не отримала два однакові листи від нас.
+ *
+ * З чужого ліда видно назву, тип, місто, нікнейм, статус і хто його веде.
+ * Пошта, телефон, нотатки й переписка сюди не приходять узагалі — свої
+ * контакти менеджер бачить повністю у «Моїх лідах», щойно візьме їх у роботу.
+ */
+function Directory({ token, onTaken, flash }: {
+  token: string; onTaken: () => Promise<void>; flash: (m: string) => void;
+}) {
+  const [rows, setRows] = useState<any[] | null>(null);
+  const [q, setQ] = useState('');
+  const [view, setView] = useState<'free' | 'all'>('free');
+  const [loading, setLoading] = useState(true);
+  const [taking, setTaking] = useState<string | null>(null);
+
+  const load = useCallback(async (query: string, onlyFree: boolean) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/sales/directory?token=${encodeURIComponent(token)}&q=${encodeURIComponent(query)}${onlyFree ? '&free=1' : ''}`,
+      );
+      if (res.ok) setRows((await res.json()).leads || []);
+    } finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => {
+    const t = setTimeout(() => load(q, view === 'free'), q ? 350 : 0);
+    return () => clearTimeout(t);
+  }, [q, view, load]);
+
+  const take = async (id: string) => {
+    setTaking(id);
+    try {
+      const res = await fetch('/api/sales/directory', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, lead_id: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || 'Не вдалося взяти контакт'); }
+      else { flash('Контакт у вас — він зʼявився у «Моїх лідах»'); await onTaken(); }
+      await load(q, view === 'free');
+    } finally { setTaking(null); }
+  };
+
+  return (
+    <div style={card}>
+      <h2 style={sectionTitle}>Спільна база</h2>
+      <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6 }}>
+        Вільні контакти — це те, що ми зібрали самі, переважно з Google. Візьміть контакт у роботу, і він
+        зʼявиться у «Моїх лідах» разом із поштою й телефоном. Зайняті показані, щоб ви не написали тому,
+        кому вже пише колега; чужі контактні дані й переписка тут не показуються.
+      </p>
+
+      <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+        {([['free', 'Вільні контакти'], ['all', 'Усі контакти']] as const).map(([v, t]) => (
+          <button key={v} onClick={() => setView(v)}
+            style={{ ...(view === v ? btn : btnGhost), padding: '8px 14px', fontSize: 13 }}>{t}</button>
+        ))}
+      </div>
+
+      <input
+        style={{ ...input, marginTop: 12 }}
+        placeholder="Пошук за назвою, містом або нікнеймом"
+        value={q}
+        onChange={e => setQ(e.target.value)}
+      />
+
+      {loading && <div style={{ color: '#8B8378', fontSize: 13, marginTop: 12 }}>Шукаємо…</div>}
+
+      {!loading && rows && rows.length === 0 && (
+        <div style={{ color: '#8B8378', fontSize: 14, marginTop: 12 }}>
+          {view === 'free'
+            ? 'Вільних контактів зараз немає — усе розібрали.'
+            : q ? 'Такого контакту в базі немає, можна писати.' : 'Поки що жодного контакту немає.'}
+        </div>
+      )}
+
+      {!loading && rows && rows.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map(r => {
+            const sm = statusMeta(r.status);
+            return (
+              <div key={r.id} style={{
+                border: `1px solid ${r.mine ? '#c9d0ee' : '#eee6d8'}`, borderRadius: 12, padding: '10px 13px',
+                background: r.mine ? '#f7f9ff' : '#fff',
+                display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14 }}>{r.business_name}</div>
+                  <div style={{ fontSize: 12.5, color: '#8B8378', marginTop: 2 }}>
+                    {TYPE_LABELS[r.business_type] || 'Інше'}
+                    {r.city && ` · ${r.city}`}
+                    {r.instagram && ` · @${r.instagram}`}
+                    {r.source && SOURCE_LABELS[r.source] && ` · ${SOURCE_LABELS[r.source]}`}
+                  </div>
+                </div>
+                {r.free ? (
+                  <button style={{ ...btn, padding: '8px 14px', fontSize: 13 }} disabled={taking === r.id}
+                    onClick={() => take(r.id)}>
+                    {taking === r.id ? 'Беремо…' : 'Взяти в роботу'}
+                  </button>
+                ) : (
+                  <div style={{ textAlign: 'right', fontSize: 12.5 }}>
+                    <div style={{ fontWeight: 800, color: sm.color }}>{sm.label}</div>
+                    <div style={{ color: '#8B8378', marginTop: 2 }}>
+                      {r.mine ? 'ваш контакт' : `веде ${r.manager_name || 'інший менеджер'}`}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
