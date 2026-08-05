@@ -1,36 +1,31 @@
 'use client';
 
 export const dynamic = 'force-dynamic';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
-import {
-    Search,
-    Filter,
-    Download,
-    MoreVertical,
-    Eye,
-    Clock,
-    CheckCircle2,
-    Package,
-    Truck,
-    CheckCheck,
-    XCircle,
-    User,
-    Phone,
-    Calendar,
-    FileText,
-    MessageSquare,
-    Plus
-} from 'lucide-react';
+import { Search, Download, User, Plus, MessageSquare, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const STATUS_LABEL_MAP: Record<string, string> = {
-    pending: 'Нові', new: 'Нові', confirmed: 'Підтверджені',
-    in_production: 'У виробництві', shipped: 'Відправлені',
-    delivered: 'Виконані', cancelled: 'Скасовані',
-};
+/**
+ * Список замовлень (редизайн — Diana, 2026-08-06: «вкладка замовлення дуже не
+ * комфортна»).
+ *
+ * Що було не так: таблиця на девʼять колонок шириною 1200px змушувала
+ * скролити вбік навіть на ноутбуці, для мобільного існувала друга, окрема
+ * розмітка (і вони вже почали розʼїжджатися), фільтр за датами мав стан, але
+ * не мав полів, а підсумку «скільки я зараз бачу і на яку суму» не було
+ * взагалі.
+ *
+ * Що стало: одна адаптивна верстка на картках для всіх екранів — без
+ * горизонтального скролу і без другої копії розмітки. Кожна картка — два
+ * рядки: перший про замовлення (номер, дата, статуси, теги, оплата, сума),
+ * другий про роботу з ним (клієнт, товари, коментар, відповідальні). Над
+ * списком — підсумок по відфільтрованому. Вся поведінка збережена: реалтайм,
+ * швидкий коментар, призначення менеджера й дизайнера просто зі списку,
+ * експорт, «Мої замовлення».
+ */
 
 const STATUS_TABS = [
     { id: 'all', label: 'Всі', color: '#64748b' },
@@ -41,6 +36,20 @@ const STATUS_TABS = [
     { id: 'delivered', label: 'Виконані', color: '#22c55e' },
     { id: 'cancelled', label: 'Скасовані', color: '#ef4444' },
 ];
+
+const DELIVERY_COLORS: Record<string, { bg: string; text: string }> = {
+    'Відправлено': { bg: '#dbeafe', text: '#1e40af' },
+    'У дорозі': { bg: '#ddd6fe', text: '#5b21b6' },
+    'Прибув у місто': { bg: '#fef3c7', text: '#92400e' },
+    'Прибув на відділення': { bg: '#fed7aa', text: '#9a3412' },
+    'Вручено': { bg: '#dcfce7', text: '#15803d' },
+    'Отримано': { bg: '#dcfce7', text: '#15803d' },
+};
+
+const chip: React.CSSProperties = {
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+};
 
 export default function OrdersPage() {
     const supabase = createClient();
@@ -59,7 +68,7 @@ export default function OrdersPage() {
     const [availableTags, setAvailableTags] = useState<any[]>([]);
     const [tagFilter, setTagFilter] = useState('all');
 
-    // Quick order-comment editor (opened from the list, saved to orders.notes)
+    // Швидкий коментар до замовлення — зберігається в orders.notes.
     const [commentOrder, setCommentOrder] = useState<any | null>(null);
     const [commentText, setCommentText] = useState('');
     const [commentSaving, setCommentSaving] = useState(false);
@@ -78,7 +87,6 @@ export default function OrdersPage() {
                 body: JSON.stringify({ notes: commentText }),
             });
             if (!res.ok) throw new Error(`API ${res.status}`);
-            // reflect locally
             setOrders(prev => prev.map(o => o.id === commentOrder.id ? { ...o, notes: commentText } : o));
             toast.success('Коментар збережено');
             setCommentOrder(null);
@@ -94,7 +102,6 @@ export default function OrdersPage() {
         fetchStaff();
         fetchTags();
 
-        // Real-time subscription
         const channel = supabase
             .channel('orders-realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
@@ -102,9 +109,7 @@ export default function OrdersPage() {
             })
             .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, []);
 
     const fetchStaff = async () => {
@@ -141,16 +146,13 @@ export default function OrdersPage() {
         }
     };
 
-    // Assign manager/designer straight from the list. The assign API rewrites
-    // both fields, so we send the current value for the field we're NOT
-    // changing to avoid wiping it. We optimistically patch local state so the
-    // row updates instantly without a full refetch.
+    // Призначення зі списку. API перезаписує обидва поля, тому надсилаємо
+    // поточне значення того, яке НЕ змінюємо; локальний стан оновлюємо одразу.
     const assignRole = async (order: any, role: 'manager' | 'designer', staffId: string) => {
         const payload = {
             manager_id: role === 'manager' ? (staffId || null) : (order.manager_id || null),
             designer_id: role === 'designer' ? (staffId || null) : (order.designer_id || null),
         };
-        // Optimistic update
         const picked = staff.find(s => s.id === staffId) || null;
         setOrders(prev => prev.map(o => o.id === order.id
             ? { ...o, [`${role}_id`]: staffId || null, [role]: picked }
@@ -170,33 +172,13 @@ export default function OrdersPage() {
         }
     };
 
-    const getDeliveryStatusColor = (status: string) => {
-        const statusColors: Record<string, { bg: string, text: string }> = {
-            'Відправлено': { bg: '#dbeafe', text: '#1e40af' },
-            'У дорозі': { bg: '#ddd6fe', text: '#5b21b6' },
-            'Прибув у місто': { bg: '#fef3c7', text: '#92400e' },
-            'Прибув на відділення': { bg: '#fed7aa', text: '#9a3412' },
-            'Вручено': { bg: '#dcfce7', text: '#15803d' },
-            'Отримано': { bg: '#dcfce7', text: '#15803d' },
-        };
-        return statusColors[status] || { bg: '#f1f5f9', text: '#64748b' };
-    };
-
-    const getStatusStyle = (status: string) => {
-        const tab = STATUS_TABS.find(t => t.id === status) || STATUS_TABS[0];
-        return {
-            backgroundColor: `${tab.color}15`,
-            color: tab.color,
-            border: `1px solid ${tab.color}30`
-        };
-    };
-
-    const filteredOrders = orders.filter(order => {
+    const filteredOrders = useMemo(() => orders.filter(order => {
         const matchesStatus = activeTab === 'all' || order.order_status === activeTab || (activeTab === 'new' && order.order_status === 'pending');
         const query = searchQuery.toLowerCase();
-        const matchesSearch =
+        const matchesSearch = !query ||
             order.order_number?.toLowerCase().includes(query) ||
             order.customer_name?.toLowerCase().includes(query) ||
+            order.customer_email?.toLowerCase().includes(query) ||
             order.customer_phone?.includes(query) ||
             order.ttn?.includes(query);
 
@@ -210,7 +192,17 @@ export default function OrdersPage() {
         const matchesTag = tagFilter === 'all' || order.order_tag_assignments?.some((a: any) => a.order_tags?.id === tagFilter);
 
         return matchesStatus && matchesSearch && matchesDate && matchesManager && matchesDesigner && matchesTag;
-    });
+    }), [orders, activeTab, searchQuery, dateRange, managerFilter, designerFilter, tagFilter]);
+
+    // Підсумок по тому, що зараз на екрані — відповідь на «скільки я бачу».
+    const summary = useMemo(() => {
+        const total = filteredOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+        const unpaid = filteredOrders.filter(o => o.payment_status !== 'paid');
+        const unpaidSum = unpaid.reduce((s, o) => s + (Number(o.total) || 0), 0);
+        return { count: filteredOrders.length, total: Math.round(total), unpaid: unpaid.length, unpaidSum: Math.round(unpaidSum) };
+    }, [filteredOrders]);
+
+    const hasExtraFilters = searchQuery || dateRange.start || dateRange.end || tagFilter !== 'all' || managerFilter !== 'all' || designerFilter !== 'all';
 
     const exportToExcel = () => {
         const headers = ['№ Замовлення', 'Дата', 'Клієнт', 'Телефон', 'Email', 'Статус', 'Сума', 'Товари', 'ТТН'];
@@ -227,7 +219,7 @@ export default function OrdersPage() {
         ].map(val => `"${val}"`).join(','));
 
         const csvContent = [headers.join(','), ...csvRows].join('\n');
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob(['﻿' + csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
@@ -238,357 +230,219 @@ export default function OrdersPage() {
         toast.success('CSV-файл згенеровано');
     };
 
+    const statusOf = (order: any) => STATUS_TABS.find(t => t.id === (order.order_status === 'pending' ? 'new' : order.order_status)) || STATUS_TABS[0];
+
+    const emptyState = (text: React.ReactNode) => (
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: '#94a3b8', background: '#fff', border: '1px solid #eef2f7', borderRadius: 14 }}>{text}</div>
+    );
+
     return (
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Замовлення</h1>
-                    <p style={{ color: '#64748b' }}>Повний список транзакцій та статусів у реальному часі.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', borderRadius: "3px", fontWeight: 700, fontSize: '15px', textDecoration: 'none' }}>
-                        <Plus size={20} /> Створити замовлення
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            {/* Шапка */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+                <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 900, color: '#263A99', margin: 0 }}>Замовлення</h1>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link href="/admin/orders/new" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', backgroundColor: '#263A99', color: 'white', borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+                        <Plus size={17} /> Створити
                     </Link>
                     <button onClick={async () => {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
-                            // Find matching staff by email
                             const me = staff.find(s => s.email === user.email);
                             if (me) {
                                 if (me.role === 'manager' || me.role === 'admin') setManagerFilter(me.id);
                                 if (me.role === 'designer') setDesignerFilter(me.id);
-                                toast.success('Фільтр "Мої замовлення" застосовано');
+                                toast.success('Показую лише ваші замовлення');
                             } else {
-                                toast.error('Вашого облікового запису немає в спиsku Команди');
+                                toast.error('Вашого облікового запису немає в списку команди');
                             }
                         }
-                    }} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#f1f5f9', border: 'none', color: '#475569', borderRadius: "3px", fontWeight: 700, fontSize: '15px', cursor: 'pointer' }}>
-                        <User size={20} /> Мої замовлення
+                    }} style={ghostBtnStyle}>
+                        <User size={16} /> Мої
                     </button>
-                    <button onClick={exportToExcel} style={exportBtnStyle}>
-                        <Download size={20} />
-                        Експорт (Excel)
+                    <button onClick={exportToExcel} style={ghostBtnStyle}>
+                        <Download size={16} /> Експорт
                     </button>
                 </div>
             </div>
 
-            {/* Status Tabs */}
-            <div style={tabsWrapperStyle}>
-                {STATUS_TABS.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{
-                            ...tabButtonStyle,
-                            color: activeTab === tab.id ? 'white' : '#64748b',
-                            backgroundColor: activeTab === tab.id ? tab.color : 'transparent',
-                            borderColor: activeTab === tab.id ? tab.color : 'transparent',
-                        }}
-                    >
-                        {tab.label}
-                        <span style={countBadgeStyle}>
-                            {orders.filter(o => tab.id === 'all' || o.order_status === tab.id || (tab.id === 'new' && o.order_status === 'pending')).length}
-                        </span>
-                    </button>
-                ))}
+            {/* Статуси */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}>
+                {STATUS_TABS.map(tab => {
+                    const n = orders.filter(o => tab.id === 'all' || o.order_status === tab.id || (tab.id === 'new' && o.order_status === 'pending')).length;
+                    const active = activeTab === tab.id;
+                    return (
+                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 999,
+                                border: `1.5px solid ${active ? tab.color : '#e5eaf2'}`,
+                                background: active ? tab.color : '#fff',
+                                color: active ? '#fff' : '#475569',
+                                fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .15s',
+                            }}>
+                            {tab.label}
+                            <span style={{
+                                padding: '1px 7px', borderRadius: 999, fontSize: 11, fontWeight: 800,
+                                background: active ? 'rgba(255,255,255,0.25)' : '#f1f5f9',
+                                color: active ? '#fff' : '#64748b',
+                            }}>{n}</span>
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Filters */}
-            <div style={filtersGridStyle}>
-                <div style={searchWrapperStyle}>
-                    <Search size={18} color="#94a3b8" />
+            {/* Фільтри одним рядком */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid #e5eaf2', borderRadius: 10, padding: '0 12px', flex: '1 1 220px', minWidth: 200 }}>
+                    <Search size={16} color="#94a3b8" />
                     <input
-                        placeholder="Пошук за №, ім'ям, телефоном..."
-                        style={searchInputStyle}
+                        placeholder="№, імʼя, телефон, email, ТТН…"
+                        style={{ border: 'none', padding: '10px 0', outline: 'none', width: '100%', fontSize: 13.5, background: 'transparent' }}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select
-                        value={tagFilter}
-                        onChange={(e) => setTagFilter(e.target.value)}
-                        style={selectInputStyle}
-                    >
-                        <option value="all">Усі Теги</option>
-                        {availableTags.map(t => (
-                            <option key={t.id} value={t.id}>{t.icon} {t.name}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={managerFilter}
-                        onChange={(e) => setManagerFilter(e.target.value)}
-                        style={selectInputStyle}
-                    >
-                        <option value="all">Усі Менеджери</option>
-                        {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={designerFilter}
-                        onChange={(e) => setDesignerFilter(e.target.value)}
-                        style={selectInputStyle}
-                    >
-                        <option value="all">Усі Дизайнери</option>
-                        {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                    </select>
-                </div>
+                <input type="date" value={dateRange.start} title="Від дати"
+                    onChange={e => setDateRange(r => ({ ...r, start: e.target.value }))} style={miniSelectStyle} />
+                <input type="date" value={dateRange.end} title="До дати"
+                    onChange={e => setDateRange(r => ({ ...r, end: e.target.value }))} style={miniSelectStyle} />
+                <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={miniSelectStyle}>
+                    <option value="all">Теги</option>
+                    {availableTags.map(t => <option key={t.id} value={t.id}>{t.icon} {t.name}</option>)}
+                </select>
+                <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)} style={miniSelectStyle}>
+                    <option value="all">Менеджер</option>
+                    {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                </select>
+                <select value={designerFilter} onChange={(e) => setDesignerFilter(e.target.value)} style={miniSelectStyle}>
+                    <option value="all">Дизайнер</option>
+                    {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                </select>
+                {hasExtraFilters && (
+                    <button onClick={() => { setSearchQuery(''); setDateRange({ start: '', end: '' }); setTagFilter('all'); setManagerFilter('all'); setDesignerFilter('all'); }}
+                        style={{ ...ghostBtnStyle, padding: '9px 12px', color: '#b91c1c', borderColor: '#fecaca' }}>
+                        <X size={14} /> Скинути
+                    </button>
+                )}
             </div>
 
-            {/* Table — desktop only */}
-            <div style={tableCardStyle} className="tm-orders-table">
-                <table style={{ width: '100%', minWidth: 1200, borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1.5px solid #f1f5f9' }}>
-                            <th style={thStyle}>№ Замовлення</th>
-                            <th style={thStyle}>Теги</th>
-                            <th style={thStyle}>Клієнт</th>
-                            <th style={thStyle}>Коментар</th>
-                            <th style={thStyle}>Менеджер</th>
-                            <th style={thStyle}>Відповідальні</th>
-                            <th style={thStyle}>Товари</th>
-                            <th style={thStyle}>Оплата</th>
-                            <th style={{ ...thStyle, textAlign: 'right' }}>Дії</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Завантаження...</td></tr>
-                        ) : authError ? (
-                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#dc2626' }}>
-                                Сесія завершилася. <a href="/admin/login" style={{ color: '#1e2d7d', fontWeight: 700, textDecoration: 'underline' }}>Увійдіть знову</a>, щоб побачити замовлення.
-                            </td></tr>
-                        ) : filteredOrders.length === 0 ? (
-                            <tr><td colSpan={9} style={{ textAlign: 'center', padding: '100px', color: '#94a3b8' }}>Замовлень не знайдено</td></tr>
-                        ) : filteredOrders.map(order => (
-                            <tr key={order.id}
-                                style={{ ...trStyle, cursor: 'pointer' }}
-                                onClick={() => window.location.href = `/admin/orders/${order.id}`}>
-                                <td style={tdStyle}>
-                                    <div style={{ fontWeight: 800, color: '#263A99' }}>{order.order_number}</div>
-                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>{formatDateTime(order.created_at)}</div>
-                                    <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status) }}>
-                                        {STATUS_TABS.find(t => t.id === order.order_status)?.label}
-                                    </div>
-                                    {order.delivery_status && order.tracking_number && (
-                                        <div style={{ ...statusBadgeStyle, backgroundColor: getDeliveryStatusColor(order.delivery_status).bg, color: getDeliveryStatusColor(order.delivery_status).text, border: 'none', marginTop: '6px', fontSize: '10px' }}>
-                                             {order.delivery_status}
-                                        </div>
-                                    )}
-                                </td>
-                                {/* Tags — names + icons */}
-                                <td style={{ ...tdStyle, maxWidth: 160 }}>
-                                    {order.order_tag_assignments?.length > 0 ? (
-                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                            {order.order_tag_assignments.map((assignment: any) => {
-                                                const tag = assignment.order_tags;
-                                                if (!tag) return null;
-                                                return (
-                                                    <span key={tag.id} title={tag.name}
-                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 12, backgroundColor: `${tag.color}15`, border: `1px solid ${tag.color}40`, fontSize: 11, fontWeight: 700, color: tag.color || '#475569', whiteSpace: 'nowrap' }}>
-                                                        {tag.icon && <span>{tag.icon}</span>}{tag.name}
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <span style={{ fontSize: 12, color: '#cbd5e1' }}>—</span>
-                                    )}
-                                </td>
-                                <td style={tdStyle}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={avatarStyle}>{(order.customer_name || order.customer_phone || '?')?.[0]}</div>
-                                        <div>
-                                            <div style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                {order.customer_name || order.customer_email || order.customer_telegram || 'Без імені'}
+            {/* Підсумок по відфільтрованому */}
+            {!loading && !authError && (
+                <div style={{ fontSize: 13, color: '#64748b', margin: '0 2px 14px' }}>
+                    Показано <b style={{ color: '#0f172a' }}>{summary.count}</b> замовлень на <b style={{ color: '#0f172a' }}>{summary.total.toLocaleString('uk-UA')} ₴</b>
+                    {summary.unpaid > 0 && <> · з них не оплачено {summary.unpaid} на {summary.unpaidSum.toLocaleString('uk-UA')} ₴</>}
+                </div>
+            )}
 
-                                            </div>
-                                            <div style={{ fontSize: '12px', color: '#64748b' }}>{order.customer_phone}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                {/* Comment — inline preview + click to edit */}
-                                <td style={{ ...tdStyle, maxWidth: 200 }} onClick={e => e.stopPropagation()}>
-                                    {(() => {
-                                        const isPrintWarning = (order.notes || '').includes('файли для друку не завантажились');
-                                        return (
-                                    <button onClick={() => openCommentModal(order)}
-                                        title={order.notes ? 'Редагувати коментар' : 'Додати коментар'}
-                                        style={{ width: '100%', textAlign: 'left', background: isPrintWarning ? '#fef2f2' : (order.notes ? '#f8fafc' : 'transparent'), border: isPrintWarning ? '1px solid #fca5a5' : (order.notes ? '1px solid #e2e8f0' : '1px dashed #e2e8f0'), borderRadius: 8, padding: '7px 10px', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                                        <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: isPrintWarning ? '#dc2626' : (order.notes ? '#263A99' : '#cbd5e1') }} />
-                                        <span style={{ fontSize: 12, color: isPrintWarning ? '#b91c1c' : (order.notes ? '#475569' : '#cbd5e1'), fontWeight: isPrintWarning ? 600 : 400, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                            {order.notes || 'Додати коментар'}
+            {/* Список */}
+            {loading ? emptyState('Завантаження…') : authError ? emptyState(
+                <>Сесія завершилася. <a href="/admin/login" style={{ color: '#1e2d7d', fontWeight: 700 }}>Увійдіть знову</a>, щоб побачити замовлення.</>
+            ) : filteredOrders.length === 0 ? emptyState(
+                hasExtraFilters || activeTab !== 'all' ? 'Під ці фільтри нічого не підпадає — спробуйте «Скинути».' : 'Замовлень поки немає.'
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {filteredOrders.map(order => {
+                        const st = statusOf(order);
+                        const delivery = order.delivery_status && order.tracking_number ? DELIVERY_COLORS[order.delivery_status] || { bg: '#f1f5f9', text: '#64748b' } : null;
+                        const isPrintWarning = (order.notes || '').includes('файли для друку не завантажились');
+                        const itemsLabel = Array.isArray(order.items) && order.items.length > 0
+                            ? (order.items.length === 1 ? order.items[0].name : `${order.items[0].name} +${order.items.length - 1}`)
+                            : 'Без товарів';
+                        return (
+                            <div key={order.id}
+                                onClick={() => window.location.href = `/admin/orders/${order.id}`}
+                                style={{
+                                    background: '#fff', border: `1px solid ${isPrintWarning ? '#fca5a5' : '#e8edf5'}`, borderRadius: 14,
+                                    padding: '12px 16px', cursor: 'pointer', transition: 'box-shadow .15s, border-color .15s',
+                                }}
+                                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 18px rgba(30,45,125,0.08)'; }}
+                                onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                            >
+                                {/* Рядок 1: що це за замовлення і його стан */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 800, color: '#263A99', fontSize: 15 }}>{order.order_number}</span>
+                                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{formatDateTime(order.created_at)}</span>
+                                    <span style={{ ...chip, background: `${st.color}14`, color: st.color }}>{st.label}</span>
+                                    {delivery && (
+                                        <span style={{ ...chip, background: delivery.bg, color: delivery.text }}>{order.delivery_status}</span>
+                                    )}
+                                    {order.order_tag_assignments?.map((a: any) => a.order_tags ? (
+                                        <span key={a.order_tags.id} style={{ ...chip, background: `${a.order_tags.color}14`, color: a.order_tags.color || '#475569' }}>
+                                            {a.order_tags.icon && <span>{a.order_tags.icon}</span>}{a.order_tags.name}
+                                        </span>
+                                    ) : null)}
+                                    <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span style={{
+                                            ...chip,
+                                            background: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
+                                            color: order.payment_status === 'paid' ? '#16a34a' : '#b45309',
+                                        }}>
+                                            {order.payment_status === 'paid' ? 'Оплачено' : 'Очікує оплати'}
+                                        </span>
+                                        <span style={{ fontWeight: 900, fontSize: 16, color: '#0f172a', whiteSpace: 'nowrap' }}>{Number(order.total || 0).toLocaleString('uk-UA')} ₴</span>
+                                        <ChevronRight size={17} color="#cbd5e1" />
+                                    </span>
+                                </div>
+
+                                {/* Рядок 2: клієнт, товари, коментар, відповідальні */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginTop: 9 }}>
+                                    <span style={{ fontSize: 13, minWidth: 150 }}>
+                                        <b>{order.customer_name || order.customer_email || order.customer_telegram || 'Без імені'}</b>
+                                        {order.customer_phone && <span style={{ color: '#64748b' }}> · {order.customer_phone}</span>}
+                                    </span>
+                                    <span style={{ fontSize: 12.5, color: '#64748b', flex: '1 1 140px', minWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {itemsLabel}
+                                    </span>
+
+                                    <button onClick={e => { e.stopPropagation(); openCommentModal(order); }}
+                                        title={order.notes ? order.notes : 'Додати коментар'}
+                                        style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: 220,
+                                            background: isPrintWarning ? '#fef2f2' : 'transparent',
+                                            border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 8,
+                                            color: isPrintWarning ? '#b91c1c' : (order.notes ? '#475569' : '#cbd5e1'),
+                                            fontSize: 12, fontWeight: isPrintWarning ? 700 : 500,
+                                        }}>
+                                        <MessageSquare size={13} style={{ flexShrink: 0 }} />
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {order.notes || 'Коментар'}
                                         </span>
                                     </button>
-                                        );
-                                    })()}
-                                </td>
-                                {/* Manager — inline assign */}
-                                <td style={{ ...tdStyle, width: '150px' }} onClick={e => e.stopPropagation()}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                        <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.manager?.color || '#f1f5f9', color: order.manager ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
-                                            {order.manager?.initials || <User size={12} />}
-                                        </div>
+
+                                    <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                                         <select
                                             value={order.manager_id || ''}
                                             onChange={e => assignRole(order, 'manager', e.target.value)}
-                                            style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.manager ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
-                                            onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
-                                            onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
-                                        >
-                                            <option value="">Не призначено</option>
+                                            title="Менеджер"
+                                            style={{ ...assignSelectStyle, color: order.manager ? '#334155' : '#94a3b8' }}>
+                                            <option value="">Менеджер: —</option>
                                             {staff.filter(s => s.role === 'manager' || s.role === 'admin').map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                                <option key={s.id} value={s.id}>М: {s.name}</option>
                                             ))}
                                         </select>
-                                    </div>
-                                </td>
-                                {/* Designer / responsible — inline assign */}
-                                <td style={{ ...tdStyle, width: '150px' }} onClick={e => e.stopPropagation()}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                                        <div style={{ width: '24px', height: '24px', borderRadius: "3px", backgroundColor: order.designer?.color || '#f1f5f9', color: order.designer ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '10px', flexShrink: 0 }}>
-                                            {order.designer?.initials || <User size={12} />}
-                                        </div>
                                         <select
                                             value={order.designer_id || ''}
                                             onChange={e => assignRole(order, 'designer', e.target.value)}
-                                            style={{ flex: 1, minWidth: 0, border: '1px solid transparent', borderRadius: 6, padding: '3px 4px', fontSize: 12, fontWeight: 600, color: order.designer ? '#475569' : '#94a3b8', background: 'transparent', cursor: 'pointer' }}
-                                            onMouseEnter={e => (e.currentTarget.style.border = '1px solid #e2e8f0')}
-                                            onMouseLeave={e => (e.currentTarget.style.border = '1px solid transparent')}
-                                        >
-                                            <option value="">Не призначено</option>
+                                            title="Дизайнер"
+                                            style={{ ...assignSelectStyle, color: order.designer ? '#334155' : '#94a3b8' }}>
+                                            <option value="">Дизайнер: —</option>
                                             {staff.filter(s => s.role === 'designer' || s.role === 'admin').map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                                <option key={s.id} value={s.id}>Д: {s.name}</option>
                                             ))}
                                         </select>
-                                    </div>
-                                </td>
-                                <td style={tdStyle}>
-                                    <div style={{ fontSize: '13px', color: '#475569', fontWeight: 700, marginBottom: '4px' }}>
-                                        {order.total} ₴
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                        {Array.isArray(order.items) ? (
-                                            order.items.length === 1 ? order.items[0].name : `${order.items[0].name} +${order.items.length - 1}`
-                                        ) : 'Замовлення без товарів'}
-                                    </div>
-                                </td>
-                                <td style={tdStyle}>
-                                    <div style={{
-                                        fontSize: '11px',
-                                        fontWeight: 800,
-                                        color: order.payment_status === 'paid' ? '#16a34a' : '#f59e0b',
-                                        backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
-                                        padding: '4px 8px',
-                                        borderRadius: "3px",
-                                        display: 'inline-block'
-                                    }}>
-                                        {order.payment_status === 'paid' ? 'ОПЛАЧЕНО' : 'ОЧІКУЄ'}
-                                    </div>
-                                </td>
-                                <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                    <Link
-                                        href={`/admin/orders/${order.id}`}
-                                        onClick={e => e.stopPropagation()}
-                                        style={{ ...actionBtnStyle, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#1e2d7d', color: '#fff', borderRadius: 6, fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                                        <Eye size={15} /> Відкрити
-                                    </Link>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Mobile card list — replaces the 1200px-wide horizontal-scroll
-                table on phones. Each order is a tappable card showing the
-                essentials at a glance: number + status, customer, items + total,
-                payment, and inline manager/designer assignment. */}
-            <div className="tm-orders-cards" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
-                {loading ? (
-                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>Завантаження...</div>
-                ) : authError ? (
-                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#dc2626' }}>
-                        Сесія завершилася. <a href="/admin/login" style={{ color: '#1e2d7d', fontWeight: 700, textDecoration: 'underline' }}>Увійдіть знову</a>.
-                    </div>
-                ) : filteredOrders.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>Замовлень не знайдено</div>
-                ) : filteredOrders.map(order => (
-                    <Link key={order.id} href={`/admin/orders/${order.id}`}
-                        style={{ display: 'block', textDecoration: 'none', color: 'inherit', background: '#fff', border: '1px solid #f1f5f9', borderRadius: 12, padding: 14, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-                        {/* Top row: number + date, payment badge */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                            <div>
-                                <div style={{ fontWeight: 800, color: '#263A99', fontSize: 15 }}>{order.order_number}</div>
-                                <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDateTime(order.created_at)}</div>
-                            </div>
-                            <div style={{
-                                fontSize: 10, fontWeight: 800,
-                                color: order.payment_status === 'paid' ? '#16a34a' : '#f59e0b',
-                                backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
-                                padding: '4px 8px', borderRadius: 6,
-                            }}>
-                                {order.payment_status === 'paid' ? 'ОПЛАЧЕНО' : 'ОЧІКУЄ'}
-                            </div>
-                        </div>
-
-                        {/* Status badge */}
-                        <div style={{ ...statusBadgeStyle, ...getStatusStyle(order.order_status), marginBottom: 10 }}>
-                            {STATUS_TABS.find(t => t.id === order.order_status)?.label}
-                        </div>
-
-                        {/* Customer */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <div style={avatarStyle}>{(order.customer_name || order.customer_phone || '?')?.[0]}</div>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.customer_name || order.customer_email || order.customer_telegram || 'Без імені'}</div>
-                                <div style={{ fontSize: 12, color: '#64748b' }}>{order.customer_phone}</div>
-                            </div>
-                        </div>
-
-                        {/* Items + total */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-                            <div style={{ fontSize: 12, color: '#64748b', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                {Array.isArray(order.items) && order.items.length > 0
-                                    ? (order.items.length === 1 ? order.items[0].name : `${order.items[0].name} +${order.items.length - 1}`)
-                                    : 'Без товарів'}
-                            </div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#1e2d7d', marginLeft: 12, flexShrink: 0 }}>{order.total} ₴</div>
-                        </div>
-
-                        {/* Assignees (read-only chips on mobile; tap card to manage) */}
-                        {(order.manager || order.designer) && (
-                            <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                                {order.manager && (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 10px' }}>
-                                        М: {order.manager.name}
                                     </span>
-                                )}
-                                {order.designer && (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '3px 10px' }}>
-                                        Д: {order.designer.name}
-                                    </span>
-                                )}
+                                </div>
                             </div>
-                        )}
-                    </Link>
-                ))}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
 
-            <style>{`
-                @media (max-width: 768px) {
-                    .tm-orders-table { display: none !important; }
-                    .tm-orders-cards { display: flex !important; }
-                }
-            `}</style>
-
-            {/* Quick comment modal */}
+            {/* Швидкий коментар */}
             {commentOrder && (
                 <div onClick={() => !commentSaving && setCommentOrder(null)}
                     style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
@@ -620,23 +474,20 @@ export default function OrdersPage() {
                     </div>
                 </div>
             )}
-        </div >
+        </div>
     );
 }
 
-const exportBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', color: '#475569', borderRadius: "3px", fontWeight: 700, fontSize: '15px', cursor: 'pointer' };
-const tabsWrapperStyle = { display: 'flex', gap: '12px', marginBottom: '32px', overflowX: 'auto' as any, paddingBottom: '8px' };
-const tabButtonStyle = { padding: '10px 20px', borderRadius: "3px", border: '1.5px solid #e2e8f0', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' as any };
-const countBadgeStyle = { padding: '2px 8px', borderRadius: "3px", backgroundColor: 'rgba(255,255,255,0.2)', fontSize: '10px', fontWeight: 900 };
-const filtersGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px', marginBottom: '24px', alignItems: 'center' };
-const searchWrapperStyle = { position: 'relative' as any, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'white', border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '0 16px', flex: 1, minWidth: 0 };
-const searchInputStyle = { border: 'none', padding: '12px 0', outline: 'none', width: '100%', fontSize: '14px', fontWeight: 500 };
-const dateInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '8px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white' };
-const selectInputStyle = { border: '1.5px solid #e2e8f0', borderRadius: "3px", padding: '10px 12px', fontSize: '13px', color: '#475569', outline: 'none', backgroundColor: 'white', fontWeight: 600, cursor: 'pointer' };
-const tableCardStyle = { backgroundColor: 'white', borderRadius: "3px", boxShadow: '0 4px 25px rgba(0,0,0,0.02)', border: '1px solid #f1f5f9', overflowX: 'auto' as any, overflowY: 'visible' as any };
-const thStyle = { textAlign: 'left' as any, padding: '20px', fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase' as any, letterSpacing: '0.05em', fontWeight: 800 };
-const tdStyle = { padding: '20px', verticalAlign: 'middle' };
-const trStyle = { borderBottom: '1px solid #f8fafc', transition: 'background 0.1s' };
-const avatarStyle = { width: '32px', height: '32px', borderRadius: "3px", backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, color: '#64748b' };
-const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: "3px", fontSize: '11px', fontWeight: 800 };
-const actionBtnStyle = { width: '36px', height: '36px', borderRadius: "3px", backgroundColor: '#f8fafc', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', transition: 'all 0.2s', textDecoration: 'none' };
+const ghostBtnStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px',
+    backgroundColor: '#fff', border: '1.5px solid #e5eaf2', color: '#475569',
+    borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+};
+const miniSelectStyle: React.CSSProperties = {
+    border: '1.5px solid #e5eaf2', borderRadius: 10, padding: '9px 10px',
+    fontSize: 13, color: '#475569', outline: 'none', backgroundColor: '#fff', fontWeight: 600, cursor: 'pointer',
+};
+const assignSelectStyle: React.CSSProperties = {
+    border: '1px solid #e5eaf2', borderRadius: 8, padding: '5px 6px',
+    fontSize: 12, fontWeight: 600, background: '#f8fafc', cursor: 'pointer', maxWidth: 150,
+};
