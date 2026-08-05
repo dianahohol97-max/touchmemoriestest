@@ -599,9 +599,17 @@ export function BookPreviewModal({
     const frontBg = coverState?.printedBgColor || '#fff';
     const overlay = coverState?.printedOverlay ?? { type: 'none', color: '#000', opacity: 40, gradient: '' };
     const rawSlot = coverState?.printedPhotoSlot as any;
-    const slot = (rawSlot && (rawSlot.w ?? 0) > 0 && (rawSlot.h ?? 0) > 0) ? rawSlot : { x: 0, y: 0, w: 100, h: 100, shape: 'rect' };
-    const mainPhoto = coverState?.photoId ? getPhoto(coverState.photoId) : null;
-    const br = slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : slot.shape === 'heart' ? '50%' : '0px';
+    // A PRESENT slot with w/h 0 is the editor's explicit «no photo slot» —
+    // ready covers and «Прибрати фото» set exactly that so the artwork shows
+    // full-bleed. Treating it as «no slot info → full-bleed slot» resurrected
+    // the customer's cover photo ON TOP of the ready cover: TM-001123 rendered
+    // the barbecue photo instead of «Тернопіль». Only a MISSING slot (legacy
+    // saves from before printedPhotoSlot existed) falls back to full-bleed.
+    const slot = rawSlot
+      ? (((rawSlot.w ?? 0) > 0 && (rawSlot.h ?? 0) > 0) ? rawSlot : null)
+      : { x: 0, y: 0, w: 100, h: 100, shape: 'rect' };
+    const mainPhoto = slot && coverState?.photoId ? getPhoto(coverState.photoId) : null;
+    const br = slot ? (slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : slot.shape === 'heart' ? '50%' : '0px') : '0px';
 
     return (
       <div style={{ width: pageW, height: pageH, background: frontBg, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
@@ -613,10 +621,12 @@ export function BookPreviewModal({
           <img src={(coverState as any).printedBgImage} alt="" draggable={false}
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         )}
-        {/* Main photo slot */}
-        <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>
-          {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%`, transform: `scale(${(coverState as any)?.photoZoom ?? 1}) rotate(${(coverState as any)?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} draggable={false} />}
-        </div>
+        {/* Main photo slot — absent entirely when the slot was explicitly removed */}
+        {slot && (
+          <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>
+            {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%`, transform: `scale(${(coverState as any)?.photoZoom ?? 1}) rotate(${(coverState as any)?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} draggable={false} />}
+          </div>
+        )}
 
         {/* Multi-photo slots */}
         {(coverState?.printedPhotoSlots || []).map((ps: any, idx: number) => {
