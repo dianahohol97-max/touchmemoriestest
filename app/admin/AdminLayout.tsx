@@ -89,6 +89,7 @@ const menuItems = [
     { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
 
     // Продажі — пошук нових партнерів і люди, які цим займаються
+    { name: 'Продажі: дашборд', href: '/admin/sales-dashboard', icon: <BarChart2 size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Мій кабінет продажів', href: '/admin/my-sales', icon: <Banknote size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <Users size={20} />, section: 'marketing', group: 'sales' },
