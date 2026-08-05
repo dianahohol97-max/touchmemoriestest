@@ -226,9 +226,16 @@ app.post('/render', async (req, res) => {
     const firstPath: string | undefined = project?.uploaded_photos?.find((p: any) => p?.path)?.path;
     let orderPrefix: string;
     if (firstPath && firstPath.includes('/originals/')) {
+      // guest/pb-<ts>-<rand>/originals/… — already unique per cart item.
       orderPrefix = firstPath.split('/originals/')[0];
     } else if (firstPath) {
-      orderPrefix = firstPath.split('/').slice(0, 2).join('/');
+      // drafts/<uid>/<draftId>/photo.jpg — the draft tree has no /originals/
+      // segment. Taking just drafts/<uid> collapsed EVERY order of that user
+      // into ONE shared print folder: regenerating TM-001124 physically
+      // overwrote the 00_cover.jpg that TM-001123's order_files rows point
+      // at («обкладинка продублювалася»). Scope by project id so no two
+      // orders can ever share print files.
+      orderPrefix = `${firstPath.split('/').slice(0, 2).join('/')}/${projectId}`;
     } else {
       orderPrefix = `unknown/${projectId}`;
     }
