@@ -30,16 +30,59 @@ import { GALLERY_BUCKET } from './helpers';
 
 export type StorageProvider = 'supabase' | 'r2';
 
+/**
+ * Cloudflare shows the S3 endpoint as a full URL, so R2_ACCOUNT_ID is easy to
+ * fill in as `https://<id>.r2.cloudflarestorage.com` or as the bare host. Both
+ * used to produce the endpoint `https://<host>.r2.cloudflarestorage.com` —
+ * a two-label subdomain that the wildcard certificate does not cover, so
+ * Cloudflare aborted the TLS handshake and every upload died with
+ * «ssl/tls alert handshake failure ... alert number 40». Reducing whatever is
+ * configured back to the bare account id makes all three spellings work.
+ */
+function accountId(raw: string): string {
+  return raw.trim()
+    .replace(/^https?:\/\//i, '')
+    .split('/')[0]
+    .replace(/\.(eu|fedramp)?\.?r2\.cloudflarestorage\.com$/i, '')
+    .toLowerCase();
+}
+
 const R2 = {
-  accountId: process.env.R2_ACCOUNT_ID || '',
-  accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
-  bucket: process.env.R2_BUCKET || '',
-  publicBase: (process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
+  accountId: accountId(process.env.R2_ACCOUNT_ID || ''),
+  accessKeyId: (process.env.R2_ACCESS_KEY_ID || '').trim(),
+  secretAccessKey: (process.env.R2_SECRET_ACCESS_KEY || '').trim(),
+  bucket: (process.env.R2_BUCKET || '').trim(),
+  publicBase: (process.env.R2_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, ''),
+  // Buckets created with a jurisdiction (EU data residency) answer on
+  // <account>.eu.r2.cloudflarestorage.com instead of the default host.
+  jurisdiction: (process.env.R2_JURISDICTION || '').trim().toLowerCase(),
 };
 
+/** The S3 endpoint we talk to. Exported for the diagnostics route. */
+export function r2Endpoint(): string {
+  const host = R2.jurisdiction
+    ? `${R2.accountId}.${R2.jurisdiction}.r2.cloudflarestorage.com`
+    : `${R2.accountId}.r2.cloudflarestorage.com`;
+  return `https://${host}`;
+}
+
 export function isR2Configured(): boolean {
-  return Boolean(R2.accountId && R2.accessKeyId && R2.secretAccessKey && R2.bucket && R2.publicBase);
+  // The account id is a 32-character hex string. Anything else (a pasted URL
+  // fragment, a bucket name, a stray quote) would build a hostname Cloudflare
+  // refuses, so we stay on Supabase rather than break every upload.
+  const idLooksReal = /^[0-9a-f]{32}$/.test(R2.accountId);
+  return Boolean(idLooksReal && R2.accessKeyId && R2.secretAccessKey && R2.bucket && R2.publicBase);
+}
+
+/** Why R2 is not active, in Diana's words. Empty string when it is active. */
+export function r2ConfigProblem(): string {
+  if (!process.env.R2_ACCOUNT_ID) return 'R2_ACCOUNT_ID не задано';
+  if (!/^[0-9a-f]{32}$/.test(R2.accountId)) return 'R2_ACCOUNT_ID не схожий на ідентифікатор акаунта (потрібні 32 символи 0-9a-f)';
+  if (!R2.accessKeyId) return 'R2_ACCESS_KEY_ID не задано';
+  if (!R2.secretAccessKey) return 'R2_SECRET_ACCESS_KEY не задано';
+  if (!R2.bucket) return 'R2_BUCKET не задано';
+  if (!R2.publicBase) return 'R2_PUBLIC_BASE_URL не задано';
+  return '';
 }
 
 /** Where NEW uploads go. Reads always follow the row's stored provider. */
@@ -52,7 +95,7 @@ function r2(): S3Client {
   if (!client) {
     client = new S3Client({
       region: 'auto',
-      endpoint: `https://${R2.accountId}.r2.cloudflarestorage.com`,
+      endpoint: r2Endpoint(),
       credentials: { accessKeyId: R2.accessKeyId, secretAccessKey: R2.secretAccessKey },
     });
   }
@@ -79,7 +122,11 @@ export async function putFile(path: string, body: Buffer, contentType: string):
       }));
       return { provider: 'r2' };
     } catch (e: any) {
-      return { error: e?.message || 'R2 upload failed' };
+      // A misconfigured or unreachable R2 must not stop a photographer's
+      // shoot from being uploaded: Supabase still works and every row records
+      // its own provider, so a mixed gallery reads back correctly. The failure
+      // is logged for us and reported by /api/photographers/storage-check.
+      console.error('[r2] upload failed, falling back to Supabase:', e?.message || e);
     }
   }
   const admin = getAdminClient();
