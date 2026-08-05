@@ -86,7 +86,10 @@ const menuItems = [
     { name: 'Тревел-партнери', href: '/admin/agency-partners', icon: <Globe size={20} />, section: 'catalog', group: 'partners' },
     { name: 'Заявки B2B', href: '/admin/b2b-applications', icon: <UserPlus size={20} />, section: 'catalog', group: 'partners' },
     { name: 'Корпоративні запити', href: '/admin/corporate-requests', icon: <Building2 size={20} />, section: 'catalog', group: 'partners' },
-    { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
+    // «B2B Ціни» (role-pricing) прихована з меню на прохання Діани (2026-08-06).
+    // Сторінка /admin/role-pricing лишається робочою за прямим посиланням —
+    // повернути пункт можна, розкоментувавши рядок нижче.
+    // { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
 
     // Продажі — пошук нових партнерів і люди, які цим займаються
     { name: 'Продажі: дашборд', href: '/admin/sales-dashboard', icon: <BarChart2 size={20} />, section: 'marketing', group: 'sales' },

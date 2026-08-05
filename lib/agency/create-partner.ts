@@ -36,7 +36,7 @@ export interface CreatePartnerInput {
   contactName?: string | null;
   phone?: string | null;
   website?: string | null;
-  partnerKind: 'travel_agency' | 'travel_blogger' | 'photographer';
+  partnerKind: 'travel_agency' | 'wedding_agency' | 'travel_blogger' | 'photographer';
   /** Percent the CLIENT gets off at checkout with this code. */
   clientDiscount: number;
   /** Commission percent on travelbook items. */
@@ -97,7 +97,9 @@ export async function createAgencyPartner(admin: SupabaseClient, input: CreatePa
         ? `Промокод фотографа ${input.name}`
         : input.partnerKind === 'travel_blogger'
           ? `Промокод блогера ${input.name}`
-          : `Промокод тревел-агенції ${input.name}`,
+          : input.partnerKind === 'wedding_agency'
+            ? `Промокод весільної агенції ${input.name}`
+            : `Промокод тревел-агенції ${input.name}`,
     })
     .select('id')
     .single();

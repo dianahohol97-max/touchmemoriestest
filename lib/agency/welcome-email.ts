@@ -29,6 +29,7 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
   const { email, name, code, cabinetToken, partnerKind, clientDiscount, travelbookRate, otherRate } = input;
   const kindWord = partnerKind === 'travel_blogger' ? 'блогером'
     : partnerKind === 'photographer' ? 'фотографом'
+    : partnerKind === 'wedding_agency' ? 'весільною агенцією'
     : 'агенцією';
   const refLink = `${SITE}/?ref=${code}`;
   const cabinetLink = `${SITE}/uk/partner/${cabinetToken}`;

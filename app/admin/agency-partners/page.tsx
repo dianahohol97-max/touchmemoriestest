@@ -17,6 +17,8 @@ interface Partner {
   total_earned: number;
   total_paid_out: number;
   pending_payout: number;
+  orders_count: number;
+  orders_revenue: number;
   status: string;
   partner_kind?: string;
   payout_account?: string | null;
@@ -187,7 +189,7 @@ export default function AgencyPartnersPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 16 }}>{p.agency_name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: p.partner_kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: p.partner_kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>{p.partner_kind === 'travel_blogger' ? 'Блогер' : 'Агенція'}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: p.partner_kind === 'travel_blogger' ? '#fce7f3' : p.partner_kind === 'wedding_agency' ? '#fef3c7' : p.partner_kind === 'photographer' ? '#dcfce7' : '#e0e7ff', color: p.partner_kind === 'travel_blogger' ? '#be185d' : p.partner_kind === 'wedding_agency' ? '#92400e' : p.partner_kind === 'photographer' ? '#166534' : '#3730a3' }}>{p.partner_kind === 'travel_blogger' ? 'Блогер' : p.partner_kind === 'wedding_agency' ? 'Весільна агенція' : p.partner_kind === 'photographer' ? 'Фотограф' : 'Агенція'}</span>
                     </div>
                     <div style={{ fontSize: 13, color: '#64748b' }}>{p.contact_name && `${p.contact_name} · `}{p.email}{p.phone && ` · ${p.phone}`}</div>
                   </div>
@@ -249,6 +251,8 @@ export default function AgencyPartnersPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
+                  <Stat label="Замовлень за кодом" value={String(p.orders_count)} hint="лише оплачені" />
+                  <Stat label="Виручка за кодом" value={`${Number(p.orders_revenue).toFixed(0)} ₴`} />
                   <Stat label="Ставки" value={`${p.travelbook_rate}% / ${p.other_rate}%`} hint="тревелбук / інше" />
                   <Stat label="Всього нараховано" value={`${Number(p.total_earned).toFixed(0)} ₴`} />
                   <Stat label="Виплачено" value={`${Number(p.total_paid_out).toFixed(0)} ₴`} />

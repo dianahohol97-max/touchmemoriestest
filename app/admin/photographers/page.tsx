@@ -8,6 +8,9 @@ interface Photographer {
   phone: string | null; instagram: string | null; is_active: boolean;
   landing_enabled: boolean; custom_domain: string | null; custom_domain_paid: boolean;
   gallery_count: number; storage_bytes: number; created_at: string;
+  plan?: string | null; plan_expires_at?: string | null;
+  orders_count: number; orders_total: number;
+  paid_subs_count: number; paid_subs_total: number;
 }
 
 interface Gallery {
@@ -120,6 +123,13 @@ export default function AdminPhotographersPage() {
             <div className="text-sm text-slate-500 mt-1">
               /photographer/{p.slug}
               {p.custom_domain && <> · домен: <b>{p.custom_domain}</b> {p.custom_domain_paid ? '(оплачено)' : '(не оплачено)'}</>}
+            </div>
+            {/* Гроші фотографа: що замовив на сайті і що заплатив за тарифи памʼяті. Лише оплачене. */}
+            <div className="text-sm text-slate-600 mt-1">
+              Замовлень: <b>{p.orders_count}</b>{p.orders_count > 0 && <> на <b>{p.orders_total.toLocaleString('uk-UA')} ₴</b></>}
+              {' · '}тариф памʼяті: <b>{p.plan || 'безкоштовний'}</b>
+              {p.plan_expires_at && <> до {new Date(p.plan_expires_at).toLocaleDateString('uk-UA')}</>}
+              {p.paid_subs_count > 0 && <> · оплат тарифу: <b>{p.paid_subs_count}</b> на <b>{p.paid_subs_total.toLocaleString('uk-UA')} ₴</b></>}
             </div>
             <div className="flex gap-2 mt-3 flex-wrap">
               <button className={btnGhost} disabled={busyId === p.id} onClick={() => sendWelcome(p.id)}>Надіслати лист</button>

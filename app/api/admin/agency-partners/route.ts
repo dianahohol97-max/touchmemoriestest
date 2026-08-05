@@ -21,21 +21,30 @@ export async function GET() {
     .select('*')
     .order('created_at', { ascending: false });
 
-  // Pending (unpaid) commission per agency
+  // Комісії партнера + скільки замовлень і виручки пройшло за його кодом
+  // (Diana, 2026-08-06). Рядок в agency_commissions зʼявляється лише після
+  // підтвердженої оплати, тож це оплачені замовлення, а не створені кошики.
   const { data: pending } = await admin
     .from('agency_commissions')
-    .select('agency_id, total_commission, payout_status');
+    .select('agency_id, total_commission, payout_status, travelbook_subtotal, other_subtotal');
 
   const pendingByAgency: Record<string, number> = {};
+  const ordersByAgency: Record<string, { count: number; revenue: number }> = {};
   for (const c of pending || []) {
     if (c.payout_status === 'pending') {
       pendingByAgency[c.agency_id] = (pendingByAgency[c.agency_id] || 0) + Number(c.total_commission);
     }
+    const cur = ordersByAgency[c.agency_id] || { count: 0, revenue: 0 };
+    cur.count += 1;
+    cur.revenue += Number(c.travelbook_subtotal || 0) + Number(c.other_subtotal || 0);
+    ordersByAgency[c.agency_id] = cur;
   }
 
   const enriched = (partners || []).map(p => ({
     ...p,
     pending_payout: pendingByAgency[p.id] || 0,
+    orders_count: ordersByAgency[p.id]?.count || 0,
+    orders_revenue: Math.round(ordersByAgency[p.id]?.revenue || 0),
   }));
 
   return NextResponse.json({ partners: enriched });
