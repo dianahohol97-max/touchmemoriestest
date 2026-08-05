@@ -29,6 +29,49 @@ export async function POST(req: NextRequest) {
   if (!lead || lead.sales_manager_id !== manager.id) {
     return NextResponse.json({ error: 'Ліда не знайдено' }, { status: 404 });
   }
+
+  /**
+   * mode 'log' — переписка в Instagram (Diana, 2026-08-06).
+   *
+   * Частину контактів менеджер знаходить у стрічці й пише в директ, а не на
+   * пошту: пошти в такого ліда може не бути взагалі. Надсилати ми туди нічого
+   * не можемо, але сама розмова має лишатися в кабінеті — інакше історія
+   * контакту живе в чужому телефоні, і ні статус, ні «хто вже писав» не
+   * перевірити. Менеджер вставляє сюди те, що написав або що йому відповіли,
+   * і повідомлення лягає в ту саму стрічку, що й листи, з channel
+   * 'instagram'.
+   */
+  if (body?.mode === 'log') {
+    const text = String(body?.body || '').trim();
+    if (!text) return NextResponse.json({ error: 'Вкажіть текст повідомлення' }, { status: 400 });
+    const direction = body?.direction === 'in' ? 'in' : 'out';
+    const channel = String(body?.channel || 'instagram').slice(0, 30);
+
+    await admin.from('lead_messages').insert({
+      lead_id: lead.id,
+      direction,
+      channel,
+      subject: direction === 'in' ? 'Відповідь у Instagram' : 'Повідомлення в Instagram',
+      body: text.slice(0, 10000),
+      meta: { logged_by_manager: manager.id, manager_name: manager.name },
+    });
+
+    // Статус рухається так само, як від листа: ми написали — «Написали»,
+    // відповіли нам — «Відповів». Далі менеджер міняє руками.
+    const nextStatus = direction === 'in'
+      ? (['new', 'contacted'].includes(lead.status) ? 'replied' : lead.status)
+      : (lead.status === 'new' ? 'contacted' : lead.status);
+
+    await admin.from('leads').update({
+      status: nextStatus,
+      // offer_sent_at означає «пропозицію озвучено», незалежно від каналу.
+      offer_sent_at: lead.offer_sent_at || (direction === 'out' ? new Date().toISOString() : null),
+      updated_at: new Date().toISOString(),
+    }).eq('id', lead.id);
+
+    return NextResponse.json({ ok: true });
+  }
+
   if (!lead.email) return NextResponse.json({ error: 'У ліда немає email' }, { status: 400 });
 
   const mode = body?.mode === 'custom' ? 'custom' : 'offer';
@@ -101,7 +144,7 @@ export async function GET(req: NextRequest) {
 
   const { data: messages } = await admin
     .from('lead_messages')
-    .select('id, direction, subject, body, created_at')
+    .select('id, direction, channel, subject, body, created_at')
     .eq('lead_id', leadId)
     .order('created_at', { ascending: true });
   return NextResponse.json({ messages: messages || [] });

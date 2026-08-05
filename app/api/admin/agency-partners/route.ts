@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff, requireAdmin } from '@/lib/auth/guards';
-import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { sendPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
 
 export const dynamic = 'force-dynamic';
 
@@ -142,41 +142,19 @@ export async function POST(request: Request) {
   }
 
   // Welcome email to the partner with their code + terms. Fire-and-forget:
-  // a mail failure must never fail the approval (the partner row already exists).
-  if (getBrevoApiKey() && email) {
-    const kindWord = partnerKind === 'travel_blogger' ? 'блогером'
-    : partnerKind === 'photographer' ? 'фотографом'
-    : 'агенцією';
-    const refLink = `https://touchmemories.com.ua/?ref=${code}`;
-    const cabinetLink = `https://touchmemories.com.ua/uk/partner/${partner.cabinet_token}`;
-    try {
-      await sendBrevoEmail({
-        to: email,
-        toName: agencyName,
-        subject: `Вітаємо! Ваш партнерський код touch.memories: ${code}`,
-        html: `
-          <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-            <div style="background:#263A99;padding:20px 28px"><span style="color:#fff;font-size:18px;font-weight:700;letter-spacing:.08em">TOUCH.MEMORIES</span></div>
-            <div style="padding:28px;background:#fff;border:1px solid #e2e8f0">
-              <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 12px">Вітаємо, ${agencyName}!</h2>
-              <p style="font-size:14px;color:#334155;margin:0 0 16px">Ви стали партнером-${kindWord} touch.memories. Ось ваш персональний промокод:</p>
-              <div style="text-align:center;margin:18px 0"><span style="display:inline-block;font-size:22px;font-weight:800;letter-spacing:.12em;color:#1e2d7d;background:#eef2ff;border:1px dashed #a5b4fc;border-radius:10px;padding:12px 22px">${code}</span></div>
-              <table style="width:100%;font-size:14px;border-collapse:collapse;margin:8px 0 16px">
-                <tr><td style="padding:6px 0;color:#6b7280">Комісія з тревелбуків:</td><td style="padding:6px 0;font-weight:700;text-align:right">${travelbookRate}%</td></tr>
-                <tr><td style="padding:6px 0;color:#6b7280">Комісія з решти товарів:</td><td style="padding:6px 0;font-weight:700;text-align:right">${otherRate}%</td></tr>
-                <tr><td style="padding:6px 0;color:#6b7280">Знижка клієнту за кодом:</td><td style="padding:6px 0;font-weight:700;text-align:right">${clientDiscount}%</td></tr>
-              </table>
-              <p style="font-size:14px;color:#334155;margin:0 0 8px">Клієнт вводить код при оформленні й отримує знижку, а вам нараховується комісія — <b>автоматично після оплати замовлення</b>. Можна ділитися і прямим посиланням:</p>
-              <p style="font-size:14px;margin:0 0 16px"><a href="${refLink}" style="color:#263A99">${refLink}</a></p>
-              <div style="text-align:center;margin:18px 0"><a href="${cabinetLink}" style="display:inline-block;background:#263A99;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px">Відкрити партнерський кабінет</a></div>
-              <p style="font-size:13px;color:#64748b;margin:0 0 16px">Щоб заходити в кабінет будь-коли, навіть без цього листа — <a href="https://touchmemories.com.ua/uk/register" style="color:#263A99">створіть акаунт</a> на цю саму пошту (${email}), і далі входьте через <a href="https://touchmemories.com.ua/uk/partner/cabinet" style="color:#263A99">touchmemories.com.ua/uk/partner/cabinet</a> — кабінет прив'яжеться автоматично.</p>
-              <p style="font-size:13px;color:#64748b;margin:0 0 16px">У кабінеті ви бачите свої нарахування й можете вказати рахунок для виведення коштів. Мінімальна сума виведення — 500 грн; нарахування відбувається автоматично після оплати замовлень.</p>
-              <p style="font-size:13px;color:#94a3b8;margin:0">Дякуємо за співпрацю! Якщо виникнуть питання — просто відповідайте на цей лист.</p>
-            </div>
-          </div>`,
-      });
-    } catch (e) { console.error('partner welcome email failed (partner still created):', e); }
-  }
+  // a mail failure must never fail the approval (the partner row already
+  // exists). The template lives in lib/agency/welcome-email so this route and
+  // the manager-request approval can't drift apart on terms wording.
+  await sendPartnerWelcomeEmail({
+    email,
+    name: agencyName,
+    code,
+    cabinetToken: partner.cabinet_token,
+    partnerKind,
+    clientDiscount,
+    travelbookRate,
+    otherRate,
+  });
 
   return NextResponse.json({ partner });
 }

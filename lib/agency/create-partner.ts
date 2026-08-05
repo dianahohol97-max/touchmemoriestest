@@ -44,7 +44,26 @@ export interface CreatePartnerInput {
   /** Commission percent on everything else. */
   otherRate: number;
   sourceRequestId?: string | null;
+  /**
+   * Менеджер, який привів партнера. Ставиться тут, разом зі створенням
+   * партнера, а не окремим кроком у адмінці — саме на цьому полі тримаються
+   * всі подальші нарахування менеджеру, і забутий другий крок означав угоду
+   * без комісії тому, хто її закрив.
+   */
+  salesManagerId?: string | null;
 }
+
+/**
+ * Стандартні умови партнера: клієнт отримує −5%, партнер має 5% з тревелбуків
+ * і 3% з решти. Ті самі числа, що й у ручному оформленні в адмінці та в
+ * автоматичному зарахуванні фотографів, зібрані в одному місці, щоб заявки
+ * менеджерів не завели четвертий набір ставок.
+ */
+export const DEFAULT_PARTNER_TERMS = {
+  clientDiscount: 5,
+  travelbookRate: 5,
+  otherRate: 3,
+} as const;
 
 /**
  * Create the promo code + partner pair. Returns the partner row (including
@@ -76,7 +95,9 @@ export async function createAgencyPartner(admin: SupabaseClient, input: CreatePa
       created_by: 'agency-partner',
       notes: input.partnerKind === 'photographer'
         ? `Промокод фотографа ${input.name}`
-        : `Промокод тревел-агенції ${input.name}`,
+        : input.partnerKind === 'travel_blogger'
+          ? `Промокод блогера ${input.name}`
+          : `Промокод тревел-агенції ${input.name}`,
     })
     .select('id')
     .single();
@@ -97,6 +118,7 @@ export async function createAgencyPartner(admin: SupabaseClient, input: CreatePa
       status: 'active',
       partner_kind: input.partnerKind,
       source_request_id: input.sourceRequestId || null,
+      sales_manager_id: input.salesManagerId || null,
     })
     .select('*')
     .single();

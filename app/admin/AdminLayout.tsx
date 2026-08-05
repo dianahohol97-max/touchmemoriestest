@@ -10,7 +10,7 @@ import {
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
     Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target,
-    Home, MoreHorizontal, ChevronDown
+    Home, MoreHorizontal, ChevronDown, Handshake
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -91,6 +91,7 @@ const menuItems = [
     // Продажі — пошук нових партнерів і люди, які цим займаються
     { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <Users size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Оформлення партнерів', href: '/admin/partner-requests', icon: <Handshake size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing', group: 'sales' },
 
