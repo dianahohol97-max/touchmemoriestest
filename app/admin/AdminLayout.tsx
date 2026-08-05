@@ -10,7 +10,7 @@ import {
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
     Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target,
-    Home, MoreHorizontal
+    Home, MoreHorizontal, ChevronDown
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -34,55 +34,96 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
 }
 
+/**
+ * The sidebar has two independent groupings, and mixing them up is what made
+ * this menu unreadable.
+ *
+ *   section — the PERMISSION key. Roles are granted rights per section, so
+ *             these values must never be renamed or reassigned to "tidy up":
+ *             moving «Фотографи» out of 'catalog' would silently revoke it for
+ *             everyone whose role allows catalog.
+ *   group   — what the person actually looks for. Purely visual, safe to
+ *             rearrange, and grouped by the job to be done rather than by the
+ *             permission that happens to guard it.
+ *
+ * That is why «Фотографи» sits visually under «Клієнти та партнери» while
+ * keeping section 'catalog'.
+ */
+const GROUPS: { key: string; label: string }[] = [
+    { key: 'daily', label: 'Щодня' },
+    { key: 'catalog', label: 'Каталог' },
+    { key: 'partners', label: 'Клієнти та партнери' },
+    { key: 'sales', label: 'Продажі' },
+    { key: 'marketing', label: 'Маркетинг і листи' },
+    { key: 'content', label: 'Контент сайту' },
+    { key: 'finance', label: 'Фінанси' },
+    { key: 'settings', label: 'Налаштування' },
+];
+
 // Define menuItems outside component to avoid recreation on every render
 const menuItems = [
-    { name: 'Огляд', href: '/admin', icon: <LayoutDashboard size={20} />, section: 'analytics' },
-    { name: 'Аналітика', href: '/admin/analytics', icon: <BarChart2 size={20} />, section: 'analytics' },
-    { name: 'Товари', href: '/admin/products', icon: <ShoppingBag size={20} />, section: 'catalog' },
-    { name: 'Популярні товари', href: '/admin/popular-products', icon: <Star size={20} />, section: 'catalog' },
-    { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog' },
-    { name: 'Подарункові колекції', href: '/admin/gift-collections', icon: <Gift size={20} />, section: 'catalog' },
-    { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog' },
-    { name: 'Заявки B2B', href: '/admin/b2b-applications', icon: <UserPlus size={20} />, section: 'catalog' },
-    { name: 'Тревел-партнери', href: '/admin/agency-partners', icon: <Globe size={20} />, section: 'catalog' },
-    { name: 'Фотографи', href: '/admin/photographers', icon: <Image size={20} />, section: 'catalog' },
-    { name: 'Корпоративні запити', href: '/admin/corporate-requests', icon: <Building2 size={20} />, section: 'catalog' },
-    { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog' },
-    { name: 'Кабінет дизайнера', href: '/admin/designer', icon: <Palette size={20} />, section: 'designer' },
-    { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders' },
-    { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders' },
-    { name: 'Сертифікати', href: '/admin/certificates', icon: <Gift size={20} />, section: 'orders' },
-    { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production' },
-    { name: 'Кадрування (друк)', href: '/admin/kadruvannya', icon: <LayoutTemplate size={20} />, section: 'production' },
-    { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production' },
-    { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers' },
-    { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai' },
-    { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai' },
-    { name: 'Управління контентом', href: '/admin/content', icon: <LayoutTemplate size={20} />, section: 'content' },
-    { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content' },
-    { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content' },
-    { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Image size={20} />, section: 'content' },
-    { name: 'SEO-лендінги', href: '/admin/landing-pages', icon: <FileText size={20} />, section: 'content' },
-    { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content' },
-    { name: 'Дизайн Сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content' },
-    { name: 'Платежі', href: '/admin/payments', icon: <CreditCard size={20} />, section: 'finance' },
-    { name: 'Витрати', href: '/admin/expenses', icon: <TrendingDown size={20} />, section: 'finance' },
-    { name: 'Зарплати', href: '/admin/salary', icon: <Banknote size={20} />, section: 'finance' },
-    { name: 'Оплати', href: '/admin/settings/finance/banks', icon: <CreditCard size={20} />, section: 'finance' },
-    { name: 'Команда', href: '/admin/team', icon: <Users size={20} />, section: 'settings' },
-    { name: 'Ролі та права', href: '/admin/roles', icon: <Shield size={20} />, section: 'settings' },
-    { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings' },
-    { name: 'Нова Пошта', href: '/admin/settings/delivery/nova-poshta', icon: <Truck size={20} />, section: 'settings' },
-    { name: 'Міжнародна доставка', href: '/admin/settings/delivery/international', icon: <Globe size={20} />, section: 'settings' },
-    { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing' },
-    { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing' },
-    { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <UserPlus size={20} />, section: 'marketing' },
-    { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
-    { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
-    { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing' },
-    { name: 'Листи: редагувати', href: '/admin/email-automations', icon: <Mail size={20} />, section: 'marketing' },
-    { name: 'Листи: перегляд', href: '/admin/email-previews', icon: <Eye size={20} />, section: 'marketing' },
-    { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings' },
+    // Щодня — те, що відкривають щоранку
+    { name: 'Огляд', href: '/admin', icon: <LayoutDashboard size={20} />, section: 'analytics', group: 'daily' },
+    { name: 'Замовлення', href: '/admin/orders', icon: <ShoppingCart size={20} />, section: 'orders', group: 'daily' },
+    { name: 'Виробництво', href: '/admin/production', icon: <Factory size={20} />, section: 'production', group: 'daily' },
+    { name: 'Кабінет дизайнера', href: '/admin/designer', icon: <Palette size={20} />, section: 'designer', group: 'daily' },
+    { name: 'Макети клієнтів', href: '/admin/projects', icon: <Folder size={20} />, section: 'orders', group: 'daily' },
+    { name: 'Кадрування (друк)', href: '/admin/kadruvannya', icon: <LayoutTemplate size={20} />, section: 'production', group: 'daily' },
+    { name: 'Аналітика', href: '/admin/analytics', icon: <BarChart2 size={20} />, section: 'analytics', group: 'daily' },
+
+    // Каталог — усе, що продаємо
+    { name: 'Товари', href: '/admin/products', icon: <ShoppingBag size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Категорії', href: '/admin/categories', icon: <List size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Популярні товари', href: '/admin/popular-products', icon: <Star size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Подарункові колекції', href: '/admin/gift-collections', icon: <Gift size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Сертифікати', href: '/admin/certificates', icon: <CreditCard size={20} />, section: 'orders', group: 'catalog' },
+    { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production', group: 'catalog' },
+
+    // Клієнти та партнери — люди, а не товари
+    { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers', group: 'partners' },
+    { name: 'Фотографи', href: '/admin/photographers', icon: <Image size={20} />, section: 'catalog', group: 'partners' },
+    { name: 'Тревел-партнери', href: '/admin/agency-partners', icon: <Globe size={20} />, section: 'catalog', group: 'partners' },
+    { name: 'Заявки B2B', href: '/admin/b2b-applications', icon: <UserPlus size={20} />, section: 'catalog', group: 'partners' },
+    { name: 'Корпоративні запити', href: '/admin/corporate-requests', icon: <Building2 size={20} />, section: 'catalog', group: 'partners' },
+    { name: 'B2B Ціни', href: '/admin/role-pricing', icon: <DollarSign size={20} />, section: 'catalog', group: 'partners' },
+
+    // Продажі — пошук нових партнерів і люди, які цим займаються
+    { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <Users size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing', group: 'sales' },
+
+    // Маркетинг і листи
+    { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing', group: 'marketing' },
+    { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing', group: 'marketing' },
+    { name: 'Листи: редагувати', href: '/admin/email-automations', icon: <FileText size={20} />, section: 'marketing', group: 'marketing' },
+    { name: 'Листи: перегляд', href: '/admin/email-previews', icon: <Eye size={20} />, section: 'marketing', group: 'marketing' },
+    { name: 'AI Чат (Inbox)', href: '/admin/social-inbox', icon: <MessageSquare size={20} />, section: 'ai', group: 'marketing' },
+    { name: 'AI Налаштування', href: '/admin/settings/chatbot', icon: <Bot size={20} />, section: 'ai', group: 'marketing' },
+
+    // Контент сайту
+    { name: 'Управління контентом', href: '/admin/content', icon: <LayoutTemplate size={20} />, section: 'content', group: 'content' },
+    { name: 'Дизайн сайту', href: '/admin/theme-editor', icon: <Palette size={20} />, section: 'content', group: 'content' },
+    { name: 'Блог', href: '/admin/blog', icon: <FileText size={20} />, section: 'content', group: 'content' },
+    { name: 'Категорії блогу', href: '/admin/blog/categories', icon: <FolderTree size={20} />, section: 'content', group: 'content' },
+    { name: 'SEO-лендінги', href: '/admin/landing-pages', icon: <Globe size={20} />, section: 'content', group: 'content' },
+    { name: 'Відгуки (Stories)', href: '/admin/reviews', icon: <Star size={20} />, section: 'content', group: 'content' },
+    { name: 'Шаблони', href: '/admin/templates', icon: <MessageSquare size={20} />, section: 'content', group: 'content' },
+
+    // Фінанси
+    { name: 'Платежі', href: '/admin/payments', icon: <CreditCard size={20} />, section: 'finance', group: 'finance' },
+    { name: 'Витрати', href: '/admin/expenses', icon: <TrendingDown size={20} />, section: 'finance', group: 'finance' },
+    { name: 'Зарплати', href: '/admin/salary', icon: <Banknote size={20} />, section: 'finance', group: 'finance' },
+    { name: 'Рахунки для оплат', href: '/admin/settings/finance/banks', icon: <Banknote size={20} />, section: 'finance', group: 'finance' },
+
+    // Налаштування
+    { name: 'Команда', href: '/admin/team', icon: <Users size={20} />, section: 'settings', group: 'settings' },
+    { name: 'Ролі та права', href: '/admin/roles', icon: <Shield size={20} />, section: 'settings', group: 'settings' },
+    { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings', group: 'settings' },
+    { name: 'Нова Пошта', href: '/admin/settings/delivery/nova-poshta', icon: <Truck size={20} />, section: 'settings', group: 'settings' },
+    { name: 'Міжнародна доставка', href: '/admin/settings/delivery/international', icon: <Globe size={20} />, section: 'settings', group: 'settings' },
+    { name: 'Теги', href: '/admin/settings/tags', icon: <Tags size={20} />, section: 'settings', group: 'settings' },
 ];
 
 function AdminLayoutContent({ children, handleLogout }: { children: React.ReactNode, handleLogout: () => void }) {
@@ -90,16 +131,42 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
     const pathname = usePathname();
     const { hasPermission, isLoading, isAdmin } = usePermissions();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
     // Show all items while loading or when admin — never show empty menu
-    const filteredItems = (isLoading || isAdmin) ? menuItems : menuItems.filter(item => hasPermission(item.section, 'view'));
+    const permitted = (isLoading || isAdmin) ? menuItems : menuItems.filter(item => hasPermission(item.section, 'view'));
+    const q = query.trim().toLowerCase();
+    const filteredItems = q ? permitted.filter(i => i.name.toLowerCase().includes(q)) : permitted;
+
+    // Remember which groups are folded away between visits.
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('tm-admin-nav-collapsed');
+            if (saved) setCollapsed(JSON.parse(saved));
+        } catch { /* private mode, or a corrupted value — start expanded */ }
+    }, []);
+    const toggleGroup = (key: string) => {
+        setCollapsed(prev => {
+            const next = { ...prev, [key]: !prev[key] };
+            try { localStorage.setItem('tm-admin-nav-collapsed', JSON.stringify(next)); } catch { /* ignore */ }
+            return next;
+        });
+    };
 
     // Close mobile menu on route change
     useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-    // Route Protection
+    // Route Protection.
+    //
+    // The match must be the LONGEST matching href, not the first: every admin
+    // path starts with '/admin', so a plain .find() always returned the «Огляд»
+    // row and every page was guarded by the analytics permission instead of its
+    // own.
     useEffect(() => {
         if (!isLoading && pathname !== '/admin' && pathname !== '/admin/login' && pathname !== '/admin/no-access') {
-            const currentItem = menuItems.find(item => pathname.startsWith(item.href));
+            const currentItem = menuItems
+                .filter(item => pathname === item.href || pathname.startsWith(`${item.href}/`))
+                .sort((a, b) => b.href.length - a.href.length)[0];
             if (currentItem && !hasPermission(currentItem.section, 'view')) {
                 router.push('/admin/no-access');
             }
@@ -114,46 +181,78 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
         );
     }
 
-    const SECTION_LABELS: Record<string, string> = {
-        analytics: 'Аналітика', catalog: 'Каталог', designer: 'Дизайнер',
-        orders: 'Замовлення', production: 'Виробництво', customers: 'Клієнти',
-        ai: 'AI', content: 'Контент', finance: 'Фінанси',
-        marketing: 'Маркетинг', settings: 'Налаштування',
-    };
-
-    const SidebarContent = () => {
-        let lastSection = '';
-        return (
+    // A plain JSX value, NOT a component: declaring a component inside the
+    // render remounts it on every keystroke, which would blur the search box
+    // after each character.
+    const sidebarContent = (
             <>
+                {/* Forty-plus destinations are faster to type than to scan. */}
+                <div style={{ marginBottom: 10, flexShrink: 0 }}>
+                    <input
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                        placeholder="Пошук у меню…"
+                        style={{
+                            width: '100%', boxSizing: 'border-box', padding: '9px 12px',
+                            borderRadius: 6, border: '1px solid rgba(255,255,255,0.14)',
+                            background: 'rgba(255,255,255,0.06)', color: '#e2e8f0', fontSize: 13.5,
+                            outline: 'none',
+                        }}
+                    />
+                </div>
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    {filteredItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        const showHeader = item.section !== lastSection;
-                        if (showHeader) lastSection = item.section;
+                    {GROUPS.map(group => {
+                        const items = filteredItems.filter(i => i.group === group.key);
+                        if (items.length === 0) return null;
+                        // A search shows everything it found; the group a person
+                        // is currently working in never hides itself either.
+                        const hasActive = items.some(i => pathname === i.href || pathname.startsWith(`${i.href}/`));
+                        const open = Boolean(q) || hasActive || !collapsed[group.key];
                         return (
-                            <div key={item.href}>
-                                {showHeader && (
-                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '16px 16px 6px' }}>
-                                        {SECTION_LABELS[item.section] || item.section}
-                                    </div>
-                                )}
-                                <Link
-                                    href={item.href}
-                                    className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                            <div key={group.key}>
+                                <button
+                                    onClick={() => toggleGroup(group.key)}
                                     style={{
-                                        display: 'flex', alignItems: 'center', gap: '12px',
-                                        padding: '9px 16px', borderRadius: '3px',
-                                        color: isActive ? 'white' : '#94a3b8',
-                                        backgroundColor: isActive ? '#263A99' : 'transparent',
-                                        textDecoration: 'none', fontSize: '14px',
+                                        display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        fontSize: '10px', fontWeight: 700, color: '#64748b',
+                                        textTransform: 'uppercase', letterSpacing: '0.08em',
+                                        padding: '16px 16px 6px', textAlign: 'left',
                                     }}
                                 >
-                                    {item.icon}
-                                    {item.name}
-                                </Link>
+                                    <ChevronDown
+                                        size={12}
+                                        style={{ transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .15s' }}
+                                    />
+                                    {group.label}
+                                    {!open && <span style={{ marginLeft: 'auto', opacity: .7 }}>{items.length}</span>}
+                                </button>
+                                {open && items.map(item => {
+                                    const isActive = pathname === item.href;
+                                    return (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: '12px',
+                                                padding: '9px 16px', borderRadius: '3px',
+                                                color: isActive ? 'white' : '#94a3b8',
+                                                backgroundColor: isActive ? '#263A99' : 'transparent',
+                                                textDecoration: 'none', fontSize: '14px',
+                                            }}
+                                        >
+                                            {item.icon}
+                                            {item.name}
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         );
                     })}
+                    {filteredItems.length === 0 && (
+                        <div style={{ padding: '16px', color: '#64748b', fontSize: 13 }}>Нічого не знайшлося</div>
+                    )}
                 </nav>
                 <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '24px' }}>
                     <button onClick={handleLogout} style={{
@@ -167,8 +266,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                     </button>
                 </div>
             </>
-        );
-    };
+    );
 
     return (
         <>
@@ -218,7 +316,7 @@ function AdminLayoutContent({ children, handleLogout }: { children: React.ReactN
                     <span style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '0.05em' }}>TM ADMIN</span>
                 </div>
 
-                <SidebarContent />
+                {sidebarContent}
             </aside>
 
             {/*  Main content  */}

@@ -111,9 +111,13 @@ export default function SalesManagersPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => { navigator.clipboard.writeText(link); toast.success('Посилання скопійовано'); }}
+                                    <a href={`/uk/sales/${m.cabinet_token}`} target="_blank" rel="noreferrer"
                                         className="px-3 py-2 border rounded-lg text-sm flex items-center gap-2">
-                                        <Link2 size={15} /> Кабінет
+                                        <Link2 size={15} /> Відкрити кабінет
+                                    </a>
+                                    <button onClick={() => { navigator.clipboard.writeText(link); toast.success('Посилання скопійовано'); }}
+                                        className="px-3 py-2 border rounded-lg text-sm">
+                                        Скопіювати
                                     </button>
                                     <button onClick={() => patch({ manager_id: m.id, is_active: !m.is_active }, m.is_active ? 'Вимкнено' : 'Увімкнено')}
                                         className="px-3 py-2 border rounded-lg text-sm">
