@@ -41,6 +41,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (typeof body.contact_name === 'string') patch.contact_name = body.contact_name.slice(0, 120);
     if (typeof body.email === 'string') patch.email = body.email.trim().toLowerCase().slice(0, 200) || null;
     if (typeof body.phone === 'string') patch.phone = body.phone.slice(0, 50);
+    // Роздати зібрані ліди менеджерам можна просто тут: імпорт із Google
+    // створює контакти без менеджера, і зазвичай саме звідси їх і розподіляють.
+    // null повертає лід у спільний пул, звідки його може взяти будь-хто.
+    if ('sales_manager_id' in body) {
+        patch.sales_manager_id = body.sales_manager_id ? String(body.sales_manager_id) : null;
+    }
 
     const admin = getAdminClient();
     const { error } = await admin.from('leads').update(patch).eq('id', id);

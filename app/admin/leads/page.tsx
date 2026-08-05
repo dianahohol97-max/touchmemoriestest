@@ -31,7 +31,7 @@ interface Lead {
     id: string; business_type: string; business_name: string; contact_name: string | null;
     email: string | null; phone: string | null; website: string | null; instagram: string | null;
     city: string | null; source: string; status: string; offer_sent_at: string | null;
-    notes: string | null; created_at: string;
+    notes: string | null; created_at: string; sales_manager_id?: string | null;
 }
 interface Message {
     id: string; direction: string; subject: string | null; body: string | null;
@@ -185,6 +185,26 @@ function LeadDetail({ lead, messages, threadLoading, onClose, onStatus, onSent, 
     const [subject, setSubject] = useState('');
     const [body, setBody] = useState('');
     const [sending, setSending] = useState(false);
+    // Кому віддати цього ліда. Зібрані через Google контакти приходять без
+    // менеджера, і роздають їх зазвичай саме звідси; «нікому» повертає ліда у
+    // спільний пул, звідки менеджер бере його сам.
+    const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
+
+    useEffect(() => {
+        fetch('/api/admin/sales-managers')
+            .then(r => r.ok ? r.json() : null)
+            .then(j => j && setManagers((j.managers || []).map((m: any) => ({ id: m.id, name: m.name }))))
+            .catch(() => { /* ignore */ });
+    }, []);
+
+    const assign = async (managerId: string) => {
+        const res = await fetch(`/api/admin/leads/${lead.id}`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sales_manager_id: managerId || null }),
+        });
+        if (res.ok) { toast.success(managerId ? 'Ліда призначено' : 'Ліда повернуто у спільний пул'); onChanged(); }
+        else toast.error('Не вдалося зберегти');
+    };
 
     const send = async () => {
         setSending(true);
@@ -226,6 +246,16 @@ function LeadDetail({ lead, messages, threadLoading, onClose, onStatus, onSent, 
                 {lead.website && <Row icon={<Globe size={14} />}><a href={lead.website} target="_blank" rel="noopener noreferrer" style={{ color: '#3d56d6' }}>{lead.website}</a></Row>}
                 {lead.instagram && <Row icon={<Instagram size={14} />}>{lead.instagram}</Row>}
                 {lead.city && <Row icon={<MapPin size={14} />}>{lead.city}</Row>}
+            </div>
+
+            {/* Кому належить лід */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12.5, color: '#94a3b8', fontWeight: 700 }}>Менеджер:</span>
+                <select value={lead.sales_manager_id || ''} onChange={e => assign(e.target.value)}
+                    style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 10px', background: '#fff', color: '#475569' }}>
+                    <option value="">Вільний — у спільному пулі</option>
+                    {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
             </div>
 
             {/* Status pipeline */}

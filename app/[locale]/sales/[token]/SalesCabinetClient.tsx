@@ -128,7 +128,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {([['leads', `Мої ліди (${leads.length})`], ['directory', 'Зайняті контакти'], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
+        {([['leads', `Мої ліди (${leads.length})`], ['directory', 'Спільна база'], ['money', `Нарахування (${commissions.length})`]] as const).map(([k, t]) => (
           <button key={k} onClick={() => setTab(k)}
             style={{ ...(tab === k ? btn : btnGhost), padding: '9px 16px' }}>{t}</button>
         ))}
@@ -223,7 +223,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
         </>
       )}
 
-      {tab === 'directory' && <Directory token={token} />}
+      {tab === 'directory' && <Directory token={token} onTaken={load} flash={flash} />}
 
       {tab === 'money' && (
         <div style={card}>
@@ -640,40 +640,78 @@ function PartnerActivation({ token, lead, request, partner, onDone, flash }: {
   );
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  google_places: 'з Google',
+  manager: 'додав менеджер',
+  manual: 'додано вручну',
+  inbound: 'написали нам',
+};
+
 /**
- * Зайняті контакти — усі ліди всіх менеджерів.
+ * Спільна база контактів: усе, що є в системі, крім чужих контактних даних.
  *
- * Потрібно рівно для одного: перевірити студію перед тим, як їй написати, щоб
- * вона не отримала два однакові листи від тієї самої компанії. Тому з чужого
- * ліда видно назву, тип, місто, нікнейм і хто його веде, а пошта, телефон,
- * нотатки й переписка не приходять сюди взагалі — вони для цієї задачі не
- * потрібні.
+ * Дві задачі. Вільні контакти — це переважно імпорт із Google, який раніше
+ * лежав тільки в адмінці й до менеджерів не доходив; тут їх видно й можна
+ * взяти в роботу. Зайняті контакти потрібні, щоб перевірити студію перед тим,
+ * як їй написати, і вона не отримала два однакові листи від нас.
+ *
+ * З чужого ліда видно назву, тип, місто, нікнейм, статус і хто його веде.
+ * Пошта, телефон, нотатки й переписка сюди не приходять узагалі — свої
+ * контакти менеджер бачить повністю у «Моїх лідах», щойно візьме їх у роботу.
  */
-function Directory({ token }: { token: string }) {
+function Directory({ token, onTaken, flash }: {
+  token: string; onTaken: () => Promise<void>; flash: (m: string) => void;
+}) {
   const [rows, setRows] = useState<any[] | null>(null);
   const [q, setQ] = useState('');
+  const [view, setView] = useState<'free' | 'all'>('free');
   const [loading, setLoading] = useState(true);
+  const [taking, setTaking] = useState<string | null>(null);
 
-  const load = useCallback(async (query: string) => {
+  const load = useCallback(async (query: string, onlyFree: boolean) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/sales/directory?token=${encodeURIComponent(token)}&q=${encodeURIComponent(query)}`);
+      const res = await fetch(
+        `/api/sales/directory?token=${encodeURIComponent(token)}&q=${encodeURIComponent(query)}${onlyFree ? '&free=1' : ''}`,
+      );
       if (res.ok) setRows((await res.json()).leads || []);
     } finally { setLoading(false); }
   }, [token]);
 
   useEffect(() => {
-    const t = setTimeout(() => load(q), q ? 350 : 0);
+    const t = setTimeout(() => load(q, view === 'free'), q ? 350 : 0);
     return () => clearTimeout(t);
-  }, [q, load]);
+  }, [q, view, load]);
+
+  const take = async (id: string) => {
+    setTaking(id);
+    try {
+      const res = await fetch('/api/sales/directory', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, lead_id: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) { alert(json?.error || 'Не вдалося взяти контакт'); }
+      else { flash('Контакт у вас — він зʼявився у «Моїх лідах»'); await onTaken(); }
+      await load(q, view === 'free');
+    } finally { setTaking(null); }
+  };
 
   return (
     <div style={card}>
-      <h2 style={sectionTitle}>Зайняті контакти</h2>
+      <h2 style={sectionTitle}>Спільна база</h2>
       <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6 }}>
-        Тут усі контакти, які вже хтось веде. Перевірте студію перед тим, як писати, щоб вона не отримала
-        два однакові листи від нас. Чужі контактні дані й переписка не показуються — лише те, що контакт зайнятий.
+        Вільні контакти — це те, що ми зібрали самі, переважно з Google. Візьміть контакт у роботу, і він
+        зʼявиться у «Моїх лідах» разом із поштою й телефоном. Зайняті показані, щоб ви не написали тому,
+        кому вже пише колега; чужі контактні дані й переписка тут не показуються.
       </p>
+
+      <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap' }}>
+        {([['free', 'Вільні контакти'], ['all', 'Усі контакти']] as const).map(([v, t]) => (
+          <button key={v} onClick={() => setView(v)}
+            style={{ ...(view === v ? btn : btnGhost), padding: '8px 14px', fontSize: 13 }}>{t}</button>
+        ))}
+      </div>
 
       <input
         style={{ ...input, marginTop: 12 }}
@@ -686,7 +724,9 @@ function Directory({ token }: { token: string }) {
 
       {!loading && rows && rows.length === 0 && (
         <div style={{ color: '#8B8378', fontSize: 14, marginTop: 12 }}>
-          {q ? 'Такого контакту ще ніхто не веде — можна писати.' : 'Поки що жодного ліда немає.'}
+          {view === 'free'
+            ? 'Вільних контактів зараз немає — усе розібрали.'
+            : q ? 'Такого контакту в базі немає, можна писати.' : 'Поки що жодного контакту немає.'}
         </div>
       )}
 
@@ -698,7 +738,7 @@ function Directory({ token }: { token: string }) {
               <div key={r.id} style={{
                 border: `1px solid ${r.mine ? '#c9d0ee' : '#eee6d8'}`, borderRadius: 12, padding: '10px 13px',
                 background: r.mine ? '#f7f9ff' : '#fff',
-                display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+                display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center',
               }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 14 }}>{r.business_name}</div>
@@ -706,14 +746,22 @@ function Directory({ token }: { token: string }) {
                     {TYPE_LABELS[r.business_type] || 'Інше'}
                     {r.city && ` · ${r.city}`}
                     {r.instagram && ` · @${r.instagram}`}
+                    {r.source && SOURCE_LABELS[r.source] && ` · ${SOURCE_LABELS[r.source]}`}
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', fontSize: 12.5 }}>
-                  <div style={{ fontWeight: 800, color: sm.color }}>{sm.label}</div>
-                  <div style={{ color: '#8B8378', marginTop: 2 }}>
-                    {r.mine ? 'ваш контакт' : `веде ${r.manager_name || 'інший менеджер'}`}
+                {r.free ? (
+                  <button style={{ ...btn, padding: '8px 14px', fontSize: 13 }} disabled={taking === r.id}
+                    onClick={() => take(r.id)}>
+                    {taking === r.id ? 'Беремо…' : 'Взяти в роботу'}
+                  </button>
+                ) : (
+                  <div style={{ textAlign: 'right', fontSize: 12.5 }}>
+                    <div style={{ fontWeight: 800, color: sm.color }}>{sm.label}</div>
+                    <div style={{ color: '#8B8378', marginTop: 2 }}>
+                      {r.mine ? 'ваш контакт' : `веде ${r.manager_name || 'інший менеджер'}`}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
