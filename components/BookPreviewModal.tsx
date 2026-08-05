@@ -422,8 +422,12 @@ export function BookPreviewModal({
         {renderStickers(stickers, cW)}
         {renderQR(qrOverlays[pageIdx])}
 
-        {/* Page number */}
-        <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', fontSize: 8, color: 'rgba(0,0,0,0.2)', pointerEvents: 'none' }}>{pageIdx > 0 ? pageIdx : ''}</div>
+        {/* Page number — preview-only orientation aid. NEVER in print: the
+            render service screenshots this exact DOM, so the faint digit
+            landed on the printed page («циферки, які не прибираються»). */}
+        {!isPrint && (
+          <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', fontSize: 8, color: 'rgba(0,0,0,0.2)', pointerEvents: 'none' }}>{pageIdx > 0 ? pageIdx : ''}</div>
+        )}
       </div>
     );
   };
@@ -501,7 +505,9 @@ export function BookPreviewModal({
             }}>{tb.text}</span>
           </div>
         ))}
-        {backTexts.length === 0 && !backPhoto && (
+        {/* «ЗАДНЯ» is a preview-only label. In print mode it ended up ON the
+            physical back cover — a technical word on a customer's book. */}
+        {!isPrint && backTexts.length === 0 && !backPhoto && (
           <span style={{ color: 'rgba(0,0,0,0.15)', fontSize: 9, writingMode: 'vertical-rl', letterSpacing: 3, textTransform: 'uppercase', zIndex: 1 }}>ЗАДНЯ</span>
         )}
       </div>

@@ -926,7 +926,7 @@ export default function BookLayoutEditor() {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
-  const { addItem, replaceItem } = useCartStore();
+  const { addItem, replaceItem, closeDrawer } = useCartStore();
   // Verified B2B partners (photographers etc.) get their standing category
   // discount in the editor too — it applied only on the plain product page,
   // while books are actually bought THROUGH the editor.
@@ -3477,10 +3477,18 @@ export default function BookLayoutEditor() {
         await Promise.all(Array.from({ length: Math.min(3, Math.max(1, photos.length)) }, worker));
       }
 
+      // Real product type, mirroring the save-design mapping. The hardcoded
+      // 'photobook' here made the print pipeline treat travel book drafts as
+      // fabric-cover photobooks and drop their printed (ready) covers.
+      const _ptSlug = (config?.productSlug || '').toLowerCase();
+      const productTypeForSave = _ptSlug.includes('travel') ? 'travelbook'
+        : (_ptSlug.includes('magazine') || _ptSlug.includes('zhurnal') || _ptSlug.includes('fotozhurnal') || _ptSlug.includes('journal')) ? 'journal'
+        : (_ptSlug.includes('wish') || _ptSlug.includes('pobazhan') || _ptSlug.includes('guest')) ? 'wishbook'
+        : 'photobook';
       const row = {
         user_id: user.id,
         name,
-        product_type: 'photobook',
+        product_type: productTypeForSave,
         format: sizeLabel,
         cover_type: config?.selectedCoverType || '',
         total_pages: contentPages,
@@ -3671,6 +3679,11 @@ export default function BookLayoutEditor() {
     if (uploadState && !uploadState.active) {
       const timer = setTimeout(() => {
         setUploadState(null);
+        // addItem auto-opens the cart drawer; the success modal's full-screen
+        // backdrop (zIndex 9999) then sat ON TOP of the drawer (zIndex 101),
+        // so the drawer's «Оформити замовлення» swallowed every click. One
+        // surface at a time: the modal owns this moment.
+        closeDrawer();
         setShowCartModal(true);
       }, 1500);
       return () => clearTimeout(timer);
@@ -4849,6 +4862,7 @@ export default function BookLayoutEditor() {
     // After snapshots and upload, always show the cart modal —
     // either the PDF made it through or not, the order itself is
     // already in the cart and we should let the user proceed.
+    closeDrawer(); // the modal owns this moment — see the effect above
     setShowCartModal(true);
   };
 
@@ -5046,9 +5060,13 @@ export default function BookLayoutEditor() {
   // getTravelBookPrice's own lamination handling.
   // The catalog page passes this as `page_lamination` (underscore) — reading
   // only 'page-lamination' meant real lamination was never billed here.
+  // NEVER fall back to the bare `lamination` param: that one is the COVER
+  // lamination finish («Матова»/«Глянцева» on printed covers), and treating
+  // it as page lamination charged +7 ₴ × сторінка to every travel book with
+  // a laminated cover (Diana's «+84 ₴ доплата» on a 12-page book that had no
+  // page lamination at all).
   const pageLamRaw = searchParams?.get('page_lamination')
     || searchParams?.get('page-lamination')
-    || searchParams?.get('lamination')
     || '';
   const hasPageLamination = isPageLaminationSelected(pageLamRaw);
   // Bill lamination per BILLABLE page (photo pages), not the 2 extra forzats.
@@ -5162,7 +5180,10 @@ export default function BookLayoutEditor() {
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ textAlign:'right', paddingRight:4 }}>
-              <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? t('constructor.cover_only') : `${pages.length-1} стор. (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
+              {/* Count the pages the customer PAYS for — the raw physical count
+                  includes the 2 forzat pages, so a «12 сторінок» order read as
+                  «14 стор.» and looked like a wrong charge (Diana, 2026-08-05). */}
+              <div style={{ fontSize:11, color:'#94a3b8' }}>{isWishbook ? t('constructor.cover_only') : `${billableContentPages} стор.${usesForzatExtra ? ' + 2 форзаци' : ''} (${Math.ceil((pages.length-1)/2)} розворот${Math.ceil((pages.length-1)/2)===1?'':'и'})`}</div>
               {isGraduation && (
                 <div style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>Мінімум {GRADUATION_MIN_QTY} шт · {dynamicPrice * GRADUATION_MIN_QTY} ₴ за {GRADUATION_MIN_QTY}</div>
               )}

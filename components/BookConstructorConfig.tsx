@@ -1110,6 +1110,10 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (enableKalka) params.set('tracing', 'with');
         if (enableKalka && kalkaText) params.set('kalka_text', encodeURIComponent(kalkaText));
         if (selectedLamination) params.set('lamination', selectedLamination);
+        // Page lamination is a SEPARATE paid option (+7 ₴/стор). Without this
+        // forward the editor never saw it and the surcharge was silently lost
+        // (it must not be inferred from the cover `lamination` param above).
+        if (isPageLaminationSelected(selectedPageLamination)) params.set('page_lamination', selectedPageLamination);
         if (selectedDecorationType !== 'none') params.set('decoration', selectedDecorationType);
         if (selectedDecorationVariant) params.set('decoration_variant', selectedDecorationVariant);
         if (selectedDecorationType !== 'none' && selectedDecorationColor) params.set('decoration_color', selectedDecorationColor);
