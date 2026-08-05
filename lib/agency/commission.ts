@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { accrueOrderCommission } from '@/lib/sales/commission';
 
 /**
  * The PREMIUM commission bucket — earns travelbook_rate (default 5%); every
@@ -57,14 +58,6 @@ export async function processAgencyCommission(
     .maybeSingle();
   if (!agency || agency.status !== 'active') return 0;
 
-  // Already recorded for this order? (idempotency)
-  const { data: existing } = await admin
-    .from('agency_commissions')
-    .select('id')
-    .eq('order_id', orderId)
-    .maybeSingle();
-  if (existing) return 0;
-
   // Split items into travelbook vs other subtotals.
   let travelbookSubtotal = 0;
   let otherSubtotal = 0;
@@ -73,6 +66,27 @@ export async function processAgencyCommission(
     if (isPremiumRateItem(item)) travelbookSubtotal += total;
     else otherSubtotal += total;
   }
+
+  // The sales manager who brought this partner earns their percentage of the
+  // same order. Deliberately BEFORE the agency idempotency check and in its
+  // own try: it has its own UNIQUE guard, so a re-run can still create a
+  // missing manager accrual (attribution is sometimes set after the fact), and
+  // a failure here must never stop the agency from being credited.
+  try {
+    await accrueOrderCommission(admin, {
+      orderId, promoCode: code, orderTotal: travelbookSubtotal + otherSubtotal,
+    });
+  } catch (e) {
+    console.error('[sales-commission] order accrual failed (agency commission unaffected):', e);
+  }
+
+  // Already recorded for this order? (idempotency)
+  const { data: existing } = await admin
+    .from('agency_commissions')
+    .select('id')
+    .eq('order_id', orderId)
+    .maybeSingle();
+  if (existing) return 0;
 
   const tbRate = Number(agency.travelbook_rate) || 0;
   const otherRate = Number(agency.other_rate) || 0;

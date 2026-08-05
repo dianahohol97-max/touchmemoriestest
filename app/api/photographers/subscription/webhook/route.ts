@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { monoInvoiceStatus } from '@/lib/photographers/payments';
 import { getPlan } from '@/lib/photographers/plans';
+import { accrueGalleryCommission } from '@/lib/sales/commission';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     const admin = getAdminClient();
     const { data: sub } = await admin
       .from('photographer_subscriptions')
-      .select('id, photographer_id, plan, status')
+      .select('id, photographer_id, plan, status, amount_uah')
       .eq('invoice_id', invoiceId)
       .maybeSingle();
     if (!sub) return NextResponse.json({ ok: true });
@@ -73,6 +74,20 @@ export async function POST(req: Request) {
       .from('photographer_subscriptions')
       .update({ status: 'paid', paid_at: new Date().toISOString() })
       .eq('id', sub.id);
+
+    // The sales manager who brought this photographer earns their share of the
+    // plan. Isolated: the photographer's plan is already granted above and must
+    // not be rolled back by a bookkeeping failure.
+    try {
+      await accrueGalleryCommission(admin, {
+        subscriptionId: sub.id,
+        photographerId: sub.photographer_id,
+        amountUah: Number(sub.amount_uah) || 0,
+        planName: getPlan(sub.plan).name,
+      });
+    } catch (e) {
+      console.error('[sales-commission] gallery accrual failed (plan still granted):', e);
+    }
 
     console.log('[photographer-subscription] granted', {
       photographer: sub.photographer_id, plan: getPlan(sub.plan).name, expiresAt,

@@ -76,6 +76,7 @@ const menuItems = [
     { name: 'Міжнародна доставка', href: '/admin/settings/delivery/international', icon: <Globe size={20} />, section: 'settings' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing' },
     { name: 'Ліди (B2B)', href: '/admin/leads', icon: <Target size={20} />, section: 'marketing' },
+    { name: 'Менеджери з продажів', href: '/admin/sales-managers', icon: <UserPlus size={20} />, section: 'marketing' },
     { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing' },
     { name: 'Автоматизації', href: '/admin/automations', icon: <Zap size={20} />, section: 'marketing' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing' },
