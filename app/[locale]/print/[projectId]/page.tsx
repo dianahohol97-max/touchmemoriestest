@@ -202,9 +202,17 @@ export default function PrintPage() {
   // the PRODUCT_SIZE fallback above (derive from product_type when config is empty).
   const PRINTED_COVER_TYPES = new Set(['travelbook', 'magazine', 'magazine-a4', 'journal', 'zhurnal', 'wishbook']);
   const coverTypeStr = String(config.selectedCoverType || config.coverType || '');
+  // product_type alone is NOT enough: editor drafts were historically saved
+  // with a hardcoded product_type='photobook' regardless of the real product,
+  // so a travel book draft failed every check here, rendered down the
+  // fabric-cover branch and IGNORED its ready cover (printedBgImage) — the
+  // «Тернопіль» cover came out as a blank sheet with a «ЗАДНЯ» watermark.
+  // The saved config carries the true slug, so derive from it too.
+  const productSlugStr = String(config.productSlug || '').toLowerCase();
   const isPrintedCover = !!config.isPrinted
     || /друков|printed/i.test(coverTypeStr)
-    || PRINTED_COVER_TYPES.has(String(project.product_type || '').toLowerCase());
+    || PRINTED_COVER_TYPES.has(String(project.product_type || '').toLowerCase())
+    || /travel|magazine|zhurnal|fotozhurnal|journal|wish|guest|pobazhan/.test(productSlugStr);
 
   const common = {
     pages, photos, propW: pw, propH: ph,

@@ -179,6 +179,47 @@ app.post('/render', async (req, res) => {
       _slug.includes('zhurnal') ||
       _slug.includes('fotozhurnal');
 
+    // ── Empty forzats stay out of the print files ─────────────────────────
+    // Travel books / magazines carry 2 EXTRA physical pages for the forzats
+    // (endpapers): content pages 1 and last. Printing on them is a paid
+    // option; when the customer left them untouched, the workshop must not
+    // receive blank page files for them («якщо форзаців немає — щоб взагалі
+    // не вантажилися», Diana 2026-08-05). Detect the forzats-extra shape the
+    // same way the editor does (content == ordered + 2), check the pages are
+    // genuinely empty (no slots, texts or overlays), and renumber the
+    // remaining pages so the workshop still gets a continuous 01..NN set.
+    const pagesData: any[] = Array.isArray(project?.pages_data) ? project.pages_data : [];
+    const overlaysData = project?.overlays_data || {};
+    const contentPageCount = Math.max(0, pagesData.length - 1);
+    const orderedPages = parseInt(String(config?.selectedPageCount || '').match(/\d+/)?.[0] || '0', 10) || 0;
+    const hasForzatExtra = splitToPages && orderedPages > 0 && contentPageCount >= orderedPages + 2;
+    const pageHasContent = (idx: number) => {
+      const p = pagesData[idx];
+      if (!p) return false;
+      if ((p.slots || []).some((s: any) => s?.photoId)) return true;
+      if ((p.textBlocks || []).length > 0) return true;
+      if (((overlaysData.freeSlots || {})[idx] || []).length > 0) return true;
+      if (((overlaysData.pageStickers || {})[idx] || []).length > 0) return true;
+      if (((overlaysData.pageShapes || {})[idx] || []).length > 0) return true;
+      if (((overlaysData.qrOverlays || {})[idx] || []).length > 0) return true;
+      if ((overlaysData.pageBgs || {})[idx]) return true;
+      return false;
+    };
+    const skipPageNos = new Set<number>();
+    if (hasForzatExtra) {
+      for (const idx of [1, contentPageCount]) {
+        if (!pageHasContent(idx)) skipPageNos.add(idx);
+      }
+      if (skipPageNos.size > 0) {
+        console.log(`[render] empty forzat pages excluded from export: ${Array.from(skipPageNos).join(', ')}`);
+      }
+    }
+    const renumberPage = (pageNo: number) => {
+      let shift = 0;
+      for (const s of skipPageNos) if (s < pageNo) shift++;
+      return pageNo - shift;
+    };
+
     // Derive the user/order path so we store next to the originals. Books store
     // under .../originals/...; calendars store originals in order-files under
     // {user}/{cartItemId}/... — handle both so output lands in a sane folder.
@@ -486,6 +527,10 @@ app.post('/render', async (req, res) => {
             { left: halfW, width: contentPxW - halfW, pageNo: leftPageNo + 1 },
           ];
           for (const h of halves) {
+            if (skipPageNos.has(h.pageNo)) {
+              console.log(`[render] page ${h.pageNo}: empty forzat — not exported`);
+              continue;
+            }
             const half = await sharp(scaled)
               .extract({ left: h.left, top: 0, width: h.width, height: contentPxH })
               .png({ compressionLevel: 1 })
@@ -495,7 +540,7 @@ app.post('/render', async (req, res) => {
               .withMetadata({ density: DPI })
               .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
               .toBuffer();
-            const storagePath = `${orderPrefix}/print/${String(h.pageNo).padStart(2, '0')}_page.jpg`;
+            const storagePath = `${orderPrefix}/print/${String(renumberPage(h.pageNo)).padStart(2, '0')}_page.jpg`;
             const { error: upErr } = await supabase.storage
               .from(STORAGE_BUCKET)
               .upload(storagePath, pageJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
