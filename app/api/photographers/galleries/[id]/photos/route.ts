@@ -56,7 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: `«${file.name}» не є зображенням` }, { status: 400 });
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      return NextResponse.json({ error: `«${file.name}» більший за 25 МБ` }, { status: 400 });
+      return NextResponse.json({ error: `«${file.name}» більший за ${Math.round(MAX_PHOTO_BYTES / 1024 / 1024)} МБ` }, { status: 400 });
     }
     // Storage plan limit. Checked per file so a long batch stops exactly at
     // the cap instead of overshooting it; 402 tells the cabinet to show the

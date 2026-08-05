@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { getPhotographerByToken, brandingPath, publicUrl, GALLERY_BUCKET, MAX_PHOTO_BYTES } from '@/lib/photographers/helpers';
+import { getPhotographerByToken, brandingPath, publicUrl, GALLERY_BUCKET, MAX_BRANDING_BYTES } from '@/lib/photographers/helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   // (stored XSS on the photographer's public landing page).
   const ALLOWED_IMG = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
   if (!ALLOWED_IMG.includes(file.type)) return NextResponse.json({ error: 'Підтримуються JPG, PNG, WEBP, GIF, HEIC' }, { status: 400 });
-  if (file.size > MAX_PHOTO_BYTES) return NextResponse.json({ error: 'Файл більший за 25 МБ' }, { status: 400 });
+  if (file.size > MAX_BRANDING_BYTES) return NextResponse.json({ error: `Файл більший за ${Math.round(MAX_BRANDING_BYTES / 1024 / 1024)} МБ` }, { status: 400 });
 
   const portfolio: string[] = Array.isArray(photographer.portfolio) ? photographer.portfolio : [];
   if (kind === 'portfolio' && portfolio.length >= MAX_PORTFOLIO) {

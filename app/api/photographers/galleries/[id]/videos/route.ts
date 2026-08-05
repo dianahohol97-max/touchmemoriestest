@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
   getPhotographerByToken, galleryPhotoPath,
-  MAX_VIDEO_BYTES, MAX_PHOTOS_PER_GALLERY,
+  MAX_VIDEO_BYTES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
 import { presignUpload, fileExists, fileUrl, activeProvider } from '@/lib/photographers/storage';
 import { checkQuota } from '@/lib/photographers/usage';
@@ -25,8 +25,11 @@ async function ownGallery(token: string, galleryId: string) {
 }
 
 /**
- * Video upload happens in two stages because multipart through a Vercel
- * function is capped at ~4.5 MB while videos run to hundreds:
+ * Direct upload for any file too big to pass through a Vercel function —
+ * every video, and photos above ~4 MB (a full-frame JPEG easily exceeds that,
+ * which is why the advertised 25 MB photo limit was never actually reachable
+ * through the multipart route). Two stages, because multipart through a
+ * function is capped at ~4.5 MB:
  *   stage 'sign'    → mint a short-lived signed upload URL; the browser PUTs
  *                     the file straight to Supabase Storage.
  *   stage 'confirm' → after the PUT succeeds, verify the object really exists
@@ -51,11 +54,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const fileName = String(body.file_name || 'video.mp4');
     const size = Number(body.size || 0);
     const contentType = String(body.content_type || '');
-    if (!contentType.startsWith('video/')) {
-      return NextResponse.json({ error: `«${fileName}» не є відео` }, { status: 400 });
+    const isVideo = contentType.startsWith('video/');
+    const isPhoto = contentType.startsWith('image/');
+    if (!isVideo && !isPhoto) {
+      return NextResponse.json({ error: `«${fileName}» не є фото чи відео` }, { status: 400 });
     }
-    if (!size || size > MAX_VIDEO_BYTES) {
-      return NextResponse.json({ error: `«${fileName}» більший за ${Math.round(MAX_VIDEO_BYTES / 1024 / 1024)} МБ` }, { status: 400 });
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
+    if (!size || size > maxBytes) {
+      const limit = maxBytes >= 1024 ** 3
+        ? `${Math.round(maxBytes / 1024 ** 3)} ГБ`
+        : `${Math.round(maxBytes / 1024 ** 2)} МБ`;
+      return NextResponse.json({ error: `«${fileName}» більший за ${limit}` }, { status: 400 });
     }
     const { count } = await admin
       .from('photographer_gallery_photos')
@@ -79,6 +88,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (stage === 'confirm') {
     const path = String(body.path || '');
     const fileName = String(body.file_name || 'video.mp4');
+    // The client says what it uploaded; only 'video' vs 'photo' rides on it,
+    // and a wrong value would merely mislabel the tile in the gallery.
+    const mediaType = String(body.media_type || 'video') === 'photo' ? 'photo' : 'video';
     // The path must belong to this photographer+gallery — a tampered path
     // would otherwise let one cabinet register objects of another.
     if (!path.startsWith(`${ctx.photographer.id}/${galleryId}/`)) {
@@ -97,7 +109,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         storage_path: path,
         file_name: fileName,
         size_bytes: head.size ?? null,
-        media_type: 'video',
+        media_type: mediaType,
         storage_provider: provider,
       })
       .select('id, storage_path, file_name, size_bytes, storage_provider, created_at')

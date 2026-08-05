@@ -1132,11 +1132,12 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
 
-  // Фото йдуть multipart через наш API (один файл на запит — перевірений у
-  // проєкті патерн). Відео більші за ліміт тіла функції, тож ідуть напряму в
+  // Малі фото йдуть multipart через наш API. Усе, що більше за ліміт тіла
+  // функції Vercel (≈4,5 МБ) — і відео, і великі фото — вантажиться напряму у
   // сховище: API видає одноразовий підписаний URL → браузер робить PUT →
-  // API підтверджує і реєструє запис (media_type 'video').
-  const uploadVideo = async (f: File): Promise<string | null> => {
+  // API перевіряє, що файл справді на місці, і реєструє запис.
+  const uploadDirect = async (f: File): Promise<string | null> => {
+    const isVideo = f.type.startsWith('video/');
     const signRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, stage: 'sign', file_name: f.name, size: f.size, content_type: f.type }),
@@ -1146,19 +1147,24 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
 
     const putRes = await fetch(signJson.signed_url, {
       method: 'PUT',
-      headers: { 'Content-Type': f.type || 'video/mp4' },
+      headers: { 'Content-Type': f.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
       body: f,
     });
     if (!putRes.ok) return `Аплоад «${f.name}» не вдався (${putRes.status})`;
 
     const confirmRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, stage: 'confirm', path: signJson.path, file_name: f.name }),
+      body: JSON.stringify({
+        token, stage: 'confirm', path: signJson.path, file_name: f.name,
+        media_type: isVideo ? 'video' : 'photo',
+      }),
     });
     const confirmJson = await confirmRes.json();
-    if (!confirmRes.ok) return confirmJson?.error || 'Не вдалося зареєструвати відео';
+    if (!confirmRes.ok) return confirmJson?.error || 'Не вдалося зареєструвати файл';
     return null;
   };
+
+  const INLINE_LIMIT = 4 * 1024 * 1024;
 
   const upload = async (files: FileList | null) => {
     if (!files || files.length === 0 || busy) return;
@@ -1167,8 +1173,8 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
       const all = Array.from(files);
       let done = 0;
       for (const f of all) {
-        if (f.type.startsWith('video/')) {
-          const err = await uploadVideo(f);
+        if (f.type.startsWith('video/') || f.size > INLINE_LIMIT) {
+          const err = await uploadDirect(f);
           if (err) { alert(err); break; }
         } else {
           const fd = new FormData();
@@ -1190,7 +1196,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
       <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={e => upload(e.target.files)} disabled={busy} />
       {busy && <div style={{ marginTop: 8, color: '#1e2d7d', fontWeight: 700, fontSize: 14 }}>Завантажуємо… {progress}</div>}
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Фото до 25 МБ, відео до 200 МБ, разом до 500 файлів у галереї.</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів у галереї.</div>
     </div>
   );
 }

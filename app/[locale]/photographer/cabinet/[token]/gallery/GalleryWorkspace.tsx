@@ -99,7 +99,7 @@ export default function GalleryWorkspace({ token, galleryId, justCreated = false
       <div style={card}>
         <h2 style={sectionTitle}>Фото та відео</h2>
         <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
-          Завантажте файли зйомки, оберіть обкладинку і приберіть зайве. Фото до 25 МБ, відео до 200 МБ, разом до 500 файлів.
+          Завантажте файли зйомки, оберіть обкладинку і приберіть зайве. Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів.
         </p>
         {!g.files_purged_at && <UploadZone token={token} galleryId={g.id} onDone={load} flash={flash} />}
         {g.photo_count > 0 && (

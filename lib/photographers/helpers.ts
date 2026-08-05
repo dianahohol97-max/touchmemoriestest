@@ -1,12 +1,19 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const GALLERY_BUCKET = 'photographer-galleries';
-export const MAX_PHOTO_BYTES = 25 * 1024 * 1024; // 25 МБ на файл
-// Відео йдуть повз Vercel напряму в Supabase Storage (signed upload URL), тож
-// ліміт тут — наш власний. Глобальний ліміт розміру файлу в налаштуваннях
+export const MAX_PHOTO_BYTES = 100 * 1024 * 1024; // 100 МБ на фото
+// Відео й великі фото йдуть повз Vercel напряму у сховище (signed upload URL),
+// тож ліміт тут — наш власний. Глобальний ліміт розміру файлу в налаштуваннях
 // Supabase Storage має бути не меншим, інакше PUT відхилить сам Supabase.
-export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 МБ на відео
-export const MAX_PHOTOS_PER_GALLERY = 500;
+export const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 ГБ на відео
+export const MAX_PHOTOS_PER_GALLERY = 2000;
+// Тіло запиту в функції Vercel обмежене приблизно 4,5 МБ. Усе, що більше,
+// вантажиться підписаним посиланням напряму у сховище — саме тому «фото до
+// 25 МБ» раніше було обіцянкою, яку наш власний API не міг виконати.
+export const MAX_INLINE_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Лого, аватар і портфоліо йдуть тільки через наш API, тож для них діє саме
+// цей ліміт, а не великий галерейний.
+export const MAX_BRANDING_BYTES = MAX_INLINE_UPLOAD_BYTES;
 
 /** Resolve a photographer by their private cabinet token. Returns null when
  *  the token is unknown or the photographer is deactivated. */
