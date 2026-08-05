@@ -4,6 +4,7 @@ import { getManagerByToken } from '@/lib/sales/commission';
 import { DEFAULT_PARTNER_TERMS } from '@/lib/agency/create-partner';
 import { leadTypeToPartnerKind, PARTNER_KINDS } from '@/lib/sales/partner-activation';
 import { attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
+import { likeEscape } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
   const { data: existingPartner } = await admin
     .from('agency_partners')
     .select('id, agency_name, referral_code, sales_manager_id')
-    .ilike('email', email)
+    .ilike('email', likeEscape(email))
     .maybeSingle();
   if (existingPartner) {
     if (existingPartner.sales_manager_id === manager.id) {
@@ -136,7 +137,12 @@ export async function POST(req: NextRequest) {
       .eq('id', lead.id);
   }
   if (email !== (lead.email || '').toLowerCase()) {
-    await admin.from('leads').update({ email }).eq('id', lead.id);
+    // Дописуємо пошту в лід, лише якщо вона не стоїть уже в іншого: заявка
+    // пошту в собі має в будь-якому разі, а два ліди з однією поштою зламали б
+    // перевірку дублікатів.
+    const { data: emailTaken } = await admin
+      .from('leads').select('id').ilike('email', likeEscape(email)).neq('id', lead.id).maybeSingle();
+    if (!emailTaken) await admin.from('leads').update({ email }).eq('id', lead.id);
   }
 
   return NextResponse.json({ request: data });

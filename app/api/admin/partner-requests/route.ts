@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireAdmin, likeEscape } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createAgencyPartner } from '@/lib/agency/create-partner';
 import { sendPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
@@ -85,7 +85,7 @@ export async function PATCH(request: Request) {
   const { data: clash } = await admin
     .from('agency_partners')
     .select('id, agency_name, referral_code')
-    .ilike('email', req.email)
+    .ilike('email', likeEscape(req.email))
     .maybeSingle();
   if (clash) {
     return NextResponse.json({
@@ -144,7 +144,7 @@ export async function PATCH(request: Request) {
     const { data: photographer } = await admin
       .from('photographers')
       .select('id, sales_manager_id')
-      .ilike('email', req.email)
+      .ilike('email', likeEscape(req.email))
       .maybeSingle();
     if (photographer && !photographer.sales_manager_id && req.manager_id) {
       await admin.from('photographers')

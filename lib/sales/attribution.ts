@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeInstagram } from '@/lib/leads/contacts';
+import { likeEscape } from '@/lib/auth/guards';
 
 /**
  * Хто привів партнера, який зареєструвався сам (Diana, 2026-08-06).
@@ -34,7 +35,11 @@ export async function findLeadAttribution(
   contacts: { email?: string | null; instagram?: string | null; website?: string | null },
 ): Promise<LeadAttribution | null> {
   const email = String(contacts.email || '').trim().toLowerCase();
-  const handles = [contacts.instagram, contacts.website]
+  // З поля «сайт» нікнейм беремо лише тоді, коли там справді посилання на
+  // Instagram: звичайний домен на кшталт studio.com проходить нормалізацію
+  // неушкодженим і міг би хибно збігтися з чиїмось ліда-нікнеймом.
+  const website = /instagram\.com/i.test(String(contacts.website || '')) ? contacts.website : null;
+  const handles = [contacts.instagram, website]
     .map(normalizeInstagram)
     .filter((h): h is string => Boolean(h));
 
@@ -43,10 +48,13 @@ export async function findLeadAttribution(
   handles.forEach(h => attempts.push({ column: 'instagram', value: h, matchedBy: 'instagram' }));
 
   for (const attempt of attempts) {
+    // likeEscape: ilike трактує _ і % як шаблонні символи, а нікнейми з
+    // підкресленням — норма (studio_svitlo). Без екранування такий збіг міг
+    // би зачепити чужий лід і записати гроші не тому менеджеру.
     const { data: lead } = await admin
       .from('leads')
       .select('id, created_at, sales_manager_id')
-      .ilike(attempt.column, attempt.value)
+      .ilike(attempt.column, likeEscape(attempt.value))
       .not('sales_manager_id', 'is', null)
       .order('created_at', { ascending: true })
       .limit(1)

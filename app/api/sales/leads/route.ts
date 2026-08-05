@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { getManagerByToken } from '@/lib/sales/commission';
 import { BUSINESS_TYPE_LABELS, type LeadBusinessType } from '@/lib/leads/offers';
 import { normalizeInstagram } from '@/lib/leads/contacts';
+import { likeEscape } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,10 @@ export async function POST(req: NextRequest) {
     const { data: dup } = await admin
       .from('leads')
       .select('id, sales_manager_id, business_name')
-      .ilike(check.column, check.value)
+      // likeEscape: ilike трактує _ як «будь-який символ», а підкреслення в
+      // нікнеймах і поштах — норма. Без екранування «studio_svitlo» збігся б
+      // із «studioXsvitlo», і менеджер отримав би відмову через чужий лід.
+      .ilike(check.column, likeEscape(check.value))
       .maybeSingle();
     if (dup) {
       const mine = dup.sales_manager_id === manager.id;
@@ -111,7 +115,7 @@ export async function PATCH(req: NextRequest) {
     const email = body.email.trim().toLowerCase();
     if (email) {
       const { data: dup } = await admin
-        .from('leads').select('id').ilike('email', email).neq('id', id).maybeSingle();
+        .from('leads').select('id').ilike('email', likeEscape(email)).neq('id', id).maybeSingle();
       if (dup) return NextResponse.json({ error: 'Цей email уже стоїть в іншого ліда' }, { status: 409 });
     }
     patch.email = email || null;
@@ -120,7 +124,7 @@ export async function PATCH(req: NextRequest) {
     const instagram = normalizeInstagram(body.instagram);
     if (instagram) {
       const { data: dup } = await admin
-        .from('leads').select('id').ilike('instagram', instagram).neq('id', id).maybeSingle();
+        .from('leads').select('id').ilike('instagram', likeEscape(instagram)).neq('id', id).maybeSingle();
       if (dup) return NextResponse.json({ error: 'Цей Instagram уже стоїть в іншого ліда' }, { status: 409 });
     }
     patch.instagram = instagram;

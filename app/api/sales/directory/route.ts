@@ -50,7 +50,10 @@ export async function GET(req: NextRequest) {
     // Нікнейм шукаємо і як текст, і приведеним до канонічного вигляду — щоб
     // «@studio.svitlo» і посилання на профіль знаходили той самий контакт.
     const handle = normalizeInstagram(q);
-    const like = `%${q.replace(/[%_]/g, '')}%`;
+    // Кома й дужки — синтаксис .or() у PostgREST: без зачистки кома в полі
+    // пошуку ламає весь фільтр і віддає 500 замість результатів. % і _ — LIKE-
+    // шаблони, їх теж прибираємо.
+    const like = `%${q.replace(/[%_,()*\\]/g, ' ').trim()}%`;
     const parts = [`business_name.ilike.${like}`, `city.ilike.${like}`, `instagram.ilike.${like}`, `website.ilike.${like}`];
     if (handle) parts.push(`instagram.ilike.%${handle}%`);
     query = query.or(parts.join(','));
