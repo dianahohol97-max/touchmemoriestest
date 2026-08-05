@@ -89,7 +89,9 @@ export default function GalleryEditorClient({ token, galleryId }: { token: strin
             {(g.zip_downloads > 0 || g.photo_downloads > 0) && <span> · ↓ {g.zip_downloads + g.photo_downloads} завантажень</span>}
           </div>
           <div style={{ fontSize: 12.5, color: '#8B8378', marginTop: 2 }}>
-            {g.files_purged_at ? 'Термін зберігання минув — файли видалено' : `Доступна ще ${g.days_left} дн.`}
+            {g.files_purged_at
+              ? 'Термін зберігання минув — файли видалено'
+              : `Клієнт може завантажити фото до ${new Date(g.expires_at).toLocaleDateString('uk-UA')} — це ще ${g.days_left} дн.`}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

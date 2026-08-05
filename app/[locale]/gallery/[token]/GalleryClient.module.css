@@ -359,6 +359,19 @@ a.barName:hover { opacity: 0.7; }
   padding: 34px 20px 40px;
   scroll-margin-top: 56px;
 }
+/* Download deadline — the one thing a client must not miss. */
+.deadline {
+  text-align: center;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--g-text);
+  background: var(--g-chip-hover);
+  border: 1px solid var(--g-chip-border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin: 0 auto 12px;
+  max-width: 620px;
+}
 .selectHint {
   text-align: center;
   color: var(--g-muted);

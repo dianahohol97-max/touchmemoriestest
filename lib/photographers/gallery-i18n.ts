@@ -9,6 +9,10 @@ export interface GalleryStrings {
   dateLocale: string;  // BCP-47 tag for date formatting
   view: string;
   daysLeft: (n: number) => string;
+  /** Compact expiry for the toolbar chip, e.g. «до 2 листопада». */
+  untilShort: (date: string) => string;
+  /** Explicit deadline notice above the grid. */
+  untilNotice: (date: string) => string;
   downloadAll: string;
   photosCount: (n: number) => string;
   hintBefore: string;  // text before the inline heart
@@ -43,6 +47,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Українська', dateLocale: 'uk-UA',
     view: 'Переглянути',
     daysLeft: n => `ще ${n} ${slavic(n, 'день', 'дні', 'днів')}`,
+    untilShort: d => `до ${d}`,
+    untilNotice: d => `Завантажте фото до ${d} — після цієї дати галерея закривається, а файли видаляються.`,
     downloadAll: 'Завантажити все',
     photosCount: n => `${n} фото`,
     hintBefore: 'Позначайте серцем', hintAfter: 'фото, які хочете надрукувати — фотограф побачить ваш вибір.',
@@ -61,6 +67,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'English', dateLocale: 'en-GB',
     view: 'View',
     daysLeft: n => `${n} ${n === 1 ? 'day' : 'days'} left`,
+    untilShort: d => `until ${d}`,
+    untilNotice: d => `Please download your photos by ${d} — after that date the gallery closes and the files are deleted.`,
     downloadAll: 'Download all',
     photosCount: n => `${n} ${n === 1 ? 'photo' : 'photos'}`,
     hintBefore: 'Tap the heart', hintAfter: 'on the photos you would like to print — your photographer will see your picks.',
@@ -79,6 +87,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Polski', dateLocale: 'pl-PL',
     view: 'Zobacz',
     daysLeft: n => `zostało ${n} ${slavic(n, 'dzień', 'dni', 'dni')}`,
+    untilShort: d => `do ${d}`,
+    untilNotice: d => `Pobierz zdjęcia do ${d} — po tej dacie galeria zostaje zamknięta, a pliki usunięte.`,
     downloadAll: 'Pobierz wszystko',
     photosCount: n => `${n} ${slavic(n, 'zdjęcie', 'zdjęcia', 'zdjęć')}`,
     hintBefore: 'Zaznacz serduszkiem', hintAfter: 'zdjęcia, które chcesz wydrukować — fotograf zobaczy Twój wybór.',
@@ -97,6 +107,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Deutsch', dateLocale: 'de-DE',
     view: 'Ansehen',
     daysLeft: n => `noch ${n} ${n === 1 ? 'Tag' : 'Tage'}`,
+    untilShort: d => `bis ${d}`,
+    untilNotice: d => `Bitte laden Sie Ihre Fotos bis ${d} herunter — danach wird die Galerie geschlossen und die Dateien gelöscht.`,
     downloadAll: 'Alles herunterladen',
     photosCount: n => `${n} ${n === 1 ? 'Foto' : 'Fotos'}`,
     hintBefore: 'Markieren Sie mit dem Herz', hintAfter: 'die Fotos, die Sie drucken möchten — Ihr Fotograf sieht Ihre Auswahl.',
@@ -115,6 +127,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Čeština', dateLocale: 'cs-CZ',
     view: 'Zobrazit',
     daysLeft: n => `zbývá ${n} ${slavic(n, 'den', 'dny', 'dní')}`,
+    untilShort: d => `do ${d}`,
+    untilNotice: d => `Stáhněte si fotky do ${d} — poté se galerie uzavře a soubory budou smazány.`,
     downloadAll: 'Stáhnout vše',
     photosCount: n => `${n} ${slavic(n, 'fotka', 'fotky', 'fotek')}`,
     hintBefore: 'Označte srdíčkem', hintAfter: 'fotky, které chcete vytisknout — fotograf váš výběr uvidí.',
@@ -133,6 +147,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Italiano', dateLocale: 'it-IT',
     view: 'Guarda',
     daysLeft: n => n === 1 ? 'ultimo giorno' : `${n} giorni rimasti`,
+    untilShort: d => `fino al ${d}`,
+    untilNotice: d => `Scarica le foto entro il ${d} — dopo questa data la galleria si chiude e i file vengono eliminati.`,
     downloadAll: 'Scarica tutto',
     photosCount: n => `${n} foto`,
     hintBefore: 'Segna con il cuore', hintAfter: 'le foto che vuoi stampare — il fotografo vedrà la tua selezione.',
@@ -151,6 +167,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Español', dateLocale: 'es-ES',
     view: 'Ver',
     daysLeft: n => n === 1 ? 'queda 1 día' : `quedan ${n} días`,
+    untilShort: d => `hasta el ${d}`,
+    untilNotice: d => `Descarga tus fotos antes del ${d} — después la galería se cierra y los archivos se eliminan.`,
     downloadAll: 'Descargar todo',
     photosCount: n => `${n} ${n === 1 ? 'foto' : 'fotos'}`,
     hintBefore: 'Marca con el corazón', hintAfter: 'las fotos que quieras imprimir — tu fotógrafo verá tu selección.',
@@ -169,6 +187,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Português', dateLocale: 'pt-PT',
     view: 'Ver',
     daysLeft: n => n === 1 ? 'resta 1 dia' : `restam ${n} dias`,
+    untilShort: d => `até ${d}`,
+    untilNotice: d => `Descarregue as suas fotos até ${d} — depois dessa data a galeria fecha e os ficheiros são eliminados.`,
     downloadAll: 'Descarregar tudo',
     photosCount: n => `${n} ${n === 1 ? 'foto' : 'fotos'}`,
     hintBefore: 'Marque com o coração', hintAfter: 'as fotos que deseja imprimir — o seu fotógrafo verá a sua escolha.',
@@ -187,6 +207,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Français', dateLocale: 'fr-FR',
     view: 'Voir',
     daysLeft: n => n === 1 ? 'dernier jour' : `${n} jours restants`,
+    untilShort: d => `jusqu'au ${d}`,
+    untilNotice: d => `Téléchargez vos photos avant le ${d} — après cette date la galerie se ferme et les fichiers sont supprimés.`,
     downloadAll: 'Tout télécharger',
     photosCount: n => `${n} photo${n === 1 ? '' : 's'}`,
     hintBefore: 'Marquez d’un cœur', hintAfter: 'les photos que vous souhaitez imprimer — votre photographe verra votre sélection.',
@@ -205,6 +227,8 @@ export const GALLERY_I18N: Record<GalleryLang, GalleryStrings> = {
     name: 'Română', dateLocale: 'ro-RO',
     view: 'Vezi',
     daysLeft: n => n === 1 ? 'a mai rămas 1 zi' : `au mai rămas ${n} zile`,
+    untilShort: d => `până la ${d}`,
+    untilNotice: d => `Descarcă fotografiile până la ${d} — după această dată galeria se închide și fișierele sunt șterse.`,
     downloadAll: 'Descarcă tot',
     photosCount: n => `${n} ${n === 1 ? 'fotografie' : 'fotografii'}`,
     hintBefore: 'Marchează cu inimă', hintAfter: 'fotografiile pe care vrei să le printezi — fotograful va vedea alegerea ta.',

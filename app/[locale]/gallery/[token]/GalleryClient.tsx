@@ -304,7 +304,11 @@ const formatDate = (d: string) =>
             <span className={styles.barName}>{p.name}</span>
           </div>
           <div className={styles.barActions}>
-            <span className={styles.countdown}>{t.daysLeft(data.days_left)}</span>
+            {/* The chip carries the actual date — «ще N днів» alone left the
+                client without a point in the calendar (Diana). */}
+            <span className={styles.countdown} title={t.daysLeft(data.days_left)}>
+              {t.untilShort(formatDate(data.expires_at))}
+            </span>
             {favCount > 0 && (
               <button
                 type="button"
@@ -327,9 +331,12 @@ const formatDate = (d: string) =>
       {/* ── Photo grid ── */}
       <div className={styles.container} ref={gridRef} id="photos">
         {data.photos.length > 0 && (
-          <div className={styles.selectHint}>
-            {t.hintBefore} <span className={styles.heartInline}>♡</span> {t.hintAfter}
-          </div>
+          <>
+            <div className={styles.deadline}>{t.untilNotice(formatDate(data.expires_at))}</div>
+            <div className={styles.selectHint}>
+              {t.hintBefore} <span className={styles.heartInline}>♡</span> {t.hintAfter}
+            </div>
+          </>
         )}
 
         {visible.length === 0 ? (
