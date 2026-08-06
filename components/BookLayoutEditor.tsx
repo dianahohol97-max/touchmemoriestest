@@ -91,7 +91,7 @@ function tmImgError(e: React.SyntheticEvent<HTMLImageElement>) {
 // instead of the full editor preview (up to 5000px) — decoding dozens of
 // full-size bitmaps for 60px tiles was a constant source of scroll/paint jank.
 interface PhotoData { id: string; preview: string; thumb?: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
-interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
+interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -2151,6 +2151,18 @@ export default function BookLayoutEditor() {
     setEndpaperConfirmIdx(pageIdx);
     return false; // unlock happens in the modal's confirm button
   };
+  // Друк на форзаці ordered on the PRODUCT PAGE («З друком, +100 ₴») arrived
+  // in the editor locked, and the surcharge was only counted after an
+  // in-editor unlock — so TM-001135 paid 825 ₴ for a book whose configurator
+  // total included the форзац print. A pre-ordered форзац starts unlocked:
+  // the customer designs the pages they already paid for, and the pricing
+  // block below counts the surcharge without listing it as a «доплата».
+  useEffect(() => {
+    if (config?.enableEndpaper && hasEndpaper) {
+      setEndpaperUnlocked({ first: true, last: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config?.enableEndpaper, hasEndpaper]);
   const cur = pages[currentIdx];
 
   const sizeKey = getSizeKeyForProduct(config);
@@ -5040,8 +5052,14 @@ export default function BookLayoutEditor() {
     }
   }
   // Add endpaper surcharge for unlocked forzats pages
-  // Flat surcharge: 100₴ total regardless of how many endpapers are printed
-  const endpaperExtra = (endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
+  // Flat surcharge: 100₴ total regardless of how many endpapers are printed.
+  // Charged when the customer either pre-ordered форзац print on the product
+  // page (config.enableEndpaper — TM-001135 lost these 100 ₴) or unlocked it
+  // here in the editor. Only the in-editor unlock counts toward the «доплата»
+  // badge — a pre-ordered форзац was already in the configurator's total.
+  const endpaperOrdered = !!config?.enableEndpaper;
+  const endpaperExtra = (endpaperOrdered || endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
+  const endpaperDiff = (!endpaperOrdered && (endpaperUnlocked.first || endpaperUnlocked.last)) ? endpaperSurcharge : 0;
   // Cover inscription as a second decoration: flat +180 ₴ when at least one
   // extraText is added on a non-printed cover (велюр / тканина / шкірзамінник
   // / scrapbook). Printed covers use printedTextBlocks instead and the
@@ -5077,8 +5095,13 @@ export default function BookLayoutEditor() {
   // it as page lamination charged +7 ₴ × сторінка to every travel book with
   // a laminated cover (Diana's «+84 ₴ доплата» on a 12-page book that had no
   // page lamination at all).
+  // URL params are lost every time a saved draft / cart item is reopened, so
+  // the config saved by the constructor is the durable source — TM-001135
+  // ordered «З ламінацією (+7 ₴/стор)» and the editor recomputed the price
+  // without it because the param wasn't in the reopened URL.
   const pageLamRaw = searchParams?.get('page_lamination')
     || searchParams?.get('page-lamination')
+    || config?.selectedPageLamination
     || '';
   const hasPageLamination = isPageLaminationSelected(pageLamRaw);
   // Bill lamination per BILLABLE page (photo pages), not the 2 extra forzats.
@@ -5087,7 +5110,12 @@ export default function BookLayoutEditor() {
   // priced at the configurator, so it exists in both the ordered and the
   // current total — only editor-added extras contribute to the "+N ₴" badge.
   const dynamicPrice = baseDynamicPrice + decorationExtra + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
-  const priceDiff = basePriceDiff + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra;
+  // «Доплата» counts only EDITOR-ADDED extras. Page lamination can only be
+  // ordered on the product page (the editor has no toggle), so it is never a
+  // diff; a pre-ordered форзац likewise (endpaperDiff covers the in-editor
+  // unlock case only). Both were previously listed here, so honestly-priced
+  // orders looked like they carried a surprise «+N ₴» in the header.
+  const priceDiff = basePriceDiff + endpaperDiff + qrExtra + inscriptionExtra + typesettingExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
