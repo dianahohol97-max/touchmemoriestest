@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         if (campErr || !campaign) return NextResponse.json({ error: 'Кампанію не знайдено' }, { status: 404 });
         if (campaign.status === 'sent') return NextResponse.json({ error: 'Кампанія вже надіслана' }, { status: 400 });
 
-        let query = supabase.from('subscribers').select('id, email');
+        let query = supabase.from('subscribers').select('id, email, unsubscribe_token');
         if (campaign.segment === 'active') query = query.eq('is_active', true);
         else if (campaign.segment === 'inactive') query = query.eq('is_active', false);
         else if (campaign.segment === 'source_popup') (query as any) = (query as any).eq('is_active', true).eq('source', 'popup');
@@ -79,9 +79,17 @@ export async function POST(req: NextRequest) {
 
         for (const subscriber of subscribers as any[]) {
             try {
+                // Token over address: it cannot be edited to unsubscribe
+                // someone else, and the campaign id lets the admin attribute
+                // each departure to the letter that caused it.
+                const unsubParams = new URLSearchParams();
+                if (subscriber.unsubscribe_token) unsubParams.set('token', subscriber.unsubscribe_token);
+                else unsubParams.set('email', subscriber.email);
+                unsubParams.set('c', String(campaign_id));
+
                 const html = campaign.body_html
                     .replace(/\{\{email\}\}/g, subscriber.email)
-                    .replace(/\{\{unsubscribe_url\}\}/g, `https://touchmemories.com.ua/unsubscribe?email=${encodeURIComponent(subscriber.email)}`);
+                    .replace(/\{\{unsubscribe_url\}\}/g, `https://touchmemories.com.ua/unsubscribe?${unsubParams.toString()}`);
 
                 await sendBrevoEmail(subscriber.email, campaign.subject, html, campaign.from_name, campaign.from_email);
                 await supabase.from('email_campaign_logs')

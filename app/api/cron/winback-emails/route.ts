@@ -56,6 +56,21 @@ export async function GET(request: Request) {
         let sent = 0;
         let errors = 0;
 
+        // Most win-back targets came from the CRM import and are not on the
+        // subscriber list, so they have no unsubscribe token. Pull the tokens
+        // that do exist in one query; the rest fall back to an address-based
+        // link, which the unsubscribe route turns into a suppression entry.
+        const emails = (candidates as Array<{ email: string }>).map(c => c.email);
+        const { data: subRows } = await supabase
+            .from('subscribers')
+            .select('email, unsubscribe_token')
+            .in('email', emails);
+        const tokenByEmail = new Map<string, string>();
+        for (const r of subRows || []) {
+            const t = (r as any).unsubscribe_token;
+            if (t) tokenByEmail.set(String((r as any).email).toLowerCase(), t);
+        }
+
         for (const c of candidates as Array<{ email: string; customer_name: string | null }>) {
             const nameParts = (c.customer_name || '').trim().split(/\s+/).filter(Boolean);
             // Legacy CRM stores "Прізвище Імʼя", so the given name is the last token
@@ -70,6 +85,10 @@ export async function GET(request: Request) {
                     toName: c.customer_name || c.email,
                     subject,
                     html,
+                    unsubscribe: {
+                        email: c.email,
+                        token: tokenByEmail.get(c.email.toLowerCase()) || null,
+                    },
                 });
                 await supabase.from('email_automation_log').insert({
                     email: c.email,
