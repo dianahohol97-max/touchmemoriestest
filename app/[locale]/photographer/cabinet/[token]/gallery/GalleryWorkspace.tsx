@@ -24,8 +24,12 @@ export default function GalleryWorkspace({ token, galleryId, justCreated = false
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  // Bumped after an upload so PhotoManager refetches its own list — refreshing
+  // the gallery record alone left the thumbnail strip showing the old files
+  // («вони внизу не відобразились» — Diana, 2026-08-06).
+  const [photosTick, setPhotosTick] = useState(0);
 
-  const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(''), 2500); };
+  const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(''), 4000); };
 
   // The galleries endpoint returns the whole (small) list for this cabinet;
   // picking one out of it avoids a second single-gallery endpoint.
@@ -101,9 +105,13 @@ export default function GalleryWorkspace({ token, galleryId, justCreated = false
         <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
           Завантажте файли зйомки, оберіть обкладинку і приберіть зайве. Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів.
         </p>
-        {!g.files_purged_at && <UploadZone token={token} galleryId={g.id} onDone={load} flash={flash} />}
+        {!g.files_purged_at && (
+          <UploadZone token={token} galleryId={g.id} flash={flash}
+            onDone={async () => { await load(); setPhotosTick(t => t + 1); }} />
+        )}
         {g.photo_count > 0 && (
-          <PhotoManager token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id} onDone={load} flash={flash} />
+          <PhotoManager token={token} galleryId={g.id} coverPhotoId={g.cover_photo_id}
+            onDone={load} flash={flash} reloadKey={photosTick} />
         )}
       </div>
 

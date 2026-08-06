@@ -995,9 +995,11 @@ export function DesignPanel({ token, galleryId, design, clientToken, photoCount,
  *  gallery, sets the cover and deletes what they don't want. Deletion had no
  *  UI at all before (Diana: «як видалити старі фото»), although the API
  *  supported it. Hover a tile → «На обкладинку» / «Видалити». */
-export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: {
+export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash, reloadKey = 0 }: {
   token: string; galleryId: string; coverPhotoId: string | null;
   onDone: () => Promise<void>; flash: (m: string) => void;
+  /** Bumped by the parent after an upload so the strip refetches. */
+  reloadKey?: number;
 }) {
   const [photos, setPhotos] = useState<CabinetPhoto[] | null>(null);
   const [error, setError] = useState('');
@@ -1014,7 +1016,10 @@ export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash }: 
     } catch { setError('Не вдалося завантажити'); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token, galleryId]);
+  // reloadKey is in the deps on purpose: the strip used to load only on mount,
+  // so freshly uploaded photos stayed invisible until a full page reload
+  // («вони внизу не відобразились» — Diana, 2026-08-06).
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token, galleryId, reloadKey]);
 
   const setCover = async (photoId: string) => {
     if (busy) return;
@@ -1131,6 +1136,10 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
+  // The corner toast lives at the top of a long page, so after uploading at
+  // the bottom of it Diana saw no confirmation at all (2026-08-06). The result
+  // now also stays right where the files were dropped, until the next batch.
+  const [result, setResult] = useState('');
 
   // Малі фото йдуть multipart через наш API. Усе, що більше за ліміт тіла
   // функції Vercel (≈4,5 МБ) — і відео, і великі фото — вантажиться напряму у
@@ -1187,6 +1196,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   const upload = async (files: FileList | null) => {
     if (!files || files.length === 0 || busy) return;
     setBusy(true);
+    setResult('');
     try {
       const all = Array.from(files);
       let done = 0;
@@ -1214,15 +1224,40 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
 
       if (failure) alert(failure);
       await onDone();
-      if (done > 0) flash(`Завантажено ${done} файл(ів)`);
+      if (done > 0) {
+        setResult(`Готово, завантажено ${done} ${done === 1 ? 'файл' : 'файлів'} — вони вже у стрічці нижче.`);
+        flash(`Завантажено ${done} файл(ів)`);
+      }
     } finally { setBusy(false); setProgress(''); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   return (
     <div style={{ marginTop: 10, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
-      <input ref={fileRef} type="file" accept="image/*,video/*" multiple onChange={e => upload(e.target.files)} disabled={busy} />
-      {busy && <div style={{ marginTop: 8, color: '#1e2d7d', fontWeight: 700, fontSize: 14 }}>Завантажуємо… {progress}</div>}
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів у галереї.</div>
+      {/* The native file input renders as an unstyled English «Choose Files /
+          No file chosen» control, which looked broken next to the rest of the
+          cabinet (Diana, 2026-08-06). It stays in the DOM for the picker and
+          for accessibility, visually hidden behind its own label. */}
+      <input ref={fileRef} id={`upload-${galleryId}`} type="file" accept="image/*,video/*" multiple
+        onChange={e => upload(e.target.files)} disabled={busy}
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }} />
+      <label htmlFor={`upload-${galleryId}`}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          background: busy ? '#94a3b8' : '#263A99', color: '#fff',
+          borderRadius: 10, padding: '11px 20px', fontSize: 14, fontWeight: 700,
+          fontFamily: 'var(--font-heading), sans-serif',
+          cursor: busy ? 'default' : 'pointer',
+        }}>
+        {busy ? `Завантажуємо… ${progress}` : 'Обрати фото та відео'}
+      </label>
+      {result && (
+        <div style={{ marginTop: 10, color: '#065f46', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: '8px 12px', fontSize: 13.5, fontWeight: 600 }}>
+          {result}
+        </div>
+      )}
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+        Можна обрати одразу кілька файлів. Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів у галереї.
+      </div>
     </div>
   );
 }
