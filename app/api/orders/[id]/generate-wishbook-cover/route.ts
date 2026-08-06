@@ -132,15 +132,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // BLACK-AND-WHITE variant: the decoration there is physical (гравіювання /
     // тиснення / flex), and production works from a monochrome макет alongside
     // the colour reference (Diana, 2026-08-05).
+    //
+    // It is a SEPARATE render, not a desaturation of the colour sheet: the mono
+    // макет is the front cover alone on a white background with black text
+    // (Diana, 2026-08-06). Greyscaling the colour file gave a grey cover colour
+    // with a pale, nearly invisible inscription plus the unwanted back cover.
     const materialLc = String(spec.material || '').toLowerCase();
     const isSoftMaterial = materialLc.includes('велюр') || materialLc.includes('velour')
       || materialLc.includes('ткан') || materialLc.includes('fabric')
       || materialLc.includes('шкір') || materialLc.includes('leather');
     if (isSoftMaterial) {
-      jpegBw = await sharp(Buffer.from(png))
+      const pngBw = await renderWishbookCoverPng(spec, { mono: true });
+      jpegBw = await sharp(Buffer.from(pngBw))
         .flatten({ background: '#ffffff' })
         .grayscale()
-        .normalise()
         .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
         .withMetadata({ density: 300 })
         .toBuffer();

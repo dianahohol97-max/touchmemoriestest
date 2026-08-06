@@ -136,7 +136,19 @@ function contrastText(hex: string): string {
  * caller can fall back to the default font (Satori still renders, just not in
  * the exact typeface).
  */
+const fontCache = new Map<string, ArrayBuffer | null>();
+
 async function loadGoogleFont(family: string, text: string): Promise<ArrayBuffer | null> {
+  // The colour sheet and the mono макет are rendered back to back from the same
+  // spec, so without this cache we fetch the identical TTF twice per order.
+  const cacheKey = `${family}::${text}`;
+  if (fontCache.has(cacheKey)) return fontCache.get(cacheKey) ?? null;
+  const loaded = await fetchGoogleFont(family, text);
+  fontCache.set(cacheKey, loaded);
+  return loaded;
+}
+
+async function fetchGoogleFont(family: string, text: string): Promise<ArrayBuffer | null> {
   try {
     const url = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@400;700&text=${encodeURIComponent(text)}`;
     const cssRes = await fetch(url, {
@@ -157,10 +169,26 @@ async function loadGoogleFont(family: string, text: string): Promise<ArrayBuffer
   }
 }
 
+export interface WishbookRenderOptions {
+  /**
+   * Monochrome production макет: FRONT COVER ONLY, pure white background, pure
+   * black text. Production engraves / embosses from this file, so it has to be
+   * clean two-tone artwork. Desaturating the colour sheet instead (what we did
+   * until 2026-08-06) produced a grey background with a barely visible light
+   * inscription, and it carried the back cover along with the front. The colour
+   * cover.jpg is unaffected by this flag.
+   */
+  mono?: boolean;
+}
+
 /**
  * Render the wishbook cover to PNG bytes (Uint8Array). Caller converts to JPEG.
  */
-export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<Uint8Array> {
+export async function renderWishbookCoverPng(
+  spec: WishbookCoverSpec,
+  opts: WishbookRenderOptions = {}
+): Promise<Uint8Array> {
+  const mono = opts.mono === true;
   const sizeKey = COVER_MM[spec.sizeKey] ? spec.sizeKey : normalizeWishbookSize(spec.sizeKey);
   const mm = COVER_MM[sizeKey] || COVER_MM['20x30'];
 
@@ -169,17 +197,25 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
   const fullW = mmToPx300(mm.w);
   const fullH = mmToPx300(mm.h);
   const k = Math.min(1, MAX_RENDER_PX / Math.max(fullW, fullH));
-  const W = Math.round(fullW * k);
+  const sheetW = Math.round(fullW * k);
   const H = Math.round(fullH * k);
 
-  const bg = resolveCoverColor(spec.material, spec.coverColorName);
+  // The front cover is the RIGHT half of the full sheet (back | spine | front)
+  // — the same split the editor's xPct coordinates are measured against. The
+  // mono макет renders that half on its own canvas, so the inscription keeps
+  // exactly the position the customer gave it in the editor.
+  const W = mono ? Math.round(sheetW / 2) : sheetW;
+  const frontLeft = mono ? 0 : W / 2;
+  const frontW = mono ? W : W / 2;
+
+  const bg = mono ? '#FFFFFF' : resolveCoverColor(spec.material, spec.coverColorName);
   const title = (spec.title || '').trim();
   const decoType = spec.decoType;
 
-  // Decoration plate footprint (mm → px). The cover is mm.w wide; plate width
-  // in px = plateMM / coverMM * renderPx.
+  // Decoration plate footprint (mm → px). The plate is a physical object, so it
+  // is measured against the full sheet width in both modes.
   const plate = parseVariantDims(spec.decoVariant);
-  const plateW = Math.max(W * 0.14, Math.min(W * 0.9, (plate.w / mm.w) * W));
+  const plateW = Math.max(sheetW * 0.14, Math.min(sheetW * 0.9, (plate.w / mm.w) * sheetW));
   const plateH = Math.max(H * 0.08, Math.min(H * 0.9, (plate.h / mm.h) * H));
 
   const metal = decoMetalColor(spec.decoColorName);
@@ -198,7 +234,9 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
     ? Math.max(W * 0.008, spec.layout.fontPx700 * (H / 700))
     : estimatedFontSize;
 
-  const titleColor = onPlate
+  const titleColor = mono
+    ? '#000000'
+    : onPlate
     ? metal.text
     : (spec.layout?.color || contrastText(bg));
 
@@ -213,19 +251,23 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
         width: `${plateW}px`,
         height: `${plateH}px`,
         borderRadius: decoType === 'acryl' ? '8px' : '4px',
-        background:
-          decoType === 'metal'
+        // Mono макет: the plate is drawn as an outline only, so the sheet stays
+        // white-background / black-ink and production sees just the footprint.
+        background: mono
+          ? '#FFFFFF'
+          : decoType === 'metal'
             ? metal.fill
             : decoType === 'acryl'
             ? 'rgba(255,255,255,0.22)'
             : 'rgba(255,255,255,0.14)',
-        border:
-          decoType === 'acryl'
+        border: mono
+          ? (decoType === 'photovstavka' ? '3px dashed #000000' : '3px solid #000000')
+          : decoType === 'acryl'
             ? '3px solid rgba(255,255,255,0.55)'
             : decoType === 'photovstavka'
             ? '3px dashed rgba(255,255,255,0.55)'
             : '0',
-        boxShadow: decoType === 'metal' ? 'inset 0 2px 2px rgba(255,255,255,0.4)' : 'none',
+        boxShadow: !mono && decoType === 'metal' ? 'inset 0 2px 2px rgba(255,255,255,0.4)' : 'none',
         padding: '0 4%',
       }}
     >
@@ -246,12 +288,13 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
     </div>
   ) : spec.layout && (spec.layout.xPct !== undefined || spec.layout.yPct !== undefined) ? (
     // Editor-exact placement: xPct/yPct are percentages of the FRONT cover,
-    // which is the RIGHT half of the full sheet (back | spine | front).
+    // which is the RIGHT half of the full sheet (back | spine | front) — and
+    // the whole canvas in mono mode.
     <div
       style={{
         display: 'flex',
         position: 'absolute',
-        left: `${Math.round(W / 2 + ((spec.layout.xPct ?? 50) / 100) * (W / 2))}px`,
+        left: `${Math.round(frontLeft + ((spec.layout.xPct ?? 50) / 100) * frontW)}px`,
         top: `${Math.round(((spec.layout.yPct ?? 50) / 100) * H)}px`,
         transform: 'translate(-50%, -50%)',
         fontFamily: `"${titleFont}"`,
@@ -261,7 +304,7 @@ export async function renderWishbookCoverPng(spec: WishbookCoverSpec): Promise<U
         textAlign: 'center',
         lineHeight: 1.2,
         letterSpacing: '0.02em',
-        maxWidth: `${W * 0.46}px`,
+        maxWidth: `${frontW * 0.92}px`,
       }}
     >
       {title}
