@@ -125,3 +125,48 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ customers: rows, count: rows.length });
 }
+
+/**
+ * Replace a customer's tag list.
+ *
+ * Same reason as the GET: the UPDATE policy on `customers` is
+ * "auth.uid() = auth_user_id OR is_admin()", so a staff member editing someone
+ * else's row from the browser was rejected by RLS. The client sends the full
+ * resulting array rather than a single tag, which keeps the write idempotent
+ * when two tabs are open on the same customer.
+ */
+export async function PATCH(req: Request) {
+    const guard = await requireStaff();
+    if (!guard.ok) return guard.response;
+
+    let body: any;
+    try {
+        body = await req.json();
+    } catch {
+        return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const customerId = String(body?.customerId || '').trim();
+    if (!customerId) return NextResponse.json({ error: 'Не вказано клієнта' }, { status: 400 });
+    if (!Array.isArray(body?.tags)) return NextResponse.json({ error: 'Теги мають бути списком' }, { status: 400 });
+
+    const seen = new Set<string>();
+    const tags = body.tags
+        .map((t: any) => String(t ?? '').trim())
+        .filter((t: string) => t.length > 0 && t.length <= 40)
+        .filter((t: string) => (seen.has(t) ? false : (seen.add(t), true)))
+        .slice(0, 20);
+
+    const admin = getAdminClient();
+    const { data, error } = await admin
+        .from('customers')
+        .update({ tags })
+        .eq('id', customerId)
+        .select('id, tags')
+        .maybeSingle();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ error: 'Клієнта не знайдено' }, { status: 404 });
+
+    return NextResponse.json({ id: (data as any).id, tags: (data as any).tags || [] });
+}

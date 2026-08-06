@@ -234,6 +234,20 @@ export default function ClientsPage() {
         toast.success('Excel файл завантажено');
     };
 
+    // Tag writes go through the admin route for the same RLS reason as the
+    // list: the UPDATE policy on `customers` only lets a person edit their own
+    // row, so a staff member tagging a customer was rejected outright.
+    const saveTags = async (customerId: string, tags: string[]): Promise<string[]> => {
+        const res = await fetch('/api/admin/clients', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId, tags }),
+        });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload?.error || 'Не вдалося зберегти теги');
+        return payload.tags || [];
+    };
+
     const addTag = async (customerId: string, tag: string) => {
         const customer = customers.find((c) => c.id === customerId);
         if (!customer) return;
@@ -247,22 +261,16 @@ export default function ClientsPage() {
         const newTags = [...currentTags, tag];
 
         try {
-            const { error } = await supabase
-                .from('customers')
-                .update({ tags: newTags })
-                .eq('id', customerId);
-
-            if (error) throw error;
-
+            const saved = await saveTags(customerId, newTags);
             setCustomers((prev) =>
                 prev.map((c) =>
-                    c.id === customerId ? { ...c, tags: newTags } : c
+                    c.id === customerId ? { ...c, tags: saved } : c
                 )
             );
             toast.success(`Тег "${tag}" додано`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding tag:', error);
-            toast.error('Помилка додавання тегу');
+            toast.error(error?.message || 'Помилка додавання тегу');
         }
     };
 
@@ -273,22 +281,16 @@ export default function ClientsPage() {
         const newTags = (customer.tags || []).filter((t) => t !== tag);
 
         try {
-            const { error } = await supabase
-                .from('customers')
-                .update({ tags: newTags })
-                .eq('id', customerId);
-
-            if (error) throw error;
-
+            const saved = await saveTags(customerId, newTags);
             setCustomers((prev) =>
                 prev.map((c) =>
-                    c.id === customerId ? { ...c, tags: newTags } : c
+                    c.id === customerId ? { ...c, tags: saved } : c
                 )
             );
             toast.success(`Тег "${tag}" видалено`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error removing tag:', error);
-            toast.error('Помилка видалення тегу');
+            toast.error(error?.message || 'Помилка видалення тегу');
         }
     };
 
