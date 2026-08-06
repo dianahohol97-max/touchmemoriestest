@@ -248,6 +248,31 @@ export default function AccountPage() {
             sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(draft));
             sessionStorage.setItem('bookReopenPlacement', JSON.stringify(remainingPlacement));
             sessionStorage.setItem('bookReopenProjectId', String(row.id));
+
+            // If this design belongs to an order that has not gone to print yet,
+            // the editor switches into "change this order" mode: the save lands
+            // on that order instead of creating a second one. The server decides
+            // — it owns the ownership and production checks — so a stale or
+            // foreign order simply comes back non-editable and the normal
+            // add-to-cart flow stays.
+            sessionStorage.removeItem('bookEditOrderId');
+            sessionStorage.removeItem('bookEditOrderNumber');
+            if (row.order_id) {
+                try {
+                    const chk = await fetch(`/api/orders/${row.order_id}/update-design`);
+                    const info = await chk.json().catch(() => ({}));
+                    if (chk.ok && info.editable) {
+                        sessionStorage.setItem('bookEditOrderId', String(row.order_id));
+                        sessionStorage.setItem('bookEditOrderNumber', String(info.orderNumber || ''));
+                        toast.info(
+                            `Ви редагуєте макет замовлення ${info.orderNumber || ''}. Зміни збережуться в ньому, платити ще раз не потрібно.`.trim(),
+                            { duration: 9000 },
+                        );
+                    } else if (info.reason) {
+                        toast.info(`${info.reason} Ви можете змінити дизайн і оформити його як нове замовлення.`, { duration: 9000 });
+                    }
+                } catch { /* offline — fall back to the normal cart flow */ }
+            }
             try { (window as any).__bookPhotoOriginals = undefined; } catch {}
 
             const locale = (typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk') || 'uk';

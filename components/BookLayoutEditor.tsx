@@ -3716,6 +3716,18 @@ export default function BookLayoutEditor() {
   // button stayed clickable through a potentially minutes-long originals
   // upload — the UI looked frozen and a double-click added the book twice.
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  // Set when the editor was opened from the account to change the design of an
+  // order that already exists. In this mode «Зберегти» updates that order in
+  // place — no new cart line, no second payment. The server is the authority on
+  // whether the order may still be edited; this only drives the UI.
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editingOrderNumber, setEditingOrderNumber] = useState<string>('');
+  useEffect(() => {
+    try {
+      const oid = sessionStorage.getItem('bookEditOrderId');
+      if (oid) { setEditingOrderId(oid); setEditingOrderNumber(sessionStorage.getItem('bookEditOrderNumber') || ''); }
+    } catch { /* no sessionStorage */ }
+  }, []);
   // The cart line this design last became — lets the success modal offer
   // «Продовжити редагування» that re-saves onto the same line, not a copy.
   const [lastCartItemId, setLastCartItemId] = useState<string | null>(null);
@@ -4149,7 +4161,10 @@ export default function BookLayoutEditor() {
     // «Продовжити редагування» can re-target it (a re-save replaces the same
     // line instead of adding a duplicate book).
     setLastCartItemId(cartPayload.id);
-    if (editingCartItemId) {
+    if (editingOrderId) {
+      // Changing an existing order — the cart must not gain a line for a book
+      // the customer has already paid for.
+    } else if (editingCartItemId) {
       replaceItem(cartPayload as any);
       sessionStorage.removeItem('bookEditCartItemId');
     } else {
@@ -4845,6 +4860,36 @@ export default function BookLayoutEditor() {
         // book has no selectedSize, so this line was stamping every one of them
         // with format '20x20' and the print pipeline believed it.
         const sizeForSave = config?.selectedSize ? normalizeSizeKey(config.selectedSize) : '';
+        // Editing an EXISTING order (opened from the account): the design has to
+        // replace that order's project, not create a cart-keyed one. Awaited on
+        // purpose — the customer is told whether it actually landed, and a
+        // refusal (order already in production, or a change that alters the
+        // price) must stop the flow instead of quietly falling through to the
+        // cart. Everything above this line — photo upload, snapshot — is the
+        // same work either way.
+        if (editingOrderId) {
+          const res = await fetch(`/api/orders/${editingOrderId}/update-design`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ design: designSnapshot, totalPages: contentPages }),
+          });
+          const data = await res.json().catch(() => ({} as any));
+          if (!res.ok || !data.ok) {
+            toast.error(data.reason || 'Не вдалося зберегти зміни в замовленні. Напишіть нам, і ми допоможемо.', { duration: 12000 });
+            setIsAddingToCart(false);
+            setUploadState(prev => prev ? { ...prev, active: false } : null);
+            return;
+          }
+          try { sessionStorage.removeItem('bookEditOrderId'); sessionStorage.removeItem('bookEditOrderNumber'); } catch {}
+          setEditingOrderId(null);
+          toast.success(
+            `Зміни збережено в замовленні ${data.orderNumber || ''}. Новий макет уже в роботі, платити ще раз не потрібно.`.trim(),
+            { duration: 10000 },
+          );
+          setIsAddingToCart(false);
+          setUploadState(prev => prev ? { ...prev, active: false } : null);
+          return;
+        }
         void fetch('/api/projects/save-design', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -5291,7 +5336,7 @@ export default function BookLayoutEditor() {
                 </button>
               </div>
             ) : (
-              <button onClick={addToCart} disabled={isAddingToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor: isAddingToCart ? 'wait' : 'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>{isAddingToCart ? 'Завантажуємо фото…' : 'Зберегти та замовити'}</button>
+              <button onClick={addToCart} disabled={isAddingToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor: isAddingToCart ? 'wait' : 'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>{isAddingToCart ? 'Завантажуємо фото…' : (editingOrderId ? `Зберегти зміни${editingOrderNumber ? ` · ${editingOrderNumber}` : ''}` : 'Зберегти та замовити')}</button>
             )}
           </div>
         </div>

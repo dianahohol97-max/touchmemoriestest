@@ -65,6 +65,8 @@ export default function CartDrawer() {
             const slug = (snap.config?.productSlug || '').toLowerCase().trim();
             sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(snap.draft || {}));
             sessionStorage.setItem('bookEditCartItemId', item.id);
+            sessionStorage.removeItem('bookEditOrderId');
+            sessionStorage.removeItem('bookEditOrderNumber');
             closeDrawer();
             router.push(`/${locale}/editor/book/layout`);
         } catch { /* ignore */ }

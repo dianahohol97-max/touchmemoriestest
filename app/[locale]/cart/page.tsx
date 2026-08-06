@@ -96,6 +96,10 @@ export default function CartPage() {
             const slug = (snap.config?.productSlug || '').toLowerCase().trim();
             sessionStorage.setItem(slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft', JSON.stringify(snap.draft || {}));
             sessionStorage.setItem('bookEditCartItemId', item.id);
+            // Editing a CART line, not an order — drop any order-edit mode left
+            // over from a previous trip through the account.
+            sessionStorage.removeItem('bookEditOrderId');
+            sessionStorage.removeItem('bookEditOrderNumber');
             router.push(`/${locale}/editor/book/layout`);
         } catch { /* ignore */ }
     };

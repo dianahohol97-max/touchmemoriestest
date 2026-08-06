@@ -255,7 +255,7 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         // Starting a fresh book order from the catalog — drop any leftover
         // "editing this cart item" flag so a new configuration is ADDED to the
         // cart rather than replacing a previously edited item.
-        try { if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('bookEditCartItemId'); } catch { /* ignore */ }
+        try { if (typeof sessionStorage !== 'undefined') { sessionStorage.removeItem('bookEditCartItemId'); sessionStorage.removeItem('bookEditOrderId'); sessionStorage.removeItem('bookEditOrderNumber'); } } catch { /* ignore */ }
     }, []);
 
     useEffect(() => {
