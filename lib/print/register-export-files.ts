@@ -19,9 +19,11 @@ export function exportRowsFromPaths(orderId: string, productType: string | null,
   return uploaded.map((path) => {
     const fileName = path.split('/').pop() || path;
     const isCover = /(^|\/)00_cover(_front|_back)?\.jpg$/i.test(path) || /cover/i.test(fileName);
-    // Travel books / magazines export one file per page (NN_page.jpg);
-    // photobooks export 2-page spreads (NN_spread.jpg).
-    const isPage = /_page\.jpg$/i.test(fileName);
+    // Travel books / magazines export one file per page — named NN.jpg per
+    // the print partner's rule (legacy renders used NN_page.jpg; both are
+    // recognised so old rows keep their category). Photobooks export 2-page
+    // spreads (NN_spread.jpg).
+    const isPage = /_page\.jpg$/i.test(fileName) || /^\d+\.jpe?g$/i.test(fileName);
     // 00_cover -> page 1, 01_spread -> page 2, ... (cover first).
     const m = fileName.match(/^(\d+)_/);
     const pageNumber = m ? parseInt(m[1], 10) + 1 : null;

@@ -97,7 +97,9 @@ export function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
   const slug = (config.productSlug || '').toLowerCase();
 
-  if (slug.includes('travel')) return '20x30';
+  // Travel book has its own key: print pages are 210×297 mm (partner's file
+  // check), not the photobook 20x30's 200×300.
+  if (slug.includes('travel')) return 'travelbook';
   if (slug.includes('wish') || slug.includes('guest') || slug.includes('pobazhan')) {
     return normalizeSizeKey(config.selectedSize || '20x30');
   }

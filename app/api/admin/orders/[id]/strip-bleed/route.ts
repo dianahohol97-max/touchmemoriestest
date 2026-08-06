@@ -90,7 +90,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const report: any[] = [];
   for (const f of batch) {
     const bucket = f.bucket_name || 'photobook-uploads';
-    const isSinglePage = /_page\.jpe?g$/i.test(String(f.file_name));
+    const isSinglePage = /_page\.jpe?g$/i.test(String(f.file_name)) || /^\d+\.jpe?g$/i.test(String(f.file_name));
     const targetW = mmToPx(isSinglePage ? geo.page.w : geo.finished.w);
     const targetH = mmToPx(isSinglePage ? geo.page.h : geo.finished.h);
 

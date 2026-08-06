@@ -63,14 +63,17 @@ const FALLBACK_SHEETS: Record<string, { spread: { w: number; h: number }; cover:
   '23x23': { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
   'A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
   'magazine-A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
-  'travelbook': { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  // Travel book: the print partner's checker demands page files of EXACTLY
+  // 210×297 mm (Diana, 2026-08-06). Sheet = 2 pages with no extra overhang,
+  // so the split page files come out at precisely 2480×3508 px @300 DPI.
+  'travelbook': { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
 };
 
 /** Finished page size for keys that are not literally "WxH" centimetres. */
 const NAMED_PAGE_MM: Record<string, { w: number; h: number }> = {
   'A4': { w: 210, h: 297 },
   'magazine-A4': { w: 210, h: 297 },
-  'travelbook': { w: 200, h: 300 },
+  'travelbook': { w: 210, h: 297 },
 };
 
 /** '20×30 см' → '20x30'. */
@@ -130,7 +133,7 @@ export function resolveProjectSizeKey(project: {
   // a project with no size at all still resolved correctly — only a poisoned
   // `format` got through.) Checking the product first makes the resolver immune
   // to that field regardless of which helper wrote it.
-  if (/travel/.test(hay)) return '20x30';
+  if (/travel/.test(hay)) return 'travelbook';
   if (/magazine|zhurnal|journal|fotozhurnal|журнал/.test(hay)) return 'magazine-A4';
 
   const explicit = normalizeSizeKey(String(cfg.selectedSize || project.format || ''));

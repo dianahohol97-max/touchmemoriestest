@@ -94,11 +94,15 @@ const PRINT_DIMS_MM: Record<string, { spread: { w: number; h: number }; cover: {
 const PAGE_MM: Record<string, { w: number; h: number }> = {
   'A4': { w: 210, h: 297 },
   'magazine-A4': { w: 210, h: 297 },
+  // Print partner's page check for travel books: exactly 210×297 mm.
+  'travelbook': { w: 210, h: 297 },
 };
 
 function resolveSizeKey(config: any): string {
   const slug = String(config?.productSlug || '').toLowerCase();
-  if (slug.includes('travel')) return '20x30';
+  // Own key — 210×297 print pages, NOT the photobook '20x30' (200×300).
+  // MUST agree with resolveProjectSizeKey in lib/print/geometry.ts.
+  if (slug.includes('travel')) return 'travelbook';
   if (slug.includes('wish') || slug.includes('guest') || slug.includes('pobazhan')) {
     return String(config?.selectedSize || '20x30').replace(/×/g, 'x');
   }
@@ -646,7 +650,10 @@ app.post('/render', async (req, res) => {
               .withMetadata({ density: DPI })
               .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
               .toBuffer();
-            const storagePath = `${orderPrefix}/print/${String(renumberPage(h.pageNo)).padStart(2, '0')}_page.jpg`;
+            // The print partner's checker expects pages named 01.jpg, 02.jpg…
+            // (its «Основний файл» column literally lists NN.jpg) — the old
+            // NN_page.jpg suffix failed the naming rule.
+            const storagePath = `${orderPrefix}/print/${String(renumberPage(h.pageNo)).padStart(2, '0')}.jpg`;
             const { error: upErr } = await supabase.storage
               .from(STORAGE_BUCKET)
               .upload(storagePath, pageJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
