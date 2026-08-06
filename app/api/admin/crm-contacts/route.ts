@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const search = (url.searchParams.get('search') || '').trim();
     const source = (url.searchParams.get('source') || '').trim();
+    const status = (url.searchParams.get('status') || '').trim();
     const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
     const from = (page - 1) * PAGE_SIZE;
 
@@ -33,11 +34,15 @@ export async function GET(req: Request) {
 
     let query = admin
         .from('crm_imported_customers')
-        .select('id, email, name, phone, last_order_at, order_count, total_spend, source, imported_at', { count: 'exact' })
+        .select(
+            'id, email, name, phone, last_order_at, order_count, total_spend, source, imported_at, email_status, email_status_reason, email_suggestion',
+            { count: 'exact' },
+        )
         .order('last_order_at', { ascending: false, nullsFirst: false })
         .range(from, from + PAGE_SIZE - 1);
 
     if (source) query = query.eq('source', source);
+    if (status === 'ok' || status === 'suspect' || status === 'invalid') query = query.eq('email_status', status);
     if (search) {
         // Escape the PostgREST pattern metacharacters so a stray % or _ in the
         // box matches literally instead of turning into a wildcard.
@@ -54,14 +59,14 @@ export async function GET(req: Request) {
     // because that is the difference between a contact you can mail and one you
     // only hold in the archive.
     const emails = rows.map((r: any) => String(r.email || '').toLowerCase()).filter(Boolean);
-    const status = new Map<string, boolean>();
+    const subState = new Map<string, boolean>();
     if (emails.length > 0) {
         const { data: subs } = await admin
             .from('subscribers')
             .select('email, is_active')
             .in('email', emails);
         for (const s of subs || []) {
-            status.set(String((s as any).email).toLowerCase(), (s as any).is_active !== false);
+            subState.set(String((s as any).email).toLowerCase(), (s as any).is_active !== false);
         }
     }
 
@@ -69,14 +74,15 @@ export async function GET(req: Request) {
         const key = String(r.email || '').toLowerCase();
         return {
             ...r,
-            subscriber_state: status.has(key) ? (status.get(key) ? 'active' : 'unsubscribed') : 'none',
+            subscriber_state: subState.has(key) ? (subState.get(key) ? 'active' : 'unsubscribed') : 'none',
         };
     });
 
     // Totals for the header tiles, over the whole table rather than this page.
-    const [{ count: total }, { count: withDate }] = await Promise.all([
+    const [{ count: total }, { count: withDate }, { count: badEmails }] = await Promise.all([
         admin.from('crm_imported_customers').select('id', { count: 'exact', head: true }),
         admin.from('crm_imported_customers').select('id', { count: 'exact', head: true }).not('last_order_at', 'is', null),
+        admin.from('crm_imported_customers').select('id', { count: 'exact', head: true }).neq('email_status', 'ok'),
     ]);
 
     return NextResponse.json({
@@ -86,5 +92,6 @@ export async function GET(req: Request) {
         matched: count ?? 0,
         total: total ?? 0,
         withOrderDate: withDate ?? 0,
+        badEmails: badEmails ?? 0,
     });
 }

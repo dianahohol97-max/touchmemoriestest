@@ -17,7 +17,13 @@ export const dynamic = 'force-dynamic';
 const DAYS_MIN = 60;       // not too soon after the last purchase
 const DAYS_MAX = 540;      // ~18 months — older than that, treat as cold
 const COOLDOWN_DAYS = 120; // don't win-back the same person more than ~3x/year
-const BATCH_LIMIT = 100;   // stay well under Brevo's daily send cap
+// Diana, 2026-08-06: 50 a day, not 100. Two reasons. The Brevo plan allows 300
+// emails per DAY in total, shared with order confirmations — a 100-letter batch
+// took a third of that in one go and risked a customer not receiving proof of
+// their purchase. And after the KeyCRM import the pool is ~4.7k people who have
+// not heard from the shop in a long time, so a slower drip keeps complaint
+// rates low while the sending reputation is still being established.
+const BATCH_LIMIT = 50;
 
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
