@@ -6,6 +6,7 @@ import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { localePath } from '@/lib/i18n/path';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { useB2b } from '@/lib/b2b/useB2b';
+import { calcTravelBookTotal } from '@/lib/products';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -309,19 +310,13 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         const slugLower = (product.slug || '').toLowerCase();
         if (!slugLower.includes('travel') && !slugLower.includes('travelbook')) return;
 
-        const TRAVELBOOK_PRICES: Record<number, number> = {
-            12: 675, 16: 825, 20: 975, 24: 1125, 28: 1275, 32: 1425,
-            36: 1575, 40: 1725, 44: 1875, 48: 2025, 52: 2150,
-            60: 2350, 72: 2650, 80: 2900,
-        };
-
-        const pages = Number(customProductOptions['Кількість сторінок']) || 0;
-        if (!pages) return;
-
-        let total = TRAVELBOOK_PRICES[pages] || 0;
+        // One price function, shared with the options selector — this used to be
+        // a private copy of the table that matched page lamination against a
+        // string the option never produces («З ламінацією сторінок» versus the
+        // real «З ламінацією (+7 ₴/стор)»), so the surcharge was never added,
+        // and it knew nothing about the forzac print or the rush multiplier.
+        const total = calcTravelBookTotal(customProductOptions as Record<string, unknown>);
         if (!total) return;
-        if (customProductOptions['Ламінація сторінок'] === 'З ламінацією сторінок') total += pages * 7;
-
         setDynamicPrice(total);
     }, [customProductOptions, product]);
     const [personalizationNote, setPersonalizationNote] = useState('');

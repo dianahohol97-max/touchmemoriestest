@@ -605,6 +605,42 @@ export function getTravelBookPrice(pages: number): number {
   return lookupPagePrice(TRAVEL_BOOK.prices, pages);
 }
 
+/** Is the rush option selected? One reading of the value, used everywhere. */
+export function isUrgentOption(value?: string | null): boolean {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (!v || v === '0' || v === 'none' || v === 'standard') return false;
+  if (v.includes('стандартна') || v.includes('5–8') || v.includes('5-8')) return false;
+  return true;
+}
+
+/**
+ * The full Travel Book price for a set of chosen options.
+ *
+ * This lived in THREE hand-written copies — two in ProductOptionsSelector and a
+ * private one inside a ProductClient effect — and they disagreed. The card's
+ * copy compared page lamination against the single string «З ламінацією
+ * сторінок» while the option actually offers «З ламінацією (+7 ₴/стор)», so it
+ * matched nothing: TM-001142 was sold as a 16-page book at its bare 825 ₴ with
+ * the 112 ₴ of lamination the customer had chosen simply missing. That same
+ * copy also knew nothing about the forzac print or the rush surcharge.
+ * One function now, and the option values are read through the shared
+ * predicates rather than compared to literals.
+ */
+export function calcTravelBookTotal(opts: Record<string, unknown>): number | null {
+  const pages = Number(opts['Кількість сторінок'] ?? opts['Сторінок']) || 0;
+  if (!pages) return null;
+  let total = getTravelBookPrice(pages);
+  if (!total) return null;
+  const lamination = (opts['Ламінація сторінок'] ?? opts['Ламінування сторінок']) as string | undefined;
+  if (isPageLaminationSelected(lamination)) total += pages * LAMINATION_PRICE_PER_PAGE;
+  const forzac = String(opts['Друк на форзаці'] ?? '').toLowerCase();
+  if (forzac && forzac !== 'none' && !forzac.includes('без')) total += 100;
+  if (isUrgentOption(opts['Терміновість'] as string | undefined)) {
+    total = Math.round(total * (1 + URGENT_MULTIPLIER));
+  }
+  return total;
+}
+
 // Backward-compat alias for any code that still imports the with-typesetting
 // table. Computed from the single source so it can never drift.
 export const MAGAZINE_PRICES_WITH_TYPESETTING = Object.fromEntries(

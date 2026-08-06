@@ -1046,6 +1046,11 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             kalkaText: enableKalka ? (kalkaText || null) : null,
             selectedLamination: selectedLamination || null,
             selectedPageLamination: selectedPageLamination || null,
+            // Rush option, chosen on the product card and carried here as a URL
+            // param. It has to live in the CONFIG too: the editor is reachable by
+            // routes that carry no query string, and on those the +30 % was lost
+            // silently (TM-001146).
+            selectedUrgency: searchParams.get('urgent') || null,
             selectedPageColor: selectedPageColor || t('constructor.color_white_pl'),
             selectedCoverColor: selectedCoverColor || null,
             selectedDecorationType: selectedDecorationType !== 'none' ? selectedDecorationType : null,

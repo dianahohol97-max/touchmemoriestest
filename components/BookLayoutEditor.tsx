@@ -93,7 +93,7 @@ function tmImgError(e: React.SyntheticEvent<HTMLImageElement>) {
 // instead of the full editor preview (up to 5000px) — decoding dozens of
 // full-size bitmaps for 60px tiles was a constant source of scroll/paint jank.
 interface PhotoData { id: string; preview: string; thumb?: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
-interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
+interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; selectedUrgency?: string | null; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 interface CoverState {
@@ -212,6 +212,23 @@ type LayoutType =
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean; fit?: 'cover' | 'contain'; }
 interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; /** Box width as % of its container. Unset = hug the content (the original behaviour). */ w?: number; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
+
+/**
+ * Was the rush option («Терміновість: Термінова», +30 %) chosen?
+ *
+ * It used to be read from the URL alone. The editor is reachable by paths that
+ * carry no query string at all — «Редагувати» from the cart, a design reopened
+ * from the account — and on those the surcharge simply vanished: TM-001146 was
+ * charged 954 ₴ for an urgent travel book instead of 954 + 30 % of the base.
+ * A priced option has to travel with the design, so the saved config wins and
+ * the URL is only a fallback for older links.
+ */
+function isUrgentSelected(config: any, searchParams: URLSearchParams | null | undefined): boolean {
+  const raw = String(config?.selectedUrgency ?? searchParams?.get('urgent') ?? '').toLowerCase().trim();
+  if (!raw || raw === '0' || raw === 'none' || raw === 'standard') return false;
+  if (raw.includes('стандартна')) return false;
+  return true;
+}
 
 const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[] = [
   // 1 фото
@@ -4105,24 +4122,33 @@ export default function BookLayoutEditor() {
         // sets of params; we copy them in if present so anything the
         // customer picked in the catalog persists to the manager view.
         if (searchParams) {
+          // Note the key spellings: the configurator writes `page_lamination`
+          // with an underscore. This list asked for `page-lamination` with a
+          // hyphen, so the line never appeared — the surcharge was billed (it
+          // comes from the config) while the manager's option list said nothing
+          // about it (TM-001146). Both spellings are accepted now, and the
+          // authoritative value comes from the config below regardless.
           const urlOpts: Array<[string, string]> = [
             ['lamination', 'Ламінація'],
             ['cover-lamination', t('constructor.cover_lamination')],
+            ['cover_lamination', t('constructor.cover_lamination')],
             ['page-lamination', t('constructor.page_lamination')],
+            ['page_lamination', t('constructor.page_lamination')],
             ['spine', t('constructor.spine')],
-            ['urgent', t('constructor.urgency')],
           ];
           for (const [key, label] of urlOpts) {
             const v = searchParams.get(key);
             if (!v || v === 'none' || v === '0' || v === '') continue;
-            if (key === 'urgent') {
-              const lv = v.toLowerCase();
-              if (lv === 'standard' || lv.includes('стандартна')) continue;
-              opts[label] = t('constructor.express');
-            } else {
-              opts[label] = v;
-            }
+            opts[label] = v;
           }
+        }
+        // Priced options come from the CONFIG, which travels with the design —
+        // the URL does not survive every route into the editor.
+        if (isPageLaminationSelected(config.selectedPageLamination)) {
+          opts[t('constructor.page_lamination')] = 'З ламінацією';
+        }
+        if (isUrgentSelected(config, searchParams)) {
+          opts[t('constructor.urgency')] = t('constructor.express');
         }
         // Min-order info for graduation books.
         if (isGraduation) opts[t('constructor.min_order')] = `${GRADUATION_MIN_QTY} шт`;
@@ -5072,8 +5098,7 @@ export default function BookLayoutEditor() {
     if (typesettingApplies) {
       typesettingExtra = 195; // TYPESETTING_PRICE for magazine
     }
-    const urgentRaw = (searchParams?.get('urgent') || '').toLowerCase();
-    const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
+    const isUrgent = isUrgentSelected(config, searchParams);
     const surchargedOrdered = (isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered) + typesettingExtra;
     const surchargedCurrent = (isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent) + typesettingExtra;
     baseDynamicPrice = surchargedCurrent;
@@ -5089,8 +5114,7 @@ export default function BookLayoutEditor() {
     // (currentPageCount can be 0 on first render before pages array is populated)
     const effectivePages = currentPageCount > 0 ? currentPageCount : orderedPages;
     const baseCurrent = getTravelBookPrice(effectivePages);
-    const urgentRaw = (searchParams?.get('urgent') || '').toLowerCase();
-    const isUrgent = !!urgentRaw && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
+    const isUrgent = isUrgentSelected(config, searchParams);
     const surchargedOrdered = isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered;
     const surchargedCurrent = isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent;
     baseDynamicPrice = surchargedCurrent;

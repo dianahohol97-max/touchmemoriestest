@@ -519,7 +519,10 @@ export function BookPreviewModal({
               fontSize: ((tb.fontSize || 18) * coverScale) + 'px',
               fontFamily: (tb.fontFamily || 'Montserrat') + ', sans-serif',
               color: tb.color || (backPhoto ? '#fff' : '#1e2d7d'),
-              fontWeight: tb.bold ? 800 : 600,
+              // 700/400, the same pair CoverEditor and PreviewCoverText use.
+              // 800/600 printed every block heavier than the customer set it —
+              // a non-bold caption came out semibold.
+              fontWeight: tb.bold ? 700 : 400,
               whiteSpace: 'nowrap',
               textShadow: backPhoto ? '0 1px 3px rgba(0,0,0,0.4)' : 'none',
             }}>{tb.text}</span>
@@ -601,7 +604,7 @@ export function BookPreviewModal({
               const decoPx = (coverState.textFontSize || 24) * coverScale;
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
+                  <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', fontWeight: 600, whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
                 </div>
               );
             }
