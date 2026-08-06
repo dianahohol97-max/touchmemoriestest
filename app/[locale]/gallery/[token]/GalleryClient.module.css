@@ -239,6 +239,19 @@
   .splitPanel { padding: 44px 20px 36px; }
 }
 
+/* A phone held sideways is about 390px tall, so `min-height: 480px` beat
+   `height: 100svh` and made the cover TALLER than the screen: the «Переглянути»
+   cue sat at 398–450px on a 393px viewport, i.e. below the fold, and the client
+   saw a beautiful cover with no hint that anything follows (measured across
+   viewports, 2026-08-06). On such screens the cover goes back to exactly one
+   viewport and the generous bottom padding shrinks to match. */
+@media (max-height: 520px) {
+  .hero { min-height: 0; }
+  .heroBottom .heroContent { padding-bottom: 52px; }
+  .heroScroll { bottom: 12px; }
+  .heroMinimal { min-height: 0; padding: 32px 20px; }
+}
+
 /* ── Minimal hero: type only, no media ───────────────── */
 .heroMinimal {
   min-height: 72svh;
@@ -351,6 +364,26 @@ a.barName:hover { opacity: 0.7; }
   color: #fff;
 }
 .favFilterOn:hover { background: #8f4342; border-color: #8f4342; }
+
+/* On a narrow phone the four items wrapped onto three rows and the bar — which
+   is sticky — ate 123px, nearly a fifth of an iPhone SE screen, for the whole
+   scroll. Two explicit rows instead: name and date up top, the two controls
+   below. `display: contents` lifts the actions' children into this grid so the
+   date can share row one without touching the markup. */
+@media (max-width: 560px) {
+  .barInner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 8px 14px;
+  }
+  .barActions { display: contents; }
+  .barBrand { grid-column: 1; grid-row: 1; }
+  .countdown { grid-column: 2; grid-row: 1; justify-self: end; }
+  .favFilter { grid-column: 1; grid-row: 2; justify-self: start; }
+  .downloadBtn { grid-column: 2; grid-row: 2; justify-self: end; }
+}
 
 /* ── Grid ────────────────────────────────────────────── */
 .container {
@@ -547,10 +580,19 @@ a.barName:hover { opacity: 0.7; }
 .tile:hover .tileDl { opacity: 1; transform: scale(1); }
 .tileDl:hover { background: rgba(20, 16, 12, 0.6); }
 
-/* Keep the controls visible even on touch devices (no hover). */
+/* Keep the controls visible even on touch devices (no hover) — and big enough
+   to hit. A finger needs ~44px; these were 38px, and the heart is the one
+   control a client taps hundreds of times while picking photos for print. */
 @media (hover: none) {
   .heart { opacity: 1; transform: scale(1); }
   .tileDl { opacity: 1; transform: scale(1); }
+  .heart,
+  .tileDl { width: 44px; height: 44px; }
+  .lbIconBtn { width: 44px; height: 44px; }
+  /* The bar's two controls were 32px tall — the download button is the whole
+     point of the gallery, so it should not be the hardest thing to tap. */
+  .downloadBtn { padding: 13px 22px; }
+  .favFilter { padding: 12px 16px; }
 }
 
 .emptyFav {
@@ -616,6 +658,13 @@ a.barName:hover { opacity: 0.7; }
   border-color: var(--g-muted);
   opacity: 1;
   background: var(--g-chip-hover);
+}
+/* Phone, Instagram, email and site: how the client reaches the photographer
+   again, and only 31px tall on a phone. This block has to sit AFTER the base
+   rule — a media query adds no specificity, so the earlier touch block up by
+   the tiles would simply lose to the padding above. */
+@media (hover: none) {
+  .contactChip { padding: 12px 16px; }
 }
 .footerCta {
   display: inline-block;
