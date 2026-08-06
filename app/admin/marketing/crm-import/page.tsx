@@ -105,8 +105,9 @@ export default function CrmImportPage() {
     });
     const [source, setSource] = useState('keycrm');
     const [busy, setBusy] = useState(false);
-    const [result, setResult] = useState<{ imported: number; received: number } | null>(null);
+    const [result, setResult] = useState<{ imported: number; received: number; subscribersAdded?: number; subscribersError?: string } | null>(null);
     const [error, setError] = useState('');
+    const [addToSubscribers, setAddToSubscribers] = useState(false);
 
     // Direct pull from KeyCRM (skips the manual CSV export entirely).
     const [keycrmToken, setKeycrmToken] = useState('');
@@ -257,11 +258,16 @@ export default function CrmImportPage() {
             const res = await fetch('/api/admin/crm-import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rows: builtRows, source }),
+                body: JSON.stringify({ rows: builtRows, source, addToSubscribers }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Помилка імпорту');
-            setResult({ imported: data.imported, received: data.received });
+            setResult({
+                imported: data.imported,
+                received: data.received,
+                subscribersAdded: data.subscribersAdded,
+                subscribersError: data.subscribersError,
+            });
         } catch (e: any) {
             setError(e?.message || 'Помилка імпорту');
         } finally {
@@ -371,6 +377,20 @@ export default function CrmImportPage() {
                             Знайдено рядків з email: <strong style={{ color: '#263A99' }}>{builtRows.length}</strong> із {dataRows.length}
                         </div>
                     </div>
+
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 16, fontSize: 13, color: '#475569', cursor: 'pointer', lineHeight: 1.5 }}>
+                        <input
+                            type="checkbox"
+                            checked={addToSubscribers}
+                            onChange={e => setAddToSubscribers(e.target.checked)}
+                            style={{ marginTop: 3 }}
+                        />
+                        <span>
+                            Додати цих людей у підписників, щоб їм можна було відправляти звичайну розсилку
+                            через розділ «Листи». Без цієї галочки контакти живлять тільки автоматичний win-back.
+                            Ті, хто вже відписався раніше, залишаються відписаними — їх ця дія не повертає.
+                        </span>
+                    </label>
                 </div>
             )}
 
@@ -420,6 +440,14 @@ export default function CrmImportPage() {
                 <div style={{ marginTop: 18, padding: 16, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 10, color: '#166534', fontSize: 14 }}>
                     Готово: збережено/оновлено <strong>{result.imported}</strong> клієнтів (отримано {result.received}).
                     Win-back підхопить тих, хто потрапляє у вікно 60–540 днів.
+                    {typeof result.subscribersAdded === 'number' && result.subscribersAdded > 0 && (
+                        <> Додано у підписників нових контактів: <strong>{result.subscribersAdded}</strong>, сегмент «{source}».</>
+                    )}
+                    {result.subscribersError && (
+                        <div style={{ marginTop: 10, color: '#92400e' }}>
+                            Клієнтів збережено, але додати їх у підписників не вдалося: {result.subscribersError}
+                        </div>
+                    )}
                 </div>
             )}
             {error && (
