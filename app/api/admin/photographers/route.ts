@@ -9,11 +9,6 @@ export async function GET() {
   if (!guard.ok) return guard.response;
 
   const admin = getAdminClient();
-  const { data, error } = await admin
-    .from('photographers')
-    .select('*, photographer_galleries(count)')
-    .order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Скільки місця займає кожен фотограф (Diana, 2026-08-06). Два прості
   // запити замість вкладеної вибірки: між фото й галереями ДВА звʼязки
@@ -21,28 +16,22 @@ export async function GET() {
   // двозначний — PostgREST повертає помилку, і перша версія цього коду мовчки
   // показувала «порожньо» всім. Постранично, бо PostgREST віддає максимум
   // 1000 рядків за запит.
-  const ownerByGallery: Record<string, string> = {};
-  const { data: galleryOwners } = await admin
-    .from('photographer_galleries')
-    .select('id, photographer_id');
-  (galleryOwners || []).forEach((g: any) => { ownerByGallery[g.id] = g.photographer_id; });
-
-  const bytesByPhotographer: Record<string, number> = {};
-  for (let from = 0; ; from += 1000) {
-    const { data: photos, error: photosError } = await admin
-      .from('photographer_gallery_photos')
-      .select('gallery_id, size_bytes')
-      .range(from, from + 999);
-    if (photosError) {
-      console.error('[admin/photographers] storage sum failed:', photosError.message);
-      break;
+  const fetchGalleryPhotos = async () => {
+    const rows: { gallery_id: string; size_bytes: number }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: photos, error: photosError } = await admin
+        .from('photographer_gallery_photos')
+        .select('gallery_id, size_bytes')
+        .range(from, from + 999);
+      if (photosError) {
+        console.error('[admin/photographers] storage sum failed:', photosError.message);
+        break;
+      }
+      (photos || []).forEach((ph: any) => rows.push(ph));
+      if (!photos || photos.length < 1000) break;
     }
-    (photos || []).forEach((ph: any) => {
-      const pid = ownerByGallery[ph.gallery_id];
-      if (pid) bytesByPhotographer[pid] = (bytesByPhotographer[pid] || 0) + Number(ph.size_bytes || 0);
-    });
-    if (!photos || photos.length < 1000) break;
-  }
+    return rows;
+  };
 
   /**
    * Скільки кожен фотограф замовив і скільки заплатив за тарифи памʼяті
@@ -50,21 +39,48 @@ export async function GET() {
    * фотограф замовляє на сайті зі свого звичайного акаунта, окремого звʼязку
    * «замовлення → фотограф» у базі немає. Рахуються лише оплачені.
    */
-  const paidOrders: { customer_id: string | null; customer_email: string | null; total: number }[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data: rows } = await admin
-      .from('orders')
-      .select('customer_id, customer_email, total')
-      .eq('payment_status', 'paid')
-      .range(from, from + 999);
-    (rows || []).forEach((r: any) => paidOrders.push(r));
-    if (!rows || rows.length < 1000) break;
-  }
+  const fetchPaidOrders = async () => {
+    const rows: { customer_id: string | null; customer_email: string | null; total: number }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: page } = await admin
+        .from('orders')
+        .select('customer_id, customer_email, total')
+        .eq('payment_status', 'paid')
+        .range(from, from + 999);
+      (page || []).forEach((r: any) => rows.push(r));
+      if (!page || page.length < 1000) break;
+    }
+    return rows;
+  };
 
-  const { data: subs } = await admin
-    .from('photographer_subscriptions')
-    .select('photographer_id, amount_uah, status')
-    .eq('status', 'paid');
+  // Пʼять незалежних вибірок ідуть паралельно: послідовно ця сторінка
+  // відкривалася ~4 секунди (найповільніший маршрут у Speed Insights), і весь
+  // час ішов на чекання одного запиту за іншим, а не на самі запити.
+  const [photographersRes, galleryOwnersRes, photoRows, paidOrders, subsRes] = await Promise.all([
+    admin.from('photographers')
+      .select('*, photographer_galleries(count)')
+      .order('created_at', { ascending: false }),
+    admin.from('photographer_galleries').select('id, photographer_id'),
+    fetchGalleryPhotos(),
+    fetchPaidOrders(),
+    admin.from('photographer_subscriptions')
+      .select('photographer_id, amount_uah, status')
+      .eq('status', 'paid'),
+  ]);
+
+  const { data, error } = photographersRes;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  const ownerByGallery: Record<string, string> = {};
+  (galleryOwnersRes.data || []).forEach((g: any) => { ownerByGallery[g.id] = g.photographer_id; });
+
+  const bytesByPhotographer: Record<string, number> = {};
+  photoRows.forEach((ph) => {
+    const pid = ownerByGallery[ph.gallery_id];
+    if (pid) bytesByPhotographer[pid] = (bytesByPhotographer[pid] || 0) + Number(ph.size_bytes || 0);
+  });
+
+  const subs = subsRes.data;
   const subsByPhotographer: Record<string, { count: number; sum: number }> = {};
   (subs || []).forEach((s: any) => {
     const cur = subsByPhotographer[s.photographer_id] || { count: 0, sum: 0 };
