@@ -49,6 +49,11 @@ export async function GET(req: Request) {
   const results: any[] = [];
   for (const p of (projects || []) as any[]) {
     try {
+      // Wishbook print files are server-generated covers, never Railway page
+      // renders — anything sitting in a wishbook project's print folder is
+      // leftovers from a mistaken render (TM-001138) and must NOT be
+      // re-registered as a макет.
+      if (/wish|pobazhan|guest/i.test(String(p.product_type || ''))) continue;
       const firstPath: string | undefined = (Array.isArray(p.uploaded_photos) ? p.uploaded_photos : [])
         .find((x: any) => x?.path)?.path;
       if (!firstPath) continue;

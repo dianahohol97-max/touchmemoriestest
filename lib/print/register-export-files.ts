@@ -13,7 +13,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * this module, and registration is idempotent so double delivery is harmless.
  */
 
-export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fotozhurnal|journal|planner|wish|calendar|kalendar/i;
+// NO `wish` here, on purpose (TM-001138). Wishbook print files are the
+// server-generated engraving covers (cover.jpg / cover_bw.jpg from
+// generate-wishbook-cover) — never Railway renders: its pages are physical
+// coloured paper. Listing wishbook as "renderable" made pruneStaleExports
+// treat the generated cover as a stale render and DELETE it the moment any
+// re-render ran, leaving the order with 11 blank spreads and no cover.
+export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fotozhurnal|journal|planner|calendar|kalendar/i;
 
 export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[]) {
   return uploaded.map((path) => {
