@@ -47,6 +47,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Schema reference | `lib/supabase/schema/*.sql` | Authoritative reference for table shapes |
 | Pricing engine | `lib/editor/pricing.ts` (pure) + `lib/editor/usePrices.ts` (client hook) + `app/api/pricing/photobook/route.ts` (server) | Photobook prices live in Supabase (`photobook_prices` table). API endpoint caches the matrix for 60s; the client hook fetches it and stores it in localStorage so the editor never shows a "0 ₴" flicker on repeat visits. `pricing.ts` itself is pure — all functions take a `PriceTable` argument. See "Pricing flow" below |
 | Region pricing / currency | `lib/payment/pricing-region.ts` (markup + currency rule, pure) + `lib/i18n/currency.ts` (rates, pure convert) + `lib/i18n/exchangeRate.ts` (server rate reader) | +30% intl markup = locale × shipRegion (NOT currency); flat €25 intl shipping (free-shipping disabled: threshold 0). EUR rate in `settings('eur_rate')`, refreshed biweekly by `/api/cron/update-exchange-rate`. See "Region pricing" below |
+| Print render pipeline | `render-service/` (Railway) + `app/api/print/*` + `lib/print/` | See "Print render pipeline" below |
 | Salary calculator | `lib/salary/` + `app/admin/expenses/` | For team payroll |
 | Reporting | `lib/reporting/` + `app/admin/analytics/` | Dashboards, automated weekly reports |
 | Automation rules | `lib/automation/` + `app/admin/automations/` | Deadline calc, assignment, telegram + email notifications |
@@ -145,6 +146,16 @@ When a new overlay is created (`addShape`, new text, new sticker, new QR), it ge
 Cover overlays (pageIdx === 0) don't have the z-order toolbar yet — covers are simpler decoration surfaces and there hasn't been demand. The infrastructure is type-compatible (Shape/sticker types include zOrder), so adding it is a small follow-up if needed.
 
 ---
+
+## Print render pipeline (added 2026-08-06)
+
+Production files are made by the **Railway render service** (`render-service/`, headless Chromium + sharp), which screenshots the app's `/print/[projectId]` page (a clean, chrome-free render via `BookPreviewModal` in print mode — no trim guides, page digits, «ЗАДНЯ» labels or fake spine bands) at 300 DPI. Key facts:
+
+- **Output shape:** travel books & magazines export page-by-page (`NN_page.jpg`); soft-cover magazines also split the cover into `00_cover_back/front.jpg`; hard covers stay one wrap sheet (`00_cover.jpg`); photobooks export 2-page spreads. Empty forzats (forzats-as-extra-pages model, no content) are skipped and pages renumbered.
+- **Storage layout:** `guest/pb-…/print/` for order-time uploads, `drafts/<uid>/<projectId>/print/` for draft-based projects. The folder is ALWAYS unique per project — a shared `drafts/<uid>/print` folder once let one order's re-render overwrite another's cover.
+- **Registration is triple-redundant:** (1) `render-order` awaits the render and registers `order_files` rows — dies on big books (maxDuration); (2) the service POSTs a completion callback to `/api/print/render-complete` with the uploaded paths; (3) the hourly `reconcile-print-files` cron lists each recent order project's print folder and registers anything missing. All three go through `lib/print/register-export-files.ts` and are idempotent.
+- **Stale-deploy detection:** the service's `/health` and its completion callback report `RAILWAY_GIT_COMMIT_SHA` — check it against origin/main before debugging «фікс не працює».
+- **Photo readiness:** before each screenshot the service waits for every `<img>` to load AND `decode()` (bounded 45s/photo) — a streaming JPEG at screenshot time produced distorted photos with blank bands.
 
 ## Pricing flow
 

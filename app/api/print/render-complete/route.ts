@@ -65,6 +65,14 @@ export async function POST(req: NextRequest) {
     }
   } catch { /* cosmetic — never fail the callback on it */ }
 
-  console.log('[render-complete] indexed', { projectId, orderId: project.order_id, files: uploaded.length, insertError });
+  console.log('[render-complete] indexed', {
+    projectId,
+    orderId: project.order_id,
+    files: uploaded.length,
+    insertError,
+    // Which service build produced the render — the fastest way to spot a
+    // stale Railway deploy in the logs.
+    serviceCommit: String(body?.serviceCommit || 'unknown'),
+  });
   return NextResponse.json({ ok: !insertError, files: uploaded.length, insertError });
 }
