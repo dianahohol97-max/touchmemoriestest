@@ -104,7 +104,7 @@ async function loadContext(orderId: string) {
 
   const { data: order } = await admin
     .from('orders')
-    .select('id, order_number, customer_id, items, notes, order_status, production_status, production_at, shipped_at, delivered_at')
+    .select('id, order_number, customer_id, items, notes, custom_attributes, order_status, production_status, production_at, shipped_at, delivered_at')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -216,15 +216,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // refreshed rather than stacked, so a customer who saves five times does not
   // bury the rest of the notes.
   const MARKER = 'клієнт оновив макет після оформлення';
+  const editedAt = new Date().toISOString();
   try {
     const kept = String(order.notes || '')
       .split('\n')
       .filter(line => !line.includes(MARKER))
       .join('\n')
       .trim();
-    const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const stamp = editedAt.replace('T', ' ').slice(0, 16);
     const line = `ℹ️ ${MARKER} (${stamp} UTC) — макет перегенеровано, перевірте файли перед друком.`;
-    await admin.from('orders').update({ notes: kept ? `${line}\n\n${kept}` : line }).eq('id', id);
+    // The note is for reading; custom_attributes is what the admin page renders
+    // its banner from. A note can be edited or wiped by whoever is typing in the
+    // textarea, and this fact must not be losable that way.
+    const attrs = (order.custom_attributes && typeof order.custom_attributes === 'object')
+      ? { ...(order.custom_attributes as Record<string, unknown>) } : {};
+    attrs.design_updated_at = editedAt;
+    attrs.design_update_count = Number(attrs.design_update_count || 0) + 1;
+    await admin.from('orders')
+      .update({ notes: kept ? `${line}\n\n${kept}` : line, custom_attributes: attrs })
+      .eq('id', id);
   } catch (e: any) {
     console.error('[update-design] note update failed', { orderId: id, error: e?.message });
   }

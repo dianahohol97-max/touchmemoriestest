@@ -2120,6 +2120,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <h3 style={cardTitleStyle}><FileText size={20} /> Файли</h3>
                             <button onClick={saveNotes} style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer' }}><Save size={18} /></button>
                         </div>
+                        {/* The customer changed the design after the order was
+                            placed. This must not live only in the notes textarea:
+                            that field is edited by hand and one careless save
+                            wipes the fact. It is written onto the order itself by
+                            /api/orders/[id]/update-design and read back here. */}
+                        {(() => {
+                            const attrs = (order?.custom_attributes && typeof order.custom_attributes === 'object')
+                                ? order.custom_attributes as Record<string, any> : null;
+                            const editedAt = attrs?.design_updated_at;
+                            if (!editedAt) return null;
+                            const times = Number(attrs?.design_update_count || 1);
+                            return (
+                                <div style={{ marginBottom: '12px', padding: '12px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px' }}>
+                                    <div style={{ fontSize: '13px', color: '#92400e', fontWeight: 700, marginBottom: '4px' }}>
+                                        Клієнт змінив макет після оформлення замовлення
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#92400e' }}>
+                                        Останні зміни: {formatDateTime(editedAt)}{times > 1 ? ` · разів: ${times}` : ''}. Файли нижче вже перегенеровані з нового дизайну — перевірте їх перед відправкою в друк.
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         {(() => {
                             const orderIsWishbook = Array.isArray(order?.items) && order.items.some((it: any) =>
                                 /wish|guest|pobazhan/i.test(String(it.slug || '')) || /побажан/i.test(String(it.name || it.product_name || '')));
