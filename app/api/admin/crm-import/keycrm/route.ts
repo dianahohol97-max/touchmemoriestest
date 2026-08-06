@@ -25,10 +25,18 @@ export const maxDuration = 60;
  */
 
 const API_BASE = 'https://openapi.keycrm.app/v1';
-const PAGE_SIZE = 50;         // KeyCRM hard-caps `limit` at 50
-const DEFAULT_MAX_PAGES = 10; // 500 records per HTTP call
-const HARD_MAX_PAGES = 30;
+const PAGE_SIZE = 50;        // KeyCRM hard-caps `limit` at 50
+const DEFAULT_MAX_PAGES = 5; // 250 records per HTTP call
+const HARD_MAX_PAGES = 20;
 const RETRY_STATUSES = new Set([429, 500, 502, 503, 504]);
+
+// KeyCRM throttles per minute, and the first run tripped it: ten pages per
+// invocation with no spacing, fired back-to-back by the client loop, put ~40
+// requests on the wire in twelve seconds. The retries that followed stretched
+// the invocation until it was killed mid-flight, which reaches the browser as
+// "Failed to fetch" rather than as a readable error.
+const PAGE_GAP_MS = 350;      // ~3 requests/second, comfortably under the cap
+const TIME_BUDGET_MS = 40_000; // return early below maxDuration (60s), never get killed
 
 type Resource = 'buyer' | 'order';
 
@@ -66,7 +74,7 @@ async function fetchPage(resource: Resource, token: string, page: number): Promi
     if (resource === 'order') params.set('include', 'buyer');
 
     let lastError = '';
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
         let res: Response;
         try {
             res = await fetch(`${API_BASE}/${resource}?${params.toString()}`, {
@@ -88,11 +96,20 @@ async function fetchPage(resource: Resource, token: string, page: number): Promi
             const body = await res.text().catch(() => '');
             throw new Error(`KeyCRM повернув ${res.status}. ${body.slice(0, 200)}`);
         }
-        // 429 = rate limit; back off progressively before retrying.
+
+        // 429 means the per-minute quota is spent. KeyCRM says how long to wait
+        // in Retry-After; honour it rather than guessing, capped so one hostile
+        // value cannot hold the invocation open until it is killed.
+        const retryAfter = Number(res.headers.get('retry-after'));
+        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(retryAfter * 1000, 8000)
+            : 1500 * (attempt + 1);
         lastError = `HTTP ${res.status}`;
-        await sleep(1000 * (attempt + 1));
+        await sleep(waitMs);
     }
-    throw new Error(`KeyCRM недоступний після 3 спроб (${lastError}).`);
+    throw new Error(
+        `KeyCRM не відповів після 4 спроб (${lastError}). Найчастіше це ліміт запитів — зачекай хвилину і натисни кнопку ще раз, уже завантажене не загубиться.`,
+    );
 }
 
 /** One row per email — a buyer with two addresses becomes two contacts. */
@@ -148,8 +165,18 @@ export async function POST(req: Request) {
     let nextPage: number | null = null;
     let sample: any = null;
 
+    const startedAt = Date.now();
+    let warning: string | null = null;
+
     try {
         while (pagesFetched < maxPages) {
+            // Hand the remaining pages back to the caller before the platform
+            // kills the invocation. A killed function produces no response at
+            // all, so the browser sees a bare network failure and the whole run
+            // is lost; stopping early keeps the walk resumable.
+            if (pagesFetched > 0 && Date.now() - startedAt > TIME_BUDGET_MS) break;
+            if (pagesFetched > 0) await sleep(PAGE_GAP_MS);
+
             const payload = await fetchPage(resource, token, page);
             const data: any[] = Array.isArray(payload?.data) ? payload.data : [];
             if (body?.debug && !sample && data.length > 0) sample = data[0];
@@ -174,7 +201,14 @@ export async function POST(req: Request) {
             nextPage = page;
         }
     } catch (e: any) {
-        return NextResponse.json({ error: e?.message || 'KeyCRM request failed' }, { status: 502 });
+        // Whatever this batch already collected is good data. Returning it with
+        // the failed page as `nextPage` lets the caller retry just that page
+        // instead of restarting the whole export from the first record.
+        if (rows.length === 0) {
+            return NextResponse.json({ error: e?.message || 'KeyCRM request failed' }, { status: 502 });
+        }
+        warning = e?.message || 'KeyCRM request failed';
+        nextPage = page;
     }
 
     return NextResponse.json({
@@ -184,6 +218,7 @@ export async function POST(req: Request) {
         total,
         pagesFetched,
         nextPage,
+        ...(warning ? { warning } : {}),
         ...(sample ? { sample } : {}),
     });
 }

@@ -145,20 +145,51 @@ export default function CrmImportPage() {
     // pages one request may fetch and hands back `nextPage`, so the loop lives
     // here — that keeps each serverless invocation short no matter how many
     // thousands of records the CRM holds.
-    const fetchAllPages = async (resource: 'buyer' | 'order', onProgress: (n: number) => void) => {
+    const fetchAllPages = async (resource: 'buyer' | 'order', onProgress: (n: number, note?: string) => void) => {
         const collected: any[] = [];
         let page: number | null = 1;
         let guard = 0;
-        while (page !== null && guard < 400) {
-            const res = await fetch('/api/admin/crm-import/keycrm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: keycrmToken.trim() || undefined, resource, page, maxPages: 10 }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data?.error || 'Помилка запиту до KeyCRM');
+
+        while (page !== null && guard < 800) {
+            let data: any = null;
+
+            // A batch can die on the wire — KeyCRM's rate limit, a cold start,
+            // a dropped connection. Retrying just this batch matters because
+            // the alternative is throwing away every contact fetched so far and
+            // starting the export from the first page again.
+            for (let attempt = 0; attempt < 3 && !data; attempt++) {
+                if (attempt > 0) {
+                    onProgress(collected.length, `зʼєднання зірвалося, повторюю спробу ${attempt + 1} з 3`);
+                    await new Promise(r => setTimeout(r, 4000 * attempt));
+                }
+                try {
+                    const res = await fetch('/api/admin/crm-import/keycrm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: keycrmToken.trim() || undefined, resource, page, maxPages: 5 }),
+                    });
+                    const payload = await res.json();
+                    if (!res.ok) throw new Error(payload?.error || 'Помилка запиту до KeyCRM');
+                    data = payload;
+                } catch (e: any) {
+                    if (attempt === 2) {
+                        if (collected.length > 0) {
+                            // Keep what we have rather than losing the run; the
+                            // caller reports the shortfall to the user.
+                            onProgress(collected.length, 'завантаження обірвалося, працюю з тим, що вже зібрано');
+                            return collected;
+                        }
+                        throw new Error(
+                            e?.message === 'Failed to fetch'
+                                ? 'Зʼєднання з сервером обірвалося ще на першій порції. Зачекай хвилину і спробуй ще раз — можливо, KeyCRM тимчасово обмежив частоту запитів.'
+                                : (e?.message || 'Помилка запиту до KeyCRM'),
+                        );
+                    }
+                }
+            }
+
             collected.push(...(data.rows || []));
-            onProgress(collected.length);
+            onProgress(collected.length, data.warning ? 'KeyCRM пригальмовує, продовжую повільніше' : undefined);
             page = data.nextPage ?? null;
             guard++;
         }
@@ -168,8 +199,8 @@ export default function CrmImportPage() {
     const syncFromKeyCrm = async () => {
         setSyncing(true); setSyncError(''); setError(''); setResult(null); setCsvText('');
         try {
-            const buyers = await fetchAllPages('buyer', n =>
-                setSyncProgress(`Завантажую покупців із KeyCRM, уже отримано ${n} контактів.`));
+            const buyers = await fetchAllPages('buyer', (n, note) =>
+                setSyncProgress(`Завантажую покупців із KeyCRM, уже отримано ${n} контактів${note ? ` — ${note}` : ''}.`));
 
             const merged = new Map<string, MergedContact>();
             for (const b of buyers) {
@@ -188,8 +219,8 @@ export default function CrmImportPage() {
             }
 
             if (withOrders) {
-                const orders = await fetchAllPages('order', n =>
-                    setSyncProgress(`Завантажую замовлення для дат і сум, уже оброблено ${n} записів.`));
+                const orders = await fetchAllPages('order', (n, note) =>
+                    setSyncProgress(`Завантажую замовлення для дат і сум, уже оброблено ${n} записів${note ? ` — ${note}` : ''}.`));
                 for (const o of orders) {
                     const key = String(o.email || '').toLowerCase();
                     if (!key) continue;
