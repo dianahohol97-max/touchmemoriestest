@@ -132,6 +132,15 @@ interface CoverEditorProps {
 }
 
 /**
+ * Height in px of the editor's cover canvas at 100 % zoom — see `baseH` in
+ * getCanvasDimensions(). It stands for the physical page height, so a stored
+ * inscription size of N px means N / EDITOR_BASE_CANVAS_H of the page height.
+ * The server-side print render (lib/print/wishbook-cover.tsx) converts through
+ * the same constant; changing one without the other desyncs preview and print.
+ */
+export const EDITOR_BASE_CANVAS_H = 460;
+
+/**
  * Renders cover-template text and auto-shrinks the font so the text fits on a
  * single line within `maxWidthPx`. Cover templates store an absolute fontSize
  * (e.g. WEDDING = 56) tuned for a wide reference cover; on a narrower product
@@ -536,7 +545,17 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const textX = config.textX ?? 50;
   const textY = config.textY ?? 50;
   const fontFamily = config.textFontFamily || 'Playfair Display';
-  const fontSize = config.textFontSize || Math.max(16, canvasW / 9);
+  // Inscription sizes are stored as px on the editor's BASE cover canvas
+  // (EDITOR_BASE_CANVAS_H tall, which stands for the page height — the same
+  // canvas the decoration plate is measured against via `scale` above). The
+  // canvas itself is drawn at the current zoom, so the displayed size has to
+  // follow it. Without this the text kept its px size while the cover shrank:
+  // at 47 % zoom the напис looked twice the proportion that actually goes to
+  // print, and the customer picked a size against a preview that lied.
+  const fontScale = canvasH > 0 ? canvasH / EDITOR_BASE_CANVAS_H : 1;
+  const scaleFont = (stored: number | undefined, fallbackPx: number) =>
+    stored ? stored * fontScale : fallbackPx;   // fallbacks are already canvas-relative
+  const fontSize = scaleFont(config.textFontSize, Math.max(16, canvasW / 9));
 
   return (
     <div onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={handleDrop}
@@ -916,7 +935,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
               <span contentEditable suppressContentEditableWarning
                 onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
-                style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:(config.textFontSize || Math.max(10,Math.min(boxW/8,22)))+'px',
+                style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:scaleFont(config.textFontSize, Math.max(10,Math.min(boxW/8,22)))+'px',
                   fontFamily:(config.textFontFamily || 'Montserrat')+',sans-serif', fontWeight:700, letterSpacing:'0.05em',
                   outline:'none', cursor:'text', textAlign:'center', padding:'0 6px', maxWidth:'90%', wordBreak:'break-word' }}>
                 {config.decoText||t('constructor.your_text')}
@@ -999,7 +1018,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onClick={e=>e.stopPropagation()}
               onMouseDown={e=>e.stopPropagation()}
               onPointerDown={e=>e.stopPropagation()}
-              style={{ display:'block', fontSize:(et.fontSize||20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
+              style={{ display:'block', fontSize:scaleFont(et.fontSize||20, 20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
               {et.text}
             </span>
             {/* Delete button — hover on desktop, always shown on touch.

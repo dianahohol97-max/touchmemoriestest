@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // one. The options carry only the text and font — position, size and colour
   // live in the project's cover_data, and rendering without them produced a
   // мізерний centred напис that looked nothing like the editor (TM-001132).
-  let editorLayout: { xPct?: number; yPct?: number; fontPx700?: number; color?: string } | null = null;
+  let editorLayout: { xPct?: number; yPct?: number; fontPxEditor?: number; color?: string } | null = null;
   try {
     const { data: proj } = await admin
       .from('projects')
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       editorLayout = {
         xPct: typeof cd.textX === 'number' ? cd.textX : undefined,
         yPct: typeof cd.textY === 'number' ? cd.textY : undefined,
-        fontPx700: typeof cd.textFontSize === 'number' ? cd.textFontSize : undefined,
+        fontPxEditor: typeof cd.textFontSize === 'number' ? cd.textFontSize : undefined,
         color: typeof cd.decoColor === 'string' && cd.decoColor.startsWith('#') ? cd.decoColor : undefined,
       };
     }

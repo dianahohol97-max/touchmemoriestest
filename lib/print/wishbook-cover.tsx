@@ -52,6 +52,20 @@ const COVER_MM: Record<string, { w: number; h: number }> = {
   '30x20': { w: 646, h: 238 },
 };
 
+// Page (single leaf) dimensions per format, WITHOUT the spine and fold-in that
+// COVER_MM carries. The editor's cover canvas represents exactly this area, so
+// the inscription size has to be converted through it.
+const PAGE_MM: Record<string, { w: number; h: number }> = {
+  '23x23': { w: 230, h: 230 },
+  '20x30': { w: 200, h: 300 },
+  '30x20': { w: 300, h: 200 },
+};
+
+// Height of the editor's cover canvas at 100 % zoom (CoverEditor's
+// EDITOR_BASE_CANVAS_H — kept as a literal so this print module stays free of
+// React imports). A stored size of N px is N / 460 of the page height.
+const EDITOR_BASE_CANVAS_H = 460;
+
 const mmToPx300 = (mm: number) => Math.round((mm * 300) / 25.4);
 
 // Cap the longest cover side so Satori/sharp stay within memory + the og size
@@ -74,10 +88,11 @@ export interface WishbookCoverSpec {
    * order has a linked project. Without it the title is centred at an
    * estimated size — which is NOT what the customer saw (TM-001132: the
    * напис came out мізерним and in the wrong colour). xPct/yPct are the
-   * editor's percent position on the FRONT cover; fontPx700 is the editor's
-   * font size in its 700px-tall canvas space; color is the chosen ink.
+   * editor's percent position on the FRONT cover; fontPxEditor is the editor's
+   * stored font size, in px on its base cover canvas (EDITOR_BASE_CANVAS_H tall
+   * = the page height); color is the chosen ink.
    */
-  layout?: { xPct?: number; yPct?: number; fontPx700?: number; color?: string } | null;
+  layout?: { xPct?: number; yPct?: number; fontPxEditor?: number; color?: string } | null;
 }
 
 // Normalise a raw size label ("30×20 см (горизонтальна)", "23х23") to a key.
@@ -228,10 +243,17 @@ export async function renderWishbookCoverPng(
   // Rough fit: assume ~0.58 aspect per glyph; clamp to sane bounds.
   const approxFontByWidth = title.length > 0 ? (titleAreaW / (title.length * 0.56)) : W * 0.06;
   const estimatedFontSize = Math.max(W * 0.02, Math.min(onPlate ? plateH * 0.5 : H * 0.16, approxFontByWidth));
-  // Editor-exact size when the layout is known: the editor stores font px in
-  // its 700px-tall canvas space, so the print equivalent scales by H/700.
-  const fontSize = (!onPlate && spec.layout?.fontPx700)
-    ? Math.max(W * 0.008, spec.layout.fontPx700 * (H / 700))
+  // Editor-exact size when the layout is known. The stored value is px on the
+  // editor's base cover canvas, which represents the PAGE (200×300 mm and the
+  // like) — while H here spans the whole print sheet, page plus fold-in. So the
+  // conversion has to go through millimetres, not through a bare pixel ratio:
+  // the old `fontPx700 * (H / 700)` was short by about a quarter and made the
+  // напис print noticeably smaller than the customer set it.
+  const pageMm = PAGE_MM[sizeKey] || PAGE_MM['20x30'];
+  const pxPerMmPrint = H / mm.h;
+  const pxPerMmEditor = EDITOR_BASE_CANVAS_H / pageMm.h;
+  const fontSize = (!onPlate && spec.layout?.fontPxEditor)
+    ? Math.max(W * 0.008, spec.layout.fontPxEditor * (pxPerMmPrint / pxPerMmEditor))
     : estimatedFontSize;
 
   const titleColor = mono
