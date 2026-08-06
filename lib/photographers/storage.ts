@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectsCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectsCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { GALLERY_BUCKET } from './helpers';
@@ -188,6 +188,38 @@ export async function presignUpload(path: string, contentType: string):
   const { data, error } = await admin.storage.from(GALLERY_BUCKET).createSignedUploadUrl(path);
   if (error || !data) return { error: error?.message || 'Не вдалося підготувати аплоад' };
   return { url: data.signedUrl, provider: 'supabase' };
+}
+
+/**
+ * Short-lived URL that makes the browser SAVE the file under its real name.
+ *
+ * Supabase takes a `?download=` query parameter on its public URL, but R2's
+ * public address ignores query strings entirely — a public R2 object can only
+ * be served inline, so a single-photo download opened the image in a new tab
+ * instead of saving it (Diana, 2026-08-06). A presigned GET can carry
+ * response-content-disposition, which restores the behaviour AND keeps the
+ * bytes flowing browser↔Cloudflare, costing us no egress.
+ *
+ * Returns null when there is no such URL to mint (Supabase, or R2 unavailable)
+ * and the caller should fall back.
+ */
+export async function presignDownload(path: string, provider: string | null | undefined, fileName: string):
+  Promise<string | null> {
+  if (provider !== 'r2' || !isR2Configured()) return null;
+  try {
+    return await getSignedUrl(
+      r2(),
+      new GetObjectCommand({
+        Bucket: R2.bucket,
+        Key: path,
+        ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      }),
+      { expiresIn: 60 * 10 },
+    );
+  } catch (e: any) {
+    console.error('[r2] presign download failed:', e?.message || e);
+    return null;
+  }
 }
 
 /** Verify an object really landed (never trust the client's word on a

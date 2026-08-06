@@ -107,15 +107,38 @@ export default function GalleryClient({ token }: { token: string }) {
     }
   };
 
-  // Supabase serves public files inline; the ?download= param flips
-  // Content-Disposition to attachment so single photos actually download
-  // (the <a download> attribute is ignored cross-origin).
-  const dlHref = (url: string, name: string) => `${url}${url.includes('?') ? '&' : '?'}download=${encodeURIComponent(name || 'photo.jpg')}`;
+  // Storage serves public files inline and the <a download> attribute is
+  // ignored cross-origin, so the save has to be forced by the response itself.
+  // `?download=` did that on Supabase, but R2's public address ignores query
+  // strings — on R2 the photo just opened in a tab (Diana, 2026-08-06). Our
+  // route knows which provider holds the file and redirects accordingly, so
+  // the bytes still come straight from storage.
+  const dlHref = (photoId: string) => `/api/gallery/${encodeURIComponent(token)}/file/${encodeURIComponent(photoId)}`;
   // Fire-and-forget download telemetry for the photographer's stats.
   const track = (payload: { type: 'zip' } | { type: 'photo'; photoId: string }) => {
     fetch(`/api/gallery/${encodeURIComponent(token)}/track`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     }).catch(() => {});
+  };
+
+  /**
+   * One file's bytes for the archive. The direct storage URL is tried first
+   * because it costs us no bandwidth, but a cross-origin fetch needs CORS
+   * headers on the response — which an <img> never does, so photos can display
+   * perfectly while this throws («Не вдалося сформувати архів», Diana
+   * 2026-08-06, right after the move to Cloudflare's r2.dev address). On any
+   * failure the same file is pulled through our own origin instead.
+   */
+  const fetchForZip = async (p: { id: string; url: string }): Promise<Blob> => {
+    try {
+      const direct = await fetch(p.url);
+      if (direct.ok) return await direct.blob();
+    } catch { /* cross-origin refusal — fall through */ }
+    // stream=1: proxy the bytes rather than redirect — a redirect would land
+    // back on the cross-origin URL that just refused us.
+    const viaUs = await fetch(`/api/gallery/${encodeURIComponent(token)}/file/${encodeURIComponent(p.id)}?stream=1`);
+    if (!viaUs.ok) throw new Error('file');
+    return await viaUs.blob();
   };
 
   const downloadAll = async () => {
@@ -126,7 +149,7 @@ export default function GalleryClient({ token }: { token: string }) {
       const zip = new JSZip();
       for (let i = 0; i < data.photos.length; i++) {
         const p = data.photos[i];
-        const blob = await (await fetch(p.url)).blob();
+        const blob = await fetchForZip(p);
         zip.file(p.file_name || `photo_${i + 1}.jpg`, blob);
         setZipProgress(Math.round(((i + 1) / data.photos.length) * 100));
       }
@@ -372,7 +395,7 @@ const formatDate = (d: string) =>
                   {photo.favorite ? '♥' : '♡'}
                 </button>
                 <a
-                  href={dlHref(photo.url, photo.file_name)}
+                  href={dlHref(photo.id)}
                   className={styles.tileDl}
                   onClick={() => track({ type: 'photo', photoId: photo.id })}
                   aria-label={t.ariaDownload}
@@ -435,7 +458,7 @@ const formatDate = (d: string) =>
               >
                 {current.favorite ? '♥' : '♡'}
               </button>
-              <a href={dlHref(current.url, current.file_name)} className={styles.lbIconBtn}
+              <a href={dlHref(current.id)} className={styles.lbIconBtn}
                  onClick={() => track({ type: 'photo', photoId: current.id })} aria-label={t.ariaDownload}><DownloadIcon size={17} /></a>
               <button type="button" className={styles.lbIconBtn} onClick={() => setLightbox(null)} aria-label={t.ariaClose}>✕</button>
             </div>
