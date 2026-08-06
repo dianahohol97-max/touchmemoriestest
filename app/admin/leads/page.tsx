@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import {
     Target, RefreshCw, Mail, Phone, Globe, MapPin, Send, Plus, X,
@@ -51,6 +51,41 @@ export default function LeadsPage() {
     const [threadLoading, setThreadLoading] = useState(false);
 
     const [showAdd, setShowAdd] = useState(false);
+
+    // Пошук пошт на сайтах лідів. Йде пачками, бо кожен лід — це похід на
+    // чужий сайт; стан тримаємо тут, щоб показувати поступ і вміти спинити.
+    const [emailHunt, setEmailHunt] = useState<{ running: boolean; found: number; done: number; left: number | null }>(
+        { running: false, found: 0, done: 0, left: null },
+    );
+    const huntStop = useRef(false);
+
+    const runEmailHunt = async () => {
+        if (emailHunt.running) { huntStop.current = true; return; }
+        huntStop.current = false;
+        setEmailHunt({ running: true, found: 0, done: 0, left: null });
+        let found = 0, done = 0;
+        try {
+            for (;;) {
+                if (huntStop.current) break;
+                const res = await fetch('/api/admin/leads/find-emails', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ limit: 8 }),
+                });
+                if (!res.ok) { toast.error('Пошук перервався — спробуйте ще раз'); break; }
+                const json = await res.json();
+                found += json.found || 0;
+                done += json.processed || 0;
+                setEmailHunt({ running: true, found, done, left: json.remaining ?? null });
+                if (!json.processed || !json.remaining) break;
+            }
+            await fetchLeads();
+            toast.success(found > 0
+                ? `Знайдено пошт: ${found} із ${done} перевірених сайтів`
+                : `Перевірено сайтів: ${done}, пошт не знайшлося`);
+        } finally {
+            setEmailHunt(s => ({ ...s, running: false }));
+        }
+    };
 
     const fetchLeads = useCallback(async () => {
         setLoading(true);
@@ -103,6 +138,14 @@ export default function LeadsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => setShowAdd(true)} style={primaryBtn}><Plus size={16} /> Додати ліда</button>
+                    {/* Пошти для лідів із Google: їх немає в Places API, тому
+                        беремо з сайтів самих бізнесів. */}
+                    <button onClick={runEmailHunt} style={ghostBtn} title="Заходить на сайти лідів і забирає опубліковану там пошту">
+                        <Mail size={15} />
+                        {emailHunt.running
+                            ? `Шукаю пошти… знайдено ${emailHunt.found}${emailHunt.left !== null ? `, лишилось ${emailHunt.left}` : ''} · зупинити`
+                            : 'Знайти пошти на сайтах'}
+                    </button>
                     <button onClick={fetchLeads} style={ghostBtn}><RefreshCw size={15} /> Оновити</button>
                 </div>
             </div>
