@@ -3,6 +3,7 @@ import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/i18n/context';
 import { ImageIcon, Move } from 'lucide-react';
+import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
 export type DecoType = 'none' | 'acryl' | 'photovstavka' | 'metal' | 'flex' | 'graviruvannya';
@@ -131,14 +132,10 @@ interface CoverEditorProps {
   hidePhotoSlot?: boolean;
 }
 
-/**
- * Height in px of the editor's cover canvas at 100 % zoom — see `baseH` in
- * getCanvasDimensions(). It stands for the physical page height, so a stored
- * inscription size of N px means N / EDITOR_BASE_CANVAS_H of the page height.
- * The server-side print render (lib/print/wishbook-cover.tsx) converts through
- * the same constant; changing one without the other desyncs preview and print.
- */
-export const EDITOR_BASE_CANVAS_H = 460;
+// Re-exported for callers that already import it from here. The constant and
+// every conversion that uses it live in lib/print/text-scale.ts — read that
+// file before touching any size arithmetic on the cover.
+export { EDITOR_BASE_CANVAS_H };
 
 /**
  * Renders cover-template text and auto-shrinks the font so the text fits on a

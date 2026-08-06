@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geometry';
+import { coverTextScale } from './text-scale';
 
 export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
 
@@ -78,11 +79,6 @@ const PAGE_MM: Record<string, { w: number; h: number }> = {
   '20x30': { w: 200, h: 300 },
   '30x20': { w: 300, h: 200 },
 };
-
-// Height of the editor's cover canvas at 100 % zoom (CoverEditor's
-// EDITOR_BASE_CANVAS_H — kept as a literal so this print module stays free of
-// React imports). A stored size of N px is N / 460 of the page height.
-const EDITOR_BASE_CANVAS_H = 460;
 
 const mmToPx300 = (mm: number) => Math.round((mm * 300) / 25.4);
 
@@ -283,11 +279,8 @@ export async function renderWishbookCoverPng(
   // conversion has to go through millimetres, not through a bare pixel ratio:
   // the old `fontPx700 * (H / 700)` was short by about a quarter and made the
   // напис print noticeably smaller than the customer set it.
-  const pageMm = sizeMm.page;
-  const pxPerMmPrint = H / mm.h;
-  const pxPerMmEditor = EDITOR_BASE_CANVAS_H / pageMm.h;
   const fontSize = (!onPlate && spec.layout?.fontPxEditor)
-    ? Math.max(W * 0.008, spec.layout.fontPxEditor * (pxPerMmPrint / pxPerMmEditor))
+    ? Math.max(W * 0.008, spec.layout.fontPxEditor * coverTextScale(H / mm.h, sizeMm.page.h))
     : estimatedFontSize;
 
   const titleColor = mono

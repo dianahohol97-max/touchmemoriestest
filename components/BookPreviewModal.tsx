@@ -9,7 +9,7 @@ import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
-import { EDITOR_BASE_CANVAS_H } from './CoverEditor';
+import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
 
 /**
  * Renders a printed-cover caption the same way the editor's FitText does:
@@ -227,16 +227,13 @@ export function BookPreviewModal({
   // the cover's height from the page aspect is what made the render service
   // treat a 470×328 cover as 400×300 and pad the fold-in with invented pixels.
   const pageH = isPrint && printPageH ? printPageH : Math.round(pageW / aspect);
-  // Every piece of COVER text — the engraved inscription and the printed
-  // template blocks — is stored by CoverEditor as px on its cover canvas,
-  // EDITOR_BASE_CANVAS_H px tall, standing for the page height. Rendering that
-  // raw number on a 300-DPI print canvas thousands of px tall made the text
-  // microscopic: TM-001140's «HAPPY BIRTHDAY» came out as specks on the cover.
-  // Convert through millimetres — printCoverMm is the cover sheet (page plus
-  // fold-in), which is the area pageH actually spans in print mode.
+  // Resolution of the cover canvas. It cannot be assumed from pixels: in print
+  // the cover spans the whole SHEET, page plus fold-in, which is why the caller
+  // passes printCoverMm. Everything physical on the cover — text sizes and the
+  // decoration plate alike — is derived from this one number.
   const pageHmm = Math.max(1, propH) * 10;
   const coverPxPerMm = isPrint && printCoverMm?.h ? (pageH / printCoverMm.h) : (pageH / pageHmm);
-  const coverTextScale = coverPxPerMm / (EDITOR_BASE_CANVAS_H / pageHmm);
+  const coverScale = coverTextScale(coverPxPerMm, pageHmm);
   // Decorative spine / gutter bands are a PREVIEW illusion (they mimic a
   // physical book). In print mode they became thin brown/beige stripes down
   // the middle of every exported file — «технічні лінії» on the customer's
@@ -408,8 +405,8 @@ export function BookPreviewModal({
           // smaller of its gaps to the neighbours above and below.
           const anchorsY = (page.textBlocks || []).map(b => b.y);
           return (page.textBlocks || []).map(tb => {
-            const basePx = tb.fontSize * (cH / 700);
-            const padX = 8 * (cH / 700);
+            const basePx = tb.fontSize * pageTextScale(cH);
+            const padX = 8 * pageTextScale(cH);
             const scale = fitFontScale({
               text: tb.text,
               fontPx: basePx,
@@ -424,7 +421,7 @@ export function BookPreviewModal({
             /* Mirrors the editor's text box padding, scaled the same way. It eats
                into the 90% max width, so leaving it out here made lines wrap at a
                different point than the customer saw. */
-            padding: `${4 * (cH / 700)}px ${padX}px` }}>
+            padding: `${4 * pageTextScale(cH)}px ${padX}px` }}>
             <span style={{
               fontSize: basePx * scale, fontFamily: tb.fontFamily, color: tb.color,
               fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal',
@@ -467,7 +464,7 @@ export function BookPreviewModal({
       )}
       {kalkaState?.text && (
         <div style={{ position: 'absolute', left: `${kalkaState.textX ?? 50}%`, top: `${kalkaState.textY ?? 50}%`, transform: kalkaState.textAlign === 'left' ? 'translate(0,-50%)' : kalkaState.textAlign === 'right' ? 'translate(-100%,-50%)' : 'translate(-50%,-50%)', maxWidth: '90%', zIndex: 2, pointerEvents: 'none' }}>
-          <span style={{ display: 'inline-block', fontSize: (kalkaState.fontSize || 24) * 0.85, fontFamily: kalkaState.fontFamily || 'Playfair Display', color: kalkaState.textColor || '#333', fontWeight: kalkaState.bold ? 700 : 400, fontStyle: kalkaState.italic ? 'italic' : 'normal', textAlign: kalkaState.textAlign || 'center', whiteSpace: 'pre-wrap', opacity: 0.85 }}>{kalkaState.text}</span>
+          <span style={{ display: 'inline-block', fontSize: (kalkaState.fontSize || 24) * kalkaTextScale(cW), fontFamily: kalkaState.fontFamily || 'Playfair Display', color: kalkaState.textColor || '#333', fontWeight: kalkaState.bold ? 700 : 400, fontStyle: kalkaState.italic ? 'italic' : 'normal', textAlign: kalkaState.textAlign || 'center', whiteSpace: 'pre-wrap', opacity: 0.85 }}>{kalkaState.text}</span>
         </div>
       )}
       {!kalkaState?.text && !kalkaState?.imageUrl && !kalkaState?.calendarEnabled && (
@@ -515,7 +512,9 @@ export function BookPreviewModal({
             pointerEvents: 'none',
           }}>
             <span style={{
-              fontSize: (tb.fontSize || 18) + 'px',
+              // Back-cover blocks use the same cover scale as everything else
+              // on the sheet; raw px printed them microscopically too.
+              fontSize: ((tb.fontSize || 18) * coverScale) + 'px',
               fontFamily: (tb.fontFamily || 'Montserrat') + ', sans-serif',
               color: tb.color || (backPhoto ? '#fff' : '#1e2d7d'),
               fontWeight: tb.bold ? 800 : 600,
@@ -554,7 +553,7 @@ export function BookPreviewModal({
             };
             if (decoType === 'metal') {
               const dims = parseDims(coverState?.decoVariant || '100×100 мм');
-              const scale = pageW / (Math.max(1, propW) * 10); // px per mm (width-based, matches editor)
+              const scale = coverPxPerMm; // px per mm of THIS canvas — see coverPxPerMm above
               const plateW = dims.w * scale, plateH = dims.h * scale;
               const isSilver = (coverState?.decoColor || 'gold') === 'silver';
               const grad = isSilver
@@ -570,7 +569,7 @@ export function BookPreviewModal({
             if (decoType === 'acryl' || decoType === 'photovstavka') {
               // Mirror CoverEditor's acryl/photovstavka slot rendering
               const dims = parseDims(coverState?.decoVariant || '100×100 мм');
-              const scale = pageW / (Math.max(1, propW) * 10);
+              const scale = coverPxPerMm;
               let bW = dims.w * scale, bH = dims.h * scale;
               const minW = pageW * 0.12, maxW = pageW * 0.96, maxH = pageH * 0.96;
               let k = 1;
@@ -597,7 +596,7 @@ export function BookPreviewModal({
               // every velour / leatherette / fabric cover.
               // Convert through millimetres instead, exactly like the wishbook
               // server render does — see coverTextScale above.
-              const decoPx = (coverState.textFontSize || 24) * coverTextScale;
+              const decoPx = (coverState.textFontSize || 24) * coverScale;
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
                   <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
@@ -606,6 +605,23 @@ export function BookPreviewModal({
             }
             return null;
           })()}
+          {/* Extra inscriptions («Додати напис» on the cover). CoverEditor
+              renders and drags them, but nothing here drew them — so every
+              additional напис a customer placed was simply absent from the
+              print file, silently, with no warning anywhere. Same stored shape
+              and same scale as the main inscription. */}
+          {(coverState?.extraTexts || []).map((et: any) => (
+            <div key={et.id} style={{ position: 'absolute', left: `${et.x ?? 50}%`, top: `${et.y ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 7 }}>
+              <span style={{
+                fontSize: (et.fontSize || 20) * coverScale,
+                fontFamily: (et.fontFamily || 'Playfair Display') + ',serif',
+                color: et.color || '#fff',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                textAlign: 'center',
+              }}>{et.text}</span>
+            </div>
+          ))}
           {(coverState?.coverPhotos || []).map((cp: any) => {
             const cph = cp.photoId ? getPhoto(cp.photoId) : null;
             if (!cph) return null;
@@ -677,7 +693,7 @@ export function BookPreviewModal({
           const safeY = Math.max(8, Math.min(92, tb.y));
           return (
             <div key={tb.id} style={{ position: 'absolute', left: `${safeX}%`, top: `${safeY}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5, maxWidth: `${pageW * 0.84}px` }}>
-              <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} scale={coverTextScale} />
+              <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} scale={coverScale} />
             </div>
           );
         })}

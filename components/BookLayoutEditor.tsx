@@ -37,6 +37,7 @@ import {
   formatDecorationVariant,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
@@ -7599,7 +7600,7 @@ export default function BookLayoutEditor() {
                       }}>
                       <span style={{
                         display: 'inline-block',
-                        fontSize: kalkaState.fontSize * (pageW / 400),
+                        fontSize: kalkaState.fontSize * kalkaTextScale(pageW),
                         fontFamily: kalkaState.fontFamily,
                         color: kalkaState.textColor,
                         fontWeight: kalkaState.bold ? 700 : 400,
@@ -8092,8 +8093,8 @@ export default function BookLayoutEditor() {
                       // print put it at 0% with half the text past the trim — the
                       // customer never saw what would actually print.
                       const txtAnchorsY = (spreadPage?.textBlocks || []).map((b: any) => b.y);
-                      const txtBasePx = tb.fontSize * (cH / 700);
-                      const txtPadX = 8 * (cH / 700);
+                      const txtBasePx = tb.fontSize * pageTextScale(cH);
+                      const txtPadX = 8 * pageTextScale(cH);
                       const txtScale = isEd ? 1 : fitFontScale({
                         text: tb.text,
                         fontPx: txtBasePx,
@@ -8128,7 +8129,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*(cH/700)}px ${8*(cH/700)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             /* Scaled by the SAME cH/700 factor the print page uses.
                                Raw px here meant the canvas shrank with zoom while the text did
@@ -8349,7 +8350,7 @@ export default function BookLayoutEditor() {
                           }}>
                           <span style={{
                             display: 'inline-block',
-                            fontSize: kalkaState.fontSize * (pageW / 400),
+                            fontSize: kalkaState.fontSize * kalkaTextScale(pageW),
                             fontFamily: kalkaState.fontFamily,
                             color: kalkaState.textColor,
                             fontWeight: kalkaState.bold ? 700 : 400,
@@ -8806,8 +8807,8 @@ export default function BookLayoutEditor() {
                         // scale. Same formula as the spread branch and the print page
                         // now, so all three agree at any zoom.
                         const txtAnchorsY = (page?.textBlocks || []).map((b: any) => b.y);
-                        const txtBasePx = tb.fontSize * (cH / 700);
-                        const txtPadX = 8 * (cH / 700);
+                        const txtBasePx = tb.fontSize * pageTextScale(cH);
+                        const txtPadX = 8 * pageTextScale(cH);
                         const txtScale = isEd ? 1 : fitFontScale({
                           text: tb.text,
                           fontPx: txtBasePx,
@@ -8838,7 +8839,7 @@ export default function BookLayoutEditor() {
                                  so raw '2px 4px' put the wrap point a few px away
                                  from where the print wraps, and a word could sit
                                  on a different line in the editor than on paper. */
-                              padding:`${4*(cH/700)}px ${8*(cH/700)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',width:'max-content',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
+                              padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',width:'max-content',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
                             {isSel && !isEd && (
                               <ZOrderToolbar
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
