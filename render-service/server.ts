@@ -416,13 +416,30 @@ app.post('/render', async (req, res) => {
 
         // Wait for the spread element + all images decoded + fonts ready.
         await page.waitForSelector('[data-print-spread]', { timeout: 30000 });
-        await page.evaluate(async () => {
+        const imgReport = await page.evaluate(async () => {
           await (document as any).fonts?.ready;
           const imgs = Array.from(document.images);
-          await Promise.all(imgs.map(img => img.complete && img.naturalWidth > 0
+          // Wait for every photo to LOAD (bounded so one dead signed URL can't
+          // hang the render forever), then force a full DECODE. A screenshot
+          // taken while a large JPEG is still streaming sees a wrong intrinsic
+          // size — objectFit:cover then lays the photo out distorted with a
+          // blank band (the «видовжене фото» on TM-001113's page files).
+          await Promise.all(imgs.map(img => (img.complete && img.naturalWidth > 0)
             ? Promise.resolve()
-            : new Promise(r => { img.onload = r; img.onerror = r; })));
+            : new Promise(r => {
+                const done = () => r(null);
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
+                if (img.complete) done(); // failed before we attached — don't hang
+                setTimeout(done, 45000);
+              })));
+          await Promise.all(imgs.map(img => (img as any).decode ? (img as any).decode().catch(() => {}) : Promise.resolve()));
+          const broken = imgs.filter(img => !(img.complete && img.naturalWidth > 0)).length;
+          return { total: imgs.length, broken };
         });
+        if (imgReport.broken > 0) {
+          console.warn(`[render] spread ${spread}: ${imgReport.broken}/${imgReport.total} photos failed to load — the file may have blank slots`);
+        }
         await page.waitForTimeout(300); // settle
 
         const el = await page.$('[data-print-spread]');

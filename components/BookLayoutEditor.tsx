@@ -2262,6 +2262,16 @@ export default function BookLayoutEditor() {
   const defaultLayout = (): LayoutType => isSpreadMode ? 'sp-full' : 'p-full';
 
   const addSpread = () => {
+    // Product maximum — the price scale ends here (lib/products.ts tiers:
+    // travelbook 12–80, hard journal to 80, soft magazine to 100), and the
+    // price lookup falls back to the TOP tier for anything above it. So pages
+    // beyond the maximum were not just unsupported — they were FREE: TM-001113
+    // reached 82 photo pages billed as 80. Refuse instead.
+    const maxContentPages = isTravel ? 80 : isMagazine ? (isHardCoverJournal ? 80 : 100) : Infinity;
+    if (billableContentPages + 2 > maxContentPages) {
+      toast.error(`Максимум для цього продукту — ${maxContentPages} сторінок. Більше додати не можна.`);
+      return;
+    }
     pushHistory();
     // Ids must be UNIQUE, not positional: after a spread deletion the array
     // shrinks but ids are never renumbered, so `pages.length` could mint an
