@@ -5626,6 +5626,11 @@ export default function BookLayoutEditor() {
                           // customer can still add text blocks on top.
                           printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
                           printedPhotoSlots: undefined,
+                          // The old cover photo must not linger: a stale photoId
+                          // kept resurfacing downstream — rendered OVER the ready
+                          // cover in print, flagged as «ОБКЛАДИНКА» in the admin
+                          // file list, shown on cart thumbnails.
+                          photoId: null,
                           printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
                         }));
                         // Fill the back cover in the same colour as the ready

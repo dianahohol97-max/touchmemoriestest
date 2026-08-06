@@ -201,7 +201,17 @@ export async function GET(req: NextRequest) {
                 .limit(5);
             for (const pr of (projs || []) as any[]) {
                 const ups = Array.isArray(pr?.uploaded_photos) ? pr.uploaded_photos : [];
-                const coverPhotoId = pr?.cover_data?.photoId || null;
+                // cover_data.photoId is a LEFTOVER when a ready cover was
+                // applied afterwards (printedBgImage set, photo slot removed):
+                // flagging that photo as «обкладинка» showed a random customer
+                // photo instead of the ready cover Alina chose. The ready
+                // artwork itself is the cover in that case.
+                const cd: any = pr?.cover_data || {};
+                const slot: any = cd?.printedPhotoSlot;
+                const slotRemoved = slot && !((slot.w ?? 0) > 0 && (slot.h ?? 0) > 0);
+                const usesReadyCover = !!cd?.printedBgImage;
+                const coverPhotoId = (usesReadyCover || slotRemoved) ? null : (cd?.photoId || null);
+                if (usesReadyCover && !coverImageUrl) coverImageUrl = String(cd.printedBgImage);
                 const byB: Record<string, any[]> = {};
                 for (const up of ups) {
                     if (up?.path) (byB[up.bucket || 'photobook-uploads'] ||= []).push(up);
