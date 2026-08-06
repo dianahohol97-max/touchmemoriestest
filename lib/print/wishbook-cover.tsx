@@ -1,4 +1,7 @@
 import { ImageResponse } from 'next/og';
+import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geometry';
+
+export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
 
 /**
  * Server-side wishbook cover generator.
@@ -43,14 +46,29 @@ const FABRIC_COLORS: Record<string, string> = {
   'Сірий/графітовий': '#586058', 'Червоний яскравий': '#C02030', 'Оливковий/зелений': '#A0A020',
 };
 
-// ── Cover physical dimensions (mm) per format, incl. fold-in. Matches the
-//    PRINT_DIMS_MM cover entries in BookLayoutEditor.tsx for the three
-//    wishbook formats. ───────────────────────────────────────────────────────
+// ── Cover physical dimensions (mm) per format, incl. fold-in. ───────────────
+// Last-resort fallback only: deriveGeometry() in lib/print/geometry.ts is the
+// single source of truth and covers every photobook format too, which matters
+// now that soft-cover photobooks (велюр / шкірзамінник / тканина) use this
+// renderer for their engraving макет — 20×20, 25×25 and 30×30 are not wishbook
+// formats and were never in this table.
 const COVER_MM: Record<string, { w: number; h: number }> = {
   '23x23': { w: 506, h: 256 },
   '20x30': { w: 470, h: 328 },
   '30x20': { w: 646, h: 238 },
 };
+
+/** Cover sheet + finished page in mm for a size key, geometry module first. */
+function resolveSizeMm(sizeKey: string): { cover: { w: number; h: number }; page: { w: number; h: number } } {
+  const g = deriveGeometry(sizeKey);
+  if (g && g.cover.w > 0 && g.cover.h > 0 && g.page.w > 0 && g.page.h > 0) {
+    return { cover: g.cover, page: g.page };
+  }
+  return {
+    cover: COVER_MM[sizeKey] || COVER_MM['20x30'],
+    page: PAGE_MM[sizeKey] || PAGE_MM['20x30'],
+  };
+}
 
 // Page (single leaf) dimensions per format, WITHOUT the spine and fold-in that
 // COVER_MM carries. The editor's cover canvas represents exactly this area, so
@@ -96,12 +114,27 @@ export interface WishbookCoverSpec {
 }
 
 // Normalise a raw size label ("30×20 см (горизонтальна)", "23х23") to a key.
+// Wishbook formats only — the fallback is a wishbook size, so never call this
+// for a photobook.
 export function normalizeWishbookSize(raw: string): string {
   const s = (raw || '').toLowerCase().replace(/[х×]/g, 'x').replace(/\s/g, '');
   if (s.includes('23x23')) return '23x23';
   if (s.includes('30x20')) return '30x20';
   if (s.includes('20x30')) return '20x30';
   return '20x30';
+}
+
+/**
+ * Any book format this renderer can draw — the wishbook sizes plus every
+ * photobook one (20×20, 25×25, 30×30 …), now that soft-cover photobooks use it
+ * for their engraving макет. Falls back to the wishbook normaliser only when the
+ * geometry module does not recognise the key, so an unknown label still renders
+ * something rather than throwing.
+ */
+export function normalizeCoverSize(raw: string): string {
+  const k = geoNormalizeSizeKey(String(raw || ''));
+  if (k && deriveGeometry(k)) return k;
+  return normalizeWishbookSize(raw);
 }
 
 function detectDecoType(s: string): WishbookCoverSpec['decoType'] {
@@ -204,8 +237,9 @@ export async function renderWishbookCoverPng(
   opts: WishbookRenderOptions = {}
 ): Promise<Uint8Array> {
   const mono = opts.mono === true;
-  const sizeKey = COVER_MM[spec.sizeKey] ? spec.sizeKey : normalizeWishbookSize(spec.sizeKey);
-  const mm = COVER_MM[sizeKey] || COVER_MM['20x30'];
+  const sizeKey = normalizeCoverSize(spec.sizeKey);
+  const sizeMm = resolveSizeMm(sizeKey);
+  const mm = sizeMm.cover;
 
   // Full print pixel size at 300 DPI, then clamp the render to MAX_RENDER_PX on
   // the longest side (keeps the same aspect ratio).
@@ -249,7 +283,7 @@ export async function renderWishbookCoverPng(
   // conversion has to go through millimetres, not through a bare pixel ratio:
   // the old `fontPx700 * (H / 700)` was short by about a quarter and made the
   // напис print noticeably smaller than the customer set it.
-  const pageMm = PAGE_MM[sizeKey] || PAGE_MM['20x30'];
+  const pageMm = sizeMm.page;
   const pxPerMmPrint = H / mm.h;
   const pxPerMmEditor = EDITOR_BASE_CANVAS_H / pageMm.h;
   const fontSize = (!onPlate && spec.layout?.fontPxEditor)
@@ -407,7 +441,7 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
   const fontFamily = get('Шрифт напису', 'Шрифт', 'Font') || 'Playfair Display';
 
   return {
-    sizeKey: normalizeWishbookSize(sizeRaw),
+    sizeKey: normalizeCoverSize(sizeRaw),
     material,
     coverColorName,
     decoType: detectDecoType(decoRaw),

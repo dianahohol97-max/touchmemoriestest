@@ -21,6 +21,18 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // re-render ran, leaving the order with 11 blank spreads and no cover.
 export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fotozhurnal|journal|planner|calendar|kalendar/i;
 
+/**
+ * Server-generated engraving covers: cover.jpg (colour) and cover_bw.jpg (the
+ * monochrome макет production engraves from). They are produced by
+ * /api/orders/[id]/generate-wishbook-cover and /api/orders/[id]/generate-cover-bw,
+ * NEVER by Railway, so they can never appear in a render's keepPaths — and
+ * pruneStaleExports would therefore delete them on the next re-render. That is
+ * exactly how TM-001138 lost its engraved cover. Railway's own cover is
+ * `00_cover.jpg`, which does not match: the anchor requires the file name to
+ * start at `cover`.
+ */
+const SERVER_GENERATED_COVER = /(^|\/)cover(_bw)?\.jpg$/i;
+
 export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[]) {
   return uploaded.map((path) => {
     const fileName = path.split('/').pop() || path;
@@ -96,6 +108,7 @@ export async function pruneStaleExports(
     .eq('file_type', 'export');
   const stale = (oldFiles || []).filter((f: any) =>
     !newSet.has(f.file_path) &&
+    !SERVER_GENERATED_COVER.test(String(f.file_path || '')) &&
     RAILWAY_RENDERABLE.test(String(f.product_type || '')),
   );
   if (!stale.length) return;

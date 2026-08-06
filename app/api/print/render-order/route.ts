@@ -241,6 +241,18 @@ export async function POST(request: NextRequest) {
   // Guarded inside by allUploaded.length so a failed render never deletes files.
   await pruneStaleExports(admin, orderId, allUploaded);
 
+  // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
+  // флекс also needs the monochrome engraving макет, which Railway does not
+  // produce — it photographs the design in colour. The endpoint decides for
+  // itself whether this order qualifies and is idempotent, so calling it after
+  // every render is safe. Runs AFTER the prune, and prune exempts cover_bw.jpg
+  // by name, so the макет survives every future re-render.
+  try {
+    await fetch(`${request.nextUrl.origin}/api/orders/${orderId}/generate-cover-bw`, { method: 'POST' });
+  } catch (e: any) {
+    console.error('[render-order] cover-bw trigger failed', { orderId, error: e?.message });
+  }
+
   // Even with projects present, individual items can still lack artifacts
   // (failed render, mixed order where the poster's export vanished, …) —
   // audit after rendering so freshly produced files count.

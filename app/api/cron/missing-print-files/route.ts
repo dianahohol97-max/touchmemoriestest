@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,24 @@ export async function GET(request: Request) {
     if (countErr) { stats.errors++; continue; }
 
     if ((count ?? 0) > 0) {
+      // The order has its print files, but a soft-cover book with гравіювання
+      // or флекс also needs the monochrome engraving макет — Railway never
+      // produces one, it photographs the design in colour. Nothing else in the
+      // pipeline notices it is missing, because the order does have files.
+      if (findMonoCoverItem(items)) {
+        const { count: bwCount } = await admin
+          .from('order_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', order.id)
+          .eq('file_name', 'cover_bw.jpg');
+        if ((bwCount ?? 0) === 0) {
+          try {
+            const base = process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua';
+            const res = await fetch(`${base}/api/orders/${order.id}/generate-cover-bw`, { method: 'POST' });
+            if (res.ok) stats.generated++;
+          } catch { /* next hour tries again */ }
+        }
+      }
       stats.ok++;
       continue;
     }

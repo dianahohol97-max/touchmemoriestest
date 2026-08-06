@@ -10,6 +10,7 @@ import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
 import { matchCoverColor, readCoverSelection, formatCoverColor, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
+import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import {
     ArrowLeft,
     User,
@@ -271,6 +272,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 toast.success(data.skipped ? 'Обкладинка вже існує' : 'Обкладинку згенеровано');
                 const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
                 if (pr.ok) { const { photos, coverImageUrl } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); }
+                fetchOrder();
+            } else {
+                toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
+            }
+        } catch (e: any) {
+            toast.error(`Помилка: ${e?.message || e}`);
+        } finally {
+            setIsGenCover(false);
+        }
+    };
+    // Same flow for the b/w engraving макет of a soft-cover photobook. Separate
+    // endpoint: that order's colour cover comes from Railway and must not be
+    // touched — only cover_bw.jpg is (re)generated here.
+    const generateCoverBw = async (force = false) => {
+        if (!order?.id) return;
+        setIsGenCover(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}/generate-cover-bw${force ? '?force=1' : ''}`, { method: 'POST' });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok && data.ok) {
+                toast.success(data.skipped ? `Пропущено: ${data.skipped}` : 'Чорно-білий макет згенеровано');
+                const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
+                if (pr.ok) { const { photos } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); }
                 fetchOrder();
             } else {
                 toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
@@ -2099,6 +2123,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {(() => {
                             const orderIsWishbook = Array.isArray(order?.items) && order.items.some((it: any) =>
                                 /wish|guest|pobazhan/i.test(String(it.slug || '')) || /побажан/i.test(String(it.name || it.product_name || '')));
+                            // A soft-cover book with гравіювання / флекс gets only the
+                            // b/w engraving макет — its colour cover comes from Railway.
+                            const monoItem = !orderIsWishbook && Array.isArray(order?.items)
+                                ? findMonoCoverItem(order.items) : null;
+                            if (!orderIsWishbook && monoItem) {
+                                const hasBw = uploadedFiles.some((f: any) => /cover_bw\.jpg/i.test(String(f.name || '')));
+                                return (
+                                    <div style={{ marginBottom: '12px', padding: '12px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '8px' }}>
+                                        <div style={{ fontSize: '12px', color: '#6b21a8', marginBottom: '8px', fontWeight: 600 }}>
+                                            Обкладинка м'яка, з гравіюванням. Чорно-білий макет для гравіювання генерується на сервері окремо від кольорового рендера.
+                                        </div>
+                                        <button onClick={() => generateCoverBw(hasBw)} disabled={isGenCover}
+                                            style={{ padding: '10px 18px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', opacity: isGenCover ? 0.6 : 1, fontSize: '13px' }}>
+                                            {isGenCover ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                                            {hasBw ? 'Перегенерувати чорно-білий макет' : 'Згенерувати чорно-білий макет'}
+                                        </button>
+                                    </div>
+                                );
+                            }
                             if (!orderIsWishbook) return null;
                             const hasCover = uploadedFiles.some((f: any) => f.isCover || /cover\.jpg/i.test(String(f.name || '')));
                             return (
