@@ -5166,9 +5166,10 @@ export default function BookLayoutEditor() {
     // originally-ordered count. So the customer's first total is rush-
     // inflated, and any subsequent page tweak shows the delta against
     // the rush-inflated baseline.
-    const urgentRawHC = (searchParams?.get('urgent') || '').toLowerCase();
-    const isUrgentHC = !!urgentRawHC && urgentRawHC !== '0' && urgentRawHC !== 'standard' && !urgentRawHC.includes('стандартна');
-    if (isUrgentHC) {
+    // Same source as the other two branches — config first, URL only as a
+    // fallback. This one was missed in the first pass and would have kept
+    // losing the rush surcharge on hard-cover journals and photobooks.
+    if (isUrgentSelected(config, searchParams)) {
       const orderedBase = result.dynamicPrice - result.priceDiff;
       const orderedSurcharged = Math.round(orderedBase * 1.3);
       const currentSurcharged = Math.round(result.dynamicPrice * 1.3);
