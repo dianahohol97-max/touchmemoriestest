@@ -9,6 +9,7 @@ import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
+import { EDITOR_BASE_CANVAS_H } from './CoverEditor';
 
 /**
  * Renders a printed-cover caption the same way the editor's FitText does:
@@ -170,6 +171,10 @@ interface BookPreviewProps {
    *  the page aspect — it must be given. */
   printPageH?: number;
   printPageW?: number;
+  /** Cover sheet size in mm (fold-in + spine included) for the spread being
+   *  printed. Only the caller knows it, and the cover inscription needs it to
+   *  convert the editor's stored size into print pixels. */
+  printCoverMm?: { w: number; h: number } | null;
 }
 
 //  Component 
@@ -181,7 +186,7 @@ export function BookPreviewModal({
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
-  printSpreadIndex, printPageW, printPageH,
+  printSpreadIndex, printPageW, printPageH, printCoverMm,
 }: BookPreviewProps) {
 
   const isPrint = typeof printSpreadIndex === 'number';
@@ -572,12 +577,20 @@ export function BookPreviewModal({
               );
             }
             if (decoText) {
-              // The editor stores textFontSize in its 700px-tall canvas space
-              // (same convention as page text blocks, see basePx above). The
-              // raw px value on a 300-DPI print canvas (thousands of px tall)
-              // rendered the inscription microscopically — «мізерний напис»
-              // on every velour print макет.
-              const decoPx = (coverState.textFontSize || 24) * (pageH / 700);
+              // The cover inscription does NOT follow the 700px page-text
+              // convention: CoverEditor stores it as px on the cover canvas,
+              // EDITOR_BASE_CANVAS_H px tall, standing for the PAGE height. The
+              // old `* (pageH / 700)` mixed both mistakes at once — the wrong
+              // base, and a pixel ratio taken against the cover SHEET (page plus
+              // fold-in), which is taller than the page. Together they printed
+              // the напис about a quarter smaller than the customer set it, on
+              // every velour / leatherette / fabric cover.
+              // Convert through millimetres instead, exactly like the wishbook
+              // server render does.
+              const pageHmm = Math.max(1, propH) * 10;
+              const printPxPerMm = printCoverMm?.h ? (pageH / printCoverMm.h) : (pageH / pageHmm);
+              const editorPxPerMm = EDITOR_BASE_CANVAS_H / pageHmm;
+              const decoPx = (coverState.textFontSize || 24) * (printPxPerMm / editorPxPerMm);
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
                   <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>

@@ -272,6 +272,7 @@ export default function PrintPage() {
           printSpreadIndex={idx}
           printPageW={printPageW}
           printPageH={idx === 0 ? coverPrintH : undefined}
+          printCoverMm={idx === 0 ? coverMm : undefined}
         />
       ))}
     </div>
