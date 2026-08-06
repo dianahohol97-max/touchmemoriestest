@@ -47,7 +47,7 @@ async function reportRenderComplete(projectId: string, uploaded: string[]): Prom
     const res = await fetch(`${APP_BASE_URL}/api/print/render-complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-render-token': PRINT_RENDER_TOKEN },
-      body: JSON.stringify({ projectId, uploaded }),
+      body: JSON.stringify({ projectId, uploaded, serviceCommit: SERVICE_COMMIT }),
     });
     console.log(`[render] completion callback: ${res.status} (${uploaded.length} files)`);
   } catch (e: any) {
@@ -166,7 +166,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+// Which build is actually running. A stale Railway deploy is invisible from
+// the outside and cost most of a day of debugging (2026-08-05/06: форзац-skip,
+// callback and folder fixes were merged but the service kept running old
+// code). Railway injects its git metadata; expose it so «яка версія на
+// Railway?» is one request, and the completion callback carries it too.
+const SERVICE_COMMIT = process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown';
+const SERVICE_STARTED = new Date().toISOString();
+app.get('/health', (_req, res) => res.json({ ok: true, commit: SERVICE_COMMIT, started: SERVICE_STARTED }));
 
 app.post('/render', async (req, res) => {
   // --- auth: only the app may call this service ---
