@@ -149,16 +149,19 @@ export const EDITOR_BASE_CANVAS_H = 460;
  * span contentEditable and draggable exactly as before.
  */
 function FitText({
-  tb, maxWidthPx, onCommit, onPointerDownText, onClickText,
+  tb, maxWidthPx, scale = 1, onCommit, onPointerDownText, onClickText,
 }: {
   tb: { id: string; text: string; fontSize: number; fontFamily: string; color: string; bold: boolean };
   maxWidthPx: number;
+  /** Canvas scale — the stored size is px on the base cover canvas. */
+  scale?: number;
   onCommit: (text: string) => void;
   onPointerDownText: (e: React.PointerEvent) => void;
   onClickText: (e: React.MouseEvent) => void;
 }) {
   const spanRef = useRef<HTMLSpanElement>(null);
-  const [fitSize, setFitSize] = useState(tb.fontSize);
+  const base = tb.fontSize * scale;
+  const [fitSize, setFitSize] = useState(base);
 
   useEffect(() => {
     const el = spanRef.current;
@@ -168,16 +171,16 @@ function FitText({
     const prevWhiteSpace = el.style.whiteSpace;
     const prevFont = el.style.fontSize;
     el.style.whiteSpace = 'nowrap';
-    el.style.fontSize = tb.fontSize + 'px';
+    el.style.fontSize = base + 'px';
     const natural = el.scrollWidth;
-    let next = tb.fontSize;
+    let next = base;
     if (natural > maxWidthPx && natural > 0) {
-      next = Math.max(8, Math.floor(tb.fontSize * (maxWidthPx / natural)));
+      next = Math.max(8, Math.floor(base * (maxWidthPx / natural)));
     }
     el.style.whiteSpace = prevWhiteSpace;
     el.style.fontSize = prevFont;
     setFitSize(next);
-  }, [tb.text, tb.fontSize, tb.fontFamily, tb.bold, maxWidthPx]);
+  }, [tb.text, base, tb.fontFamily, tb.bold, maxWidthPx]);
 
   return (
     <span
@@ -769,6 +772,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
+                  scale={fontScale}
                   onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
                   onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}
@@ -806,6 +810,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 <FitText
                   tb={tb}
                   maxWidthPx={safeBoxW}
+                  scale={fontScale}
                   onCommit={(text) => onChange({ printedTextBlocks: texts.map(t => t.id===tb.id ? {...t, text} : t) })}
                   onPointerDownText={(e) => { startTextDrag(e, tb.id, tb.x, tb.y); }}
                   onClickText={(e) => { e.stopPropagation(); (e.target as HTMLElement).focus(); }}

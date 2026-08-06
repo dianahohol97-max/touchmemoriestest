@@ -17,9 +17,9 @@ import { EDITOR_BASE_CANVAS_H } from './CoverEditor';
  * used whiteSpace:'normal' + wordBreak, so a long caption wrapped onto two
  * lines and looked much bigger than in the editor (which fits it to one line).
  */
-function PreviewCoverText({ tb, maxWidthPx }: { tb: { text: string; fontSize: number; fontFamily: string; color: string; bold: boolean }; maxWidthPx: number }) {
+function PreviewCoverText({ tb, maxWidthPx, scale = 1 }: { tb: { text: string; fontSize: number; fontFamily: string; color: string; bold: boolean }; maxWidthPx: number; scale?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const base = tb.fontSize * 0.85;
+  const base = tb.fontSize * 0.85 * scale;
   const [fit, setFit] = useState(base);
   useEffect(() => {
     const el = ref.current;
@@ -33,7 +33,7 @@ function PreviewCoverText({ tb, maxWidthPx }: { tb: { text: string; fontSize: nu
     el.style.whiteSpace = prevWs; el.style.fontSize = prevFs;
     setFit(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tb.text, tb.fontSize, tb.fontFamily, tb.bold, maxWidthPx]);
+  }, [tb.text, base, tb.fontFamily, tb.bold, maxWidthPx]);
   return (
     <span ref={ref} style={{ fontSize: fit + 'px', fontFamily: tb.fontFamily, color: tb.color, fontWeight: tb.bold ? 700 : 400, whiteSpace: 'nowrap', textAlign: 'center', lineHeight: 1.1, textShadow: '0 1px 3px rgba(0,0,0,0.5)', display: 'block' }}>{tb.text}</span>
   );
@@ -227,6 +227,16 @@ export function BookPreviewModal({
   // the cover's height from the page aspect is what made the render service
   // treat a 470×328 cover as 400×300 and pad the fold-in with invented pixels.
   const pageH = isPrint && printPageH ? printPageH : Math.round(pageW / aspect);
+  // Every piece of COVER text — the engraved inscription and the printed
+  // template blocks — is stored by CoverEditor as px on its cover canvas,
+  // EDITOR_BASE_CANVAS_H px tall, standing for the page height. Rendering that
+  // raw number on a 300-DPI print canvas thousands of px tall made the text
+  // microscopic: TM-001140's «HAPPY BIRTHDAY» came out as specks on the cover.
+  // Convert through millimetres — printCoverMm is the cover sheet (page plus
+  // fold-in), which is the area pageH actually spans in print mode.
+  const pageHmm = Math.max(1, propH) * 10;
+  const coverPxPerMm = isPrint && printCoverMm?.h ? (pageH / printCoverMm.h) : (pageH / pageHmm);
+  const coverTextScale = coverPxPerMm / (EDITOR_BASE_CANVAS_H / pageHmm);
   // Decorative spine / gutter bands are a PREVIEW illusion (they mimic a
   // physical book). In print mode they became thin brown/beige stripes down
   // the middle of every exported file — «технічні лінії» on the customer's
@@ -586,11 +596,8 @@ export function BookPreviewModal({
               // the напис about a quarter smaller than the customer set it, on
               // every velour / leatherette / fabric cover.
               // Convert through millimetres instead, exactly like the wishbook
-              // server render does.
-              const pageHmm = Math.max(1, propH) * 10;
-              const printPxPerMm = printCoverMm?.h ? (pageH / printCoverMm.h) : (pageH / pageHmm);
-              const editorPxPerMm = EDITOR_BASE_CANVAS_H / pageHmm;
-              const decoPx = (coverState.textFontSize || 24) * (printPxPerMm / editorPxPerMm);
+              // server render does — see coverTextScale above.
+              const decoPx = (coverState.textFontSize || 24) * coverTextScale;
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
                   <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
@@ -670,7 +677,7 @@ export function BookPreviewModal({
           const safeY = Math.max(8, Math.min(92, tb.y));
           return (
             <div key={tb.id} style={{ position: 'absolute', left: `${safeX}%`, top: `${safeY}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 5, maxWidth: `${pageW * 0.84}px` }}>
-              <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} />
+              <PreviewCoverText tb={tb} maxWidthPx={pageW * 0.84} scale={coverTextScale} />
             </div>
           );
         })}
