@@ -32,6 +32,28 @@ import WebSocket from 'ws';
 const PORT = process.env.PORT || 8080;
 const APP_BASE_URL = process.env.APP_BASE_URL!;          // e.g. https://touchmemories.com.ua
 const PRINT_RENDER_TOKEN = process.env.PRINT_RENDER_TOKEN!; // shared secret with the app
+
+/**
+ * Report finished uploads back to the app. The app's render-order route awaits
+ * this service, but a 40+ spread book renders longer than that route's
+ * maxDuration — Vercel kills it mid-await and the finished files were never
+ * indexed in order_files (TM-001113: 85 files in storage, zero rows). This
+ * callback makes indexing independent of the awaiting function's lifetime;
+ * registration on the app side is idempotent, so double delivery is safe.
+ */
+async function reportRenderComplete(projectId: string, uploaded: string[]): Promise<void> {
+  if (!uploaded.length) return;
+  try {
+    const res = await fetch(`${APP_BASE_URL}/api/print/render-complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-render-token': PRINT_RENDER_TOKEN },
+      body: JSON.stringify({ projectId, uploaded }),
+    });
+    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files)`);
+  } catch (e: any) {
+    console.error('[render] completion callback failed:', e?.message || e);
+  }
+}
 const RENDER_SERVICE_TOKEN = process.env.RENDER_SERVICE_TOKEN!; // secret to call THIS service
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -319,6 +341,7 @@ app.post('/render', async (req, res) => {
           await recycleBrowserIfNeeded(pxW * pxH);
         }
       }
+      await reportRenderComplete(projectId, uploaded);
       return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded, failed });
     }
 
@@ -630,6 +653,7 @@ app.post('/render', async (req, res) => {
       }
     }
 
+    await reportRenderComplete(projectId, uploaded);
     return res.json({ ok: true, projectId, spreads: spreadCount, uploaded });
   } catch (e: any) {
     console.error('[render] failed', e);

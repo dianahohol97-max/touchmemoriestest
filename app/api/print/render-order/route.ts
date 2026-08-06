@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { registerExportFiles, pruneStaleExports } from '@/lib/print/register-export-files';
 
 export const dynamic = 'force-dynamic';
 // The Railway render of every spread can take 1–2 min for a large book; give the
@@ -199,52 +200,13 @@ export async function POST(request: NextRequest) {
       const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
       if (uploaded.length) {
         allUploaded.push(...uploaded);
-
-        const rows = uploaded.map((path) => {
-          const fileName = path.split('/').pop() || path;
-          const isCover = /(^|\/)00_cover\.jpg$/i.test(path) || /cover/i.test(fileName);
-          // Travel books / magazines export one file per page (NN_page.jpg);
-          // photobooks export 2-page spreads (NN_spread.jpg).
-          const isPage = /_page\.jpg$/i.test(fileName);
-          // 00_cover -> page 1, 01_spread -> page 2, ... (cover first).
-          const m = fileName.match(/^(\d+)_/);
-          const pageNumber = m ? parseInt(m[1], 10) + 1 : null;
-          return {
-            order_id: orderId,
-            file_path: path,
-            file_name: fileName,
-            file_type: 'export',
-            file_category: isCover ? 'book-cover' : isPage ? 'book-page' : 'book-spread',
-            product_type: project.product_type || 'photobook',
-            bucket_name: 'photobook-uploads',
-            mime_type: 'image/jpeg',
-            page_number: pageNumber,
-          };
-        });
-
-        // Re-rendering the same project writes the SAME storage paths (the
-        // service uploads with upsert), so the replace-mode sweep below can
-        // never clean these up — it only prunes paths missing from the new set,
-        // and these are in it. Without this delete every re-render appended a
-        // second full set of rows: TM-001108 carried 30 rows for 15 files, each
-        // page number listed twice in the admin file list. Clear this project's
-        // own paths first so registering is idempotent.
-        const { error: dupErr } = await admin
-          .from('order_files')
-          .delete()
-          .eq('order_id', orderId)
-          .eq('file_type', 'export')
-          .in('file_path', uploaded);
-        if (dupErr) {
-          console.error('[render-order] stale row cleanup failed', { orderId, projectId: project.id, error: dupErr.message });
-        }
-
-        const { error: ofErr } = await admin.from('order_files').insert(rows);
-        if (ofErr) {
-          console.error('[render-order] order_files insert failed', { orderId, projectId: project.id, error: ofErr.message });
+        // Shared with /api/print/render-complete (the service's completion
+        // callback that covers renders outliving this route's maxDuration).
+        const ofErrMsg = await registerExportFiles(admin, orderId, project.product_type, uploaded);
+        if (ofErrMsg) {
           // The render itself succeeded; surface the indexing problem but don't
           // fail the whole call — files exist in storage and can be re-indexed.
-          results[results.length - 1] = { projectId: project.id, ok: true, detail: { ...detail, orderFilesError: ofErr.message } };
+          results[results.length - 1] = { projectId: project.id, ok: true, detail: { ...detail, orderFilesError: ofErrMsg } };
         }
       }
     } catch (e: any) {
@@ -257,36 +219,8 @@ export async function POST(request: NextRequest) {
   // for this order that isn't part of the new set — both the client html2canvas
   // drafts (pb-…) and any previous Railway render — from storage AND the DB, so
   // the admin shows only the new spreads and no orphans pile up in storage.
-  // Guarded by allUploaded.length so a failed render never deletes the old files.
-  if (allUploaded.length) {
-    const newSet = new Set(allUploaded);
-    const { data: oldFiles } = await admin
-      .from('order_files')
-      .select('id, file_path, bucket_name, product_type, file_category')
-      .eq('order_id', orderId)
-      .eq('file_type', 'export');
-    // Only prune stale exports of RENDERABLE (book/calendar) products. A
-    // self-composed export (poster/map/magnet) in a mixed order — or any export
-    // whose product_type we don't recognise — is left untouched, so a book
-    // render that triggered replace-mode can never wipe a poster's own file.
-    const stale = (oldFiles || []).filter((f: any) =>
-      !newSet.has(f.file_path) &&
-      RAILWAY_RENDERABLE.test(String(f.product_type || '')),
-    );
-    if (stale.length) {
-      const byBucket = new Map<string, string[]>();
-      for (const f of stale) {
-        const b = f.bucket_name || 'photobook-uploads';
-        if (!byBucket.has(b)) byBucket.set(b, []);
-        byBucket.get(b)!.push(f.file_path);
-      }
-      for (const [bucket, paths] of byBucket) {
-        try { await admin.storage.from(bucket).remove(paths); }
-        catch (e: any) { console.error('[render-order] storage cleanup failed', { orderId, bucket, error: e?.message }); }
-      }
-      await admin.from('order_files').delete().in('id', stale.map((f: any) => f.id));
-    }
-  }
+  // Guarded inside by allUploaded.length so a failed render never deletes files.
+  await pruneStaleExports(admin, orderId, allUploaded);
 
   // Even with projects present, individual items can still lack artifacts
   // (failed render, mixed order where the poster's export vanished, …) —
