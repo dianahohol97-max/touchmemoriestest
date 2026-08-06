@@ -103,6 +103,7 @@ const menuItems = [
     { name: 'Оформлення партнерів', href: '/admin/partner-requests', icon: <Handshake size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Промокоди', href: '/admin/promo', icon: <Tags size={20} />, section: 'marketing', group: 'sales' },
     { name: 'Імпорт клієнтів', href: '/admin/marketing/crm-import', icon: <UserPlus size={20} />, section: 'marketing', group: 'sales' },
+    { name: 'Контакти зі старої CRM', href: '/admin/marketing/crm-contacts', icon: <Users size={20} />, section: 'marketing', group: 'sales' },
 
     // Маркетинг і листи
     { name: 'Підписники', href: '/admin/subscribers', icon: <Mail size={20} />, section: 'marketing', group: 'marketing' },
