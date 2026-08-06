@@ -8,7 +8,7 @@ import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
-import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
+import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
 
 /**
@@ -54,6 +54,8 @@ interface TextBlock {
   fontSize: number; fontFamily: string; color: string;
   bold: boolean; italic: boolean;
   zOrder?: number;
+  /** Box width as % of the container, set by the editor's side handles. */
+  w?: number;
 }
 
 interface PageData {
@@ -413,11 +415,11 @@ export function BookPreviewModal({
               fontFamily: tb.fontFamily,
               bold: tb.bold,
               italic: tb.italic,
-              maxWidthPx: cW * 0.9 - padX * 2,
+              maxWidthPx: textBoxMaxWidthPx(cW, padX, (tb as any).w),
               availableHeightPx: (availableHeightPct(tb.y, anchorsY) / 100) * cH,
             });
             return (
-          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), width: 'max-content', maxWidth: '90%',
+          <div key={tb.id} style={{ position: 'absolute', left: `${tb.x}%`, top: `${tb.y}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: zIndexFor(tb.zOrder), ...textBoxWidthStyle((tb as any).w),
             /* Mirrors the editor's text box padding, scaled the same way. It eats
                into the 90% max width, so leaving it out here made lines wrap at a
                different point than the customer saw. */

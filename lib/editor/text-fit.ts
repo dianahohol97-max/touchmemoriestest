@@ -46,6 +46,43 @@ const MIN_SCALE = 0.55;
  * makes the calculation and the rendering agree by construction.
  */
 export const TEXT_LINE_HEIGHT = 1.25;
+
+/**
+ * Text-box width.
+ *
+ * A block without an explicit width hugs its content and wraps at 90 % of the
+ * page — the behaviour every existing design was built with, so it stays the
+ * default. Dragging the side handle in the editor gives the block an explicit
+ * `w` (percent of its container), the way Canva resizes a text box: the type
+ * keeps its size and the words reflow inside the narrower box.
+ *
+ * Both numbers live here because the editor and the print renderer must wrap at
+ * exactly the same point. A width applied in one and not the other moves a word
+ * to a different line on paper than the customer saw.
+ */
+export const TEXT_BOX_MAX_PCT = 90;
+export const TEXT_BOX_MIN_PCT = 8;
+
+/** Clamp a stored width, or null when the block has none. */
+export function textBoxPct(w?: number | null): number | null {
+  if (typeof w !== 'number' || !Number.isFinite(w) || w <= 0) return null;
+  return Math.max(TEXT_BOX_MIN_PCT, Math.min(TEXT_BOX_MAX_PCT, w));
+}
+
+/** CSS width/maxWidth for a text block's box. */
+export function textBoxWidthStyle(w?: number | null): { width: string; maxWidth: string } {
+  const pct = textBoxPct(w);
+  return {
+    width: pct === null ? 'max-content' : `${pct}%`,
+    maxWidth: `${TEXT_BOX_MAX_PCT}%`,
+  };
+}
+
+/** The px width the auto-fit must measure against for this block. */
+export function textBoxMaxWidthPx(containerPx: number, padXPx: number, w?: number | null): number {
+  const pct = textBoxPct(w) ?? TEXT_BOX_MAX_PCT;
+  return Math.max(1, (pct / 100) * containerPx - padXPx * 2);
+}
 const LINE_HEIGHT = TEXT_LINE_HEIGHT;
 
 /**

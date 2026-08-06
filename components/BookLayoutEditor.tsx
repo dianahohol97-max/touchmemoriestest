@@ -50,7 +50,7 @@ import {
   bringForward, sendBackward, bringToFront, sendToBack,
   nextZOrder, zIndexFor,
 } from '@/lib/editor/zOrder';
-import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT } from '@/lib/editor/text-fit';
+import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -210,7 +210,7 @@ type LayoutType =
   'sp-6-pairs' | 'sp-4-pairs-center';
 
 interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean; fit?: 'cover' | 'contain'; }
-interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; }
+interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; /** Box width as % of its container. Unset = hug the content (the original behaviour). */ w?: number; }
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
 const LAYOUTS: { id: LayoutType; label: string; slots: number; group: string }[] = [
@@ -3299,6 +3299,32 @@ export default function BookLayoutEditor() {
     setSelectedTextId(id); setSelectedTextPageIdx(pageIdx); setEditingTextId(id); setTextTool(false);
   };
   const updateTxtForPage = (id: string, ch: Partial<TextBlock>, pageIdx: number) => { pushHistoryCoalesced(); setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.map(t => t.id === id ? { ...t, ...ch } : t) })); };
+  /**
+   * Canva-style text-box resize. The side handles change the BOX, not the type:
+   * the font keeps its size and the words reflow inside the narrower box, which
+   * is what «зменшити вікно тексту» means. The block is centred on its anchor
+   * (translate(-50%,-50%)), so to keep the opposite edge visually still the
+   * centre has to move by half of the width change — otherwise the box would
+   * grow symmetrically and the edge under the finger would run away from it.
+   */
+  const startTxtResize = (e: React.PointerEvent, tbId: string, side: 'l' | 'r', containerW: number, pageIdx: number) => {
+    e.stopPropagation(); e.preventDefault();
+    const box = (e.currentTarget as HTMLElement).parentElement as HTMLElement | null;
+    const startW = box ? box.getBoundingClientRect().width : containerW * 0.5;
+    const startX = (pages[pageIdx]?.textBlocks || []).find(t => t.id === tbId)?.x ?? 50;
+    pushHistory();
+    startPointerDrag(e, (dx: number) => {
+      const delta = side === 'r' ? dx : -dx;
+      const minPx = containerW * (TEXT_BOX_MIN_PCT / 100);
+      const maxPx = containerW * (TEXT_BOX_MAX_PCT / 100);
+      const wPx = Math.max(minPx, Math.min(maxPx, startW + delta));
+      const shiftPct = ((wPx - startW) / 2) * (side === 'r' ? 1 : -1) / containerW * 100;
+      updateTxtForPage(tbId, {
+        w: (wPx / containerW) * 100,
+        x: Math.max(2, Math.min(98, startX + shiftPct)),
+      }, pageIdx);
+    });
+  };
   const deleteTxtForPage = (id: string, pageIdx: number) => {
     pushHistory();
     setPages(prev => prev.map((p, i) => i !== pageIdx ? p : { ...p, textBlocks: p.textBlocks.filter(t => t.id !== id) }));
@@ -8200,7 +8226,7 @@ export default function BookLayoutEditor() {
                         // it, and the print page reproduces exactly that: for
                         // spread books it renders the left page at the full
                         // spread width, so both sides measure 90% of the same box.
-                        maxWidthPx: cW * 0.9 - txtPadX * 2,
+                        maxWidthPx: textBoxMaxWidthPx(cW, txtPadX, tb.w),
                         availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
                       });
                       return (
@@ -8222,7 +8248,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', width:'max-content', minWidth:20, maxWidth:'90%', touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             /* Scaled by the SAME cH/700 factor the print page uses.
                                Raw px here meant the canvas shrank with zoom while the text did
@@ -8240,6 +8266,12 @@ export default function BookLayoutEditor() {
                               onSendToBack={() => zOrderAction('text', tb.id, spreadPageIdx, 'back')}
                             />
                           )}
+                          {isSel && !isEd && (['l','r'] as const).map(side => (
+                            <div key={side} data-export-ignore="true" data-html2canvas-ignore="true"
+                              onPointerDown={e => startTxtResize(e, tb.id, side, cW, spreadPageIdx)}
+                              title="Потягніть, щоб змінити ширину блока"
+                              style={{ position:'absolute', top:'50%', ...(side==='l' ? { left:-6 } : { right:-6 }), transform:'translateY(-50%)', width:10, height:28, borderRadius:5, background:'#3b82f6', border:'2px solid #fff', cursor:'ew-resize', zIndex:31, boxShadow:'0 1px 4px rgba(0,0,0,0.35)', touchAction:'none' }}/>
+                          ))}
                           {isSel&&!isEd&&<button data-export-ignore="true" onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                         </div>
                       );
@@ -8908,7 +8940,7 @@ export default function BookLayoutEditor() {
                           fontFamily: tb.fontFamily,
                           bold: tb.bold,
                           italic: tb.italic,
-                          maxWidthPx: pageW * 0.9 - txtPadX * 2,
+                          maxWidthPx: textBoxMaxWidthPx(pageW, txtPadX, tb.w),
                           availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
                         });
                         return (
@@ -8932,7 +8964,7 @@ export default function BookLayoutEditor() {
                                  so raw '2px 4px' put the wrap point a few px away
                                  from where the print wraps, and a word could sit
                                  on a different line in the editor than on paper. */
-                              padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',width:'max-content',minWidth:30,maxWidth:'90%',touchAction:'none'}}>
+                              padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',...textBoxWidthStyle(tb.w),minWidth:30,touchAction:'none'}}>
                             {isSel && !isEd && (
                               <ZOrderToolbar
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
@@ -8949,12 +8981,18 @@ export default function BookLayoutEditor() {
                 onChange={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);}}
                 onClick={e=>e.stopPropagation()}
                 onMouseDown={e=>e.stopPropagation()}
-                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:txtBasePx+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,display:'block',padding:'2px'}}
+                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:txtBasePx+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,width:'100%',display:'block',padding:'2px'}}
                 rows={2}
               />
                             ):(
                               <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
                             )}
+                            {isSel && !isEd && (['l','r'] as const).map(side => (
+                              <div key={side} data-export-ignore="true" data-html2canvas-ignore="true"
+                                onPointerDown={e => startTxtResize(e, tb.id, side, pageW, pageIdx)}
+                                title="Потягніть, щоб змінити ширину блока"
+                                style={{ position:'absolute', top:'50%', ...(side==='l' ? { left:-6 } : { right:-6 }), transform:'translateY(-50%)', width:10, height:28, borderRadius:5, background:'#3b82f6', border:'2px solid #fff', cursor:'ew-resize', zIndex:31, boxShadow:'0 1px 4px rgba(0,0,0,0.35)', touchAction:'none' }}/>
+                            ))}
                             {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                           </div>
                         );
