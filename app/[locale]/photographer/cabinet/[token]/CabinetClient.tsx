@@ -1141,25 +1141,39 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   // now also stays right where the files were dropped, until the next batch.
   const [result, setResult] = useState('');
 
-  // Малі фото йдуть multipart через наш API. Усе, що більше за ліміт тіла
-  // функції Vercel (≈4,5 МБ) — і відео, і великі фото — вантажиться напряму у
-  // сховище: API видає одноразовий підписаний URL → браузер робить PUT →
-  // API перевіряє, що файл справді на місці, і реєструє запис.
-  const uploadDirect = async (f: File): Promise<string | null> => {
+  // Everything goes straight to storage: the API mints a single-use signed URL
+  // → the browser PUTs the file itself → the API verifies the object landed and
+  // registers the row. Routing a photo through our function instead meant every
+  // megabyte crossed the wire twice (browser → Vercel → Cloudflare), which is
+  // what made a batch feel slow (Diana, 2026-08-06). Needs the bucket's CORS
+  // policy to allow PUT from our origins — see R2_SETUP.md.
+  //
+  // `retryable` marks the failures where the bytes never left the browser, so
+  // a small photo can still fall back to the multipart route below.
+  const uploadDirect = async (f: File): Promise<{ error: string | null; retryable?: boolean }> => {
     const isVideo = f.type.startsWith('video/');
     const signRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, stage: 'sign', file_name: f.name, size: f.size, content_type: f.type }),
     });
-    const signJson = await signRes.json();
-    if (!signRes.ok) return signJson?.error || 'Не вдалося підготувати аплоад';
+    const signJson = await signRes.json().catch(() => ({}));
+    // A refusal here is a real verdict — quota, size cap, expired gallery —
+    // so it must not be retried by another route that would refuse it too.
+    if (!signRes.ok) return { error: signJson?.error || 'Не вдалося підготувати аплоад' };
 
-    const putRes = await fetch(signJson.signed_url, {
-      method: 'PUT',
-      headers: { 'Content-Type': f.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
-      body: f,
-    });
-    if (!putRes.ok) return `Аплоад «${f.name}» не вдався (${putRes.status})`;
+    let putRes: Response;
+    try {
+      putRes = await fetch(signJson.signed_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': f.type || (isVideo ? 'video/mp4' : 'image/jpeg') },
+        body: f,
+      });
+    } catch {
+      // A CORS rejection never reaches the server and surfaces as a thrown
+      // TypeError with no status at all.
+      return { error: `Аплоад «${f.name}» не вдався — сховище відхилило запит`, retryable: true };
+    }
+    if (!putRes.ok) return { error: `Аплоад «${f.name}» не вдався (${putRes.status})`, retryable: true };
 
     const confirmRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1168,16 +1182,17 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
         media_type: isVideo ? 'video' : 'photo',
       }),
     });
-    const confirmJson = await confirmRes.json();
-    if (!confirmRes.ok) return confirmJson?.error || 'Не вдалося зареєструвати файл';
-    return null;
+    const confirmJson = await confirmRes.json().catch(() => ({}));
+    // The file IS in storage at this point — retrying elsewhere would upload it
+    // a second time, so this failure stands.
+    if (!confirmRes.ok) return { error: confirmJson?.error || 'Не вдалося зареєструвати файл' };
+    return { error: null };
   };
 
+  /** Vercel caps a function's request body at ~4,5 МБ. */
   const INLINE_LIMIT = 4 * 1024 * 1024;
 
-  /** One file, by whichever route its size demands. Returns an error message. */
-  const uploadOne = async (f: File): Promise<string | null> => {
-    if (f.type.startsWith('video/') || f.size > INLINE_LIMIT) return uploadDirect(f);
+  const uploadViaServer = async (f: File): Promise<string | null> => {
     const fd = new FormData();
     fd.append('token', token);
     fd.append('files', f);
@@ -1185,6 +1200,19 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) return json?.error || 'Помилка аплоаду';
     return null;
+  };
+
+  /** One file. Returns an error message, or null when it landed. */
+  const uploadOne = async (f: File): Promise<string | null> => {
+    const direct = await uploadDirect(f);
+    if (!direct.error) return null;
+    // Safety net: if the bucket's CORS policy is missing or wrong, a photo
+    // small enough for our function still gets through the old route instead
+    // of failing the whole batch. Videos and big photos have no such fallback —
+    // they exceed the body limit by definition.
+    const fitsInline = !f.type.startsWith('video/') && f.size <= INLINE_LIMIT;
+    if (direct.retryable && fitsInline) return uploadViaServer(f);
+    return direct.error;
   };
 
   // A wedding gallery is hundreds of files, and one at a time meant the browser
