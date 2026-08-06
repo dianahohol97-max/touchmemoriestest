@@ -17,7 +17,14 @@
 Cloudflare Dashboard → **R2** → **Create bucket**.
 
 - Назва: `touchmemories-galleries`
-- Локація: Automatic (або EU, якщо є вибір)
+- Location hint: **Automatic** — це просто підказка, де тримати дані, і на
+  адресу бакета вона не впливає
+- Jurisdiction: залишити **порожнім**. Якщо все ж обрати тут `European Union`,
+  бакет переїжджає на іншу адресу S3 API
+  (`<account_id>.eu.r2.cloudflarestorage.com`), і тоді треба додатково задати
+  змінну `R2_JURISDICTION=eu` з кроку 5. Без неї код стукатиме не туди,
+  завантаження мовчки повернуться в Supabase, а `storage-check` покаже
+  `fell_back_to_supabase: true`
 
 ## Крок 2. Увімкнути публічний доступ
 
@@ -63,6 +70,12 @@ Vercel → проєкт **touchmemories1** → **Settings** → **Environment Va
 | `R2_SECRET_ACCESS_KEY` | Secret Access Key з кроку 3 |
 | `R2_BUCKET` | `touchmemories-galleries` |
 | `R2_PUBLIC_BASE_URL` | адреса з кроку 2, без слеша в кінці |
+
+Шоста змінна потрібна лише тим, хто на кроці 1 обрав jurisdiction:
+
+| Змінна | Значення |
+|---|---|
+| `R2_JURISDICTION` | `eu` — тільки для бакета з європейською юрисдикцією, інакше не додавати взагалі |
 
 Далі **Deployments** → останній деплой → **Redeploy** (змінні читаються під
 час збірки й на рантаймі, тож без редеплою вони не підхопляться).

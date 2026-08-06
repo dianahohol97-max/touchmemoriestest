@@ -48,3 +48,4 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret |
 | `R2_BUCKET` | R2 bucket name for gallery photos/videos |
 | `R2_PUBLIC_BASE_URL` | Public bucket URL (r2.dev or custom domain) |
+| `R2_JURISDICTION` | Only for jurisdiction-restricted buckets: `eu`. Omit otherwise |
