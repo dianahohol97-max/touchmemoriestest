@@ -53,6 +53,10 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/email-queue",
+      "schedule": "0 16 * * *"
+    },
+    {
       "path": "/api/cron/update-exchange-rate",
       "schedule": "0 5 1,15 * *"
     },

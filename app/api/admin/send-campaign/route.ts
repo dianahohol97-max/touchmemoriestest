@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { sendBrevoEmail } from '@/lib/email/brevo';
 
 export const dynamic = 'force-dynamic';
 
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-
-async function sendBrevoEmail(to: string, subject: string, htmlContent: string, fromName: string, fromEmail: string) {
-    const apiKey = process.env.BREVO_API_KEY;
-    if (!apiKey) throw new Error('BREVO_API_KEY не налаштований');
-
-    const res = await fetch(BREVO_API_URL, {
-        method: 'POST',
-        headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            sender: { name: fromName, email: fromEmail },
-            to: [{ email: to }],
-            subject,
-            htmlContent,
-        }),
-    });
-
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error((err as any).message || `Brevo error ${res.status}`);
-    }
+// This route used to POST to Brevo directly through a private copy of the
+// sender, which meant it was the one path that bypassed the daily budget — the
+// exact place a large campaign would blow past the cap unnoticed. It now goes
+// through the shared helper like everything else.
+async function sendCampaignEmail(to: string, subject: string, htmlContent: string, fromName: string, fromEmail: string) {
+    await sendBrevoEmail({ to, subject, html: htmlContent, fromName, fromEmail, kind: 'marketing' });
     return true;
 }
 
@@ -91,7 +77,7 @@ export async function POST(req: NextRequest) {
                     .replace(/\{\{email\}\}/g, subscriber.email)
                     .replace(/\{\{unsubscribe_url\}\}/g, `https://touchmemories.com.ua/unsubscribe?${unsubParams.toString()}`);
 
-                await sendBrevoEmail(subscriber.email, campaign.subject, html, campaign.from_name, campaign.from_email);
+                await sendCampaignEmail(subscriber.email, campaign.subject, html, campaign.from_name, campaign.from_email);
                 await supabase.from('email_campaign_logs')
                     .update({ status: 'sent', sent_at: new Date().toISOString() })
                     .eq('campaign_id', campaign_id).eq('email', subscriber.email);

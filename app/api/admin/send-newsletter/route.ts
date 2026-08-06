@@ -1,28 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { sendBrevoEmail } from '@/lib/email/brevo';
 import { requireAdmin } from '@/lib/auth/guards';
+import { drainCampaignQueue } from '@/lib/email/campaign-queue';
+import { getEmailQuotaStatus } from '@/lib/email/quota';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
-const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
-// The token identifies the recipient without exposing their address in the URL
-// and stops anyone unsubscribing a stranger by editing the link. The campaign
-// id rides along so the "Листи" screen can attribute each departure.
-function buildHtml(body_html: string, unsubEmail: string, unsubToken: string | null, campaignId: string) {
-    const params = new URLSearchParams();
-    if (unsubToken) params.set('token', unsubToken);
-    else params.set('email', unsubEmail);
-    if (campaignId) params.set('c', campaignId);
-    const unsubUrl = `${SITE_URL}/unsubscribe?${params.toString()}`;
-    return `${body_html}
-<div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;font-family:sans-serif;">
-  Touch.Memories &nbsp;·&nbsp;
-  <a href="${unsubUrl}" style="color:#9ca3af;text-decoration:underline;">Відписатися від розсилки</a>
-</div>`;
-}
+// The letter body and its unsubscribe footer are built in
+// lib/email/campaign-queue.ts, because the queue drainer sends every letter —
+// both the ones that fit in today's budget and the ones the cron picks up later.
 
 export async function POST(request: Request) {
     const guard = await requireAdmin();
@@ -56,29 +45,36 @@ export async function POST(request: Request) {
         if (campErr || !campaign)
             return NextResponse.json({ error: 'Помилка збереження кампанії' }, { status: 500 });
 
-        let sent = 0, failed = 0;
-        for (const sub of subscribers) {
-            try {
-                await sendBrevoEmail({
-                    to: sub.email,
-                    toName: sub.name || undefined,
-                    subject,
-                    html: buildHtml(body_html, sub.email, (sub as any).unsubscribe_token || null, campaign.id),
-                });
-                sent++;
-            } catch (e: any) {
-                console.error(`Brevo: failed ${sub.email}:`, e.message);
-                failed++;
-            }
-            await delay(350); // ~3 req/sec, Brevo rate limit
+        // Queue the whole segment instead of sending it in this request. On the
+        // free Brevo plan (300/day, shared with order confirmations) a 5364-name
+        // send could only ever deliver a few hundred and fail the rest — while
+        // starving the transactional reserve. The queue turns it into a drip.
+        const QUEUE_CHUNK = 1000;
+        for (let i = 0; i < subscribers.length; i += QUEUE_CHUNK) {
+            const slice = subscribers.slice(i, i + QUEUE_CHUNK).map((s: any) => ({
+                campaign_id: campaign.id,
+                email: String(s.email).toLowerCase(),
+                name: s.name || null,
+            }));
+            const { error: qErr } = await supabase
+                .from('email_campaign_queue')
+                .upsert(slice, { onConflict: 'campaign_id,email', ignoreDuplicates: true });
+            if (qErr) return NextResponse.json({ error: `Не вдалося поставити в чергу: ${qErr.message}` }, { status: 500 });
         }
 
-        await supabase.from('email_campaigns').update({
-            status: failed === subscribers.length ? 'failed' : 'sent',
-            sent_count: sent, failed_count: failed, sent_at: new Date().toISOString(),
-        }).eq('id', campaign.id);
+        // Send what today's budget allows right now; the cron picks up the rest.
+        const result = await drainCampaignQueue();
 
-        return NextResponse.json({ success: true, sent, failed, total: subscribers.length });
+        const status = await getEmailQuotaStatus();
+        return NextResponse.json({
+            success: true,
+            queued: subscribers.length,
+            sent: result.sent,
+            failed: result.failed,
+            remaining: result.remaining,
+            total: subscribers.length,
+            quota: status,
+        });
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }

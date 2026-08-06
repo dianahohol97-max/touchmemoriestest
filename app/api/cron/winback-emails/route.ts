@@ -91,6 +91,7 @@ export async function GET(request: Request) {
                     toName: c.customer_name || c.email,
                     subject,
                     html,
+                    kind: 'marketing',
                     unsubscribe: {
                         email: c.email,
                         token: tokenByEmail.get(c.email.toLowerCase()) || null,

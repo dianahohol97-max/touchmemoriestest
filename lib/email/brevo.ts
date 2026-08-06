@@ -5,6 +5,7 @@ export function getBrevoApiKey() {
 }
 
 import { buildUnsubscribeUrl, withUnsubscribeFooter, type UnsubscribeTarget } from './unsubscribe';
+import { reserveEmailQuota, EmailQuotaError, type EmailKind } from './quota';
 
 interface SendEmailParams {
     to: string;
@@ -20,11 +21,31 @@ interface SendEmailParams {
      * paid, shipped) — a customer does not opt out of those.
      */
     unsubscribe?: UnsubscribeTarget;
+    /**
+     * Which half of the daily budget this send draws on. Defaults to
+     * transactional: every existing call site is an order or account email, and
+     * those must keep working. Marketing senders pass 'marketing' explicitly so
+     * they can only spend what is left above the transactional reserve.
+     */
+    kind?: EmailKind;
+    /**
+     * Set when the caller has ALREADY reserved a slot for this send (bulk
+     * senders reserve the whole batch up front). Prevents double counting.
+     */
+    quotaReserved?: boolean;
 }
 
-export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe }: SendEmailParams) {
+export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe, kind = 'transactional', quotaReserved = false }: SendEmailParams) {
     const apiKey = getBrevoApiKey();
     if (!apiKey) throw new Error('BREVO_API_KEY не налаштовано');
+
+    // The single choke point for every email in the codebase — lib/email/resend.ts
+    // delegates here too — so the daily cap cannot be bypassed by a new caller
+    // forgetting about it.
+    if (!quotaReserved) {
+        const granted = await reserveEmailQuota(1, kind);
+        if (granted < 1) throw new EmailQuotaError(kind);
+    }
 
     const htmlContent = unsubscribe ? withUnsubscribeFooter(html, unsubscribe) : html;
 

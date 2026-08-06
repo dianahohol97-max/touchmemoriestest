@@ -68,6 +68,8 @@ export async function GET(request: Request) {
                         toName: c.name || c.email,
                         subject,
                         html,
+                        kind: 'marketing',
+                        unsubscribe: { email: c.email },
                     });
                     await supabase.from('email_automation_log').insert({ email: c.email, automation_type: step.type });
                     sent++;

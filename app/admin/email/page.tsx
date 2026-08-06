@@ -99,6 +99,10 @@ export default function EmailAdminPage() {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [editTpl, setEditTpl] = useState<Partial<Template>|null>(null);
     const [isNewTpl, setIsNewTpl] = useState(false);
+    // Today's send budget. Shown next to the subscriber count so the number is
+    // in front of you BEFORE you press send, not discovered afterwards.
+    const [quota, setQuota] = useState<{daily_cap:number; marketing_left:number; total_left:number}|null>(null);
+    const [queued, setQueued] = useState(0);
 
     useEffect(() => { loadAll(); }, []);
 
@@ -118,6 +122,16 @@ export default function EmailAdminPage() {
             s.data.forEach((x:any) => { const src = x.source||'manual'; bySource[src]=(bySource[src]||0)+1; });
             setStats({total:s.data.length, active, inactive:s.data.length-active, bySource});
         }
+
+        try {
+            const res = await fetch('/api/admin/email-quota');
+            if (res.ok) {
+                const q = await res.json();
+                setQuota(q.quota || null);
+                setQueued(q.queued || 0);
+            }
+        } catch { /* the budget line is informational; never block the page on it */ }
+
         setLoading(false);
     }
 
@@ -191,7 +205,13 @@ export default function EmailAdminPage() {
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
                         <div>
                             <h1 style={{margin:0,fontSize:18,fontWeight:800,color:'#1e2d7d',display:'flex',alignItems:'center',gap:8}}><Mail size={18}/> Email Розсилка</h1>
-                            <p style={{margin:'2px 0 0',fontSize:11,color:'#6b7280'}}>Brevo · {stats.active} активних</p>
+                            <p style={{margin:'2px 0 0',fontSize:11,color:'#6b7280'}}>
+                                Brevo · {stats.active} активних
+                                {quota && (
+                                    <> · сьогодні на розсилку лишилось <strong style={{color: quota.marketing_left > 0 ? '#166534' : '#b45309'}}>{quota.marketing_left}</strong> із {quota.daily_cap}
+                                    {queued > 0 && <> · у черзі {queued}</>}</>
+                                )}
+                            </p>
                         </div>
                         <div style={{display:'flex',gap:6}}>
                             <Btn onClick={loadAll} outline color='#6b7280' sm><RefreshCw size={12}/></Btn>
