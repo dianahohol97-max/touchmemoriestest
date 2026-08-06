@@ -3653,6 +3653,21 @@ export default function BookLayoutEditor() {
     allowLeaveRef.current = true;
     try { window.history.go(-2); } catch { router.back(); }
   };
+  /**
+   * Drop the unsaved-work guard for a navigation the user deliberately asked
+   * for. The links in the «додано до кошика» modal are full page loads, so
+   * without this the browser's own «Закрити сайт? Зміни можуть не зберегтися»
+   * dialog appeared on top of «Оформити замовлення» — right after the book was
+   * saved to the cart, when there is nothing left to lose. The customer had to
+   * confirm a scary data-loss warning to reach checkout.
+   */
+  const allowNavigateAway = () => {
+    allowLeaveRef.current = true;
+    // Re-arm if the navigation never actually happens — a ⌘-click opens the
+    // link in a new tab and leaves this one sitting there, and it must not be
+    // left permanently unguarded.
+    window.setTimeout(() => { allowLeaveRef.current = false; }, 5000);
+  };
 
   // Whether the visitor is logged in — the exit modal must not promise
   // «Мої дизайни» to a guest: persistDraft() silently returns false without
@@ -11032,6 +11047,7 @@ export default function BookLayoutEditor() {
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/cart`}
+                onClick={allowNavigateAway}
                 style={{ display:'block', padding:'13px', background:'#1e2d7d', color:'#fff',
                   borderRadius:10, fontWeight:800, fontSize:15, textDecoration:'none' }}>
                 Оформити замовлення →
@@ -11047,11 +11063,13 @@ export default function BookLayoutEditor() {
                 Продовжити редагування
               </button>
               <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/catalog`}
+                onClick={allowNavigateAway}
                 style={{ display:'block', padding:'13px', background:'#f1f5f9', color:'#374151',
                   borderRadius:10, fontWeight:700, fontSize:14, textDecoration:'none' }}>
                 Продовжити покупки
               </a>
               <a href={`/${typeof window !== 'undefined' ? window.location.pathname.split('/')[1] : 'uk'}/account`}
+                onClick={allowNavigateAway}
                 style={{ display:'block', padding:'8px', color:'#94a3b8', fontSize:12, textDecoration:'none' }}>
                 Переглянути мої дизайни →
               </a>
