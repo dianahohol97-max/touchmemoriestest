@@ -66,12 +66,28 @@ export function r2Endpoint(): string {
   return `https://${host}`;
 }
 
+/**
+ * The public base has to be an absolute http(s) URL, because fileUrl() uses it
+ * as a prefix: a bare host like `pub-xxxx.r2.dev` would produce the relative
+ * path `pub-xxxx.r2.dev/galleries/…` and every photo in the client gallery
+ * would 404 — after uploading fine, which makes it look like a display bug
+ * rather than a config one.
+ */
+function publicBaseLooksReal(): boolean {
+  try {
+    const u = new URL(R2.publicBase);
+    return (u.protocol === 'https:' || u.protocol === 'http:') && Boolean(u.host);
+  } catch {
+    return false;
+  }
+}
+
 export function isR2Configured(): boolean {
   // The account id is a 32-character hex string. Anything else (a pasted URL
   // fragment, a bucket name, a stray quote) would build a hostname Cloudflare
   // refuses, so we stay on Supabase rather than break every upload.
   const idLooksReal = /^[0-9a-f]{32}$/.test(R2.accountId);
-  return Boolean(idLooksReal && R2.accessKeyId && R2.secretAccessKey && R2.bucket && R2.publicBase);
+  return Boolean(idLooksReal && R2.accessKeyId && R2.secretAccessKey && R2.bucket && publicBaseLooksReal());
 }
 
 /** Why R2 is not active, in Diana's words. Empty string when it is active. */
@@ -82,6 +98,7 @@ export function r2ConfigProblem(): string {
   if (!R2.secretAccessKey) return 'R2_SECRET_ACCESS_KEY не задано';
   if (!R2.bucket) return 'R2_BUCKET не задано';
   if (!R2.publicBase) return 'R2_PUBLIC_BASE_URL не задано';
+  if (!publicBaseLooksReal()) return 'R2_PUBLIC_BASE_URL має бути повною адресою з https:// на початку, наприклад https://pub-xxxxxxxx.r2.dev';
   return '';
 }
 
