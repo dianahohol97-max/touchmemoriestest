@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import {
-  activeProvider, isR2Configured, r2ConfigProblem, r2Endpoint,
+  activeProvider, isR2Configured, r2ConfigProblem, r2Endpoint, r2AccountIdShape,
   putFile, fileUrl, fileExists, removeFiles,
 } from '@/lib/photographers/storage';
 
@@ -23,10 +23,19 @@ export async function GET(req: NextRequest) {
 
   const configured = isR2Configured();
   const endpoint = r2Endpoint();
+  // Any R2 variable present means R2 was MEANT to be on, so a config problem is
+  // a failure rather than «we simply stayed on Supabase».
+  const r2Intended = Boolean(
+    process.env.R2_ACCOUNT_ID || process.env.R2_BUCKET || process.env.R2_PUBLIC_BASE_URL
+  );
   const info: Record<string, any> = {
     active_provider: activeProvider(),
+    r2_intended: r2Intended,
     r2_configured: configured,
     r2_problem: r2ConfigProblem() || null,
+    // Shape of the account id, so a wrong paste names itself instead of just
+    // failing the hex check.
+    r2_account_id_shape: r2AccountIdShape(),
     // Host only — enough to spot a malformed account id, useless to an attacker.
     r2_endpoint_host: configured ? new URL(endpoint).host.replace(/^[0-9a-f]{6}/, m => `${m}…`) : null,
     r2_public_base_host: process.env.R2_PUBLIC_BASE_URL
@@ -66,6 +75,10 @@ export async function GET(req: NextRequest) {
   const delErr = await removeFiles([{ path, provider: put.provider }]);
   info.cleanup = delErr ? `помилка: ${delErr}` : 'ок';
 
-  const healthy = info.write === 'ок' && info.head === 'ок' && info.public_read === 'ок' && !info.fell_back_to_supabase;
+  // Storage working is not the same as R2 working. When R2 is meant to be on
+  // but is misconfigured, the round trip succeeds on Supabase and reporting
+  // «healthy» would read as «переїзд відбувся» while nothing actually moved.
+  const healthy = info.write === 'ок' && info.head === 'ок' && info.public_read === 'ок'
+    && !info.fell_back_to_supabase && (!r2Intended || configured);
   return NextResponse.json({ ...info, healthy });
 }

@@ -102,6 +102,20 @@ export function r2ConfigProblem(): string {
   return '';
 }
 
+/**
+ * What R2_ACCOUNT_ID boiled down to, in a form that is safe to show and
+ * actually diagnostic. The account id is not a secret — it is the public S3
+ * hostname — but when it is wrong the useful signal is its SHAPE: a pasted
+ * dashboard URL collapses to `dash.cloudflare.com`, an access key id is 32
+ * characters yet not hex, and a bucket name is far too short. Without this the
+ * only feedback is «не схожий на ідентифікатор», with no way to tell which of
+ * the wrong things was pasted.
+ */
+export function r2AccountIdShape(): { length: number; starts_with: string } | null {
+  if (!R2.accountId) return null;
+  return { length: R2.accountId.length, starts_with: R2.accountId.slice(0, 10) };
+}
+
 /** Where NEW uploads go. Reads always follow the row's stored provider. */
 export function activeProvider(): StorageProvider {
   return isR2Configured() ? 'r2' : 'supabase';
