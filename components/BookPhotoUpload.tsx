@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n/context';
 import { toast } from 'sonner';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { trackFunnelStep } from '@/lib/analytics/funnel';
+import { formatDecorationVariant } from '@/lib/editor/utils';
 
 interface PhotoFile {
     id: string;
@@ -528,9 +529,20 @@ export default function BookPhotoUpload() {
                             {config.selectedSize && <p>• {t('photo_upload.size_label')} {config.selectedSize}</p>}
                             <p>• {config.selectedPageCount}</p>
                             {config.selectedCoverType && <p>• {t('photo_upload.cover_label')} {config.selectedCoverType}{config.selectedCoverColor ? ` · ${config.selectedCoverColor}` : ''}</p>}
-                            {config.selectedDecorationType && config.selectedDecorationType !== 'none' && (
-                                <p>• {t('photo_upload.decoration_label')} {config.selectedDecorationType}{config.selectedDecorationVariant ? ` · ${config.selectedDecorationVariant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
-                            )}
+                            {config.selectedDecorationType && config.selectedDecorationType !== 'none' && (() => {
+                                // Never print the raw catalog code. Configs saved
+                                // before this fix — and cart snapshots restored
+                                // into sessionStorage — still carry values like
+                                // 'foto_100x100', and гравіювання/флекс carry a
+                                // leftover variant that belongs to no chosen
+                                // decoration at all.
+                                const variant = formatDecorationVariant(
+                                    config.selectedDecorationType, config.selectedDecorationVariant || ''
+                                );
+                                return (
+                                    <p>• {t('photo_upload.decoration_label')} {config.selectedDecorationType}{variant ? ` · ${variant}` : ''}{config.decorationSurcharge ? ` (+${config.decorationSurcharge} ₴)` : ''}</p>
+                                );
+                            })()}
                             {config.selectedLamination && <p>• {t('photo_upload.lamination_cover')} {config.selectedLamination}</p>}
                             {isPageLaminationSelected(config.selectedPageLamination) && (() => {
                                 // The option's machine value is 'with' | 'none'; comparing it to the

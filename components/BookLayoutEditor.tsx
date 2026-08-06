@@ -34,6 +34,7 @@ import {
 import {
   buildCoverEditorProps, handleCoverChange, resolveCoverColor,
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
+  formatDecorationVariant,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
@@ -3999,8 +4000,12 @@ export default function BookLayoutEditor() {
           // none — but decoVariant often carries a leftover value from the
           // auto-selection (e.g. 'foto_100x100'), and showing it made the
           // order summary claim a photo insert the customer never chose.
-          if (coverState.decoVariant && ['acryl', 'photovstavka', 'metal'].includes(coverState.decoType)) {
-            opts[t('constructor.decoration_variant')] = coverState.decoVariant;
+          // formatDecorationVariant applies that rule and additionally turns a
+          // raw catalog code into its readable size, so the manager never sees
+          // 'foto_100x100' in the order options either.
+          const decoVariantLabel = formatDecorationVariant(coverState.decoType, coverState.decoVariant || '');
+          if (decoVariantLabel) {
+            opts[t('constructor.decoration_variant')] = decoVariantLabel;
           }
           if (coverState.decoText) opts[t('constructor.decoration_text')] = coverState.decoText;
           if (coverState.textFontFamily && coverState.decoText) opts[t('constructor.decoration_font')] = coverState.textFontFamily;

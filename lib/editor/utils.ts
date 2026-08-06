@@ -47,7 +47,57 @@ export function detectDecoType(decoString: string): CoverDecoType {
   return 'none';
 }
 
-//  Decoration color detection 
+//  Decoration variant display
+
+// Codes the size cannot be derived from mechanically.
+const DECO_VARIANT_LABELS: Record<string, string> = {
+  'acryl_145': 'Ø145 мм',
+  'acryl_d145': 'Ø145 мм',
+};
+
+// 'foto_100x100' → '100×100 мм', 'acryl_d145' → 'Ø145 мм'. Returns null when the
+// code carries no readable size, so the caller can hide it instead of printing
+// a slug.
+function humanizeVariantCode(code: string): string | null {
+  const m = code.match(/^[a-z]+_(.+)$/i);
+  if (!m) return null;
+  const rest = m[1];
+  const dims = rest.match(/^(\d+)\s*[xх×]\s*(\d+)$/i);
+  if (dims) return `${dims[1]}×${dims[2]} мм`;
+  const round = rest.match(/^d(\d+)$/i);
+  if (round) return `Ø${round[1]} мм`;
+  return null;
+}
+
+/**
+ * Customer-facing text for a decoration variant, or '' when nothing should be
+ * shown.
+ *
+ * Two things go wrong without it. First, only PHYSICAL inserts (акрил /
+ * фотовставка / металева вставка) actually have a size variant — гравіювання
+ * and флекс carry a leftover value from an earlier auto-selection, so the
+ * summary claimed «Гравірування · фотовставка», a decoration the customer never
+ * chose. Second, the value can arrive as the product-catalog code
+ * ('foto_100x100') instead of the DB label ('100×100 мм'), and that code was
+ * printed to the customer as-is.
+ */
+export function formatDecorationVariant(decoration: string, variant: string): string {
+  const v = (variant || '').trim();
+  if (!v) return '';
+  // The caller passes either an internal CoverDecoType ('photovstavka') or a
+  // customer-facing name ('Фотовставка'). detectDecoType only understands the
+  // latter, so recognise the codes first — otherwise a photo insert resolved to
+  // 'none' and its size vanished from the summary.
+  const raw = (decoration || '').trim();
+  const type: CoverDecoType = (['acryl', 'photovstavka', 'metal', 'flex', 'graviruvannya', 'none'] as const)
+    .includes(raw as CoverDecoType) ? (raw as CoverDecoType) : detectDecoType(raw);
+  if (type !== 'acryl' && type !== 'photovstavka' && type !== 'metal') return '';
+  // Already human ("100×100 мм", "90×50 срібний") — pass through untouched.
+  if (!/^[a-z][a-z0-9]*_/i.test(v)) return v;
+  return DECO_VARIANT_LABELS[v.toLowerCase()] || humanizeVariantCode(v) || '';
+}
+
+//  Decoration color detection
 
 export function detectDecoColor(colorString: string): string {
   const dc = (colorString || '').toLowerCase();

@@ -11,6 +11,7 @@ import TravelBookCoverSelector from './TravelBookCoverSelector';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
 import { trackFunnelStep } from '@/lib/analytics/funnel';
+import { formatDecorationVariant } from '@/lib/editor/utils';
 
 interface ProductOption {
     name: string;
@@ -511,6 +512,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         // Decoration type + variant (from URL or Ukrainian catalog name)
         const decorationValue = decoration || decorationFromCatalog;
+        // Held outside the branch: the variant below is only meaningful for the
+        // decoration chosen HERE, and setSelectedDecorationType is async.
+        let decorationName = 'none';
         if (decorationValue) {
             // Normalise any incoming form (internal id, short or full Ukrainian
             // label) to the DB decoration_types.name — the tiles AND the variant
@@ -526,7 +530,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 'Друк кольором': 'Друк кольором', 'Флекс': 'Друк кольором', 'flex': 'Друк кольором',
                 'Гравірування': 'Гравірування', 'graviruvannya': 'Гравірування',
             };
-            setSelectedDecorationType(decorationMap[decorationValue] || decorationValue);
+            decorationName = decorationMap[decorationValue] || decorationValue;
+            setSelectedDecorationType(decorationName);
         } else {
             // No decoration param in URL → reset to none so a stale session
             // value (e.g. 'Друк кольором' from a previous order) never surfaces
@@ -549,7 +554,16 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             const strippedVariant = variantFromCatalog
                 .replace(/^(Акрил|Acryl|Фотовставка|Photo\s*insert|Photo\s*вставка)\s+/i, '')
                 .trim();
-            setSelectedDecorationVariant(strippedVariant || variantFromCatalog);
+            // Normalise here, at the single point where the variant enters
+            // state: everything downstream (the price lookup against
+            // decoration_variants.variant_name, the URL sync, the stored
+            // config, the order options and the summary card) then works with
+            // the DB label instead of the catalog code 'foto_100x100'. An
+            // engraved or flex cover has no variant at all, so it resolves to
+            // an empty string.
+            setSelectedDecorationVariant(
+                formatDecorationVariant(decorationName, strippedVariant || variantFromCatalog)
+            );
         }
         if (decorationColor) setSelectedDecorationColor(decorationColor);
 
