@@ -122,38 +122,22 @@ export default function ClientsPage() {
         fetchCustomers();
     }, []);
 
+    // Goes through /api/admin/clients rather than querying Supabase from the
+    // browser. RLS on `customers` grants a full read only to admin_users, so a
+    // staff member (manager, designer, even owner) reading it directly here got
+    // back their own row and nothing else — the CRM looked empty. The route
+    // also computes order counts, spend and last order date, which the dead
+    // customers.total_orders / total_spent columns never carried.
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('customers')
-                .select('*')
-                .order('total_spent', { ascending: false });
-
-            if (error) throw error;
-
-            // Fetch last order date for each customer
-            if (data) {
-                const customersWithLastOrder = await Promise.all(
-                    data.map(async (customer) => {
-                        const { data: orders } = await supabase
-                            .from('orders')
-                            .select('created_at')
-                            .eq('customer_id', customer.id)
-                            .order('created_at', { ascending: false })
-                            .limit(1);
-
-                        return {
-                            ...customer,
-                            last_order_date: orders?.[0]?.created_at || null
-                        };
-                    })
-                );
-                setCustomers(customersWithLastOrder);
-            }
-        } catch (error) {
+            const res = await fetch('/api/admin/clients');
+            const payload = await res.json();
+            if (!res.ok) throw new Error(payload?.error || 'Помилка завантаження клієнтів');
+            setCustomers(payload.customers || []);
+        } catch (error: any) {
             console.error('Error fetching customers:', error);
-            toast.error('Помилка завантаження клієнтів');
+            toast.error(error?.message || 'Помилка завантаження клієнтів');
         } finally {
             setLoading(false);
         }
@@ -162,14 +146,10 @@ export default function ClientsPage() {
     const fetchCustomerOrders = async (customerId: string) => {
         setDrawerLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('customer_id', customerId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setCustomerOrders(data || []);
+            const res = await fetch(`/api/admin/clients?customerId=${encodeURIComponent(customerId)}`);
+            const payload = await res.json();
+            if (!res.ok) throw new Error(payload?.error || 'Помилка завантаження замовлень');
+            setCustomerOrders(payload.orders || []);
         } catch (error) {
             console.error('Error fetching customer orders:', error);
             toast.error('Помилка завантаження замовлень');
@@ -254,6 +234,20 @@ export default function ClientsPage() {
         toast.success('Excel файл завантажено');
     };
 
+    // Tag writes go through the admin route for the same RLS reason as the
+    // list: the UPDATE policy on `customers` only lets a person edit their own
+    // row, so a staff member tagging a customer was rejected outright.
+    const saveTags = async (customerId: string, tags: string[]): Promise<string[]> => {
+        const res = await fetch('/api/admin/clients', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customerId, tags }),
+        });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload?.error || 'Не вдалося зберегти теги');
+        return payload.tags || [];
+    };
+
     const addTag = async (customerId: string, tag: string) => {
         const customer = customers.find((c) => c.id === customerId);
         if (!customer) return;
@@ -267,22 +261,16 @@ export default function ClientsPage() {
         const newTags = [...currentTags, tag];
 
         try {
-            const { error } = await supabase
-                .from('customers')
-                .update({ tags: newTags })
-                .eq('id', customerId);
-
-            if (error) throw error;
-
+            const saved = await saveTags(customerId, newTags);
             setCustomers((prev) =>
                 prev.map((c) =>
-                    c.id === customerId ? { ...c, tags: newTags } : c
+                    c.id === customerId ? { ...c, tags: saved } : c
                 )
             );
             toast.success(`Тег "${tag}" додано`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding tag:', error);
-            toast.error('Помилка додавання тегу');
+            toast.error(error?.message || 'Помилка додавання тегу');
         }
     };
 
@@ -293,22 +281,16 @@ export default function ClientsPage() {
         const newTags = (customer.tags || []).filter((t) => t !== tag);
 
         try {
-            const { error } = await supabase
-                .from('customers')
-                .update({ tags: newTags })
-                .eq('id', customerId);
-
-            if (error) throw error;
-
+            const saved = await saveTags(customerId, newTags);
             setCustomers((prev) =>
                 prev.map((c) =>
-                    c.id === customerId ? { ...c, tags: newTags } : c
+                    c.id === customerId ? { ...c, tags: saved } : c
                 )
             );
             toast.success(`Тег "${tag}" видалено`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error removing tag:', error);
-            toast.error('Помилка видалення тегу');
+            toast.error(error?.message || 'Помилка видалення тегу');
         }
     };
 
