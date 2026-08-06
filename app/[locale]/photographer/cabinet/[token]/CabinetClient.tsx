@@ -1166,27 +1166,53 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
 
   const INLINE_LIMIT = 4 * 1024 * 1024;
 
+  /** One file, by whichever route its size demands. Returns an error message. */
+  const uploadOne = async (f: File): Promise<string | null> => {
+    if (f.type.startsWith('video/') || f.size > INLINE_LIMIT) return uploadDirect(f);
+    const fd = new FormData();
+    fd.append('token', token);
+    fd.append('files', f);
+    const res = await fetch(`/api/photographers/galleries/${galleryId}/photos`, { method: 'POST', body: fd });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return json?.error || 'Помилка аплоаду';
+    return null;
+  };
+
+  // A wedding gallery is hundreds of files, and one at a time meant the browser
+  // sat idle between round trips — 14 photos of ~2,4 МБ took 66 seconds
+  // (Diana, 2026-08-06). Four at once keeps the connection busy without
+  // saturating a home uplink or hitting per-function concurrency.
+  const UPLOAD_CONCURRENCY = 4;
+
   const upload = async (files: FileList | null) => {
     if (!files || files.length === 0 || busy) return;
     setBusy(true);
     try {
       const all = Array.from(files);
       let done = 0;
-      for (const f of all) {
-        if (f.type.startsWith('video/') || f.size > INLINE_LIMIT) {
-          const err = await uploadDirect(f);
-          if (err) { alert(err); break; }
-        } else {
-          const fd = new FormData();
-          fd.append('token', token);
-          fd.append('files', f);
-          const res = await fetch(`/api/photographers/galleries/${galleryId}/photos`, { method: 'POST', body: fd });
-          const json = await res.json();
-          if (!res.ok) { alert(json?.error || 'Помилка аплоаду'); break; }
+      let next = 0;
+      let failure: string | null = null;
+
+      // Workers pull from a shared cursor, so a slow file never blocks the
+      // queue behind it the way fixed chunks would.
+      const worker = async () => {
+        while (!failure) {
+          const i = next++;
+          if (i >= all.length) return;
+          const err = await uploadOne(all[i]);
+          // The first error stops the rest: the usual cause is the storage
+          // quota, and grinding through 300 more doomed files helps nobody.
+          if (err) { failure = failure || err; return; }
+          done += 1;
+          setProgress(`${done}/${all.length}`);
         }
-        done += 1;
-        setProgress(`${done}/${all.length}`);
-      }
+      };
+
+      await Promise.all(
+        Array.from({ length: Math.min(UPLOAD_CONCURRENCY, all.length) }, worker)
+      );
+
+      if (failure) alert(failure);
       await onDone();
       if (done > 0) flash(`Завантажено ${done} файл(ів)`);
     } finally { setBusy(false); setProgress(''); if (fileRef.current) fileRef.current.value = ''; }
