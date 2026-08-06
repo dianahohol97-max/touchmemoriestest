@@ -631,8 +631,9 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   '23x23': { w: 230, h: 230 }, '23×23': { w: 230, h: 230 },
   // Magazines (A4 format)
   'magazine-A4': { w: 210, h: 297 },
-  // Travel Book (20×30 landscape — wider format)
-  'travelbook': { w: 300, h: 200 },
+  // Travel Book: sold as «20×30», printed on 210×297 mm pages (the print
+  // partner's checker rejects anything else — Diana, 2026-08-06).
+  'travelbook': { w: 210, h: 297 },
 };
 
 /**
@@ -763,8 +764,9 @@ const mmToPx300 = (mm: number) => Math.round(mm * 300 / 25.4);
 function getSizeKeyForProduct(config: BookConfig | null): string {
   if (!config) return 'A4';
   const slug = (config.productSlug || '').toLowerCase();
-  // TravelBook — 20×30 vertical (portrait)
-  if (slug.includes('travel')) return '20x30';
+  // TravelBook — its own key (210×297 print pages), NOT the photobook '20x30'
+  // (200×300): the two products print on different sheets.
+  if (slug.includes('travel')) return 'travelbook';
   // Wishbook — use selectedSize (20x30, 30x20, 23x23)
   if (slug.includes('wish') || slug.includes('guest') || slug.includes('pobazhan')) {
     const s = config?.selectedSize?.replace('×','x') || '20x30';

@@ -85,7 +85,10 @@ export const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   'A4': { w: 210, h: 297 },
   '23x23': { w: 230, h: 230 }, '23×23': { w: 230, h: 230 },
   'magazine-A4': { w: 210, h: 297 },
-  'travelbook': { w: 300, h: 200 },
+  // Travel Book: sold as «20×30», but the print partner's file check demands
+  // pages of EXACTLY 210×297 mm (Diana, 2026-08-06) — the editor must draw
+  // the same proportion or every slot crop shifts at print time.
+  'travelbook': { w: 210, h: 297 },
 };
 
 //  Color maps (single source of truth) 
