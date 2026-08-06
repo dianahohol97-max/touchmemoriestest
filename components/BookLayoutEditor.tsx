@@ -37,7 +37,7 @@ import {
   formatDecorationVariant,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
-import { pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
+import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
@@ -7385,6 +7385,54 @@ export default function BookLayoutEditor() {
                           <span style={{fontSize:10, fontWeight:500, color:'#64748b'}}>або змініть колір фону в боковій панелі</span>
                         </button>
                       )}
+                      {/* Back-cover inscriptions. «Додати текст на задню
+                          обкладинку» has always written these blocks, and the
+                          print renderer has always drawn them — but the canvas
+                          did not, so they existed only as a list in the sidebar.
+                          The customer could not see where the text sat, could
+                          not move it, and found out where it landed when the
+                          book arrived. Same drag / edit behaviour and the same
+                          cover scale as the front-cover blocks. */}
+                      {(((coverState as any).backCoverTexts) || []).map((bt: any) => {
+                        const editBt = (patch: Record<string, unknown>) => setCoverState((p: any) => ({
+                          ...p,
+                          backCoverTexts: (p.backCoverTexts || []).map((t: any) => t.id === bt.id ? { ...t, ...patch } : t),
+                        }));
+                        return (
+                          <div key={bt.id}
+                            onPointerDown={e => {
+                              e.stopPropagation(); e.preventDefault();
+                              pushHistory();
+                              const sx = bt.x ?? 50, sy = bt.y ?? 50;
+                              startPointerDrag(e, (dx: number, dy: number) => editBt({
+                                x: Math.max(4, Math.min(96, sx + dx / pageW * 100)),
+                                y: Math.max(4, Math.min(96, sy + dy / cH * 100)),
+                              }));
+                            }}
+                            style={{ position:'absolute', left:`${bt.x ?? 50}%`, top:`${bt.y ?? 50}%`, transform:'translate(-50%,-50%)',
+                              cursor:'move', zIndex:12, padding:'6px 10px', border:'1px dashed rgba(148,163,184,0.5)', borderRadius:4, touchAction:'none' }}>
+                            <span contentEditable suppressContentEditableWarning
+                              onBlur={e => { pushHistory(); editBt({ text: e.currentTarget.textContent || '' }); }}
+                              onClick={e => e.stopPropagation()}
+                              onPointerDown={e => e.stopPropagation()}
+                              style={{ display:'block', fontSize:(bt.fontSize || 18) * (cH / EDITOR_BASE_CANVAS_H),
+                                fontFamily:(bt.fontFamily || 'Montserrat') + ',sans-serif',
+                                color: bt.color || (backPhoto ? '#fff' : '#1e2d7d'),
+                                fontWeight: bt.bold ? 700 : 400, outline:'none', cursor:'text',
+                                whiteSpace:'nowrap', textAlign:'center', lineHeight:1.1 }}>
+                              {bt.text}
+                            </span>
+                            <button data-export-ignore="true" data-html2canvas-ignore="true"
+                              onPointerDown={e => e.stopPropagation()}
+                              onClick={e => {
+                                e.stopPropagation();
+                                pushHistory();
+                                setCoverState((p: any) => ({ ...p, backCoverTexts: (p.backCoverTexts || []).filter((t: any) => t.id !== bt.id) }));
+                              }}
+                              style={{ position:'absolute', top:-8, right:-8, width:16, height:16, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:10, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                          </div>
+                        );
+                      })}
                       {!isPrinted && (
                         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
                           <span data-export-ignore="true" style={{ color:'rgba(255,255,255,0.2)', fontSize:9, fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ</span>
