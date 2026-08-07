@@ -6,7 +6,7 @@ import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { localePath } from '@/lib/i18n/path';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { useB2b } from '@/lib/b2b/useB2b';
-import { calcTravelBookTotal } from '@/lib/products';
+import { calcTravelBookTotal, isPageLaminationSelected, LAMINATION_PRICE_PER_PAGE } from '@/lib/products';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -731,7 +731,12 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         // 525 base × 1.3 urgent + 195 typesetting = 878 ✓
         // not the previous order which gave
         // (525 + 195) × 1.3 = 936 ✕
-        if (product.options && Array.isArray(product.options)) {
+        // Travel Book is EXCLUDED from this generic pct loop: its dynamicPrice
+        // comes from calcTravelBookTotal, which already applies the rush
+        // multiplier itself. Running the loop on top compounded it twice —
+        // the header showed «від 1283 ₴» (987 × 1.3) for an urgent 12-page book.
+        const slugForPct = (product.slug || '').toLowerCase();
+        if (product.options && Array.isArray(product.options) && !slugForPct.includes('travel')) {
             product.options.forEach((opt: any) => {
                 if (!opt.options) return;
                 const selected = customProductOptions[opt.name];
@@ -743,6 +748,21 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     finalPrice = Math.round(finalPrice * (1 + Number(match.surcharge_pct) / 100));
                 }
             });
+        }
+        // Hard-journal page lamination — flat 7 ₴/стор AFTER the rush
+        // multiplier (its old home inside ProductOptionsSelector's total let
+        // the +30% compound it). Travel Book handles this inside
+        // calcTravelBookTotal; the soft magazine has no page lamination.
+        if (/photojournal-hard|tverd|hardcover/.test(slugForPct)) {
+            const lamSel = String(customProductOptions['Ламінування сторінок'] ?? customProductOptions['Ламінація сторінок'] ?? '');
+            const lamPages = Number(customProductOptions['Кількість сторінок']) || 0;
+            if (isPageLaminationSelected(lamSel) && lamPages > 0) {
+                const add = lamPages * LAMINATION_PRICE_PER_PAGE;
+                // Goes through extraModifiers so the «Базова вартість» line in
+                // the breakdown stays lamination-free and the lines sum up.
+                extraModifiers += add;
+                priceBreakdown.push({ label: `Ламінування сторінок (7 ₴ × ${lamPages})`, amount: add });
+            }
         }
         // Flat extras (typesetting, retouching, QR, etc.) ride on top
         // of the rush-inflated baseline, not below it.

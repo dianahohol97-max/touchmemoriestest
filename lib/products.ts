@@ -631,13 +631,18 @@ export function calcTravelBookTotal(opts: Record<string, unknown>): number | nul
   if (!pages) return null;
   let total = getTravelBookPrice(pages);
   if (!total) return null;
+  // The rush multiplier applies to the BASE page price only — page lamination
+  // and the forzac print are flat labour/material fees that ride on top,
+  // exactly like typesetting on magazines and like BookLayoutEditor prices the
+  // same book. Multiplying the extras too made the card show 987 ₴ where the
+  // editor (correctly) shows 962 for the same 12-page laminated urgent book.
+  if (isUrgentOption(opts['Терміновість'] as string | undefined)) {
+    total = Math.round(total * (1 + URGENT_MULTIPLIER));
+  }
   const lamination = (opts['Ламінація сторінок'] ?? opts['Ламінування сторінок']) as string | undefined;
   if (isPageLaminationSelected(lamination)) total += pages * LAMINATION_PRICE_PER_PAGE;
   const forzac = String(opts['Друк на форзаці'] ?? '').toLowerCase();
   if (forzac && forzac !== 'none' && !forzac.includes('без')) total += 100;
-  if (isUrgentOption(opts['Терміновість'] as string | undefined)) {
-    total = Math.round(total * (1 + URGENT_MULTIPLIER));
-  }
   return total;
 }
 

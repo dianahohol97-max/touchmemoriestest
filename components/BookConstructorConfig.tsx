@@ -776,12 +776,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
             let magazineTotal = basePrice * copiesNum;
 
-            // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
-            // to hard journal and Travel Book per Diana's price list.
-            if (isHardJournal && isPageLaminationSelected(selectedPageLamination)) {
-                magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
-            }
-
             // Urgent production surcharge (+30%). The product detail page
             // sends this either as the canonical value ('standard' / 'urgent')
             // or as the verbatim label (t('constructor.express_delivery')) depending
@@ -798,8 +792,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                 magazineTotal = Math.round(magazineTotal * (1 + URGENT_MULTIPLIER));
             }
 
-            // Typesetting (+195 ₴) added AFTER urgency so the rush doesn't
-            // compound it. Applies to all journal types when text is chosen.
+            // Flat labour/material fees ride on TOP of the rush-inflated base —
+            // the rush multiplies production of the book itself, not the
+            // add-ons. Same rule as the editor and calcTravelBookTotal.
+            // Page lamination — flat per-page surcharge (7 ₴/стор). Applies
+            // to hard journal and Travel Book per Diana's price list.
+            if (isHardJournal && isPageLaminationSelected(selectedPageLamination)) {
+                magazineTotal += pageNum * LAMINATION_PRICE_PER_PAGE;
+            }
+
+            // Typesetting (+195 ₴) — flat, never compounded by rush. Applies
+            // to all journal types when text is chosen.
             if (hasText) {
                 magazineTotal += TYPESETTING_PRICE;
             }
@@ -901,6 +904,18 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             });
         }
 
+        // Travel Book urgency: +30% on the BASE page price only — the flat
+        // add-ons below (lamination, forzac) ride on top uninflated, matching
+        // calcTravelBookTotal and the editor. Multiplying the extras too gave
+        // 987 ₴ where the editor shows 962 for the same book.
+        if (productType === 'travelbook') {
+            const urgentRaw = (searchParams.get('urgent') || '').toLowerCase();
+            const isUrgent = urgentRaw !== '' && urgentRaw !== '0' &&
+                             urgentRaw !== 'standard' &&
+                             !urgentRaw.includes('стандартна');
+            if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
+        }
+
         // Page lamination — flat per-page surcharge (7 ₴/стор per Diana's
         // May 2026 price list). Applies to Travel Book; hard journal handles
         // it in the magazine/journal branch above.
@@ -916,16 +931,6 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         if (productType === 'magazine' && selectedCoverType.includes(t('constructor.hardcover')) && enableEndpaper) {
             total += 100; // Друк на форзаці для журналу з твердою обкладинкою
-        }
-
-        // Travel Book urgency: +30% on the full total (pages + lamination +
-        // forzac), mirroring the magazine/hard-journal branch above.
-        if (productType === 'travelbook') {
-            const urgentRaw = (searchParams.get('urgent') || '').toLowerCase();
-            const isUrgent = urgentRaw !== '' && urgentRaw !== '0' &&
-                             urgentRaw !== 'standard' &&
-                             !urgentRaw.includes('стандартна');
-            if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
         }
 
         return total;

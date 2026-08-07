@@ -659,8 +659,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         // too double-counted it AND let the +30% rush multiply it:
         //   wrong: (975 + 195) × 1.3 + 195 = 1716
         //   right:  975 × 1.3 + 195        = 1463
-        // Lamination: 7 UAH per page (Diana's price list, May 2026)
-        if (opts['Ламінування сторінок'] === 'З ламінуванням (+7 ₴/стор)' || opts['Ламінування сторінок'] === 'З ламінуванням (+5 ₴/стор)') total += pages * LAMINATION_PRICE_PER_PAGE;
+        // Page lamination (7 ₴/стор) is NOT added here for the SAME reason:
+        // this return value goes through ProductClient's ×1.3 rush loop, so a
+        // lamination included here got compounded. ProductClient adds it as a
+        // flat extra after the multiplier.
         return total;
       }
     }
