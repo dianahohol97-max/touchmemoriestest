@@ -3993,6 +3993,10 @@ export default function BookLayoutEditor() {
       // when the base came from config.totalPrice fallback.
       price_breakdown: (() => {
         const lines: Array<{ label: string; amount: number }> = [];
+        // The rush amount is already inside finalPrice (see urgencyExtra at
+        // its declaration) — listing it as a line makes «Базова вартість»
+        // below come out as the clean pre-rush page price (675, not 878).
+        if (urgencyExtra > 0) lines.push({ label: 'Термінове виготовлення (+30%)', amount: urgencyExtra });
         if (decorationExtra > 0) lines.push({ label: 'Оздоблення обкладинки', amount: decorationExtra });
         if (endpaperExtra > 0) lines.push({ label: 'Друк на форзацах', amount: endpaperExtra });
         if (laminationExtra > 0) lines.push({ label: `Ламінування сторінок (7 ₴ × ${billableContentPages})`, amount: laminationExtra });
@@ -4174,9 +4178,13 @@ export default function BookLayoutEditor() {
 
     // If the customer arrived here via "Редагувати" on a cart item, reuse that
     // cart id so the edited design replaces the original instead of adding a
-    // duplicate. (Set by the cart's edit button.)
+    // duplicate. (Set by the cart's edit button.) A second «Зберегти та
+    // замовити» in the SAME session reuses lastCartItemId the same way — the
+    // second click used to mint a fresh id and the cart got two identical
+    // books (Alina, travel book, 2026-08-07).
     const editingCartItemId = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bookEditCartItemId') : null;
-    if (editingCartItemId) cartPayload.id = editingCartItemId;
+    const reuseCartItemId = editingCartItemId || lastCartItemId;
+    if (reuseCartItemId) cartPayload.id = reuseCartItemId;
 
     // Save a self-contained snapshot of this design (config + draft + its own
     // photos) keyed by the cart item id, so the customer can reopen THIS item
@@ -4223,9 +4231,11 @@ export default function BookLayoutEditor() {
     if (editingOrderId) {
       // Changing an existing order — the cart must not gain a line for a book
       // the customer has already paid for.
-    } else if (editingCartItemId) {
+    } else if (reuseCartItemId) {
+      // replaceItem falls back to appending when the id is gone from the cart
+      // (customer deleted the line and saved again) — no lost book either way.
       replaceItem(cartPayload as any);
-      sessionStorage.removeItem('bookEditCartItemId');
+      if (editingCartItemId) sessionStorage.removeItem('bookEditCartItemId');
     } else {
       addItem(cartPayload as any);
       // The editor was the only add-to-cart path GA4 never saw — which is why
@@ -5082,6 +5092,12 @@ export default function BookLayoutEditor() {
   // and includes the saddle-stitch / perfect-binding tiers.
   let baseDynamicPrice: number;
   let basePriceDiff: number;
+  // The rush surcharge amount in ₴ — carried separately so the cart's price
+  // breakdown can show «Термінове виготовлення» as its own line (Diana,
+  // 2026-08-07: базова 675 + ламінування 84 + текст 195 + терміновість 203,
+  // not a merged «базова 878»). It is ALREADY included in baseDynamicPrice;
+  // never add it to the total a second time.
+  let urgencyExtra = 0;
   if (isMagazine) {
     // Use the magazine price table directly. selectedPageCount tells us
     // what the customer originally ordered (basis for the +X₴ diff).
@@ -5108,6 +5124,7 @@ export default function BookLayoutEditor() {
     const isUrgent = isUrgentSelected(config, searchParams);
     const surchargedOrdered = (isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered) + typesettingExtra;
     const surchargedCurrent = (isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent) + typesettingExtra;
+    if (isUrgent) urgencyExtra = Math.round(baseCurrent * 1.3) - baseCurrent;
     baseDynamicPrice = surchargedCurrent;
     basePriceDiff = surchargedCurrent - surchargedOrdered;
   } else if (isTravel) {
@@ -5124,6 +5141,7 @@ export default function BookLayoutEditor() {
     const isUrgent = isUrgentSelected(config, searchParams);
     const surchargedOrdered = isUrgent ? Math.round(baseOrdered * 1.3) : baseOrdered;
     const surchargedCurrent = isUrgent ? Math.round(baseCurrent * 1.3) : baseCurrent;
+    if (isUrgent) urgencyExtra = surchargedCurrent - baseCurrent;
     baseDynamicPrice = surchargedCurrent;
     basePriceDiff = surchargedCurrent - surchargedOrdered;
   } else if (isScrapbook) {
@@ -5180,6 +5198,7 @@ export default function BookLayoutEditor() {
       const orderedBase = result.dynamicPrice - result.priceDiff;
       const orderedSurcharged = Math.round(orderedBase * 1.3);
       const currentSurcharged = Math.round(result.dynamicPrice * 1.3);
+      urgencyExtra = currentSurcharged - result.dynamicPrice;
       baseDynamicPrice = currentSurcharged;
       basePriceDiff = currentSurcharged - orderedSurcharged;
     } else {
