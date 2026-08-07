@@ -196,22 +196,40 @@ export async function GET(req: NextRequest) {
         try {
             const { data: projs } = await admin
                 .from('projects')
-                .select('uploaded_photos, cover_data')
+                .select('uploaded_photos, cover_data, pages_data, overlays_data')
                 .eq('order_id', orderId)
                 .limit(5);
             for (const pr of (projs || []) as any[]) {
-                const ups = Array.isArray(pr?.uploaded_photos) ? pr.uploaded_photos : [];
+                const allUps = Array.isArray(pr?.uploaded_photos) ? pr.uploaded_photos : [];
+                // Only photos the design actually USES. The project keeps the
+                // whole upload library, so a photo added and then removed from
+                // the cover stayed in the card — staff saw «фото є» on an order
+                // whose макет has no photo at all (wishbook, 2026-08-07).
+                const usedIds = new Set<string>();
+                const collect = (v: any) => { if (typeof v === 'string' && v) usedIds.add(v); };
+                for (const page of (Array.isArray(pr?.pages_data) ? pr.pages_data : [])) {
+                    for (const s of (Array.isArray(page?.slots) ? page.slots : [])) collect(s?.photoId);
+                }
+                const freeSlots = pr?.overlays_data?.freeSlots || {};
+                for (const arr of Object.values(freeSlots)) {
+                    for (const s of (Array.isArray(arr) ? arr : [])) collect((s as any)?.photoId);
+                }
+                const cd: any = pr?.cover_data || {};
+                for (const cp of (Array.isArray(cd?.coverPhotos) ? cd.coverPhotos : [])) collect(cp?.photoId);
+                for (const ps of (Array.isArray(cd?.printedPhotoSlots) ? cd.printedPhotoSlots : [])) collect(ps?.photoId);
                 // cover_data.photoId is a LEFTOVER when a ready cover was
                 // applied afterwards (printedBgImage set, photo slot removed):
                 // flagging that photo as «обкладинка» showed a random customer
                 // photo instead of the ready cover Alina chose. The ready
-                // artwork itself is the cover in that case.
-                const cd: any = pr?.cover_data || {};
+                // artwork itself is the cover in that case — and the leftover
+                // photo does NOT count as used.
                 const slot: any = cd?.printedPhotoSlot;
                 const slotRemoved = slot && !((slot.w ?? 0) > 0 && (slot.h ?? 0) > 0);
                 const usesReadyCover = !!cd?.printedBgImage;
                 const coverPhotoId = (usesReadyCover || slotRemoved) ? null : (cd?.photoId || null);
                 if (usesReadyCover && !coverImageUrl) coverImageUrl = String(cd.printedBgImage);
+                collect(coverPhotoId);
+                const ups = allUps.filter((u: any) => usedIds.has(u?.id));
                 const byB: Record<string, any[]> = {};
                 for (const up of ups) {
                     if (up?.path) (byB[up.bucket || 'photobook-uploads'] ||= []).push(up);
