@@ -89,7 +89,13 @@ export async function POST(request: NextRequest) {
   if (!isValidPhone(body.phone)) {
     return NextResponse.json({ error: 'phone invalid' }, { status: 400 });
   }
-  if (body.email && !isValidEmail(body.email)) {
+  // Email is MANDATORY (Diana, 2026-08-06) — even when the customer prefers
+  // Telegram for the design dialogue, the ORDER itself must carry an email so
+  // follow-ups never fall back to a personal phone/Viber.
+  if (!body.email || !(body.email || '').toString().trim()) {
+    return NextResponse.json({ error: 'email required' }, { status: 400 });
+  }
+  if (!isValidEmail(body.email)) {
     return NextResponse.json({ error: 'email invalid' }, { status: 400 });
   }
   const productSlug = (body.productSlug || '').toString().trim();

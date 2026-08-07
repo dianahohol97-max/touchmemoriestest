@@ -114,7 +114,13 @@ export async function POST(request: NextRequest) {
   if (!isValidPhone(body.customer_phone)) {
     return NextResponse.json({ error: 'customer_phone invalid' }, { status: 400 });
   }
-  if (body.customer_email && !isValidEmail(body.customer_email)) {
+  // Email is MANDATORY for every order (Diana, 2026-08-06): without it the
+  // only way to reach the customer is her personal phone/Viber. All order
+  // forms already collect it; this is the authoritative gate for any client.
+  if (!body.customer_email || typeof body.customer_email !== 'string' || !body.customer_email.trim()) {
+    return NextResponse.json({ error: 'customer_email required' }, { status: 400 });
+  }
+  if (!isValidEmail(body.customer_email)) {
     return NextResponse.json({ error: 'customer_email invalid' }, { status: 400 });
   }
   if (!Array.isArray(body.items) || body.items.length === 0 || body.items.length > 50) {

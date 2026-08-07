@@ -450,6 +450,12 @@ export default function CheckoutPage() {
                 toast.error('Введіть коректний номер телефону (наприклад +380501234567)');
                 return;
             }
+            // Email тепер обовʼязковий на сервері — ловимо одруківку одразу
+            // тут, а не після заповнення всіх кроків.
+            if (!/.+@.+\..+/.test(formData.email.trim())) {
+                toast.error('Введіть коректний email — на нього надійде підтвердження замовлення');
+                return;
+            }
             setCurrentStep('shipping');
         } else if (currentStep === 'shipping') {
             if (isIntl) {
@@ -683,6 +689,8 @@ export default function CheckoutPage() {
                         ? 'Вкажіть ваше ім\'я'
                         : errCode === 'customer_email invalid'
                         ? 'Введіть коректний email'
+                        : errCode === 'customer_email required'
+                        ? 'Вкажіть email — на нього надійде підтвердження замовлення'
                         : errCode === 'certificate_in_use'
                         ? 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату. Зверніться до нас, якщо це помилка.'
                         : 'Не вдалося створити замовлення';

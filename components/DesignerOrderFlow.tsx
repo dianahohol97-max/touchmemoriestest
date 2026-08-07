@@ -272,7 +272,10 @@ export default function DesignerOrderFlow() {
             case 3:
                 if (!firstName.trim() || !lastName.trim() || !phone.trim()) return false;
                 if (contactMethod === 'telegram' && !telegram.trim()) return false;
-                if (contactMethod === 'email' && !email.trim()) return false;
+                // Email завжди обовʼязковий (Діана, 2026-08-06): навіть якщо
+                // діалог з дизайнером піде в Telegram, саме замовлення мусить
+                // мати пошту, щоб не звʼязуватись через особистий Viber.
+                if (!email.trim() || !/.+@.+\..+/.test(email.trim())) return false;
                 return true;
             case 4:
                 if (deliveryMethod === 'nova_poshta' && (!city.trim() || !branch.trim())) return false;
@@ -490,13 +493,12 @@ export default function DesignerOrderFlow() {
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
                                     </div>
                                 )}
-                                {(contactMethod === 'email' || contactMethod === 'any') && (
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Email {contactMethod === 'email' && <span className="text-red-500">*</span>}</label>
-                                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
-                                    </div>
-                                )}
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email <span className="text-red-500">*</span></label>
+                                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+                                    <p className="mt-1 text-xs text-gray-500">На цю адресу надійде рахунок і всі оновлення щодо замовлення.</p>
+                                </div>
                             </div>
                         )}
 

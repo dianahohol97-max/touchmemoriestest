@@ -27,7 +27,9 @@ export interface OrderItem {
 export interface OrderData {
   customer_name: string
   customer_phone: string
-  customer_email?: string
+  // Обовʼязковий: сервер відхиляє замовлення без пошти (customer_email
+  // required) — звʼязок із клієнтом іде на email, а не на особистий Viber.
+  customer_email: string
   items: OrderItem[]
   subtotal: number
   delivery_cost: number
