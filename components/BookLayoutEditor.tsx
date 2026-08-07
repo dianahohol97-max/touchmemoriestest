@@ -3998,6 +3998,7 @@ export default function BookLayoutEditor() {
         if (laminationExtra > 0) lines.push({ label: `Ламінування сторінок (7 ₴ × ${billableContentPages})`, amount: laminationExtra });
         if (typesettingExtra > 0) lines.push({ label: 'Верстка тексту', amount: typesettingExtra });
         if (inscriptionExtra > 0) lines.push({ label: `Напис на обкладинці (${coverState.inscriptionMethod === 'flex' ? 'друк кольором' : 'гравірування'})`, amount: inscriptionExtra });
+        if (coverPhotoExtra > 0) lines.push({ label: `Фотовставка на обкладинці × ${chargeableCoverPhotos}`, amount: coverPhotoExtra });
         if (qrExtra > 0) lines.push({ label: `QR-код × ${generatedQRCount}`, amount: qrExtra });
         if (hasAiPortrait) lines.push({ label: 'AI-портрет', amount: AI_PORTRAIT_PRICE });
         const extrasSum = lines.reduce((s, l) => s + l.amount, 0);
@@ -4089,6 +4090,12 @@ export default function BookLayoutEditor() {
             coverState.inscriptionMethod === 'flex' ? t('constructor.color_print') : t('constructor.engraving');
           const allText = (coverState.extraTexts || []).map(e => e.text).filter(Boolean).join(' · ');
           if (allText) opts[t('constructor.cover_text')] = allText;
+        }
+        // Photo placed on a soft-material cover — production makes it as a
+        // фотовставка, so the manager must see it as one (and the surcharge
+        // above must match this option).
+        if (coverPhotoExtra > 0) {
+          opts['Фотовставка на обкладинці'] = `${chargeableCoverPhotos} шт (+${PHOTO_INSERT_PRICE} ₴/шт)`;
         }
         // Free-positioned text blocks on the back cover (printed covers
         // only). Joined with " · " into one option value so production
@@ -5202,6 +5209,18 @@ export default function BookLayoutEditor() {
   const inscriptionExtra = (!isPrinted && (coverState.extraTexts || []).length > 0 && !!coverState.inscriptionMethod)
     ? INSCRIPTION_PRICE
     : 0;
+  // Фото на мʼякій обкладинці (велюр/тканина/шкірзамінник) фізично є
+  // фотовставкою — окремою платною операцією, але «+ Додати фото» додавало її
+  // безкоштовно (Alina, книга побажань, 2026-08-07). У decoration_variants
+  // ціни на фотовставку немає (усі surcharge = 0), тому тариф тут — тимчасово
+  // той самий, що за напис: 180 ₴ ЗА КОЖНЕ фото. Diana може змінити одним
+  // числом. Якщо фотовставку вже обрано в конфігураторі, перше фото — це і є
+  // та вставка, доплачуються лише додаткові. На друкованих обкладинках фото
+  // друкується прямо в дизайні і лишається безкоштовним.
+  const PHOTO_INSERT_PRICE = 180;
+  const coverPhotoCount = (((coverState as any).coverPhotos) || []).length;
+  const chargeableCoverPhotos = Math.max(0, coverPhotoCount - (coverState.decoType === 'photovstavka' ? 1 : 0));
+  const coverPhotoExtra = (!isPrinted && chargeableCoverPhotos > 0) ? PHOTO_INSERT_PRICE * chargeableCoverPhotos : 0;
   // QR surcharge: +50₴ per generation (not per placement). Tracked by
   // generatedQRCount which increments on each successful "Згенерувати QR"
   // click. Uploaded QR (user's own PNG) does not add to this count.
@@ -5238,13 +5257,13 @@ export default function BookLayoutEditor() {
   // decorationExtra is NOT part of priceDiff: the decoration was chosen and
   // priced at the configurator, so it exists in both the ordered and the
   // current total — only editor-added extras contribute to the "+N ₴" badge.
-  const dynamicPrice = baseDynamicPrice + decorationExtra + endpaperExtra + qrExtra + inscriptionExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
+  const dynamicPrice = baseDynamicPrice + decorationExtra + endpaperExtra + qrExtra + inscriptionExtra + coverPhotoExtra + typesettingExtra + laminationExtra + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0);
   // «Доплата» counts only EDITOR-ADDED extras. Page lamination can only be
   // ordered on the product page (the editor has no toggle), so it is never a
   // diff; a pre-ordered форзац likewise (endpaperDiff covers the in-editor
   // unlock case only). Both were previously listed here, so honestly-priced
   // orders looked like they carried a surprise «+N ₴» in the header.
-  const priceDiff = basePriceDiff + endpaperDiff + qrExtra + inscriptionExtra + typesettingExtra;
+  const priceDiff = basePriceDiff + endpaperDiff + qrExtra + inscriptionExtra + coverPhotoExtra + typesettingExtra;
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -6217,10 +6236,17 @@ export default function BookLayoutEditor() {
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
                   <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
-                    style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6 }}>
-                    + Додати фото
+                    style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                    <span>+ Додати фото</span>
+                    {/* На мʼяких матеріалах фото — це фотовставка, платна операція.
+                        Друкована обкладинка друкує фото в дизайні безкоштовно. */}
+                    {!isPrinted && <span style={{ fontSize:11, fontWeight:800 }}>+{PHOTO_INSERT_PRICE} ₴</span>}
                   </button>
-                  <div style={{ fontSize:10, color:'#94a3b8' }}>Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.</div>
+                  <div style={{ fontSize:10, color:'#94a3b8' }}>
+                    {isPrinted
+                      ? 'Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.'
+                      : `Фото на такій обкладинці виготовляється як фотовставка (+${PHOTO_INSERT_PRICE} ₴ за кожне). Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.`}
+                  </div>
                 </div>
                 )}
               </div>
