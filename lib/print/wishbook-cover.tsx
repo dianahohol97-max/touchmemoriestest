@@ -107,6 +107,13 @@ export interface WishbookCoverSpec {
    * = the page height); color is the chosen ink.
    */
   layout?: { xPct?: number; yPct?: number; fontPxEditor?: number; color?: string } | null;
+  /**
+   * Additional inscriptions (дата, друга фраза) from the editor's extraTexts —
+   * they live in the SAME front-cover percent space as the main напис (and use
+   * the same editor-canvas font base) and were silently dropped from the print
+   * cover before 2026-08-06.
+   */
+  extras?: Array<{ text: string; xPct?: number; yPct?: number; fontPxEditor?: number; color?: string; fontFamily?: string }> | null;
 }
 
 // Normalise a raw size label ("30×20 см (горизонтальна)", "23х23") to a key.
@@ -279,8 +286,9 @@ export async function renderWishbookCoverPng(
   // conversion has to go through millimetres, not through a bare pixel ratio:
   // the old `fontPx700 * (H / 700)` was short by about a quarter and made the
   // напис print noticeably smaller than the customer set it.
+  const editorScale = coverTextScale(H / mm.h, sizeMm.page.h);
   const fontSize = (!onPlate && spec.layout?.fontPxEditor)
-    ? Math.max(W * 0.008, spec.layout.fontPxEditor * coverTextScale(H / mm.h, sizeMm.page.h))
+    ? Math.max(W * 0.008, spec.layout.fontPxEditor * editorScale)
     : estimatedFontSize;
 
   const titleColor = mono
@@ -377,11 +385,21 @@ export async function renderWishbookCoverPng(
     </div>
   );
 
-  // Load the title font (Cyrillic-capable Google fonts). Fall back silently.
-  const fontData = await loadGoogleFont(titleFont, title || 'Книга побажань');
-  const fonts = fontData
-    ? [{ name: titleFont, data: fontData, weight: 700 as const, style: 'normal' as const }]
-    : [];
+  const extras = (spec.extras || []).filter(e => (e?.text || '').trim());
+
+  // Load every typeface the cover uses (title + each extra inscription's own
+  // font), each with the exact glyphs it must shape. Fall back silently.
+  const famText = new Map<string, string>();
+  famText.set(titleFont, title || 'Книга побажань');
+  for (const ex of extras) {
+    const fam = ex.fontFamily || titleFont;
+    famText.set(fam, `${famText.get(fam) || ''} ${ex.text}`);
+  }
+  const fonts: Array<{ name: string; data: ArrayBuffer; weight: 700; style: 'normal' }> = [];
+  for (const [fam, txt] of famText) {
+    const data = await loadGoogleFont(fam, txt);
+    if (data) fonts.push({ name: fam, data, weight: 700 as const, style: 'normal' as const });
+  }
 
   const image = new ImageResponse(
     (
@@ -397,6 +415,30 @@ export async function renderWishbookCoverPng(
         }}
       >
         {decorationPlate}
+        {/* Additional inscriptions — same front-cover mapping (frontLeft/frontW
+            handles the mono front-only canvas) and the same editor-canvas font
+            scale as the main напис. Mono макет: pure black, like the title. */}
+        {extras.map((ex, i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              position: 'absolute',
+              left: `${Math.round(frontLeft + ((ex.xPct ?? 50) / 100) * frontW)}px`,
+              top: `${Math.round(((ex.yPct ?? 75) / 100) * H)}px`,
+              transform: 'translate(-50%, -50%)',
+              fontFamily: `"${ex.fontFamily || titleFont}"`,
+              fontWeight: 700,
+              fontSize: `${Math.max(W * 0.006, (ex.fontPxEditor || 20) * editorScale)}px`,
+              color: mono ? '#000000' : (ex.color && ex.color.startsWith('#')) ? ex.color : titleColor,
+              lineHeight: 1.2,
+              letterSpacing: '0.02em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {ex.text}
+          </div>
+        ))}
       </div>
     ),
     {

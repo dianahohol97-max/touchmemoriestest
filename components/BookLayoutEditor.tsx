@@ -6190,15 +6190,21 @@ export default function BookLayoutEditor() {
                 {(coverState.decoType === 'flex' || coverState.decoType === 'graviruvannya') && (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Написи на обкладинці</div>
-                  <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:'#ffffff'}]}))}
+                  <button onClick={() => setCoverState(prev=>({...prev, extraTexts:[...(prev.extraTexts||[]), {id:'et-'+Date.now(), text:'Ваш напис', x:50, y:75, fontFamily:prev.textFontFamily||'Marck Script', fontSize:20, color:(prev.decoColor||'').startsWith('#')?prev.decoColor:'#D4AF37'}]}))}
                     style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6 }}>
                     + Додати напис
                   </button>
                   {(coverState.extraTexts||[]).map(et => (
-                    <div key={et.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
-                      <input value={et.text} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,text:e.target.value}:t2)}))} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
-                      <input type="color" value={et.color.startsWith('#')?et.color:'#ffffff'} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))} style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer' }}/>
-                      <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
+                    <div key={et.id} style={{ padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <input value={et.text} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,text:e.target.value}:t2)}))} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
+                        <input type="color" value={et.color.startsWith('#')?et.color:'#D4AF37'} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))} style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer' }}/>
+                        <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
+                        <span style={{ fontSize:10, fontWeight:700, color:'#94a3b8', flexShrink:0 }}>Розмір: {et.fontSize||20}px</span>
+                        <input type="range" min={8} max={120} value={et.fontSize||20} onChange={e=>{ const v=+e.target.value; setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,fontSize:v}:t2)})); }} style={{ flex:1, accentColor:'#1e2d7d' }}/>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -7111,7 +7117,9 @@ export default function BookLayoutEditor() {
                                 ...prev,
                                 extraTexts: [...(prev.extraTexts || []), {
                                   id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
-                                  fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                                  // Колір оздоблення, не білий: білий напис на світлому велюрі
+                                  // був невидимий (книга побажань, 2026-08-06).
+                                  fontFamily: tFontFamily, fontSize: tFontSize, color: (prev.decoColor||'').startsWith('#') ? prev.decoColor : '#D4AF37',
                                 }],
                                 // Pre-select Гравірування as the default method on first add.
                                 inscriptionMethod: prev.inscriptionMethod || 'graviruvannya',
@@ -10567,7 +10575,8 @@ export default function BookLayoutEditor() {
                                   ...prev,
                                   extraTexts: [...(prev.extraTexts || []), {
                                     id: 'et-' + Date.now(), text: 'Ваш напис', x: 50, y: 75,
-                                    fontFamily: tFontFamily, fontSize: tFontSize, color: '#ffffff',
+                                    // Колір оздоблення, не білий (див. панель «Обкл.»).
+                                    fontFamily: tFontFamily, fontSize: tFontSize, color: (prev.decoColor||'').startsWith('#') ? prev.decoColor : '#D4AF37',
                                   }],
                                   inscriptionMethod: prev.inscriptionMethod || 'graviruvannya',
                                 }));

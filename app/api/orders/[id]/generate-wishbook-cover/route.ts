@@ -90,6 +90,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // live in the project's cover_data, and rendering without them produced a
   // мізерний centred напис that looked nothing like the editor (TM-001132).
   let editorLayout: { xPct?: number; yPct?: number; fontPxEditor?: number; color?: string } | null = null;
+  let editorExtras: Array<{ text: string; xPct?: number; yPct?: number; fontPxEditor?: number; color?: string; fontFamily?: string }> | null = null;
   try {
     const { data: proj } = await admin
       .from('projects')
@@ -107,6 +108,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         color: typeof cd.decoColor === 'string' && cd.decoColor.startsWith('#') ? cd.decoColor : undefined,
       };
     }
+    // Additional inscriptions (дата тощо) — the editor's extraTexts. Before
+    // 2026-08-06 they were silently absent from the production cover.
+    if (Array.isArray(cd?.extraTexts)) {
+      const mapped = cd.extraTexts
+        .filter((t2: any) => String(t2?.text || '').trim())
+        .map((t2: any) => ({
+          text: String(t2.text).trim(),
+          xPct: typeof t2.x === 'number' ? t2.x : undefined,
+          yPct: typeof t2.y === 'number' ? t2.y : undefined,
+          fontPxEditor: typeof t2.fontSize === 'number' ? t2.fontSize : undefined,
+          color: typeof t2.color === 'string' && t2.color.startsWith('#') ? t2.color : undefined,
+          fontFamily: typeof t2.fontFamily === 'string' && t2.fontFamily ? t2.fontFamily : undefined,
+        }));
+      if (mapped.length) editorExtras = mapped;
+    }
   } catch { /* no project — the estimated layout still renders */ }
 
   // 3. Build the spec + render the cover.
@@ -116,6 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const spec = specFromOrderOptions(wishItem.options || {});
     spec.layout = editorLayout;
+    spec.extras = editorExtras;
     specSize = spec.sizeKey;
     if (!spec.title) {
       // A wishbook with no title is still printable (blank cover), but flag it.
