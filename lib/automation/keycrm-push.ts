@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
+import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 
 /**
@@ -259,6 +260,9 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
                 : {}),
         },
         products: items.map((item: any) => mapProduct(item, productMap)),
+        // Routing tags travel with the order so the CRM card shows who makes it
+        // without anyone re-reading the line items.
+        tags: mergeTags(order?.tags, autoTagsForOrder(order)),
     };
 
     // Say it on the CRM card itself when a line could not be attached to a
@@ -340,7 +344,7 @@ export async function pushOrderToKeycrm(
 
     const { data: order, error } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, created_at, cod_amount, cod_received_at, custom_attributes')
+        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, created_at, cod_amount, cod_received_at, tags, custom_attributes')
         .eq('id', orderId)
         .single();
 

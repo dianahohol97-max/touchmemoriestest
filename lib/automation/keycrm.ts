@@ -43,6 +43,10 @@ export type KeycrmOrder = {
     shipping_service: string;
     /** Sum of every payment filed against the order in the CRM. */
     payments_total: number;
+    /** Tags as the team set them in the CRM. */
+    tags: string[];
+    /** Files attached to the order card — the design the workshop prints from. */
+    files: Array<{ name: string; url: string }>;
 };
 
 export type KeycrmFetchResult = {
@@ -184,8 +188,25 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
             return sum + (Number.isFinite(amount) ? amount : 0);
         }, 0);
 
+    // Tags come back either as plain strings or as objects with a name,
+    // depending on the endpoint and the account's API version.
+    const tags: string[] = (Array.isArray(raw?.tags) ? raw.tags : [])
+        .map((t: any) => (typeof t === 'string' ? t : String(t?.name ?? '')).trim())
+        .filter(Boolean);
+
+    // The attached artwork. Field names differ per account, so several shapes
+    // are accepted rather than one guessed.
+    const files = (Array.isArray(raw?.files) ? raw.files : [])
+        .map((f: any) => ({
+            name: String(f?.name ?? f?.file_name ?? 'файл').trim(),
+            url: String(f?.url ?? f?.path ?? f?.link ?? '').trim(),
+        }))
+        .filter((f: any) => f.url);
+
     return {
         id: raw?.id,
+        tags,
+        files,
         source_uuid: String(raw?.source_uuid ?? '').trim(),
         shipping_service: String(shipping?.shipping_service ?? shipping?.delivery_service?.name ?? '').trim(),
         payments_total: Math.round(paymentsTotal * 100) / 100,

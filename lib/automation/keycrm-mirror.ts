@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchRecentKeycrmOrders, type KeycrmOrder } from '@/lib/automation/keycrm';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { mergeTags } from '@/lib/automation/order-tags';
 
 /**
  * Mirror KeyCRM-native orders into the website database, read-only.
@@ -72,6 +73,9 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
 
     return {
         deadline: deadline.toISOString(),
+        // Tags are how the workshop routes an order, so they have to be visible
+        // on the site card too, not only in the CRM.
+        tags: mergeTags(crm.tags),
         ...(existingId ? { id: existingId } : {}),
         order_number: `${MIRROR_NUMBER_PREFIX}${crm.id}`,
         source: MIRROR_SOURCE,
@@ -96,6 +100,10 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
                 order_id: crm.id,
                 mirrored: true,
                 status_label: crm.status_label,
+                // The artwork attached to the CRM card. Copied as links rather
+                // than as files: the CRM stays the place they live, and the
+                // admin panel only needs to be able to open them.
+                files: crm.files,
                 synced_at: new Date().toISOString(),
             },
         },

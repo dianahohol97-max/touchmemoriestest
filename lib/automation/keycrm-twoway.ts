@@ -53,6 +53,7 @@ const MONEY_EPSILON = 1;
 // `payment_status = 'paid'` cannot be read as "the total arrived".
 import { readOrderMoney, money } from '@/lib/automation/keycrm-money';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
+import { autoTagsForOrder, mergeTags, sameTags } from '@/lib/automation/order-tags';
 
 async function statusMapFromCrm(): Promise<Record<string, string>> {
     const supabase = getAdminClient();
@@ -113,6 +114,29 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
             patch.cod_received_at = new Date().toISOString();
             changes.push(`післяплату ${money(order.cod_amount)} грн позначено отриманою`);
         }
+    }
+
+    // Tags: merged, never replaced. Three parties write them — the automation,
+    // a manager in the CRM, a manager in the admin panel — and a sync that
+    // overwrote the list would silently delete whoever wrote last.
+    const tags = mergeTags(order.tags, crm.tags, autoTagsForOrder(order));
+    if (!sameTags(tags, order.tags)) {
+        patch.tags = tags;
+        changes.push(`теги: ${tags.join(', ')}`);
+    }
+
+    // The artwork attached in the CRM, as links. The workshop needs to see what
+    // it is printing from the site card without opening the CRM.
+    const knownFiles = (order.custom_attributes as any)?.keycrm?.files || [];
+    if (crm.files.length && crm.files.length !== knownFiles.length) {
+        patch.custom_attributes = {
+            ...(order.custom_attributes || {}),
+            keycrm: {
+                ...((order.custom_attributes as any)?.keycrm || {}),
+                files: crm.files,
+            },
+        };
+        changes.push(`файлів з CRM: ${crm.files.length}`);
     }
 
     return { patch, changes };
@@ -296,7 +320,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
+        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
