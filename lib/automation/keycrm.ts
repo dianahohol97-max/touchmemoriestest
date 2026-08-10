@@ -284,6 +284,67 @@ export async function fetchKeycrmSources(): Promise<Array<{ id: number | string;
         .map(r => ({ id: r.id, name: String(r?.name ?? '') }));
 }
 
+export type KeycrmOffer = {
+    offer_id: string;
+    sku: string;
+    name: string;
+    price: number;
+};
+
+/**
+ * The CRM's own catalogue, flattened to one row per sellable item.
+ *
+ * KeyCRM splits a catalogue into products and their offers (variants), and only
+ * the offer carries an SKU. An order line attaches to the offer, so that is the
+ * level this returns. Walks pages until the catalogue is exhausted or the page
+ * budget runs out — a shop with tens of thousands of offers is not the shape
+ * this is for.
+ */
+export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
+    const offers: KeycrmOffer[] = [];
+
+    for (let page = 1; page <= maxPages; page++) {
+        if (page > 1) await sleep(PAGE_GAP_MS);
+
+        // include=product: the offer itself is often named only by its variant
+        // properties ("Зелений"), and the buyer-facing name lives on the parent.
+        let payload: any;
+        try {
+            payload = await keycrmRequest(`/offers?page=${page}&limit=${PAGE_SIZE}&include=product`);
+        } catch {
+            // Older accounts expose the catalogue only as products.
+            payload = await keycrmRequest(`/products?page=${page}&limit=${PAGE_SIZE}`);
+        }
+
+        const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+        if (rows.length === 0) break;
+
+        for (const row of rows) {
+            const parentName = String(row?.product?.name ?? '').trim();
+            const ownName = String(row?.name ?? '').trim();
+            const price = Number(row?.price ?? row?.product?.price ?? 0);
+
+            offers.push({
+                offer_id: String(row?.id ?? ''),
+                sku: String(row?.sku ?? '').trim(),
+                // Prefer the parent name and append the variant when both exist,
+                // so "Фотоальбом на 200 фото" and "Зелений" become one label a
+                // name match can actually work against.
+                name: [parentName, ownName && ownName !== parentName ? ownName : '']
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim(),
+                price: Number.isFinite(price) ? price : 0,
+            });
+        }
+
+        const perPage = Number(payload?.per_page) || PAGE_SIZE;
+        if (rows.length < perPage || payload?.next_page_url === null) break;
+    }
+
+    return offers;
+}
+
 /**
  * Find an order already carrying this external reference.
  *

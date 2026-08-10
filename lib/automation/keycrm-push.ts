@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
+import { fetchConfirmedMap } from '@/lib/automation/keycrm-catalogue';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -90,8 +91,12 @@ const DELIVERY_LABELS: Record<string, string> = {
  * become CRM properties and the breakdown becomes the line comment — a manager
  * looking at the CRM should not have to open the website to know what to make.
  */
-function mapProduct(item: any) {
+type ProductMap = Record<string, { offer_id: string | null; sku: string | null; name: string | null }>;
+
+function mapProduct(item: any, productMap: ProductMap = {}) {
     const options = item?.options && typeof item.options === 'object' ? item.options : {};
+    const slug = String(item?.slug || '');
+    const mapped = slug ? productMap[slug] : undefined;
 
     const properties = Object.entries(options)
         .filter(([, value]) => String(value ?? '').trim() !== '')
@@ -103,8 +108,13 @@ function mapProduct(item: any) {
             .join('; ')
         : '';
 
+    // A confirmed mapping attaches the line to the real CRM catalogue item, so
+    // stock and product reports there actually move. Without one the line still
+    // goes over with its name and price — readable to a human, invisible to CRM
+    // analytics — and the slug is sent as the SKU so the gap is traceable.
     return {
-        sku: String(item?.slug || item?.product_id || ''),
+        sku: mapped?.sku || slug || String(item?.product_id || ''),
+        ...(mapped?.offer_id ? { offer_id: mapped.offer_id } : {}),
         name: String(item?.product_name || 'Товар'),
         price: money(item?.unit_price),
         quantity: Number(item?.quantity) || 1,
@@ -118,7 +128,7 @@ function mapProduct(item: any) {
  * Build the exact body that would be POSTed. Kept pure and exported so it can
  * be previewed from the admin panel without touching the CRM.
  */
-export function buildKeycrmOrderPayload(order: any): any {
+export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {}): any {
     const address = order?.delivery_address && typeof order.delivery_address === 'object'
         ? order.delivery_address
         : {};
@@ -161,8 +171,19 @@ export function buildKeycrmOrderPayload(order: any): any {
                 ? { delivery_service_id: optionalNumber('KEYCRM_DELIVERY_SERVICE_ID') }
                 : {}),
         },
-        products: items.map(mapProduct),
+        products: items.map((item: any) => mapProduct(item, productMap)),
     };
+
+    // Say it on the CRM card itself when a line could not be attached to a
+    // catalogue item. Otherwise the order looks perfectly normal and the gap is
+    // only discovered later, when the product reports come out empty.
+    const unmapped = items
+        .map((item: any) => String(item?.slug || ''))
+        .filter((slug: string) => slug && !productMap[slug]);
+
+    if (unmapped.length) {
+        payload.manager_comment += `\nБез звірки з номенклатурою CRM: ${unmapped.join(', ')}`;
+    }
 
     // Payments are only filed when the account's payment-method id is known.
     // A wrong id would book real money against the wrong method, which is far
@@ -265,7 +286,8 @@ export async function pushOrderToKeycrm(
         };
     }
 
-    const payload = buildKeycrmOrderPayload(order);
+    const productMap = await fetchConfirmedMap();
+    const payload = buildKeycrmOrderPayload(order, productMap);
 
     if (dryRun) {
         return { ...base, ok: true, status: 'dry-run', payload };
