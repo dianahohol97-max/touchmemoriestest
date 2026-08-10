@@ -1,0 +1,258 @@
+'use client';
+import { useState, useEffect, useCallback } from 'react';
+import {
+    CalendarDays,
+    ChevronLeft,
+    ChevronRight,
+    AlertTriangle,
+    Flame,
+    Instagram,
+    Globe,
+    UserX,
+    Loader2,
+} from 'lucide-react';
+import { toast } from 'sonner';
+
+/**
+ * Production calendar — one week of work, by the day each order must be finished.
+ *
+ * Grouped by finish date rather than by the date the customer expects the
+ * parcel: those differ by the days it spends in transit, and the workshop plans
+ * around the former.
+ *
+ * Both intakes are shown. An Instagram order entered in KeyCRM takes the same
+ * day and the same hands as one from the site, so hiding it would make the
+ * week look emptier than it is.
+ */
+
+const WEEKDAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'];
+
+const REASON_LABELS: Record<string, string> = {
+    'requested-date': 'дата від клієнта',
+    'urgent': 'терміново',
+    'standard': 'стандартний строк',
+};
+
+export default function ProductionCalendarPage() {
+    const [weekOffset, setWeekOffset] = useState(0);
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const load = useCallback(async (offset: number) => {
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/admin/production-calendar?week=${offset}`, { cache: 'no-store' });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.error || 'Не вдалося завантажити календар');
+            setData(json);
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося завантажити календар');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { load(weekOffset); }, [weekOffset, load]);
+
+    const dayKeys = data ? Object.keys(data.days) : [];
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const totalThisWeek = dayKeys.reduce((sum, k) => sum + (data.days[k]?.length || 0), 0);
+
+    const weekLabel = (() => {
+        if (!data) return '';
+        const start = new Date(data.week_start);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        const fmt = (d: Date) => d.toLocaleDateString('uk-UA', { day: '2-digit', month: 'long' });
+        return `${fmt(start)} — ${fmt(end)}`;
+    })();
+
+    return (
+        <div style={{ padding: '28px 32px', maxWidth: 1440, margin: '0 auto' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <CalendarDays size={24} style={{ color: '#263a99' }} />
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#0f172a' }}>Календар виробництва</h1>
+                        <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                            {weekLabel}{data ? ` · ${totalThisWeek} замовлень на тиждень` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button onClick={() => setWeekOffset(w => w - 1)} style={navBtn} title="Попередній тиждень">
+                        <ChevronLeft size={16} />
+                    </button>
+                    <button onClick={() => setWeekOffset(0)} style={{ ...navBtn, width: 'auto', padding: '0 14px', fontWeight: 700, fontSize: 13 }}>
+                        Цей тиждень
+                    </button>
+                    <button onClick={() => setWeekOffset(w => w + 1)} style={navBtn} title="Наступний тиждень">
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
+            </div>
+
+            {loading && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 40, color: '#64748b' }}>
+                    <Loader2 size={18} className="animate-spin" /> Завантаження календаря
+                </div>
+            )}
+
+            {!loading && data && (
+                <>
+                    {data.overdue?.length > 0 && (
+                        <div style={{
+                            border: '1.5px solid #fecaca', background: '#fef2f2', borderRadius: 12,
+                            padding: '14px 18px', marginBottom: 18,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                                <AlertTriangle size={16} style={{ color: '#b91c1c' }} />
+                                <span style={{ fontWeight: 800, fontSize: 14, color: '#b91c1c' }}>
+                                    Прострочено, потребує рішення сьогодні — {data.overdue.length}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {data.overdue.slice(0, 12).map((o: any) => (
+                                    <OrderCard key={o.id} order={o} overdue />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                        gap: 12,
+                        alignItems: 'start',
+                    }}>
+                        {dayKeys.map((key, index) => {
+                            const orders = data.days[key] || [];
+                            const isToday = key === todayKey;
+                            const isWeekend = index >= 5;
+                            const date = new Date(key);
+
+                            return (
+                                <div key={key} style={{
+                                    background: isWeekend ? '#f8fafc' : 'white',
+                                    border: isToday ? '2px solid #263a99' : '1px solid #e2e8f0',
+                                    borderRadius: 12,
+                                    minHeight: 150,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                }}>
+                                    <div style={{
+                                        padding: '10px 12px',
+                                        borderBottom: '1px solid #eef2f7',
+                                        display: 'flex',
+                                        alignItems: 'baseline',
+                                        justifyContent: 'space-between',
+                                        gap: 8,
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: 12, fontWeight: 800, color: isToday ? '#263a99' : '#0f172a' }}>
+                                                {WEEKDAYS[index]}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                                                {date.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short' })}
+                                            </div>
+                                        </div>
+                                        {orders.length > 0 && (
+                                            <span style={{
+                                                fontSize: 11, fontWeight: 800, color: '#263a99',
+                                                background: '#eef2ff', borderRadius: 20, padding: '2px 8px',
+                                            }}>
+                                                {orders.length}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        {orders.length === 0 && (
+                                            <div style={{ fontSize: 12, color: '#cbd5e1', padding: '10px 2px' }}>Порожньо</div>
+                                        )}
+                                        {orders.map((o: any) => <OrderCard key={o.id} order={o} />)}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {data.beyond_this_week > 0 && (
+                        <div style={{ marginTop: 14, fontSize: 13, color: '#64748b' }}>
+                            Ще {data.beyond_this_week} замовлень мають дедлайн поза межами цього тижня.
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
+function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
+    const isUrgent = order.reason === 'urgent' || order.reason === 'requested-date';
+    const fromInstagram = order.source === 'keycrm';
+
+    return (
+        <a
+            href={`/admin/orders/${order.id}`}
+            style={{
+                display: 'block',
+                textDecoration: 'none',
+                background: overdue ? 'white' : (isUrgent ? '#fff7ed' : '#f8fafc'),
+                border: `1px solid ${isUrgent ? '#fed7aa' : '#e2e8f0'}`,
+                borderLeft: `3px solid ${isUrgent ? '#ea580c' : '#94a3b8'}`,
+                borderRadius: 8,
+                padding: '8px 10px',
+                minWidth: overdue ? 210 : undefined,
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                {fromInstagram
+                    ? <Instagram size={12} style={{ color: '#a855f7' }} />
+                    : <Globe size={12} style={{ color: '#0ea5e9' }} />}
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>{order.order_number}</span>
+                {isUrgent && <Flame size={12} style={{ color: '#ea580c' }} />}
+                {order.needs_designer && <UserX size={12} style={{ color: '#b91c1c' }} />}
+            </div>
+
+            <div style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.35 }}>
+                {order.customer_name || 'без імені'}
+            </div>
+
+            {order.items_summary && (
+                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.35, marginTop: 2 }}>
+                    {order.items_summary}
+                </div>
+            )}
+
+            {/* Why this day — the customer's own words when there were any. */}
+            {order.reason !== 'standard' && (
+                <div style={{ fontSize: 10.5, color: '#c2410c', marginTop: 4 }}>
+                    {REASON_LABELS[order.reason]}
+                    {order.evidence?.length ? `: «${order.evidence.join(', ')}»` : ''}
+                </div>
+            )}
+
+            {!order.stored_deadline && (
+                <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 3 }}>
+                    дедлайн ще не збережений, показано розрахунковий
+                </div>
+            )}
+        </a>
+    );
+}
+
+const navBtn: React.CSSProperties = {
+    width: 34,
+    height: 34,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    border: '1px solid #e2e8f0',
+    background: 'white',
+    color: '#0f172a',
+    cursor: 'pointer',
+};

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { calculateProductionDeadline } from '@/lib/automation/deadline-calculator';
+import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { calculatePriorityScore } from '@/lib/automation/priority-calculator';
 import { autoAssignDesigner } from '@/lib/automation/designer-assignment';
 import { sendStatusChangeNotification } from '@/lib/automation/email-notifications';
@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
         id,
         order_number,
         paid_at,
+        created_at,
+        notes,
+        client_comment,
         custom_attributes,
         items,
         customer_name,
@@ -104,14 +107,12 @@ export async function POST(request: NextRequest) {
 
     const activeOrdersCount = activeOrders?.length || 0;
 
-    // Calculate production deadline
-    const paidAt = order.paid_at ? new Date(order.paid_at) : new Date();
-    const deadline = calculateProductionDeadline({
-      paid_at: paidAt,
-      page_count: pageCount,
-      has_express_tag: hasExpressTag,
-      active_orders_count: activeOrdersCount,
-    });
+    // Production deadline. Resolved centrally so a date the customer named in
+    // their comment ("потрібно до 12.10, весілля") beats the calculated one —
+    // that sentence is the real deadline, and until it was read the order
+    // looked exactly like a calm one right up until it was late.
+    const resolved = resolveOrderDeadline(order, { activeOrdersCount });
+    const deadline = resolved.deadline;
 
     // Calculate priority score
     const priorityScore = calculatePriorityScore({
@@ -177,6 +178,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       production_deadline: deadline.toISOString(),
+      deadline_reason: resolved.reason,
+      deadline_evidence: resolved.evidence,
       priority_score: priorityScore,
       assigned_designer: assignedDesigner,
     });

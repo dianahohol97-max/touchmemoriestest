@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchRecentKeycrmOrders, type KeycrmOrder } from '@/lib/automation/keycrm';
+import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 
 /**
  * Mirror KeyCRM-native orders into the website database, read-only.
@@ -55,7 +56,22 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
     const total = money(crm.grand_total);
     const received = money(crm.payments_total);
 
+    // Instagram orders belong on the production calendar exactly like the
+    // site's own — a calendar with holes in it is worse than none, because the
+    // holes read as free capacity. The manager comment from the CRM is where an
+    // urgent date lives for these ("треба до 12.10, весілля"), so it is parsed
+    // the same way a website customer's comment is.
+    //
+    // This writes a planning field the site owns and never pushes back to the
+    // CRM, so the read-only promise about the CRM's own data still holds.
+    const { deadline } = resolveOrderDeadline({
+        created_at: crm.created_at,
+        notes: crm.manager_comment,
+        client_comment: crm.buyer_comment,
+    });
+
     return {
+        deadline: deadline.toISOString(),
         ...(existingId ? { id: existingId } : {}),
         order_number: `${MIRROR_NUMBER_PREFIX}${crm.id}`,
         source: MIRROR_SOURCE,

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
-import { calculateProductionDeadline } from '@/lib/automation/deadline-calculator';
+import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchRecentKeycrmOrders, phoneKey, type KeycrmOrder } from '@/lib/automation/keycrm';
 
 export const dynamic = 'force-dynamic';
@@ -171,15 +171,9 @@ async function backfillDeadlines(supabase: any, orders: OrderRow[], now: Date): 
     const cutoff = now.getTime() - DEADLINE_BACKFILL_DAYS * 24 * HOUR_MS;
 
     const candidates = orders.filter(o =>
-        isPaid(o) &&
         !o.deadline &&
         !isClosed(o) &&
-        // Production deadlines belong to orders the site produces. A mirrored
-        // KeyCRM order is a read-only copy, and writing to it would break the
-        // one promise the mirror makes.
-        o.source !== 'keycrm' &&
-        o.paid_at &&
-        new Date(o.paid_at).getTime() >= cutoff
+        new Date(o.paid_at || o.created_at).getTime() >= cutoff
     );
 
     if (!candidates.length) return 0;
@@ -190,15 +184,7 @@ async function backfillDeadlines(supabase: any, orders: OrderRow[], now: Date): 
 
     let filled = 0;
     for (const order of candidates) {
-        const attrs = order.custom_attributes || {};
-        const deadline = calculateProductionDeadline({
-            paid_at: new Date(order.paid_at!),
-            page_count: attrs.page_count || 0,
-            has_express_tag: Array.isArray(attrs.tags)
-                ? attrs.tags.some((t: string) => String(t).includes('швидше'))
-                : false,
-            active_orders_count: activeCount,
-        });
+        const { deadline } = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now });
 
         const { error } = await supabase
             .from('orders')
