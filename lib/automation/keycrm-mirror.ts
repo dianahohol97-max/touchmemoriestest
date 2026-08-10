@@ -156,6 +156,7 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
                 order_id: crm.id,
                 mirrored: true,
                 status_label: crm.status_label,
+                payments_total: crm.payments_total,
                 // The artwork attached to the CRM card. Copied as links rather
                 // than as files: the CRM stays the place they live, and the
                 // admin panel only needs to be able to open them.

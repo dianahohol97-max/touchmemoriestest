@@ -56,6 +56,13 @@ import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { autoTagsForOrder, mergeTags, sameTags } from '@/lib/automation/order-tags';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 
+function fulfilmentFromLabel(label: string): string | undefined {
+    const l = (label || '').toLowerCase();
+    if (l.includes('доставлен') || l.includes('отриман')) return 'delivered';
+    if (l.includes('дороз') || l.includes('відправ')) return 'shipped';
+    return undefined;
+}
+
 async function statusMapFromCrm(): Promise<Record<string, string>> {
     const supabase = getAdminClient();
     const { data, error } = await supabase
@@ -95,7 +102,15 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         changes.push(`ТТН ${crm.ttn}`);
     }
 
-    const mappedStatus = crm.status_id !== null ? statusMap[String(crm.status_id)] : undefined;
+    // The explicit status map wins when configured; when it is not, the stage
+    // NAME still carries meaning for the words every shop uses the same way:
+    // «в дорозі» and «відправлено» mean the parcel left, «доставлено» and
+    // «отримано» mean it arrived. This is what keeps in-transit orders off the
+    // production calendar even before anyone fills in the mapping table.
+    const mappedStatus =
+        (crm.status_id !== null ? statusMap[String(crm.status_id)] : undefined)
+        ?? fulfilmentFromLabel(crm.status_label);
+
     if (mappedStatus && mappedStatus !== order.order_status) {
         patch.order_status = mappedStatus;
         changes.push(`статус ${order.order_status || '—'} → ${mappedStatus}`);
@@ -140,6 +155,25 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         }
     }
 
+    // Money the CRM saw and the site did not. Site orders are normally paid
+    // through Monobank, but a manager can legitimately file a payment straight
+    // in the CRM — cash on pickup, a bank transfer by requisites. The site must
+    // SHOW that, or the order sits marked unpaid forever while the money is in.
+    // Fill-a-blank again: the CRM total is recorded for display, and the order
+    // is closed as paid only when the CRM holds the full sum — partial CRM
+    // payments are surfaced in the change log, never guessed into a status.
+    const siteReceived = readOrderMoney(order).received;
+    const crmExtra = money(crm.payments_total - siteReceived);
+    if (crmExtra > MONEY_EPSILON) {
+        changes.push(`у CRM проведено на ${crmExtra} грн більше, ніж бачив сайт (разом ${crm.payments_total} грн)`);
+
+        if (crm.payments_total >= money(order.total) - MONEY_EPSILON && order.payment_status !== 'paid') {
+            patch.payment_status = 'paid';
+            if (!order.paid_at) patch.paid_at = new Date().toISOString();
+            changes.push('оплату закрито за даними CRM');
+        }
+    }
+
     // Tags: merged, never replaced. Three parties write them — the automation,
     // a manager in the CRM, a manager in the admin panel — and a sync that
     // overwrote the list would silently delete whoever wrote last.
@@ -152,15 +186,20 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
     // The artwork attached in the CRM, as links. The workshop needs to see what
     // it is printing from the site card without opening the CRM.
     const knownFiles = (order.custom_attributes as any)?.keycrm?.files || [];
-    if (crm.files.length && crm.files.length !== knownFiles.length) {
+    const knownPaymentsTotal = Number((order.custom_attributes as any)?.keycrm?.payments_total ?? 0);
+    if ((crm.files.length && crm.files.length !== knownFiles.length)
+        || Math.abs(knownPaymentsTotal - crm.payments_total) > MONEY_EPSILON) {
         patch.custom_attributes = {
             ...(order.custom_attributes || {}),
             keycrm: {
                 ...((order.custom_attributes as any)?.keycrm || {}),
-                files: crm.files,
+                ...(crm.files.length ? { files: crm.files } : {}),
+                // What the CRM holds in payments, verbatim, so the order card
+                // can show the CRM side of the money without opening the CRM.
+                payments_total: crm.payments_total,
             },
         };
-        changes.push(`файлів з CRM: ${crm.files.length}`);
+        if (crm.files.length && crm.files.length !== knownFiles.length) changes.push(`файлів з CRM: ${crm.files.length}`);
     }
 
     return { patch, changes };
@@ -388,7 +427,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, custom_attributes, created_at')
+        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
