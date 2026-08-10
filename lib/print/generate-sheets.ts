@@ -123,7 +123,19 @@ export async function generateOrderPrintSheets(orderId: string, opts: { force?: 
     }
   }
 
-  if (records.length) await admin.from('order_files').insert(records);
+  // Register the sheets, and only then stamp the order as generated. The old
+  // unchecked insert is how TM-001172 lost its sheets: the DB rejected the rows
+  // (file_type CHECK constraint), nothing was logged, and the stamped timestamp
+  // made every later non-force call skip — permanently hiding a transient-
+  // looking failure. No rows registered → no stamp → the next call retries.
+  if (records.length === 0) {
+    return { ok: false, reason: 'no_sheets_uploaded' };
+  }
+  const { error: insErr } = await admin.from('order_files').insert(records);
+  if (insErr) {
+    console.error('[print-sheets] order_files insert failed:', insErr.message);
+    return { ok: false, reason: `register_failed: ${insErr.message}` };
+  }
   await admin.from('orders').update({ print_file_generated_at: new Date().toISOString() }).eq('id', orderId);
   return { ok: true, sheets: records.length };
 }

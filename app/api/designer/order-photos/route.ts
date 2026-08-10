@@ -134,7 +134,10 @@ export async function GET(req: NextRequest) {
                 url: s?.signedUrl || null,
                 category: f.file_category,
                 isCover: (f.file_category || '').toLowerCase().includes('cover'),
-                isExport: f.file_type === 'export',
+                // Imposition sheets (file_type='print_sheet') are print
+                // artifacts too — they belong in «Макет для друку» and in the
+                // «Тільки макет» ZIP, not among the client's raw photos.
+                isExport: f.file_type === 'export' || f.file_type === 'print_sheet',
                 page_number: f.page_number,
                 mime_type: f.mime_type,
                 product_id: null,
