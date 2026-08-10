@@ -27,6 +27,14 @@ import { toast } from 'sonner';
 
 const WEEKDAYS = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'];
 
+const SITE_STATUS_LABELS: Record<string, string> = {
+    new: 'Нове',
+    confirmed: 'Підтверджено',
+    in_production: 'У виробництві',
+    quality_check: 'Перевірка якості',
+    ready: 'Готове',
+};
+
 const REASON_LABELS: Record<string, string> = {
     'requested-date': 'дата від клієнта',
     'urgent': 'терміново',
@@ -238,6 +246,19 @@ function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
 
             <div style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.35 }}>
                 {order.customer_name || 'без імені'}
+            </div>
+
+            {/* The stage by its live name — the CRM's own when the order is
+                there, the site's otherwise — so the board answers "де воно
+                зараз" without opening either system. */}
+            <div style={{ marginTop: 4 }}>
+                <span style={{
+                    fontSize: 10, fontWeight: 800, letterSpacing: '0.02em',
+                    color: '#334155', background: '#f1f5f9',
+                    borderRadius: 20, padding: '2px 8px', display: 'inline-block',
+                }}>
+                    {order.crm_status || SITE_STATUS_LABELS[order.order_status] || order.order_status}
+                </span>
             </div>
 
             {order.items_summary && (

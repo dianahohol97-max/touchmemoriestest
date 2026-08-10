@@ -187,8 +187,10 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
     // it is printing from the site card without opening the CRM.
     const knownFiles = (order.custom_attributes as any)?.keycrm?.files || [];
     const knownPaymentsTotal = Number((order.custom_attributes as any)?.keycrm?.payments_total ?? 0);
+    const knownStatusLabel = String((order.custom_attributes as any)?.keycrm?.status_label ?? '');
     if ((crm.files.length && crm.files.length !== knownFiles.length)
-        || Math.abs(knownPaymentsTotal - crm.payments_total) > MONEY_EPSILON) {
+        || Math.abs(knownPaymentsTotal - crm.payments_total) > MONEY_EPSILON
+        || (crm.status_label && crm.status_label !== knownStatusLabel)) {
         patch.custom_attributes = {
             ...(order.custom_attributes || {}),
             keycrm: {
@@ -197,6 +199,10 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
                 // What the CRM holds in payments, verbatim, so the order card
                 // can show the CRM side of the money without opening the CRM.
                 payments_total: crm.payments_total,
+                // The CRM stage by its own name («Передано на друк»), refreshed
+                // every pass — the production calendar shows it on the card, so
+                // the board carries the CRM's live state without opening it.
+                status_label: crm.status_label,
             },
         };
         if (crm.files.length && crm.files.length !== knownFiles.length) changes.push(`файлів з CRM: ${crm.files.length}`);

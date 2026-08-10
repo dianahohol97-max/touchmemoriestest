@@ -130,6 +130,10 @@ export async function GET(request: Request) {
             reason: order.deadline ? resolved.reason : 'standard',
             evidence: resolved.evidence,
             requested_date: resolved.requestedDate ? resolved.requestedDate.toISOString() : null,
+            // The stage as a human names it: the CRM's own label when the order
+            // lives there too, otherwise the site's status. Refreshed by the
+            // half-hourly reconcile and the hourly mirror respectively.
+            crm_status: (order.custom_attributes as any)?.keycrm?.status_label || null,
             items_summary: Array.isArray(order.items)
                 ? order.items.map((i: any) => i?.product_name).filter(Boolean).slice(0, 3).join(', ')
                 : '',
