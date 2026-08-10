@@ -19,7 +19,7 @@ export const maxDuration = 60;
  * CRM figure is known to be the right one.
  */
 
-export async function GET() {
+export async function GET(request: Request) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
 
@@ -27,9 +27,15 @@ export async function GET() {
         return NextResponse.json({ error: 'KEYCRM_API_TOKEN не заданий.' }, { status: 400 });
     }
 
+    // ?apply=1 runs the levelling for real from the address bar. A mutating GET
+    // is normally wrong, but the operator works from a browser where a POST is
+    // out of reach; the admin guard plus the explicit parameter keep it from
+    // being triggered by accident, and the default remains a pure dry run.
+    const apply = new URL(request.url).searchParams.get('apply') === '1';
+
     try {
         const [report, gaps] = await Promise.all([
-            syncLevelsFromKeycrm({ dryRun: true }),
+            syncLevelsFromKeycrm({ dryRun: !apply }),
             stockMappingGaps(),
         ]);
 
