@@ -288,6 +288,64 @@ export async function renderWishbookCoverPng(
   // Font size: title fills a good fraction of the plate (metal/acryl) or the
   // cover (engraving / printed). Scaled to the render size.
   const onPlate = decoType === 'metal' || decoType === 'acryl' || decoType === 'photovstavka';
+
+  // Plate decorations (металева вставка etc.) are produced SEPARATELY from the
+  // book: the workshop engraves the plate itself, so the mono макет must be the
+  // plate alone at its physical size (90×50 mm and the like) — not the whole
+  // front cover with a small outline in the middle (Diana, TM-001168,
+  // 2026-08-10). The canvas IS the plate: white background, black text, no
+  // frame, 300 DPI so the file prints at exactly the plate dimensions.
+  if (mono && onPlate) {
+    const pFullW = mmToPx300(plate.w);
+    const pFullH = mmToPx300(plate.h);
+    const pk = Math.min(1, MAX_RENDER_PX / Math.max(pFullW, pFullH));
+    const PW = Math.round(pFullW * pk);
+    const PH = Math.round(pFullH * pk);
+    const areaW = PW * 0.86;
+    const plateFontSize = Math.max(
+      PW * 0.04,
+      Math.min(PH * 0.5, title.length > 0 ? areaW / (title.length * 0.56) : PH * 0.4),
+    );
+    const fontData = await loadGoogleFont(titleFont, title || 'Книга побажань');
+    const plateImage = new ImageResponse(
+      (
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            height: '100%',
+            background: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              fontFamily: `"${titleFont}"`,
+              fontWeight: 700,
+              fontSize: `${plateFontSize}px`,
+              color: '#000000',
+              textAlign: 'center',
+              lineHeight: 1.15,
+              letterSpacing: '0.02em',
+            }}
+          >
+            {title}
+          </div>
+        </div>
+      ),
+      {
+        width: PW,
+        height: PH,
+        fonts: fontData
+          ? [{ name: titleFont, data: fontData, weight: 700 as const, style: 'normal' as const }]
+          : [],
+      }
+    );
+    const plateBuf = await plateImage.arrayBuffer();
+    return new Uint8Array(plateBuf);
+  }
   const titleAreaW = onPlate ? plateW * 0.86 : W * 0.78;
   // Rough fit: assume ~0.58 aspect per glyph; clamp to sane bounds.
   const approxFontByWidth = title.length > 0 ? (titleAreaW / (title.length * 0.56)) : W * 0.06;
