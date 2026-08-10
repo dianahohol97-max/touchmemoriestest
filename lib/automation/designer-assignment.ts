@@ -7,23 +7,29 @@ import type { DesignerWorkload } from '@/lib/types/automation';
 export async function getDesignerWorkloads(): Promise<DesignerWorkload[]> {
   const supabase = getAdminClient();
 
-  // Get all designers (staff with role = 'designer' or 'admin')
+  // Get all designers (staff with role = 'designer' or 'admin').
+  // is_active filters out people who left — otherwise the "least busy"
+  // designer is always a former employee with zero orders in the queue.
   const { data: designers, error: designersError } = await supabase
     .from('staff')
     .select('id, name, email, telegram_chat_id, role')
-    .in('role', ['designer', 'admin']);
+    .in('role', ['designer', 'admin'])
+    .eq('is_active', true);
 
   if (designersError) throw designersError;
 
   const workloads: DesignerWorkload[] = [];
 
   for (const designer of designers || []) {
-    // Count active orders assigned to this designer
+    // Count active orders assigned to this designer.
+    // Column names: the orders table has `order_status` and `designer_id`;
+    // `status` / `assigned_designer_id` never existed, so every query here used
+    // to fail with 42703 and take the whole auto-assignment down with it.
     const { data: orders, error: ordersError } = await supabase
       .from('orders')
       .select('id, custom_attributes')
-      .in('status', ['confirmed', 'in_production', 'quality_check'])
-      .eq('assigned_designer_id', designer.id);
+      .in('order_status', ['confirmed', 'in_production', 'quality_check'])
+      .eq('designer_id', designer.id);
 
     if (ordersError) throw ordersError;
 
@@ -91,7 +97,7 @@ export async function autoAssignDesigner(orderId: string): Promise<{
     // Update order with assigned designer
     const { error: updateError } = await supabase
       .from('orders')
-      .update({ assigned_designer_id: designer.designer_id })
+      .update({ designer_id: designer.designer_id })
       .eq('id', orderId);
 
     if (updateError) {
@@ -125,7 +131,7 @@ export async function assignDesigner(
 
     const { error } = await supabase
       .from('orders')
-      .update({ assigned_designer_id: designerId })
+      .update({ designer_id: designerId })
       .eq('id', orderId);
 
     if (error) {
@@ -153,7 +159,7 @@ export async function unassignDesigner(orderId: string): Promise<{ success: bool
 
     const { error } = await supabase
       .from('orders')
-      .update({ assigned_designer_id: null })
+      .update({ designer_id: null })
       .eq('id', orderId);
 
     if (error) {
@@ -187,8 +193,8 @@ export async function getDesignerStatistics(designerId: string): Promise<{
   const { data: activeOrders } = await supabase
     .from('orders')
     .select('id, custom_attributes')
-    .in('status', ['confirmed', 'in_production', 'quality_check'])
-    .eq('assigned_designer_id', designerId);
+    .in('order_status', ['confirmed', 'in_production', 'quality_check'])
+    .eq('designer_id', designerId);
 
   let totalPagesInQueue = 0;
   for (const order of activeOrders || []) {
@@ -203,8 +209,8 @@ export async function getDesignerStatistics(designerId: string): Promise<{
   const { data: completedOrders } = await supabase
     .from('orders')
     .select('id, confirmed_at, shipped_at')
-    .in('status', ['shipped', 'delivered'])
-    .eq('assigned_designer_id', designerId)
+    .in('order_status', ['shipped', 'delivered'])
+    .eq('designer_id', designerId)
     .gte('shipped_at', monthStart);
 
   // Calculate average completion time

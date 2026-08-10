@@ -439,6 +439,37 @@ export async function POST(req: Request) {
                 });
             }
 
+            // Production automation: deadline + priority + designer assignment.
+            //
+            // Problem this fixes: /api/automation/process-payment existed and was
+            // documented as "called by the Monobank webhook", but nothing ever
+            // called it. The consequence is visible in the data — across 90 days
+            // not a single order had `deadline` filled, so every deadline-driven
+            // alert in the codebase (design-lifecycle, the designer Telegram
+            // reminders, the ops digest) had an empty set to work on and silently
+            // did nothing. The whole production queue was tracked by hand.
+            //
+            // Same fire-and-forget shape as the blocks above: automation latency
+            // must never make Monobank retry the payment webhook. The route is
+            // idempotent — it recomputes deadline and priority from paid_at, so a
+            // duplicate call lands on the same values.
+            if (existingOrder.payment_status !== 'paid') {
+                const baseUrl = getRuntimeBaseUrl();
+                fetch(`${baseUrl}/api/automation/process-payment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-cron-secret': process.env.CRON_SECRET || '',
+                    },
+                    // The "payment received" email is already sent below; without
+                    // this flag the customer would get a second letter about the
+                    // same event from the automation route.
+                    body: JSON.stringify({ order_id: reference, skip_customer_email: true }),
+                }).catch(err => {
+                    console.error('production automation trigger failed:', err);
+                });
+            }
+
             // Payment-received email (full payment or split prepayment).
             // Fire-and-forget on the first transition to paid so a Brevo
             // hiccup never makes Monobank retry the payment webhook. Goes

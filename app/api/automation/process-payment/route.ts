@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { calculateProductionDeadline } from '@/lib/automation/deadline-calculator';
 import { calculatePriorityScore } from '@/lib/automation/priority-calculator';
 import { autoAssignDesigner } from '@/lib/automation/designer-assignment';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { order_id } = body;
+    const { order_id, skip_customer_email } = body;
 
     if (!order_id) {
       return NextResponse.json(
@@ -37,7 +37,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Service-role client, not the cookie-bound server client. The guard above
+    // already proved the caller is an admin or the Monobank webhook holding the
+    // cron secret, and the webhook carries no session cookies at all — with the
+    // anon client every read below hit RLS and came back empty, so the route
+    // answered "Order not found" and the deadline was never written.
+    const supabase = getAdminClient();
 
     // Get automation settings
     const { data: settings } = await supabase
@@ -151,8 +156,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send customer notification if enabled
-    if (settings.notify_customer_email) {
+    // Send customer notification if enabled.
+    //
+    // skip_customer_email is set by the Monobank webhook, which already sends
+    // its own "payment received" letter through /api/email/transactional.
+    // Without the flag the customer got two emails about the same payment.
+    if (settings.notify_customer_email && !skip_customer_email) {
       await sendStatusChangeNotification({
         orderId: order.id,
         customerEmail,
