@@ -55,6 +55,24 @@ function money(value: any): number {
  * back to 'other' — a mirrored copy with an approximate delivery method is
  * useful, a rejected row is not.
  */
+/**
+ * The order's place in its lifecycle, read from the CRM stage name.
+ *
+ * Substring matching over the account's own stage names rather than ids: ids
+ * differ per account and per pipeline, while «в дорозі», «відправлено»,
+ * «доставлено», «отримано» are the words this team actually uses. An
+ * unrecognised stage stays 'confirmed' — still visible, which errs on the side
+ * of showing work rather than hiding it.
+ */
+function statusFromCrm(crm: KeycrmOrder): string {
+    const label = (crm.status_label || '').toLowerCase();
+
+    if (label.includes('доставлен') || label.includes('отриман')) return 'delivered';
+    if (crm.ttn || label.includes('дороз') || label.includes('відправ')) return 'shipped';
+
+    return 'confirmed';
+}
+
 function deliveryMethodFrom(crm: KeycrmOrder): string {
     const service = (crm.shipping_service || '').toLowerCase();
 
@@ -121,9 +139,12 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
         subtotal: total,
         payment_status: received >= total - 1 && total > 0 ? 'paid' : 'pending',
         // Deliberately not a production status. The site does not run these
-        // orders, and giving them a workflow state would put them into queues
-        // and dashboards that expect the site to act.
-        order_status: crm.ttn ? 'shipped' : 'confirmed',
+        // orders — the state only says whether production still owes anything.
+        // The CRM stage NAME counts as well as the waybill (Diana, 2026-08-11):
+        // an order the CRM calls «в дорозі» or «відправлено» has left the
+        // workshop whether or not a TTN was captured, and keeping it on the
+        // production calendar buries the work that is actually pending.
+        order_status: statusFromCrm(crm),
         ttn: crm.ttn || null,
         prepaid_amount: received,
         notes: crm.manager_comment || null,
