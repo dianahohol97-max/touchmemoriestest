@@ -34,8 +34,11 @@ export async function generateChatbotReply(systemPrompt: string, messages: { rol
         const finalSystemPrompt = systemPrompt + dynamicContext;
 
         const response = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 300,
+            // claude-3-5-sonnet-20241022 was retired by Anthropic in Oct 2025 and
+            // now 404s, which silently killed the whole chatbot. Haiku 4.5 is the
+            // current fast/cheap tier and handles Ukrainian DM support well.
+            model: 'claude-haiku-4-5',
+            max_tokens: 400,
             temperature: 0.7,
             system: finalSystemPrompt,
             messages: messages,
