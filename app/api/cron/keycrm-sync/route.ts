@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-push';
 import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
 import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
+import { enqueueDefectsFromTags } from '@/lib/automation/reprints';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
 
     const dryRun = new URL(request.url).searchParams.get('dry') === '1';
 
-    const stats = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, stock_counted: 0, errors: 0 };
+    const stats: Record<string, number> = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, stock_counted: 0, defects_enqueued: 0, errors: 0 };
     const details: any[] = [];
 
     // Stock first, and outside the CRM guard below. Taking what an order
@@ -138,7 +139,20 @@ export async function GET(request: Request) {
             }
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock });
+        // Fourth pass: open reprint-queue entries for freshly tagged defects.
+        // Runs after the reconcile pass on purpose — that is what merges tags
+        // down from the CRM, so a "брак" set there minutes ago is already on
+        // the order by the time this scan reads it.
+        let defects: any = null;
+        try {
+            defects = await enqueueDefectsFromTags({ windowDays: RECONCILE_WINDOW_DAYS, dryRun });
+            stats.defects_enqueued = defects.enqueued.length;
+        } catch (e: any) {
+            console.error('[keycrm-sync] defect intake failed:', e);
+            stats.errors++;
+        }
+
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

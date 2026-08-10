@@ -10,7 +10,7 @@ import {
     Package, Folder, Star, CreditCard, Activity,
     TrendingDown, Printer, Shield, Image, Gift, BarChart2, Zap,
     Menu, X, LayoutTemplate, UserPlus, Eye, Globe, Truck, Building2, Target,
-    Home, MoreHorizontal, ChevronDown, Handshake, CalendarDays
+    Home, MoreHorizontal, ChevronDown, Handshake, CalendarDays, Recycle
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
@@ -84,6 +84,7 @@ const menuItems = [
     { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog', group: 'catalog' },
     { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production', group: 'catalog' },
     { name: 'Календар виробництва', href: '/admin/production-calendar', icon: <CalendarDays size={20} />, section: 'production', group: 'catalog' },
+    { name: 'Черга браків', href: '/admin/reprints', icon: <Recycle size={20} />, section: 'production', group: 'catalog' },
 
     // Клієнти та партнери — люди, а не товари
     { name: 'Клієнти (CRM)', href: '/admin/clients', icon: <User size={20} />, section: 'customers', group: 'partners' },
