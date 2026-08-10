@@ -105,6 +105,12 @@ export async function GET(request: Request) {
     }
 
     const overdue: any[] = [];
+    // Orders whose customer-named date is closing in (Diana, 2026-08-11): a
+    // ship-by date from the comments less than four days out gets lifted to its
+    // own rail at the top, because inside a day column it reads as just another
+    // card until the day it is already late.
+    const shipSoon: any[] = [];
+    const SHIP_SOON_DAYS = 4;
     let unplaced = 0;
 
     for (const order of visible) {
@@ -131,6 +137,11 @@ export async function GET(request: Request) {
             stored_deadline: Boolean(order.deadline),
         };
 
+        if (card.requested_date) {
+            const daysLeft = (new Date(card.requested_date).getTime() - now.getTime()) / (24 * 3600 * 1000);
+            if (daysLeft >= 0 && daysLeft < SHIP_SOON_DAYS) shipSoon.push(card);
+        }
+
         if (deadline < weekStart) {
             // Only the current week carries the overdue rail. On a future week
             // everything earlier than it is simply another week's work, and
@@ -146,11 +157,20 @@ export async function GET(request: Request) {
         else unplaced++;
     }
 
+    // Inside a day, urgent work floats above standard so the top of each column
+    // is what must not slip.
+    for (const key of Object.keys(days)) {
+        days[key].sort((a, b) =>
+            (a.reason === 'standard' ? 1 : 0) - (b.reason === 'standard' ? 1 : 0)
+            || a.deadline.localeCompare(b.deadline));
+    }
+
     return NextResponse.json({
         week_start: dayKey(weekStart),
         week_offset: weekOffset,
         days,
         overdue,
+        ship_soon: shipSoon,
         beyond_this_week: unplaced,
     });
 }

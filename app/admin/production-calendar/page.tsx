@@ -121,6 +121,25 @@ export default function ProductionCalendarPage() {
                         </div>
                     )}
 
+                    {data.ship_soon?.length > 0 && (
+                        <div style={{
+                            border: '1.5px solid #fed7aa', background: '#fff7ed', borderRadius: 12,
+                            padding: '14px 18px', marginBottom: 18,
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                                <Flame size={16} style={{ color: '#ea580c' }} />
+                                <span style={{ fontWeight: 800, fontSize: 14, color: '#c2410c' }}>
+                                    Дата від клієнта ближче ніж за 4 дні — {data.ship_soon.length}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {data.ship_soon.slice(0, 12).map((o: any) => (
+                                    <OrderCard key={`soon-${o.id}`} order={o} overdue />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
