@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
-import { fetchKeycrmSources } from '@/lib/automation/keycrm';
+import { fetchKeycrmSources, fetchKeycrmPaymentMethods } from '@/lib/automation/keycrm';
 import { pushOrderToKeycrm } from '@/lib/automation/keycrm-push';
 
 export const dynamic = 'force-dynamic';
@@ -34,14 +34,17 @@ export async function GET() {
     };
 
     if (!config.token_configured) {
-        return NextResponse.json({ config, sources: [], error: 'KEYCRM_API_TOKEN не заданий.' });
+        return NextResponse.json({ config, sources: [], payment_methods: [], error: 'KEYCRM_API_TOKEN не заданий.' });
     }
 
     try {
-        const sources = await fetchKeycrmSources();
-        return NextResponse.json({ config, sources });
+        const [sources, paymentMethods] = await Promise.all([
+            fetchKeycrmSources(),
+            fetchKeycrmPaymentMethods(),
+        ]);
+        return NextResponse.json({ config, sources, payment_methods: paymentMethods });
     } catch (e: any) {
-        return NextResponse.json({ config, sources: [], error: e?.message || 'Запит до KeyCRM не вдався' });
+        return NextResponse.json({ config, sources: [], payment_methods: [], error: e?.message || 'Запит до KeyCRM не вдався' });
     }
 }
 

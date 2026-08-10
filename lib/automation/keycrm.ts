@@ -284,6 +284,33 @@ export async function fetchKeycrmSources(): Promise<Array<{ id: number | string;
         .map(r => ({ id: r.id, name: String(r?.name ?? '') }));
 }
 
+/**
+ * Payment methods as configured in the account ("Монобанк", "Готівка", …).
+ *
+ * Without one of these ids the order push deliberately omits the payment block
+ * entirely, so every transferred order lands in the CRM looking unpaid. This is
+ * how the right id gets found instead of guessed — booking real money against
+ * the wrong method is far harder to untangle than entering it by hand once.
+ *
+ * Best-effort: the endpoint has moved between API versions, so the known paths
+ * are tried in turn and an empty list is returned rather than an exception.
+ */
+export async function fetchKeycrmPaymentMethods(): Promise<Array<{ id: number | string; name: string }>> {
+    for (const path of ['/order/payment-method?limit=50', '/payment-methods?limit=50', '/order/payment_method?limit=50']) {
+        try {
+            const payload = await keycrmRequest(path);
+            const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+            const mapped = rows
+                .filter(r => r?.id !== undefined)
+                .map(r => ({ id: r.id, name: String(r?.name ?? '') }));
+            if (mapped.length) return mapped;
+        } catch {
+            // Try the next shape.
+        }
+    }
+    return [];
+}
+
 export type KeycrmOffer = {
     offer_id: string;
     sku: string;
