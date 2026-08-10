@@ -11,6 +11,7 @@ import {
     sendViaPublicBot,
     describeNonTextMessage,
 } from '@/lib/chatbot/telegram-business';
+import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 
 // Note: In production we use webhooks, not polling. 
 // We initialize the bot just to send messages.
@@ -72,6 +73,23 @@ export async function POST(req: Request) {
             const username = body.message.from?.username || body.message.from?.first_name || 'Unknown User';
             const text = body.message.text || '';
             const messageId = body.message.message_id.toString();
+
+            // Work-chat mode: group chats and the owner's own private chat are
+            // a control panel (/status, /order, …) — the customer-facing AI
+            // must never answer there, and nothing is recorded as a client
+            // dialog.
+            const chatType = body.message.chat?.type;
+            const isGroup = chatType === 'group' || chatType === 'supergroup';
+            const businessState = isGroup || chatType === 'private' ? await getBusinessConnection() : null;
+            const isOwnerPrivate = chatType === 'private'
+                && !!businessState
+                && Number(body.message.from?.id) === businessState.user_id;
+
+            if (isGroup || isOwnerPrivate) {
+                const reply = await handleWorkCommand(body.message);
+                if (reply) await bot.sendMessage(chatId, reply);
+                return NextResponse.json({ ok: true });
+            }
 
             if (text === '/start') {
                 const welcomeMsg = "Привіт! Я Софія з TouchMemories \nМожу розповісти про наші фотокниги, ціни та допомогти з замовленням.\nЩо вас цікавить?";

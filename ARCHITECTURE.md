@@ -167,6 +167,7 @@ Diana's personal Telegram dialogs with clients are monitored by the public bot (
 - **Human-is-in-charge rule:** after Diana replies manually in a dialog, the bot stays silent there for `settings('telegram_business_human_silence_hours')` (default 3).
 - **Watchdog cron:** `/api/cron/social-unanswered` (every 2h, 08:00–22:00 Kyiv) alerts in Telegram about dialogs where the last message is from a customer older than `settings('social_unanswered_hours')` (default 3h) and about `needs_human` escalations. Live-state, like ops-digest: items repeat until resolved. `?preview=1` returns the payload without sending.
 - **Setup after deploy:** `POST /api/chatbot/telegram/setup` (admin-only) re-registers the webhook with `business_*` in `allowed_updates` — without this step Telegram never delivers business updates. Helpers live in `lib/chatbot/telegram-business.ts`.
+- **Work group chats** (`lib/chatbot/work-commands.ts`): the bot in a group (or Diana's own private chat with it) is a control panel, never the customer AI. Registration is owner-gated (`/register`, owner = the Telegram Business account); after that any member can use `/status` (24h summary), `/order TM-…`, `/overdue`, `/unanswered`, `/chatid`. `/alerts_here` points the watchdog cron at that group (settings `telegram_alerts_chat_id`; registered chats in `telegram_work_chat_ids`). The unanswered computation is shared between the cron and the command via `lib/chatbot/unanswered.ts`.
 
 ---
 

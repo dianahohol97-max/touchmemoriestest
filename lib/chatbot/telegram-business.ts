@@ -80,6 +80,46 @@ export async function getAlertChatId(): Promise<string | null> {
     return conn?.user_chat_id ? String(conn.user_chat_id) : null;
 }
 
+/**
+ * Work group chats where team commands (/status, /order, …) are allowed.
+ * Registration is owner-gated (see work-commands.ts) because the commands
+ * expose order and customer data.
+ */
+export async function getWorkChatIds(): Promise<number[]> {
+    const value = await readSetting('telegram_work_chat_ids');
+    if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
+    return [];
+}
+
+export async function addWorkChatId(chatId: number): Promise<void> {
+    const existing = await getWorkChatIds();
+    if (existing.includes(chatId)) return;
+    const supabase = getAdminClient();
+    const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'telegram_work_chat_ids', value: [...existing, chatId], updated_at: new Date().toISOString() });
+    if (error) console.error('[TG Business] Failed to save work chat id:', error);
+}
+
+/**
+ * Where the unanswered-dialogs watchdog posts. A work chat can claim this via
+ * /alerts_here; otherwise alerts fall back to the draft destination (Diana's
+ * private chat with the bot).
+ */
+export async function getWatchdogChatId(): Promise<string | null> {
+    const value = await readSetting('telegram_alerts_chat_id');
+    if (value) return String(typeof value === 'object' ? value.chat_id : value);
+    return getAlertChatId();
+}
+
+export async function setWatchdogChatId(chatId: number): Promise<void> {
+    const supabase = getAdminClient();
+    const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'telegram_alerts_chat_id', value: chatId, updated_at: new Date().toISOString() });
+    if (error) console.error('[TG Business] Failed to save alerts chat id:', error);
+}
+
 export async function getHumanSilenceHours(): Promise<number> {
     const value = await readSetting('telegram_business_human_silence_hours');
     const parsed = parseFloat(typeof value === 'string' ? value : String(value ?? ''));
