@@ -3,32 +3,81 @@ import { generateChatbotReply } from './anthropic';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
-export async function processReceivedMessage(platform: string, externalUserId: string, externalUsername: string, messageText: string, platformMessageId: string) {
+async function findOrCreateConversation(supabase: any, platform: string, externalUserId: string, externalUsername: string) {
+    const { data: existing } = await supabase
+        .from('social_conversations')
+        .select('*')
+        .eq('platform', platform)
+        .eq('external_user_id', externalUserId)
+        .single();
+    if (existing) return existing;
+
+    const { data: newConv, error: createErr } = await supabase
+        .from('social_conversations')
+        .insert({
+            platform,
+            external_user_id: externalUserId,
+            external_username: externalUsername,
+        })
+        .select()
+        .single();
+    if (createErr) throw createErr;
+    return newConv;
+}
+
+/**
+ * Persist a message into the conversation history WITHOUT running the AI.
+ * Used by the Telegram Business flow for Diana's own outgoing replies
+ * (sender 'human_manager') and for customer messages that should only be
+ * monitored, not answered (media-only, mode=off, human-silence window).
+ */
+export async function recordMessageOnly(
+    platform: string,
+    externalUserId: string,
+    externalUsername: string,
+    messageText: string,
+    platformMessageId: string,
+    sender: 'customer' | 'human_manager'
+) {
     const supabase = getAdminClient();
+    try {
+        const conversation = await findOrCreateConversation(supabase, platform, externalUserId, externalUsername);
+        const { error } = await supabase
+            .from('social_messages')
+            .insert({
+                conversation_id: conversation.id,
+                sender,
+                original_text: messageText,
+                platform_message_id: platformMessageId || null,
+            });
+        if (error) console.error('Error recording message:', error);
+        return { conversationId: conversation.id as string };
+    } catch (e: any) {
+        console.error('recordMessageOnly error:', e);
+        return { conversationId: null };
+    }
+}
+
+export async function processReceivedMessage(
+    platform: string,
+    externalUserId: string,
+    externalUsername: string,
+    messageText: string,
+    platformMessageId: string,
+    options?: {
+        // false = draft mode: the AI reply is returned to the caller but NOT
+        // saved as a sent 'ai' message (the customer never received it, so it
+        // must not appear in the visible history or feed future AI context).
+        persistAiReply?: boolean;
+    }
+) {
+    const supabase = getAdminClient();
+    const persistAiReply = options?.persistAiReply !== false;
     try {
         console.log(`[Chatbot] Received message from ${platform} user ${externalUserId}: "${messageText}"`);
 
         // 1. Find or create conversation
-        let { data: conversation } = await supabase
-            .from('social_conversations')
-            .select('*')
-            .eq('platform', platform)
-            .eq('external_user_id', externalUserId)
-            .single();
-
-        if (!conversation) {
-            const { data: newConv, error: createErr } = await supabase
-                .from('social_conversations')
-                .insert({
-                    platform,
-                    external_user_id: externalUserId,
-                    external_username: externalUsername,
-                })
-                .select()
-                .single();
-            if (createErr) throw createErr;
-            conversation = newConv;
-        }
+        const conversation = await findOrCreateConversation(supabase, platform, externalUserId, externalUsername);
 
         // 2. Save incoming user message
         const { error: msgErr } = await supabase
@@ -125,20 +174,24 @@ export async function processReceivedMessage(platform: string, externalUserId: s
             aiReplyText += '\n\nБачу, що питання непросте, тож передаю нашу розмову Діані — вона допоможе швидше 💛';
         }
 
-        // 8. Save AI reply and update conversation status
-        await supabase
-            .from('social_messages')
-            .insert({
-                conversation_id: conversation.id,
-                sender: 'ai',
-                original_text: aiReplyText
-            });
+        // 8. Save AI reply and update conversation status. In draft mode the
+        // reply was never delivered, so only the status change (escalation)
+        // is persisted — not the message, not the ai_message_count.
+        if (persistAiReply) {
+            await supabase
+                .from('social_messages')
+                .insert({
+                    conversation_id: conversation.id,
+                    sender: 'ai',
+                    original_text: aiReplyText
+                });
+        }
 
         await supabase
             .from('social_conversations')
             .update({
                 status: newStatus,
-                ai_message_count: nextMessageCount
+                ai_message_count: persistAiReply ? nextMessageCount : (conversation.ai_message_count ?? 0)
             })
             .eq('id', conversation.id);
 
