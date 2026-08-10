@@ -49,6 +49,24 @@ function money(value: any): number {
 }
 
 /**
+ * delivery_method is the one NOT NULL column on orders with no default, and it
+ * proved it on the first live run: every one of 300 mirror inserts was rejected
+ * by the constraint. Derived from the carrier name the CRM reports, falling
+ * back to 'other' — a mirrored copy with an approximate delivery method is
+ * useful, a rejected row is not.
+ */
+function deliveryMethodFrom(crm: KeycrmOrder): string {
+    const service = (crm.shipping_service || '').toLowerCase();
+
+    if (service.includes('нова') || service.includes('nova')) return 'nova_poshta';
+    if (service.includes('укр')) return 'ukrposhta';
+    if (service.includes('самов') || service.includes('pickup')) return 'pickup';
+    if (service.includes("кур'єр") || service.includes('курєр') || service.includes('courier')) return 'courier';
+
+    return 'other';
+}
+
+/**
  * Map a CRM order onto the columns the site's own reports read.
  *
  * payment_status is derived from what the CRM has actually collected rather
@@ -95,6 +113,7 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
         ...(existingId ? { id: existingId } : {}),
         order_number: `${MIRROR_NUMBER_PREFIX}${crm.id}`,
         source: MIRROR_SOURCE,
+        delivery_method: deliveryMethodFrom(crm),
         customer_name: crm.buyer_name || 'Клієнт з KeyCRM',
         customer_email: crm.buyer_email || null,
         customer_phone: crm.buyer_phone || null,
