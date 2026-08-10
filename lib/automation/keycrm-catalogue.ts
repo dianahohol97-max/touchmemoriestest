@@ -36,6 +36,14 @@ export type MatchRow = {
     confirmed: boolean;
     /** Runners-up, so a human confirming a fuzzy match can see what it beat. */
     alternatives: Array<{ keycrm_offer_id: string; keycrm_name: string; score: number }>;
+    /**
+     * Set when several website products all point at this same CRM item. That
+     * is not a matcher failure — it usually means the CRM keeps one generic
+     * entry ("Маркер") where the site sells variants ("Маркер золотий",
+     * "Маркер срібний") — but it is a decision only a person can make, so such
+     * a row is never presented as a confident match.
+     */
+    ambiguous_with?: string[];
 };
 
 /**
@@ -81,7 +89,19 @@ export function similarity(a: string, b: string): number {
     let shared = 0;
     for (const word of setA) if (setB.has(word)) shared++;
 
-    return (2 * shared) / (setA.size + setB.size);
+    const dice = (2 * shared) / (setA.size + setB.size);
+
+    // The catalogues describe things at different granularity: what the site
+    // calls "Постер зоряного неба" is simply "Постер" in the CRM. Word overlap
+    // alone punishes that pair for the CRM name being short (0.50) even though
+    // every word of the shorter name appears in the longer one. Blending in the
+    // overlap coefficient lifts a contained name to a level where it is offered
+    // for confirmation (0.75) without ever reaching the confidence of a genuine
+    // full match — a one-word name is inherently ambiguous and must be decided
+    // by a person.
+    const overlap = shared / Math.min(setA.size, setB.size);
+
+    return Math.max(dice, (dice + overlap) / 2);
 }
 
 // Below this, a proposal is noise rather than a lead worth reading.
@@ -240,10 +260,33 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
         });
     }
 
+    // Mark every CRM offer that ended up as the proposal for more than one
+    // product. A generic CRM entry covering several site variants is a real
+    // situation, and the honest response is to surface it rather than let one
+    // of the products win silently.
+    const claimants = new Map<string, string[]>();
+    for (const row of rows) {
+        if (row.confirmed || !row.keycrm_offer_id) continue;
+        const list = claimants.get(row.keycrm_offer_id) || [];
+        list.push(row.site_product_name || row.site_slug);
+        claimants.set(row.keycrm_offer_id, list);
+    }
+
+    for (const row of rows) {
+        if (row.confirmed || !row.keycrm_offer_id) continue;
+        const list = claimants.get(row.keycrm_offer_id) || [];
+        if (list.length > 1) {
+            row.ambiguous_with = list.filter(name => name !== (row.site_product_name || row.site_slug));
+        }
+    }
+
+    const isStrong = (r: MatchRow) =>
+        !r.confirmed && (r.match_score ?? 0) >= STRONG_SCORE && !r.ambiguous_with;
+
     const counts = {
         confirmed: rows.filter(r => r.confirmed).length,
-        strong: rows.filter(r => !r.confirmed && (r.match_score ?? 0) >= STRONG_SCORE).length,
-        weak: rows.filter(r => !r.confirmed && r.match_score !== null && r.match_score < STRONG_SCORE).length,
+        strong: rows.filter(isStrong).length,
+        weak: rows.filter(r => !r.confirmed && r.match_score !== null && !isStrong(r)).length,
         unmatched: rows.filter(r => !r.confirmed && r.match_score === null).length,
     };
 
