@@ -438,6 +438,14 @@ export default function CheckoutPage() {
         ? warehouses.filter(w => (w.Description || '').toLowerCase().includes(formData.branch.toLowerCase())).slice(0, 30)
         : warehouses.slice(0, 30);
 
+    // A cart of ONLY electronic gift certificates ships by email — asking the
+    // buyer for a Nova Poshta branch here was confusing enough to lose orders
+    // (Diana, 2026-08-10). Detection prefers the structured metadata; the
+    // options label is the fallback for older cart lines.
+    const isDigitalOnly = items.length > 0 && items.every((it: any) =>
+        (it.category_slug === 'gift-certificate' || it.product_id === 'gift-certificate') &&
+        (it.metadata?.format === 'electronic' || /електрон|electronic/i.test(String(it.options?.['Формат'] || ''))));
+
     const nextStep = () => {
         if (currentStep === 'info') {
             if (!formData.name || !formData.phone || !formData.email) {
@@ -456,7 +464,7 @@ export default function CheckoutPage() {
                 toast.error('Введіть коректний email — на нього надійде підтвердження замовлення');
                 return;
             }
-            setCurrentStep('shipping');
+            setCurrentStep(isDigitalOnly ? 'payment' : 'shipping');
         } else if (currentStep === 'shipping') {
             if (isIntl) {
                 if (!formData.country || !formData.city || !formData.addressLine) {
@@ -473,7 +481,7 @@ export default function CheckoutPage() {
 
     const prevStep = () => {
         if (currentStep === 'shipping') setCurrentStep('info');
-        if (currentStep === 'payment') setCurrentStep('shipping');
+        if (currentStep === 'payment') setCurrentStep(isDigitalOnly ? 'info' : 'shipping');
     };
 
     // Auto-determine region: non-Ukrainian locale → international
@@ -666,8 +674,12 @@ export default function CheckoutPage() {
                     promo_id: promoId,
                     promo_code: promoCode || undefined,
                     certificate_code: certCode || undefined,
-                    delivery_method: isIntl ? 'international' : 'nova_poshta',
-                    delivery_address: isIntl
+                    // Digital-only carts (electronic certificates) have no
+                    // physical delivery — the certificate goes to the email.
+                    delivery_method: isDigitalOnly ? 'digital' : isIntl ? 'international' : 'nova_poshta',
+                    delivery_address: isDigitalOnly
+                        ? undefined
+                        : isIntl
                         ? { country: formData.country, city: formData.city, postal: formData.postal, address: formData.addressLine }
                         : { city: formData.city, branch: formData.branch },
                     with_designer: needsDesigner,
@@ -840,8 +852,14 @@ export default function CheckoutPage() {
                         {/* Stepper Header */}
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '40px' }}>
                             <StepIndicator label={t('checkout.contacts')} active={currentStep === 'info'} completed={currentStep !== 'info'} />
-                            <div style={{ flex: 1, height: '1px', backgroundColor: '#eee', alignSelf: 'center' }} />
-                            <StepIndicator label={t('checkout.shipping')} active={currentStep === 'shipping'} completed={currentStep === 'payment'} />
+                            {/* Електронний сертифікат доставляється на email — кроку
+                                «Доставка» для такого кошика просто не існує. */}
+                            {!isDigitalOnly && (
+                                <>
+                                    <div style={{ flex: 1, height: '1px', backgroundColor: '#eee', alignSelf: 'center' }} />
+                                    <StepIndicator label={t('checkout.shipping')} active={currentStep === 'shipping'} completed={currentStep === 'payment'} />
+                                </>
+                            )}
                             <div style={{ flex: 1, height: '1px', backgroundColor: '#eee', alignSelf: 'center' }} />
                             <StepIndicator label={t('checkout.payment')} active={currentStep === 'payment'} completed={false} />
                         </div>
