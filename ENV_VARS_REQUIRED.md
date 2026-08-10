@@ -51,6 +51,7 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `KEYCRM_PAYMENT_METHOD_PREPAID_ID` | Method id for the prepayment of cash-on-delivery orders («передоплата») |
 | `KEYCRM_PAYMENT_METHOD_COD_ID` | Method id for the balance collected on delivery («післяплата»), filed when the parcel is delivered |
 | `KEYCRM_DELIVERY_SERVICE_ID` | Optional. Same idea for the courier — omitted unless configured |
+| `NEXT_PUBLIC_KEYCRM_ORDER_URL` | URL template for the «Відкрити в KeyCRM» button on the order page. Copy any real order URL from your CRM and replace the number with `{id}`, e.g. `https://<акаунт>.keycrm.app/app/orders/{id}` |
 | `CHECKBOX_LOGIN` | Checkbox ПРРО login |
 | `CHECKBOX_LICENSE_KEY` | Checkbox license key |
 | `R2_ACCOUNT_ID` | Cloudflare account id — enables R2 for gallery files |

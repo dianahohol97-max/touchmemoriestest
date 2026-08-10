@@ -1095,6 +1095,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <span style={{ ...statusBadgeStyle, color: currentStatus.color, backgroundColor: currentStatus.bg }}>
                                 {currentStatus.label}
                             </span>
+                            {/* Straight to the same order's card in KeyCRM. The URL
+                                template comes from NEXT_PUBLIC_KEYCRM_ORDER_URL
+                                (any real order URL from the CRM with the number
+                                replaced by {id}) — accounts live on their own
+                                subdomains, so there is nothing to hard-code. */}
+                            {(order.custom_attributes as any)?.keycrm?.order_id && process.env.NEXT_PUBLIC_KEYCRM_ORDER_URL && (
+                                <a
+                                    href={String(process.env.NEXT_PUBLIC_KEYCRM_ORDER_URL).replace('{id}', String((order.custom_attributes as any).keycrm.order_id))}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                                        padding: '6px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800,
+                                        background: '#eef2ff', color: '#263a99', textDecoration: 'none',
+                                        border: '1px solid #c7d2fe',
+                                    }}
+                                >
+                                    Відкрити в KeyCRM ↗
+                                </a>
+                            )}
                             {/* Design-flow badge: designer-made vs the customer's own
                                 constructor layout — previously not shown anywhere, so
                                 staff couldn't tell which flow an order came from. */}

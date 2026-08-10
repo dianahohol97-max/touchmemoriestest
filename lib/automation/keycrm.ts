@@ -294,14 +294,33 @@ export async function fetchRecentKeycrmOrders(params: {
             // `sort` is retried away on failure: it is documented, but which
             // sort keys an account accepts has changed between API versions and
             // one rejected parameter must not cost us the entire CRM section.
-            const base = `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer`;
-            let payload: any;
-            try {
-                payload = await fetchJson(`${base}&sort=-id`, token);
-            } catch (e: any) {
-                if (String(e?.message || '').includes('відхилив токен')) throw e;
-                payload = await fetchJson(base, token);
+            // Ask for everything the mirror maps. KeyCRM's list endpoint
+            // returns tags, line items and payments ONLY when each is named in
+            // `include` — the first live run proved it: with include=buyer
+            // alone every mirrored order arrived with no items, no tags and a
+            // zero payment total, so the admin list showed «Без товарів» and
+            // «Очікує оплати» on paid orders. The include list degrades
+            // per-attempt because unknown include names are rejected by some
+            // API versions, and a partial mirror beats none.
+            const attempts = [
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags&sort=-id`,
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags`,
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer&sort=-id`,
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer`,
+            ];
+
+            let payload: any = null;
+            let lastError: any = null;
+            for (const attempt of attempts) {
+                try {
+                    payload = await fetchJson(attempt, token);
+                    break;
+                } catch (e: any) {
+                    if (String(e?.message || '').includes('відхилив токен')) throw e;
+                    lastError = e;
+                }
             }
+            if (payload === null) throw lastError;
 
             const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
             if (rows.length === 0) break;
@@ -397,7 +416,7 @@ export async function fetchKeycrmPaymentMethods(): Promise<Array<{ id: number | 
  * every half hour forever.
  */
 export async function fetchKeycrmOrderById(id: string | number): Promise<KeycrmOrder | null> {
-    const payload = await keycrmRequest(`/order/${encodeURIComponent(String(id))}?include=buyer,payments,shipping`);
+    const payload = await keycrmRequest(`/order/${encodeURIComponent(String(id))}?include=buyer,payments,shipping,products,tags`);
     const raw = payload?.data ?? payload;
     if (!raw?.id) return null;
 

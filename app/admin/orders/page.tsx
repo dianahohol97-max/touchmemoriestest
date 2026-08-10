@@ -67,6 +67,7 @@ export default function OrdersPage() {
 
     const [availableTags, setAvailableTags] = useState<any[]>([]);
     const [tagFilter, setTagFilter] = useState('all');
+    const [sourceFilter, setSourceFilter] = useState('all');
 
     // Замовлення, чиє меню тегів зараз відкрите (одне за раз).
     const [tagMenuOrderId, setTagMenuOrderId] = useState<string | null>(null);
@@ -231,9 +232,14 @@ export default function OrdersPage() {
         const matchesManager = managerFilter === 'all' || order.manager_id === managerFilter;
         const matchesDesigner = designerFilter === 'all' || order.designer_id === designerFilter;
         const matchesTag = tagFilter === 'all' || order.order_tag_assignments?.some((a: any) => a.order_tags?.id === tagFilter);
+        // Two intakes: the site's own orders and the Instagram ones mirrored
+        // from KeyCRM. 'site' means "not the mirror" rather than literally
+        // source='site', so hand-created admin orders stay in the site bucket.
+        const matchesSource = sourceFilter === 'all'
+            || (sourceFilter === 'keycrm' ? order.source === 'keycrm' : order.source !== 'keycrm');
 
-        return matchesStatus && matchesSearch && matchesDate && matchesManager && matchesDesigner && matchesTag;
-    }), [orders, activeTab, searchQuery, dateRange, managerFilter, designerFilter, tagFilter]);
+        return matchesStatus && matchesSearch && matchesDate && matchesManager && matchesDesigner && matchesTag && matchesSource;
+    }), [orders, activeTab, searchQuery, dateRange, managerFilter, designerFilter, tagFilter, sourceFilter]);
 
     // Підсумок по тому, що зараз на екрані — відповідь на «скільки я бачу».
     const summary = useMemo(() => {
@@ -243,7 +249,7 @@ export default function OrdersPage() {
         return { count: filteredOrders.length, total: Math.round(total), unpaid: unpaid.length, unpaidSum: Math.round(unpaidSum) };
     }, [filteredOrders]);
 
-    const hasExtraFilters = searchQuery || dateRange.start || dateRange.end || tagFilter !== 'all' || managerFilter !== 'all' || designerFilter !== 'all';
+    const hasExtraFilters = searchQuery || dateRange.start || dateRange.end || tagFilter !== 'all' || managerFilter !== 'all' || designerFilter !== 'all' || sourceFilter !== 'all';
 
     const exportToExcel = () => {
         const headers = ['№ Замовлення', 'Дата', 'Клієнт', 'Телефон', 'Email', 'Статус', 'Сума', 'Товари', 'ТТН'];
@@ -347,6 +353,11 @@ export default function OrdersPage() {
                     onChange={e => setDateRange(r => ({ ...r, start: e.target.value }))} style={miniSelectStyle} />
                 <input type="date" value={dateRange.end} title="До дати"
                     onChange={e => setDateRange(r => ({ ...r, end: e.target.value }))} style={miniSelectStyle} />
+                <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} style={miniSelectStyle}>
+                    <option value="all">Джерело</option>
+                    <option value="site">Сайт</option>
+                    <option value="keycrm">Instagram (CRM)</option>
+                </select>
                 <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} style={miniSelectStyle}>
                     <option value="all">Теги</option>
                     {availableTags.map(t => <option key={t.id} value={t.id}>{t.icon} {t.name}</option>)}
@@ -364,7 +375,7 @@ export default function OrdersPage() {
                     ))}
                 </select>
                 {hasExtraFilters && (
-                    <button onClick={() => { setSearchQuery(''); setDateRange({ start: '', end: '' }); setTagFilter('all'); setManagerFilter('all'); setDesignerFilter('all'); }}
+                    <button onClick={() => { setSearchQuery(''); setDateRange({ start: '', end: '' }); setTagFilter('all'); setManagerFilter('all'); setDesignerFilter('all'); setSourceFilter('all'); }}
                         style={{ ...ghostBtnStyle, padding: '9px 12px', color: '#b91c1c', borderColor: '#fecaca' }}>
                         <X size={14} /> Скинути
                     </button>
