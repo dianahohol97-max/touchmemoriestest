@@ -125,13 +125,29 @@ function formatSpecification(item: any): string {
         : [];
 
     const quantity = Number(item?.quantity) || 1;
+    const unitPrice = money(item?.unit_price);
+
+    // Checked against the data: `total_price` is already the whole line
+    // (unit_price × quantity), and `price_breakdown` always sums to the price of
+    // ONE unit. Writing the line total and then appending "× 4 шт" turned 180 ₴
+    // into something that reads as 720 ₴, and a breakdown of 659 + 180 next to a
+    // line total of 1678 cannot be reconciled by anyone reading the card. Both
+    // numbers are now labelled for exactly what they are.
+    const lineTotal = Number.isFinite(Number(item?.total_price))
+        ? money(item?.total_price)
+        : money(unitPrice * quantity);
+
     const lines = [...chosen];
 
     if (breakdown.length) {
-        lines.push('Із чого складається ціна:', ...breakdown);
+        lines.push(quantity > 1 ? 'Із чого складається ціна за одиницю:' : 'Із чого складається ціна:', ...breakdown);
     }
 
-    lines.push(`Разом за позицію: ${money(item?.total_price ?? item?.unit_price)} грн${quantity > 1 ? ` × ${quantity} шт` : ''}`);
+    lines.push(
+        quantity > 1
+            ? `Ціна за одиницю: ${unitPrice} грн × ${quantity} шт = ${lineTotal} грн`
+            : `Разом за позицію: ${lineTotal} грн`,
+    );
 
     return truncate(lines.join('\n'), LINE_COMMENT_LIMIT);
 }
