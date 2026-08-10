@@ -1,4 +1,4 @@
-import { calculateProductionDeadline, addWorkingDays } from '@/lib/automation/deadline-calculator';
+import { addWorkingDays } from '@/lib/automation/deadline-calculator';
 import { readOrderDeadlineHint } from '@/lib/automation/deadline-hints';
 
 /**
@@ -24,6 +24,15 @@ import { readOrderDeadlineHint } from '@/lib/automation/deadline-hints';
  * means "in my hands by then", not "leaves your desk by then". Finishing on the
  * day of the wedding is the same as missing it.
  */
+
+// The OFFICIAL production terms, exactly as the customer sees them in the
+// product options: «Стандартна (5–8 днів)» and «Термінова до 5 робочих днів
+// (+30%)». The deadline is the outer edge of the promise, counted in working
+// days from the ORDER date — not from payment, and not from a number invented
+// here. An earlier scaffold used 5/2 days from payment; Diana corrected it:
+// the terms the shop publishes are the terms the calendar must hold it to.
+const STANDARD_TERM_WORKING_DAYS = 8;
+const EXPRESS_TERM_WORKING_DAYS = 5;
 
 // Working days reserved for packing and delivery between finishing an order and
 // the customer holding it.
@@ -78,13 +87,29 @@ export function resolveOrderDeadline(order: any, params?: {
         ? attrs.tags.some((t: string) => String(t).includes('швидше'))
         : false;
 
-    const start = order?.paid_at ? new Date(order.paid_at) : new Date(order?.created_at || now);
-    const base = calculateProductionDeadline({
-        paid_at: Number.isFinite(start.getTime()) ? start : now,
-        page_count: Number(attrs?.page_count) || 0,
-        has_express_tag: hasExpressTag || hint.urgent,
-        active_orders_count: params?.activeOrdersCount ?? 0,
+    // PAID express. The customer chose «Термінова до 5 робочих днів (+30%)» in
+    // the product options and paid the surcharge — that is a contractual term,
+    // not a mood. Detected in the chosen option values and in the price
+    // breakdown; the check is against the VALUE («Термінова…»), because the
+    // option GROUP is named «Терміновість» on every order, standard ones too.
+    const items = Array.isArray(order?.items) ? order.items : [];
+    const hasPaidExpress = items.some((item: any) => {
+        const options = item?.options && typeof item.options === 'object' ? item.options : {};
+        const optionHit = Object.values(options).some(v => /термінов/i.test(String(v)));
+        const breakdownHit = Array.isArray(item?.price_breakdown)
+            && item.price_breakdown.some((row: any) => /термінов|швидше/i.test(String(row?.label || '')));
+        return optionHit || breakdownHit;
     });
+
+    const express = hasPaidExpress || hasExpressTag || hint.urgent;
+
+    // From the ORDER date. The promise to the customer starts the moment they
+    // ordered, whatever the payment method did afterwards.
+    const start = new Date(order?.created_at || order?.paid_at || now);
+    const base = addWorkingDays(
+        Number.isFinite(start.getTime()) ? start : now,
+        express ? EXPRESS_TERM_WORKING_DAYS : STANDARD_TERM_WORKING_DAYS,
+    );
 
     const floor = addWorkingDays(now, MIN_LEAD_DAYS);
 
@@ -116,7 +141,7 @@ export function resolveOrderDeadline(order: any, params?: {
 
     return {
         deadline: base,
-        reason: hint.urgent || hasExpressTag ? 'urgent' : 'standard',
+        reason: express ? 'urgent' : 'standard',
         evidence: hint.evidence,
         requestedDate: hint.requestedDate,
     };

@@ -227,9 +227,9 @@ function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
             style={{
                 display: 'block',
                 textDecoration: 'none',
-                background: overdue ? 'white' : (isUrgent ? '#fff7ed' : '#f8fafc'),
-                border: `1px solid ${isUrgent ? '#fed7aa' : '#e2e8f0'}`,
-                borderLeft: `3px solid ${isUrgent ? '#ea580c' : '#94a3b8'}`,
+                background: overdue ? '#fef2f2' : (isUrgent ? '#fff7ed' : '#f8fafc'),
+                border: `1px solid ${overdue ? '#fecaca' : (isUrgent ? '#fed7aa' : '#e2e8f0')}`,
+                borderLeft: `3px solid ${overdue ? '#b91c1c' : (isUrgent ? '#ea580c' : '#94a3b8')}`,
                 borderRadius: 8,
                 padding: '8px 10px',
                 minWidth: overdue ? 210 : undefined,

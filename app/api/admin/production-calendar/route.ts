@@ -146,13 +146,22 @@ export async function GET(request: Request) {
             if (daysLeft >= 0 && daysLeft < SHIP_SOON_DAYS) shipSoon.push(card);
         }
 
-        if (deadline < weekStart) {
-            // Only the current week carries the overdue rail. On a future week
-            // everything earlier than it is simply another week's work, and
-            // listing it as overdue would brand this week's healthy queue as
-            // late the moment somebody clicked forward.
+        // Overdue means "earlier than TODAY", not "earlier than Monday": on a
+        // Wednesday, Monday's unfinished orders are late even though their day
+        // column is still on screen. Only the current week carries the rail —
+        // on a future week everything earlier is simply another week's work.
+        const startOfToday = new Date(now);
+        startOfToday.setHours(0, 0, 0, 0);
+        const overdueCutoff = weekOffset === 0 ? startOfToday : weekStart;
+
+        if (deadline < overdueCutoff) {
             if (weekOffset === 0) overdue.push(card);
             else unplaced++;
+            continue;
+        }
+
+        if (deadline < weekStart) {
+            unplaced++;
             continue;
         }
 
