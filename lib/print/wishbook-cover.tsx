@@ -159,6 +159,18 @@ function resolveCoverColor(material: string, colorName: string): string {
   return '#EAE7E0';
 }
 
+// The metal plate's colour lives INSIDE the variant label ("90×50 срібний") —
+// real orders (TM-001168) carry no separate colour key for the вставка at all,
+// so without reading the variant the render silently fell back to gold.
+export function colorNameFromVariant(variant: string): string {
+  const v = (variant || '').toLowerCase();
+  if (v.includes('срібн') || v.includes('silver')) return 'Срібний';
+  if (v.includes('золот') || v.includes('gold')) return 'Золотий';
+  if (v.includes('біл') || v.includes('white')) return 'Білий';
+  if (v.includes('чорн') || v.includes('black')) return 'Чорний';
+  return '';
+}
+
 // Parse "90×50 срібний" → { w: 90, h: 50 }. Falls back to a sane plate size.
 function parseVariantDims(variant: string): { w: number; h: number } {
   const m = (variant || '').match(/(\d+)\s*[х×x]\s*(\d+)/i);
@@ -477,7 +489,11 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
   const coverColorName = get('Колір обкладинки', 'Cover color');
   const decoRaw = get('Декорація обкладинки', 'Оздоблення', 'Decoration');
   const decoVariant = get('Варіант декорації', 'Варіант оздоблення', 'Decoration variant');
-  const decoColorName = get('Колір напису', 'Колір декорації', 'Decoration color');
+  // The variant IS the physical SKU the customer bought ("90×50 срібний"), so
+  // when it names a colour it outranks the loose text keys; variants without a
+  // colour word ("Акрил Ø145 мм") fall through to those keys as before.
+  const decoColorName = colorNameFromVariant(decoVariant)
+    || get('Колір напису', 'Колір декорації', 'Decoration color');
   const title = get('Напис на декорації', 'Напис на обкладинку', 'Напис', 'Title', 'Text');
   const fontFamily = get('Шрифт напису', 'Шрифт', 'Font') || 'Playfair Display';
 
