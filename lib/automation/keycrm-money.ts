@@ -107,6 +107,43 @@ export function isReadyForCrm(order: any): boolean {
     return order?.order_status === 'confirmed';
 }
 
+/**
+ * Which KeyCRM payment method a money event should be filed under.
+ *
+ * Diana's account does not have one "Монобанк" method — it distinguishes the
+ * ARRANGEMENT: «повна оплата», «передоплата», «післяплата». Filing everything
+ * under a single id would book every prepayment as a full payment and quietly
+ * skew the CRM's own payment reports, so the kind of money picks the method:
+ *
+ *   - an order with no cash on delivery → the full-payment method
+ *   - a cash-on-delivery order before the courier settles → the prepayment
+ *     method (what is being filed IS the prepayment)
+ *   - the same order once the cash arrived → the cash-on-delivery method,
+ *     because the amount being filed now is that balance
+ *
+ * Each specific id falls back to KEYCRM_PAYMENT_METHOD_ID, so configuring only
+ * the one variable still works — it just loses the distinction.
+ */
+export function paymentMethodIdFor(order: any): number | null {
+    const readEnv = (...names: string[]): number | null => {
+        for (const name of names) {
+            const value = Number(process.env[name]);
+            if (Number.isFinite(value) && value > 0) return value;
+        }
+        return null;
+    };
+
+    const m = readOrderMoney(order);
+
+    if (m.cod > 0 && m.codReceived) {
+        return readEnv('KEYCRM_PAYMENT_METHOD_COD_ID', 'KEYCRM_PAYMENT_METHOD_ID');
+    }
+    if (m.cod > 0) {
+        return readEnv('KEYCRM_PAYMENT_METHOD_PREPAID_ID', 'KEYCRM_PAYMENT_METHOD_ID');
+    }
+    return readEnv('KEYCRM_PAYMENT_METHOD_FULL_ID', 'KEYCRM_PAYMENT_METHOD_ID');
+}
+
 /** Human-readable payment summary for the CRM card. */
 export function describeMoney(m: OrderMoney): string {
     if (m.cod > 0) {

@@ -46,7 +46,10 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `KEYCRM_SYNC_ENABLED` | Set to `true` to let the sync actually create orders in KeyCRM. Anything else keeps it in read-only/dry-run mode, so deploying the code never starts writing on its own |
 | `KEYCRM_SYNC_FROM` | ISO date/time the sync takes over, in UTC — for "from 11 Aug 2026, Kyiv midnight" that is `2026-08-10T21:00:00Z`. Orders paid before it are never pushed — they were entered by hand and pushing them would duplicate. Without this variable the sync transfers nothing at all |
 | `KEYCRM_SOURCE_ID` | Numeric id of the "Сайт" order source in KeyCRM. Required to create orders — look it up via `GET /api/admin/keycrm` |
-| `KEYCRM_PAYMENT_METHOD_ID` | Optional. When set, paid orders arrive in KeyCRM with the payment already filed against this method; when unset the payment block is omitted rather than guessed |
+| `KEYCRM_PAYMENT_METHOD_ID` | Fallback payment-method id used when none of the specific ones below is set. When nothing is set at all, the payment block is omitted rather than guessed |
+| `KEYCRM_PAYMENT_METHOD_FULL_ID` | Method id for fully paid orders («повна оплата») |
+| `KEYCRM_PAYMENT_METHOD_PREPAID_ID` | Method id for the prepayment of cash-on-delivery orders («передоплата») |
+| `KEYCRM_PAYMENT_METHOD_COD_ID` | Method id for the balance collected on delivery («післяплата»), filed when the parcel is delivered |
 | `KEYCRM_DELIVERY_SERVICE_ID` | Optional. Same idea for the courier — omitted unless configured |
 | `CHECKBOX_LOGIN` | Checkbox ПРРО login |
 | `CHECKBOX_LICENSE_KEY` | Checkbox license key |

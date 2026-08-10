@@ -51,7 +51,7 @@ const MONEY_EPSILON = 1;
 
 // Money lives in one place for the whole bridge; see keycrm-money for why
 // `payment_status = 'paid'` cannot be read as "the total arrived".
-import { readOrderMoney, money } from '@/lib/automation/keycrm-money';
+import { readOrderMoney, money, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { autoTagsForOrder, mergeTags, sameTags } from '@/lib/automation/order-tags';
 
@@ -157,14 +157,17 @@ async function pushMissingPayment(order: any, crm: KeycrmOrder, dryRun: boolean)
     const changes: string[] = [];
     const problems: string[] = [];
 
-    const paymentMethodId = Number(process.env.KEYCRM_PAYMENT_METHOD_ID);
+    // The order passed here is already patched with this run's changes, so a
+    // cash-on-delivery balance that just arrived files under the післяплата
+    // method rather than the prepayment one.
+    const paymentMethodId = paymentMethodIdFor(order) ?? NaN;
     const received = readOrderMoney(order).received;
     const missing = money(received - crm.payments_total);
 
     if (missing <= MONEY_EPSILON) return { changes, problems };
 
     if (!Number.isFinite(paymentMethodId) || paymentMethodId <= 0) {
-        problems.push(`У CRM бракує ${missing} грн, але KEYCRM_PAYMENT_METHOD_ID не заданий, тому платіж не проводимо.`);
+        problems.push(`У CRM бракує ${missing} грн, але спосіб оплати не налаштований (KEYCRM_PAYMENT_METHOD_*), тому платіж не проводимо.`);
         return { changes, problems };
     }
 

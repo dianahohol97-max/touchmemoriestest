@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
-import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
+import { readOrderMoney, describeMoney, isReadyForCrm, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 
@@ -286,7 +286,9 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
     // Payments are only filed when the account's payment-method id is known.
     // A wrong id would book real money against the wrong method, which is far
     // harder to untangle than entering the payment by hand once.
-    const paymentMethodId = optionalNumber('KEYCRM_PAYMENT_METHOD_ID');
+    // Method chosen by the KIND of money (повна оплата / передоплата), because
+    // the account files arrangements, not channels — see paymentMethodIdFor.
+    const paymentMethodId = paymentMethodIdFor(order);
     const m = readOrderMoney(order);
     if (m.received > 0 && paymentMethodId) {
         const amount = m.received;
