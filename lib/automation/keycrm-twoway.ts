@@ -38,25 +38,9 @@ export type TwoWayResult = {
 // than a payment anyone needs to chase.
 const MONEY_EPSILON = 1;
 
-function money(value: any): number {
-    const n = Number(value);
-    return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
-}
-
-/**
- * What the website believes has actually been received.
- *
- * A split order that has since been paid in full carries payment_status 'paid',
- * so the total is the right figure; one still on its prepayment reports only
- * the prepaid part. Both cases come out of this single expression, which is why
- * it is written once rather than branched on payment_type.
- */
-function amountReceivedOnSite(order: any): number {
-    if (order?.payment_status === 'paid') return money(order?.total);
-
-    const prepaid = money(order?.prepaid_amount);
-    return prepaid > 0 ? prepaid : 0;
-}
+// Money lives in one place for the whole bridge; see keycrm-money for why
+// `payment_status = 'paid'` cannot be read as "the total arrived".
+import { readOrderMoney, money } from '@/lib/automation/keycrm-money';
 
 async function statusMapFromCrm(): Promise<Record<string, string>> {
     const supabase = getAdminClient();
@@ -107,6 +91,16 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         // stop having been shipped because someone moved a card back a stage.
         if (mappedStatus === 'shipped' && !order.shipped_at) patch.shipped_at = new Date().toISOString();
         if (mappedStatus === 'delivered' && !order.delivered_at) patch.delivered_at = new Date().toISOString();
+
+        // Delivery is the moment cash on delivery stops being a promise. Until
+        // this is stamped the money is treated as still in transit, so the CRM
+        // is never told the order is settled while the courier still holds the
+        // balance. It is only ever set once — the money does not un-arrive if
+        // somebody moves the card afterwards.
+        if (mappedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
+            patch.cod_received_at = new Date().toISOString();
+            changes.push(`післяплату ${money(order.cod_amount)} грн позначено отриманою`);
+        }
     }
 
     return { patch, changes };
@@ -128,7 +122,7 @@ async function pushMissingPayment(order: any, crm: KeycrmOrder, dryRun: boolean)
     const problems: string[] = [];
 
     const paymentMethodId = Number(process.env.KEYCRM_PAYMENT_METHOD_ID);
-    const received = amountReceivedOnSite(order);
+    const received = readOrderMoney(order).received;
     const missing = money(received - crm.payments_total);
 
     if (missing <= MONEY_EPSILON) return { changes, problems };
@@ -257,11 +251,20 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
     }
 
     // Site → CRM.
-    const payment = await pushMissingPayment(order, crm, dryRun);
+    //
+    // The patch is folded into the in-memory order first, and the ordering here
+    // is load-bearing. Delivery and the arrival of the cash-on-delivery money
+    // are the same event, so the run that stamps cod_received_at is the run that
+    // must file that money in the CRM. Reading the pre-patch order would defer
+    // the payment to the next pass — by which time the order is delivered and
+    // no longer a candidate, and the balance would never be filed at all.
+    const patched = { ...order, ...patch };
+
+    const payment = await pushMissingPayment(patched, crm, dryRun);
     result.changes.push(...payment.changes);
     result.problems.push(...payment.problems);
 
-    const cancellation = await pushCancellation(order, crm, dryRun);
+    const cancellation = await pushCancellation(patched, crm, dryRun);
     result.changes.push(...cancellation.changes);
     result.problems.push(...cancellation.problems);
 
@@ -281,7 +284,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, payment_type, total, prepaid_amount, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
+        .select('id, order_number, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
@@ -291,8 +294,11 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     return (data || [])
         .filter(o => (o.custom_attributes as any)?.keycrm?.order_id)
-        // Delivered orders are finished business: nothing about them changes
-        // again, so they are dropped rather than polled forever.
-        .filter(o => o.order_status !== 'delivered')
+        // Delivered orders are usually finished business and are dropped rather
+        // than polled forever — unless money is still outstanding on them. A
+        // cash-on-delivery balance is settled at the moment of delivery, so
+        // dropping every delivered order unconditionally would abandon exactly
+        // the ones whose last payment still has to reach the CRM.
+        .filter(o => o.order_status !== 'delivered' || readOrderMoney(o).outstanding > 0)
         .slice(0, params.limit);
 }

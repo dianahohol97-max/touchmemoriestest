@@ -1,6 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
+import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -221,7 +222,11 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
 
     const commentLines = [
         `Замовлення з сайту ${order?.order_number || ''}`.trim(),
-        `Оплата: ${order?.payment_status === 'paid' ? 'оплачено' : 'не оплачено'}${order?.payment_type === 'split' ? ', часткова передоплата' : ''}`,
+        // Spelled out rather than reduced to "оплачено": for an order with cash
+        // on delivery that word is actively misleading, since payment_status
+        // goes to 'paid' once the prepayment clears while the courier still has
+        // the balance to collect.
+        describeMoney(readOrderMoney(order)),
         order?.promo_code ? `Промокод: ${order.promo_code}` : '',
         order?.with_designer ? 'Замовлено послугу дизайнера.' : '',
         order?.notes ? `Нотатки: ${order.notes}` : '',
@@ -277,10 +282,9 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
     // A wrong id would book real money against the wrong method, which is far
     // harder to untangle than entering the payment by hand once.
     const paymentMethodId = optionalNumber('KEYCRM_PAYMENT_METHOD_ID');
-    if (order?.payment_status === 'paid' && paymentMethodId) {
-        const amount = order?.payment_type === 'split' && Number(order?.prepaid_amount) > 0
-            ? money(order.prepaid_amount)
-            : money(order?.total);
+    const m = readOrderMoney(order);
+    if (m.received > 0 && paymentMethodId) {
+        const amount = m.received;
 
         payload.payments = [{
             payment_method_id: paymentMethodId,
@@ -335,7 +339,7 @@ export async function pushOrderToKeycrm(
 
     const { data: order, error } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, custom_attributes')
+        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, created_at, cod_amount, cod_received_at, custom_attributes')
         .eq('id', orderId)
         .single();
 
@@ -364,13 +368,17 @@ export async function pushOrderToKeycrm(
     if (!cutoff) {
         return { ...base, status: 'skipped', reason: 'KEYCRM_SYNC_FROM не заданий — без дати старту синхронізація не переносить нічого, щоб не задублювати вже перенесені вручну замовлення.' };
     }
-    const paidAt = order.paid_at ? new Date(order.paid_at) : null;
-    if (!paidAt || paidAt.getTime() < cutoff.getTime()) {
+    // Dated by payment when there is one, otherwise by creation. A
+    // cash-on-delivery order has no paid_at until the courier settles, and
+    // judging it by that column would place every such order before the cutoff
+    // and skip it forever.
+    const stamp = new Date(order.paid_at || order.created_at);
+    if (!Number.isFinite(stamp.getTime()) || stamp.getTime() < cutoff.getTime()) {
         return {
             ...base,
             ok: true,
             status: 'skipped',
-            reason: `Замовлення оплачене до старту синхронізації (${cutoff.toISOString().slice(0, 10)}), тож воно вже в KeyCRM з рук.`,
+            reason: `Замовлення створене до старту синхронізації (${cutoff.toISOString().slice(0, 10)}), тож воно вже в KeyCRM з рук.`,
         };
     }
 
@@ -423,9 +431,15 @@ export async function pushOrderToKeycrm(
 /**
  * Orders that still need to go to the CRM, newest first.
  *
- * Only paid orders are pushed. An unpaid order on the site is a cart that may
- * never be completed, and filling the CRM with those would recreate exactly the
- * noise the manager is trying to escape.
+ * An order qualifies once there is real work behind it — money in hand or a
+ * manager's confirmation — not once it is fully paid. Waiting for full payment
+ * would keep every cash-on-delivery order out of the CRM until after it had
+ * been delivered, which is the one point at which the CRM is no longer useful
+ * for it. Orders that started as an Instagram conversation arrive here the same
+ * way, because they are entered and paid through the site.
+ *
+ * A bare unpaid cart is still excluded: it may never be completed, and filling
+ * the CRM with those would recreate the noise this is meant to remove.
  *
  * The floor is the later of the sync start date and the sweep window, so the
  * historical backlog — already carried over by hand — is never a candidate.
@@ -441,16 +455,19 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, custom_attributes, paid_at')
-        .eq('payment_status', 'paid')
-        .gte('paid_at', since)
+        .select('id, order_number, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
+        // Dated on creation, not on payment: a cash-on-delivery order may never
+        // get a paid_at at all, and filtering on it would hide those orders from
+        // the sweep entirely.
+        .gte('created_at', since)
         .not('order_status', 'in', '("cancelled","refunded")')
-        .order('paid_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(params.limit * 4);
 
     if (error) throw error;
 
     return (data || [])
         .filter(o => !(o.custom_attributes as any)?.keycrm?.order_id)
+        .filter(isReadyForCrm)
         .slice(0, params.limit);
 }
