@@ -44,11 +44,13 @@ export async function processReceivedMessage(platform: string, externalUserId: s
         // 3. Status check: Should AI respond?
         // If human is handling it, simple save and return.
         if (conversation.status === 'human_handling' || conversation.status === 'needs_human') {
-            return { action: 'none', reason: `Conversation status is ${conversation.status}` };
+            return { action: 'none', reason: `Conversation status is ${conversation.status}`, needsHuman: false };
         }
 
         // 4. Check for Order Numbers via regex
-        const orderRegex = /PB-\d{4}-[A-Z0-9]+/i;
+        // Real order numbers are TM-001170 (site) and CRM-13800 (KeyCRM mirror);
+        // PB- is the legacy format this bot was originally written against.
+        const orderRegex = /(?:TM|CRM|PB)-[\dA-Z][\dA-Z-]*/i;
         const match = messageText.match(orderRegex);
 
         let orderContext = null;
@@ -103,7 +105,9 @@ export async function processReceivedMessage(platform: string, externalUserId: s
 
         // 7. Post-process AI Reply (Check for escalation keywords)
         let newStatus = conversation.status;
-        const escalationKeywords = ['підключу менеджера', 'needs_human', 'покличу', 'senior manager', 'зв\'яжемось з вами'];
+        // 'передаю діані' is the marker phrase the system prompt instructs the
+        // model to include whenever a human should take over — keep the two in sync.
+        const escalationKeywords = ['підключу менеджера', 'needs_human', 'покличу', 'senior manager', 'зв\'яжемось з вами', 'передаю діані', 'передам діані', 'передаю діалог діані'];
         const shouldEscalate = escalationKeywords.some(keyword => aiReplyText.toLowerCase().includes(keyword));
 
         if (shouldEscalate) {
@@ -112,13 +116,13 @@ export async function processReceivedMessage(platform: string, externalUserId: s
         }
 
         // Also check auto escalate count
-        const nextMessageCount = conversation.ai_message_count + 1;
+        const nextMessageCount = (conversation.ai_message_count ?? 0) + 1;
         const { data: escCountData } = await supabase.from('settings').select('value').eq('key', 'chatbot_auto_escalate_count').single();
         const autoEscalateLimit = parseInt(escCountData?.value || '10');
 
         if (nextMessageCount >= autoEscalateLimit && newStatus !== 'needs_human') {
             newStatus = 'needs_human';
-            aiReplyText += '\n\nЯ бачу, що ми довго спілкуємося. Я підключив менеджера, щоб допомогти вам швидше!';
+            aiReplyText += '\n\nБачу, що питання непросте, тож передаю нашу розмову Діані — вона допоможе швидше 💛';
         }
 
         // 8. Save AI reply and update conversation status
@@ -139,10 +143,12 @@ export async function processReceivedMessage(platform: string, externalUserId: s
             .eq('id', conversation.id);
 
         // 9. Return the reply so platform handler sends it to user
-        return { action: 'reply', text: aiReplyText };
+        return { action: 'reply', text: aiReplyText, needsHuman: newStatus === 'needs_human' };
 
     } catch (e: any) {
         console.error('Chatbot Core Error:', e);
-        return { action: 'error', text: 'Виникла технічна помилка.' };
+        // needsHuman on errors so the platform side can alert a manager instead
+        // of leaving the customer with a dead bot.
+        return { action: 'error', text: 'Виникла технічна помилка.', needsHuman: true };
     }
 }
