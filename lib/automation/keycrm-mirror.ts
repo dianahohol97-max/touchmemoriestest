@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchRecentKeycrmOrders, type KeycrmOrder } from '@/lib/automation/keycrm';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
-import { mergeTags } from '@/lib/automation/order-tags';
+import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 
 /**
  * Mirror KeyCRM-native orders into the website database, read-only.
@@ -57,6 +57,19 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
     const total = money(crm.grand_total);
     const received = money(crm.payments_total);
 
+    // Line items in the site's own shape. Without them an Instagram order is a
+    // number with no contents: it cannot be reported on by product, and the
+    // routing rules — which read what is in an order — would never fire for it.
+    const items = crm.products.map(p => ({
+        slug: p.sku,
+        product_name: p.name,
+        quantity: p.quantity,
+        unit_price: money(p.price),
+        total_price: money(p.price * p.quantity),
+        options: p.properties,
+        product_type: 'product',
+    }));
+
     // Instagram orders belong on the production calendar exactly like the
     // site's own — a calendar with holes in it is worse than none, because the
     // holes read as free capacity. The manager comment from the CRM is where an
@@ -75,7 +88,8 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
         deadline: deadline.toISOString(),
         // Tags are how the workshop routes an order, so they have to be visible
         // on the site card too, not only in the CRM.
-        tags: mergeTags(crm.tags),
+        items,
+        tags: mergeTags(crm.tags, autoTagsForOrder({ items })),
         ...(existingId ? { id: existingId } : {}),
         order_number: `${MIRROR_NUMBER_PREFIX}${crm.id}`,
         source: MIRROR_SOURCE,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-push';
 import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
+import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -38,6 +39,12 @@ const RECONCILE_WINDOW_DAYS = 45;
 // covered this run is covered half an hour later.
 const RECONCILE_LIMIT = 25;
 
+// Stock is counted once per order and never again, so this pass only ever sees
+// orders that arrived since the last run — the window is a safety net for
+// downtime, not a workload.
+const STOCK_WINDOW_DAYS = 30;
+const STOCK_LIMIT = 40;
+
 export async function GET(request: Request) {
     const auth = request.headers.get('authorization');
     if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -46,13 +53,37 @@ export async function GET(request: Request) {
 
     const dryRun = new URL(request.url).searchParams.get('dry') === '1';
 
-    const stats = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, errors: 0 };
+    const stats = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, stock_counted: 0, errors: 0 };
     const details: any[] = [];
+
+    // Stock first, and outside the CRM guard below. Taking what an order
+    // consumed off the shelf needs nothing from KeyCRM — it reads the site's own
+    // orders and the site's own balances. Leaving it behind that guard meant an
+    // unconfigured sync date silently stopped stock being counted at all, which
+    // is a far quieter failure than orders not transferring.
+    const stock: any[] = [];
+    try {
+        const needStock = await findOrdersNeedingStock({ windowDays: STOCK_WINDOW_DAYS, limit: STOCK_LIMIT });
+
+        for (const order of needStock) {
+            const applied = await applyStockForOrder(order, { dryRun });
+            if (applied.moved.length) {
+                stats.stock_counted++;
+                stock.push({ order: applied.orderNumber, moved: applied.moved, skipped: applied.skipped });
+            } else if (applied.skipped.length) {
+                stock.push({ order: applied.orderNumber, skipped: applied.skipped });
+            }
+        }
+    } catch (e: any) {
+        console.error('[keycrm-sync] stock pass failed:', e);
+        stats.errors++;
+    }
 
     if (!String(process.env.KEYCRM_SYNC_FROM || '').trim()) {
         return NextResponse.json({
             ok: true,
             stats,
+            stock,
             note: 'KEYCRM_SYNC_FROM не заданий, тому синхронізація свідомо не переносить нічого. Постав дату старту, і з неї підуть лише нові замовлення.',
         });
     }
@@ -107,7 +138,7 @@ export async function GET(request: Request) {
             }
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

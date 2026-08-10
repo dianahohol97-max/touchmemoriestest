@@ -47,6 +47,15 @@ export type KeycrmOrder = {
     tags: string[];
     /** Files attached to the order card — the design the workshop prints from. */
     files: Array<{ name: string; url: string }>;
+    /** Line items, so the site can report on what was actually sold. */
+    products: Array<{
+        name: string;
+        sku: string;
+        quantity: number;
+        price: number;
+        /** Chosen options, e.g. "Вид оздоблення: Гравіювання". */
+        properties: Record<string, string>;
+    }>;
 };
 
 export type KeycrmFetchResult = {
@@ -203,10 +212,34 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         }))
         .filter((f: any) => f.url);
 
+    // Line items. Their properties matter as much as their names: the decoration
+    // type ("Вид оздоблення: Гравіювання") decides who makes the order, and it
+    // lives only here.
+    const products = (Array.isArray(raw?.products) ? raw.products : []).map((p: any) => {
+        const properties: Record<string, string> = {};
+        for (const prop of (Array.isArray(p?.properties) ? p.properties : [])) {
+            const name = String(prop?.name ?? '').trim();
+            const value = String(prop?.value ?? '').trim();
+            if (name && value) properties[name] = value;
+        }
+
+        const price = Number(p?.price ?? 0);
+        const quantity = Number(p?.quantity ?? 1);
+
+        return {
+            name: String(p?.name ?? p?.product_name ?? '').trim(),
+            sku: String(p?.sku ?? '').trim(),
+            quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+            price: Number.isFinite(price) ? price : 0,
+            properties,
+        };
+    });
+
     return {
         id: raw?.id,
         tags,
         files,
+        products,
         source_uuid: String(raw?.source_uuid ?? '').trim(),
         shipping_service: String(shipping?.shipping_service ?? shipping?.delivery_service?.name ?? '').trim(),
         payments_total: Math.round(paymentsTotal * 100) / 100,
@@ -394,7 +427,43 @@ export type KeycrmOffer = {
     cost: number | null;
     /** Which API field the cost came from, so an unexpected schema is visible. */
     cost_field: string | null;
+    /** Units on hand in the CRM. Null when the account exposes no stock at all. */
+    quantity: number | null;
 };
+
+// Stock, like cost, has been named differently across API versions and account
+// types, and on some accounts it only appears inside a per-warehouse array.
+const STOCK_FIELDS = ['quantity', 'in_stock', 'stock_quantity', 'available', 'balance'];
+
+function readStock(row: any): number | null {
+    for (const field of STOCK_FIELDS) {
+        const raw = row?.[field];
+        if (raw === null || raw === undefined || raw === '') continue;
+        const value = Number(raw);
+        if (Number.isFinite(value)) return value;
+    }
+
+    // Per-warehouse breakdown: the total across warehouses is what the site's
+    // single stock figure means.
+    const warehouses = Array.isArray(row?.warehouse) ? row.warehouse
+        : Array.isArray(row?.warehouses) ? row.warehouses
+        : Array.isArray(row?.stocks) ? row.stocks
+        : null;
+
+    if (warehouses) {
+        let sum = 0;
+        let found = false;
+        for (const w of warehouses) {
+            for (const field of STOCK_FIELDS) {
+                const value = Number(w?.[field]);
+                if (Number.isFinite(value)) { sum += value; found = true; break; }
+            }
+        }
+        if (found) return sum;
+    }
+
+    return null;
+}
 
 // KeyCRM has named the purchase price differently across API versions and
 // account types. Probing several names beats hard-coding one and silently
@@ -451,6 +520,7 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
             offers.push({
                 cost,
                 cost_field: field,
+                quantity: readStock(row),
                 offer_id: String(row?.id ?? ''),
                 sku: String(row?.sku ?? '').trim(),
                 // Prefer the parent name and append the variant when both exist,

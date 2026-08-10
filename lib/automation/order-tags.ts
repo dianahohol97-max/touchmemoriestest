@@ -1,32 +1,76 @@
 /**
  * Tags that route an order to the right pair of hands.
  *
- * Some products are not made where the rest are. Magnets and non-standard photo
- * prints go to Andriy, and until now somebody had to notice that in the order
- * and tag it manually — which works right up until the day it is busy, which is
- * exactly the day it matters.
+ * Some work is not done where the rest is. Magnets, non-standard photo prints,
+ * engraving and colour printing all go to Andriy, and until now somebody had to
+ * notice that in the order and tag it by hand — which works right up until the
+ * day it is busy, which is exactly the day it matters.
  *
- * The rule is expressed over product slugs rather than names, because names get
- * edited for the storefront and slugs do not.
+ * Two more tags group work by type so a whole batch can be pulled at once:
+ * "магніти" and "фото".
+ *
+ * What makes this non-trivial is WHERE the deciding fact lives. It is not
+ * always the product: engraving is usually an option on a photobook ("Оздоблення:
+ * Гравірування"), and on a KeyCRM card it arrives as a line property ("Вид
+ * оздоблення: Гравіювання фотокнига"). So every rule is matched against the
+ * slug, the product name and every chosen option value.
  */
 
 export const ANDRIY_TAG = 'для Андрія';
+export const MAGNETS_TAG = 'магніти';
+export const PHOTO_TAG = 'фото';
 
-// Slugs whose production belongs to Andriy. Matched as substrings so a future
-// "photomagnets-round" is covered without another edit here.
-const ANDRIY_SLUG_PATTERNS = [
-    'photomagnet',
-    'magnet',
-    'photoprint-nonstandard',
-    'fotodruk-nestandart',
-];
+/** Everything about a line that could carry the deciding word. */
+function lineText(item: any): string {
+    const options = item?.options && typeof item.options === 'object' ? item.options : {};
 
-// Deliberately excluded: 'photoprint-standard'. Standard-size printing is not
-// his, and matching on 'photoprint' alone would have swept it in.
-function itemGoesToAndriy(item: any): boolean {
-    const slug = String(item?.slug || '').toLowerCase();
-    if (!slug) return false;
-    return ANDRIY_SLUG_PATTERNS.some(pattern => slug.includes(pattern));
+    return [
+        String(item?.slug || ''),
+        String(item?.product_name || item?.name || ''),
+        ...Object.entries(options).map(([key, value]) => `${key} ${value}`),
+    ]
+        .join(' ')
+        .toLowerCase();
+}
+
+function isMagnet(text: string): boolean {
+    return text.includes('magnet') || text.includes('магніт');
+}
+
+function isPhotoPrint(text: string): boolean {
+    return text.includes('photoprint')
+        || text.includes('фотодрук')
+        || text.includes('polaroid')
+        || text.includes('полароїд');
+}
+
+function isNonStandardPhotoPrint(text: string): boolean {
+    return isPhotoPrint(text) && (text.includes('nonstandard') || text.includes('нестандарт'));
+}
+
+/** Covers both spellings in use: "гравіювання" and "гравірування". */
+function isEngraving(text: string): boolean {
+    return text.includes('граві');
+}
+
+/**
+ * Colour printing — and the reason this is not a one-word match.
+ *
+ * The catalogue is full of colours that have nothing to do with printing:
+ * "Колір обкладинки", "Колір напису", "Колір сторінок", and a star map whose
+ * style is "Кольоровий". Matching on "колір" alone would have tagged nearly
+ * every order in the shop. Both ideas have to appear together in the same
+ * phrase for it to mean colour printing.
+ */
+function isColourPrinting(text: string): boolean {
+    const hasColour = text.includes('кольор') || text.includes('колір');
+    const hasPrinting = text.includes('друк');
+    if (!hasColour || !hasPrinting) return false;
+
+    // "Матеріал обкладинки: Друкована" plus a separate "Колір обкладинки" would
+    // otherwise satisfy both halves across two unrelated options, so require
+    // them close together rather than merely both present.
+    return /(кольор\w*|колір)[^а-яіїєґ]{0,12}друк|друк\w*[^а-яіїєґ]{0,12}(кольор\w*|колір)/.test(text);
 }
 
 /**
@@ -38,9 +82,19 @@ function itemGoesToAndriy(item: any): boolean {
  */
 export function autoTagsForOrder(order: any): string[] {
     const items = Array.isArray(order?.items) ? order.items : [];
+    const texts = items.map(lineText);
+
     const tags: string[] = [];
 
-    if (items.some(itemGoesToAndriy)) tags.push(ANDRIY_TAG);
+    const hasMagnets = texts.some(isMagnet);
+    const hasPhoto = texts.some(isPhotoPrint);
+    const goesToAndriy = texts.some(t =>
+        isMagnet(t) || isNonStandardPhotoPrint(t) || isEngraving(t) || isColourPrinting(t)
+    );
+
+    if (goesToAndriy) tags.push(ANDRIY_TAG);
+    if (hasMagnets) tags.push(MAGNETS_TAG);
+    if (hasPhoto) tags.push(PHOTO_TAG);
 
     return tags;
 }
