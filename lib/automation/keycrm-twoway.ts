@@ -54,6 +54,7 @@ const MONEY_EPSILON = 1;
 import { readOrderMoney, money, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { autoTagsForOrder, mergeTags, sameTags } from '@/lib/automation/order-tags';
+import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 
 async function statusMapFromCrm(): Promise<Record<string, string>> {
     const supabase = getAdminClient();
@@ -113,6 +114,29 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         if (mappedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
             patch.cod_received_at = new Date().toISOString();
             changes.push(`післяплату ${money(order.cod_amount)} грн позначено отриманою`);
+        }
+    }
+
+    // Deadlines listen to the CRM comments too, on every pass — not only at
+    // creation. A manager who writes "клієнту треба до 20.08" or «швидше» into
+    // the CRM card days later means it, and a deadline that ignored the note
+    // would keep the order looking calm on the calendar. Tighten-only: a
+    // deadline can move EARLIER when the comments say so, never later — the
+    // wedding does not move because somebody tidied a comment away.
+    const resolved = resolveOrderDeadline(
+        {
+            ...order,
+            notes: [order.notes, crm.manager_comment, crm.buyer_comment].filter(Boolean).join('\n'),
+        },
+        { now: new Date() },
+    );
+
+    if (resolved.reason !== 'standard') {
+        const stored = order.deadline ? new Date(order.deadline).getTime() : Infinity;
+        if (resolved.deadline.getTime() < stored) {
+            patch.deadline = resolved.deadline.toISOString();
+            const words = resolved.evidence.length ? ` («${resolved.evidence.join(', ')}»)` : '';
+            changes.push(`дедлайн пересунуто на ${resolved.deadline.toLocaleDateString('uk-UA')} з коментаря${words}`);
         }
     }
 
@@ -323,7 +347,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, custom_attributes, created_at')
+        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
