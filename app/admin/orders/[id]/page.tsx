@@ -2253,11 +2253,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             </a>
                                         </div>
                                         <div style={{ fontSize: 13, color: '#334155', marginTop: 6 }}>
-                                            {L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}
+                                            {/* Print sets (нестандартний фотодрук / магніти) have no page
+                                                slots — the meaningful number is the prints themselves. */}
+                                            {L.isPrintSet
+                                                ? <>{L.format || ''} · готових відбитків у макеті: <b>{L.photos}</b></>
+                                                : <>{L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}</>}
                                         </div>
                                         {!L.ready && (
                                             <div style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
-                                                {L.filledSlots === 0
+                                                {L.isPrintSet
+                                                    ? (L.photos === 0
+                                                        ? 'У макеті немає жодного відбитка — друкувати нічого.'
+                                                        : `Не всі відбитки доступні у сховищі (${L.photosPresentInStorage} з ${L.photosWithPath}).`)
+                                                    : L.filledSlots === 0
                                                     ? 'У макеті НЕ розставлено жодного фото — це порожня чернетка, друкувати не можна.'
                                                     : `Не всі фото доступні у сховищі (${L.photosPresentInStorage} з ${L.photosWithPath}) — макет може вийти з порожніми місцями.`}
                                             </div>

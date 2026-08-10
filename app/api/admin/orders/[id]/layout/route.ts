@@ -76,6 +76,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const isWishbook = /wish|guest|pobazhan/i.test(String(p.product_type || ''))
       || /побажан|wishbook/i.test(String(p.name || ''));
 
+    // Self-composed print sets (нестандартний фотодрук, магніти, полароїди,
+    // постери) never place photos into page slots — pages_data is the list of
+    // prints itself and uploaded_photos are the EXPORTED print-ready files. The
+    // book-shaped verdict saw filledSlots=0 and branded a perfectly complete
+    // 24-print order «порожня чернетка, друкувати не можна» (Diana,
+    // 2026-08-10). For these, complete = the exported prints exist in storage.
+    const isPrintSet = /photo-?print|fotodruk|photomagnet|magnet|polaroid|poster|star-?map/i
+      .test(String(p.product_type || ''));
+
     layouts.push({
       id: p.id,
       name: p.name,
@@ -89,13 +98,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       photosPresentInStorage: presentInStorage,
       filledSlots,
       isWishbook,
+      isPrintSet,
       updatedAt: p.updated_at,
       // Staff-viewable now that /api/print/[projectId] accepts a staff session.
       previewUrl: `/uk/print/${p.id}`,
       // The honest verdict, so nobody prints an empty draft by mistake.
       // Wishbooks are complete without photos — their cover carries the design.
+      // Print sets are complete when their exported prints are in storage.
       ready: isWishbook
         ? true
+        : isPrintSet
+        ? (photos.length > 0 && presentInStorage === withPath.length)
         : (filledSlots > 0 && withPath.length > 0 && presentInStorage === withPath.length),
     });
   }
