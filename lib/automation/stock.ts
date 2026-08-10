@@ -197,6 +197,18 @@ export async function applyStockForOrder(order: any, opts?: { dryRun?: boolean }
             if (slug) result.skipped.push(`${slug}: немає такого товару на сайті`);
             continue;
         }
+
+        // Made-to-order products — photobooks, wish books, journals, travel
+        // books, anything with an individual inscription — hold no stock at
+        // all: each unit is produced for its order. Deducting them is what
+        // drove the site's balances to -16. Only products whose inventory is
+        // actually tracked move, and tracking is switched on by the CRM
+        // levelling for exactly the products the CRM keeps balances for.
+        if (!product.track_inventory) {
+            result.skipped.push(`${slug}: під замовлення, склад не ведеться`);
+            continue;
+        }
+
         if (counted.has(product.id)) continue;
 
         const quantity = Number(item?.quantity) || 1;
@@ -250,7 +262,17 @@ export async function applyStockForOrder(order: any, opts?: { dryRun?: boolean }
  */
 export async function findOrdersNeedingStock(params: { windowDays: number; limit: number }) {
     const supabase = getAdminClient();
-    const since = new Date(Date.now() - params.windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    // The automation cutoff bounds stock exactly like it bounds the CRM push.
+    // Orders before it were handled by hand and the CRM's balances already
+    // reflect them, so deducting them after the levelling would subtract the
+    // same consumption twice. No cutoff configured — nothing is counted.
+    const cutoffRaw = String(process.env.KEYCRM_SYNC_FROM || '').trim();
+    const cutoff = cutoffRaw ? new Date(cutoffRaw).getTime() : NaN;
+    if (!Number.isFinite(cutoff)) return [];
+
+    const windowStart = Date.now() - params.windowDays * 24 * 60 * 60 * 1000;
+    const since = new Date(Math.max(cutoff, windowStart)).toISOString();
 
     const { data, error } = await supabase
         .from('orders')

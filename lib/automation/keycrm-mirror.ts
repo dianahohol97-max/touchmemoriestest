@@ -37,6 +37,8 @@ export type MirrorReport = {
     created: number;
     updated: number;
     skipped_own: number;
+    /** CRM orders whose source is «Сайт» — the hand-typed backlog, never mirrored. */
+    skipped_site_source: number;
     problems: string[];
     samples: Array<{ order_number: string; buyer: string; total: number; action: string }>;
 };
@@ -145,6 +147,7 @@ export async function mirrorKeycrmOrders(params: {
         created: 0,
         updated: 0,
         skipped_own: 0,
+        skipped_site_source: 0,
         problems: [],
         samples: [],
     };
@@ -163,8 +166,24 @@ export async function mirrorKeycrmOrders(params: {
             .filter(Boolean),
     );
 
-    const candidates = crm.orders.filter(o => !o.source_uuid.trim());
-    report.skipped_own = crm.orders.length - candidates.length;
+    const withReference = crm.orders.filter(o => o.source_uuid.trim());
+    report.skipped_own = withReference.length;
+
+    // The dry run against the real account caught this: the CRM holds not only
+    // Instagram orders but also SITE orders the managers typed in by hand, and
+    // those carry no external reference. Mirroring them would clone each one
+    // back as a CRM- number next to its live TM- row and double two weeks of
+    // revenue. The CRM's own «Джерело» field is the ground truth for origin, so
+    // only orders NOT from the site source are mirrored. No configured site
+    // source means no way to tell them apart — then nothing is mirrored, loudly.
+    const siteSourceId = String(process.env.KEYCRM_SOURCE_ID || '').trim();
+    if (!siteSourceId) {
+        report.problems.push('KEYCRM_SOURCE_ID не заданий — без нього не відрізнити інстаграм від перенесених вручну замовлень сайту, тому дзеркало нічого не копіює.');
+        return report;
+    }
+
+    const candidates = crm.orders.filter(o => !o.source_uuid.trim() && o.source_id !== siteSourceId);
+    report.skipped_site_source = crm.orders.length - report.skipped_own - candidates.length;
 
     if (ownNumbers.size) {
         // Sanity check rather than a guess: if a CRM order carries a reference

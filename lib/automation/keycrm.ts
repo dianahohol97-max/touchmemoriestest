@@ -27,6 +27,8 @@ export type KeycrmOrder = {
     id: number | string;
     /** Free-form external reference. Managers sometimes paste the site order number here. */
     source_uuid: string;
+    /** The CRM's own order source («Сайт», «Інстаграм»), as its numeric id. */
+    source_id: string;
     status_id: number | string | null;
     status_label: string;
     grand_total: number;
@@ -240,6 +242,7 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         tags,
         files,
         products,
+        source_id: String(raw?.source_id ?? '').trim(),
         source_uuid: String(raw?.source_uuid ?? '').trim(),
         shipping_service: String(shipping?.shipping_service ?? shipping?.delivery_service?.name ?? '').trim(),
         payments_total: Math.round(paymentsTotal * 100) / 100,
