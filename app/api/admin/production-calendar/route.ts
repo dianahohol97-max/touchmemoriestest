@@ -61,11 +61,14 @@ export async function GET(request: Request) {
     const readFrom = new Date(weekStart);
     readFrom.setDate(readFrom.getDate() - 60);
 
+    // 'shipped' is excluded along with the closed states: a shipped order has
+    // nothing left to produce, and a board full of parcels already on their way
+    // buries the work that is actually pending.
     const { data, error } = await supabase
         .from('orders')
         .select('id, order_number, customer_name, order_status, payment_status, source, deadline, paid_at, created_at, notes, client_comment, custom_attributes, items, total, designer_id, with_designer')
         .gte('created_at', readFrom.toISOString())
-        .not('order_status', 'in', '("cancelled","refunded","delivered")')
+        .not('order_status', 'in', '("cancelled","refunded","delivered","shipped")')
         .order('deadline', { ascending: true })
         .limit(500);
 
@@ -73,7 +76,24 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const activeCount = (data || []).filter(o =>
+    // The handover line (Diana, 2026-08-11). Site orders placed BEFORE the
+    // automation cutoff were carried into the CRM by hand and their production
+    // is tracked there — putting them on this board would double every one of
+    // them as "work" and flood the overdue rail with orders that are actually
+    // mid-production in the CRM. So the board shows: every mirrored CRM order
+    // (that is where the current queue lives), and site orders only from the
+    // cutoff onwards — the ones the automation owns. As the old orders ship,
+    // the board becomes the complete picture by itself.
+    const cutoffRaw = String(process.env.KEYCRM_SYNC_FROM || '').trim();
+    const cutoff = cutoffRaw ? new Date(cutoffRaw).getTime() : NaN;
+
+    const visible = (data || []).filter(o => {
+        if (o.source === 'keycrm') return true;
+        if (!Number.isFinite(cutoff)) return true;
+        return new Date(o.created_at).getTime() >= cutoff;
+    });
+
+    const activeCount = visible.filter(o =>
         ['confirmed', 'in_production', 'quality_check'].includes(o.order_status || '')
     ).length;
 
@@ -87,7 +107,7 @@ export async function GET(request: Request) {
     const overdue: any[] = [];
     let unplaced = 0;
 
-    for (const order of data || []) {
+    for (const order of visible) {
         const resolved = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now });
         const deadline = order.deadline ? new Date(order.deadline) : resolved.deadline;
 
