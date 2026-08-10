@@ -2333,8 +2333,39 @@ export default function BookLayoutEditor() {
       order.forEach((oldIdx, newIdx) => { if (m[oldIdx] !== undefined) out[newIdx] = m[oldIdx]; });
       return out;
     };
-    setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
-    setFreeSlots(prev => remap(prev));
+    // Форзаци — structural pages addressed by INDEX (first=1, last=length-1).
+    // Deleting a MIDDLE spread keeps both forzac pages in place, but deleting
+    // the FIRST spread removes форзац 1 itself, and deleting the LAST spread
+    // removes форзац 2 — in both cases a CONTENT page slides into the forzac
+    // index. A locked forzac renders as a placeholder, so that page's photos
+    // and text would become invisible and undeletable (visible only in the
+    // spread thumbnail — Diana, travel book, 2026-08-10). Clear ONLY the index
+    // the deletion actually shifted, tell the user, and drop its free slots.
+    const clearedForzacIdx: number[] = [];
+    setPages(prev => {
+      const next = prev.filter((_, i) => i !== p1 && i !== p2);
+      if (hasEndpaper && next.length > 2) {
+        const clearShifted = (idx: number, unlocked: boolean) => {
+          const pg: any = next[idx];
+          if (idx < 1 || unlocked) return;
+          const hasContent = pg?.slots?.some((s: any) => s.photoId) || (pg?.textBlocks || []).length > 0;
+          if (!hasContent) return;
+          next[idx] = { ...pg, slots: pg.slots.map((s: any) => ({ ...s, photoId: null })), textBlocks: [] };
+          clearedForzacIdx.push(idx);
+        };
+        if (p1 === 1) clearShifted(1, endpaperUnlocked.first);
+        if (p2 >= prev.length - 1) clearShifted(next.length - 1, endpaperUnlocked.last);
+      }
+      return next;
+    });
+    setFreeSlots(prev => {
+      const out = remap(prev);
+      clearedForzacIdx.forEach(i => { delete out[i]; });
+      return out;
+    });
+    if (clearedForzacIdx.length > 0) {
+      toast.warning('Сторінка, що стала форзацом, очищена від фото й тексту — форзац друкується лише після активації «Друк на форзаці».', { duration: 7000 });
+    }
     setPageShapes(prev => remap(prev));
     setPageStickers(prev => remap(prev));
     setQrOverlays(prev => remap(prev));
@@ -2352,6 +2383,14 @@ export default function BookLayoutEditor() {
     if (fromSpread === toSpread || fromSpread < 1 || toSpread < 1) return;
     const totalSpreads = Math.ceil((pages.length - 1) / 2);
     if (fromSpread > totalSpreads || toSpread > totalSpreads) return;
+    // Форзаци живуть у першому й останньому розвороті і адресуються ІНДЕКСОМ
+    // (перша/остання сторінка). Перемістити такий розворот означає затягти
+    // сторінку з фото на місце форзаца — той самий «привид», що і при
+    // видаленні розвороту. Структурні розвороти лишаються на місці.
+    if (hasEndpaper && (fromSpread === 1 || fromSpread === totalSpreads || toSpread === 1 || toSpread === totalSpreads)) {
+      toast.error('Перший і останній розвороти містять форзаци, їх не можна переміщати — перемістіть інші розвороти між ними.');
+      return;
+    }
     pushHistory();
 
     // Group content page indices into spreads (last spread may be a single page).
@@ -2869,11 +2908,22 @@ export default function BookLayoutEditor() {
     // targetPages = ordered content pages (pages[0]=cover excluded)
     const targetPages = pages.length - 1;
 
-    // Hard-cap result to targetPages — autoBuild may return slightly more due to spread pairing
+    // Hard-cap result to the PHOTO BUDGET (content pages minus the forzac /
+    // kalka reserves), not to targetPages. Capping at targetPages let the
+    // assembly grow to cover + front forzac + targetPages photo pages, and the
+    // final trim then cut the BACK forzac off the end — so the last photo page
+    // slid into the forzac index: its photo vanished from the canvas (locked
+    // forzac renders as a placeholder) while the spread thumbnail still showed
+    // it, with no way to select or delete it (Diana, travel book, 2026-08-10).
+    // photoBudget is derived from max(minPageCount, current pages), which can
+    // EXCEED targetPages when the current book is below the minimum — capping
+    // by the smaller of the two keeps the final hard trim below from cutting
+    // photo pages without counting them as dropped.
+    const photoPageCap = Math.max(1, Math.min(photoBudget, targetPages - frontReserve - backReserve));
     let cappedDropped = 0;
-    if (result.pages.length > targetPages) {
-      cappedDropped = result.pages.slice(targetPages).reduce((s2, p2) => s2 + p2.photoIds.length, 0);
-      result.pages = result.pages.slice(0, targetPages);
+    if (result.pages.length > photoPageCap) {
+      cappedDropped = result.pages.slice(photoPageCap).reduce((s2, p2) => s2 + p2.photoIds.length, 0);
+      result.pages = result.pages.slice(0, photoPageCap);
     }
     // Never drop photos silently: whatever didn't fit (over-stuffed groups
     // or the page-count cap) must be reported so the customer can add
@@ -5283,6 +5333,22 @@ export default function BookLayoutEditor() {
   // unlock case only). Both were previously listed here, so honestly-priced
   // orders looked like they carried a surprise «+N ₴» in the header.
   const priceDiff = basePriceDiff + endpaperDiff + qrExtra + inscriptionExtra + coverPhotoExtra + typesettingExtra;
+  // What the ± badge in the header consists of, with signed amounts. ONE
+  // source for both the tooltip and the small caption — the old fixed caption
+  // «доплата за додаткові стор.» showed even when the diff was pure verstka,
+  // and Diana hunted for a phantom extra spread that never existed
+  // (2026-08-10).
+  const priceDiffLabel = [
+    basePriceDiff !== 0 ? { amt: basePriceDiff, label: basePriceDiff > 0 ? 'додаткові сторінки' : 'менше сторінок' } : null,
+    endpaperDiff > 0 ? { amt: endpaperDiff, label: 'друк на форзацах' } : null,
+    typesettingExtra > 0 ? { amt: typesettingExtra, label: 'верстка тексту' } : null,
+    inscriptionExtra > 0 ? { amt: inscriptionExtra, label: 'напис на обкладинці' } : null,
+    coverPhotoExtra > 0 ? { amt: coverPhotoExtra, label: 'фотовставка' } : null,
+    qrExtra > 0 ? { amt: qrExtra, label: 'QR-код' } : null,
+  ]
+    .filter((p): p is { amt: number; label: string } => !!p)
+    .map(p => `${p.label} ${p.amt > 0 ? '+' : '−'}${Math.abs(p.amt)} ₴`)
+    .join(' · ');
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -5397,9 +5463,7 @@ export default function BookLayoutEditor() {
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d', display:'flex', alignItems:'center', gap:4 }}>
                 {copiesCount > 1 ? `${dynamicPrice} ₴ × ${copiesCount}` : `${dynamicPrice} ₴`}
                 {priceDiff !== 0 && (
-                  <span title={priceDiff > 0
-                    ? `Ви додали сторінок більше ніж у початковому замовленні — доплата +${priceDiff} ₴`
-                    : `Ви використали менше сторінок ніж у замовленні — знижка ${priceDiff} ₴`}
+                  <span title={`Зміна відносно початкової конфігурації: ${priceDiffLabel || 'зміна кількості сторінок'}`}
                     style={{ fontSize:11, color: priceDiff>0 ? '#f59e0b' : '#10b981',
                       background: priceDiff>0 ? '#fef3c7' : '#d1fae5',
                       padding:'1px 6px', borderRadius:5, cursor:'help', fontWeight:700 }}>
@@ -5407,8 +5471,10 @@ export default function BookLayoutEditor() {
                   </span>
                 )}
               </div>
-              {priceDiff > 0 && (
-                <div style={{ fontSize:9, color:'#f59e0b', marginTop:1 }}>доплата за додаткові стор.</div>
+              {priceDiff !== 0 && priceDiffLabel && (
+                <div style={{ fontSize:9, color: priceDiff>0 ? '#f59e0b' : '#10b981', marginTop:1, maxWidth:180 }}>
+                  {priceDiffLabel}
+                </div>
               )}
             </div>
             <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Попередній перегляд</button>
