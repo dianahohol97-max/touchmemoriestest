@@ -5,12 +5,23 @@ import { keycrmRequest, fetchKeycrmOrderById, type KeycrmOrder } from '@/lib/aut
  * Keep an order that already exists in both systems in step, in both
  * directions.
  *
- * The whole design rests on one rule: each system owns what it actually knows.
+ * Scope first, because it is easy to get wrong: this only ever touches orders
+ * the website created and the sync itself carried over. The two systems are
+ * separate sources of orders — the site takes its own, and managers enter
+ * Instagram orders straight into KeyCRM, where those are also paid and
+ * fiscalised. A CRM-native order has no counterpart here, carries no id linking
+ * it back, and is never reconciled: the site knows nothing about its money and
+ * would only corrupt it.
  *
- *   Money is owned by the website. Payments arrive through Monobank and land in
- *   Supabase first, so the site tells the CRM what has been received and never
- *   the other way round. A CRM payment total is only ever read, to work out what
- *   is still missing there.
+ * For the orders it does cover, the design rests on one rule: each system owns
+ * what it actually knows.
+ *
+ *   Money is owned by the website — for website orders. Their payments arrive
+ *   through Monobank and land in Supabase first, so the site tells the CRM what
+ *   has been received and never the other way round. A CRM payment total is
+ *   only ever read, to work out what is still missing there. (Instagram orders
+ *   are the mirror image: their money is recorded in the CRM and the site has
+ *   no business filing it.)
  *
  *   Fulfilment is owned by the CRM. Production, packing and the waybill happen
  *   in KeyCRM where the team works, so the CRM tells the site where the order

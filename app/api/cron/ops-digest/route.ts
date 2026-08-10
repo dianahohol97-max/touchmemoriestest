@@ -215,13 +215,17 @@ async function backfillDeadlines(supabase: any, orders: OrderRow[], now: Date): 
 }
 
 /**
- * Decide whether a website order has already been carried over into KeyCRM.
+ * Fuzzy fallback for orders carried over by hand, before the sync existed.
  *
- * There is no shared key between the systems, because the transfer is manual.
- * Four signals are tried, strongest first: the order number pasted into the
- * CRM's external reference or into either comment field, then the buyer's email,
- * then the buyer's phone. Email and phone are matched only within a date window,
- * otherwise every repeat customer would mask a genuinely forgotten order.
+ * There is no shared key for those, so four signals are tried, strongest first:
+ * the order number pasted into the CRM's external reference or into either
+ * comment field, then the buyer's email, then the buyer's phone. Email and
+ * phone are matched only within a date window, otherwise every repeat customer
+ * would mask a genuinely forgotten order.
+ *
+ * This is deliberately NOT used for orders the sync itself handles — see
+ * isCarriedOver for why guessing became dangerous once the CRM started holding
+ * orders that never existed on the site.
  */
 function findCrmMatch(order: OrderRow, crmOrders: KeycrmOrder[]): KeycrmOrder | null {
     const number = (order.order_number || '').trim().toLowerCase();
@@ -260,6 +264,36 @@ function findCrmMatch(order: OrderRow, crmOrders: KeycrmOrder[]): KeycrmOrder | 
 // The marker /api/cron/missing-print-files prepends to an order's notes when it
 // finds a printable product with no uploaded files.
 const MISSING_FILES_MARKER = 'файли для друку не завантажились';
+
+/**
+ * Is this website order already in the CRM?
+ *
+ * The two systems are now separate sources of orders, not one feeding the
+ * other: the site takes its own orders, and managers enter Instagram orders
+ * straight into KeyCRM, where those are also paid and fiscalised. So the CRM is
+ * full of orders that never existed on the site and never should.
+ *
+ * That broke the old answer. Matching a site order to "some CRM order from the
+ * same customer within a week" used to be a reasonable guess; now a repeat
+ * buyer who also ordered through Instagram silently vouches for a site order
+ * nobody ever transferred — the one case this report exists to catch.
+ *
+ * The reliable signal is the CRM id the sync writes back onto every order it
+ * creates. The fuzzy match survives only for orders older than the sync, which
+ * were carried over by hand and genuinely have nothing else to match on.
+ */
+function isCarriedOver(order: OrderRow, crmOrders: KeycrmOrder[]): boolean {
+    if ((order.custom_attributes as any)?.keycrm?.order_id) return true;
+
+    const syncFrom = String(process.env.KEYCRM_SYNC_FROM || '').trim();
+    const cutoff = syncFrom ? new Date(syncFrom).getTime() : NaN;
+    const created = new Date(order.created_at).getTime();
+
+    const predatesSync = !Number.isFinite(cutoff) || created < cutoff;
+    if (!predatesSync) return false;
+
+    return Boolean(findCrmMatch(order, crmOrders));
+}
 
 function buildBuckets(
     orders: OrderRow[],
@@ -325,7 +359,7 @@ function buildBuckets(
         const notInCrm = recent.filter(o =>
             isPaid(o) &&
             hoursSince(o.paid_at || o.created_at, now) >= CRM_TRANSFER_GRACE_HOURS &&
-            !findCrmMatch(o, crm.orders)
+            !isCarriedOver(o, crm.orders)
         );
 
         buckets.push({
@@ -339,6 +373,8 @@ function buildBuckets(
             return Number.isFinite(touched) && touched < staleCutoff && !c.ttn;
         });
 
+        // Covers Instagram orders too, and that is the point: they live only in
+        // the CRM, so this bucket is the single place they are watched at all.
         buckets.push({
             title: `У KeyCRM без руху понад ${CRM_STALE_DAYS} днів і без ТТН`,
             items: stalledInCrm.map(c => ({
