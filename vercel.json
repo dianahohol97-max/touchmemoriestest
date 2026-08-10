@@ -81,6 +81,10 @@
       "schedule": "30 3 * * *"
     },
     {
+      "path": "/api/cron/keycrm-sync",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/ops-digest",
       "schedule": "0 6 * * *"
     },

@@ -42,7 +42,12 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `TELEGRAM_DESIGNER_CHAT_ID` | Designer chat ID |
 | `CRON_SECRET` | Secret for cron job auth |
 | `OPS_DIGEST_EMAIL` | Where the twice-daily "що потребує уваги" report is sent. Comma-separated for several recipients; without it the digest job runs but delivers nothing |
-| `KEYCRM_API_TOKEN` | KeyCRM API key. Used read-only by the CRM contact import and by the ops digest, which compares website orders against the CRM to find ones nobody transferred |
+| `KEYCRM_API_TOKEN` | KeyCRM API key. Used by the CRM contact import, the ops digest, and the order sync |
+| `KEYCRM_SYNC_ENABLED` | Set to `true` to let the sync actually create orders in KeyCRM. Anything else keeps it in read-only/dry-run mode, so deploying the code never starts writing on its own |
+| `KEYCRM_SYNC_FROM` | ISO date/time the sync takes over, in UTC — for "from 11 Aug 2026, Kyiv midnight" that is `2026-08-10T21:00:00Z`. Orders paid before it are never pushed — they were entered by hand and pushing them would duplicate. Without this variable the sync transfers nothing at all |
+| `KEYCRM_SOURCE_ID` | Numeric id of the "Сайт" order source in KeyCRM. Required to create orders — look it up via `GET /api/admin/keycrm` |
+| `KEYCRM_PAYMENT_METHOD_ID` | Optional. When set, paid orders arrive in KeyCRM with the payment already filed against this method; when unset the payment block is omitted rather than guessed |
+| `KEYCRM_DELIVERY_SERVICE_ID` | Optional. Same idea for the courier — omitted unless configured |
 | `CHECKBOX_LOGIN` | Checkbox ПРРО login |
 | `CHECKBOX_LICENSE_KEY` | Checkbox license key |
 | `R2_ACCOUNT_ID` | Cloudflare account id — enables R2 for gallery files |

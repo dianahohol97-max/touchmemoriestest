@@ -64,18 +64,29 @@ function asStringList(value: any): string[] {
         .filter(Boolean);
 }
 
-async function fetchJson(path: string, token: string): Promise<any> {
+async function fetchJson(path: string, token: string, init?: { method?: string; body?: any }): Promise<any> {
     let lastError = '';
+    const method = init?.method || 'GET';
+    const isRead = method === 'GET';
 
     for (let attempt = 0; attempt < 3; attempt++) {
         let res: Response;
         try {
             res = await fetch(`${API_BASE}${path}`, {
-                headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+                method,
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                    ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+                },
+                body: init?.body ? JSON.stringify(init.body) : undefined,
                 cache: 'no-store',
             });
         } catch (e: any) {
             lastError = e?.message || 'network error';
+            // A write may already have been accepted when the connection broke,
+            // so retrying it risks a second order in the CRM. Reads are safe.
+            if (!isRead) throw new Error(`KeyCRM недоступний (${lastError}).`);
             await sleep(500 * (attempt + 1));
             continue;
         }
@@ -86,7 +97,18 @@ async function fetchJson(path: string, token: string): Promise<any> {
             throw new Error('KeyCRM відхилив токен. Перевір KEYCRM_API_TOKEN у змінних Vercel.');
         }
         if (!RETRY_STATUSES.has(res.status)) {
-            throw new Error(`KeyCRM повернув ${res.status}.`);
+            // The body of a 422 names the field KeyCRM did not like, which is
+            // the only way to debug a payload shape without shell access to the
+            // account. Truncated so a hostile response cannot flood the logs.
+            const detail = await res.text().catch(() => '');
+            throw new Error(`KeyCRM повернув ${res.status}. ${detail.slice(0, 300)}`.trim());
+        }
+
+        // 5xx on a write is ambiguous: KeyCRM may have created the order before
+        // failing to answer. Only 429 is safe to repeat, because a throttled
+        // request was never processed.
+        if (!isRead && res.status !== 429) {
+            throw new Error(`KeyCRM повернув ${res.status} на запис, повтор не робимо, щоб не створити дубль.`);
         }
 
         const retryAfter = Number(res.headers.get('retry-after'));
@@ -229,6 +251,67 @@ export async function fetchRecentKeycrmOrders(params: {
             orders,
             warning: `Дані KeyCRM неповні: ${e?.message || 'запит не вдався'}`,
         };
+    }
+}
+
+export function getKeycrmToken(): string {
+    return String(process.env.KEYCRM_API_TOKEN || '').trim();
+}
+
+/**
+ * Raw request against the KeyCRM API. Used by the order push, which needs POST;
+ * everything else in this file goes through the typed helpers above.
+ */
+export async function keycrmRequest(
+    path: string,
+    init?: { method?: string; body?: any },
+): Promise<any> {
+    const token = getKeycrmToken();
+    if (!token) throw new Error('KEYCRM_API_TOKEN не заданий.');
+    return fetchJson(path, token, init);
+}
+
+/**
+ * Order sources as configured in the account ("Сайт", "Instagram", …).
+ * Creating an order requires a source_id, and the ids are account-specific, so
+ * this exists to let an admin look up the right number once during setup.
+ */
+export async function fetchKeycrmSources(): Promise<Array<{ id: number | string; name: string }>> {
+    const payload = await keycrmRequest('/order/source?limit=50');
+    const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+    return rows
+        .filter(r => r?.id !== undefined)
+        .map(r => ({ id: r.id, name: String(r?.name ?? '') }));
+}
+
+/**
+ * Find an order already carrying this external reference.
+ *
+ * This is the remote half of the duplicate guard. The local half — the CRM id
+ * written back onto the site order — is authoritative; this one covers the case
+ * where the push succeeded but the write-back did not, which would otherwise
+ * create a second CRM order on the next run.
+ *
+ * Returns undefined (not null) when the lookup itself could not be performed,
+ * so the caller can tell "definitely absent" apart from "unable to check".
+ */
+export async function findKeycrmOrderBySourceUuid(sourceUuid: string): Promise<KeycrmOrder | null | undefined> {
+    if (!sourceUuid) return null;
+
+    try {
+        const payload = await keycrmRequest(
+            `/order?limit=5&include=buyer&filter[source_uuid]=${encodeURIComponent(sourceUuid)}`,
+        );
+        const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+
+        // A filter KeyCRM does not understand is ignored rather than rejected,
+        // which would come back as "the newest five orders" and read as a false
+        // match. Only trust a row that actually carries the reference.
+        const hit = rows.find(r => String(r?.source_uuid ?? '').trim() === sourceUuid);
+        return hit ? normaliseOrder(hit, {}) : null;
+    } catch (e: any) {
+        console.error('[keycrm] source_uuid lookup failed:', e?.message);
+        return undefined;
     }
 }
 
