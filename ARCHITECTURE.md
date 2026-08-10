@@ -36,7 +36,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Free-floating photo slots | `components/FreeSlotLayer.tsx` | Used in editor for non-template slot placement |
 | Cart + checkout | `store/cart-store.ts`, `app/[locale]/cart/`, `app/[locale]/checkout/` | Zustand store + Next pages |
 | Designer cabinet | `components/designer-service/` + `app/admin/designer/` + `lib/designer-service/` | Lifecycle: brief → assignment → revisions → delivery |
-| AI chatbot for site visitors | `lib/ai/claude-chat.ts` + `lib/chatbot/` + `app/admin/settings/chatbot/` | Anthropic SDK, system prompt configurable in admin |
+| AI chatbot + social inbox | `lib/chatbot/` + `app/api/chatbot/{telegram,manychat,meta}` + `app/admin/social-inbox/` + `app/admin/settings/chatbot/` | One engine (`lib/chatbot/core.ts`) behind Instagram (ManyChat), the public Telegram bot, and Telegram Business (Diana's personal dialogs). See "Telegram Business monitoring" below |
 | Photobooth (event product) | `components/photobooth/` + `lib/photobooth/` + `app/[locale]/photobooth/` | Separate sub-product, has its own state |
 | Star map / astronomy products | `lib/astronomy/` + `astronomy-engine` package | Generates personalised sky maps from date+place |
 | Email (transactional + marketing) | `components/email/` (React Email) + `lib/email/` + `emails/` | Brevo as the sender |
@@ -157,6 +157,18 @@ Production files are made by the **Railway render service** (`render-service/`, 
 - **Registration is triple-redundant:** (1) `render-order` awaits the render and registers `order_files` rows — dies on big books (maxDuration); (2) the service POSTs a completion callback to `/api/print/render-complete` with the uploaded paths; (3) the hourly `reconcile-print-files` cron lists each recent order project's print folder and registers anything missing. All three go through `lib/print/register-export-files.ts` and are idempotent.
 - **Stale-deploy detection:** the service's `/health` and its completion callback report `RAILWAY_GIT_COMMIT_SHA` — check it against origin/main before debugging «фікс не працює».
 - **Photo readiness:** before each screenshot the service waits for every `<img>` to load AND `decode()` (bounded 45s/photo) — a streaming JPEG at screenshot time produced distorted photos with blank bands.
+
+## Telegram Business monitoring (added 2026-08-10)
+
+Diana's personal Telegram dialogs with clients are monitored by the public bot (Софія) through **Telegram Business** (requires Telegram Premium on her account; connected in Settings → Telegram Business → Chatbots). No group chats, no bot visible to clients.
+
+- **Webhook:** the existing `/api/chatbot/telegram` route also handles `business_connection` (stores connection state in `settings('telegram_business_connection')`) and `business_message`. Diana's outgoing replies are recorded as `human_manager`, client messages as `customer` — everything lands in the same `social_conversations` / `social_messages` tables as Instagram, so `admin/social-inbox` shows all channels.
+- **Modes** (`settings('telegram_business_mode')`): `draft` (default — AI reply is sent to Diana as a suggestion in her chat with the bot, never to the client), `auto` (bot answers the client on behalf of her account via `business_connection_id`; requires the "reply" permission, degrades to draft without it), `off` (record only). Flipping the mode is a settings row update, no deploy.
+- **Human-is-in-charge rule:** after Diana replies manually in a dialog, the bot stays silent there for `settings('telegram_business_human_silence_hours')` (default 3).
+- **Watchdog cron:** `/api/cron/social-unanswered` (every 2h, 08:00–22:00 Kyiv) alerts in Telegram about dialogs where the last message is from a customer older than `settings('social_unanswered_hours')` (default 3h) and about `needs_human` escalations. Live-state, like ops-digest: items repeat until resolved. `?preview=1` returns the payload without sending.
+- **Setup after deploy:** `POST /api/chatbot/telegram/setup` (admin-only) re-registers the webhook with `business_*` in `allowed_updates` — without this step Telegram never delivers business updates. Helpers live in `lib/chatbot/telegram-business.ts`.
+
+---
 
 ## Pricing flow
 

@@ -38,7 +38,8 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | Variable | Description |
 |---|---|
 | `ANTHROPIC_API_KEY` | Claude AI for chatbot |
-| `TELEGRAM_PUBLIC_BOT_TOKEN` | Telegram notifications |
+| `TELEGRAM_PUBLIC_BOT_TOKEN` | Telegram notifications + the public chatbot (Софія) + Telegram Business monitoring of Diana's client dialogs |
+| `TELEGRAM_WEBHOOK_SECRET` | Secret token passed to Telegram setWebhook; the chatbot webhook refuses unsigned updates in production without it. Re-register via `POST /api/chatbot/telegram/setup` after changing |
 | `TELEGRAM_DESIGNER_CHAT_ID` | Designer chat ID |
 | `CRON_SECRET` | Secret for cron job auth |
 | `OPS_DIGEST_EMAIL` | Where the twice-daily "що потребує уваги" report is sent. Comma-separated for several recipients; without it the digest job runs but delivers nothing |
