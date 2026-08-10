@@ -799,12 +799,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
     //     the chosen physical size × 300 DPI (e.g. 10×15 cm → 1181×1772),
     //     export JPEG q=0.95. This is a pure canvas draw, no DOM walk.
     //
-    //   • Polaroid prints — build a hidden, full-resolution copy of the
-    //     same DOM the customer sees (image + white frame + caption with
-    //     their chosen font and colour), then html2canvas it. The hidden
-    //     copy lives at totalW×totalH × 300 DPI cm so the resulting JPEG
-    //     is print-ready. Fonts are awaited before the snapshot so the
-    //     caption isn't a fallback.
+    //   • Polaroid prints — the same pure canvas draw with the polaroid's
+    //     white frame and the caption via ctx.fillText. Formerly this was
+    //     html2canvas over a hidden DOM copy, but html2canvas ignores
+    //     object-fit:cover and painted every photo stretched to the box.
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const userKey = user?.id || 'anon';
@@ -814,17 +812,6 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // don't render in a fallback. document.fonts.ready resolves
       // immediately once all currently-loading fonts are settled.
       try { await (document as any).fonts?.ready; } catch {}
-
-      // Lazy-load html2canvas only on checkout so the page itself stays
-      // fast. The package is already in the bundle so this is just a
-      // dynamic import resolution.
-      let html2canvas: any = null;
-      try {
-        const mod: any = await import('html2canvas');
-        html2canvas = mod.default || mod;
-      } catch (e) {
-        console.warn('html2canvas import failed:', e);
-      }
 
       // Resolve the physical print size in centimetres for this order so
       // the canvas can be sized at 300 DPI.
@@ -970,10 +957,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         });
       };
 
-      // Render one polaroid: build the same DOM the user saw, scaled up
-      // to 300 DPI, then snapshot it with html2canvas.
+      // Render one polaroid at 300 DPI: white frame + cover-cropped photo +
+      // caption, drawn directly on canvas.
       const renderPolaroid = async (photo: any): Promise<Blob | null> => {
-        if (!polSize || !html2canvas) return null;
+        if (!polSize) return null;
         const isLandscape = photo.orientation === 'landscape';
         const totalW = isLandscape ? polSize.totalH : polSize.totalW;
         const totalH = isLandscape ? polSize.totalW : polSize.totalH;
@@ -985,66 +972,85 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         const aW = canvasW - bS * 2;
         const aH = canvasH - bT - bB;
 
-        // Build the hidden DOM. It mirrors the preview component above,
-        // just sized at print resolution and parked off-screen.
-        const root = document.createElement('div');
-        root.style.cssText = `position:fixed;left:-99999px;top:0;width:${canvasW}px;height:${canvasH}px;background:#fff;`;
-        const photoBox = document.createElement('div');
-        photoBox.style.cssText = `position:absolute;left:${bS}px;top:${bT}px;width:${aW}px;height:${aH}px;overflow:hidden;background:#f0f0f0;`;
-        const im = document.createElement('img');
-        im.crossOrigin = 'anonymous';
-        // Load the FULL-resolution source — photo.preview is now the 400px
-        // editor thumbnail and would print blurry. Revoke after the
-        // snapshot to free the blob.
+        // Drawn directly on canvas — NOT via html2canvas. The preview relies on
+        // CSS object-fit:cover, which html2canvas does not honour: it painted
+        // the photo stretched to the box, so every print file came out with
+        // unnaturally deformed people while the on-screen preview looked fine
+        // (Diana, 2026-08-10). The crop math below is the same as
+        // renderStandard's, so polaroid and standard prints crop identically.
+        const captionFontPx = Math.max(20, Math.round(bB * 0.28));
+        const captionFamily = polaroidFont || 'Dancing Script, cursive';
+        if (photo.showCaption && photo.polaroidText && (document as any).fonts?.load) {
+          try { await (document as any).fonts.load(`${captionFontPx}px ${captionFamily.split(',')[0].trim()}`); } catch { /* system font still renders */ }
+        }
         const polSrc = URL.createObjectURL(photo.file);
-        im.src = polSrc;
-        im.style.cssText = `width:${(photo.zoom || 1) * 100}%;height:${(photo.zoom || 1) * 100}%;object-fit:cover;object-position:${photo.cropX}% ${photo.cropY}%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(${photo.rotation || 0}deg);`;
-        photoBox.appendChild(im);
-        root.appendChild(photoBox);
-
-        if (photo.showCaption && photo.polaroidText) {
-          const caption = document.createElement('div');
-          // Caption position mirrors the preview: sat inside the thick
-          // bottom border, vertically centred on the lower 20 % of it.
-          const captionBottom = Math.round(bB * 0.2);
-          const fontPx = Math.max(20, Math.round(bB * 0.28));
-          caption.style.cssText = `position:absolute;left:${bS}px;bottom:${captionBottom}px;width:${aW}px;display:flex;align-items:center;justify-content:center;font-family:${polaroidFont || 'Dancing Script, cursive'};color:${polaroidColor || '#222'};font-size:${fontPx}px;text-align:center;line-height:1;`;
-          caption.textContent = photo.polaroidText;
-          root.appendChild(caption);
-        }
-
-        document.body.appendChild(root);
-        try {
-          // Wait one paint frame so the image is decoded and laid out.
-          await new Promise<void>((r) => requestAnimationFrame(() => r()));
-          // And give the <img> a moment to actually load if it isn't ready
-          if (!im.complete) {
-            await new Promise<void>((r) => { im.onload = () => r(); im.onerror = () => r(); });
-          }
-          const snap: HTMLCanvasElement = await html2canvas(root, {
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            scale: 1, // root is already at full print size
-            logging: false,
-            width: canvasW,
-            height: canvasH,
-          });
-          return await new Promise<Blob | null>((resolve) => {
-            snap.toBlob((b) => {
-              // Same reasoning as renderStandard: release html2canvas's snapshot
-              // canvas as soon as the JPEG is out of it, so the next photo does
-              // not start on top of the previous one's memory.
-              snap.width = 0; snap.height = 0;
-              resolve(b);
-            }, 'image/jpeg', 0.95);
-          });
-        } catch (e) {
-          console.warn('renderPolaroid failed:', e);
-          return null;
-        } finally {
-          try { document.body.removeChild(root); } catch {}
-          try { URL.revokeObjectURL(polSrc); } catch {}
-        }
+        return await new Promise<Blob | null>((resolve) => {
+          const img = new window.Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = canvasW;
+              canvas.height = canvasH;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) { resolve(null); return; }
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvasW, canvasH);
+              // Cover-fit the source into the photo window, honouring zoom and
+              // the cropX/cropY pan — identical semantics to renderStandard.
+              const z = photo.zoom || 1;
+              const naturalW = img.naturalWidth, naturalH = img.naturalHeight;
+              const sourceRatio = naturalW / naturalH;
+              const targetRatio = aW / aH;
+              let srcW: number, srcH: number;
+              if (sourceRatio > targetRatio) {
+                srcH = naturalH / z;
+                srcW = srcH * targetRatio;
+              } else {
+                srcW = naturalW / z;
+                srcH = srcW / targetRatio;
+              }
+              const cx = ((photo.cropX ?? 50) / 100) * (naturalW - srcW);
+              const cy = ((photo.cropY ?? 50) / 100) * (naturalH - srcH);
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(bS, bT, aW, aH);
+              ctx.clip();
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              const rot = photo.rotation || 0;
+              if (rot !== 0) {
+                ctx.translate(bS + aW / 2, bT + aH / 2);
+                ctx.rotate((rot * Math.PI) / 180);
+                ctx.drawImage(img, cx, cy, srcW, srcH, -aW / 2, -aH / 2, aW, aH);
+              } else {
+                ctx.drawImage(img, cx, cy, srcW, srcH, bS, bT, aW, aH);
+              }
+              ctx.restore();
+              if (photo.showCaption && photo.polaroidText) {
+                // Caption sits inside the thick bottom border, like the preview:
+                // block bottom at 20% of the border height, single line, centred.
+                ctx.fillStyle = polaroidColor || '#222';
+                ctx.font = `${captionFontPx}px ${captionFamily}`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(photo.polaroidText, canvasW / 2, canvasH - Math.round(bB * 0.2));
+              }
+              canvas.toBlob((b) => {
+                // Release the 300-DPI backing store immediately (same reasoning
+                // as renderStandard — GC does not keep up in a tight loop).
+                canvas.width = 0; canvas.height = 0;
+                resolve(b);
+              }, 'image/jpeg', 0.95);
+            } catch (e) {
+              console.warn('renderPolaroid failed:', e);
+              resolve(null);
+            } finally {
+              try { URL.revokeObjectURL(polSrc); } catch {}
+            }
+          };
+          img.onerror = () => { try { URL.revokeObjectURL(polSrc); } catch {} resolve(null); };
+          img.src = polSrc;
+        });
       };
 
       // Now render and upload each photo at print resolution.
@@ -1058,11 +1064,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // attempted. The failure was only visible on the customer's screen.
       const kind = isMagnet ? 'photomagnets' : polaroidActive ? 'polaroid' : 'photo-print';
       // Named so a systemic render failure is legible in the log at a glance.
-      // renderPolaroid bails on `!polSize || !html2canvas` — an unparsed size
-      // string or a failed dynamic import makes EVERY photo return null, which
-      // is exactly the «0 із N» shape.
+      // renderPolaroid bails on `!polSize` — an unparsed size string makes
+      // EVERY photo return null, which is exactly the «0 із N» shape.
       const renderPrereq = polaroidActive
-        ? (!polSize ? 'polaroid size unresolved' : !html2canvas ? 'html2canvas unavailable' : null)
+        ? (!polSize ? 'polaroid size unresolved' : null)
         : null;
       let renderFailed = 0;
       if (!exportFolderRef.current) exportFolderRef.current = `pp_${Date.now()}`;
