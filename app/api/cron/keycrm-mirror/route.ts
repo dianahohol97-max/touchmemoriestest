@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/guards';
 import { mirrorKeycrmOrders } from '@/lib/automation/keycrm-mirror';
 
 export const dynamic = 'force-dynamic';
@@ -25,9 +26,15 @@ export const maxDuration = 60;
 const WINDOW_DAYS = 14;
 
 export async function GET(request: Request) {
+    // Two ways in: Vercel Cron with the bearer secret, or a logged-in admin
+    // opening the URL in a browser. The second exists so a run can be triggered
+    // and inspected by a person without hunting for CRON_SECRET — the response
+    // is the full report either way.
     const auth = request.headers.get('authorization');
-    if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const cronOk = !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`;
+    if (!cronOk) {
+        const guard = await requireAdmin();
+        if (!guard.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!process.env.KEYCRM_API_TOKEN) {

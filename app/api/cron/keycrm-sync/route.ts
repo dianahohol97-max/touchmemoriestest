@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/guards';
 import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-push';
 import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
 import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
@@ -47,9 +48,15 @@ const STOCK_WINDOW_DAYS = 30;
 const STOCK_LIMIT = 40;
 
 export async function GET(request: Request) {
+    // Two ways in: Vercel Cron with the bearer secret, or a logged-in admin
+    // opening the URL in a browser. The second exists so a run can be triggered
+    // and inspected by a person without hunting for CRON_SECRET — the response
+    // is the full report either way.
     const auth = request.headers.get('authorization');
-    if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const cronOk = !!process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`;
+    if (!cronOk) {
+        const guard = await requireAdmin();
+        if (!guard.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const dryRun = new URL(request.url).searchParams.get('dry') === '1';
