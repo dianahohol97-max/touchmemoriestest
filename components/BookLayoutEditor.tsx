@@ -5290,6 +5290,61 @@ export default function BookLayoutEditor() {
   const coverPhotoCount = (((coverState as any).coverPhotos) || []).length;
   const chargeableCoverPhotos = Math.max(0, coverPhotoCount - (coverState.decoType === 'photovstavka' ? 1 : 0));
   const coverPhotoExtra = (!isPrinted && chargeableCoverPhotos > 0) ? PHOTO_INSERT_PRICE * chargeableCoverPhotos : 0;
+  // Редактор написів м'якої обкладинки для вкладки «Текст». Спільні контроли
+  // Шрифт/Розмір/Колір нижче у вкладці керують ЛИШЕ текстами внутрішніх
+  // сторінок (selectedTextId), тому кліки по палітрі на обкладинці ні на що не
+  // впливали (Diana, 2026-08-10) — написи обкладинки живуть у
+  // coverState.extraTexts і редагуються цим списком. Кольори — чотири фізичні
+  // фарби нанесення: гравіювання виконується ОДНИМ кольором на всю обкладинку
+  // (вибір застосовується до всіх написів разом і синхронізує decoColor, який
+  // успадковує рендер), друк кольором дозволяє свій колір кожному напису.
+  // Викликається з ДВОХ панелей вкладки «Текст» — тримаємо одну реалізацію,
+  // щоб вони не розійшлися.
+  const INSCRIPTION_INK_COLORS: Array<[string, string]> = [['#D4AF37','Золотий'],['#C0C0C0','Срібний'],['#FFFFFF','Білий'],['#1A1A1A','Чорний']];
+  const renderCoverInscriptionEditor = () => {
+    const texts = coverState.extraTexts || [];
+    if (!texts.length || coverState.decoType === 'metal') return null;
+    const isEngrave = (coverState.inscriptionMethod || 'graviruvannya') === 'graviruvannya';
+    const editEt = (id: string, patch: Record<string, unknown>) =>
+      setCoverState(p => ({ ...p, extraTexts: (p.extraTexts||[]).map(t2 => t2.id===id ? { ...t2, ...patch } : t2) }));
+    const setInk = (id: string, c: string) =>
+      setCoverState(p => isEngrave
+        ? { ...p, decoColor: c, extraTexts: (p.extraTexts||[]).map(t2 => ({ ...t2, color: c })) }
+        : { ...p, extraTexts: (p.extraTexts||[]).map(t2 => t2.id===id ? { ...t2, color: c } : t2) });
+    return (
+      <div style={{ display:'flex', flexDirection:'column', marginTop:6 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', margin:'2px 0' }}>Редагувати написи на обкладинці</div>
+        {texts.map(et => (
+          <div key={et.id} style={{ marginTop:6, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', display:'flex', flexDirection:'column', gap:4 }}>
+            <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+              <input value={et.text} onChange={e=>editEt(et.id,{ text:e.target.value })}
+                style={{ flex:1, minWidth:0, padding:'3px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:11 }}/>
+              <button onClick={()=>setCoverState(p=>{ const updated=(p.extraTexts||[]).filter(t2=>t2.id!==et.id); return { ...p, extraTexts: updated, ...(updated.length===0?{ inscriptionMethod:null }:{}) }; })}
+                style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+            </div>
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:3, flexShrink:0 }}>
+                {INSCRIPTION_INK_COLORS.map(([c,label]) => (
+                  <button key={c} title={label} onClick={()=>setInk(et.id, c)}
+                    style={{ width:18, height:18, borderRadius:'50%', background:c, border: et.color===c?'2px solid #1e2d7d':'1px solid #cbd5e1', cursor:'pointer', padding:0 }}/>
+                ))}
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
+                <input type="range" min={8} max={120} value={et.fontSize||20} onChange={e=>editEt(et.id,{ fontSize:+e.target.value })} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {et.fontSize||20}px</span>
+              </div>
+            </div>
+            <FontPicker value={et.fontFamily||'Marck Script'} onChange={f=>editEt(et.id,{ fontFamily:f })} />
+          </div>
+        ))}
+        {isEngrave && (
+          <div style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>
+            Гравіювання виконується одним кольором, тому обраний колір застосовується одразу до всіх написів на обкладинці.
+          </div>
+        )}
+      </div>
+    );
+  };
   // QR surcharge: +50₴ per generation (not per placement). Tracked by
   // generatedQRCount which increments on each successful "Згенерувати QR"
   // click. Uploaded QR (user's own PNG) does not add to this count.
@@ -7283,6 +7338,7 @@ export default function BookLayoutEditor() {
                                 </div>
                               </div>
                             )}
+                            {renderCoverInscriptionEditor()}
                           </>
                         );
                       })()
@@ -10739,6 +10795,7 @@ export default function BookLayoutEditor() {
                                   </div>
                                 </div>
                               )}
+                              {renderCoverInscriptionEditor()}
                             </>
                           );
                         })()
