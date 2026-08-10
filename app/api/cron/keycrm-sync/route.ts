@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-push';
+import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -29,6 +30,14 @@ const WINDOW_DAYS = 14;
 // picked up half an hour later.
 const BATCH_LIMIT = 15;
 
+// The reconcile pass reaches further back than the create pass: an order stays
+// worth watching until it is delivered, which is weeks after it was placed.
+const RECONCILE_WINDOW_DAYS = 45;
+
+// One CRM read per order, so this is the real cost of the pass. Anything not
+// covered this run is covered half an hour later.
+const RECONCILE_LIMIT = 25;
+
 export async function GET(request: Request) {
     const auth = request.headers.get('authorization');
     if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -37,7 +46,7 @@ export async function GET(request: Request) {
 
     const dryRun = new URL(request.url).searchParams.get('dry') === '1';
 
-    const stats = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, errors: 0 };
+    const stats = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, errors: 0 };
     const details: any[] = [];
 
     if (!String(process.env.KEYCRM_SYNC_FROM || '').trim()) {
@@ -76,7 +85,29 @@ export async function GET(request: Request) {
             if (result.status === 'skipped' && !dryRun && stats.created === 0) break;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details });
+        // Second pass: orders already living in both systems. Money travels to
+        // the CRM, fulfilment travels back to the site — see keycrm-twoway for
+        // why the split is what stops the two sides overwriting each other.
+        const reconciled: any[] = [];
+        const synced = await findSyncedOrders({ windowDays: RECONCILE_WINDOW_DAYS, limit: RECONCILE_LIMIT });
+
+        for (const order of synced) {
+            const result = await syncOrderBothWays(order, { dryRun });
+            if (!result) continue;
+
+            if (result.changes.length) stats.reconciled++;
+            if (result.problems.length) stats.errors++;
+
+            if (result.changes.length || result.problems.length) {
+                reconciled.push({
+                    order: result.orderNumber,
+                    changes: result.changes,
+                    problems: result.problems,
+                });
+            }
+        }
+
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

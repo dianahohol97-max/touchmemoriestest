@@ -39,6 +39,10 @@ export type KeycrmOrder = {
     buyer_comment: string;
     /** Waybill number when the CRM already shipped the parcel. */
     ttn: string;
+    /** Carrier name as the CRM knows it, for the tracking link on the site. */
+    shipping_service: string;
+    /** Sum of every payment filed against the order in the CRM. */
+    payments_total: number;
 };
 
 export type KeycrmFetchResult = {
@@ -166,9 +170,25 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         shipping?.tracking_code ?? shipping?.declaration_id ?? shipping?.ttn ?? raw?.ttn ?? ''
     ).trim();
 
+    // Payments are an array on the order; only settled ones count towards what
+    // the CRM believes has been received, otherwise a pending line would look
+    // like money already in and suppress the top-up the site needs to send.
+    const payments: any[] = Array.isArray(raw?.payments) ? raw.payments : [];
+    const paymentsTotal = payments
+        .filter(p => {
+            const status = String(p?.status ?? '').toLowerCase();
+            return status === '' || status === 'paid' || status === 'success' || status === 'completed';
+        })
+        .reduce((sum, p) => {
+            const amount = Number(p?.amount ?? 0);
+            return sum + (Number.isFinite(amount) ? amount : 0);
+        }, 0);
+
     return {
         id: raw?.id,
         source_uuid: String(raw?.source_uuid ?? '').trim(),
+        shipping_service: String(shipping?.shipping_service ?? shipping?.delivery_service?.name ?? '').trim(),
+        payments_total: Math.round(paymentsTotal * 100) / 100,
         status_id: statusId,
         status_label: statusId !== null && statusLabels[String(statusId)]
             ? statusLabels[String(statusId)]
@@ -309,6 +329,39 @@ export async function fetchKeycrmPaymentMethods(): Promise<Array<{ id: number | 
         }
     }
     return [];
+}
+
+/**
+ * One order, fresh from the CRM, with everything the two-way sync needs:
+ * payments to compare against the site, and shipping to copy back to it.
+ *
+ * Returns null when the order is gone — deleted in the CRM, or an id we stored
+ * that never existed — so the caller can stop chasing it instead of retrying
+ * every half hour forever.
+ */
+export async function fetchKeycrmOrderById(id: string | number): Promise<KeycrmOrder | null> {
+    const payload = await keycrmRequest(`/order/${encodeURIComponent(String(id))}?include=buyer,payments,shipping`);
+    const raw = payload?.data ?? payload;
+    if (!raw?.id) return null;
+
+    const labels = await fetchStatusLabelsCached();
+    return normaliseOrder(raw, labels);
+}
+
+/** Status id → name, resolved once per invocation. */
+let statusLabelCache: Record<string, string> | null = null;
+
+async function fetchStatusLabelsCached(): Promise<Record<string, string>> {
+    if (statusLabelCache) return statusLabelCache;
+    const token = getKeycrmToken();
+    statusLabelCache = token ? await fetchStatusLabels(token) : {};
+    return statusLabelCache;
+}
+
+/** The account's order statuses, for building the status mapping once. */
+export async function fetchKeycrmStatuses(): Promise<Array<{ id: string; name: string }>> {
+    const labels = await fetchStatusLabelsCached();
+    return Object.entries(labels).map(([id, name]) => ({ id, name }));
 }
 
 export type KeycrmOffer = {

@@ -1,0 +1,298 @@
+import { getAdminClient } from '@/lib/supabase/admin';
+import { keycrmRequest, fetchKeycrmOrderById, type KeycrmOrder } from '@/lib/automation/keycrm';
+
+/**
+ * Keep an order that already exists in both systems in step, in both
+ * directions.
+ *
+ * The whole design rests on one rule: each system owns what it actually knows.
+ *
+ *   Money is owned by the website. Payments arrive through Monobank and land in
+ *   Supabase first, so the site tells the CRM what has been received and never
+ *   the other way round. A CRM payment total is only ever read, to work out what
+ *   is still missing there.
+ *
+ *   Fulfilment is owned by the CRM. Production, packing and the waybill happen
+ *   in KeyCRM where the team works, so the CRM tells the site where the order
+ *   is, and the site never pushes a fulfilment stage back.
+ *
+ * Without that split the two sides would fight: each run would overwrite the
+ * other's last write, and every order would flip between two states forever.
+ *
+ * Status translation is deliberately configuration, not code. Stage ids are
+ * specific to the account and their names are whatever the shop called them, so
+ * an unmapped stage changes nothing on the site — guessing that "Готово" means
+ * shipped would send a customer a tracking email for a parcel still on the desk.
+ */
+
+export type TwoWayResult = {
+    orderId: string;
+    orderNumber: string;
+    keycrmOrderId: string | number;
+    /** What actually changed, for the log and the dry-run response. */
+    changes: string[];
+    problems: string[];
+};
+
+// Under this, a difference is rounding noise from percentage discounts rather
+// than a payment anyone needs to chase.
+const MONEY_EPSILON = 1;
+
+function money(value: any): number {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
+/**
+ * What the website believes has actually been received.
+ *
+ * A split order that has since been paid in full carries payment_status 'paid',
+ * so the total is the right figure; one still on its prepayment reports only
+ * the prepaid part. Both cases come out of this single expression, which is why
+ * it is written once rather than branched on payment_type.
+ */
+function amountReceivedOnSite(order: any): number {
+    if (order?.payment_status === 'paid') return money(order?.total);
+
+    const prepaid = money(order?.prepaid_amount);
+    return prepaid > 0 ? prepaid : 0;
+}
+
+async function statusMapFromCrm(): Promise<Record<string, string>> {
+    const supabase = getAdminClient();
+    const { data, error } = await supabase
+        .from('keycrm_status_map')
+        .select('keycrm_status_id, site_order_status, direction')
+        .in('direction', ['from_crm', 'both']);
+
+    if (error) {
+        console.error('[keycrm-twoway] status map read failed:', error.message);
+        return {};
+    }
+
+    const map: Record<string, string> = {};
+    for (const row of data || []) map[String(row.keycrm_status_id)] = row.site_order_status;
+    return map;
+}
+
+/**
+ * CRM → site: waybill, carrier and fulfilment stage.
+ *
+ * Returns the patch rather than applying it, so the caller can show it in a dry
+ * run and so every write to the orders table happens in one place.
+ */
+function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, string>): {
+    patch: Record<string, any>;
+    changes: string[];
+} {
+    const patch: Record<string, any> = {};
+    const changes: string[] = [];
+
+    if (crm.ttn && crm.ttn !== order.ttn) {
+        patch.ttn = crm.ttn;
+        patch.tracking_carrier = crm.shipping_service || order.tracking_carrier || 'Нова Пошта';
+        // Nova Poshta is the only carrier in use on this shop, and its public
+        // tracking page takes the waybill as a query parameter.
+        patch.tracking_url = `https://novaposhta.ua/tracking/?cargo_number=${encodeURIComponent(crm.ttn)}`;
+        changes.push(`ТТН ${crm.ttn}`);
+    }
+
+    const mappedStatus = crm.status_id !== null ? statusMap[String(crm.status_id)] : undefined;
+    if (mappedStatus && mappedStatus !== order.order_status) {
+        patch.order_status = mappedStatus;
+        changes.push(`статус ${order.order_status || '—'} → ${mappedStatus}`);
+
+        // Timestamps the site's own emails and the tracking page read from.
+        // Only ever set, never cleared: an order that went out yesterday did not
+        // stop having been shipped because someone moved a card back a stage.
+        if (mappedStatus === 'shipped' && !order.shipped_at) patch.shipped_at = new Date().toISOString();
+        if (mappedStatus === 'delivered' && !order.delivered_at) patch.delivered_at = new Date().toISOString();
+    }
+
+    return { patch, changes };
+}
+
+/**
+ * Site → CRM: file whatever money the CRM has not seen yet.
+ *
+ * Sends the difference as an additional payment rather than rewriting the
+ * existing one. A split order that later pays its balance therefore ends up
+ * with two payment lines in the CRM, which is what actually happened, instead of
+ * one line silently growing.
+ */
+async function pushMissingPayment(order: any, crm: KeycrmOrder, dryRun: boolean): Promise<{
+    changes: string[];
+    problems: string[];
+}> {
+    const changes: string[] = [];
+    const problems: string[] = [];
+
+    const paymentMethodId = Number(process.env.KEYCRM_PAYMENT_METHOD_ID);
+    const received = amountReceivedOnSite(order);
+    const missing = money(received - crm.payments_total);
+
+    if (missing <= MONEY_EPSILON) return { changes, problems };
+
+    if (!Number.isFinite(paymentMethodId) || paymentMethodId <= 0) {
+        problems.push(`У CRM бракує ${missing} грн, але KEYCRM_PAYMENT_METHOD_ID не заданий, тому платіж не проводимо.`);
+        return { changes, problems };
+    }
+
+    changes.push(`доплата ${missing} грн у CRM`);
+    if (dryRun) return { changes, problems };
+
+    try {
+        await keycrmRequest(`/order/${encodeURIComponent(String(crm.id))}/payment`, {
+            method: 'POST',
+            body: {
+                payment_method_id: paymentMethodId,
+                amount: missing,
+                status: 'paid',
+                description: `Оплата з сайту, замовлення ${order.order_number}`,
+                payment_date: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            },
+        });
+    } catch (e: any) {
+        problems.push(`Не вдалося провести доплату ${missing} грн: ${e?.message || 'запит не вдався'}`);
+        return { changes: [], problems };
+    }
+
+    return { changes, problems };
+}
+
+/**
+ * Site → CRM: a cancellation on the site must not leave the CRM producing.
+ *
+ * The stage itself is only moved when the account's cancelled stage is mapped;
+ * otherwise the note alone goes over, which is still enough for a human to act
+ * on and far safer than moving a card to a guessed stage.
+ */
+async function pushCancellation(order: any, crm: KeycrmOrder, dryRun: boolean): Promise<{
+    changes: string[];
+    problems: string[];
+}> {
+    const changes: string[] = [];
+    const problems: string[] = [];
+
+    if (!['cancelled', 'refunded'].includes(order.order_status || '')) return { changes, problems };
+
+    const marker = 'Скасовано на сайті';
+    if (crm.manager_comment.includes(marker)) return { changes, problems };
+
+    const supabase = getAdminClient();
+    const { data: cancelStage } = await supabase
+        .from('keycrm_status_map')
+        .select('keycrm_status_id')
+        .eq('site_order_status', order.order_status)
+        .in('direction', ['to_crm', 'both'])
+        .maybeSingle();
+
+    changes.push(cancelStage ? 'позначено скасування в CRM зі зміною статусу' : 'позначено скасування в CRM коментарем');
+    if (dryRun) return { changes, problems };
+
+    try {
+        await keycrmRequest(`/order/${encodeURIComponent(String(crm.id))}`, {
+            method: 'PUT',
+            body: {
+                manager_comment: `${crm.manager_comment}\n${marker} ${new Date().toISOString().slice(0, 10)}`.trim(),
+                ...(cancelStage ? { status_id: Number(cancelStage.keycrm_status_id) } : {}),
+            },
+        });
+    } catch (e: any) {
+        problems.push(`Не вдалося позначити скасування: ${e?.message || 'запит не вдався'}`);
+        return { changes: [], problems };
+    }
+
+    return { changes, problems };
+}
+
+/** Reconcile one order that exists in both systems. */
+export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean }): Promise<TwoWayResult | null> {
+    const dryRun = opts?.dryRun === true;
+    const keycrmOrderId = order?.custom_attributes?.keycrm?.order_id;
+    if (!keycrmOrderId) return null;
+
+    const result: TwoWayResult = {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        keycrmOrderId,
+        changes: [],
+        problems: [],
+    };
+
+    let crm: KeycrmOrder | null;
+    try {
+        crm = await fetchKeycrmOrderById(keycrmOrderId);
+    } catch (e: any) {
+        result.problems.push(`Не вдалося прочитати замовлення з CRM: ${e?.message || 'запит не вдався'}`);
+        return result;
+    }
+
+    if (!crm) {
+        result.problems.push('Замовлення з таким номером у CRM більше немає.');
+        return result;
+    }
+
+    // CRM → site.
+    const statusMap = await statusMapFromCrm();
+    const { patch, changes } = buildSitePatch(order, crm, statusMap);
+    result.changes.push(...changes);
+
+    if (Object.keys(patch).length && !dryRun) {
+        const supabase = getAdminClient();
+        const { error } = await supabase.from('orders').update(patch).eq('id', order.id);
+
+        if (error) {
+            result.problems.push(`Не вдалося оновити замовлення на сайті: ${error.message}`);
+        } else if (patch.ttn) {
+            // The customer-facing record of the same event, so support can see
+            // when the number appeared without opening the CRM.
+            await supabase.from('order_history').insert({
+                order_id: order.id,
+                action: 'ttn_synced',
+                notes: `ТТН ${patch.ttn} підтягнута з KeyCRM.`,
+                added_by: null,
+            });
+        }
+    }
+
+    // Site → CRM.
+    const payment = await pushMissingPayment(order, crm, dryRun);
+    result.changes.push(...payment.changes);
+    result.problems.push(...payment.problems);
+
+    const cancellation = await pushCancellation(order, crm, dryRun);
+    result.changes.push(...cancellation.changes);
+    result.problems.push(...cancellation.problems);
+
+    return result;
+}
+
+/**
+ * Orders present in both systems, newest first.
+ *
+ * Bounded by a window because an order delivered two months ago has nothing
+ * left to reconcile, and re-reading it every half hour would spend the CRM's
+ * rate limit on nothing.
+ */
+export async function findSyncedOrders(params: { windowDays: number; limit: number }) {
+    const supabase = getAdminClient();
+    const since = new Date(Date.now() - params.windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+        .from('orders')
+        .select('id, order_number, order_status, payment_status, payment_type, total, prepaid_amount, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
+        .gte('created_at', since)
+        .not('custom_attributes', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(params.limit * 4);
+
+    if (error) throw error;
+
+    return (data || [])
+        .filter(o => (o.custom_attributes as any)?.keycrm?.order_id)
+        // Delivered orders are finished business: nothing about them changes
+        // again, so they are dropped rather than polled forever.
+        .filter(o => o.order_status !== 'delivered')
+        .slice(0, params.limit);
+}
