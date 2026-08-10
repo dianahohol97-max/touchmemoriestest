@@ -1020,7 +1020,14 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onClick={e=>e.stopPropagation()}
               onMouseDown={e=>e.stopPropagation()}
               onPointerDown={e=>e.stopPropagation()}
-              style={{ display:'block', fontSize:scaleFont(et.fontSize||20, 20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif', color:et.color||'#fff', fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
+              style={{ display:'block', fontSize:scaleFont(et.fontSize||20, 20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif',
+                // Гравіювання одного кольору для ВСІХ написів: додаткові
+                // успадковують колір основного, збережене значення ігнорується
+                // (старі чернетки мають білий, невидимий на світлому велюрі).
+                color: config.decoType === 'graviruvannya'
+                  ? ((config.decoColor||'').startsWith('#') ? config.decoColor : '#D4AF37')
+                  : (et.color||'#fff'),
+                fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
               {et.text}
             </span>
             {/* Delete button — hover on desktop, always shown on touch.

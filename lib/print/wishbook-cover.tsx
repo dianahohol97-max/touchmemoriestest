@@ -430,7 +430,13 @@ export async function renderWishbookCoverPng(
               fontFamily: `"${ex.fontFamily || titleFont}"`,
               fontWeight: 700,
               fontSize: `${Math.max(W * 0.006, (ex.fontPxEditor || 20) * editorScale)}px`,
-              color: mono ? '#000000' : (ex.color && ex.color.startsWith('#')) ? ex.color : titleColor,
+              // Гравіювання одного кольору для всіх написів — збережений колір
+              // додаткового напису ігнорується, друкується колір основного.
+              color: mono
+                ? '#000000'
+                : decoType === 'graviruvannya'
+                ? titleColor
+                : (ex.color && ex.color.startsWith('#')) ? ex.color : titleColor,
               lineHeight: 1.2,
               letterSpacing: '0.02em',
               whiteSpace: 'nowrap',
