@@ -6330,26 +6330,38 @@ export default function BookLayoutEditor() {
                 </div>
                 )}
 
-                {/* Free photo on the cover — any material EXCEPT metal insert,
-                    which should stand alone (no extra cover photo/text). Adds a
-                    draggable, resizable photo the customer can place anywhere. */}
-                {coverState.decoType !== 'metal' && (
+                {/* Free photo on the cover. Технічні межі виробництва (Diana,
+                    2026-08-10): металева вставка стоїть сама; акрил і
+                    фотовставка ВЖЕ несуть своє фото, а друга вставка на одній
+                    обкладинці неможлива — тому для них секція прихована. На
+                    інших м'яких обкладинках фото робиться фотовставкою, і вона
+                    може бути лише ОДНА — кнопка зникає, щойно фото додане.
+                    Друкована обкладинка друкує фото в дизайні без обмежень. */}
+                {(() => {
+                  if (coverState.decoType === 'metal') return null;
+                  if (!isPrinted && (coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka')) return null;
+                  const insertLimitReached = !isPrinted && (((coverState as any).coverPhotos)||[]).length >= 1;
+                  return (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
+                  {!insertLimitReached && (
                   <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
                     style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                     <span>+ Додати фото</span>
-                    {/* На мʼяких матеріалах фото — це фотовставка, платна операція.
-                        Друкована обкладинка друкує фото в дизайні безкоштовно. */}
+                    {/* На мʼяких матеріалах фото — це фотовставка, платна операція. */}
                     {!isPrinted && <span style={{ fontSize:11, fontWeight:800 }}>+{PHOTO_INSERT_PRICE} ₴</span>}
                   </button>
+                  )}
                   <div style={{ fontSize:10, color:'#94a3b8' }}>
                     {isPrinted
                       ? 'Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.'
-                      : `Фото на такій обкладинці виготовляється як фотовставка (+${PHOTO_INSERT_PRICE} ₴ за кожне). Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.`}
+                      : insertLimitReached
+                      ? 'Фотовставка на обкладинці може бути лише одна. Щоб поставити інше фото, видаліть наявне хрестиком прямо на обкладинці.'
+                      : `Фото на такій обкладинці виготовляється як фотовставка (+${PHOTO_INSERT_PRICE} ₴). Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.`}
                   </div>
                 </div>
-                )}
+                  );
+                })()}
               </div>
             )}
             {/* BACKGROUND */}
