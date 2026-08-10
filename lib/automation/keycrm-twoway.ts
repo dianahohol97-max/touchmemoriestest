@@ -218,6 +218,43 @@ async function pushMissingPayment(order: any, crm: KeycrmOrder, dryRun: boolean)
 }
 
 /**
+ * Site → CRM: a waybill created on the site fills the CRM's blank.
+ *
+ * Waybills are usually born in the CRM and travel down — but the site has its
+ * own Nova Poshta integration, and a ТТН created there was invisible on the
+ * CRM card, so the team kept re-typing it. The rule is fill-a-blank, never
+ * overwrite: whichever system created the waybill first wins, and this only
+ * writes when the CRM has none. The payload shape follows the CRM's own
+ * shipping block; if the account rejects it, the error lands in problems
+ * rather than anything being retried blind.
+ */
+async function pushWaybill(order: any, crm: KeycrmOrder, dryRun: boolean): Promise<{
+    changes: string[];
+    problems: string[];
+}> {
+    const changes: string[] = [];
+    const problems: string[] = [];
+
+    const siteTtn = String(order?.ttn || '').trim();
+    if (!siteTtn || crm.ttn) return { changes, problems };
+
+    changes.push(`ТТН ${siteTtn} передана в CRM`);
+    if (dryRun) return { changes, problems };
+
+    try {
+        await keycrmRequest(`/order/${encodeURIComponent(String(crm.id))}`, {
+            method: 'PUT',
+            body: { shipping: { tracking_code: siteTtn } },
+        });
+    } catch (e: any) {
+        problems.push(`Не вдалося передати ТТН у CRM: ${e?.message || 'запит не вдався'}`);
+        return { changes: [], problems };
+    }
+
+    return { changes, problems };
+}
+
+/**
  * Site → CRM: a cancellation on the site must not leave the CRM producing.
  *
  * The stage itself is only moved when the account's cancelled stage is mapped;
@@ -330,6 +367,10 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
     const cancellation = await pushCancellation(patched, crm, dryRun);
     result.changes.push(...cancellation.changes);
     result.problems.push(...cancellation.problems);
+
+    const waybill = await pushWaybill(patched, crm, dryRun);
+    result.changes.push(...waybill.changes);
+    result.problems.push(...waybill.problems);
 
     return result;
 }
