@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireStaff } from '@/lib/auth/guards';
 import { reconcileCatalogues, saveMappings } from '@/lib/automation/keycrm-catalogue';
+import { fetchKeycrmOffers } from '@/lib/automation/keycrm';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -19,7 +20,10 @@ export const maxDuration = 60;
  */
 
 export async function GET() {
-    const guard = await requireAdmin();
+    // Any active staff member, not admin-only: Diana handed the reconciliation
+    // to the project manager (Аліна), and matching names is exactly the kind of
+    // judgement a person who handles orders daily is best placed to make.
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     if (!process.env.KEYCRM_API_TOKEN) {
@@ -35,7 +39,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-    const guard = await requireAdmin();
+    const guard = await requireStaff();
     if (!guard.ok) return guard.response;
 
     let body: any;
@@ -52,9 +56,37 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Немає рядків для збереження.' }, { status: 400 });
     }
 
+    // A hand-pasted number is validated against the CRM's real catalogue before
+    // it becomes a confirmed link. A KeyCRM product URL can end in an id that is
+    // NOT the offer id the stock and cost lookups use, and a confirmed pair
+    // pointing at the wrong kind of id would silently attach order lines to the
+    // wrong item. A number the catalogue does not recognise is kept as an
+    // explanation only, with a warning back to the person who typed it.
+    const warnings: string[] = [];
+    const manualRows = clean.filter((r: any) => r.match_type === 'manual' && r.keycrm_offer_id && r.confirmed);
+    if (manualRows.length) {
+        try {
+            const offers = await fetchKeycrmOffers();
+            const byId = new Map(offers.map(o => [String(o.offer_id), o]));
+
+            for (const row of manualRows) {
+                const offer = byId.get(String(row.keycrm_offer_id));
+                if (offer) {
+                    row.keycrm_name = offer.name || row.keycrm_name;
+                    row.keycrm_sku = offer.sku || null;
+                } else {
+                    row.confirmed = false;
+                    warnings.push(`${row.site_product_name || row.site_slug}: номер ${row.keycrm_offer_id} не знайдено серед позицій KeyCRM. Пояснення збережено, звʼязку немає — перевір, що посилання веде на товар, а не на замовлення.`);
+                }
+            }
+        } catch (e: any) {
+            return NextResponse.json({ error: `Не вдалося перевірити номер у KeyCRM: ${e?.message || 'запит не вдався'}` }, { status: 502 });
+        }
+    }
+
     try {
         const result = await saveMappings(clean);
-        return NextResponse.json({ ok: true, ...result });
+        return NextResponse.json({ ok: true, ...result, warnings });
     } catch (e: any) {
         return NextResponse.json({ error: e?.message || 'Не вдалося зберегти відповідності' }, { status: 500 });
     }

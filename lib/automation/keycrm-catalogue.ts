@@ -48,6 +48,8 @@ export type MatchRow = {
     confirmed: boolean;
     /** Runners-up, so a human confirming a fuzzy match can see what it beat. */
     alternatives: Array<{ keycrm_offer_id: string; keycrm_name: string; score: number }>;
+    /** A human's free-text explanation, kept across re-runs of the report. */
+    note?: string | null;
     /**
      * Set when several website products all point at this same CRM item. That
      * is not a matcher failure — it usually means the CRM keeps one generic
@@ -345,6 +347,9 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
             site_variant: product.variant,
             site_variant_label: product.variantLabel,
             site_product_name: product.name,
+            // An unconfirmed row keeps whatever a person already wrote on it —
+            // re-running the report must not eat Аліна's explanations.
+            note: savedRow?.note ?? null,
             keycrm_offer_id: best?.offer.offer_id ?? null,
             keycrm_sku: best?.offer.sku ?? null,
             keycrm_name: best?.offer.name ?? null,
