@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
-import { fetchConfirmedMap } from '@/lib/automation/keycrm-catalogue';
+import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -96,7 +96,15 @@ type ProductMap = Record<string, { offer_id: string | null; sku: string | null; 
 function mapProduct(item: any, productMap: ProductMap = {}) {
     const options = item?.options && typeof item.options === 'object' ? item.options : {};
     const slug = String(item?.slug || '');
-    const mapped = slug ? productMap[slug] : undefined;
+
+    // One website product is several CRM items when it has sizes: a wish book is
+    // sold as 23×23, 20×30 and 30×20, and each is its own entry in the CRM. The
+    // size chosen by the customer is therefore part of the lookup key. Falls
+    // back to the sizeless key so products without a size choice still resolve.
+    const sizeLabel = String(options['Розмір'] || '').trim();
+    const mapped = slug
+        ? (productMap[mapKey(slug, sizeKey(sizeLabel))] || (sizeLabel ? undefined : productMap[mapKey(slug, '')]))
+        : undefined;
 
     const properties = Object.entries(options)
         .filter(([, value]) => String(value ?? '').trim() !== '')
@@ -178,8 +186,15 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
     // catalogue item. Otherwise the order looks perfectly normal and the gap is
     // only discovered later, when the product reports come out empty.
     const unmapped = items
-        .map((item: any) => String(item?.slug || ''))
-        .filter((slug: string) => slug && !productMap[slug]);
+        .map((item: any) => {
+            const slug = String(item?.slug || '');
+            if (!slug) return '';
+            const size = String(item?.options?.['Розмір'] || '').trim();
+            const found = productMap[mapKey(slug, sizeKey(size))]
+                || (!size ? productMap[mapKey(slug, '')] : undefined);
+            return found ? '' : (size ? `${slug} (${size})` : slug);
+        })
+        .filter(Boolean);
 
     if (unmapped.length) {
         payload.manager_comment += `\nБез звірки з номенклатурою CRM: ${unmapped.join(', ')}`;

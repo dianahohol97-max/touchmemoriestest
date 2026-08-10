@@ -22,11 +22,23 @@ export type MatchType = 'exact-sku' | 'exact-name' | 'fuzzy-name' | 'manual';
 
 export type SiteProduct = {
     slug: string;
+    /** Canonical size key, or '' when the product has no size choice. */
+    variant: string;
+    /** The size exactly as the customer sees it, for the admin screen. */
+    variantLabel: string;
+    /** Product name with the size appended, which is what gets matched. */
     name: string;
 };
 
+/** Composite key for the map: one row per product and size. */
+export function mapKey(slug: string, variant: string): string {
+    return `${slug}::${variant || ''}`;
+}
+
 export type MatchRow = {
     site_slug: string;
+    site_variant: string;
+    site_variant_label: string;
     site_product_name: string;
     keycrm_offer_id: string | null;
     keycrm_sku: string | null;
@@ -54,14 +66,59 @@ export type MatchRow = {
  * kept deliberately — "на 200 фото" and "на 500 фото" are different products,
  * and dropping the digits would happily match them to each other.
  */
-export function normaliseName(value: string): string[] {
-    return String(value || '')
+/**
+ * Dimensions are written three different ways in this data — "30×20" with the
+ * multiplication sign, "30х20" with a Cyrillic х, and "10x15" with a Latin x —
+ * and some carry decimals ("7.5x10"). Left alone they tokenise differently and
+ * two spellings of the same size never match. Everything collapses to a single
+ * canonical token: 30x20.
+ */
+const DIMENSION_RE = /(\d+(?:[.,]\d+)?)\s*[x×х*]\s*(\d+(?:[.,]\d+)?)/giu;
+
+function canonicaliseDimensions(value: string): string {
+    return String(value || '').replace(
+        DIMENSION_RE,
+        (_m, a: string, b: string) => `${a.replace(',', '.')}x${b.replace(',', '.')}`,
+    );
+}
+
+/**
+ * The size a line refers to, in a form both systems can be keyed by.
+ *
+ * Falls back to the whole label when no dimensions are present, so sizes named
+ * in words ("Міні", "Polaroid") still produce a stable key instead of silently
+ * collapsing into one another.
+ */
+export function sizeKey(label: string): string {
+    const canonical = canonicaliseDimensions(label);
+    const match = canonical.match(/\d+(?:\.\d+)?x\d+(?:\.\d+)?/u);
+    if (match) return match[0];
+
+    return String(label || '')
         .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+export function normaliseName(value: string): string[] {
+    const canonical = canonicaliseDimensions(String(value || '')).toLowerCase();
+
+    // Dimension tokens are lifted out before punctuation is stripped, otherwise
+    // the decimal point in "7.5x10" splits it into two meaningless fragments.
+    const dimensions: string[] = [];
+    const rest = canonical.replace(/\d+(?:\.\d+)?x\d+(?:\.\d+)?/gu, (m) => {
+        dimensions.push(m);
+        return ' ';
+    });
+
+    const words = rest
         .replace(/[«»"'`’]/g, ' ')
         .replace(/[^\p{L}\p{N}]+/gu, ' ')
         .split(' ')
         .map(w => w.trim())
         .filter(w => w.length > 1 || /\d/.test(w));
+
+    return [...words, ...dimensions];
 }
 
 /**
@@ -80,8 +137,11 @@ export function similarity(a: string, b: string): number {
     // enough to be proposed with confidence. When both names carry numbers and
     // none of them agree, they are different products no matter how similar the
     // words are.
-    const numbersA = [...setA].filter(w => /^\d+$/.test(w));
-    const numbersB = [...setB].filter(w => /^\d+$/.test(w));
+    // "Numbers" here means both counts ("200") and dimensions ("30x20"): a
+    // 23×23 wish book and a 30×20 one are as different as a 200-photo album and
+    // a 500-photo one, and both distinctions live entirely in the digits.
+    const numbersA = [...setA].filter(w => /^\d/.test(w));
+    const numbersB = [...setB].filter(w => /^\d/.test(w));
     if (numbersA.length && numbersB.length && !numbersA.some(n => numbersB.includes(n))) {
         return 0;
     }
@@ -154,15 +214,46 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
 
     const { data, error } = await supabase
         .from('products')
-        .select('slug, name, is_active')
+        .select('slug, name, is_active, options')
         .not('slug', 'is', null)
         .order('name');
 
     if (error) throw error;
 
-    return (data || [])
-        .filter((p: any) => p.is_active !== false)
-        .map((p: any) => ({ slug: String(p.slug), name: String(p.name || '') }));
+    const products: SiteProduct[] = [];
+
+    for (const row of (data || []).filter((p: any) => p.is_active !== false)) {
+        const name = String(row.name || '').trim();
+        const slug = String(row.slug);
+
+        // Sizes live in the product's option groups, in the group named
+        // "Розмір". A product without one is a single item on both sides.
+        const groups = Array.isArray(row.options) ? row.options : [];
+        const sizeGroup = groups.find((g: any) => String(g?.name || '').toLowerCase().includes('розмір'));
+        const sizes = Array.isArray(sizeGroup?.options) ? sizeGroup.options : [];
+
+        if (!sizes.length) {
+            products.push({ slug, variant: '', variantLabel: '', name });
+            continue;
+        }
+
+        for (const size of sizes) {
+            const label = String(size?.label || size?.value || '').trim();
+            if (!label) continue;
+
+            products.push({
+                slug,
+                // Keyed off the label, because the label is what an order line
+                // stores — deriving the key from `value` here and from `label`
+                // at push time would produce two keys for one size.
+                variant: sizeKey(label),
+                variantLabel: label,
+                name: `${name} ${label}`.trim(),
+            });
+        }
+    }
+
+    return products;
 }
 
 export async function fetchSavedMap(): Promise<Record<string, any>> {
@@ -170,9 +261,9 @@ export async function fetchSavedMap(): Promise<Record<string, any>> {
     const { data, error } = await supabase.from('keycrm_product_map').select('*');
     if (error) throw error;
 
-    const byslug: Record<string, any> = {};
-    for (const row of data || []) byslug[row.site_slug] = row;
-    return byslug;
+    const byKey: Record<string, any> = {};
+    for (const row of data || []) byKey[mapKey(row.site_slug, row.site_variant)] = row;
+    return byKey;
 }
 
 /**
@@ -183,7 +274,7 @@ export async function fetchConfirmedMap(): Promise<Record<string, { offer_id: st
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('keycrm_product_map')
-        .select('site_slug, keycrm_offer_id, keycrm_sku, keycrm_name')
+        .select('site_slug, site_variant, keycrm_offer_id, keycrm_sku, keycrm_name')
         .eq('confirmed', true);
 
     if (error) {
@@ -193,7 +284,7 @@ export async function fetchConfirmedMap(): Promise<Record<string, { offer_id: st
 
     const map: Record<string, { offer_id: string | null; sku: string | null; name: string | null }> = {};
     for (const row of data || []) {
-        map[row.site_slug] = {
+        map[mapKey(row.site_slug, row.site_variant)] = {
             offer_id: row.keycrm_offer_id,
             sku: row.keycrm_sku,
             name: row.keycrm_name,
@@ -226,12 +317,14 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
     const usedOfferIds = new Set<string>();
 
     for (const product of products) {
-        const savedRow = saved[product.slug];
+        const savedRow = saved[mapKey(product.slug, product.variant)];
 
         if (savedRow?.confirmed) {
             if (savedRow.keycrm_offer_id) usedOfferIds.add(String(savedRow.keycrm_offer_id));
             rows.push({
                 site_slug: product.slug,
+                site_variant: product.variant,
+                site_variant_label: product.variantLabel,
                 site_product_name: product.name,
                 keycrm_offer_id: savedRow.keycrm_offer_id,
                 keycrm_sku: savedRow.keycrm_sku,
@@ -249,6 +342,8 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
 
         rows.push({
             site_slug: product.slug,
+            site_variant: product.variant,
+            site_variant_label: product.variantLabel,
             site_product_name: product.name,
             keycrm_offer_id: best?.offer.offer_id ?? null,
             keycrm_sku: best?.offer.sku ?? null,
@@ -305,6 +400,8 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
 /** Persist decisions from the admin screen. Upsert by slug — one row per product. */
 export async function saveMappings(rows: Array<{
     site_slug: string;
+    site_variant?: string;
+    site_variant_label?: string;
     site_product_name?: string;
     keycrm_offer_id?: string | null;
     keycrm_sku?: string | null;
@@ -319,12 +416,16 @@ export async function saveMappings(rows: Array<{
 
     const payload = rows.map(row => ({
         ...row,
+        // Normalised here as well as on read: a row saved with a raw label
+        // ("30×20 см (горизонтальна)") would never be found again by the push,
+        // which only ever looks up canonical keys.
+        site_variant: row.site_variant ? sizeKey(row.site_variant) : '',
         updated_at: new Date().toISOString(),
     }));
 
     const { error } = await supabase
         .from('keycrm_product_map')
-        .upsert(payload, { onConflict: 'site_slug' });
+        .upsert(payload, { onConflict: 'site_slug,site_variant' });
 
     if (error) throw error;
     return { saved: payload.length };
