@@ -93,6 +93,49 @@ const DELIVERY_LABELS: Record<string, string> = {
  */
 type ProductMap = Record<string, { offer_id: string | null; sku: string | null; name: string | null }>;
 
+// KeyCRM comment fields are text columns, but a runaway comment makes the order
+// card unreadable and risks being rejected outright. Cut with a visible marker
+// rather than silently — a spec that ends mid-sentence with no warning is worse
+// than one that says it was cut.
+const LINE_COMMENT_LIMIT = 1500;
+const ORDER_COMMENT_LIMIT = 4000;
+
+function truncate(text: string, limit: number): string {
+    if (text.length <= limit) return text;
+    return `${text.slice(0, limit - 30).trimEnd()}\n[…обрізано, повна специфікація на сайті]`;
+}
+
+/**
+ * Everything the customer chose, as readable lines.
+ *
+ * This is deliberately duplicated with the structured `properties` field: how
+ * (and whether) a KeyCRM account renders product properties depends on its
+ * settings, whereas the comment is always visible on the card. A production
+ * spec that only shows up under the right CRM configuration is not a spec.
+ */
+function formatSpecification(item: any): string {
+    const options = item?.options && typeof item.options === 'object' ? item.options : {};
+
+    const chosen = Object.entries(options)
+        .filter(([, value]) => String(value ?? '').trim() !== '')
+        .map(([name, value]) => `${name}: ${String(value).trim()}`);
+
+    const breakdown = Array.isArray(item?.price_breakdown)
+        ? item.price_breakdown.map((row: any) => `  ${row?.label ?? ''} — ${money(row?.amount)} грн`)
+        : [];
+
+    const quantity = Number(item?.quantity) || 1;
+    const lines = [...chosen];
+
+    if (breakdown.length) {
+        lines.push('Із чого складається ціна:', ...breakdown);
+    }
+
+    lines.push(`Разом за позицію: ${money(item?.total_price ?? item?.unit_price)} грн${quantity > 1 ? ` × ${quantity} шт` : ''}`);
+
+    return truncate(lines.join('\n'), LINE_COMMENT_LIMIT);
+}
+
 function mapProduct(item: any, productMap: ProductMap = {}) {
     const options = item?.options && typeof item.options === 'object' ? item.options : {};
     const slug = String(item?.slug || '');
@@ -110,11 +153,7 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         .filter(([, value]) => String(value ?? '').trim() !== '')
         .map(([name, value]) => ({ name: String(name), value: String(value) }));
 
-    const breakdown = Array.isArray(item?.price_breakdown)
-        ? item.price_breakdown
-            .map((row: any) => `${row?.label ?? ''}: ${money(row?.amount)} грн`)
-            .join('; ')
-        : '';
+    const specification = formatSpecification(item);
 
     // A confirmed mapping attaches the line to the real CRM catalogue item, so
     // stock and product reports there actually move. Without one the line still
@@ -128,7 +167,7 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         quantity: Number(item?.quantity) || 1,
         unit_type: 'шт',
         ...(properties.length ? { properties } : {}),
-        ...(breakdown ? { comment: breakdown } : {}),
+        ...(specification ? { comment: specification } : {}),
     };
 }
 
@@ -147,6 +186,23 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
     // The site order number goes into the manager comment as well as the
     // external reference: managers search by it, and the ops digest matches the
     // two systems on it.
+    // The same specification, condensed, at order level. Which of the two a
+    // manager actually reads depends on how their CRM view is set up, and the
+    // cost of having it in both places is a longer card — the cost of having it
+    // in neither is a phone call to ask what colour the cover should be.
+    const specBlock = items.map((item: any, index: number) => {
+        const options = item?.options && typeof item.options === 'object' ? item.options : {};
+        const chosen = Object.entries(options)
+            .filter(([, value]) => String(value ?? '').trim() !== '')
+            .map(([name, value]) => `${name}: ${String(value).trim()}`)
+            .join('; ');
+
+        const title = String(item?.product_name || 'Товар');
+        const qty = Number(item?.quantity) || 1;
+
+        return `${index + 1}. ${title}${qty > 1 ? ` × ${qty}` : ''}${chosen ? `\n   ${chosen}` : ''}`;
+    }).join('\n');
+
     const commentLines = [
         `Замовлення з сайту ${order?.order_number || ''}`.trim(),
         `Оплата: ${order?.payment_status === 'paid' ? 'оплачено' : 'не оплачено'}${order?.payment_type === 'split' ? ', часткова передоплата' : ''}`,
@@ -154,12 +210,13 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
         order?.with_designer ? 'Замовлено послугу дизайнера.' : '',
         order?.notes ? `Нотатки: ${order.notes}` : '',
         `ID на сайті: ${order?.id}`,
+        specBlock ? `\nСпецифікація:\n${specBlock}` : '',
     ].filter(Boolean);
 
     const payload: any = {
         source_id: sourceId(),
         source_uuid: String(order?.order_number || order?.id),
-        manager_comment: commentLines.join('\n'),
+        manager_comment: truncate(commentLines.join('\n'), ORDER_COMMENT_LIMIT),
         buyer_comment: String(order?.client_comment || ''),
         shipping_price: money(order?.delivery_cost),
         discount_amount: money(order?.discount_amount),

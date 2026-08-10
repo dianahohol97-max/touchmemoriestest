@@ -397,6 +397,128 @@ export async function reconcileCatalogues(): Promise<ReconcileReport> {
     };
 }
 
+export type CostSyncReport = {
+    dry_run: boolean;
+    offers_read: number;
+    /** Which API field the costs came from — empty means the account exposes none. */
+    cost_fields: string[];
+    updated_products: Array<{ slug: string; from: number | null; to: number }>;
+    unchanged: number;
+    /** Sizes of one product reporting different costs — never auto-resolved. */
+    conflicts: Array<{ slug: string; costs: Array<{ variant: string; cost: number }> }>;
+    /** Confirmed mappings whose CRM item carries no cost at all. */
+    without_cost: string[];
+};
+
+/**
+ * Pull purchase costs from KeyCRM into the site's product cards.
+ *
+ * The CRM is where costs are actually maintained, and today only 34 of 79
+ * website products carry one — which means the margin figures on the admin
+ * order card are computed from a blank for more than half the catalogue.
+ *
+ * Two rules:
+ *
+ *  1. Costs travel only along confirmed mappings. An unconfirmed guess about
+ *     which CRM item a product is would put a wrong cost into a margin report,
+ *     and a wrong number is worse than a missing one because it looks fine.
+ *
+ *  2. The site stores one cost per product while the CRM stores one per size.
+ *     When the sizes of a product disagree, nothing is written and the conflict
+ *     is reported — picking one silently would misprice everything else.
+ */
+export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostSyncReport> {
+    const dryRun = opts?.dryRun === true;
+    const supabase = getAdminClient();
+
+    const offers = await fetchKeycrmOffers();
+    const offerById = new Map(offers.map(o => [o.offer_id, o]));
+
+    const { data: mappings, error } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, site_variant, keycrm_offer_id')
+        .eq('confirmed', true)
+        .not('keycrm_offer_id', 'is', null);
+
+    if (error) throw error;
+
+    const costsByProduct = new Map<string, Array<{ variant: string; cost: number }>>();
+    const withoutCost: string[] = [];
+
+    for (const row of mappings || []) {
+        const offer = offerById.get(String(row.keycrm_offer_id));
+        const cost = offer?.cost ?? null;
+
+        if (cost === null) {
+            withoutCost.push(`${row.site_slug}${row.site_variant ? ` (${row.site_variant})` : ''}`);
+            continue;
+        }
+
+        const list = costsByProduct.get(row.site_slug) || [];
+        list.push({ variant: row.site_variant || '', cost });
+        costsByProduct.set(row.site_slug, list);
+
+        if (!dryRun) {
+            await supabase
+                .from('keycrm_product_map')
+                .update({ keycrm_cost_price: cost, keycrm_cost_synced_at: new Date().toISOString() })
+                .eq('site_slug', row.site_slug)
+                .eq('site_variant', row.site_variant || '');
+        }
+    }
+
+    const slugs = [...costsByProduct.keys()];
+    const { data: products } = slugs.length
+        ? await supabase.from('products').select('slug, cost_price').in('slug', slugs)
+        : { data: [] as any[] };
+
+    const currentBySlug = new Map((products || []).map((p: any) => [p.slug, p.cost_price]));
+
+    const updated: CostSyncReport['updated_products'] = [];
+    const conflicts: CostSyncReport['conflicts'] = [];
+    let unchanged = 0;
+
+    for (const [slug, list] of costsByProduct) {
+        const distinct = [...new Set(list.map(c => c.cost))];
+
+        if (distinct.length > 1) {
+            conflicts.push({ slug, costs: list });
+            continue;
+        }
+
+        const cost = distinct[0];
+        const current = Number(currentBySlug.get(slug) ?? 0);
+
+        if (Math.abs(current - cost) < 0.005) {
+            unchanged++;
+            continue;
+        }
+
+        updated.push({ slug, from: currentBySlug.get(slug) ?? null, to: cost });
+
+        if (!dryRun) {
+            const { error: updateError } = await supabase
+                .from('products')
+                .update({ cost_price: cost, cost_price_currency: 'UAH' })
+                .eq('slug', slug);
+
+            if (updateError) {
+                console.error(`[keycrm-costs] failed to update ${slug}:`, updateError.message);
+            }
+        }
+    }
+
+    return {
+        dry_run: dryRun,
+        offers_read: offers.length,
+        cost_fields: [...new Set(offers.map(o => o.cost_field).filter(Boolean) as string[])],
+        updated_products: updated,
+        unchanged,
+        conflicts,
+        without_cost: withoutCost,
+    };
+}
+
 /** Persist decisions from the admin screen. Upsert by slug — one row per product. */
 export async function saveMappings(rows: Array<{
     site_slug: string;

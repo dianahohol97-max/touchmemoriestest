@@ -289,7 +289,29 @@ export type KeycrmOffer = {
     sku: string;
     name: string;
     price: number;
+    /** Purchase cost, when the account exposes one. Null when absent. */
+    cost: number | null;
+    /** Which API field the cost came from, so an unexpected schema is visible. */
+    cost_field: string | null;
 };
+
+// KeyCRM has named the purchase price differently across API versions and
+// account types. Probing several names beats hard-coding one and silently
+// importing nothing.
+const COST_FIELDS = ['purchased_price', 'purchase_price', 'cost_price', 'cost', 'price_purchase'];
+
+function readCost(row: any): { cost: number | null; field: string | null } {
+    for (const field of COST_FIELDS) {
+        const raw = row?.[field] ?? row?.product?.[field];
+        if (raw === null || raw === undefined || raw === '') continue;
+
+        const value = Number(raw);
+        // Zero is a legitimate "not filled in" in KeyCRM, and importing it would
+        // wipe a cost somebody entered on the site by hand.
+        if (Number.isFinite(value) && value > 0) return { cost: value, field };
+    }
+    return { cost: null, field: null };
+}
 
 /**
  * The CRM's own catalogue, flattened to one row per sellable item.
@@ -323,8 +345,11 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
             const parentName = String(row?.product?.name ?? '').trim();
             const ownName = String(row?.name ?? '').trim();
             const price = Number(row?.price ?? row?.product?.price ?? 0);
+            const { cost, field } = readCost(row);
 
             offers.push({
+                cost,
+                cost_field: field,
                 offer_id: String(row?.id ?? ''),
                 sku: String(row?.sku ?? '').trim(),
                 // Prefer the parent name and append the variant when both exist,
