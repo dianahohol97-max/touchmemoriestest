@@ -79,6 +79,14 @@
     {
       "path": "/api/cron/cleanup-galleries",
       "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/ops-digest",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/ops-digest",
+      "schedule": "0 14 * * *"
     }
   ]
 }

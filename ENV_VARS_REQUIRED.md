@@ -41,6 +41,8 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `TELEGRAM_PUBLIC_BOT_TOKEN` | Telegram notifications |
 | `TELEGRAM_DESIGNER_CHAT_ID` | Designer chat ID |
 | `CRON_SECRET` | Secret for cron job auth |
+| `OPS_DIGEST_EMAIL` | Where the twice-daily "що потребує уваги" report is sent. Comma-separated for several recipients; without it the digest job runs but delivers nothing |
+| `KEYCRM_API_TOKEN` | KeyCRM API key. Used read-only by the CRM contact import and by the ops digest, which compares website orders against the CRM to find ones nobody transferred |
 | `CHECKBOX_LOGIN` | Checkbox ПРРО login |
 | `CHECKBOX_LICENSE_KEY` | Checkbox license key |
 | `R2_ACCOUNT_ID` | Cloudflare account id — enables R2 for gallery files |
