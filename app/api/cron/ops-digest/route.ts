@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { fetchRecentKeycrmOrders, phoneKey, type KeycrmOrder } from '@/lib/automation/keycrm';
 
 export const dynamic = 'force-dynamic';
@@ -182,9 +183,11 @@ async function backfillDeadlines(supabase: any, orders: OrderRow[], now: Date): 
         ['confirmed', 'in_production', 'quality_check'].includes(o.order_status || '')
     ).length;
 
+    const productTermsBySlug = await fetchProductTermsBySlug();
+
     let filled = 0;
     for (const order of candidates) {
-        const { deadline } = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now });
+        const { deadline } = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now, productTermsBySlug });
 
         const { error } = await supabase
             .from('orders')

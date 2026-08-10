@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { calculatePriorityScore } from '@/lib/automation/priority-calculator';
 import { autoAssignDesigner } from '@/lib/automation/designer-assignment';
 import { sendStatusChangeNotification } from '@/lib/automation/email-notifications';
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
     // their comment ("потрібно до 12.10, весілля") beats the calculated one —
     // that sentence is the real deadline, and until it was read the order
     // looked exactly like a calm one right up until it was late.
-    const resolved = resolveOrderDeadline(order, { activeOrdersCount });
+    const resolved = resolveOrderDeadline(order, { activeOrdersCount, productTermsBySlug: await fetchProductTermsBySlug() });
     const deadline = resolved.deadline;
 
     // Calculate priority score

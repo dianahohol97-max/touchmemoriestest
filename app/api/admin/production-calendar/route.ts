@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,8 @@ export async function GET(request: Request) {
         ['confirmed', 'in_production', 'quality_check'].includes(o.order_status || '')
     ).length;
 
+    const productTermsBySlug = await fetchProductTermsBySlug();
+
     const days: Record<string, any[]> = {};
     for (let i = 0; i < 7; i++) {
         const d = new Date(weekStart);
@@ -114,7 +117,7 @@ export async function GET(request: Request) {
     let unplaced = 0;
 
     for (const order of visible) {
-        const resolved = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now });
+        const resolved = resolveOrderDeadline(order, { activeOrdersCount: activeCount, now, productTermsBySlug });
         const deadline = order.deadline ? new Date(order.deadline) : resolved.deadline;
 
         const card = {

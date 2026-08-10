@@ -25,14 +25,26 @@ import { readOrderDeadlineHint } from '@/lib/automation/deadline-hints';
  * day of the wedding is the same as missing it.
  */
 
-// The OFFICIAL production terms, exactly as the customer sees them in the
-// product options: «Стандартна (5–8 днів)» and «Термінова до 5 робочих днів
-// (+30%)». The deadline is the outer edge of the promise, counted in working
-// days from the ORDER date — not from payment, and not from a number invented
-// here. An earlier scaffold used 5/2 days from payment; Diana corrected it:
-// the terms the shop publishes are the terms the calendar must hold it to.
+// Fallback terms for products that state none. The real term is per product —
+// products.production_time carries the published promise («14–18 робочих днів»
+// for a velvet photobook, «1–3 робочих дні» for accessories) and the caller
+// passes those in via productTermsBySlug. These constants only cover a product
+// with an empty field.
 const STANDARD_TERM_WORKING_DAYS = 8;
 const EXPRESS_TERM_WORKING_DAYS = 5;
+
+/**
+ * The published term as a number of working days: the LAST number in the text,
+ * because «14–18 робочих днів» promises the customer the outer edge, and a
+ * deadline planned on the optimistic edge would be missed by design half the
+ * time.
+ */
+export function parseProductionDays(text: string | null | undefined): number | null {
+    const numbers = String(text || '').match(/\d+/g);
+    if (!numbers || !numbers.length) return null;
+    const days = Number(numbers[numbers.length - 1]);
+    return Number.isFinite(days) && days > 0 && days <= 60 ? days : null;
+}
 
 // Working days reserved for packing and delivery between finishing an order and
 // the customer holding it.
@@ -77,6 +89,8 @@ export type ResolvedDeadline = {
 export function resolveOrderDeadline(order: any, params?: {
     activeOrdersCount?: number;
     now?: Date;
+    /** Published per-product terms in working days, keyed by slug. */
+    productTermsBySlug?: Record<string, number>;
 }): ResolvedDeadline {
     const now = params?.now ?? new Date();
     const attrs = order?.custom_attributes || {};
@@ -103,12 +117,40 @@ export function resolveOrderDeadline(order: any, params?: {
 
     const express = hasPaidExpress || hasExpressTag || hint.urgent;
 
+    // The standard term is the SLOWEST product in the order: the parcel ships
+    // when the velvet photobook («14–18 робочих днів») is done, not when the
+    // photo corners («1–3 робочих дні») are.
+    const termsBySlug = params?.productTermsBySlug || {};
+    const itemTerms = items
+        .map((item: any) => termsBySlug[String(item?.slug || '')])
+        .filter((d: any): d is number => Number.isFinite(d) && d > 0);
+    const standardTerm = itemTerms.length ? Math.max(...itemTerms) : STANDARD_TERM_WORKING_DAYS;
+
+    // The paid-express promise carries its own number in the option text
+    // («Термінова до 5 робочих днів»), so it is read from there rather than
+    // assumed. Express never makes an order SLOWER than its standard term —
+    // accessories that take three days stay at three.
+    let expressDays = EXPRESS_TERM_WORKING_DAYS;
+    for (const item of items) {
+        const options = item?.options && typeof item.options === 'object' ? item.options : {};
+        for (const value of Object.values(options)) {
+            if (/термінов/i.test(String(value))) {
+                // The number BEFORE «робочих», not the last number in the
+                // string: «Термінова до 5 робочих днів (+30%)» ends in 30, and
+                // the test run proved the naive parse promotes the surcharge to
+                // a thirty-day term.
+                const m = String(value).match(/(\d+)\s*робоч/i);
+                if (m) expressDays = Number(m[1]);
+            }
+        }
+    }
+
     // From the ORDER date. The promise to the customer starts the moment they
     // ordered, whatever the payment method did afterwards.
     const start = new Date(order?.created_at || order?.paid_at || now);
     const base = addWorkingDays(
         Number.isFinite(start.getTime()) ? start : now,
-        express ? EXPRESS_TERM_WORKING_DAYS : STANDARD_TERM_WORKING_DAYS,
+        express ? Math.min(standardTerm, expressDays) : standardTerm,
     );
 
     const floor = addWorkingDays(now, MIN_LEAD_DAYS);
