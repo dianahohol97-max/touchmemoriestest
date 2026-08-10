@@ -93,7 +93,18 @@ export function resolveOrderDeadline(order: any, params?: {
         const mustFinishBy = subtractWorkingDays(hint.requestedDate, SHIPPING_BUFFER_DAYS);
         const bounded = mustFinishBy.getTime() < floor.getTime() ? floor : mustFinishBy;
 
-        if (bounded.getTime() < base.getTime()) {
+        // The customer's date wins in two situations, not one. When it is
+        // earlier than the standard plan, it tightens the plan — that is the
+        // obvious case. But when the standard plan is already in the PAST (an
+        // old order that sat in a queue), the customer's future date is the
+        // only commitment that still means anything: leaving the deadline on
+        // the long-gone standard date paints the order as hopelessly overdue
+        // when the customer needs it by the 16th and there is still time. The
+        // "a December wish does not extend a fresh order" rule is untouched —
+        // it only applies while the standard plan is still achievable.
+        const basePast = base.getTime() < floor.getTime();
+
+        if (bounded.getTime() < base.getTime() || basePast) {
             return {
                 deadline: bounded,
                 reason: 'requested-date',
