@@ -151,6 +151,10 @@ async function processAbandonedOrders(supabase: any, now: Date, stats: any) {
         .from('orders')
         .select('id, order_number, customer_name, customer_email, total, items, created_at')
         .in('payment_status', ['pending', 'unpaid'])
+        // Mirrored KeyCRM orders are copies of Instagram orders handled entirely
+        // in the CRM; emailing their customers about an abandoned cart would be
+        // both wrong and confusing.
+        .neq('source', 'keycrm')
         .is('notified_abandoned_at', null)
         .lt('created_at', cutoff24h)
         .not('customer_email', 'is', null);

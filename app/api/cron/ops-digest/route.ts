@@ -80,6 +80,7 @@ type OrderRow = {
     paid_at: string | null;
     created_at: string;
     custom_attributes: any;
+    source: string | null;
     notes: string | null;
     total: number | null;
 };
@@ -173,6 +174,10 @@ async function backfillDeadlines(supabase: any, orders: OrderRow[], now: Date): 
         isPaid(o) &&
         !o.deadline &&
         !isClosed(o) &&
+        // Production deadlines belong to orders the site produces. A mirrored
+        // KeyCRM order is a read-only copy, and writing to it would break the
+        // one promise the mirror makes.
+        o.source !== 'keycrm' &&
         o.paid_at &&
         new Date(o.paid_at).getTime() >= cutoff
     );
@@ -302,7 +307,13 @@ function buildBuckets(
     now: Date,
 ): Bucket[] {
     const nowMs = now.getTime();
-    const open = orders.filter(o => !isClosed(o));
+
+    // Mirrored KeyCRM orders are read-only copies of Instagram orders. Every
+    // site-side bucket below asks somebody to do something here — assign a
+    // designer, upload files, transfer the order — and none of that applies to
+    // an order the CRM owns outright. They are watched instead by the KeyCRM
+    // section further down.
+    const open = orders.filter(o => !isClosed(o) && o.source !== 'keycrm');
 
     // Anything that asks for action is scoped to the recent window; see
     // ACTION_WINDOW_DAYS for why.
@@ -519,7 +530,7 @@ export async function GET(request: Request) {
     try {
         const { data, error } = await supabase
             .from('orders')
-            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, deadline, paid_at, created_at, custom_attributes, notes, total')
+            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, deadline, paid_at, created_at, custom_attributes, source, notes, total')
             .gte('created_at', since)
             .order('created_at', { ascending: false });
 

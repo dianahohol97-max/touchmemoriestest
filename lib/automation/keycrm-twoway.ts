@@ -52,6 +52,7 @@ const MONEY_EPSILON = 1;
 // Money lives in one place for the whole bridge; see keycrm-money for why
 // `payment_status = 'paid'` cannot be read as "the total arrived".
 import { readOrderMoney, money } from '@/lib/automation/keycrm-money';
+import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 
 async function statusMapFromCrm(): Promise<Record<string, string>> {
     const supabase = getAdminClient();
@@ -295,7 +296,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
+        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
@@ -305,6 +306,10 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     return (data || [])
         .filter(o => (o.custom_attributes as any)?.keycrm?.order_id)
+        // Mirrored orders carry a CRM id too, but they are copies the CRM owns
+        // outright — reconciling them would file the site's guesses about money
+        // the site never took.
+        .filter(o => o.source !== MIRROR_SOURCE)
         // Delivered orders are usually finished business and are dropped rather
         // than polled forever — unless money is still outstanding on them. A
         // cash-on-delivery balance is settled at the moment of delivery, so

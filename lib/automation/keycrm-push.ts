@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
+import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -455,7 +456,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
+        .select('id, order_number, source, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
         // Dated on creation, not on payment: a cash-on-delivery order may never
         // get a paid_at at all, and filtering on it would hide those orders from
         // the sweep entirely.
@@ -468,6 +469,9 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
 
     return (data || [])
         .filter(o => !(o.custom_attributes as any)?.keycrm?.order_id)
+        // A mirrored order is a read-only copy of an order that already lives in
+        // the CRM. Pushing it would create a second card for the same sale.
+        .filter(o => o.source !== MIRROR_SOURCE)
         .filter(isReadyForCrm)
         .slice(0, params.limit);
 }

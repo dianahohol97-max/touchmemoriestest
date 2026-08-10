@@ -39,6 +39,10 @@ export async function GET(request: Request) {
     const { data: remindCandidates } = await supabase
         .from('orders')
         .select('id, order_number, customer_name, customer_email, total, monobank_invoice_id, payment_reminder_sent_at')
+        // A mirrored KeyCRM order is a read-only copy of an Instagram order that
+        // is paid and fiscalised in the CRM. Reminding its customer to pay would
+        // chase money the site never had a claim on.
+        .neq('source', 'keycrm')
         .eq('payment_status', 'pending')
         .eq('order_status', 'new')
         .is('payment_reminder_sent_at', null)

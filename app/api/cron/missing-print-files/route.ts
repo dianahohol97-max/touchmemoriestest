@@ -62,6 +62,9 @@ export async function GET(request: Request) {
   const { data: orders, error } = await admin
     .from('orders')
     .select('id, order_number, items, notes')
+    // Mirrored KeyCRM orders never had files uploaded here and are produced
+    // from the CRM side, so flagging them would be pure noise.
+    .neq('source', 'keycrm')
     .gt('created_at', floor)
     .lt('created_at', ceiling)
     .limit(500);
