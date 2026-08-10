@@ -159,8 +159,22 @@ function resolveCoverColor(material: string, colorName: string): string {
   return '#EAE7E0';
 }
 
-// Parse "90×50 срібний" → { w: 90, h: 50 }. Falls back to a sane plate size.
-function parseVariantDims(variant: string): { w: number; h: number } {
+// The metal plate's colour lives INSIDE the variant label ("90×50 срібний") —
+// real orders (TM-001168) carry no separate colour key for the вставка at all,
+// so without reading the variant the render silently fell back to gold.
+export function colorNameFromVariant(variant: string): string {
+  const v = (variant || '').toLowerCase();
+  if (v.includes('срібн') || v.includes('silver')) return 'Срібний';
+  if (v.includes('золот') || v.includes('gold')) return 'Золотий';
+  if (v.includes('біл') || v.includes('white')) return 'Білий';
+  if (v.includes('чорн') || v.includes('black')) return 'Чорний';
+  return '';
+}
+
+// Parse "90×50 срібний" / "100×100 мм" → { w: 90, h: 50 } (millimetres).
+// Falls back to a sane plate size. Exported for the insert-photo generator,
+// which needs the physical insert dimensions from the same variant label.
+export function parseVariantDims(variant: string): { w: number; h: number } {
   const m = (variant || '').match(/(\d+)\s*[х×x]\s*(\d+)/i);
   if (m) return { w: parseInt(m[1], 10), h: parseInt(m[2], 10) };
   return { w: 90, h: 50 };
@@ -275,7 +289,70 @@ export async function renderWishbookCoverPng(
 
   // Font size: title fills a good fraction of the plate (metal/acryl) or the
   // cover (engraving / printed). Scaled to the render size.
-  const onPlate = decoType === 'metal' || decoType === 'acryl' || decoType === 'photovstavka';
+  const onPlateRaw = decoType === 'metal' || decoType === 'acryl' || decoType === 'photovstavka';
+  // Фотовставка mono макет: the insert ships as a PHOTO file, and what gets
+  // engraved is the напис on the COVER — so mono renders the front-cover sheet
+  // with the написи only, no plate footprint (Diana, TM-001171, 2026-08-10).
+  // Metal and acryl keep the plate-only mono artwork below.
+  const onPlate = onPlateRaw && !(mono && decoType === 'photovstavka');
+
+  // Plate decorations (металева вставка etc.) are produced SEPARATELY from the
+  // book: the workshop engraves the plate itself, so the mono макет must be the
+  // plate alone at its physical size (90×50 mm and the like) — not the whole
+  // front cover with a small outline in the middle (Diana, TM-001168,
+  // 2026-08-10). The canvas IS the plate: white background, black text, no
+  // frame, 300 DPI so the file prints at exactly the plate dimensions.
+  if (mono && onPlate) {
+    const pFullW = mmToPx300(plate.w);
+    const pFullH = mmToPx300(plate.h);
+    const pk = Math.min(1, MAX_RENDER_PX / Math.max(pFullW, pFullH));
+    const PW = Math.round(pFullW * pk);
+    const PH = Math.round(pFullH * pk);
+    const areaW = PW * 0.86;
+    const plateFontSize = Math.max(
+      PW * 0.04,
+      Math.min(PH * 0.5, title.length > 0 ? areaW / (title.length * 0.56) : PH * 0.4),
+    );
+    const fontData = await loadGoogleFont(titleFont, title || 'Книга побажань');
+    const plateImage = new ImageResponse(
+      (
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            height: '100%',
+            background: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              fontFamily: `"${titleFont}"`,
+              fontWeight: 700,
+              fontSize: `${plateFontSize}px`,
+              color: '#000000',
+              textAlign: 'center',
+              lineHeight: 1.15,
+              letterSpacing: '0.02em',
+            }}
+          >
+            {title}
+          </div>
+        </div>
+      ),
+      {
+        width: PW,
+        height: PH,
+        fonts: fontData
+          ? [{ name: titleFont, data: fontData, weight: 700 as const, style: 'normal' as const }]
+          : [],
+      }
+    );
+    const plateBuf = await plateImage.arrayBuffer();
+    return new Uint8Array(plateBuf);
+  }
   const titleAreaW = onPlate ? plateW * 0.86 : W * 0.78;
   // Rough fit: assume ~0.58 aspect per glyph; clamp to sane bounds.
   const approxFontByWidth = title.length > 0 ? (titleAreaW / (title.length * 0.56)) : W * 0.06;
@@ -430,7 +507,13 @@ export async function renderWishbookCoverPng(
               fontFamily: `"${ex.fontFamily || titleFont}"`,
               fontWeight: 700,
               fontSize: `${Math.max(W * 0.006, (ex.fontPxEditor || 20) * editorScale)}px`,
-              color: mono ? '#000000' : (ex.color && ex.color.startsWith('#')) ? ex.color : titleColor,
+              // Гравіювання одного кольору для всіх написів — збережений колір
+              // додаткового напису ігнорується, друкується колір основного.
+              color: mono
+                ? '#000000'
+                : decoType === 'graviruvannya'
+                ? titleColor
+                : (ex.color && ex.color.startsWith('#')) ? ex.color : titleColor,
               lineHeight: 1.2,
               letterSpacing: '0.02em',
               whiteSpace: 'nowrap',
@@ -471,8 +554,15 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
   const coverColorName = get('Колір обкладинки', 'Cover color');
   const decoRaw = get('Декорація обкладинки', 'Оздоблення', 'Decoration');
   const decoVariant = get('Варіант декорації', 'Варіант оздоблення', 'Decoration variant');
-  const decoColorName = get('Колір напису', 'Колір декорації', 'Decoration color');
-  const title = get('Напис на декорації', 'Напис на обкладинку', 'Напис', 'Title', 'Text');
+  const inscriptionTitle = get('Напис на декорації', 'Напис на обкладинку', 'Текст на обкладинці', 'Напис', 'Title', 'Text');
+  // The variant IS the physical SKU the customer bought ("90×50 срібний"), so
+  // when it names a colour it outranks the loose text keys; variants without a
+  // colour word ("Акрил Ø145 мм") fall through to those keys as before.
+  const decoColorName = colorNameFromVariant(decoVariant)
+    || get('Колір напису', 'Колір декорації', 'Decoration color');
+  // «Текст на обкладинці» is the photobook editor's dialect for the cover напис
+  // (TM-001171) — without it the mono route saw an empty title and skipped.
+  const title = inscriptionTitle;
   const fontFamily = get('Шрифт напису', 'Шрифт', 'Font') || 'Playfair Display';
 
   return {

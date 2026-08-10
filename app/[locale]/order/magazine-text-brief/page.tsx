@@ -236,10 +236,11 @@ function MagazineTextBriefContent() {
     if (photos.length === 0) return false;
     if (!firstName.trim() || !lastName.trim()) return false;
     // Telegram nick is always required — it's the primary channel we use
-    // to reach the customer about the brief. The chosen channel below
-    // (if email/phone) is required on top of it.
+    // to reach the customer about the brief. Email is ALWAYS required too
+    // (Diana, 2026-08-07): Telegram не завжди доступний, а замовлення без
+    // пошти лишає єдиним каналом особистий телефон/Viber.
     if (!telegram.trim()) return false;
-    if (contactMethod === 'email' && !email.trim()) return false;
+    if (!email.trim() || !/.+@.+\..+/.test(email.trim())) return false;
     if (contactMethod === 'phone' && !phone.trim()) return false;
     for (const f of visibleFields) {
       if (f.required && !answers[f.id]?.trim()) return false;
@@ -255,7 +256,7 @@ function MagazineTextBriefContent() {
     if (!firstName.trim()) out.push('вкажіть імʼя');
     if (!lastName.trim()) out.push('вкажіть прізвище');
     if (!telegram.trim()) out.push('вкажіть нік у Telegram');
-    if (contactMethod === 'email' && !email.trim()) out.push('вкажіть email');
+    if (!email.trim() || !/.+@.+\..+/.test(email.trim())) out.push('вкажіть email');
     if (contactMethod === 'phone' && !phone.trim()) out.push('вкажіть номер телефону');
     const missingFields = visibleFields.filter(f => f.required && !answers[f.id]?.trim());
     if (missingFields.length > 0) {
@@ -989,7 +990,7 @@ function MagazineTextBriefContent() {
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 12 }}
         />
         <input
-          type="email" placeholder={contactMethod === 'email' ? 'Email *' : 'Email'}
+          type="email" placeholder="Email *"
           value={email} onChange={(e) => setEmail(e.target.value)}
           style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, outline: 'none', marginBottom: 16 }}
         />

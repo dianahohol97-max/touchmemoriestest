@@ -125,8 +125,45 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         if (!cancelled && Array.isArray(colors)) setCoverColorIndex(colors);
       } catch { /* non-blocking */ }
     })();
+    // Email correspondence for this order — automatic sends + manual letters.
+    (async () => {
+      try {
+        const r = await fetch(`/api/admin/orders/${order.id}/emails`);
+        if (!r.ok) return;
+        const { items } = await r.json();
+        if (!cancelled && Array.isArray(items)) setEmailHistory(items);
+      } catch { /* non-blocking */ }
+    })();
     return () => { cancelled = true; };
   }, [order?.id]);
+
+  // «Листування» card: send a letter to the customer straight from the order.
+  const sendOrderEmail = async () => {
+    if (!order?.id || emailSending) return;
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      toast.error('Заповніть тему і текст листа');
+      return;
+    }
+    setEmailSending(true);
+    try {
+      const r = await fetch(`/api/admin/orders/${order.id}/emails`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: emailSubject.trim(), body: emailBody.trim() }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { toast.error(j?.error || 'Не вдалося надіслати лист'); return; }
+      toast.success('Лист надіслано клієнту');
+      setEmailSubject('');
+      setEmailBody('');
+      try {
+        const hr = await fetch(`/api/admin/orders/${order.id}/emails`);
+        if (hr.ok) { const { items } = await hr.json(); if (Array.isArray(items)) setEmailHistory(items); }
+      } catch { /* history refresh is best-effort */ }
+    } finally {
+      setEmailSending(false);
+    }
+  };
 
   // Download every uploaded photo at once as a single ZIP (built client-side
   // from the signed URLs). Cover is prefixed so it sorts first / is obvious.
@@ -176,6 +213,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [clientComment, setClientComment] = useState('');
     const [filesUrl, setFilesUrl] = useState('');
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+    // Per-order email correspondence («Листування» card).
+    const [emailHistory, setEmailHistory] = useState<any[]>([]);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailBody, setEmailBody] = useState('');
+    const [emailSending, setEmailSending] = useState(false);
+    const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
     // Customer's saved constructor layout(s) for this order — shown even when
     // nothing has been rendered yet, so a linked design is never invisible.
     const [layouts, setLayouts] = useState<any[]>([]);
@@ -2210,11 +2253,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             </a>
                                         </div>
                                         <div style={{ fontSize: 13, color: '#334155', marginTop: 6 }}>
-                                            {L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}
+                                            {/* Print sets (нестандартний фотодрук / магніти) have no page
+                                                slots — the meaningful number is the prints themselves. */}
+                                            {L.isPrintSet
+                                                ? <>{L.format || ''} · готових відбитків у макеті: <b>{L.photos}</b></>
+                                                : <>{L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}</>}
                                         </div>
                                         {!L.ready && (
                                             <div style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
-                                                {L.filledSlots === 0
+                                                {L.isPrintSet
+                                                    ? (L.photos === 0
+                                                        ? 'У макеті немає жодного відбитка — друкувати нічого.'
+                                                        : `Не всі відбитки доступні у сховищі (${L.photosPresentInStorage} з ${L.photosWithPath}).`)
+                                                    : L.filledSlots === 0
                                                     ? 'У макеті НЕ розставлено жодного фото — це порожня чернетка, друкувати не можна.'
                                                     : `Не всі фото доступні у сховищі (${L.photosPresentInStorage} з ${L.photosWithPath}) — макет може вийти з порожніми місцями.`}
                                             </div>
@@ -2446,6 +2497,71 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             >
                                 <ExternalLink size={16} /> Відкрити файли
                             </a>
+                        )}
+                    </div>
+
+                    <div style={cardStyle}>
+                        <div style={cardHeaderStyle}>
+                            <h3 style={cardTitleStyle}><Mail size={20} /> Листування з клієнтом</h3>
+                        </div>
+                        {order?.customer_email ? (
+                            <div style={{ marginBottom: 14, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+                                    Лист піде на <b>{order.customer_email}</b> від імені магазину. Відповідь клієнта прийде на пошту магазину.
+                                </div>
+                                <input
+                                    value={emailSubject}
+                                    onChange={e => setEmailSubject(e.target.value)}
+                                    placeholder="Тема листа"
+                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, marginBottom: 8, outline: 'none' }}
+                                />
+                                <textarea
+                                    value={emailBody}
+                                    onChange={e => setEmailBody(e.target.value)}
+                                    placeholder="Текст листа клієнту…"
+                                    rows={4}
+                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, resize: 'vertical', outline: 'none' }}
+                                />
+                                <button
+                                    onClick={sendOrderEmail}
+                                    disabled={emailSending}
+                                    style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: emailSending ? '#93c5fd' : '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
+                                    {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                                    {emailSending ? 'Надсилаємо…' : 'Надіслати лист'}
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ marginBottom: 14, padding: '10px 12px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
+                                У замовлення не збережено email клієнта, тому надіслати лист неможливо. Для нових замовлень пошта вже обовʼязкова.
+                            </div>
+                        )}
+                        {emailHistory.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Історія ({emailHistory.length})</div>
+                                {emailHistory.map((m: any) => (
+                                    <div key={m.id}
+                                        onClick={() => m.body && setExpandedEmailId(expandedEmailId === m.id ? null : m.id)}
+                                        style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: m.status === 'failed' ? '#fef2f2' : '#fff', cursor: m.body ? 'pointer' : 'default' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: m.kind === 'manual' ? '#1e2d7d' : '#64748b' }}>
+                                                {m.subject || m.label}
+                                            </span>
+                                            <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+                                                {m.sent_at ? new Date(m.sent_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: 11, color: m.status === 'failed' ? '#dc2626' : '#94a3b8', marginTop: 2 }}>
+                                            {m.kind === 'manual' ? 'Лист від магазину' : m.label}
+                                            {m.status === 'failed' ? ` · НЕ ДОСТАВЛЕНО${m.error ? `: ${m.error}` : ''}` : ''}
+                                        </div>
+                                        {expandedEmailId === m.id && m.body && (
+                                            <div style={{ marginTop: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: 6, fontSize: 12, color: '#374151', whiteSpace: 'pre-wrap' }}>{m.body}</div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ fontSize: 12, color: '#94a3b8' }}>Листів по цьому замовленню ще не було.</div>
                         )}
                     </div>
 

@@ -29,9 +29,10 @@ export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fo
  * pruneStaleExports would therefore delete them on the next re-render. That is
  * exactly how TM-001138 lost its engraved cover. Railway's own cover is
  * `00_cover.jpg`, which does not match: the anchor requires the file name to
- * start at `cover`.
+ * start at `cover`. `insert_photo.jpg` — the standalone фотовставка photo from
+ * generate-cover-bw — is protected for the same reason.
  */
-const SERVER_GENERATED_COVER = /(^|\/)cover(_bw)?\.jpg$/i;
+const SERVER_GENERATED_COVER = /(^|\/)(cover(_bw)?|insert_photo)\.jpg$/i;
 
 export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[]) {
   return uploaded.map((path) => {

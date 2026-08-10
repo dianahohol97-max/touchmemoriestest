@@ -153,6 +153,23 @@ export async function POST(req: Request) {
             html: htmlContent
         });
 
+        // Log into email_logs either way — the per-order «Листування» card in
+        // the admin reads this table, and the payment confirmation was the one
+        // automatic email that never got logged anywhere.
+        try {
+            await supabase.from('email_logs').insert({
+                order_id: order.id,
+                customer_email: order.customer_email,
+                template: `order_${action}`,
+                subject,
+                status: result.success ? 'sent' : 'failed',
+                error: result.success ? null : String((result as any).error?.message || (result as any).error || 'send failed'),
+                sent_at: new Date().toISOString(),
+            });
+        } catch (e) {
+            console.error('transactional email log failed (email still handled):', e);
+        }
+
         if (!result.success) {
             console.error('Email sending failed in transactional route:', result.error);
             return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });

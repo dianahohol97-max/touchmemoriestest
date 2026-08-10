@@ -2333,8 +2333,39 @@ export default function BookLayoutEditor() {
       order.forEach((oldIdx, newIdx) => { if (m[oldIdx] !== undefined) out[newIdx] = m[oldIdx]; });
       return out;
     };
-    setPages(prev => prev.filter((_, i) => i !== p1 && i !== p2));
-    setFreeSlots(prev => remap(prev));
+    // Форзаци — structural pages addressed by INDEX (first=1, last=length-1).
+    // Deleting a MIDDLE spread keeps both forzac pages in place, but deleting
+    // the FIRST spread removes форзац 1 itself, and deleting the LAST spread
+    // removes форзац 2 — in both cases a CONTENT page slides into the forzac
+    // index. A locked forzac renders as a placeholder, so that page's photos
+    // and text would become invisible and undeletable (visible only in the
+    // spread thumbnail — Diana, travel book, 2026-08-10). Clear ONLY the index
+    // the deletion actually shifted, tell the user, and drop its free slots.
+    const clearedForzacIdx: number[] = [];
+    setPages(prev => {
+      const next = prev.filter((_, i) => i !== p1 && i !== p2);
+      if (hasEndpaper && next.length > 2) {
+        const clearShifted = (idx: number, unlocked: boolean) => {
+          const pg: any = next[idx];
+          if (idx < 1 || unlocked) return;
+          const hasContent = pg?.slots?.some((s: any) => s.photoId) || (pg?.textBlocks || []).length > 0;
+          if (!hasContent) return;
+          next[idx] = { ...pg, slots: pg.slots.map((s: any) => ({ ...s, photoId: null })), textBlocks: [] };
+          clearedForzacIdx.push(idx);
+        };
+        if (p1 === 1) clearShifted(1, endpaperUnlocked.first);
+        if (p2 >= prev.length - 1) clearShifted(next.length - 1, endpaperUnlocked.last);
+      }
+      return next;
+    });
+    setFreeSlots(prev => {
+      const out = remap(prev);
+      clearedForzacIdx.forEach(i => { delete out[i]; });
+      return out;
+    });
+    if (clearedForzacIdx.length > 0) {
+      toast.warning('Сторінка, що стала форзацом, очищена від фото й тексту — форзац друкується лише після активації «Друк на форзаці».', { duration: 7000 });
+    }
     setPageShapes(prev => remap(prev));
     setPageStickers(prev => remap(prev));
     setQrOverlays(prev => remap(prev));
@@ -2352,6 +2383,14 @@ export default function BookLayoutEditor() {
     if (fromSpread === toSpread || fromSpread < 1 || toSpread < 1) return;
     const totalSpreads = Math.ceil((pages.length - 1) / 2);
     if (fromSpread > totalSpreads || toSpread > totalSpreads) return;
+    // Форзаци живуть у першому й останньому розвороті і адресуються ІНДЕКСОМ
+    // (перша/остання сторінка). Перемістити такий розворот означає затягти
+    // сторінку з фото на місце форзаца — той самий «привид», що і при
+    // видаленні розвороту. Структурні розвороти лишаються на місці.
+    if (hasEndpaper && (fromSpread === 1 || fromSpread === totalSpreads || toSpread === 1 || toSpread === totalSpreads)) {
+      toast.error('Перший і останній розвороти містять форзаци, їх не можна переміщати — перемістіть інші розвороти між ними.');
+      return;
+    }
     pushHistory();
 
     // Group content page indices into spreads (last spread may be a single page).
@@ -2869,11 +2908,22 @@ export default function BookLayoutEditor() {
     // targetPages = ordered content pages (pages[0]=cover excluded)
     const targetPages = pages.length - 1;
 
-    // Hard-cap result to targetPages — autoBuild may return slightly more due to spread pairing
+    // Hard-cap result to the PHOTO BUDGET (content pages minus the forzac /
+    // kalka reserves), not to targetPages. Capping at targetPages let the
+    // assembly grow to cover + front forzac + targetPages photo pages, and the
+    // final trim then cut the BACK forzac off the end — so the last photo page
+    // slid into the forzac index: its photo vanished from the canvas (locked
+    // forzac renders as a placeholder) while the spread thumbnail still showed
+    // it, with no way to select or delete it (Diana, travel book, 2026-08-10).
+    // photoBudget is derived from max(minPageCount, current pages), which can
+    // EXCEED targetPages when the current book is below the minimum — capping
+    // by the smaller of the two keeps the final hard trim below from cutting
+    // photo pages without counting them as dropped.
+    const photoPageCap = Math.max(1, Math.min(photoBudget, targetPages - frontReserve - backReserve));
     let cappedDropped = 0;
-    if (result.pages.length > targetPages) {
-      cappedDropped = result.pages.slice(targetPages).reduce((s2, p2) => s2 + p2.photoIds.length, 0);
-      result.pages = result.pages.slice(0, targetPages);
+    if (result.pages.length > photoPageCap) {
+      cappedDropped = result.pages.slice(photoPageCap).reduce((s2, p2) => s2 + p2.photoIds.length, 0);
+      result.pages = result.pages.slice(0, photoPageCap);
     }
     // Never drop photos silently: whatever didn't fit (over-stuffed groups
     // or the page-count cap) must be reported so the customer can add
@@ -5240,6 +5290,61 @@ export default function BookLayoutEditor() {
   const coverPhotoCount = (((coverState as any).coverPhotos) || []).length;
   const chargeableCoverPhotos = Math.max(0, coverPhotoCount - (coverState.decoType === 'photovstavka' ? 1 : 0));
   const coverPhotoExtra = (!isPrinted && chargeableCoverPhotos > 0) ? PHOTO_INSERT_PRICE * chargeableCoverPhotos : 0;
+  // Редактор написів м'якої обкладинки для вкладки «Текст». Спільні контроли
+  // Шрифт/Розмір/Колір нижче у вкладці керують ЛИШЕ текстами внутрішніх
+  // сторінок (selectedTextId), тому кліки по палітрі на обкладинці ні на що не
+  // впливали (Diana, 2026-08-10) — написи обкладинки живуть у
+  // coverState.extraTexts і редагуються цим списком. Кольори — чотири фізичні
+  // фарби нанесення: гравіювання виконується ОДНИМ кольором на всю обкладинку
+  // (вибір застосовується до всіх написів разом і синхронізує decoColor, який
+  // успадковує рендер), друк кольором дозволяє свій колір кожному напису.
+  // Викликається з ДВОХ панелей вкладки «Текст» — тримаємо одну реалізацію,
+  // щоб вони не розійшлися.
+  const INSCRIPTION_INK_COLORS: Array<[string, string]> = [['#D4AF37','Золотий'],['#C0C0C0','Срібний'],['#FFFFFF','Білий'],['#1A1A1A','Чорний']];
+  const renderCoverInscriptionEditor = () => {
+    const texts = coverState.extraTexts || [];
+    if (!texts.length || coverState.decoType === 'metal') return null;
+    const isEngrave = (coverState.inscriptionMethod || 'graviruvannya') === 'graviruvannya';
+    const editEt = (id: string, patch: Record<string, unknown>) =>
+      setCoverState(p => ({ ...p, extraTexts: (p.extraTexts||[]).map(t2 => t2.id===id ? { ...t2, ...patch } : t2) }));
+    const setInk = (id: string, c: string) =>
+      setCoverState(p => isEngrave
+        ? { ...p, decoColor: c, extraTexts: (p.extraTexts||[]).map(t2 => ({ ...t2, color: c })) }
+        : { ...p, extraTexts: (p.extraTexts||[]).map(t2 => t2.id===id ? { ...t2, color: c } : t2) });
+    return (
+      <div style={{ display:'flex', flexDirection:'column', marginTop:6 }}>
+        <div style={{ fontSize:11, fontWeight:700, color:'#64748b', margin:'2px 0' }}>Редагувати написи на обкладинці</div>
+        {texts.map(et => (
+          <div key={et.id} style={{ marginTop:6, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', display:'flex', flexDirection:'column', gap:4 }}>
+            <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+              <input value={et.text} onChange={e=>editEt(et.id,{ text:e.target.value })}
+                style={{ flex:1, minWidth:0, padding:'3px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:11 }}/>
+              <button onClick={()=>setCoverState(p=>{ const updated=(p.extraTexts||[]).filter(t2=>t2.id!==et.id); return { ...p, extraTexts: updated, ...(updated.length===0?{ inscriptionMethod:null }:{}) }; })}
+                style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
+            </div>
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:3, flexShrink:0 }}>
+                {INSCRIPTION_INK_COLORS.map(([c,label]) => (
+                  <button key={c} title={label} onClick={()=>setInk(et.id, c)}
+                    style={{ width:18, height:18, borderRadius:'50%', background:c, border: et.color===c?'2px solid #1e2d7d':'1px solid #cbd5e1', cursor:'pointer', padding:0 }}/>
+                ))}
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
+                <input type="range" min={8} max={120} value={et.fontSize||20} onChange={e=>editEt(et.id,{ fontSize:+e.target.value })} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
+                <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {et.fontSize||20}px</span>
+              </div>
+            </div>
+            <FontPicker value={et.fontFamily||'Marck Script'} onChange={f=>editEt(et.id,{ fontFamily:f })} />
+          </div>
+        ))}
+        {isEngrave && (
+          <div style={{ fontSize:10, color:'#94a3b8', marginTop:4 }}>
+            Гравіювання виконується одним кольором, тому обраний колір застосовується одразу до всіх написів на обкладинці.
+          </div>
+        )}
+      </div>
+    );
+  };
   // QR surcharge: +50₴ per generation (not per placement). Tracked by
   // generatedQRCount which increments on each successful "Згенерувати QR"
   // click. Uploaded QR (user's own PNG) does not add to this count.
@@ -5283,6 +5388,22 @@ export default function BookLayoutEditor() {
   // unlock case only). Both were previously listed here, so honestly-priced
   // orders looked like they carried a surprise «+N ₴» in the header.
   const priceDiff = basePriceDiff + endpaperDiff + qrExtra + inscriptionExtra + coverPhotoExtra + typesettingExtra;
+  // What the ± badge in the header consists of, with signed amounts. ONE
+  // source for both the tooltip and the small caption — the old fixed caption
+  // «доплата за додаткові стор.» showed even when the diff was pure verstka,
+  // and Diana hunted for a phantom extra spread that never existed
+  // (2026-08-10).
+  const priceDiffLabel = [
+    basePriceDiff !== 0 ? { amt: basePriceDiff, label: basePriceDiff > 0 ? 'додаткові сторінки' : 'менше сторінок' } : null,
+    endpaperDiff > 0 ? { amt: endpaperDiff, label: 'друк на форзацах' } : null,
+    typesettingExtra > 0 ? { amt: typesettingExtra, label: 'верстка тексту' } : null,
+    inscriptionExtra > 0 ? { amt: inscriptionExtra, label: 'напис на обкладинці' } : null,
+    coverPhotoExtra > 0 ? { amt: coverPhotoExtra, label: 'фотовставка' } : null,
+    qrExtra > 0 ? { amt: qrExtra, label: 'QR-код' } : null,
+  ]
+    .filter((p): p is { amt: number; label: string } => !!p)
+    .map(p => `${p.label} ${p.amt > 0 ? '+' : '−'}${Math.abs(p.amt)} ₴`)
+    .join(' · ');
 
   const slotDefs = cur ? getSlotDefs(cur.layout, cW, cH) : [];
 
@@ -5397,9 +5518,7 @@ export default function BookLayoutEditor() {
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d', display:'flex', alignItems:'center', gap:4 }}>
                 {copiesCount > 1 ? `${dynamicPrice} ₴ × ${copiesCount}` : `${dynamicPrice} ₴`}
                 {priceDiff !== 0 && (
-                  <span title={priceDiff > 0
-                    ? `Ви додали сторінок більше ніж у початковому замовленні — доплата +${priceDiff} ₴`
-                    : `Ви використали менше сторінок ніж у замовленні — знижка ${priceDiff} ₴`}
+                  <span title={`Зміна відносно початкової конфігурації: ${priceDiffLabel || 'зміна кількості сторінок'}`}
                     style={{ fontSize:11, color: priceDiff>0 ? '#f59e0b' : '#10b981',
                       background: priceDiff>0 ? '#fef3c7' : '#d1fae5',
                       padding:'1px 6px', borderRadius:5, cursor:'help', fontWeight:700 }}>
@@ -5407,8 +5526,10 @@ export default function BookLayoutEditor() {
                   </span>
                 )}
               </div>
-              {priceDiff > 0 && (
-                <div style={{ fontSize:9, color:'#f59e0b', marginTop:1 }}>доплата за додаткові стор.</div>
+              {priceDiff !== 0 && priceDiffLabel && (
+                <div style={{ fontSize:9, color: priceDiff>0 ? '#f59e0b' : '#10b981', marginTop:1, maxWidth:180 }}>
+                  {priceDiffLabel}
+                </div>
               )}
             </div>
             <button onClick={()=>setShowPreview(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 14px', background:'#f0f3ff', color:'#1e2d7d', border:'1px solid #c7d2fe', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}><Eye size={14}/> Попередній перегляд</button>
@@ -6236,7 +6357,23 @@ export default function BookLayoutEditor() {
                     <div key={et.id} style={{ padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <input value={et.text} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,text:e.target.value}:t2)}))} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
-                        <input type="color" value={et.color.startsWith('#')?et.color:'#D4AF37'} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:e.target.value}:t2)}))} style={{ width:22, height:22, border:'none', padding:0, cursor:'pointer' }}/>
+                        {/* Гравіювання фізично ОДНОГО кольору — додаткові написи
+                            успадковують колір основного, без вибору (Diana,
+                            2026-08-10). Друк кольором (flex) буває рівно в
+                            чотирьох кольорах — фіксовані свотчі замість
+                            повної палітри. */}
+                        {coverState.decoType === 'flex' ? (
+                          <div style={{ display:'flex', gap:3, flexShrink:0 }}>
+                            {['#D4AF37','#C0C0C0','#FFFFFF','#1A1A1A'].map(c => (
+                              <button key={c} title={c==='#D4AF37'?'Золотий':c==='#C0C0C0'?'Срібний':c==='#FFFFFF'?'Білий':'Чорний'}
+                                onClick={()=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,color:c}:t2)}))}
+                                style={{ width:16, height:16, borderRadius:'50%', background:c, border: et.color===c?'2px solid #1e2d7d':'1px solid #cbd5e1', cursor:'pointer', padding:0 }}/>
+                            ))}
+                          </div>
+                        ) : (
+                          <span title="Колір гравіювання спільний для всіх написів — змінюється у налаштуваннях оздоблення"
+                            style={{ width:20, height:20, borderRadius:'50%', flexShrink:0, background:(coverState.decoColor||'').startsWith('#')?coverState.decoColor:'#D4AF37', border:'1px solid #cbd5e1' }}/>
+                        )}
                         <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
                       </div>
                       <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
@@ -6248,26 +6385,38 @@ export default function BookLayoutEditor() {
                 </div>
                 )}
 
-                {/* Free photo on the cover — any material EXCEPT metal insert,
-                    which should stand alone (no extra cover photo/text). Adds a
-                    draggable, resizable photo the customer can place anywhere. */}
-                {coverState.decoType !== 'metal' && (
+                {/* Free photo on the cover. Технічні межі виробництва (Diana,
+                    2026-08-10): металева вставка стоїть сама; акрил і
+                    фотовставка ВЖЕ несуть своє фото, а друга вставка на одній
+                    обкладинці неможлива — тому для них секція прихована. На
+                    інших м'яких обкладинках фото робиться фотовставкою, і вона
+                    може бути лише ОДНА — кнопка зникає, щойно фото додане.
+                    Друкована обкладинка друкує фото в дизайні без обмежень. */}
+                {(() => {
+                  if (coverState.decoType === 'metal') return null;
+                  if (!isPrinted && (coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka')) return null;
+                  const insertLimitReached = !isPrinted && (((coverState as any).coverPhotos)||[]).length >= 1;
+                  return (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
+                  {!insertLimitReached && (
                   <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
                     style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                     <span>+ Додати фото</span>
-                    {/* На мʼяких матеріалах фото — це фотовставка, платна операція.
-                        Друкована обкладинка друкує фото в дизайні безкоштовно. */}
+                    {/* На мʼяких матеріалах фото — це фотовставка, платна операція. */}
                     {!isPrinted && <span style={{ fontSize:11, fontWeight:800 }}>+{PHOTO_INSERT_PRICE} ₴</span>}
                   </button>
+                  )}
                   <div style={{ fontSize:10, color:'#94a3b8' }}>
                     {isPrinted
                       ? 'Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.'
-                      : `Фото на такій обкладинці виготовляється як фотовставка (+${PHOTO_INSERT_PRICE} ₴ за кожне). Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.`}
+                      : insertLimitReached
+                      ? 'Фотовставка на обкладинці може бути лише одна. Щоб поставити інше фото, видаліть наявне хрестиком прямо на обкладинці.'
+                      : `Фото на такій обкладинці виготовляється як фотовставка (+${PHOTO_INSERT_PRICE} ₴). Перетягуйте, щоб рухати; кутовий маркер — щоб змінити розмір.`}
                   </div>
                 </div>
-                )}
+                  );
+                })()}
               </div>
             )}
             {/* BACKGROUND */}
@@ -7189,6 +7338,7 @@ export default function BookLayoutEditor() {
                                 </div>
                               </div>
                             )}
+                            {renderCoverInscriptionEditor()}
                           </>
                         );
                       })()
@@ -10645,6 +10795,7 @@ export default function BookLayoutEditor() {
                                   </div>
                                 </div>
                               )}
+                              {renderCoverInscriptionEditor()}
                             </>
                           );
                         })()

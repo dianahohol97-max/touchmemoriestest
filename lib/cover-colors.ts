@@ -74,7 +74,17 @@ export function matchCoverColor(
 ): CoverColorRow | null {
   if (!coverTypeName || !colorName) return null;
   const wanted = norm(colorName);
-  const hits = index.filter((r) => norm(r.name) === wanted && coverTypeMatches(r.coverType, coverTypeName));
+  const byName = index.filter((r) => norm(r.name) === wanted);
+  // Exact cover-type match FIRST. The prefix fallback exists for label drift
+  // («Велюр» vs a DB row named slightly longer), but when the exact type IS in
+  // the DB the prefix pass must not widen the answer: «Велюр · Молочний» is
+  // В-01, yet the prefix also matched «Велюр (файликові альбоми) 200/500»
+  // (ВФ-02), two distinct codes read as ambiguous, and the admin page told the
+  // manager the code was undefined (TM-001171).
+  const exact = byName.filter((r) => norm(r.coverType) === norm(coverTypeName));
+  const hits = exact.length > 0
+    ? exact
+    : byName.filter((r) => coverTypeMatches(r.coverType, coverTypeName));
   if (hits.length === 0) return null;
   const codes = new Set(hits.map((h) => h.code));
   if (codes.size > 1) return null;
