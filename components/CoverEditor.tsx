@@ -1021,13 +1021,17 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               onMouseDown={e=>e.stopPropagation()}
               onPointerDown={e=>e.stopPropagation()}
               style={{ display:'block', fontSize:scaleFont(et.fontSize||20, 20)+'px', fontFamily:(et.fontFamily||'Playfair Display')+',serif',
-                // Гравіювання одного кольору для ВСІХ написів: додаткові
-                // успадковують колір основного, збережене значення ігнорується
-                // (старі чернетки мають білий, невидимий на світлому велюрі).
+                // Гравіювання — тиснення БЕЗ фарби (Diana, 2026-08-11: «щоб
+                // люди не думали, що воно буде золотим»). Додаткові написи
+                // малюються так само, як основний гравійований текст —
+                // втиснений відтінок матеріалу, не декоративний колір.
                 color: config.decoType === 'graviruvannya'
-                  ? ((config.decoColor||'').startsWith('#') ? config.decoColor : '#D4AF37')
+                  ? darkenHex(bgColor, 50)
                   : (et.color||'#fff'),
-                fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap', textShadow:isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)' }}>
+                fontWeight:600, outline:'none', cursor:'text', whiteSpace:'nowrap',
+                textShadow: config.decoType === 'graviruvannya'
+                  ? `0 1px 0 ${darkenHex(bgColor,80)},0 -1px 0 rgba(255,255,255,0.1)`
+                  : (isSoft?'none':'0 1px 3px rgba(0,0,0,0.4)') }}>
               {et.text}
             </span>
             {/* Delete button — hover on desktop, always shown on touch.

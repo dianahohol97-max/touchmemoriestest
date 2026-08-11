@@ -5323,12 +5323,18 @@ export default function BookLayoutEditor() {
                 style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
             </div>
             <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              {/* Гравіювання — тиснення без фарби (Diana, 2026-08-11): свотчі
+                  кольору лишаються тільки для друку кольором. */}
+              {isEngrave ? (
+                <span style={{ fontSize:9, color:'#94a3b8', flexShrink:0, maxWidth:64, lineHeight:1.2 }}>тиснення, без кольору</span>
+              ) : (
               <div style={{ display:'flex', gap:3, flexShrink:0 }}>
                 {INSCRIPTION_INK_COLORS.map(([c,label]) => (
                   <button key={c} title={label} onClick={()=>setInk(et.id, c)}
                     style={{ width:18, height:18, borderRadius:'50%', background:c, border: et.color===c?'2px solid #1e2d7d':'1px solid #cbd5e1', cursor:'pointer', padding:0 }}/>
                 ))}
               </div>
+              )}
               <div style={{ display:'flex', flexDirection:'column', flex:1, gap:1 }}>
                 <input type="range" min={8} max={120} value={et.fontSize||20} onChange={e=>editEt(et.id,{ fontSize:+e.target.value })} style={{ width:'100%', accentColor:'#1e2d7d' }}/>
                 <span style={{ fontSize:7, color:'#94a3b8', textAlign:'center' }}>розмір {et.fontSize||20}px</span>
@@ -6371,8 +6377,9 @@ export default function BookLayoutEditor() {
                             ))}
                           </div>
                         ) : (
-                          <span title="Колір гравіювання спільний для всіх написів — змінюється у налаштуваннях оздоблення"
-                            style={{ width:20, height:20, borderRadius:'50%', flexShrink:0, background:(coverState.decoColor||'').startsWith('#')?coverState.decoColor:'#D4AF37', border:'1px solid #cbd5e1' }}/>
+                          // Гравіювання — тиснення без фарби (Diana, 2026-08-11):
+                          // жодного кольорового кружечка, який обіцяє золото.
+                          <span style={{ fontSize:9, color:'#94a3b8', flexShrink:0, maxWidth:70, lineHeight:1.2 }}>тиснення, без кольору</span>
                         )}
                         <button onClick={() => setCoverState(prev=>{ const updated=(prev.extraTexts||[]).filter(t2=>t2.id!==et.id); return {...prev, extraTexts: updated, ...(updated.length === 0 ? { inscriptionMethod: null } : {})}; })} style={{ width:18, height:18, borderRadius:'50%', background:'#fee2e2', color:'#ef4444', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center' }}>x</button>
                       </div>
@@ -6395,6 +6402,11 @@ export default function BookLayoutEditor() {
                 {(() => {
                   if (coverState.decoType === 'metal') return null;
                   if (!isPrinted && (coverState.decoType === 'acryl' || coverState.decoType === 'photovstavka')) return null;
+                  // Книга побажань: фото на обкладинці немає взагалі (Diana,
+                  // 2026-08-11: «я б взагалі забрала можливість додавати
+                  // фото» — воно не кадрується і не відповідає продукту).
+                  const _coverSlug = String((config as any)?.productSlug || '').toLowerCase();
+                  if (/wish|pobazhan|guest/.test(_coverSlug)) return null;
                   const insertLimitReached = !isPrinted && (((coverState as any).coverPhotos)||[]).length >= 1;
                   return (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
