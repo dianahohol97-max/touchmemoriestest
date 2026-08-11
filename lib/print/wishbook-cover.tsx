@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geometry';
 import { coverTextScale } from './text-scale';
+import { engravedInk } from './engraved-ink';
 
 export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
 
@@ -372,6 +373,10 @@ export async function renderWishbookCoverPng(
     ? '#000000'
     : onPlate
     ? metal.text
+    // Гравіювання is pressed, not printed: the colour макет must show it as a
+    // shade of the material, never as the stored gold — see engravedInk.
+    : decoType === 'graviruvannya'
+    ? engravedInk(bg)
     : (spec.layout?.color || contrastText(bg));
 
   // The decoration plate element (for metal/acryl/photo-insert). For engraving

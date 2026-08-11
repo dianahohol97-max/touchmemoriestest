@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getSlotDefs, resolveCustomSlot } from '@/lib/editor/slot-defs';
 import { resolveCoverColor } from '@/lib/editor/utils';
+import { engravedInk } from '@/lib/print/engraved-ink';
 import { BackgroundLayer, PageBackground, DEFAULT_BG } from './BackgroundLayer';
 import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
@@ -604,7 +605,10 @@ export function BookPreviewModal({
               const decoPx = (coverState.textFontSize || 24) * coverScale;
               return (
                 <div style={{ position: 'absolute', left: `${coverState.textX ?? 50}%`, top: `${coverState.textY ?? 50}%`, transform: 'translate(-50%,-50%)', pointerEvents: 'none' }}>
-                  <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: coverState.decoColor || '#d4af37', fontWeight: 600, whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
+                  {/* Гравіювання is pressed into the material, so the preview
+                      must not promise gold — same rule as the editor canvas
+                      and the print макет (see engravedInk). */}
+                  <span style={{ fontSize: decoPx, fontFamily: coverState.textFontFamily || 'Playfair Display', color: decoType === 'graviruvannya' ? engravedInk(bg) : (coverState.decoColor || '#d4af37'), fontWeight: 600, whiteSpace: 'pre-wrap', textAlign: 'center' }}>{decoText}</span>
                 </div>
               );
             }
@@ -620,7 +624,9 @@ export function BookPreviewModal({
               <span style={{
                 fontSize: (et.fontSize || 20) * coverScale,
                 fontFamily: (et.fontFamily || 'Playfair Display') + ',serif',
-                color: et.color || '#fff',
+                // Engraved extras inherit the pressed tone too — a saved gold
+                // on an extra напис is the same false promise as on the main one.
+                color: coverState?.decoType === 'graviruvannya' ? engravedInk(bg) : (et.color || '#fff'),
                 fontWeight: 600,
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
