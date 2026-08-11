@@ -86,6 +86,21 @@ export function looksDone(text: string): boolean {
     return DONE_WORDS.test(text) && !NEGATED.test(text);
 }
 
+/**
+ * A real ANSWER to a question closes the thread (Diana, 2026-08-11: «якщо
+ * запитання отримало реальну відповідь — коли доставка: завтра, коли
+ * відправка: 13 числа — то ставити виконаним»). Counts only when the message
+ * REPLIES to a question and itself names a time: «завтра», a weekday, a
+ * dd.MM date, «13 числа». A counter-question («а хто знає?») closes nothing.
+ */
+const ANSWER_TIME = /(завтра|сьогодні|післязавтра|наступн\S*\s+тижн|понеділ|вівтор|серед[уиі]|четвер|п.ятниц|субот|неділ|(?<![\d.,:])[0-3]?\d[./][01]?\d(?![\d])|[0-3]?\d\s*(числа|серпня|вересня|жовтня|листопада|грудня|січня|лютого|березня|квітня|травня|червня|липня))/i;
+
+export function looksAnswered(text: string, replyText?: string): boolean {
+    if (!replyText || !replyText.includes('?')) return false;
+    if (text.includes('?')) return false;
+    return ANSWER_TIME.test(text);
+}
+
 type PendingMention = {
     num: string;
     text: string;
@@ -192,13 +207,16 @@ export async function captureWorkChatOrderMentions(params: {
     senderName: string;
 }): Promise<{ captured: string[]; pending: string[]; done: boolean }> {
     const supabase = getAdminClient();
-    const done = looksDone(params.text);
 
     // Telegram handles carry digits that read exactly like order numbers —
     // «@nika11090» once pulled the long-delivered April order 11090 out of
     // the CRM. Mentions are stripped before any number is extracted.
     const cleanText = params.text.replace(/@\S+/g, ' ');
     const cleanReply = params.replyText ? params.replyText.replace(/@\S+/g, ' ') : undefined;
+
+    // A completion report OR a real answer to a question — either resolves
+    // the thread.
+    const done = looksDone(cleanText) || looksAnswered(cleanText, cleanReply);
 
     // Attribution ladder: numbers in the message itself → numbers in the
     // replied-to message → (completion reports only) the chat's last
