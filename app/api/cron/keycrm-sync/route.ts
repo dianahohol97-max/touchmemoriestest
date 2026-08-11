@@ -7,6 +7,9 @@ import { enqueueDefectsFromTags } from '@/lib/automation/reprints';
 import { resolvePendingProductLinks, syncSkusToKeycrm, syncCostPrices } from '@/lib/automation/keycrm-catalogue';
 import { pushInstructionCommentsToCrm } from '@/lib/automation/keycrm-comments';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -196,6 +199,50 @@ export async function GET(request: Request) {
             }
         } catch (e: any) {
             console.error('[keycrm-sync] catalogue upkeep failed:', e);
+            stats.errors++;
+        }
+
+        // Deadline recalibration for EVERY active order, every run (Diana,
+        // 2026-08-11: «переконайся що всі дедлайни перераховані відповідно»,
+        // after CRM-13510 sat on an 8-day fallback while being a 14-day
+        // photobook). The hourly mirror only refreshes the newest ~300 CRM
+        // orders, so rule changes never reached the older tail. This pass is
+        // pure DB work — no CRM calls — and skips dates a person pinned
+        // (deadline_locked) and test orders.
+        try {
+            const termsMap = await fetchProductTermsBySlug();
+            const { data: activeOrders } = await getAdminClient()
+                .from('orders')
+                .select('id, order_number, customer_name, created_at, paid_at, deadline, notes, client_comment, items, custom_attributes, order_status')
+                .in('order_status', ['new', 'confirmed', 'in_production', 'quality_check'])
+                .order('created_at', { ascending: false })
+                .limit(400);
+
+            let recalced = 0;
+            for (const o of activeOrders || []) {
+                if (isTestOrder(o as any)) continue;
+                const attrs = (o.custom_attributes && typeof o.custom_attributes === 'object')
+                    ? o.custom_attributes as Record<string, any>
+                    : {};
+                if (attrs.deadline_locked) continue;
+
+                const resolved = resolveOrderDeadline(o, { productTermsBySlug: termsMap });
+                const current = o.deadline ? new Date(o.deadline).getTime() : null;
+                if (current !== null && Math.abs(current - resolved.deadline.getTime()) <= 60 * 60 * 1000) continue;
+
+                if (!dryRun) {
+                    await getAdminClient()
+                        .from('orders')
+                        .update({ deadline: resolved.deadline.toISOString() })
+                        .eq('id', o.id);
+                }
+                recalced++;
+            }
+
+            stats.deadlines_recalced = recalced;
+            if (recalced) console.log(`[keycrm-sync] deadlines recalced: ${recalced}`);
+        } catch (e: any) {
+            console.error('[keycrm-sync] deadline recalibration failed:', e);
             stats.errors++;
         }
 
