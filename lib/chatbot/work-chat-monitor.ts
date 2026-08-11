@@ -101,6 +101,31 @@ export function looksAnswered(text: string, replyText?: string): boolean {
     return ANSWER_TIME.test(text);
 }
 
+/**
+ * Which chat messages deserve to become a task on the order card.
+ *
+ * Diana, 2026-08-11, after eleven rows piled up on 13790 — «13790. Який
+ * велюр?» repeated by three people, «хто відповідальний», a test message:
+ * «не треба це все записувати в коментарі, в адмінку і в замовлення, тільки
+ * релевантний і підсумковий».
+ *
+ * A QUESTION is not an instruction. Софія answers it in the chat and the
+ * answer is the end of it; nothing lands on the card. What lands there is what
+ * somebody has to DO: a named date, a completion report, or an imperative.
+ * Everything is still recorded in the chat history Софія reads, so nothing is
+ * lost — it simply stops filling the order card and the CRM comment.
+ */
+const INSTRUCTION_WORDS = /(треба|потрібно|необхідно|обовʼязково|обов'язково|терміново|зроб|переробити|переробіть|відправ|надішл|надісл|додай|додати|постав|постав\w*|помін|заміни|виправ|уточни|уточніть|перевір|звʼяжіть|звяжіть|зателефон|передзвон|напиши|напишіть|не забуд|швидше|прискор|скасуй|скасувати|притримай|притримати)/iu;
+
+export function looksLikeInstruction(text: string, hasDate: boolean, done: boolean): boolean {
+    if (done || hasDate) return true;
+    const t = String(text || '');
+    // A question mark alone settles it: «13790. Який велюр?» is a question even
+    // though «велюр» sits next to words that look operational.
+    if (t.includes('?')) return false;
+    return INSTRUCTION_WORDS.test(t);
+}
+
 type PendingMention = {
     num: string;
     text: string;
@@ -151,6 +176,20 @@ async function attachToOrder(supabase: any, orderNum: string, p: {
         order = adopted?.[0] || null;
     }
     if (!order) return false;
+
+    // The same instruction repeated (a manager re-sends it, two people say the
+    // same thing, a test message is fired five times) is ONE task, not five.
+    const { data: recent } = await supabase
+        .from('order_history')
+        .select('id, notes')
+        .eq('order_id', order.id)
+        .in('action', ['work_chat_note', 'work_chat_done'])
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .limit(30);
+    const fingerprint = p.text.toLowerCase().replace(/\s+/g, ' ').trim();
+    if ((recent || []).some((r: any) => String(r.notes || '').toLowerCase().includes(fingerprint))) {
+        return true;
+    }
 
     await supabase.from('order_history').insert({
         order_id: order.id,
@@ -238,6 +277,11 @@ export async function captureWorkChatOrderMentions(params: {
     if (!numbers.length) return { captured: [], pending: [], done };
 
     const due = extractDayMonth(params.text);
+
+    // Questions and idle mentions stay in the chat — see looksLikeInstruction.
+    if (!looksLikeInstruction(noteText, !!due, done)) {
+        return { captured: [], pending: [], done };
+    }
     const captured: string[] = [];
     const pendingNew: string[] = [];
 

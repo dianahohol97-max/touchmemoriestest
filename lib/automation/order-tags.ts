@@ -16,9 +16,14 @@
  * slug, the product name and every chosen option value.
  */
 
-export const ANDRIY_TAG = 'для Андрія';
-export const MAGNETS_TAG = 'магніти';
-export const PHOTO_TAG = 'фото';
+// Spelled exactly as KeyCRM spells them — the CRM's tag dictionary is the
+// source of truth (Diana, 2026-08-11). Before this, the auto-tagger wrote
+// «для Андрія» while managers in the CRM wrote «Для Андрія», so the same
+// routing tag existed twice across the order table and each version matched
+// only half the orders.
+export const ANDRIY_TAG = 'Для Андрія';
+export const MAGNETS_TAG = 'Магніти';
+export const PHOTO_TAG = 'Фото';
 
 /** Everything about a line that could carry the deciding word. */
 function lineText(item: any): string {

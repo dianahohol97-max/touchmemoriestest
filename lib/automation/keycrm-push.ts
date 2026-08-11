@@ -104,7 +104,31 @@ type ProductMap = Record<string, { offer_id: string | null; sku: string | null; 
 const LINE_COMMENT_LIMIT = 1500;
 // The CRM renders comments in a narrow list column, so length is a usability
 // problem long before it is an API limit (Diana, 2026-08-11).
-const ORDER_COMMENT_LIMIT = 900;
+const ORDER_COMMENT_LIMIT = 450;
+
+/**
+ * The one line of the site's notes a CRM manager needs.
+ *
+ * Diana, 2026-08-11, twice, the second time about a magazine order: «і
+ * завеликий, занадто великий коментар». The site's notes field is where the
+ * whole content brief accumulates — the package, the cover name, the date, the
+ * mood, the style, the inscription, each as its own paragraph — and copying it
+ * into a CRM list column buried the row.
+ *
+ * What survives: the ⚠️ automatic warning if there is one, because that is the
+ * only part that stops an order from going to print. Otherwise the first line.
+ * The full brief stays on the site card, one click away, where it belongs.
+ */
+function summariseNotes(raw: any): string {
+    const text = String(raw || '').replace(/\r/g, '').trim();
+    if (!text) return '';
+
+    const warning = text.split('\n').find(line => line.includes('⚠️'));
+    if (warning) return truncate(warning.replace(/\s+/g, ' ').trim(), 160);
+
+    const first = text.split('\n').map(l => l.trim()).filter(Boolean)[0] || '';
+    return first ? `Нотатки: ${truncate(first, 120)}` : '';
+}
 
 function truncate(text: string, limit: number): string {
     if (text.length <= limit) return text;
@@ -218,7 +242,7 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
     // «в CRM прилітають дуже великі коментарі, супер некомфортно» — the orders
     // list renders the comment in a narrow column, and a twenty-line comment
     // turns one row into a wall of text).
-    const specBlock = items.map((item: any) => {
+    const specBlock = items.slice(0, 4).map((item: any) => {
         const options = item?.options && typeof item.options === 'object' ? item.options : {};
         const chosen = Object.entries(options)
             .filter(([, value]) => String(value ?? '').trim() !== '')
@@ -228,8 +252,8 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
         const title = String(item?.product_name || 'Товар');
         const qty = Number(item?.quantity) || 1;
 
-        return `• ${title}${qty > 1 ? ` ×${qty}` : ''}${chosen ? ` — ${chosen}` : ''}`;
-    }).join('\n');
+        return truncate(`• ${title}${qty > 1 ? ` ×${qty}` : ''}${chosen ? ` — ${chosen}` : ''}`, 120);
+    }).join('\n') + (items.length > 4 ? `\n…і ще ${items.length - 4} позицій` : '');
 
     // Compact by design. Everything a manager needs to ACT is in the first two
     // lines; the rest is one line each. Dropped from the card entirely: the
@@ -244,7 +268,7 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
         `${order?.order_number || 'Сайт'} · ${describeMoney(readOrderMoney(order))}`,
         order?.with_designer ? '🎨 З послугою дизайнера' : '',
         order?.promo_code ? `Промокод: ${order.promo_code}` : '',
-        order?.notes ? `Нотатки: ${truncate(String(order.notes), 300)}` : '',
+        summariseNotes(order?.notes),
         specBlock,
     ].filter(Boolean);
 
