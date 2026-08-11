@@ -81,6 +81,18 @@ export async function getAlertChatId(): Promise<string | null> {
 }
 
 /**
+ * Extra owner accounts. Diana runs two Telegram accounts (personal + the
+ * touch.memories brand account that holds the Business connection); owner-
+ * gated commands must accept both. The Business connection's user_id is
+ * always an owner; this list adds the rest (settings `telegram_owner_user_ids`).
+ */
+export async function getOwnerUserIds(): Promise<number[]> {
+    const value = await readSetting('telegram_owner_user_ids');
+    if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
+    return [];
+}
+
+/**
  * Work group chats where team commands (/status, /order, …) are allowed.
  * Registration is owner-gated (see work-commands.ts) because the commands
  * expose order and customer data.

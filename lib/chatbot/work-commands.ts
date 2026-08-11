@@ -4,6 +4,7 @@ import {
     getWorkChatIds,
     addWorkChatId,
     setWatchdogChatId,
+    getOwnerUserIds,
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -71,7 +72,9 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
     const isPrivate = msg.chat?.type === 'private';
 
     const state = await getBusinessConnection();
-    const isOwner = !!state && fromId === state.user_id;
+    const extraOwners = await getOwnerUserIds();
+    // Diana runs two accounts (personal + brand); either counts as owner.
+    const isOwner = (!!state && fromId === state.user_id) || (fromId != null && extraOwners.includes(fromId));
     const workChats = await getWorkChatIds();
     const registered = isPrivate ? isOwner : workChats.includes(chatId);
 
@@ -79,16 +82,25 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
         case '/chatid':
             return `ID цього чату: ${chatId}`;
 
+        case '/whoami':
+            return [
+                `Твій Telegram ID: ${fromId ?? 'невідомий'}`,
+                `ID цього чату: ${chatId}`,
+                isOwner
+                    ? 'Я впізнаю тебе як власницю ✅'
+                    : 'Цей акаунт не в списку власників — команди реєстрації для нього закриті.',
+            ].join('\n');
+
         case '/register': {
             if (isPrivate) return 'Ця команда потрібна тільки в групових чатах — у нашій особистій переписці команди й так працюють.';
-            if (!state) return 'Спочатку підключи мене через Telegram Business у своїх налаштуваннях — так я знатиму, хто власник, і зможу безпечно реєструвати робочі чати.';
-            if (!isOwner) return 'Реєструвати робочі чати може тільки власниця акаунта.';
+            if (!state && !extraOwners.length) return 'Спочатку підключи мене через Telegram Business у своїх налаштуваннях — так я знатиму, хто власник, і зможу безпечно реєструвати робочі чати.';
+            if (!isOwner) return 'Реєструвати робочі чати може тільки власниця акаунта. Якщо це таки ти, але з іншого акаунта — надішли /whoami і передай Клоду свій ID, він додасть цей акаунт у власники.';
             await addWorkChatId(chatId);
             return 'Чат зареєстровано як робочий ✅\nТепер усі учасники можуть користуватись командами: /status, /order, /overdue, /unanswered. Щоб я ще й надсилала сюди сповіщення про діалоги без відповіді — виконай /alerts_here.';
         }
 
         case '/alerts_here': {
-            if (!state) return 'Спочатку підключи мене через Telegram Business у своїх налаштуваннях — так я знатиму, хто власник.';
+            if (!state && !extraOwners.length) return 'Спочатку підключи мене через Telegram Business у своїх налаштуваннях — так я знатиму, хто власник.';
             if (!isOwner) return 'Налаштовувати сповіщення може тільки власниця акаунта.';
             if (!isPrivate) await addWorkChatId(chatId);
             await setWatchdogChatId(chatId);
