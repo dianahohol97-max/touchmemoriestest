@@ -408,8 +408,10 @@ export type CostSyncReport = {
     /** Which API field the costs came from — empty means the account exposes none. */
     cost_fields: string[];
     updated_products: Array<{ slug: string; from: number | null; to: number }>;
+    /** Per-size costs written into the product's variants array. */
+    updated_variants: Array<{ slug: string; sizes: Array<{ variant: string; cost: number }> }>;
     unchanged: number;
-    /** Sizes of one product reporting different costs — never auto-resolved. */
+    /** Sizes with differing costs on a product that has no variants array to hold them. */
     conflicts: Array<{ slug: string; costs: Array<{ variant: string; cost: number }> }>;
     /** Confirmed mappings whose CRM item carries no cost at all. */
     without_cost: string[];
@@ -474,37 +476,74 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
 
     const slugs = [...costsByProduct.keys()];
     const { data: products } = slugs.length
-        ? await supabase.from('products').select('slug, cost_price').in('slug', slugs)
+        ? await supabase.from('products').select('slug, cost_price, variants').in('slug', slugs)
         : { data: [] as any[] };
 
-    const currentBySlug = new Map((products || []).map((p: any) => [p.slug, p.cost_price]));
+    const productBySlug = new Map((products || []).map((p: any) => [p.slug, p]));
 
     const updated: CostSyncReport['updated_products'] = [];
+    const updatedVariants: CostSyncReport['updated_variants'] = [];
     const conflicts: CostSyncReport['conflicts'] = [];
     let unchanged = 0;
 
     for (const [slug, list] of costsByProduct) {
+        const product = productBySlug.get(slug);
         const distinct = [...new Set(list.map(c => c.cost))];
+        const patch: Record<string, any> = {};
 
-        if (distinct.length > 1) {
+        // Per-size costs live on the product's own variants (Diana,
+        // 2026-08-12: «Поправ щоб на сайті теж так було»). Each variant entry
+        // is matched by its canonical size — legacy entries name the size in a
+        // `size` field, newer ones in `name` — and gets the CRM's закупівельна
+        // вартість written in. Unknown keys on the entries are preserved
+        // untouched.
+        const variants = Array.isArray(product?.variants) ? product.variants : [];
+        if (variants.length) {
+            const costBySize = new Map(list.map(c => [c.variant, c.cost]));
+            const written: Array<{ variant: string; cost: number }> = [];
+
+            const nextVariants = variants.map((v: any) => {
+                const key = sizeKey(String(v?.size ?? v?.name ?? ''));
+                const cost = costBySize.get(key);
+                if (cost === undefined) return v;
+                if (Math.abs(Number(v?.cost_price ?? 0) - cost) < 0.005) return v;
+                written.push({ variant: key, cost });
+                return { ...v, cost_price: cost };
+            });
+
+            if (written.length) {
+                patch.variants = nextVariants;
+                updatedVariants.push({ slug, sizes: written });
+            }
+        } else if (distinct.length > 1) {
+            // Different costs per size and nowhere on the product to keep them
+            // apart — reported rather than averaged into a lie.
             conflicts.push({ slug, costs: list });
             continue;
         }
 
-        const cost = distinct[0];
-        const current = Number(currentBySlug.get(slug) ?? 0);
+        // The single product-level field is written only when every size
+        // agrees — it is what the old admin views and the order cost snapshot
+        // fall back to.
+        if (distinct.length === 1) {
+            const cost = distinct[0];
+            const current = Number(product?.cost_price ?? 0);
+            if (Math.abs(current - cost) >= 0.005) {
+                patch.cost_price = cost;
+                patch.cost_price_currency = 'UAH';
+                updated.push({ slug, from: product?.cost_price ?? null, to: cost });
+            }
+        }
 
-        if (Math.abs(current - cost) < 0.005) {
+        if (!Object.keys(patch).length) {
             unchanged++;
             continue;
         }
 
-        updated.push({ slug, from: currentBySlug.get(slug) ?? null, to: cost });
-
         if (!dryRun) {
             const { error: updateError } = await supabase
                 .from('products')
-                .update({ cost_price: cost, cost_price_currency: 'UAH' })
+                .update(patch)
                 .eq('slug', slug);
 
             if (updateError) {
@@ -518,6 +557,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         offers_read: offers.length,
         cost_fields: [...new Set(offers.map(o => o.cost_field).filter(Boolean) as string[])],
         updated_products: updated,
+        updated_variants: updatedVariants,
         unchanged,
         conflicts,
         without_cost: withoutCost,

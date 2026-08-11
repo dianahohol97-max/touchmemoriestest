@@ -188,7 +188,7 @@ export async function GET(request: Request) {
                     catalogue = {
                         links,
                         skus: { filled: skus.filled.length, adopted: skus.adopted.length, problems: skus.problems },
-                        costs: { updated: costs.updated_products.length, conflicts: costs.conflicts.length },
+                        costs: { updated: costs.updated_products.length, per_size: costs.updated_variants.length, conflicts: costs.conflicts.length },
                     };
                 }
                 console.log('[keycrm-sync] catalogue', JSON.stringify(catalogue));

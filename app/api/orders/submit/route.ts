@@ -10,6 +10,7 @@ import { getRoleConfig } from '@/lib/b2b/config';
 import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { checkCertificateForPayment, reserveCertificateForOrder, releaseCertificateReservation } from '@/lib/certificates/redeemCertificate';
 import { buildCoverColorIndex, matchCoverColor, readCoverSelection, COVER_COLOR_CODE_KEY } from '@/lib/cover-colors';
+import { sizeKey } from '@/lib/automation/keycrm-catalogue';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -469,12 +470,13 @@ export async function POST(request: NextRequest) {
   let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
   const modeBySlug = new Map<string, string>();
   const costBySlug = new Map<string, number>();
+  const variantsBySlug = new Map<string, any[]>();
   {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
       const { data: prodRows } = await admin
         .from('products')
-        .select('slug, payment_mode, cost_price')
+        .select('slug, payment_mode, cost_price, variants')
         .in('slug', slugs);
       (prodRows || []).forEach(r => {
         modeBySlug.set(r.slug, r.payment_mode);
@@ -482,15 +484,28 @@ export async function POST(request: NextRequest) {
         // profit/cost column isn't 0. Stored per-item at order time so later
         // cost changes don't rewrite historical orders.
         costBySlug.set(r.slug, Number((r as any).cost_price) || 0);
+        if (Array.isArray((r as any).variants)) variantsBySlug.set(r.slug, (r as any).variants);
       });
     }
   }
   // Attach the cost snapshot to each item (only if the cart didn't already
   // carry one). cost_price is per single unit, matching the admin's
-  // cost_price × qty calculation.
+  // cost_price × qty calculation. Per-size products carry their cost on the
+  // matching variant («Друк на полотні» 30×40 costs 264 ₴, 70×80 far more) —
+  // the chosen «Розмір» picks it, and the flat product field remains the
+  // fallback for sizeless products.
   for (const it of body.items as any[]) {
     if (it && (it.cost_price === undefined || it.cost_price === null || Number(it.cost_price) === 0)) {
-      const c = costBySlug.get(it.slug || '');
+      const chosenSize = sizeKey(String(
+        (it.options && typeof it.options === 'object' ? (it.options as any)['Розмір'] : '') ?? ''
+      ));
+      const variantCost = chosenSize
+        ? Number((variantsBySlug.get(it.slug || '') || []).find(
+            (v: any) => sizeKey(String(v?.size ?? v?.name ?? '')) === chosenSize
+          )?.cost_price) || 0
+        : 0;
+
+      const c = variantCost > 0 ? variantCost : costBySlug.get(it.slug || '');
       if (c && c > 0) it.cost_price = c;
     }
   }

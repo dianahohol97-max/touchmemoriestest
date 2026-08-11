@@ -162,7 +162,22 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         payment_info: initialData?.payment_info || '',
     });
 
-    const [variants, setVariants] = useState<ProductVariant[]>(initialData?.variants || []);
+    // Variant rows come in two historical shapes: the form's own
+    // {id, name, price, cost_price, sku, stock} and the legacy {size, price}
+    // (e.g. «Друк на полотні»). Normalised on load so every row shows its
+    // size and its own собівартість; unknown keys (like `size`) are spread
+    // through untouched, so whatever the storefront reads keeps working.
+    const [variants, setVariants] = useState<ProductVariant[]>(
+        (initialData?.variants || []).map((v: any) => ({
+            ...v,
+            id: v?.id || crypto.randomUUID(),
+            name: v?.name ?? v?.size ?? '',
+            price: Number(v?.price) || 0,
+            cost_price: Number(v?.cost_price) || 0,
+            sku: v?.sku || '',
+            stock: Number(v?.stock) || 0,
+        }))
+    );
     const [images, setImages] = useState<string[]>(initialData?.images || []);
     const [uploading, setUploading] = useState(false);
     const [customAttributes, setCustomAttributes] = useState<CustomAttribute[]>(initialData?.custom_attributes || []);
@@ -394,7 +409,16 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
     };
 
     const updateVariant = (id: string, field: keyof ProductVariant, value: any) => {
-        setVariants(variants.map(v => v.id === id ? { ...v, [field]: value } : v));
+        setVariants(variants.map(v => {
+            if (v.id !== id) return v;
+            // Legacy rows keep their size in a separate `size` key that the
+            // storefront and the cost matching read — renaming the row must
+            // rename both or they silently diverge.
+            if (field === 'name' && (v as any).size !== undefined) {
+                return { ...v, name: value, size: value } as any;
+            }
+            return { ...v, [field]: value };
+        }));
     };
 
     const removeVariant = (id: string) => {
