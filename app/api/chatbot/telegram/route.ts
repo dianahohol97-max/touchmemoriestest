@@ -171,11 +171,14 @@ export async function POST(req: Request) {
 
                 // Natural questions get an answer (Diana, 2026-08-11): «що
                 // сьогодні термінового треба відправити», «які доручення не
-                // виконані», «13644 коли відправка». Registered work chats and
-                // the owner's private chat only; anything ambiguous stays
-                // silent so the chat doesn't drown in bot noise.
+                // виконані», «13644 коли відправка». ANY group the bot sits in
+                // (Diana, same day: she asked about tomorrow's shipments in a
+                // monitor-only chat and silence read as broken) — the bot only
+                // lives in the team's own chats, and the matcher already stays
+                // quiet on anything that isn't clearly a question to it.
+                // Slash-commands remain registered-chats-only.
                 if (noteText && !noteText.startsWith('/')) {
-                    const allowed = isOwnerPrivate || (isGroup && (await getWorkChatIds()).includes(Number(chatId)));
+                    const allowed = isOwnerPrivate || isGroup;
                     if (allowed) {
                         try {
                             const answer = await handleWorkQuestion({ text: noteText, replyText });
