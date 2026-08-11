@@ -25,8 +25,44 @@ const MAX_LISTED = 12;
 
 const QUESTION_MARKER = /\?|\b(що|шо|коли|який|яка|які|чи|скільки|де|статус|хто)\b/i;
 
-const SHIP_TODAY = /(сьогодні[\s\S]{0,40}(відправ|здат|готов|терміно))|((відправ|терміно)[\s\S]{0,40}сьогодні)/i;
+// «Софія», «Софійка», «Софіє» or the bot's @username — the team's way of
+// addressing the bot directly (Diana, 2026-08-11: «якщо в чаті кажуть софія
+// чи софійка, це означає що звертаються до боту»). A message addressed by
+// name is a message TO Софія even without a question mark, and deserves at
+// least a hint instead of silence.
+const ADDRESSED_BY_NAME = /софі|sofi/i;
+
 const OPEN_TASKS = /(доручен|завдан)[\s\S]{0,60}(не\s*викона|невикона|відкрит|актуальн|залишил|лишил|вис(ять|ить)|ще\s+(є|не))/i;
+
+const NATIONALITY = /національн/i;
+
+// The answer Diana chose herself (2026-08-11: «я хочу таку відповідь про
+// національність») — do not soften or reword it.
+const NATIONALITY_REPLY = 'Я українка 🇺🇦 Батько наш — Бандера, Україна — мати!';
+
+const SHIP_WORDS = /(відправ|здат|готов)/i;
+const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|термінов)/i;
+
+/**
+ * A question about the shipping queue, with its time horizon in days.
+ *
+ * The first version demanded the literal word «сьогодні» next to «відправити»,
+ * so real questions from the team went unanswered: «Які замовлення мають бути
+ * відправлені максимум завтра 12 серпня?», «які замовлення термінові на
+ * відправку?». Now: shipping word + urgency word + (question marker or the
+ * bot addressed by name), and the horizon follows the word — «завтра» reaches
+ * one day ahead, «післязавтра» two. A message that names a specific order is
+ * about that order, not the queue, and is left to the per-order path.
+ */
+export function matchShipQuestion(text: string): { horizonDays: number } | null {
+    const t = String(text || '');
+    if (!QUESTION_MARKER.test(t) && !ADDRESSED_BY_NAME.test(t)) return null;
+    if (!SHIP_WORDS.test(t) || !SHIP_URGENCY.test(t)) return null;
+    if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return null;
+    if (/післязавтра/i.test(t)) return { horizonDays: 2 };
+    if (/завтра/i.test(t)) return { horizonDays: 1 };
+    return { horizonDays: 0 };
+}
 
 function fmtDate(iso: string | null): string {
     if (!iso) return '—';
@@ -45,7 +81,7 @@ function fmtDate(iso: string | null): string {
 export function isMetaWorkQuestion(text: string): boolean {
     const t = String(text || '').trim();
     if (!t || t.startsWith('/')) return false;
-    return SHIP_TODAY.test(t) || OPEN_TASKS.test(t);
+    return !!matchShipQuestion(t) || OPEN_TASKS.test(t) || NATIONALITY.test(t);
 }
 
 /**
@@ -58,9 +94,16 @@ export async function handleWorkQuestion(params: {
 }): Promise<string | null> {
     const text = String(params.text || '').trim();
     if (!text || text.startsWith('/')) return null;
-    if (!QUESTION_MARKER.test(text)) return null;
 
-    if (SHIP_TODAY.test(text)) return buildShipToday();
+    // Addressing the bot by name counts as talking to it, question mark or
+    // not — «Софія, що по відправках» must not die on the marker check.
+    const addressed = ADDRESSED_BY_NAME.test(text);
+    if (!QUESTION_MARKER.test(text) && !addressed) return null;
+
+    if (NATIONALITY.test(text)) return NATIONALITY_REPLY;
+
+    const ship = matchShipQuestion(text);
+    if (ship) return buildShipToday(ship.horizonDays);
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
 
     // A question about a specific order — the number may be in the message
@@ -69,16 +112,27 @@ export async function handleWorkQuestion(params: {
     const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
     if (numbers.length) return answerOrderQuestion(text, numbers);
 
+    // Called by name but the subject was not recognised — a silent bot that
+    // was just addressed reads as broken, so she says what she can do.
+    if (addressed) {
+        return 'Я тут 🙌 Можу підказати, що термінового на відправку сьогодні чи завтра, які доручення з чатів ще висять, або розповісти про конкретне замовлення — просто напиши його номер і питання, наприклад «13644 коли відправка?». Повний список команд — /help.';
+    }
+
     return null;
 }
 
-/** «Що сьогодні термінового треба відправити» — today's deadlines plus everything already late. */
-async function buildShipToday(): Promise<string> {
+/**
+ * «Що термінового треба відправити» — deadlines inside the horizon plus
+ * everything already late. Horizon 0 = today, 1 = «завтра», 2 = «післязавтра».
+ */
+async function buildShipToday(horizonDays = 0): Promise<string> {
     const supabase = getAdminClient();
 
-    // End of the Kyiv day, in UTC.
+    // End of the Kyiv day, in UTC, pushed out by the asked-for horizon.
     const kyivToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Kyiv' });
     const endOfToday = new Date(`${kyivToday}T23:59:59+03:00`);
+    endOfToday.setDate(endOfToday.getDate() + horizonDays);
+    const windowLabel = horizonDays > 0 ? `до ${fmtDate(endOfToday.toISOString())}` : 'на сьогодні';
 
     // Same visibility rules as the production calendar (Diana, 2026-08-11:
     // the old query listed July orders long finished in KeyCRM and missed the
@@ -95,10 +149,10 @@ async function buildShipToday(): Promise<string> {
         .limit(200);
 
     const real = (data || []).filter(o => isVisibleProductionOrder(o as any));
-    if (!real.length) return 'Сьогодні нічого термінового не горить — усі дедлайни попереду ✅';
+    if (!real.length) return `Нічого термінового ${windowLabel} не горить — усі дедлайни попереду ✅`;
 
     const nowMs = Date.now();
-    const lines = [`🔥 Терміново на сьогодні (${real.length}):`, ''];
+    const lines = [`🔥 Терміново ${windowLabel} (${real.length}):`, ''];
     for (const o of real.slice(0, MAX_LISTED)) {
         const overdueDays = Math.floor((nowMs - new Date(o.deadline).getTime()) / (24 * HOUR_MS));
         const flag = overdueDays > 0 ? ` — прострочено ${overdueDays} дн ⚠️` : '';
@@ -303,8 +357,21 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
 
     const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label || null;
     const crmManager = (order as any)?.custom_attributes?.keycrm?.manager_name || null;
+
+    // Items WITH their chosen options — «Альбом 23х23 (сторінки: білі,
+    // обкладинка: преміум)», not just the name. Live case (Diana, 2026-08-11):
+    // «13790. Який велюр?» — the velour colour lives in the item options and
+    // the manager notes, and a fact card without them forced Софія to shrug at
+    // a question the order could answer.
     const itemsSummary = Array.isArray(order.items)
-        ? order.items.map((i: any) => i?.product_name).filter(Boolean).slice(0, 4).join(', ')
+        ? order.items.slice(0, 6).map((i: any) => {
+            const opts = i?.options && typeof i.options === 'object' && !Array.isArray(i.options)
+                ? Object.entries(i.options).map(([k, v]) => `${k}: ${v}`).join(', ')
+                : '';
+            const qty = Number(i?.quantity) > 1 ? ` ×${i.quantity}` : '';
+            const name = i?.product_name || i?.name || 'товар';
+            return `${name}${qty}${opts ? ` (${opts})` : ''}`;
+        }).join('; ')
         : '';
 
     const facts = [
@@ -320,6 +387,7 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
         order.ttn ? `ТТН: ${order.ttn}${order.tracking_carrier ? ` (${order.tracking_carrier})` : ''}` : 'ТТН ще не створено',
         order.with_designer ? 'Послуга дизайнера: так' : '',
         itemsSummary ? `Товари: ${itemsSummary}` : '',
+        order.notes ? `Нотатки менеджера: ${String(order.notes).slice(0, 300)}` : '',
         order.client_comment ? `Коментар клієнта: ${String(order.client_comment).slice(0, 200)}` : '',
         (history || []).length
             ? `Останні події: ${(history || []).map(h => `${fmtDate(h.created_at)} — ${String(h.notes || h.action).slice(0, 100)}`).join('; ')}`

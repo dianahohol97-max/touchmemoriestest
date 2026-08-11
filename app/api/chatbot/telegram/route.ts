@@ -16,6 +16,12 @@ import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
 import { handleWorkQuestion, refreshTaskRecommendations, isMetaWorkQuestion } from '@/lib/chatbot/work-questions';
 import { getWorkChatIds } from '@/lib/chatbot/telegram-business';
+import { getAdminClient } from '@/lib/supabase/admin';
+
+// Two model calls (recommendation + answer) can outlive the default
+// serverless budget; a killed invocation never answers Telegram, Telegram
+// re-delivers, and the chat gets the same reply again.
+export const maxDuration = 60;
 
 // Note: In production we use webhooks, not polling. 
 // We initialize the bot just to send messages.
@@ -48,6 +54,30 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
+
+        // Exactly-once per update (live case: «13576 …?» answered THREE
+        // times). Telegram re-delivers an update whenever the previous
+        // delivery did not respond fast enough, and each delivery used to run
+        // the full pipeline again. The update_id is claimed in the DB first;
+        // a unique-violation means an earlier delivery owns this update and
+        // this one exits silently. Any OTHER insert error falls through to
+        // normal processing — a DB hiccup must not silently drop messages.
+        const updateId = Number(body?.update_id);
+        if (Number.isFinite(updateId)) {
+            const admin = getAdminClient();
+            const { error: dupError } = await admin
+                .from('telegram_updates')
+                .insert({ update_id: updateId });
+            if (dupError?.code === '23505') {
+                return NextResponse.json({ ok: true, deduped: true });
+            }
+            // The table only needs to cover Telegram's retry window; two days
+            // is generous. Cheap delete keeps it from growing forever.
+            await admin
+                .from('telegram_updates')
+                .delete()
+                .lt('received_at', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString());
+        }
 
         // --- Telegram Business: Diana's personal client dialogs -------------
         // These updates only arrive after the bot is connected in her
