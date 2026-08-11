@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
-import { isTestOrder } from '@/lib/automation/test-orders';
+import { isVisibleProductionOrder } from '@/lib/automation/production-visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,31 +86,11 @@ export async function GET(request: Request) {
     // (that is where the current queue lives), and site orders only from the
     // cutoff onwards — the ones the automation owns. As the old orders ship,
     // the board becomes the complete picture by itself.
-    const cutoffRaw = String(process.env.KEYCRM_SYNC_FROM || '').trim();
-    const cutoff = cutoffRaw ? new Date(cutoffRaw).getTime() : NaN;
-
-    const visible = (data || []).filter(o => {
-        // Test orders («Киця Кицюня») are not production work.
-        if (isTestOrder(o)) return false;
-        // The CRM stage is the truth about production even when the site
-        // status lags behind a reconcile batch: an order the CRM already calls
-        // completed / cancelled / in transit has nothing left to produce, and
-        // one stale batch window should not keep it on the board.
-        const crmStage = String((o.custom_attributes as any)?.keycrm?.status_label || '').toLowerCase();
-        if (/completed|виконан|доставлен|отриман|delivered|cancel|скасов|анульов|refund|повернен|transit|дороз|відправ|to_delivery|shipped/.test(crmStage)) {
-            return false;
-        }
-        if (o.source === 'keycrm') return true;
-        if (!Number.isFinite(cutoff)) return true;
-        // Pre-cutoff site orders were carried into the CRM by hand. Hidden by
-        // default (their production is tracked there), EXCEPT when the mirror
-        // has tied the CRM card back to this row — then the CRM stage flows in
-        // through the reconcile and the order can be shown without appearing
-        // twice. Found live: TM-001149 sat in production on NO board at all,
-        // because the site hid it and the CRM copy is never mirrored.
-        if ((o.custom_attributes as any)?.keycrm?.order_id) return true;
-        return new Date(o.created_at).getTime() >= cutoff;
-    });
+    // The full rule set (test orders, closed CRM stages, the pre-cutoff
+    // exception for adopted orders) lives in isVisibleProductionOrder —
+    // shared with Софія's chat answers so the board and the bot never
+    // disagree about what counts as live work.
+    const visible = (data || []).filter(o => isVisibleProductionOrder(o));
 
     const activeCount = visible.filter(o =>
         ['confirmed', 'in_production', 'quality_check'].includes(o.order_status || '')

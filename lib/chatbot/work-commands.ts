@@ -8,7 +8,7 @@ import {
     shouldGreetToday,
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
-import { isTestOrder } from '@/lib/automation/test-orders';
+import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 
 /**
  * Team commands for work group chats (and for Diana's private chat with the
@@ -203,7 +203,10 @@ export async function buildStatus(): Promise<string> {
     const windowAgo = new Date(now - ACTION_WINDOW_DAYS * 24 * HOUR_MS).toISOString();
     const nowIso = new Date(now).toISOString();
 
-    const [created, paid, unpaid, overdue] = await Promise.all([
+    // The overdue figure follows the production-visibility rules (a bare
+    // status count once reported July orders long finished in KeyCRM), so it
+    // reads rows and filters instead of asking for a head-count.
+    const [created, paid, unpaid, overdueRows] = await Promise.all([
         supabase.from('orders').select('id', { count: 'exact', head: true })
             .gte('created_at', dayAgo),
         supabase.from('orders').select('id', { count: 'exact', head: true })
@@ -211,9 +214,13 @@ export async function buildStatus(): Promise<string> {
         supabase.from('orders').select('id', { count: 'exact', head: true })
             .eq('payment_status', 'pending').in('order_status', ACTIVE_STATUSES)
             .gte('created_at', windowAgo),
-        supabase.from('orders').select('id', { count: 'exact', head: true })
-            .lt('deadline', nowIso).in('order_status', ACTIVE_STATUSES),
+        supabase.from('orders')
+            .select('customer_name, source, created_at, custom_attributes')
+            .lt('deadline', nowIso).in('order_status', PRODUCTION_ACTIVE_STATUSES)
+            .limit(500),
     ]);
+
+    const overdueCount = (overdueRows.data || []).filter(o => isVisibleProductionOrder(o as any)).length;
 
     let dialogsLine = 'Діалоги: не вдалося порахувати.';
     try {
@@ -229,7 +236,7 @@ export async function buildStatus(): Promise<string> {
         `Нових замовлень: ${created.count ?? 0}`,
         `Оплачено: ${paid.count ?? 0}`,
         `Неоплачених у роботі (за ${ACTION_WINDOW_DAYS} дн): ${unpaid.count ?? 0}`,
-        `Прострочених дедлайнів: ${overdue.count ?? 0}`,
+        `Прострочених дедлайнів: ${overdueCount}`,
         dialogsLine,
         '',
         `Деталі: /overdue, /unanswered, або ${SITE_URL}/admin/orders`,
@@ -314,15 +321,19 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
 async function buildOverdue(): Promise<string> {
     const supabase = getAdminClient();
     const nowMs = Date.now();
+    // Production visibility rules, same as the calendar board and Софія's
+    // «що термінового» answer: without them this listed hand-transferred July
+    // orders long finished in KeyCRM, and missed mirrored CRM orders whose
+    // status is already in_production.
     const { data: orders } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, deadline, order_status')
+        .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
         .lt('deadline', new Date(nowMs).toISOString())
-        .in('order_status', ACTIVE_STATUSES)
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
         .order('deadline', { ascending: true })
-        .limit(MAX_LISTED + 1);
+        .limit(200);
 
-    const real = (orders || []).filter(o => !isTestOrder(o as any));
+    const real = (orders || []).filter(o => isVisibleProductionOrder(o as any));
     if (!real.length) return 'Прострочених дедлайнів немає — все під контролем ✅';
 
     const lines = [`⏰ Прострочені дедлайни (${real.length > MAX_LISTED ? `${MAX_LISTED}+` : real.length}):`, ''];
