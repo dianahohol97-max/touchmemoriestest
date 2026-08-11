@@ -835,8 +835,18 @@ export async function linkPastedId(params: {
     note: string | null;
     offers: KeycrmOffer[];
     siteProducts: SiteProduct[];
+    /**
+     * Sizes already confirmed against a DIFFERENT CRM item, left alone.
+     *
+     * One site product can span several CRM products — «Настільний
+     * фотокалендар» is 115 and 128 in the CRM (Diana, 2026-08-11) — and those
+     * links arrive as two separate pastes. Without this the second fan-out
+     * would re-target the sizes the first one had already settled, and each
+     * paste would undo the previous one.
+     */
+    keepVariants?: Set<string>;
 }): Promise<{ rows: any[]; warnings: string[] }> {
-    const { pasted, siteSlug, targetVariant, note, offers, siteProducts } = params;
+    const { pasted, siteSlug, targetVariant, note, offers, siteProducts, keepVariants } = params;
     const warnings: string[] = [];
 
     // Catalogue URLs (/app/catalog/ID/edit) always carry the PRODUCT id, and
@@ -886,6 +896,10 @@ export async function linkPastedId(params: {
     const unmatched: string[] = [];
 
     for (const variant of variants) {
+        // A size settled by an earlier paste keeps its pair, unless this seed
+        // names that size explicitly — then the human is correcting it.
+        if (!targetVariant && keepVariants?.has(variant.variant || '')) continue;
+
         const match = familyBySize.get(variant.variant || sizeKey(variant.name))
             ?? (family.length === 1 && variants.length === 1 ? family[0] : undefined);
         // Nothing matched by size, but the seed named this exact size and the
@@ -1009,6 +1023,19 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         if (seen.has(key)) continue;
         seen.add(key);
 
+        // Sizes another CRM product already claimed — the second link of a
+        // product split across two CRM cards fills only what is still open.
+        const { data: settled } = await supabase
+            .from('keycrm_product_map')
+            .select('site_variant, keycrm_offer_id')
+            .eq('site_slug', row.site_slug)
+            .eq('confirmed', true);
+        const keepVariants = new Set(
+            (settled || [])
+                .filter(s => String(s.keycrm_offer_id || '') !== pasted)
+                .map(s => String(s.site_variant || '')),
+        );
+
         const { rows, warnings } = await linkPastedId({
             pasted,
             siteSlug: row.site_slug,
@@ -1016,6 +1043,7 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
             note: row.note ?? null,
             offers,
             siteProducts,
+            keepVariants,
         });
         allRows.push(...rows);
         allWarnings.push(...warnings);
