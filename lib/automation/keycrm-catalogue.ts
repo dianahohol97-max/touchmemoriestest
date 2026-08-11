@@ -465,14 +465,22 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     // правди». settings('keycrm_price_follow_all') = true means every
     // CONFIRMED pair follows; the slug list stays as the narrower mode and as
     // the way back if a product ever needs a site-owned price again.
-    const [{ data: followAllSetting }, { data: followSetting }, { data: guardSetting }] = await Promise.all([
+    const [{ data: followAllSetting }, { data: followSetting }, { data: guardSetting }, { data: excludeSetting }] = await Promise.all([
         supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_all').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_slugs').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'keycrm_price_guard_pct').maybeSingle(),
+        supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_exclude').maybeSingle(),
     ]);
     const followAll = followAllSetting?.value === true || followAllSetting?.value === 'true';
     const followList = new Set<string>(Array.isArray(followSetting?.value) ? followSetting.value.map(String) : []);
-    const priceFollow = { has: (slug: string) => followAll || followList.has(slug) };
+    // Products whose site price must NEVER follow the CRM, whatever the mode.
+    // Two real reasons so far: the gift certificate's CRM price is the cost of
+    // the card (25 ₴) while the site price is the customer's nominal (100 ₴),
+    // and the hard-cover journal is one CRM item per size while the site sells
+    // a base price plus page steps — copying one size's price onto the base
+    // would reprice every journal.
+    const followExclude = new Set<string>(Array.isArray(excludeSetting?.value) ? excludeSetting.value.map(String) : []);
+    const priceFollow = { has: (slug: string) => !followExclude.has(slug) && (followAll || followList.has(slug)) };
 
     for (const row of mappings || []) {
         const offer = offerById.get(String(row.keycrm_offer_id));
