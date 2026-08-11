@@ -5,6 +5,7 @@ import {
     addWorkChatId,
     setWatchdogChatId,
     getOwnerUserIds,
+    shouldGreetToday,
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -51,6 +52,26 @@ const PAYMENT_STATUS_UA: Record<string, string> = {
 
 // Statuses that still need work — everything not shipped out or cancelled.
 const ACTIVE_STATUSES = ['new', 'confirmed'];
+
+/** Kyiv-local hour and date — the bot's voice lives on Diana's clock, not UTC. */
+export function kyivHour(): number {
+    return parseInt(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kyiv', hour: '2-digit', hour12: false }), 10);
+}
+
+export function kyivDate(): string {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Kyiv' });
+}
+
+/**
+ * Diana's tone rules: before 8:00 the chat is early birds, after 10:00 it's
+ * sleepyheads, in between a plain warm good morning.
+ */
+export function morningGreeting(): string {
+    const h = kyivHour();
+    if (h < 8) return 'Доброго ранку, ранні пташки! 🐦☀️';
+    if (h < 10) return 'Доброго ранку! ☀️';
+    return 'Доброго ранку, соньки! 😴☕';
+}
 
 function fmtDate(iso: string | null): string {
     if (!iso) return '—';
@@ -125,30 +146,47 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
 
         case '/status': {
             if (!registered) return unregisteredReply(isPrivate);
-            return buildStatus();
+            return withDailyGreeting(chatId, await buildStatus());
         }
 
         case '/order': {
             if (!registered) return unregisteredReply(isPrivate);
             const num = (args[0] || '').toUpperCase();
             if (!num) return 'Вкажи номер замовлення, наприклад: /order TM-001234';
-            return buildOrderCard(num);
+            return withDailyGreeting(chatId, await buildOrderCard(num));
         }
 
         case '/overdue': {
             if (!registered) return unregisteredReply(isPrivate);
-            return buildOverdue();
+            return withDailyGreeting(chatId, await buildOverdue());
         }
 
         case '/unanswered': {
             if (!registered) return unregisteredReply(isPrivate);
-            return buildUnanswered();
+            return withDailyGreeting(chatId, await buildUnanswered());
         }
 
         default:
             // Unknown commands stay silent so we don't answer other bots'
             // commands in shared groups.
             return null;
+    }
+}
+
+/**
+ * The first data command in a chat each Kyiv day gets a time-of-day greeting
+ * on top (early birds before 8, sleepyheads after 10); late-evening requests
+ * get a sweet-dreams sign-off instead.
+ */
+async function withDailyGreeting(chatId: number, body: string): Promise<string> {
+    try {
+        if (!(await shouldGreetToday(chatId, kyivDate()))) return body;
+        const h = kyivHour();
+        if (h < 12) return `${morningGreeting()}\n\n${body}`;
+        if (h >= 21) return `${body}\n\nНе засиджуйтесь допізна — солодких снів! 🌙`;
+        return body;
+    } catch {
+        return body;
     }
 }
 
