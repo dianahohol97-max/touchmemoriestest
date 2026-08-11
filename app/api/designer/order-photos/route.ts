@@ -60,10 +60,19 @@ export async function GET(req: NextRequest) {
     // files (order-files/{customer_id}/...), so we need it for the fallback scan.
     const { data: orderRow } = await admin
         .from('orders')
-        .select('customer_id')
+        .select('customer_id, items')
         .eq('id', orderId)
         .maybeSingle();
     const customerFolder = (orderRow as any)?.customer_id || null;
+    // Product ids of THIS order — the folder scan below may only surface
+    // sub-folders that belong to one of them. The customer folder is shared by
+    // every order of the customer, and an unfiltered scan pulled a photoprint
+    // order's 101 files into a wishbook's card as its «макет» (TM-001180).
+    const orderProductIds = new Set(
+        (Array.isArray((orderRow as any)?.items) ? (orderRow as any).items : [])
+            .map((i: any) => String(i?.product_id || ''))
+            .filter(Boolean),
+    );
 
     // Travel-book cover: the chosen cover URL never reaches order.items[] — it
     // only lives in the saved design. Two shapes: a catalog city/landmark cover
@@ -162,6 +171,11 @@ export async function GET(req: NextRequest) {
             for (const dir of (subdirs || []) as any[]) {
                 if (!dir?.name || dir.id) continue; // folders have id === null; skip stray top-level files
                 const productId = String(dir.name).split('_')[0] || null;
+                // Only folders traceable to THIS order's items. The customer
+                // folder holds every order of the customer — photoprint export
+                // folders (pp_<ts>) and other orders' product folders must not
+                // masquerade as this order's макет.
+                if (!productId || !orderProductIds.has(productId)) continue;
                 const prefix = `${customerFolder}/${dir.name}`;
                 const { data: entries } = await admin.storage.from('order-files').list(prefix, { limit: 200 });
                 const dirFiles = ((entries || []) as any[]).filter((f) => f?.id && f.name && !registered.has(`${prefix}/${f.name}`));
