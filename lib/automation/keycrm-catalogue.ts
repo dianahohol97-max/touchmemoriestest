@@ -410,6 +410,8 @@ export type CostSyncReport = {
     updated_products: Array<{ slug: string; from: number | null; to: number }>;
     /** Per-size costs written into the product's variants array. */
     updated_variants: Array<{ slug: string; sizes: Array<{ variant: string; cost: number }> }>;
+    /** Per-size SALE prices written for allowlisted price-follow products. */
+    updated_prices: Array<{ slug: string; sizes: Array<{ variant: string; price: number }> }>;
     unchanged: number;
     /** Sizes with differing costs on a product that has no variants array to hold them. */
     conflicts: Array<{ slug: string; costs: Array<{ variant: string; cost: number }> }>;
@@ -450,7 +452,16 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     if (error) throw error;
 
     const costsByProduct = new Map<string, Array<{ variant: string; cost: number }>>();
+    const pricesByProduct = new Map<string, Array<{ variant: string; price: number }>>();
     const withoutCost: string[] = [];
+
+    // Price-follow allowlist (Diana, 2026-08-11: «поки що ні, тільки для
+    // холстів — буде вручну перевіряти»): ONLY slugs listed in
+    // settings('keycrm_price_follow_slugs') get their variant sale prices
+    // overwritten from the CRM. Everything else keeps site-owned prices.
+    const { data: followSetting } = await supabase
+        .from('settings').select('value').eq('key', 'keycrm_price_follow_slugs').maybeSingle();
+    const priceFollow = new Set<string>(Array.isArray(followSetting?.value) ? followSetting.value.map(String) : []);
 
     for (const row of mappings || []) {
         const offer = offerById.get(String(row.keycrm_offer_id));
@@ -461,12 +472,18 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         // sync made the map half-blind). Stored on the mapping row only;
         // whether a site price follows the CRM one stays a human decision.
         const salePrice = Number.isFinite(offer?.price) && (offer?.price ?? 0) > 0 ? offer!.price : null;
-        if (!dryRun && salePrice !== null) {
-            await supabase
-                .from('keycrm_product_map')
-                .update({ keycrm_price: salePrice })
-                .eq('site_slug', row.site_slug)
-                .eq('site_variant', row.site_variant || '');
+        if (salePrice !== null) {
+            const priceList = pricesByProduct.get(row.site_slug) || [];
+            priceList.push({ variant: row.site_variant || '', price: salePrice });
+            pricesByProduct.set(row.site_slug, priceList);
+
+            if (!dryRun) {
+                await supabase
+                    .from('keycrm_product_map')
+                    .update({ keycrm_price: salePrice })
+                    .eq('site_slug', row.site_slug)
+                    .eq('site_variant', row.site_variant || '');
+            }
         }
 
         if (cost === null) {
@@ -487,7 +504,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         }
     }
 
-    const slugs = [...costsByProduct.keys()];
+    const slugs = [...new Set([...costsByProduct.keys(), ...pricesByProduct.keys()])];
     const { data: products } = slugs.length
         ? await supabase.from('products').select('slug, cost_price, variants').in('slug', slugs)
         : { data: [] as any[] };
@@ -496,10 +513,12 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
 
     const updated: CostSyncReport['updated_products'] = [];
     const updatedVariants: CostSyncReport['updated_variants'] = [];
+    const updatedPrices: CostSyncReport['updated_prices'] = [];
     const conflicts: CostSyncReport['conflicts'] = [];
     let unchanged = 0;
 
-    for (const [slug, list] of costsByProduct) {
+    for (const slug of slugs) {
+        const list = costsByProduct.get(slug) || [];
         const product = productBySlug.get(slug);
         const distinct = [...new Set(list.map(c => c.cost))];
         const patch: Record<string, any> = {};
@@ -515,7 +534,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
             const costBySize = new Map(list.map(c => [c.variant, c.cost]));
             const written: Array<{ variant: string; cost: number }> = [];
 
-            const nextVariants = variants.map((v: any) => {
+            let nextVariants = variants.map((v: any) => {
                 const key = sizeKey(String(v?.size ?? v?.name ?? ''));
                 const cost = costBySize.get(key);
                 if (cost === undefined) return v;
@@ -523,6 +542,28 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
                 written.push({ variant: key, cost });
                 return { ...v, cost_price: cost };
             });
+
+            // Sale prices follow the CRM only for allowlisted products
+            // (settings keycrm_price_follow_slugs) — currently the canvas
+            // prints, per Diana's explicit call. Applied on top of the
+            // cost-updated array so one products.update carries both.
+            const priceList = priceFollow.has(slug) ? pricesByProduct.get(slug) : undefined;
+            if (priceList?.length) {
+                const priceBySize = new Map(priceList.map(p => [p.variant, p.price]));
+                const priceWritten: Array<{ variant: string; price: number }> = [];
+                nextVariants = nextVariants.map((v: any) => {
+                    const key = sizeKey(String(v?.size ?? v?.name ?? ''));
+                    const price = priceBySize.get(key);
+                    if (price === undefined) return v;
+                    if (Math.abs(Number(v?.price ?? 0) - price) < 0.005) return v;
+                    priceWritten.push({ variant: key, price });
+                    return { ...v, price };
+                });
+                if (priceWritten.length) {
+                    patch.variants = nextVariants;
+                    updatedPrices.push({ slug, sizes: priceWritten });
+                }
+            }
 
             if (written.length) {
                 patch.variants = nextVariants;
@@ -571,6 +612,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         cost_fields: [...new Set(offers.map(o => o.cost_field).filter(Boolean) as string[])],
         updated_products: updated,
         updated_variants: updatedVariants,
+        updated_prices: updatedPrices,
         unchanged,
         conflicts,
         without_cost: withoutCost,
