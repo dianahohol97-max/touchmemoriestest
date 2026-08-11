@@ -94,6 +94,13 @@ export async function GET(request: Request) {
         if (isTestOrder(o)) return false;
         if (o.source === 'keycrm') return true;
         if (!Number.isFinite(cutoff)) return true;
+        // Pre-cutoff site orders were carried into the CRM by hand. Hidden by
+        // default (their production is tracked there), EXCEPT when the mirror
+        // has tied the CRM card back to this row — then the CRM stage flows in
+        // through the reconcile and the order can be shown without appearing
+        // twice. Found live: TM-001149 sat in production on NO board at all,
+        // because the site hid it and the CRM copy is never mirrored.
+        if ((o.custom_attributes as any)?.keycrm?.order_id) return true;
         return new Date(o.created_at).getTime() >= cutoff;
     });
 

@@ -8,6 +8,7 @@ import {
     UserRound,
     ExternalLink,
     X,
+    Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -52,7 +53,27 @@ export default function ReprintsPage() {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [closingTask, setClosingTask] = useState<string | null>(null);
     const [form, setForm] = useState({ order_number: '', customer_name: '', reason: '', fault: '', notes: '' });
+
+    const markChatTaskDone = async (orderId: string) => {
+        setClosingTask(orderId);
+        try {
+            const res = await fetch('/api/admin/reprints', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'chat_task_done', order_id: orderId }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.error || 'Не вдалося позначити виконаним');
+            toast.success('Доручення позначено виконаним.');
+            await load(showAll);
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося позначити виконаним');
+        } finally {
+            setClosingTask(null);
+        }
+    };
 
     const load = useCallback(async (all: boolean) => {
         setLoading(true);
@@ -231,6 +252,25 @@ export default function ReprintsPage() {
                                             fontSize: 13, fontWeight: 700, color: '#92400e', lineHeight: 1.45,
                                         }}>
                                             💡 Рекомендована дія: {task.recommendation}
+                                        </div>
+                                    )}
+
+                                    {!task.done && task.order_id && (
+                                        <div style={{ marginTop: 8 }}>
+                                            <button
+                                                onClick={() => markChatTaskDone(task.order_id)}
+                                                disabled={closingTask !== null}
+                                                style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                    fontSize: 12.5, fontWeight: 800, color: '#15803d',
+                                                    background: '#f0fdf4', border: '1px solid #bbf7d0',
+                                                    borderRadius: 8, padding: '6px 12px', cursor: 'pointer',
+                                                    opacity: closingTask !== null && closingTask !== task.order_id ? 0.6 : 1,
+                                                }}
+                                            >
+                                                {closingTask === task.order_id ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                                                Позначити виконаним
+                                            </button>
                                         </div>
                                     )}
                                 </div>

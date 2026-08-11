@@ -264,7 +264,26 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
         .in('order_number', numbers)
         .order('created_at', { ascending: false })
         .limit(1);
-    const order = matches?.[0];
+    let order = matches?.[0];
+
+    // A bare CRM number can belong to a hand-transferred site order (card
+    // 13707 → TM-001149): those CRM cards are never mirrored, but the
+    // adoption pass writes the CRM id onto the TM row — search there before
+    // giving up.
+    if (!order) {
+        const crmIds = numbers
+            .filter(n => n.startsWith('CRM-'))
+            .map(n => n.slice(4));
+        for (const crmId of crmIds) {
+            const { data: adopted } = await supabase
+                .from('orders')
+                .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
+                .eq('custom_attributes->keycrm->>order_id', crmId)
+                .limit(1);
+            if (adopted?.[0]) { order = adopted[0]; break; }
+        }
+    }
+
     if (!order) {
         return `Замовлення ${numbers.join(' / ')} не знайшла в базі. Якщо воно щойно створене в KeyCRM — з'явиться після найближчого годинного синку.`;
     }

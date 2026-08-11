@@ -116,11 +116,25 @@ async function attachToOrder(supabase: any, orderNum: string, p: {
     due: Date | null;
     done: boolean;
 }): Promise<boolean> {
-    const { data: order } = await supabase
+    let { data: order } = await supabase
         .from('orders')
         .select('id, order_number, deadline')
         .eq('order_number', orderNum)
         .maybeSingle();
+
+    // A bare CRM number may belong to a HAND-TRANSFERRED site order: the CRM
+    // card 13707 is never mirrored (site source), but TM-001149 carries
+    // keycrm.order_id=13707 since the adoption pass tied them together. Found
+    // live when an instruction about 13707 could not attach anywhere.
+    if (!order && orderNum.startsWith('CRM-')) {
+        const bare = orderNum.slice(4);
+        const { data: adopted } = await supabase
+            .from('orders')
+            .select('id, order_number, deadline')
+            .eq('custom_attributes->keycrm->>order_id', bare)
+            .limit(1);
+        order = adopted?.[0] || null;
+    }
     if (!order) return false;
 
     await supabase.from('order_history').insert({

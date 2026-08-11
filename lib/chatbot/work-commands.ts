@@ -260,7 +260,19 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
         .in('order_number', candidates)
         .order('created_at', { ascending: false })
         .limit(1);
-    const order = matches?.[0];
+    let order = matches?.[0];
+
+    // A bare CRM number can belong to a hand-transferred site order: card
+    // 13707 is never mirrored (site source), but TM-001149 carries
+    // keycrm.order_id=13707 after adoption. Second look before giving up.
+    if (!order && bare) {
+        const { data: adopted } = await supabase
+            .from('orders')
+            .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source')
+            .eq('custom_attributes->keycrm->>order_id', bare[1])
+            .limit(1);
+        order = adopted?.[0];
+    }
 
     if (!order) return `Замовлення ${orderNumber} не знайшла (шукала як ${candidates.join(', ')}). Якщо воно щойно створене в KeyCRM — з'явиться в базі після найближчого годинного синку.`;
 

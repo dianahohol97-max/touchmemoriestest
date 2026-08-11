@@ -1141,7 +1141,44 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {/* Production deadline, editable by hand (Diana, 2026-08-11).
+                        Drives the production calendar and the overdue rail; a
+                        hand-set date survives the syncs, which only ever
+                        tighten, never extend. */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '6px 10px' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Дедлайн:</span>
+                        <input
+                            type="date"
+                            value={order.deadline ? String(order.deadline).slice(0, 10) : ''}
+                            onChange={async (e) => {
+                                const v = e.target.value;
+                                if (!v) return;
+                                const loadingToast = toast.loading('Оновлення дедлайну...');
+                                try {
+                                    const resp = await fetch(`/api/admin/orders/${id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ deadline: `${v}T09:00:00Z`, updated_at: new Date().toISOString() }),
+                                    });
+                                    if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити дедлайн');
+                                    await supabase.from('order_history').insert({
+                                        order_id: id,
+                                        action: 'deadline_changed',
+                                        notes: `Дедлайн виробництва змінено вручну на ${v}.`,
+                                        details: { old: order.deadline, new: v },
+                                    });
+                                    toast.dismiss(loadingToast);
+                                    toast.success('Дедлайн оновлено');
+                                    fetchOrder();
+                                } catch (err: any) {
+                                    toast.dismiss(loadingToast);
+                                    toast.error(err.message || 'Помилка');
+                                }
+                            }}
+                            style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 700, color: '#0f172a', outline: 'none' }}
+                        />
+                    </div>
                     <div style={{ position: 'relative' }}>
                         <select
                             value={order.order_status}

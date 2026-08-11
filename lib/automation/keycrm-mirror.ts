@@ -39,6 +39,8 @@ export type MirrorReport = {
     skipped_own: number;
     /** CRM orders whose source is «Сайт» — the hand-typed backlog, never mirrored. */
     skipped_site_source: number;
+    /** Hand-typed CRM orders tied back to their TM- site rows via the comment's number. */
+    adopted: number;
     problems: string[];
     samples: Array<{ order_number: string; buyer: string; total: number; action: string }>;
 };
@@ -225,6 +227,7 @@ export async function mirrorKeycrmOrders(params: {
         updated: 0,
         skipped_own: 0,
         skipped_site_source: 0,
+        adopted: 0,
         problems: [],
         samples: [],
     };
@@ -261,6 +264,63 @@ export async function mirrorKeycrmOrders(params: {
 
     const candidates = crm.orders.filter(o => !o.source_uuid.trim() && o.source_id !== siteSourceId);
     report.skipped_site_source = crm.orders.length - report.skipped_own - candidates.length;
+
+    // Adopt the hand-transferred backlog (found live: TM-001149 / CRM 13707).
+    // A site order carried into the CRM by hand exists TWICE with no link:
+    // the site row predates the automation cutoff so the production calendar
+    // hides it, and the CRM row is skipped right here to avoid doubling
+    // revenue — leaving the order on NO board at all while it is still in
+    // production. The manager comment of such CRM orders carries the TM
+    // number, so it is used to tie the two rows together: the CRM id is
+    // written onto the site order (fill-a-blank, never overwriting an
+    // existing link), after which the regular two-way reconcile keeps its
+    // stage fresh and the calendar can show it.
+    try {
+        const handTyped = crm.orders.filter(o => !o.source_uuid.trim() && o.source_id === siteSourceId);
+        const refs = new Map<string, (typeof crm.orders)[number]>();
+        for (const o of handTyped) {
+            const m = String(o.manager_comment || '').match(/TM-?\s?(\d{4,6})/i);
+            if (m) refs.set(`TM-${m[1].padStart(6, '0')}`, o);
+        }
+
+        if (refs.size) {
+            const { data: siteRows } = await supabase
+                .from('orders')
+                .select('id, order_number, custom_attributes')
+                .in('order_number', [...refs.keys()]);
+
+            for (const row of siteRows || []) {
+                const attrs = (row.custom_attributes && typeof row.custom_attributes === 'object')
+                    ? row.custom_attributes as Record<string, any>
+                    : {};
+                if (attrs.keycrm?.order_id) continue;
+
+                const crmOrder = refs.get(row.order_number)!;
+                if (dryRun) { report.adopted++; continue; }
+
+                const { error: adoptError } = await supabase
+                    .from('orders')
+                    .update({
+                        custom_attributes: {
+                            ...attrs,
+                            keycrm: {
+                                order_id: crmOrder.id,
+                                status_label: crmOrder.status_label,
+                                payments_total: crmOrder.payments_total,
+                                adopted: true,
+                                synced_at: new Date().toISOString(),
+                            },
+                        },
+                    })
+                    .eq('id', row.id);
+
+                if (adoptError) report.problems.push(`${row.order_number}: не вдалося прив'язати CRM ${crmOrder.id}: ${adoptError.message}`);
+                else report.adopted++;
+            }
+        }
+    } catch (e: any) {
+        report.problems.push(`Прив'язка ручних переносів не вдалася: ${e?.message || 'невідома помилка'}`);
+    }
 
     if (ownNumbers.size) {
         // Sanity check rather than a guess: if a CRM order carries a reference

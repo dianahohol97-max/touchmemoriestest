@@ -119,6 +119,41 @@ export async function POST(request: Request) {
     }
 
     const supabase = getAdminClient();
+
+    // Close a chat-task thread from the admin card (Diana, 2026-08-11:
+    // «додай якусь кнопочку щоб можна було додати виконане»). The closing is
+    // the same event a chat report would produce — a work_chat_done row — so
+    // the thread shows WHO closed it and when, and reopens the moment a new
+    // instruction arrives.
+    if (body?.action === 'chat_task_done') {
+        const orderId = String(body?.order_id || '').trim();
+        if (!orderId) return NextResponse.json({ error: 'order_id is required' }, { status: 400 });
+
+        const { error: doneError } = await supabase.from('order_history').insert({
+            order_id: orderId,
+            action: 'work_chat_done',
+            notes: 'Виконано (позначено вручну в адмінці).',
+            details: { sender: 'адмінка', chat: null },
+            added_by: null,
+        });
+        if (doneError) return NextResponse.json({ error: doneError.message }, { status: 500 });
+
+        // The recommendation has served its purpose along with the thread.
+        const { data: order } = await supabase
+            .from('orders')
+            .select('id, custom_attributes')
+            .eq('id', orderId)
+            .maybeSingle();
+        if (order && (order.custom_attributes as any)?.chat_task) {
+            await supabase
+                .from('orders')
+                .update({ custom_attributes: { ...(order.custom_attributes as any), chat_task: null } })
+                .eq('id', orderId);
+        }
+
+        return NextResponse.json({ ok: true });
+    }
+
     const orderNumber = String(body?.order_number || '').trim();
 
     // Link to the real order when the number resolves — the queue card then
