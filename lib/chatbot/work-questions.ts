@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { extractOrderNumbers } from './work-chat-monitor';
-import { isTestOrder } from '@/lib/automation/test-orders';
+import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 
 /**
  * Софія answers questions in the work chats (Diana, 2026-08-11):
@@ -21,7 +21,6 @@ import { isTestOrder } from '@/lib/automation/test-orders';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 const HOUR_MS = 60 * 60 * 1000;
-const ACTIVE_STATUSES = ['new', 'confirmed'];
 const MAX_LISTED = 12;
 
 const QUESTION_MARKER = /\?|\b(що|шо|коли|який|яка|які|чи|скільки|де|статус|хто)\b/i;
@@ -81,15 +80,21 @@ async function buildShipToday(): Promise<string> {
     const kyivToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Kyiv' });
     const endOfToday = new Date(`${kyivToday}T23:59:59+03:00`);
 
+    // Same visibility rules as the production calendar (Diana, 2026-08-11:
+    // the old query listed July orders long finished in KeyCRM and missed the
+    // mirrored CRM orders entirely). Statuses cover the whole production
+    // pipeline, and isVisibleProductionOrder drops hand-transferred pre-cutoff
+    // orders and anything whose CRM stage already says the work is over. Read
+    // wide, filter in JS — the predicate needs the row, not just a WHERE.
     const { data } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, deadline, order_status, ttn')
+        .select('id, order_number, customer_name, deadline, order_status, ttn, source, created_at, custom_attributes')
         .lte('deadline', endOfToday.toISOString())
-        .in('order_status', ACTIVE_STATUSES)
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
         .order('deadline', { ascending: true })
-        .limit(MAX_LISTED + 5);
+        .limit(200);
 
-    const real = (data || []).filter(o => !isTestOrder(o as any));
+    const real = (data || []).filter(o => isVisibleProductionOrder(o as any));
     if (!real.length) return 'Сьогодні нічого термінового не горить — усі дедлайни попереду ✅';
 
     const nowMs = Date.now();
