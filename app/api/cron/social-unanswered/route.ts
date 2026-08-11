@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { getWatchdogChatId, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
-import { computeUnansweredDialogs, waitingLabel } from '@/lib/chatbot/unanswered';
+import { computeUnansweredDialogs, waitingLabel, type WaitingDialog } from '@/lib/chatbot/unanswered';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -43,10 +44,38 @@ export async function GET(req: Request) {
     } catch (e: any) {
         return NextResponse.json({ error: e.message }, { status: 500 });
     }
-    const { unanswered, needsHuman, thresholdHours } = report;
+    const { thresholdHours } = report;
+
+    // Re-alert throttle: the cron runs every 30 minutes so NEW problems
+    // surface fast, but a dialog already alerted repeats only every
+    // `social_watchdog_realert_hours` (default 3) — a half-hourly copy of the
+    // same list is how alerts get muted by humans.
+    const supabase = getAdminClient();
+    const { data: realertSetting } = await supabase
+        .from('settings').select('value').eq('key', 'social_watchdog_realert_hours').maybeSingle();
+    const rawRealert = parseFloat(String(realertSetting?.value ?? ''));
+    const realertHours = Number.isFinite(rawRealert) && rawRealert > 0 ? rawRealert : 3;
+
+    const { data: alertedRow } = await supabase
+        .from('settings').select('value').eq('key', 'social_watchdog_alerted').maybeSingle();
+    const alerted: Record<string, string> = (alertedRow?.value && typeof alertedRow.value === 'object') ? alertedRow.value : {};
+    const nowMs = Date.now();
+    const isDue = (d: WaitingDialog) => {
+        const prev = alerted[d.id] ? new Date(alerted[d.id]).getTime() : 0;
+        return nowMs - prev >= realertHours * 60 * 60 * 1000;
+    };
+
+    const unanswered = report.unanswered.filter(isDue);
+    const needsHuman = report.needsHuman.filter(isDue);
 
     if (!unanswered.length && !needsHuman.length) {
-        return NextResponse.json({ ok: true, unanswered: 0, needsHuman: 0, sent: false });
+        return NextResponse.json({
+            ok: true,
+            unanswered: 0,
+            needsHuman: 0,
+            sent: false,
+            throttled: report.unanswered.length + report.needsHuman.length,
+        });
     }
 
     const lines: string[] = ['🔔 Перевірка переписок з клієнтами'];
@@ -79,5 +108,19 @@ export async function GET(req: Request) {
     }
 
     const sent = await sendViaPublicBot({ chat_id: alertChatId, text });
+
+    if (sent.success) {
+        // Remember what we alerted about (and prune entries older than 7 days
+        // so the map cannot grow forever).
+        const nowIso = new Date(nowMs).toISOString();
+        const weekAgo = nowMs - 7 * 24 * 60 * 60 * 1000;
+        const next: Record<string, string> = {};
+        for (const [id, ts] of Object.entries(alerted)) {
+            if (new Date(ts).getTime() > weekAgo) next[id] = ts;
+        }
+        for (const d of [...unanswered, ...needsHuman]) next[d.id] = nowIso;
+        await supabase.from('settings').upsert({ key: 'social_watchdog_alerted', value: next, updated_at: nowIso });
+    }
+
     return NextResponse.json({ ok: sent.success, unanswered: unanswered.length, needsHuman: needsHuman.length, sent: sent.success, error: sent.error });
 }

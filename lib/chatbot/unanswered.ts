@@ -14,6 +14,7 @@ const LOOKBACK_DAYS = 14;
 const HOUR_MS = 60 * 60 * 1000;
 
 export type WaitingDialog = {
+    id: string;
     name: string;
     platform: string;
     hours: number;
@@ -48,6 +49,15 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     const rawThreshold = parseFloat(String(thresholdSetting?.value ?? ''));
     const thresholdHours = Number.isFinite(rawThreshold) && rawThreshold > 0 ? rawThreshold : 3;
 
+    // Dialogs a manager touched recently are "in work" (design approvals,
+    // revision rounds — the Тома/Оксана/Юля/Таня folders) and must not spam
+    // the watchdog. Telegram folders are invisible to bots, so recency of a
+    // human reply is the working equivalent of "it's in someone's folder".
+    const { data: activeSetting } = await supabase
+        .from('settings').select('value').eq('key', 'social_watchdog_active_hours').maybeSingle();
+    const rawActive = parseFloat(String(activeSetting?.value ?? ''));
+    const activeHours = Number.isFinite(rawActive) && rawActive >= 0 ? rawActive : 24;
+
     const { data: conversations, error: convErr } = await supabase
         .from('social_conversations')
         .select('id, platform, external_username, status, last_message_at')
@@ -67,8 +77,12 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     if (msgErr) throw new Error(msgErr.message);
 
     const latestByConv = new Map<string, { sender: string; original_text: string | null; sent_at: string }>();
+    const lastHumanByConv = new Map<string, string>();
     for (const m of messages || []) {
         if (!latestByConv.has(m.conversation_id)) latestByConv.set(m.conversation_id, m);
+        if (m.sender === 'human_manager' && !lastHumanByConv.has(m.conversation_id)) {
+            lastHumanByConv.set(m.conversation_id, m.sent_at);
+        }
     }
 
     const unanswered: WaitingDialog[] = [];
@@ -79,6 +93,7 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         if (!last) continue;
         const hours = (now - new Date(last.sent_at).getTime()) / HOUR_MS;
         const item: WaitingDialog = {
+            id: conv.id,
             name: conv.external_username || 'Без імені',
             platform: platformLabel(conv.platform),
             hours,
@@ -87,6 +102,15 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         if (conv.status === 'needs_human') {
             needsHuman.push(item);
         } else if (last.sender === 'customer' && hours >= thresholdHours) {
+            // Two deliberate mutes: a dialog explicitly taken over by a human
+            // (admin inbox status), and a dialog a manager replied to within
+            // the active window — both are being handled, alerting on them
+            // trains everyone to ignore the watchdog.
+            if (conv.status === 'human_handling') continue;
+            const lastHumanAt = lastHumanByConv.get(conv.id);
+            const humanActive = activeHours > 0 && lastHumanAt
+                && (now - new Date(lastHumanAt).getTime()) < activeHours * HOUR_MS;
+            if (humanActive) continue;
             unanswered.push(item);
         }
     }
