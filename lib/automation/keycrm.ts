@@ -526,12 +526,21 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
 
         // include=product: the offer itself is often named only by its variant
         // properties ("Зелений"), and the buyer-facing name lives on the parent.
+        // include=properties as well, degrading when the account rejects it:
+        // the listing omits the variant's own properties («розмір: 30х40см»)
+        // unless asked, and without them the per-size offers of one product
+        // are indistinguishable — the canvas-print linking matched only the
+        // sizes whose offer NAME happened to carry the dimensions.
         let payload: any;
         try {
-            payload = await keycrmRequest(`/offers?page=${page}&limit=${PAGE_SIZE}&include=product`);
+            payload = await keycrmRequest(`/offers?page=${page}&limit=${PAGE_SIZE}&include=product,properties`);
         } catch {
-            // Older accounts expose the catalogue only as products.
-            payload = await keycrmRequest(`/products?page=${page}&limit=${PAGE_SIZE}`);
+            try {
+                payload = await keycrmRequest(`/offers?page=${page}&limit=${PAGE_SIZE}&include=product`);
+            } catch {
+                // Older accounts expose the catalogue only as products.
+                payload = await keycrmRequest(`/products?page=${page}&limit=${PAGE_SIZE}`);
+            }
         }
 
         const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
