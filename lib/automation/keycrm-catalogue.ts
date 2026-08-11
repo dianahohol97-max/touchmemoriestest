@@ -662,6 +662,110 @@ async function backfillMissingOffers(
     for (const offer of fetched) offerById.set(offer.offer_id, offer);
 }
 
+export type StockSyncReport = {
+    dry_run: boolean;
+    followed_slugs: number;
+    updated: Array<{ slug: string; from: number | null; to: number }>;
+    unchanged: number;
+    /** Followed slugs with no confirmed CRM link — stock cannot come from anywhere. */
+    unlinked: string[];
+};
+
+/**
+ * Pull warehouse stock from KeyCRM onto the site (Diana, 2026-08-11: «витягни
+ * що є по кількості кожного з цих товарів на складі з кі срм і синхронізуй з
+ * сайтом»).
+ *
+ * Follows the price-follow precedent: ONLY slugs listed in
+ * settings('keycrm_stock_follow_slugs') get products.stock overwritten — the
+ * CRM warehouse legitimately shows zero for made-to-order products (books,
+ * canvases), and following those blindly would mark them «немає в наявності»
+ * and stop their sales. The CRM figure also lands on the mapping row
+ * (keycrm_stock) for every followed slug, so the reconciliation screen can
+ * show both sides. Cheap by construction: reads only the followed slugs'
+ * offers, by id.
+ */
+export async function syncStockFromKeycrm(opts?: { dryRun?: boolean }): Promise<StockSyncReport | { skipped: string }> {
+    const dryRun = opts?.dryRun === true;
+    const supabase = getAdminClient();
+
+    const { data: followSetting } = await supabase
+        .from('settings').select('value').eq('key', 'keycrm_stock_follow_slugs').maybeSingle();
+    const followed: string[] = Array.isArray(followSetting?.value) ? followSetting.value.map(String) : [];
+    if (!followed.length) return { skipped: 'keycrm_stock_follow_slugs порожній.' };
+
+    const { data: mappings, error } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, site_variant, keycrm_offer_id')
+        .eq('confirmed', true)
+        .in('site_slug', followed)
+        .not('keycrm_offer_id', 'is', null);
+
+    if (error) throw error;
+
+    const bySlug = new Map<string, Array<{ variant: string; offer_id: string }>>();
+    for (const row of mappings || []) {
+        const list = bySlug.get(row.site_slug) || [];
+        list.push({ variant: row.site_variant || '', offer_id: String(row.keycrm_offer_id) });
+        bySlug.set(row.site_slug, list);
+    }
+
+    const offers = await fetchKeycrmOffersByIds((mappings || []).map(r => String(r.keycrm_offer_id)));
+    const offerById = new Map(offers.map(o => [o.offer_id, o]));
+
+    const report: StockSyncReport = {
+        dry_run: dryRun,
+        followed_slugs: followed.length,
+        updated: [], unchanged: 0,
+        unlinked: followed.filter(slug => !bySlug.has(slug)),
+    };
+
+    const { data: products } = bySlug.size
+        ? await supabase.from('products').select('slug, stock').in('slug', [...bySlug.keys()])
+        : { data: [] as any[] };
+    const productBySlug = new Map((products || []).map((p: any) => [p.slug, p]));
+
+    for (const [slug, rows] of bySlug) {
+        // The site keeps ONE balance per product; a per-size product's figure
+        // is the total across its linked offers, same as the per-warehouse
+        // sum inside one offer. Missing quantities skip the write — an
+        // account that hides stock must not zero the site.
+        let total = 0;
+        let seen = false;
+        for (const row of rows) {
+            const qty = offerById.get(row.offer_id)?.quantity;
+            if (qty === null || qty === undefined) continue;
+            total += qty;
+            seen = true;
+
+            if (!dryRun) {
+                await supabase
+                    .from('keycrm_product_map')
+                    .update({ keycrm_stock: qty, keycrm_stock_synced_at: new Date().toISOString() })
+                    .eq('site_slug', slug)
+                    .eq('site_variant', row.variant);
+            }
+        }
+        if (!seen) continue;
+
+        const next = Math.max(0, Math.round(total));
+        const current = productBySlug.get(slug)?.stock;
+        if (Number(current) === next) {
+            report.unchanged++;
+            continue;
+        }
+
+        report.updated.push({ slug, from: current ?? null, to: next });
+        if (!dryRun) {
+            const { error: updateError } = await supabase
+                .from('products').update({ stock: next }).eq('slug', slug);
+            if (updateError) console.error(`[keycrm-stock] failed to update ${slug}:`, updateError.message);
+        }
+    }
+
+    return report;
+}
+
 /**
  * Resolve one pasted KeyCRM number against the live catalogue.
  *

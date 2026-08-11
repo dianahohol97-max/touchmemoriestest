@@ -4,7 +4,7 @@ import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-p
 import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
 import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
 import { enqueueDefectsFromTags } from '@/lib/automation/reprints';
-import { resolvePendingProductLinks, syncSkusToKeycrm, syncCostPrices } from '@/lib/automation/keycrm-catalogue';
+import { resolvePendingProductLinks, syncSkusToKeycrm, syncCostPrices, syncStockFromKeycrm } from '@/lib/automation/keycrm-catalogue';
 import { pushInstructionCommentsToCrm } from '@/lib/automation/keycrm-comments';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
@@ -202,6 +202,25 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
+        // Warehouse stock for followed products, EVERY pass (Diana,
+        // 2026-08-11: «витягни що є по кількості кожного з цих товарів на
+        // складі з кі срм і синхронізуй з сайтом»). Cheap: only the
+        // allowlisted slugs' offers are fetched, by id. Runs outside the
+        // pending-links condition — stock changes with every CRM sale, not
+        // only when links change.
+        let stock_follow: any = null;
+        try {
+            if (!dryRun) {
+                stock_follow = await syncStockFromKeycrm({ dryRun: false });
+                if ((stock_follow as any)?.updated?.length) {
+                    console.log('[keycrm-sync] stock follow', JSON.stringify(stock_follow));
+                }
+            }
+        } catch (e: any) {
+            console.error('[keycrm-sync] stock follow failed:', e);
+            stats.errors++;
+        }
+
         // Deadline recalibration for EVERY active order, every run (Diana,
         // 2026-08-11: «переконайся що всі дедлайни перераховані відповідно»,
         // after CRM-13510 sat on an 8-day fallback while being a 14-day
@@ -276,7 +295,7 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, chat_comments: chatComments });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, stock_follow, chat_comments: chatComments });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);
