@@ -113,24 +113,66 @@ export type HoroscopeEntry = { sign: string; emoji: string; text: string };
  * Returns an empty list when the source is unavailable — the caller then omits
  * the section entirely, which is the only honest option under «не вигадуй».
  */
-export async function fetchHoroscopes(day: 'TODAY' | 'TOMORROW' = 'TOMORROW'): Promise<{ entries: HoroscopeEntry[]; source: string }> {
-    const source = 'horoscope-app-api.vercel.app';
-    const entries: HoroscopeEntry[] = [];
+type Provider = {
+    host: string;
+    url: (sign: string, day: 'TODAY' | 'TOMORROW') => string;
+    read: (json: any) => string;
+    /** Some sources publish today only — they cannot answer a TOMORROW ask. */
+    tomorrow: boolean;
+};
 
-    for (const sign of ZODIAC) {
-        try {
-            const res = await fetch(
-                `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign.key}&day=${day}`,
-                { signal: AbortSignal.timeout(10000) },
-            );
-            if (!res.ok) continue;
-            const json: any = await res.json();
-            const text = String(json?.data?.horoscope_data || '').trim();
-            if (text) entries.push({ sign: sign.ua, emoji: sign.emoji, text });
-        } catch (e) {
-            console.error(`[evening-extras] horoscope ${sign.key} failed:`, e);
+/**
+ * Tried in order, first one that answers wins. A single public endpoint is a
+ * single point of failure: the first live run returned zero signs because the
+ * primary source did not answer, and «нічого про зорі» is a poor evening post.
+ */
+const PROVIDERS: Provider[] = [
+    {
+        host: 'horoscope-app-api.vercel.app',
+        url: (sign, day) => `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=${day}`,
+        read: json => String(json?.data?.horoscope_data || ''),
+        tomorrow: true,
+    },
+    {
+        host: 'ohmanda.com',
+        url: sign => `https://ohmanda.com/api/horoscope/${sign}/`,
+        read: json => String(json?.horoscope || ''),
+        tomorrow: false,
+    },
+];
+
+export async function fetchHoroscopes(
+    day: 'TODAY' | 'TOMORROW' = 'TOMORROW',
+): Promise<{ entries: HoroscopeEntry[]; source: string; day: 'TODAY' | 'TOMORROW'; diagnostics: string[] }> {
+    const diagnostics: string[] = [];
+
+    for (const provider of PROVIDERS) {
+        // A today-only source still beats silence; the caller says which day
+        // it got, so the message never promises tomorrow and shows today.
+        const effectiveDay: 'TODAY' | 'TOMORROW' = provider.tomorrow ? day : 'TODAY';
+        const entries: HoroscopeEntry[] = [];
+
+        for (const sign of ZODIAC) {
+            try {
+                const res = await fetch(provider.url(sign.key, effectiveDay), {
+                    signal: AbortSignal.timeout(8000),
+                    headers: { accept: 'application/json' },
+                });
+                if (!res.ok) {
+                    diagnostics.push(`${provider.host} ${sign.key}: HTTP ${res.status}`);
+                    continue;
+                }
+                const json: any = await res.json();
+                const text = provider.read(json).trim();
+                if (text) entries.push({ sign: sign.ua, emoji: sign.emoji, text });
+                else diagnostics.push(`${provider.host} ${sign.key}: empty body`);
+            } catch (e: any) {
+                diagnostics.push(`${provider.host} ${sign.key}: ${e?.name || 'error'} ${e?.message || ''}`.trim());
+            }
         }
+
+        if (entries.length) return { entries, source: provider.host, day: effectiveDay, diagnostics };
     }
 
-    return { entries, source };
+    return { entries: [], source: '', day, diagnostics };
 }

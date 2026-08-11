@@ -128,12 +128,19 @@ export async function GET(req: Request) {
 
     let horoscopes: HoroscopeEntry[] = [];
     let source = '';
+    let forDay: 'TODAY' | 'TOMORROW' = 'TOMORROW';
+    let diagnostics: string[] = [];
+    let raw = 0;
     try {
         const fetched = await fetchHoroscopes('TOMORROW');
         source = fetched.source;
+        forDay = fetched.day;
+        diagnostics = fetched.diagnostics;
+        raw = fetched.entries.length;
         horoscopes = await condense(fetched.entries);
     } catch (e) {
         console.error('[evening-horoscope] horoscopes failed:', e);
+        diagnostics.push(String((e as any)?.message || e));
     }
 
     let highlights: string[] = [];
@@ -149,7 +156,7 @@ export async function GET(req: Request) {
 
     const parts: string[] = [];
     if (horoscopes.length) {
-        parts.push('🔮 Гороскоп на завтра для наших знаків:');
+        parts.push(forDay === 'TOMORROW' ? '🔮 Гороскоп на завтра для наших знаків:' : '🔮 Гороскоп на сьогодні для наших знаків:');
         parts.push(horoscopes.map(h => `${h.emoji} ${h.sign}: ${h.text}`).join('\n'));
         parts.push(`Джерело: ${source}`);
     }
@@ -161,7 +168,9 @@ export async function GET(req: Request) {
     const text = parts.join('\n\n');
 
     if (preview) {
-        return NextResponse.json({ ok: true, signs: horoscopes.length, highlights, text });
+        // diagnostics say WHY a section is missing — a silent empty horoscope
+        // is indistinguishable from a source that quietly went away.
+        return NextResponse.json({ ok: true, signs: horoscopes.length, raw, source, day: forDay, diagnostics, highlights, text });
     }
 
     const sent = await sendWorkChatAlert(text);
