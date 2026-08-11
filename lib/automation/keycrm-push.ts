@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken } from '@/lib/automation/keycrm';
+import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrmTagIdByName } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, isReadyForCrm, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
@@ -194,7 +194,7 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
  * Build the exact body that would be POSTed. Kept pure and exported so it can
  * be previewed from the admin panel without touching the CRM.
  */
-export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {}): any {
+export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {}, tagIdByName: Record<string, number | string> = {}): any {
     const address = order?.delivery_address && typeof order.delivery_address === 'object'
         ? order.delivery_address
         : {};
@@ -260,10 +260,21 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {})
                 : {}),
         },
         products: items.map((item: any) => mapProduct(item, productMap)),
-        // Routing tags travel with the order so the CRM card shows who makes it
-        // without anyone re-reading the line items.
-        tags: mergeTags(order?.tags, autoTagsForOrder(order)),
     };
+
+    // Tags blocked a real order for a whole night: KeyCRM validates each one
+    // against its own dictionary and 422s the entire create on the first
+    // unknown name. So only dictionary ids are sent as tags, and the full list
+    // of names goes into the manager comment regardless — the routing stays
+    // visible on the card even when the dictionary has never heard of «фото».
+    const tagNames = mergeTags(order?.tags, autoTagsForOrder(order));
+    if (tagNames.length) {
+        const ids = tagNames
+            .map(name => tagIdByName[name.trim().toLowerCase()])
+            .filter((id): id is number | string => id !== undefined);
+        if (ids.length) payload.tags = ids;
+        payload.manager_comment += `\nТеги: ${tagNames.join(', ')}`;
+    }
 
     // Say it on the CRM card itself when a line could not be attached to a
     // catalogue item. Otherwise the order looks perfectly normal and the gap is
@@ -390,7 +401,8 @@ export async function pushOrderToKeycrm(
     }
 
     const productMap = await fetchConfirmedMap();
-    const payload = buildKeycrmOrderPayload(order, productMap);
+    const tagIdByName = await fetchKeycrmTagIdByName();
+    const payload = buildKeycrmOrderPayload(order, productMap, tagIdByName);
 
     if (dryRun) {
         return { ...base, ok: true, status: 'dry-run', payload };

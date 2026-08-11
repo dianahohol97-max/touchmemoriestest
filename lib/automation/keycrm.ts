@@ -564,6 +564,39 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
 }
 
 /**
+ * The account's tag dictionary, name → id, cached per invocation.
+ *
+ * Learned from a live 422 ("The selected tags.0 is invalid"): KeyCRM does not
+ * accept tags as text on an order — only ids from its own dictionary. TM-001175
+ * sat unpushed all night because its auto tags («фото») had no dictionary
+ * entry. Names are matched case-insensitively; an empty map just means every
+ * tag travels via the comment instead.
+ */
+let tagDictionaryPromise: Promise<Record<string, number | string>> | null = null;
+
+export async function fetchKeycrmTagIdByName(): Promise<Record<string, number | string>> {
+    if (!tagDictionaryPromise) {
+        tagDictionaryPromise = (async () => {
+            for (const path of ['/tags?limit=100', '/order/tags?limit=100', '/tag?limit=100']) {
+                try {
+                    const payload = await keycrmRequest(path);
+                    const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+                    const map: Record<string, number | string> = {};
+                    for (const row of rows) {
+                        if (row?.id !== undefined && row?.name) map[String(row.name).trim().toLowerCase()] = row.id;
+                    }
+                    if (Object.keys(map).length) return map;
+                } catch {
+                    // Try the next shape.
+                }
+            }
+            return {};
+        })();
+    }
+    return tagDictionaryPromise;
+}
+
+/**
  * Find an order already carrying this external reference.
  *
  * This is the remote half of the duplicate guard. The local half — the CRM id
