@@ -778,11 +778,13 @@ export async function syncStockFromKeycrm(opts?: { dryRun?: boolean }): Promise<
 export async function linkPastedId(params: {
     pasted: string;
     siteSlug: string;
+    /** When the seed row names one size, link exactly that pair. */
+    targetVariant?: string;
     note: string | null;
     offers: KeycrmOffer[];
     siteProducts: SiteProduct[];
 }): Promise<{ rows: any[]; warnings: string[] }> {
-    const { pasted, siteSlug, note, offers, siteProducts } = params;
+    const { pasted, siteSlug, targetVariant, note, offers, siteProducts } = params;
     const warnings: string[] = [];
 
     // Catalogue URLs (/app/catalog/ID/edit) always carry the PRODUCT id, and
@@ -811,10 +813,20 @@ export async function linkPastedId(params: {
         return { rows: [], warnings };
     }
 
-    const variants = siteProducts.filter(p => p.slug === siteSlug);
+    let variants = siteProducts.filter(p => p.slug === siteSlug);
     if (!variants.length) {
         warnings.push(`${siteSlug}: товар не знайдено на сайті.`);
         return { rows: [], warnings };
+    }
+
+    // A seed row that names ONE size means «this size ↔ this CRM number»,
+    // not «fan this product out over every size». Live case: the CRM keeps
+    // «Постер а4» and «Постер а3» as two separate variant-less products
+    // while the site sells them as two sizes of one product — the fan-out
+    // could never match, because neither CRM item carries a size at all.
+    if (targetVariant) {
+        const only = variants.filter(v => v.variant === targetVariant);
+        if (only.length) variants = only;
     }
 
     const familyBySize = new Map(family.map(o => [sizeKey(o.variant_label || o.name), o]));
@@ -824,7 +836,10 @@ export async function linkPastedId(params: {
     for (const variant of variants) {
         const match = familyBySize.get(variant.variant || sizeKey(variant.name))
             ?? (family.length === 1 && variants.length === 1 ? family[0] : undefined);
-        if (!match) {
+        // Nothing matched by size, but the seed named this exact size and the
+        // CRM product is a single item — that IS the pair the human meant.
+        const resolved = match ?? (targetVariant && family.length === 1 ? family[0] : undefined);
+        if (!resolved) {
             unmatched.push(variant.variantLabel || variant.variant || variant.name);
             continue;
         }
@@ -833,9 +848,9 @@ export async function linkPastedId(params: {
             site_variant: variant.variant,
             site_variant_label: variant.variantLabel,
             site_product_name: variant.name,
-            keycrm_offer_id: match.offer_id,
-            keycrm_sku: match.sku || null,
-            keycrm_name: match.name,
+            keycrm_offer_id: resolved.offer_id,
+            keycrm_sku: resolved.sku || null,
+            keycrm_name: resolved.name,
             match_type: 'manual',
             match_score: null,
             note,
@@ -900,13 +915,14 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
     const allWarnings: string[] = [];
 
     for (const row of pending) {
-        const key = `${row.site_slug}::${row.keycrm_offer_id}`;
+        const key = `${row.site_slug}::${row.site_variant || ''}::${row.keycrm_offer_id}`;
         if (seen.has(key)) continue;
         seen.add(key);
 
         const { rows, warnings } = await linkPastedId({
             pasted: String(row.keycrm_offer_id),
             siteSlug: row.site_slug,
+            targetVariant: row.site_variant || undefined,
             note: row.note ?? null,
             offers,
             siteProducts,
