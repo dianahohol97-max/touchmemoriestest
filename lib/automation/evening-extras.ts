@@ -17,14 +17,16 @@
  *    the notable-days list below is curated and factual.
  */
 
+// `hc` is horoscope.com's own sign number (1 = Aries … 12 = Pisces), which is
+// how its tomorrow page is addressed.
 export const ZODIAC = [
-    { key: 'aries', ua: 'Овен', emoji: '♈' },
-    { key: 'gemini', ua: 'Близнюки', emoji: '♊' },
-    { key: 'cancer', ua: 'Рак', emoji: '♋' },
-    { key: 'virgo', ua: 'Діва', emoji: '♍' },
-    { key: 'scorpio', ua: 'Скорпіон', emoji: '♏' },
-    { key: 'sagittarius', ua: 'Стрілець', emoji: '♐' },
-    { key: 'aquarius', ua: 'Водолій', emoji: '♒' },
+    { key: 'aries', ua: 'Овен', emoji: '♈', hc: 1 },
+    { key: 'gemini', ua: 'Близнюки', emoji: '♊', hc: 3 },
+    { key: 'cancer', ua: 'Рак', emoji: '♋', hc: 4 },
+    { key: 'virgo', ua: 'Діва', emoji: '♍', hc: 6 },
+    { key: 'scorpio', ua: 'Скорпіон', emoji: '♏', hc: 8 },
+    { key: 'sagittarius', ua: 'Стрілець', emoji: '♐', hc: 9 },
+    { key: 'aquarius', ua: 'Водолій', emoji: '♒', hc: 11 },
 ] as const;
 
 /**
@@ -113,13 +115,44 @@ export type HoroscopeEntry = { sign: string; emoji: string; text: string };
  * Returns an empty list when the source is unavailable — the caller then omits
  * the section entirely, which is the only honest option under «не вигадуй».
  */
+type Sign = (typeof ZODIAC)[number];
+
 type Provider = {
     host: string;
-    url: (sign: string, day: 'TODAY' | 'TOMORROW') => string;
-    read: (json: any) => string;
+    url: (sign: Sign, day: 'TODAY' | 'TOMORROW') => string;
+    /** Parse one sign's forecast out of the response body. */
+    read: (body: string) => string;
     /** Some sources publish today only — they cannot answer a TOMORROW ask. */
     tomorrow: boolean;
 };
+
+/** Strip markup, entities and the leading «Aug 12, 2026 - » stamp. */
+function textFromHtmlParagraph(html: string): string {
+    const block = html.match(/class="[^"]*main-horoscope[^"]*"[\s\S]{0,400}?<p>([\s\S]*?)<\/p>/i);
+    if (!block) return '';
+    return block[1]
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#39;|&rsquo;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;|&ldquo;|&rdquo;/g, '"')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/^[A-Za-z]{3}\s+\d{1,2},\s+\d{4}\s*[-–—]\s*/, '');
+}
+
+function jsonField(body: string, ...paths: string[][]): string {
+    try {
+        const json = JSON.parse(body);
+        for (const path of paths) {
+            let node: any = json;
+            for (const step of path) node = node?.[step];
+            const value = String(node ?? '').trim();
+            if (value) return value;
+        }
+    } catch { /* not JSON — the caller treats it as empty */ }
+    return '';
+}
 
 /**
  * Tried in order, first one that answers wins. A single public endpoint is a
@@ -128,20 +161,28 @@ type Provider = {
  */
 const PROVIDERS: Provider[] = [
     {
+        // The only one of the three that actually publishes TOMORROW, which is
+        // what an evening post needs (Diana: «гороскоп має бути звечора на
+        // наступний день»). Its own «Tomorrow's … Horoscope» page, parsed.
+        host: 'horoscope.com',
+        url: (sign, day) => `https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-${day === 'TOMORROW' ? 'tomorrow' : 'today'}.aspx?sign=${sign.hc}`,
+        read: textFromHtmlParagraph,
+        tomorrow: true,
+    },
+    {
         host: 'horoscope-app-api.vercel.app',
-        url: (sign, day) => `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=${day}`,
+        url: sign => `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign.key}&day=TODAY`,
         // The field is `horoscope`; reading `horoscope_data` is why this source
         // silently produced nothing on the first live run.
-        read: json => String(json?.data?.horoscope || json?.data?.horoscope_data || ''),
+        read: body => jsonField(body, ['data', 'horoscope'], ['data', 'horoscope_data']),
         // It accepts day=TOMORROW and answers with TODAY's text — verified
-        // against the live endpoint. So it cannot serve the evening post's
-        // «на завтра» and is kept only as a same-day fallback.
+        // against the live endpoint — so it can only be a same-day fallback.
         tomorrow: false,
     },
     {
         host: 'ohmanda.com',
-        url: sign => `https://ohmanda.com/api/horoscope/${sign}/`,
-        read: json => String(json?.horoscope || ''),
+        url: sign => `https://ohmanda.com/api/horoscope/${sign.key}/`,
+        read: body => jsonField(body, ['horoscope']),
         tomorrow: false,
     },
 ];
@@ -159,16 +200,20 @@ export async function fetchHoroscopes(
 
         for (const sign of ZODIAC) {
             try {
-                const res = await fetch(provider.url(sign.key, effectiveDay), {
+                const res = await fetch(provider.url(sign, effectiveDay), {
                     signal: AbortSignal.timeout(8000),
-                    headers: { accept: 'application/json' },
+                    headers: {
+                        accept: 'application/json, text/html;q=0.9',
+                        // A bare fetch is refused by some publishers; this is a
+                        // normal browser string, not a disguise.
+                        'user-agent': 'Mozilla/5.0 (compatible; touchmemories-bot/1.0)',
+                    },
                 });
                 if (!res.ok) {
                     diagnostics.push(`${provider.host} ${sign.key}: HTTP ${res.status}`);
                     continue;
                 }
-                const json: any = await res.json();
-                const text = provider.read(json).trim();
+                const text = provider.read(await res.text()).trim();
                 if (text) entries.push({ sign: sign.ua, emoji: sign.emoji, text });
                 else diagnostics.push(`${provider.host} ${sign.key}: empty body`);
             } catch (e: any) {
