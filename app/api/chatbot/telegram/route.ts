@@ -110,7 +110,9 @@ export async function POST(req: Request) {
                                 senderName: body.message.from?.first_name || 'учасник',
                             });
                             if (result.captured.length) {
-                                await reactToMessage(chatId, body.message.message_id, '✍');
+                                // ✍ = instruction captured; 👌 = completion
+                                // report recorded.
+                                await reactToMessage(chatId, body.message.message_id, result.done ? '👌' : '✍');
                             }
                         } catch (e) {
                             console.error('work-chat monitor failed:', e);

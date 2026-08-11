@@ -56,16 +56,31 @@ export function extractDayMonth(text: string): Date | null {
     return candidate;
 }
 
+/**
+ * "Manager reports it's done" detector: the message names an order AND a
+ * completion verb («відправила», «зроблено», «готово», «змінила»…) without a
+ * negation right before it («ще не відправила» is NOT done). Deliberately
+ * does NOT change the order status — words in a chat are a report, the real
+ * closure comes from the TTN / CRM stage, which the existing syncs pick up.
+ */
+const DONE_WORDS = /(відправлен|відправил|зроблен|зробил|готово|виконан|змінил|оновил|передал|надіслал)/i;
+const NEGATED = /(\bне\s+\S*|\bще\s+не\s+\S*)(відправ|зроб|готов|викон|змін|оновл|перед|надісл)/i;
+
+export function looksDone(text: string): boolean {
+    return DONE_WORDS.test(text) && !NEGATED.test(text);
+}
+
 export async function captureWorkChatOrderMentions(params: {
     text: string;
     chatTitle: string;
     senderName: string;
-}): Promise<{ captured: string[] }> {
+}): Promise<{ captured: string[]; done: boolean }> {
     const numbers = extractOrderNumbers(params.text);
-    if (!numbers.length) return { captured: [] };
+    if (!numbers.length) return { captured: [], done: false };
 
     const supabase = getAdminClient();
     const due = extractDayMonth(params.text);
+    const done = looksDone(params.text);
     const captured: string[] = [];
 
     for (const num of numbers.slice(0, 5)) {
@@ -78,18 +93,23 @@ export async function captureWorkChatOrderMentions(params: {
 
         await supabase.from('order_history').insert({
             order_id: order.id,
-            action: 'work_chat_note',
-            notes: `Доручення з чату «${params.chatTitle}» (${params.senderName}): «${params.text.slice(0, 300)}»`,
+            action: done ? 'work_chat_done' : 'work_chat_note',
+            notes: done
+                ? `Виконано (звіт у чаті «${params.chatTitle}», ${params.senderName}): «${params.text.slice(0, 300)}»`
+                : `Доручення з чату «${params.chatTitle}» (${params.senderName}): «${params.text.slice(0, 300)}»`,
             details: {
                 source: 'telegram_work_chat',
                 chat: params.chatTitle,
                 sender: params.senderName,
                 date_found: due ? due.toISOString() : null,
+                done,
             },
             added_by: null,
         });
 
-        if (due) {
+        // A completion report must not tighten the deadline — «відправила
+        // 12.08» is history, not a new commitment.
+        if (due && !done) {
             const currentMs = order.deadline ? new Date(order.deadline).getTime() : null;
             if (!currentMs || due.getTime() < currentMs) {
                 await supabase.from('orders').update({ deadline: due.toISOString() }).eq('id', order.id);
@@ -105,5 +125,5 @@ export async function captureWorkChatOrderMentions(params: {
         captured.push(order.order_number);
     }
 
-    return { captured };
+    return { captured, done };
 }
