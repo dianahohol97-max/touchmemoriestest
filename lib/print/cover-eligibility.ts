@@ -70,7 +70,14 @@ export function findMonoCoverItem(items: any[]): any | null {
     // when it ALSO carries a напис — the напис is engraved/printed on the cover
     // itself and production needs its mono sheet (TM-001171), while the insert
     // photo ships as its own file.
-    if (canRenderMonoCover(deco) || (isPhotoInsertDeco(deco) && hasInscriptionText(opts))) return it;
+    // Фотовставка qualifies ALWAYS, инscription or not (Diana, TM-001182:
+    // «на обкладинку фотку окремо не покадрувало»). Before, an insert cover
+    // with no напис failed this check, the route returned «no soft-cover
+    // engraved item» and production received no cropped insert photo at all —
+    // only the cover render, out of which the photo cannot be cut. The caller
+    // still renders the mono ENGRAVING sheet only when there is text on it;
+    // what a bare insert cover needs is the photo file, not a blank sheet.
+    if (canRenderMonoCover(deco) || isPhotoInsertDeco(deco)) return it;
   }
   return null;
 }
