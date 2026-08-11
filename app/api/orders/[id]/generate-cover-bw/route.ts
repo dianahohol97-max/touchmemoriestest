@@ -126,8 +126,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       spec.title = '';
     }
     if (!spec.title && !(editorExtras && editorExtras.length)) {
-      // Nothing to engrave — an empty white sheet would only confuse production.
-      return NextResponse.json({ ok: true, skipped: 'no inscription on this cover' });
+      // Nothing to engrave — an empty white sheet would only confuse
+      // production. The INSERT PHOTO is a different matter: a фотовставка
+      // cover with no напис still needs its cropped photo file, and returning
+      // here used to skip it entirely (TM-001182 shipped with the cover render
+      // and nothing production could mount).
+      const insertOnly = await exportInsertPhoto({
+        admin, orderId: id, userKey: order.customer_id || 'server', target, coverData, force,
+      });
+      return NextResponse.json({ ok: true, skipped: 'no inscription on this cover', insertPhoto: insertOnly });
     }
     const png = await renderWishbookCoverPng(spec, { mono: true });
     jpegBw = await sharp(Buffer.from(png))
@@ -183,6 +190,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   //    insert frame, panned by photoCropX/photoCropY (object-position), zoomed
   //    by photoZoom about the frame centre. Best-effort: a failure here must
   //    not lose the engraving sheet uploaded above.
+  const insertPath = await exportInsertPhoto({
+    admin, orderId: id, userKey, target, coverData, force,
+  });
+
+  return NextResponse.json({ ok: true, path, size: jpegBw.length, insertPhoto: insertPath });
+}
+
+/**
+ * Export the фотовставка photo as its own print file.
+ *
+ * Production mounts the printed photo into the insert window; it does not cut
+ * it out of the cover render (Diana, TM-001171). Crop mirrors the editor:
+ * cover-fit into the insert frame, panned by photoCropX/photoCropY
+ * (object-position), zoomed by photoZoom about the frame centre.
+ *
+ * Called from every exit of the route that can legitimately end without an
+ * engraving sheet — an insert cover with no напис (TM-001182) is exactly such
+ * an exit, and it used to lose the photo. Best-effort throughout: a failure
+ * here must never lose the engraving sheet the caller already uploaded.
+ */
+async function exportInsertPhoto(params: {
+  admin: ReturnType<typeof getAdminClient>;
+  orderId: string;
+  userKey: string;
+  target: any;
+  coverData: any;
+  force: boolean;
+}): Promise<string | null> {
+  const { admin, orderId: id, userKey, target, coverData, force } = params;
   let insertPath: string | null = null;
   try {
     const decoRaw = String(target.options?.['Декорація обкладинки'] || target.options?.['Оздоблення'] || '');
@@ -232,7 +268,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
               .withMetadata({ density: 300 })
               .toBuffer();
-            insertPath = `${userKey}/${order.id}/insert_photo.jpg`;
+            insertPath = `${userKey}/${id}/insert_photo.jpg`;
             const { error: insUpErr } = await admin.storage
               .from(BUCKET)
               .upload(insertPath, insertJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
@@ -262,5 +298,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     insertPath = null;
   }
 
-  return NextResponse.json({ ok: true, path, size: jpegBw.length, insertPhoto: insertPath });
+  return insertPath;
 }
