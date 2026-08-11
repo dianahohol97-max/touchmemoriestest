@@ -641,6 +641,49 @@ export async function fetchKeycrmOffersByProduct(productId: string | number): Pr
 }
 
 /**
+ * Everything the CRM card knows beyond the mirrored fields — the comment feed
+ * and custom fields (Diana, 2026-08-11: «який велюр … чи може бот глянути це
+ * в коментарях до замовлення»; the velour colour lives on the card, not in
+ * the line items). Endpoint spellings are probed defensively, same as every
+ * other read here, and failure means an empty result, never an exception —
+ * these are garnish on an answer, not the answer.
+ */
+export async function fetchOrderCardExtras(orderId: string | number): Promise<{ comments: string[]; custom_fields: string[] }> {
+    const id = encodeURIComponent(String(orderId));
+    const result = { comments: [] as string[], custom_fields: [] as string[] };
+
+    try {
+        const payload = await keycrmRequest(`/order/${id}?include=custom_fields`);
+        const fields: any[] = Array.isArray(payload?.custom_fields) ? payload.custom_fields : [];
+        result.custom_fields = fields
+            .map(f => {
+                const name = String(f?.name ?? f?.uuid ?? '').trim();
+                const value = Array.isArray(f?.value) ? f.value.join(', ') : String(f?.value ?? '').trim();
+                return name && value ? `${name}: ${value}` : '';
+            })
+            .filter(Boolean)
+            .slice(0, 10);
+    } catch { /* the account may not expose custom fields — fine */ }
+
+    for (const path of [`/order/${id}/comments?limit=50`, `/order/${id}/comment?limit=50`]) {
+        try {
+            const payload = await keycrmRequest(path);
+            const rows: any[] = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            const texts = rows
+                .map(r => String(r?.text ?? r?.comment ?? r?.message ?? '').trim())
+                .filter(Boolean)
+                .slice(-15);
+            if (texts.length) {
+                result.comments = texts;
+                break;
+            }
+        } catch { /* try the next spelling */ }
+    }
+
+    return result;
+}
+
+/**
  * Specific offers, asked for by id.
  *
  * Confirmed catalogue mappings store an offer id, but the bulk listing stops at
