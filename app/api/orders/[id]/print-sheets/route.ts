@@ -43,7 +43,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .order('page_number', { ascending: true });
   const sheets: { name: string; product_type: string; url: string | null }[] = [];
   for (const f of files || []) {
-    const { data: signed } = await admin.storage.from(f.bucket_name || 'order-files').createSignedUrl(f.file_path, 60 * 60);
+    // download: the signed URL must carry Content-Disposition: attachment.
+    // Without it the browser opens the JPG in a new tab, and the anchor's
+    // `download` attribute is powerless cross-origin (Diana, 2026-08-11:
+    // «натискаю скачати — дає в новій вкладці, а скачати неможливо»).
+    const { data: signed } = await admin.storage
+      .from(f.bucket_name || 'order-files')
+      .createSignedUrl(f.file_path, 60 * 60, { download: f.file_name || true });
     sheets.push({ name: f.file_name, product_type: f.product_type, url: signed?.signedUrl || null });
   }
   return NextResponse.json({ sheets });
