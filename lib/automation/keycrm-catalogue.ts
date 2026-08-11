@@ -505,6 +505,16 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
             }
         }
 
+        // Stock rides along with the price: the CRM is where the team counts
+        // markers, corners and tape, and the site has no inventory of its own.
+        if (!dryRun && offer && offer.quantity !== null && offer.quantity !== undefined) {
+            await supabase
+                .from('keycrm_product_map')
+                .update({ crm_stock: offer.quantity, crm_stock_synced_at: new Date().toISOString() })
+                .eq('site_slug', row.site_slug)
+                .eq('site_variant', row.site_variant || '');
+        }
+
         if (cost === null) {
             withoutCost.push(`${row.site_slug}${row.site_variant ? ` (${row.site_variant})` : ''}`);
             continue;
