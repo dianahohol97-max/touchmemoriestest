@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { clientDialogContext } from '@/lib/chatbot/client-chat-lookup';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
@@ -809,7 +810,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
 
     const { data: matches } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
+        .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
         .in('order_number', numbers)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -826,7 +827,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         for (const crmId of crmIds) {
             const { data: adopted } = await supabase
                 .from('orders')
-                .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
+                .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
                 .eq('custom_attributes->keycrm->>order_id', crmId)
                 .limit(1);
             if (adopted?.[0]) { order = adopted[0]; break; }
@@ -947,6 +948,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
 
     try {
         const chatContext = await fetchChatContext(chatId);
+        // The answer often lives only in the client's own dialog — the velour
+        // colour, the cover, the Nova Poshta branch (Diana, 2026-08-11). The
+        // order stays the primary source; the dialog is consulted after it.
+        const clientDialog = await clientDialogContext(order as any);
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5',
@@ -961,7 +966,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 'Відповідь — щонайбільше два короткі речення, і лише про те, що спитали.',
                 'Не переказуй решту фактів, не вітайся, не додавай підсумків чи порад, яких не просили.',
                 'Якщо в останніх повідомленнях чату на це питання вже відповідали, можеш коротко це зазначити.',
-                'Якщо відповіді на питання у фактах немає, одним реченням скажи, що в системі цього не видно, і порадь відкрити картку замовлення.',
+                'Спершу шукай відповідь у фактах про замовлення. Якщо там її немає — подивись у переписці з клієнтом, і тоді ОБОВʼЯЗКОВО зазнач, що це з переписки, і назви дату.',
+                'Якщо немає ні там, ні там, одним реченням скажи, що цього ніде не видно, і порадь відкрити картку замовлення.',
                 'Нічого не вигадуй. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
@@ -972,6 +978,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                     // …») instead of from a blank slate.
                     chatContext ? `Останні повідомлення чату:\n${chatContext}` : '',
                     `Факти про замовлення:\n${facts}`,
+                    clientDialog,
                     `Питання колеги: «${question}»`,
                 ].filter(Boolean).join('\n\n'),
             }],
