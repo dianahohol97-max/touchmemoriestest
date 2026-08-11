@@ -256,7 +256,7 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
 
     const { data: matches } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes')
+        .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source')
         .in('order_number', candidates)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -274,11 +274,20 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
         ? `Статус у CRM: ${crmStage} (на сайті: ${siteStatus})`
         : `Статус: ${siteStatus}`;
 
+    // Partial payments: for mirrored CRM orders prepaid_amount is the money
+    // the CRM actually collected, so «передоплата» reads straight from it.
+    const prepaid = Number((order as any).prepaid_amount || 0);
+    const paymentLine = order.payment_status === 'paid'
+        ? `оплачено${order.paid_at ? ` (${fmtDate(order.paid_at)})` : ''}`
+        : (order as any).source === 'keycrm' && prepaid > 0
+            ? `передоплата ${prepaid.toLocaleString('uk-UA')} ₴ із ${Number(order.total || 0).toLocaleString('uk-UA')} ₴`
+            : (PAYMENT_STATUS_UA[order.payment_status] || order.payment_status || '—');
+
     const lines = [
         `📦 Замовлення ${order.order_number}`,
         '',
         statusLine,
-        `Оплата: ${PAYMENT_STATUS_UA[order.payment_status] || order.payment_status || '—'}${order.paid_at ? ` (${fmtDate(order.paid_at)})` : ''}`,
+        `Оплата: ${paymentLine}`,
         `Сума: ${order.total ?? '—'} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
         `Створене: ${fmtDate(order.created_at)}`,
