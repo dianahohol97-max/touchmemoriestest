@@ -102,7 +102,9 @@ type ProductMap = Record<string, { offer_id: string | null; sku: string | null; 
 // rather than silently — a spec that ends mid-sentence with no warning is worse
 // than one that says it was cut.
 const LINE_COMMENT_LIMIT = 1500;
-const ORDER_COMMENT_LIMIT = 4000;
+// The CRM renders comments in a narrow list column, so length is a usability
+// problem long before it is an API limit (Diana, 2026-08-11).
+const ORDER_COMMENT_LIMIT = 900;
 
 function truncate(text: string, limit: number): string {
     if (text.length <= limit) return text;
@@ -210,31 +212,40 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
     // manager actually reads depends on how their CRM view is set up, and the
     // cost of having it in both places is a longer card — the cost of having it
     // in neither is a phone call to ask what colour the cover should be.
-    const specBlock = items.map((item: any, index: number) => {
+    // One line per item, options inline. The specification also rides on each
+    // product line in the CRM, so the comment copy exists only for managers
+    // whose view shows comments — it must stay scannable (Diana, 2026-08-11:
+    // «в CRM прилітають дуже великі коментарі, супер некомфортно» — the orders
+    // list renders the comment in a narrow column, and a twenty-line comment
+    // turns one row into a wall of text).
+    const specBlock = items.map((item: any) => {
         const options = item?.options && typeof item.options === 'object' ? item.options : {};
         const chosen = Object.entries(options)
             .filter(([, value]) => String(value ?? '').trim() !== '')
             .map(([name, value]) => `${name}: ${String(value).trim()}`)
-            .join('; ');
+            .join(', ');
 
         const title = String(item?.product_name || 'Товар');
         const qty = Number(item?.quantity) || 1;
 
-        return `${index + 1}. ${title}${qty > 1 ? ` × ${qty}` : ''}${chosen ? `\n   ${chosen}` : ''}`;
+        return `• ${title}${qty > 1 ? ` ×${qty}` : ''}${chosen ? ` — ${chosen}` : ''}`;
     }).join('\n');
 
+    // Compact by design. Everything a manager needs to ACT is in the first two
+    // lines; the rest is one line each. Dropped from the card entirely: the
+    // site UUID (nobody searches by it — the order number is the handle) and
+    // the standing «підтягніть оплату вручну» sentence, which repeated on
+    // every single order and taught everyone to skim past the comment.
     const commentLines = [
-        `Замовлення з сайту ${order?.order_number || ''}`.trim(),
         // Spelled out rather than reduced to "оплачено": for an order with cash
         // on delivery that word is actively misleading, since payment_status
         // goes to 'paid' once the prepayment clears while the courier still has
         // the balance to collect.
-        describeMoney(readOrderMoney(order)),
+        `${order?.order_number || 'Сайт'} · ${describeMoney(readOrderMoney(order))}`,
+        order?.with_designer ? '🎨 З послугою дизайнера' : '',
         order?.promo_code ? `Промокод: ${order.promo_code}` : '',
-        order?.with_designer ? 'Замовлено послугу дизайнера.' : '',
-        order?.notes ? `Нотатки: ${order.notes}` : '',
-        `ID на сайті: ${order?.id}`,
-        specBlock ? `\nСпецифікація:\n${specBlock}` : '',
+        order?.notes ? `Нотатки: ${truncate(String(order.notes), 300)}` : '',
+        specBlock,
     ].filter(Boolean);
 
     const payload: any = {
@@ -302,10 +313,7 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
     // into the comment instead and a manager files the payment by hand. The
     // comment's first line already carries the site order number, and the
     // describeMoney line above says exactly what was received and how.
-    payload.manager_comment = truncate(
-        `${payload.manager_comment}\nОплату в CRM не проставлено автоматично — підтягніть вручну.`,
-        ORDER_COMMENT_LIMIT,
-    );
+    payload.manager_comment = truncate(payload.manager_comment, ORDER_COMMENT_LIMIT);
 
     return payload;
 }
