@@ -410,8 +410,10 @@ export type CostSyncReport = {
     updated_products: Array<{ slug: string; from: number | null; to: number }>;
     /** Per-size costs written into the product's variants array. */
     updated_variants: Array<{ slug: string; sizes: Array<{ variant: string; cost: number }> }>;
-    /** Per-size SALE prices written for allowlisted price-follow products. */
+    /** Per-size SALE prices written for products following the CRM. */
     updated_prices: Array<{ slug: string; sizes: Array<{ variant: string; price: number }> }>;
+    /** Price moves too large to trust — almost always a wrong pair. Not applied. */
+    price_review: Array<{ slug: string; variant: string; from: number; to: number }>;
     unchanged: number;
     /** Sizes with differing costs on a product that has no variants array to hold them. */
     conflicts: Array<{ slug: string; costs: Array<{ variant: string; cost: number }> }>;
@@ -463,9 +465,10 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     // правди». settings('keycrm_price_follow_all') = true means every
     // CONFIRMED pair follows; the slug list stays as the narrower mode and as
     // the way back if a product ever needs a site-owned price again.
-    const [{ data: followAllSetting }, { data: followSetting }] = await Promise.all([
+    const [{ data: followAllSetting }, { data: followSetting }, { data: guardSetting }] = await Promise.all([
         supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_all').maybeSingle(),
         supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_slugs').maybeSingle(),
+        supabase.from('settings').select('value').eq('key', 'keycrm_price_guard_pct').maybeSingle(),
     ]);
     const followAll = followAllSetting?.value === true || followAllSetting?.value === 'true';
     const followList = new Set<string>(Array.isArray(followSetting?.value) ? followSetting.value.map(String) : []);
@@ -522,6 +525,14 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     const updated: CostSyncReport['updated_products'] = [];
     const updatedVariants: CostSyncReport['updated_variants'] = [];
     const updatedPrices: CostSyncReport['updated_prices'] = [];
+    // Prices that moved so far they are more likely a wrong PAIR than a real
+    // price change (live proof: the Instax cartridge was linked to the camera
+    // offer — 1059 ₴ would have become 4299 ₴, and the digital frame 2400 ₴
+    // would have collapsed to 349 ₴). Reported for a human, never applied.
+    const priceReview: Array<{ slug: string; variant: string; from: number; to: number }> = [];
+    const guardPct = Number(guardSetting?.value ?? 60) || 60;
+    const isWildJump = (from: number, to: number) =>
+        from > 0 && Math.abs(to - from) / from > guardPct / 100;
     const conflicts: CostSyncReport['conflicts'] = [];
     let unchanged = 0;
 
@@ -562,7 +573,12 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
                     const key = sizeKey(String(v?.size ?? v?.name ?? ''));
                     const price = priceBySize.get(key);
                     if (price === undefined) return v;
-                    if (Math.abs(Number(v?.price ?? 0) - price) < 0.005) return v;
+                    const current = Number(v?.price ?? 0);
+                    if (Math.abs(current - price) < 0.005) return v;
+                    if (isWildJump(current, price)) {
+                        priceReview.push({ slug, variant: key, from: current, to: price });
+                        return v;
+                    }
                     priceWritten.push({ variant: key, price });
                     return { ...v, price };
                 });
@@ -593,8 +609,12 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
                 const price = flatPrices[0];
                 const current = Number(product?.price ?? 0);
                 if (Math.abs(current - price) >= 0.005) {
-                    patch.price = price;
-                    updatedPrices.push({ slug, sizes: [{ variant: '', price }] });
+                    if (isWildJump(current, price)) {
+                        priceReview.push({ slug, variant: '', from: current, to: price });
+                    } else {
+                        patch.price = price;
+                        updatedPrices.push({ slug, sizes: [{ variant: '', price }] });
+                    }
                 }
             }
         }
@@ -629,6 +649,14 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         }
     }
 
+    if (priceReview.length && !dryRun) {
+        await supabase.from('settings').upsert({
+            key: 'keycrm_price_review',
+            value: { at: new Date().toISOString(), items: priceReview.slice(0, 50) },
+            updated_at: new Date().toISOString(),
+        });
+    }
+
     return {
         dry_run: dryRun,
         offers_read: offers.length,
@@ -636,6 +664,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         updated_products: updated,
         updated_variants: updatedVariants,
         updated_prices: updatedPrices,
+        price_review: priceReview,
         unchanged,
         conflicts,
         without_cost: withoutCost,
