@@ -266,9 +266,27 @@ app.post('/render', async (req, res) => {
         console.log(`[render] empty forzat pages excluded from export: ${Array.from(skipPageNos).join(', ')}`);
       }
     }
+    // Forzats (endpapers) carry their own names in the workshop's template
+    // (Diana, 2026-08-11): f1 = початковий, f2 = кінцевий — «тільки якщо
+    // форзаци не порожні». An empty one is already excluded above, so a
+    // written f1/f2 always means there is something to print on it.
+    const forzatFirstNo = hasForzatExtra ? 1 : null;
+    const forzatLastNo = hasForzatExtra ? contentPageCount : null;
+    const forzatFileName = (pageNo: number): string | null => {
+      if (forzatFirstNo !== null && pageNo === forzatFirstNo) return 'f1.jpg';
+      if (forzatLastNo !== null && pageNo === forzatLastNo) return 'f2.jpg';
+      return null;
+    };
+
+    // Forzats never consume a NUMBER now — whether they printed as f1/f2 or
+    // were dropped for being empty, the numbered set starts at 01 on the first
+    // real content page. (It used to shift only for skipped pages, so a
+    // printed forzat took 01 and the content began at 02.)
     const renumberPage = (pageNo: number) => {
       let shift = 0;
-      for (const s of skipPageNos) if (s < pageNo) shift++;
+      if (forzatFirstNo !== null && forzatFirstNo < pageNo) shift++;
+      if (forzatLastNo !== null && forzatLastNo < pageNo) shift++;
+      if (!hasForzatExtra) for (const s of skipPageNos) if (s < pageNo) shift++;
       return pageNo - shift;
     };
 
@@ -655,8 +673,11 @@ app.post('/render', async (req, res) => {
               .toBuffer();
             // The print partner's checker expects pages named 01.jpg, 02.jpg…
             // (its «Основний файл» column literally lists NN.jpg) — the old
-            // NN_page.jpg suffix failed the naming rule.
-            const storagePath = `${orderPrefix}/print/${String(renumberPage(h.pageNo)).padStart(2, '0')}.jpg`;
+            // NN_page.jpg suffix failed the naming rule. Forzats step out of
+            // that sequence and go as f1.jpg / f2.jpg.
+            const pageFileName = forzatFileName(h.pageNo)
+              || `${String(renumberPage(h.pageNo)).padStart(2, '0')}.jpg`;
+            const storagePath = `${orderPrefix}/print/${pageFileName}`;
             const { error: upErr } = await supabase.storage
               .from(STORAGE_BUCKET)
               .upload(storagePath, pageJpeg, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
@@ -673,7 +694,14 @@ app.post('/render', async (req, res) => {
 
           console.log(`[render] spread ${spread}: content ${contentPxW}x${contentPxH} + bleed → ${pxW}x${pxH}`);
 
-          const fileName = isCover ? '00_cover.jpg' : `${String(spread).padStart(2, '0')}_spread.jpg`;
+          // Travel books / journals follow the workshop's template, where the
+          // cover file is literally «cover.jpg» (Diana, 2026-08-11). Photobooks
+          // keep 00_cover.jpg — their spreads are named by the old convention
+          // too, and their partner accepts it. registerExportFiles recognises
+          // both (any name containing «cover» is filed as the cover).
+          const fileName = isCover
+            ? (splitToPages ? 'cover.jpg' : '00_cover.jpg')
+            : `${String(spread).padStart(2, '0')}_spread.jpg`;
           const storagePath = `${orderPrefix}/print/${fileName}`;
           const { error: upErr } = await supabase.storage
             .from(STORAGE_BUCKET)

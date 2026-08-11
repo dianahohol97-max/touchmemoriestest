@@ -45,7 +45,21 @@ export function exportRowsFromPaths(orderId: string, productType: string | null,
     const isPage = /_page\.jpg$/i.test(fileName) || /^\d+\.jpe?g$/i.test(fileName);
     // 00_cover -> page 1, 01_spread -> page 2, ... (cover first).
     const m = fileName.match(/^(\d+)_/);
-    const pageNumber = m ? parseInt(m[1], 10) + 1 : null;
+    let pageNumber = m ? parseInt(m[1], 10) + 1 : null;
+    // Travel books / journals use the workshop's flat names — cover.jpg,
+    // f1.jpg, 01.jpg… f2.jpg — none of which carry the NN_ prefix, so every
+    // file of such an order used to land with a null page_number and the
+    // admin listed them alphabetically (pages before the cover). Number them
+    // in physical order instead: cover, front endpaper, pages, back endpaper.
+    if (pageNumber === null) {
+      if (/^cover\.jpe?g$/i.test(fileName)) pageNumber = 1;
+      else if (/^f1\.jpe?g$/i.test(fileName)) pageNumber = 2;
+      else if (/^f2\.jpe?g$/i.test(fileName)) pageNumber = 999;
+      else {
+        const flat = fileName.match(/^(\d+)\.jpe?g$/i);
+        if (flat) pageNumber = parseInt(flat[1], 10) + 2;
+      }
+    }
     return {
       order_id: orderId,
       file_path: path,
