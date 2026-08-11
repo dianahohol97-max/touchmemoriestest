@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { fetchKeycrmOffers, fetchKeycrmOffersByProduct, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
+import { fetchKeycrmOffers, fetchKeycrmOffersByIds, fetchKeycrmOffersByProduct, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
 
 /**
  * Reconcile the website catalogue against the KeyCRM catalogue.
@@ -451,6 +451,8 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
 
     if (error) throw error;
 
+    await backfillMissingOffers(mappings || [], offerById);
+
     const costsByProduct = new Map<string, Array<{ variant: string; cost: number }>>();
     const pricesByProduct = new Map<string, Array<{ variant: string; price: number }>>();
     const withoutCost: string[] = [];
@@ -636,6 +638,31 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
 }
 
 /**
+ * Fetch confirmed-mapping offers the bulk catalogue read did not reach.
+ *
+ * The bulk listing walks a bounded number of pages, so a confirmed mapping can
+ * point at a perfectly real offer that is simply beyond the budget (the four
+ * markers, offers 21–24). Both the cost sync and the SKU sync would then report
+ * it as «не знайдено в каталозі» — a false alarm that also silently stops its
+ * costs from syncing. The missing ids are asked for directly and merged into
+ * the same map, so only an offer the CRM genuinely no longer has is reported.
+ */
+async function backfillMissingOffers(
+    mappings: Array<{ keycrm_offer_id: any }>,
+    offerById: Map<string, KeycrmOffer>,
+): Promise<void> {
+    const missing = [...new Set(
+        mappings
+            .map(row => String(row.keycrm_offer_id ?? ''))
+            .filter(id => id && !offerById.has(id)),
+    )];
+    if (!missing.length) return;
+
+    const fetched = await fetchKeycrmOffersByIds(missing);
+    for (const offer of fetched) offerById.set(offer.offer_id, offer);
+}
+
+/**
  * Resolve one pasted KeyCRM number against the live catalogue.
  *
  * The number may be an OFFER id (a variant) or, when pasted from a catalogue
@@ -703,7 +730,23 @@ export async function linkPastedId(params: {
     }
 
     if (unmatched.length) {
-        warnings.push(`${siteSlug}: у KeyCRM не знайшлося варіанта для розмірів: ${unmatched.join(', ')} — ці розміри лишилися незвʼязаними.`);
+        // Show what the CRM side actually holds, so the person reading the
+        // warning can tell a spelling mismatch from a size that simply does not
+        // exist in the CRM yet — the two need different actions (re-paste vs
+        // add the variant in KeyCRM).
+        const available = family
+            .map(o => (o.variant_label || o.name || '').trim())
+            .filter(Boolean)
+            .slice(0, 12);
+        const crmSide = available.length
+            ? ` У KeyCRM цей товар має позиції: ${available.join('; ')}.`
+            : '';
+        warnings.push(
+            `${siteSlug}: у KeyCRM не знайшлося варіанта для розмірів: ${unmatched.join(', ')} — ці розміри лишилися незвʼязаними.${crmSide}`
+            + (family.length === 1 && variants.length > 1
+                ? ' Схоже, товар у CRM існує однією позицією без розмірів — щоб звести по розмірах, додай варіанти в KeyCRM і встав посилання ще раз.'
+                : ''),
+        );
     }
 
     return { rows, warnings };
@@ -828,6 +871,8 @@ export async function syncSkusToKeycrm(opts?: { dryRun?: boolean }): Promise<Sku
         .not('keycrm_offer_id', 'is', null);
 
     if (error) throw error;
+
+    await backfillMissingOffers(mappings || [], offerById);
 
     const report: SkuSyncReport = {
         dry_run: dryRun, offers_read: offers.length,
