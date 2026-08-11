@@ -20,7 +20,14 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Round two: who actually publishes TOMORROW. The two known sources do
+    // not — one ignores the day parameter, the other has today only — and the
+    // evening post is supposed to be about the next day.
     const urls = [
+        'https://any.ge/horoscope/api/get.php?sign=gemini&type=tomorrow&lang=en',
+        'https://any.ge/horoscope/api/get.php?sign=gemini&type=tomorrow&lang=ru',
+        'https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-tomorrow.aspx?sign=3',
+        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=TOMORROW',
         'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=gemini&day=TOMORROW',
         'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=TOMORROW',
         'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=tomorrow',
@@ -40,7 +47,14 @@ export async function GET(req: Request) {
                 method: url.includes('aztro') ? 'POST' : 'GET',
             });
             const body = await res.text();
-            out[url] = { status: res.status, body: body.slice(0, 400) };
+            // HTML pages carry the forecast far below the head, so scraped
+            // sources are reported as the text around the marker instead of
+            // the first bytes of markup.
+            const marker = body.indexOf('horoscope-content');
+            out[url] = {
+                status: res.status,
+                body: marker > 0 ? body.slice(marker, marker + 700) : body.slice(0, 500),
+            };
         } catch (e: any) {
             out[url] = { error: `${e?.name || 'error'}: ${String(e?.message || e).slice(0, 160)}` };
         }

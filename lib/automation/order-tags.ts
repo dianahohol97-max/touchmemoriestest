@@ -24,6 +24,7 @@
 export const ANDRIY_TAG = 'Для Андрія';
 export const MAGNETS_TAG = 'Магніти';
 export const PHOTO_TAG = 'Фото';
+export const URGENT_TAG = 'Терміновий з доплатою';
 
 /** Everything about a line that could carry the deciding word. */
 function lineText(item: any): string {
@@ -100,8 +101,40 @@ export function autoTagsForOrder(order: any): string[] {
     if (goesToAndriy) tags.push(ANDRIY_TAG);
     if (hasMagnets) tags.push(MAGNETS_TAG);
     if (hasPhoto) tags.push(PHOTO_TAG);
+    if (items.some(isUrgentWithSurcharge)) tags.push(URGENT_TAG);
 
     return tags;
+}
+
+/**
+ * Rush jobs that were PAID for as rush (Diana, 2026-08-11: «всі що термінові з
+ * доплатою — має автоматично йти теж Терміновий з доплатою»).
+ *
+ * Read from the option pair rather than the flattened line, because the
+ * deciding word appears in two unrelated places: «Терміновість: Термінова 1–3
+ * дні (+30%)» is a rush order, while «Термін дії: 29 липня 2027 р.» is a gift
+ * certificate's validity date. Only the урgency option counts, and only when
+ * its value is not the standard one — the live values are «standard»,
+ * «urgent», «Термінова 1–3 дні (+30%)», «Термінове виготовлення (+30%)» and
+ * «Стандартна (5–8 днів)».
+ */
+function isUrgentWithSurcharge(item: any): boolean {
+    const options = item?.options && typeof item.options === 'object' ? item.options : {};
+
+    for (const [rawKey, rawValue] of Object.entries(options)) {
+        const key = String(rawKey || '').toLowerCase();
+        if (!/терміновість|urgen|express/.test(key)) continue;
+
+        const value = String(rawValue ?? '').toLowerCase().trim();
+        if (!value) continue;
+        if (/standard|стандарт|звичайн/.test(value)) continue;
+        if (/термінов|urgen|express/.test(value)) return true;
+    }
+
+    // Some carts add the rush as its own line («Термінове виготовлення»,
+    // «Доплата за терміновість») instead of an option on the product.
+    const name = String(item?.product_name || item?.name || '').toLowerCase();
+    return /термінов/.test(name) && /доплат|\+\s*\d|виготовлен/.test(name);
 }
 
 /**

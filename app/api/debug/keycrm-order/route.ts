@@ -55,7 +55,9 @@ export async function GET(req: Request) {
             );
             out.responsible_probe[path] = { keys: keys.slice(0, 40), interesting };
         } catch (e: any) {
-            out.responsible_probe[path] = { error: String(e?.message || e).slice(0, 160) };
+            // The 400 body lists every include this account allows — that list
+            // is the whole point of the probe, so it is not truncated short.
+            out.responsible_probe[path] = { error: String(e?.message || e).slice(0, 900) };
         }
     }
 

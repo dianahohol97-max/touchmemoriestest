@@ -130,8 +130,13 @@ const PROVIDERS: Provider[] = [
     {
         host: 'horoscope-app-api.vercel.app',
         url: (sign, day) => `https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=${sign}&day=${day}`,
-        read: json => String(json?.data?.horoscope_data || ''),
-        tomorrow: true,
+        // The field is `horoscope`; reading `horoscope_data` is why this source
+        // silently produced nothing on the first live run.
+        read: json => String(json?.data?.horoscope || json?.data?.horoscope_data || ''),
+        // It accepts day=TOMORROW and answers with TODAY's text — verified
+        // against the live endpoint. So it cannot serve the evening post's
+        // «на завтра» and is kept only as a same-day fallback.
+        tomorrow: false,
     },
     {
         host: 'ohmanda.com',
