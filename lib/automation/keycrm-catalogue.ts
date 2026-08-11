@@ -1116,44 +1116,58 @@ export async function syncSkusToKeycrm(opts?: { dryRun?: boolean }): Promise<Sku
 
     const toWrite: Array<{ id: number; sku: string }> = [];
 
+    // Rows are handled per OFFER, not per row: several site products may share
+    // one CRM item (Diana, 2026-08-11: «Книга побажань, Альбом для вклеювання
+    // фото, Книга побажань дитяча — це все один і той же товар» — one physical
+    // album sold under three names). A CRM offer has exactly ONE article
+    // number, so all its site products must send the SAME sku; writing a slug
+    // per row would leave the last writer's number on the offer and every
+    // other product's order lines unattached.
+    const rowsByOffer = new Map<string, typeof mappings>();
     for (const row of mappings || []) {
-        const offer = offerById.get(String(row.keycrm_offer_id));
+        const key = String(row.keycrm_offer_id);
+        const list = rowsByOffer.get(key) || [];
+        list.push(row);
+        rowsByOffer.set(key, list as any);
+    }
+
+    for (const [offerId, rows] of rowsByOffer) {
+        const offer = offerById.get(offerId);
         if (!offer) {
-            report.problems.push(`${row.site_slug}: офер ${row.keycrm_offer_id} не знайдено в каталозі KeyCRM.`);
+            report.problems.push(`${rows.map(r => r.site_slug).join(', ')}: офер ${offerId} не знайдено в каталозі KeyCRM.`);
             continue;
         }
 
         const crmSku = String(offer.sku || '').trim();
 
-        if (crmSku) {
-            // The CRM already numbers this item — adopt, never overwrite.
-            if (crmSku !== String(row.keycrm_sku || '').trim()) {
-                report.adopted.push({ slug: row.site_slug, variant: row.site_variant || '', offer_id: offer.offer_id, sku: crmSku });
-                if (!dryRun) {
-                    await supabase
-                        .from('keycrm_product_map')
-                        .update({ keycrm_sku: crmSku, updated_at: new Date().toISOString() })
-                        .eq('site_slug', row.site_slug)
-                        .eq('site_variant', row.site_variant || '');
-                }
-            } else {
-                report.unchanged++;
-            }
-            continue;
+        // The CRM's own number wins when it has one; otherwise one number is
+        // derived from the alphabetically first pairing, so the choice is
+        // stable across runs no matter what order the rows arrive in.
+        const ordered = [...rows].sort((a, b) =>
+            `${a.site_slug}::${a.site_variant || ''}`.localeCompare(`${b.site_slug}::${b.site_variant || ''}`));
+        const lead = ordered[0];
+        const sku = crmSku || (lead.site_variant ? `${lead.site_slug}-${lead.site_variant}` : lead.site_slug);
+
+        if (!crmSku) {
+            report.filled.push({ slug: lead.site_slug, variant: lead.site_variant || '', offer_id: offer.offer_id, sku });
+            toWrite.push({ id: Number(offer.offer_id), sku });
         }
 
-        // The slug alone for a sizeless product; slug plus canonical size for
-        // per-size ones, because two offers of one product cannot share a SKU.
-        const desired = row.site_variant ? `${row.site_slug}-${row.site_variant}` : row.site_slug;
-        report.filled.push({ slug: row.site_slug, variant: row.site_variant || '', offer_id: offer.offer_id, sku: desired });
-        toWrite.push({ id: Number(offer.offer_id), sku: desired });
-
-        if (!dryRun) {
-            await supabase
-                .from('keycrm_product_map')
-                .update({ keycrm_sku: desired, updated_at: new Date().toISOString() })
-                .eq('site_slug', row.site_slug)
-                .eq('site_variant', row.site_variant || '');
+        for (const row of ordered) {
+            if (String(row.keycrm_sku || '').trim() === sku) {
+                report.unchanged++;
+                continue;
+            }
+            if (crmSku) {
+                report.adopted.push({ slug: row.site_slug, variant: row.site_variant || '', offer_id: offer.offer_id, sku });
+            }
+            if (!dryRun) {
+                await supabase
+                    .from('keycrm_product_map')
+                    .update({ keycrm_sku: sku, updated_at: new Date().toISOString() })
+                    .eq('site_slug', row.site_slug)
+                    .eq('site_variant', row.site_variant || '');
+            }
         }
     }
 
