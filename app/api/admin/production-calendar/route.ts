@@ -92,6 +92,14 @@ export async function GET(request: Request) {
     const visible = (data || []).filter(o => {
         // Test orders («Киця Кицюня») are not production work.
         if (isTestOrder(o)) return false;
+        // The CRM stage is the truth about production even when the site
+        // status lags behind a reconcile batch: an order the CRM already calls
+        // completed / cancelled / in transit has nothing left to produce, and
+        // one stale batch window should not keep it on the board.
+        const crmStage = String((o.custom_attributes as any)?.keycrm?.status_label || '').toLowerCase();
+        if (/completed|виконан|доставлен|отриман|delivered|cancel|скасов|анульов|refund|повернен|transit|дороз|відправ|to_delivery|shipped/.test(crmStage)) {
+            return false;
+        }
         if (o.source === 'keycrm') return true;
         if (!Number.isFinite(cutoff)) return true;
         // Pre-cutoff site orders were carried into the CRM by hand. Hidden by
