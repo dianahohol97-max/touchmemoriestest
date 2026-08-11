@@ -680,6 +680,11 @@ export async function fetchOrderCardExtras(orderId: string | number): Promise<{ 
         } catch { /* try the next spelling */ }
     }
 
+    // Visible in runtime logs on purpose: whether THIS account's API exposes
+    // the card comment feed is unknowable from the code alone, and the answer
+    // decides where the velour code can come from.
+    console.log(`[keycrm] card extras for ${orderId}: ${result.comments.length} comments, ${result.custom_fields.length} custom fields`);
+
     return result;
 }
 

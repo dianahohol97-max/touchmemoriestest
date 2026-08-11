@@ -95,6 +95,19 @@ function fmtDate(iso: string | null): string {
 }
 
 /**
+ * The velour colour code as the team writes it on cards: «В-01», «в-11»,
+ * occasionally with a Latin B. Returned exactly as many digits as written —
+ * the code IS the answer, not something to normalise.
+ */
+export function findVelourCode(...texts: string[]): string | null {
+    for (const t of texts) {
+        const m = String(t || '').match(/(?<![\p{L}\d])[вВbB]\s?-\s?(\d{1,3})(?![\d])/u);
+        if (m) return `В-${m[1]}`;
+    }
+    return null;
+}
+
+/**
  * Софія's working memory of a chat (Diana, 2026-08-11: «хай має память в
  * робочих чатах також, щоб якщо якісь запитання по замовленнях дублюються,
  * вона могла відповісти»). The webhook records every non-command message from
@@ -193,7 +206,11 @@ export async function handleWorkQuestion(params: {
     // «Які не виконані замовлення у відповідального Оксана Мацьопа?» — the
     // per-manager queue (Diana, 2026-08-11). Checked before the order-number
     // path cannot interfere: such questions carry a name, not a number.
-    if (/(замовлен|черга|в роботі)/i.test(text) && /(відповідальн|менеджер|дизайнер)/i.test(text)) {
+    // The responsibility word is matched loosely because live questions come
+    // with typos — «відпрвідального» must trigger the same as «відповідального»
+    // (anchored on «дальн», so «відправити» stays a shipping word).
+    const RESP_WORD = /(відповідальн|відп[а-яіїє]*дальн|менеджер|дизайнер|веде(?!\p{L})|(у|в)\s+кого)/iu;
+    if (/(замовлен|черга|в роботі)/i.test(text) && RESP_WORD.test(text)) {
         const managerReply = await buildManagerOrders(text);
         if (managerReply) return managerReply;
     }
@@ -704,11 +721,23 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         } catch { /* garnish, not the answer */ }
     }
 
+    // The velour colour is written as a code on the card — «В-01», «в-11» —
+    // usually inside the specification comment (Diana, 2026-08-11: «в-11 це
+    // колір велюру»). Fished out of every text the order carries, so the
+    // answer can name it directly instead of quoting paragraphs.
+    const velourCode = findVelourCode(
+        cardExtras.comments.join('\n'),
+        String(order.notes || ''),
+        String(order.client_comment || ''),
+        itemsSummary,
+    );
+
     const facts = [
         `Номер: ${order.order_number}`,
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
         crmStage ? `Етап у KeyCRM: ${crmStage}` : '',
         crmManager ? `Відповідальний менеджер (CRM): ${crmManager}` : '',
+        velourCode ? `Колір велюру (код з картки): ${velourCode}` : '',
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
         `Сума: ${order.total} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
@@ -742,10 +771,11 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         if (/відповідальн|менеджер|хто вед|чи[йя] /.test(q)) {
             pick.push(crmManager ? `Відповідальна в CRM: ${crmManager}.` : 'Відповідального в CRM не видно — глянь картку замовлення.');
         } else if (/велюр|колір|оздоблен|обкладинк|комплект|товар|що всередині/.test(q)) {
+            if (velourCode) pick.push(`Колір велюру: ${velourCode} (код з картки CRM).`);
             if (itemsSummary) pick.push(`Товари: ${itemsSummary}.`);
-            if (cardExtras.custom_fields.length) pick.push(`Поля картки: ${cardExtras.custom_fields.join('; ')}.`);
-            if (cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
-            if (order.notes) pick.push(`Нотатки: ${String(order.notes).slice(0, 150)}.`);
+            if (!velourCode && cardExtras.custom_fields.length) pick.push(`Поля картки: ${cardExtras.custom_fields.join('; ')}.`);
+            if (!velourCode && cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
+            if (!velourCode && order.notes) pick.push(`Нотатки: ${String(order.notes).slice(0, 150)}.`);
             if (pick.length === 1) pick.push('Складу замовлення в системі не видно — відкрий картку.');
         } else if (/відправ|дедлайн|коли|ттн|трек|доставк/.test(q)) {
             pick.push(`Дедлайн виробництва: ${fmtDate(order.deadline)}.`);
