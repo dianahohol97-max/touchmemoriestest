@@ -190,6 +190,14 @@ export async function handleWorkQuestion(params: {
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
     if (matchDigestQuestion(text)) return buildYesterdayDigest();
 
+    // «Які не виконані замовлення у відповідального Оксана Мацьопа?» — the
+    // per-manager queue (Diana, 2026-08-11). Checked before the order-number
+    // path cannot interfere: such questions carry a name, not a number.
+    if (/(замовлен|черга|в роботі)/i.test(text) && /(відповідальн|менеджер|дизайнер)/i.test(text)) {
+        const managerReply = await buildManagerOrders(text);
+        if (managerReply) return managerReply;
+    }
+
     // A question about a specific order — the number may be in the message
     // itself or in the message it replies to. Telegram handles are stripped
     // first: the digits in «@nika11090» are not an order.
@@ -291,6 +299,79 @@ async function buildShipToday(horizonDays = 0): Promise<string> {
         lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, дедлайн ${fmtDate(o.deadline)}${o.ttn ? `, ТТН є` : ''}${flag}`);
     }
     if (real.length > MAX_LISTED) lines.push('…решту дивись в адмінці.');
+    lines.push('', `${SITE_URL}/admin/production-calendar`);
+    return lines.join('\n');
+}
+
+/**
+ * Active orders of ONE responsible person, matched by name from the question.
+ *
+ * The CRM's responsible manager rides on every mirrored order
+ * (custom_attributes.keycrm.manager_name, refreshed each reconcile pass), so
+ * «які не виконані замовлення у відповідального Оксана Мацьопа?» is a plain
+ * filter. Names are matched by word STEMS because Ukrainian inflects them —
+ * «у Мацьопи», «в Оксани» — and the stage in «Статус „прийнято"» becomes a
+ * substring filter on the live CRM stage when present.
+ */
+async function buildManagerOrders(question: string): Promise<string | null> {
+    const supabase = getAdminClient();
+
+    const { data } = await supabase
+        .from('orders')
+        .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
+        .order('deadline', { ascending: true })
+        .limit(400);
+
+    const active = (data || []).filter(o => isVisibleProductionOrder(o as any));
+
+    // Which known responsible person is named in the question? A name word
+    // matches when its stem (all but the last two letters) appears in the
+    // text, so «Мацьопа/Мацьопи/Мацьопі» all count. Requiring ANY word of the
+    // full name keeps «Оксана» alone working while two Оксани would both
+    // match — then the longer (more words matched) one wins.
+    const q = question.toLowerCase();
+    const managers = new Map<string, number>();
+    for (const o of active) {
+        const name = String((o as any)?.custom_attributes?.keycrm?.manager_name || '').trim();
+        if (name) managers.set(name, 0);
+    }
+    for (const name of managers.keys()) {
+        let hits = 0;
+        for (const word of name.toLowerCase().split(/\s+/)) {
+            const stem = word.length > 4 ? word.slice(0, word.length - 2) : word;
+            if (stem.length >= 3 && q.includes(stem)) hits++;
+        }
+        managers.set(name, hits);
+    }
+    const ranked = [...managers.entries()].filter(([, hits]) => hits > 0).sort((a, b) => b[1] - a[1]);
+    if (!ranked.length) {
+        return 'Не впізнала імʼя відповідального серед активних замовлень — напиши його так, як воно записане в KeyCRM, і я перерахую.';
+    }
+    const [managerName] = ranked[0];
+
+    // Optional stage filter: «Статус „прийнято"» or quoted stage words.
+    const stageMatch = question.match(/статус[^«"']*[«"']([^»"']{2,40})[»"']/iu);
+    const stageFilter = stageMatch ? stageMatch[1].toLowerCase().trim() : null;
+
+    let mine = active.filter(o =>
+        String((o as any)?.custom_attributes?.keycrm?.manager_name || '').trim() === managerName);
+    if (stageFilter) {
+        mine = mine.filter(o =>
+            String((o as any)?.custom_attributes?.keycrm?.status_label || '').toLowerCase().includes(stageFilter));
+    }
+
+    const stageNote = stageFilter ? ` зі статусом «${stageFilter}»` : '';
+    if (!mine.length) {
+        return `У ${managerName} зараз немає активних замовлень${stageNote} — або в CRM відповідальним стоїть хтось інший.`;
+    }
+
+    const lines = [`👩‍💼 ${managerName} — активні замовлення${stageNote} (${mine.length}):`, ''];
+    for (const o of mine.slice(0, MAX_LISTED)) {
+        const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
+        lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
+    }
+    if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
     lines.push('', `${SITE_URL}/admin/production-calendar`);
     return lines.join('\n');
 }
@@ -645,7 +726,12 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
             : '',
     ].filter(Boolean).join('\n');
 
-    const link = `${SITE_URL}/admin/orders/${order.id}`;
+    // The admin-card link is attached ONLY when it is asked for (Diana,
+    // 2026-08-11: «прибери ось ці посилання з відповідей, тільки якщо тебе
+    // запитують») — in a phone chat the long URL was most of the message.
+    const link = /посилан|лінк|link|url|картк/i.test(question)
+        ? `\n\n${SITE_URL}/admin/orders/${order.id}`
+        : '';
 
     // The no-AI answer used to be the ENTIRE fact card — that is the «дуже
     // довга відповідь» the team kept getting while the AI key was absent. Now
@@ -667,7 +753,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         } else {
             pick.push(`Оплата: ${order.payment_status === 'paid' ? 'оплачено' : 'очікує'}, дедлайн ${fmtDate(order.deadline)}, ${order.ttn ? `ТТН ${order.ttn}` : 'ТТН ще немає'}.`);
         }
-        return `${pick.join('\n')}\n\n${link}`;
+        return `${pick.join('\n')}${link}`;
     };
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -707,7 +793,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         });
         const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
         if (!reply) return shortAnswer();
-        return `${reply}\n\n${link}`;
+        return `${reply}${link}`;
     } catch (e) {
         console.error('[work-questions] AI answer failed:', e);
         return shortAnswer();
