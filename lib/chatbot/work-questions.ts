@@ -54,6 +54,21 @@ const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|те
  * one day ahead, «післязавтра» two. A message that names a specific order is
  * about that order, not the queue, and is left to the per-order path.
  */
+/**
+ * «Що вчора було цікавого?», «що я могла пропустити?» — the shift-start
+ * question (Diana, 2026-08-11: «коли менеджер вранці приходить на зміну, чи
+ * зможе в неї запитати, що вчора було цікавого та що я могла пропустити»).
+ * A message naming a specific order is about that order, not the day.
+ */
+export function matchDigestQuestion(text: string): boolean {
+    const t = String(text || '');
+    if (!QUESTION_MARKER.test(t) && !ADDRESSED_BY_NAME.test(t)) return false;
+    if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return false;
+    if (/(пропустил|пропустити|пропущен)/i.test(t)) return true;
+    if (/(вчора|учора|за ніч|за добу)/i.test(t) && /(було|цікав|нов|стал|відбул|змінил)/i.test(t)) return true;
+    return false;
+}
+
 export function matchShipQuestion(text: string): { horizonDays: number } | null {
     const t = String(text || '');
     if (!QUESTION_MARKER.test(t) && !ADDRESSED_BY_NAME.test(t)) return null;
@@ -139,7 +154,7 @@ async function fetchChatContext(chatId: string | undefined, limit = 12): Promise
 export function isMetaWorkQuestion(text: string): boolean {
     const t = String(text || '').trim();
     if (!t || t.startsWith('/')) return false;
-    return !!matchShipQuestion(t) || OPEN_TASKS.test(t) || NATIONALITY.test(t);
+    return !!matchShipQuestion(t) || OPEN_TASKS.test(t) || NATIONALITY.test(t) || matchDigestQuestion(t);
 }
 
 /**
@@ -165,6 +180,7 @@ export async function handleWorkQuestion(params: {
     const ship = matchShipQuestion(text);
     if (ship) return buildShipToday(ship.horizonDays);
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
+    if (matchDigestQuestion(text)) return buildYesterdayDigest();
 
     // A question about a specific order — the number may be in the message
     // itself or in the message it replies to. Telegram handles are stripped
@@ -269,6 +285,110 @@ async function buildShipToday(horizonDays = 0): Promise<string> {
     if (real.length > MAX_LISTED) lines.push('…решту дивись в адмінці.');
     lines.push('', `${SITE_URL}/admin/production-calendar`);
     return lines.join('\n');
+}
+
+/**
+ * The shift-start digest: what happened in the last 24 hours that the person
+ * coming on shift should know — new orders, payments, chat instructions and
+ * their state, fresh defects, and how many deadlines land today. Deterministic
+ * on purpose (no model call): a morning report must be fast, complete and the
+ * same every time the same question is asked.
+ */
+async function buildYesterdayDigest(): Promise<string> {
+    const supabase = getAdminClient();
+    const since = new Date(Date.now() - 24 * HOUR_MS).toISOString();
+
+    const [createdRes, paidRes, historyRes, reprintsRes] = await Promise.all([
+        supabase.from('orders')
+            .select('order_number, customer_name, total, source')
+            .gte('created_at', since)
+            .order('created_at', { ascending: false })
+            .limit(30),
+        supabase.from('orders')
+            .select('order_number')
+            .gte('paid_at', since)
+            .limit(50),
+        supabase.from('order_history')
+            .select('order_id, action, notes, details, created_at')
+            .in('action', ['work_chat_note', 'work_chat_done'])
+            .gte('created_at', since)
+            .order('created_at', { ascending: true })
+            .limit(100),
+        supabase.from('reprint_queue')
+            .select('order_number, status')
+            .gte('created_at', since)
+            .limit(20),
+    ]);
+
+    const created = (createdRes.data || []).filter(o => !isTestOrderName(o.customer_name));
+    const paidCount = (paidRes.data || []).length;
+
+    // Chat instructions grouped per order: the digest names the thread once,
+    // with its CURRENT state — an instruction that already got its «зробила»
+    // is news of a different kind than one still hanging.
+    const threads = new Map<string, { last: any; done: boolean }>();
+    for (const r of historyRes.data || []) {
+        const key = String(r.order_id || r.created_at);
+        threads.set(key, { last: r, done: r.action === 'work_chat_done' });
+    }
+    const orderIds = [...threads.keys()].filter(k => k.includes('-'));
+    const numberById = new Map<string, string>();
+    if (orderIds.length) {
+        const { data: orders } = await supabase
+            .from('orders').select('id, order_number').in('id', orderIds);
+        for (const o of orders || []) numberById.set(o.id, o.order_number);
+    }
+
+    const openThreads = [...threads.entries()].filter(([, t]) => !t.done);
+    const closedCount = threads.size - openThreads.length;
+
+    const reprints = reprintsRes.data || [];
+
+    // Today's deadline pressure, reusing the same visibility the board has.
+    const kyivToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Kyiv' });
+    const { data: dueRows } = await supabase
+        .from('orders')
+        .select('customer_name, source, created_at, custom_attributes, order_status, deadline')
+        .lte('deadline', new Date(`${kyivToday}T23:59:59+03:00`).toISOString())
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
+        .limit(200);
+    const dueToday = (dueRows || []).filter(o => isVisibleProductionOrder(o as any)).length;
+
+    if (!created.length && !paidCount && !threads.size && !reprints.length && !dueToday) {
+        return 'За останню добу було тихо: нових замовлень, оплат, доручень і браків немає, дедлайни сьогодні не горять ✅';
+    }
+
+    const lines = ['🌅 Ось що було за останню добу:', ''];
+
+    if (created.length) {
+        const sample = created.slice(0, 5).map(o => o.order_number).join(', ');
+        lines.push(`🆕 Нових замовлень: ${created.length}${sample ? ` (${sample}${created.length > 5 ? '…' : ''})` : ''}`);
+    }
+    if (paidCount) lines.push(`💳 Оплат отримано: ${paidCount}`);
+
+    if (threads.size) {
+        lines.push(`📌 Доручення в чатах: ${threads.size} ${closedCount ? `(закрито ${closedCount})` : '(усі ще відкриті)'}`);
+        for (const [key, t] of openThreads.slice(0, 4)) {
+            const num = numberById.get(key) || 'без замовлення';
+            const sender = t.last.details?.sender ? `${t.last.details.sender}: ` : '';
+            lines.push(`   • ${num} — ${sender}«${String(t.last.notes || '').slice(0, 90)}»`);
+        }
+    }
+
+    if (reprints.length) {
+        lines.push(`♻️ Нові браки/передруки: ${reprints.length} (${reprints.slice(0, 4).map(r => r.order_number).filter(Boolean).join(', ') || 'без номерів'})`);
+    }
+    if (dueToday) {
+        lines.push(`🔥 Дедлайнів на сьогодні: ${dueToday} — спитай «що термінового на сьогодні?», дам список.`);
+    }
+
+    lines.push('', `Деталі: /status, вкладка «Важливо» — ${SITE_URL}/admin/reprints`);
+    return lines.join('\n');
+}
+
+/** Test-order guard for rows where only the name is at hand. */
+function isTestOrderName(name: string | null | undefined): boolean {
+    return String(name || '').toLowerCase().replace(/\s+/g, ' ').includes('киця кицюня');
 }
 
 /** «Які доручення з чатів ще не виконані» — the open threads, same grouping as the важливо tab. */
