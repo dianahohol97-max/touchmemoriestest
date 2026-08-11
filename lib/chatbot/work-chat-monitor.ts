@@ -207,7 +207,7 @@ export async function captureWorkChatOrderMentions(params: {
     let noteText = params.text;
     if (!numbers.length && cleanReply) {
         numbers = extractOrderNumbers(cleanReply);
-        if (numbers.length) noteText = `${params.text} (відповідь на: «${params.replyText.slice(0, 120)}»)`;
+        if (numbers.length) noteText = `${params.text} (відповідь на: «${String(params.replyText || '').slice(0, 120)}»)`;
     }
     if (!numbers.length && done) {
         const lastMap = (await readSetting(supabase, 'work_chat_last_mention')) || {};
