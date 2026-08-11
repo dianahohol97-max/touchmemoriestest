@@ -456,6 +456,19 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         const offer = offerById.get(String(row.keycrm_offer_id));
         const cost = offer?.cost ?? null;
 
+        // The CRM's SALE price is recorded alongside the cost (Diana,
+        // 2026-08-11: «в CRM ціни мають бути» — they do, and losing them on
+        // sync made the map half-blind). Stored on the mapping row only;
+        // whether a site price follows the CRM one stays a human decision.
+        const salePrice = Number.isFinite(offer?.price) && (offer?.price ?? 0) > 0 ? offer!.price : null;
+        if (!dryRun && salePrice !== null) {
+            await supabase
+                .from('keycrm_product_map')
+                .update({ keycrm_price: salePrice })
+                .eq('site_slug', row.site_slug)
+                .eq('site_variant', row.site_variant || '');
+        }
+
         if (cost === null) {
             withoutCost.push(`${row.site_slug}${row.site_variant ? ` (${row.site_variant})` : ''}`);
             continue;
