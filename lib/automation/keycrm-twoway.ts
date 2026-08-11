@@ -193,9 +193,11 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
     const knownFiles = (order.custom_attributes as any)?.keycrm?.files || [];
     const knownPaymentsTotal = Number((order.custom_attributes as any)?.keycrm?.payments_total ?? 0);
     const knownStatusLabel = String((order.custom_attributes as any)?.keycrm?.status_label ?? '');
+    const knownManager = String((order.custom_attributes as any)?.keycrm?.manager_name ?? '');
     if ((crm.files.length && crm.files.length !== knownFiles.length)
         || Math.abs(knownPaymentsTotal - crm.payments_total) > MONEY_EPSILON
-        || (crm.status_label && crm.status_label !== knownStatusLabel)) {
+        || (crm.status_label && crm.status_label !== knownStatusLabel)
+        || (crm.manager_name && crm.manager_name !== knownManager)) {
         patch.custom_attributes = {
             ...(order.custom_attributes || {}),
             keycrm: {
@@ -208,6 +210,9 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
                 // every pass — the production calendar shows it on the card, so
                 // the board carries the CRM's live state without opening it.
                 status_label: crm.status_label,
+                // The CRM's responsible manager, refreshed the same way —
+                // «хто відповідальний?» answered without opening the CRM.
+                ...(crm.manager_name ? { manager_name: crm.manager_name } : {}),
             },
         };
         if (crm.files.length && crm.files.length !== knownFiles.length) changes.push(`файлів з CRM: ${crm.files.length}`);

@@ -256,7 +256,7 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
 
     const { data: matches } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source')
+        .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source, manager:staff!orders_manager_id_fkey(name), designer:staff!orders_designer_id_fkey(name)')
         .in('order_number', candidates)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -268,7 +268,7 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
     if (!order && bare) {
         const { data: adopted } = await supabase
             .from('orders')
-            .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source')
+            .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at, custom_attributes, prepaid_amount, source, manager:staff!orders_manager_id_fkey(name), designer:staff!orders_designer_id_fkey(name)')
             .eq('custom_attributes->keycrm->>order_id', bare[1])
             .limit(1);
         order = adopted?.[0];
@@ -295,10 +295,23 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
             ? `передоплата ${prepaid.toLocaleString('uk-UA')} ₴ із ${Number(order.total || 0).toLocaleString('uk-UA')} ₴`
             : (PAYMENT_STATUS_UA[order.payment_status] || order.payment_status || '—');
 
+    // Who is responsible: the CRM's manager for mirrored orders, the site's
+    // staff assignment otherwise — «хто відповідальний?» must have an answer.
+    const crmManager = (order as any)?.custom_attributes?.keycrm?.manager_name;
+    const siteManager = (order as any)?.manager?.name;
+    const siteDesigner = (order as any)?.designer?.name;
+    const managerLine = crmManager
+        ? `Менеджер (CRM): ${crmManager}`
+        : siteManager
+            ? `Менеджер: ${siteManager}`
+            : 'Менеджер: не призначений';
+
     const lines = [
         `📦 Замовлення ${order.order_number}`,
         '',
         statusLine,
+        managerLine,
+        ...(siteDesigner ? [`Дизайнер: ${siteDesigner}`] : []),
         `Оплата: ${paymentLine}`,
         `Сума: ${order.total ?? '—'} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
