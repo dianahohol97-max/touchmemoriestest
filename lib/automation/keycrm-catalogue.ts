@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { fetchKeycrmOffers, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
+import { fetchKeycrmOffers, fetchKeycrmOffersByProduct, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
 
 /**
  * Reconcile the website catalogue against the KeyCRM catalogue.
@@ -644,18 +644,26 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
  * same canonical size. Shared by the admin screen's save and by the cron that
  * resolves links pasted into chat while the CRM was unreachable from there.
  */
-export function linkPastedId(params: {
+export async function linkPastedId(params: {
     pasted: string;
     siteSlug: string;
     note: string | null;
     offers: KeycrmOffer[];
     siteProducts: SiteProduct[];
-}): { rows: any[]; warnings: string[] } {
+}): Promise<{ rows: any[]; warnings: string[] }> {
     const { pasted, siteSlug, note, offers, siteProducts } = params;
     const warnings: string[] = [];
 
     const direct = offers.find(o => String(o.offer_id) === pasted);
-    const family = direct ? [direct] : offers.filter(o => o.product_id && o.product_id === pasted);
+    let family = direct ? [direct] : offers.filter(o => o.product_id && o.product_id === pasted);
+
+    // Not in the bulk listing — ask the CRM for exactly this product's
+    // variants. The paged catalogue read has a page budget, and a pasted link
+    // can point at any product, including one the budget never reached (live
+    // case: «Набір для відбитків», product 10).
+    if (!family.length) {
+        family = await fetchKeycrmOffersByProduct(pasted);
+    }
 
     if (!family.length) {
         warnings.push(`${siteSlug}: номер ${pasted} не знайдено серед позицій KeyCRM — перевір, що посилання веде на товар, а не на замовлення.`);
@@ -739,7 +747,7 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         if (seen.has(key)) continue;
         seen.add(key);
 
-        const { rows, warnings } = linkPastedId({
+        const { rows, warnings } = await linkPastedId({
             pasted: String(row.keycrm_offer_id),
             siteSlug: row.site_slug,
             note: row.note ?? null,

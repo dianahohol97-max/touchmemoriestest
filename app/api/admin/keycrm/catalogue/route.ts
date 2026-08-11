@@ -78,7 +78,7 @@ export async function POST(request: Request) {
                 // product's id — in which case every size of the site product
                 // links to its CRM counterpart at once (Diana, 2026-08-12:
                 // «всі розміри друку на полотні… щоб синхронізувалось вірно»).
-                const { rows: linked, warnings: linkWarnings } = linkPastedId({
+                const { rows: linked, warnings: linkWarnings } = await linkPastedId({
                     pasted: String(row.keycrm_offer_id),
                     siteSlug: row.site_slug,
                     note: row.note ?? null,

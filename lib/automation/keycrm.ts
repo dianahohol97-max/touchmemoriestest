@@ -552,47 +552,84 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
         const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
         if (rows.length === 0) break;
 
-        for (const row of rows) {
-            const parentName = String(row?.product?.name ?? '').trim();
-            const ownName = String(row?.name ?? '').trim();
-            const price = Number(row?.price ?? row?.product?.price ?? 0);
-            const { cost, field } = readCost(row);
-
-            // The variant's own properties, joined («розмір: 30х40см»). This is
-            // where per-size products carry their size, and pasting the PARENT
-            // product's URL relies on it to route each site size to the right
-            // variant.
-            const propsLabel = Array.isArray(row?.properties)
-                ? row.properties
-                    .map((p: any) => `${String(p?.name ?? '').trim()}: ${String(p?.value ?? '').trim()}`)
-                    .filter((s: string) => s !== ': ')
-                    .join(' ')
-                : '';
-
-            offers.push({
-                cost,
-                cost_field: field,
-                quantity: readStock(row),
-                offer_id: String(row?.id ?? ''),
-                product_id: String(row?.product_id ?? row?.product?.id ?? ''),
-                variant_label: propsLabel || ownName,
-                sku: String(row?.sku ?? '').trim(),
-                // Prefer the parent name and append the variant when both exist,
-                // so "Фотоальбом на 200 фото" and "Зелений" become one label a
-                // name match can actually work against.
-                name: [parentName, ownName && ownName !== parentName ? ownName : '']
-                    .filter(Boolean)
-                    .join(' ')
-                    .trim(),
-                price: Number.isFinite(price) ? price : 0,
-            });
-        }
+        for (const row of rows) offers.push(parseOfferRow(row));
 
         const perPage = Number(payload?.per_page) || PAGE_SIZE;
         if (rows.length < perPage || payload?.next_page_url === null) break;
     }
 
     return offers;
+}
+
+function parseOfferRow(row: any): KeycrmOffer {
+    const parentName = String(row?.product?.name ?? '').trim();
+    const ownName = String(row?.name ?? '').trim();
+    const price = Number(row?.price ?? row?.product?.price ?? 0);
+    const { cost, field } = readCost(row);
+
+    // The variant's own properties, joined («розмір: 30х40см»). This is where
+    // per-size products carry their size, and pasting the PARENT product's URL
+    // relies on it to route each site size to the right variant.
+    const propsLabel = Array.isArray(row?.properties)
+        ? row.properties
+            .map((p: any) => `${String(p?.name ?? '').trim()}: ${String(p?.value ?? '').trim()}`)
+            .filter((s: string) => s !== ': ')
+            .join(' ')
+        : '';
+
+    return {
+        cost,
+        cost_field: field,
+        quantity: readStock(row),
+        offer_id: String(row?.id ?? ''),
+        product_id: String(row?.product_id ?? row?.product?.id ?? ''),
+        variant_label: propsLabel || ownName,
+        sku: String(row?.sku ?? '').trim(),
+        // Prefer the parent name and append the variant when both exist, so
+        // "Фотоальбом на 200 фото" and "Зелений" become one label a name match
+        // can actually work against.
+        name: [parentName, ownName && ownName !== parentName ? ownName : '']
+            .filter(Boolean)
+            .join(' ')
+            .trim(),
+        price: Number.isFinite(price) ? price : 0,
+    };
+}
+
+/**
+ * The offers of ONE product, asked for directly.
+ *
+ * The paged catalogue read has a page budget, and a pasted link can point at
+ * any product — including one the budget never reaches (live case: «Набір для
+ * відбитків», product 10, answered «не знайдено» while existing perfectly
+ * well). filter[product_id] asks the CRM for exactly that product's variants.
+ */
+export async function fetchKeycrmOffersByProduct(productId: string | number): Promise<KeycrmOffer[]> {
+    const id = encodeURIComponent(String(productId));
+
+    for (const path of [
+        `/offers?filter[product_id]=${id}&limit=50&include=product,properties`,
+        `/offers?filter[product_id]=${id}&limit=50&include=product`,
+        `/offers?product_id=${id}&limit=50&include=product`,
+    ]) {
+        try {
+            const payload = await keycrmRequest(path);
+            const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+            if (rows.length) {
+                // Defensive: some API versions ignore unknown filters and
+                // return the first page of EVERYTHING — keep only rows that
+                // really belong to the requested product.
+                const parsed = rows.map(parseOfferRow);
+                const own = parsed.filter(o => o.product_id === String(productId));
+                if (own.length) return own;
+                continue;
+            }
+        } catch {
+            // Try the next filter spelling.
+        }
+    }
+
+    return [];
 }
 
 /**
