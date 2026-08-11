@@ -27,9 +27,33 @@ export const maxDuration = 60;
  * redeploy). `?preview=1` builds the text and returns it without sending.
  */
 
-function unauthorized(req: Request) {
+/**
+ * Vercel Cron authenticates with the bearer. A person (or an agent with
+ * database access) can also run it out of schedule with a ONE-TIME token
+ * placed in settings('evening_horoscope_run_token') as
+ * { token, expires_at } — the row is deleted the moment it is used, so the
+ * link cannot be replayed, and issuing one requires admin access to the
+ * database in the first place.
+ */
+async function authorized(req: Request): Promise<boolean> {
     const auth = req.headers.get('authorization');
-    return !process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`;
+    if (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`) return true;
+
+    const token = new URL(req.url).searchParams.get('token');
+    if (!token) return false;
+
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase.from('settings').select('value').eq('key', 'evening_horoscope_run_token').maybeSingle();
+        const stored = data?.value as any;
+        if (!stored?.token || stored.token !== token) return false;
+        // Always consume, valid or expired: one attempt per issued token.
+        await supabase.from('settings').delete().eq('key', 'evening_horoscope_run_token');
+        return !!stored.expires_at && new Date(stored.expires_at).getTime() > Date.now();
+    } catch (e) {
+        console.error('[evening-horoscope] token check failed:', e);
+        return false;
+    }
 }
 
 async function isEnabled(): Promise<boolean> {
@@ -93,7 +117,7 @@ async function condense(entries: HoroscopeEntry[]): Promise<HoroscopeEntry[]> {
 }
 
 export async function GET(req: Request) {
-    if (unauthorized(req)) {
+    if (!(await authorized(req))) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const preview = new URL(req.url).searchParams.get('preview') === '1';

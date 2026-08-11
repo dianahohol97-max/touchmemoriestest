@@ -19,6 +19,7 @@
 
 export const ZODIAC = [
     { key: 'aries', ua: 'Овен', emoji: '♈' },
+    { key: 'gemini', ua: 'Близнюки', emoji: '♊' },
     { key: 'cancer', ua: 'Рак', emoji: '♋' },
     { key: 'virgo', ua: 'Діва', emoji: '♍' },
     { key: 'scorpio', ua: 'Скорпіон', emoji: '♏' },
