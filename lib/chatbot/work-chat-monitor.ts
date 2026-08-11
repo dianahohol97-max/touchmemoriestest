@@ -158,7 +158,21 @@ async function attachToOrder(supabase: any, orderNum: string, p: {
     if (p.due && !p.done) {
         const currentMs = order.deadline ? new Date(order.deadline).getTime() : null;
         if (!currentMs || p.due.getTime() < currentMs) {
-            await supabase.from('orders').update({ deadline: p.due.toISOString() }).eq('id', order.id);
+            // deadline_locked: a date a PERSON named owns the deadline from
+            // here on — the mirror's resolver must not recompute over it.
+            const { data: cur } = await supabase
+                .from('orders')
+                .select('custom_attributes')
+                .eq('id', order.id)
+                .maybeSingle();
+            const attrs = (cur?.custom_attributes && typeof cur.custom_attributes === 'object')
+                ? cur.custom_attributes as Record<string, any>
+                : {};
+
+            await supabase.from('orders').update({
+                deadline: p.due.toISOString(),
+                custom_attributes: { ...attrs, deadline_locked: true },
+            }).eq('id', order.id);
             await supabase.from('order_history').insert({
                 order_id: order.id,
                 action: 'deadline_tightened',

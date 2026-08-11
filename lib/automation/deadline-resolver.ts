@@ -120,9 +120,24 @@ export function resolveOrderDeadline(order: any, params?: {
     // The standard term is the SLOWEST product in the order: the parcel ships
     // when the velvet photobook («14–18 робочих днів») is done, not when the
     // photo corners («1–3 робочих дні») are.
+    //
+    // Mirrored CRM orders carry CRM skus, so the slug lookup often misses —
+    // then the published terms are recognised by what the item IS (Тома,
+    // 2026-08-11: «фотокнига 10-14 робочих днів, а там взагалі 10 днів лиш
+    // рахує»). The keyword table mirrors the shop's published terms; the
+    // catalogue field still wins whenever the slug resolves.
     const termsBySlug = params?.productTermsBySlug || {};
+    const keywordTerm = (item: any): number | undefined => {
+        const text = `${item?.slug || ''} ${item?.product_name || item?.name || ''}`.toLowerCase();
+        if (/фотокниг|photobook/.test(text)) return 14;
+        if (/книг|wishbook|guestbook/.test(text)) return 14;
+        if (/журнал|magazine/.test(text)) return 8;
+        if (/travel|тревел/.test(text)) return 14;
+        if (/альбом|полотн|постер|пазл|магніт|рамк|фотодрук|друк/.test(text)) return 3;
+        return undefined;
+    };
     const itemTerms = items
-        .map((item: any) => termsBySlug[String(item?.slug || '')])
+        .map((item: any) => termsBySlug[String(item?.slug || '')] ?? keywordTerm(item))
         .filter((d: any): d is number => Number.isFinite(d) && d > 0);
     const standardTerm = itemTerms.length ? Math.max(...itemTerms) : STANDARD_TERM_WORKING_DAYS;
 
@@ -145,9 +160,19 @@ export function resolveOrderDeadline(order: any, params?: {
         }
     }
 
-    // From the ORDER date. The promise to the customer starts the moment they
-    // ordered, whatever the payment method did afterwards.
-    const start = new Date(order?.created_at || order?.paid_at || now);
+    // From the ORDER date normally — the promise starts the moment the
+    // customer ordered. But when production only starts after the customer
+    // approves the layout («друк після затвердження макету» — Тома,
+    // 2026-08-11), the clock restarts at that approval: the mirror stamps
+    // custom_attributes.keycrm.print_started_at when the CRM stage moves to
+    // print, and the LATER of the two starts wins — an approval yesterday
+    // cannot make a deadline earlier than the order date would.
+    const created = new Date(order?.created_at || order?.paid_at || now);
+    const printStartRaw = attrs?.keycrm?.print_started_at;
+    const printStart = printStartRaw ? new Date(printStartRaw) : null;
+    const start = printStart && Number.isFinite(printStart.getTime()) && printStart.getTime() > created.getTime()
+        ? printStart
+        : created;
     const base = addWorkingDays(
         Number.isFinite(start.getTime()) ? start : now,
         express ? Math.min(standardTerm, expressDays) : standardTerm,

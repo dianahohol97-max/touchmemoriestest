@@ -135,29 +135,60 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
     //
     // This writes a planning field the site owns and never pushes back to the
     // CRM, so the read-only promise about the CRM's own data still holds.
+    // Items ride along: the resolver's per-product terms (and the keyword
+    // fallback for CRM skus) need to SEE the photobook to give it its
+    // 14 робочих днів — without them every mirrored order fell into the
+    // generic 8-day fallback, which is the «а там взагалі 10 днів лиш
+    // рахує» Тома caught.
     const { deadline } = resolveOrderDeadline({
         created_at: crm.created_at,
         notes: crm.manager_comment,
         client_comment: crm.buyer_comment,
+        items,
     });
-
-    // Tighten-only against what the site already holds: a deadline pulled in
-    // by a chat instruction («13808 обов'язково 12.08 відправити») must not be
-    // pushed back out an hour later by this refresh recomputing from the CRM
-    // comment alone. The earlier of the two dates wins.
-    const existingDeadline = existing?.deadline ? new Date(existing.deadline) : null;
-    const effectiveDeadline = existingDeadline
-        && Number.isFinite(existingDeadline.getTime())
-        && existingDeadline.getTime() < deadline.getTime()
-        ? existingDeadline
-        : deadline;
 
     // Merge, never rebuild: custom_attributes carries site-owned state too
     // (chat_task with Софія's recommendation) — only the keycrm block is ours
     // to replace here.
     const existingAttrs = (existing?.custom_attributes && typeof existing.custom_attributes === 'object')
-        ? existing.custom_attributes
+        ? existing.custom_attributes as Record<string, any>
         : {};
+
+    // The moment production actually starts. «Друк після затвердження макету»
+    // (Тома, 2026-08-11): for made-to-order books the published term counts
+    // from the customer approving the layout, and the closest observable
+    // proxy for that approval is the CRM stage moving to print. Stamped once,
+    // never re-stamped — a card dragged back and forth does not restart the
+    // clock.
+    const stageLabel = (crm.status_label || '').toLowerCase();
+    const printStartedAt = existingAttrs?.keycrm?.print_started_at
+        // The CRM's own status-change timestamp when the API exposes it —
+        // exact; the moment of first observation otherwise (Diana asked for
+        // the history of status changes: KeyCRM's API has no history endpoint,
+        // so this field is as close as it gets).
+        || (/друк/.test(stageLabel) ? (crm.status_changed_at || new Date().toISOString()) : null);
+
+    // Deadline ownership: the resolver owns it UNLESS a person pinned it — a
+    // chat instruction or the admin date field sets deadline_locked, and a
+    // pinned date survives every refresh. Without the lock the fresh
+    // resolution wins in both directions, because the print-start restart
+    // legitimately moves deadlines LATER and a tighten-only rule would
+    // silently discard exactly that correction.
+    const resolvedWithStart = printStartedAt
+        ? resolveOrderDeadline({
+            created_at: crm.created_at,
+            notes: crm.manager_comment,
+            client_comment: crm.buyer_comment,
+            items,
+            custom_attributes: { keycrm: { print_started_at: printStartedAt } },
+        }).deadline
+        : deadline;
+
+    const existingDeadline = existing?.deadline ? new Date(existing.deadline) : null;
+    const effectiveDeadline = existingAttrs?.deadline_locked
+        && existingDeadline && Number.isFinite(existingDeadline.getTime())
+        ? existingDeadline
+        : resolvedWithStart;
 
     return {
         deadline: effectiveDeadline.toISOString(),
@@ -195,6 +226,7 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
                 mirrored: true,
                 status_label: crm.status_label,
                 payments_total: crm.payments_total,
+                ...(printStartedAt ? { print_started_at: printStartedAt } : {}),
                 // The artwork attached to the CRM card. Copied as links rather
                 // than as files: the CRM stays the place they live, and the
                 // admin panel only needs to be able to open them.

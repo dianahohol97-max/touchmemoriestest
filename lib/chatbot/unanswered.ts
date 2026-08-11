@@ -100,6 +100,24 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         return handoffPhrases.some(p => p && lower.includes(p.toLowerCase()));
     };
 
+    // A short thanks or goodbye CLOSES a conversation — it is not a question
+    // waiting on us (Diana, 2026-08-11: «клієнтка написала дякую, і їй ніхто
+    // не відписав?» — the watchdog had flagged a bare «Дякую)»). Only short
+    // messages qualify: «дякую, а коли відправите?» carries a real question
+    // and must still alert. Emoji and punctuation are stripped before the
+    // check so «Дякую)» and «Дякую ❤️» read the same.
+    const isCloser = (text: string) => {
+        const raw = String(text || '').trim();
+        if (raw.length > 40 || raw.includes('?')) return false;
+        const cleaned = raw
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (!cleaned) return true; // bare emoji / sticker reaction
+        return /^(дуже\s+)?(дякую|дякуємо|спасибі|вдячна|вдячний|ок|окей|добре|супер|чудово|клас|гарного дня|гарного вечора|до побачення|дякую вам|дякую дуже|все зрозуміло|зрозуміло|прийняла|прийняв)( вам| тобі| велике| щиро)?$/.test(cleaned);
+    };
+
     const unanswered: WaitingDialog[] = [];
     const needsHuman: WaitingDialog[] = [];
 
@@ -116,7 +134,7 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         };
         if (conv.status === 'needs_human') {
             needsHuman.push(item);
-        } else if (last.sender === 'customer' && hours >= thresholdHours) {
+        } else if (last.sender === 'customer' && hours >= thresholdHours && !isCloser(last.original_text || '')) {
             // Two deliberate mutes: a dialog explicitly taken over by a human
             // (admin inbox status), and a dialog a manager replied to within
             // the active window — both are being handled, alerting on them

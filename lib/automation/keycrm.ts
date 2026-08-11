@@ -31,6 +31,8 @@ export type KeycrmOrder = {
     source_id: string;
     status_id: number | string | null;
     status_label: string;
+    /** When the CURRENT stage was set, if the API exposes it. Empty otherwise. */
+    status_changed_at: string;
     grand_total: number;
     created_at: string;
     updated_at: string;
@@ -250,6 +252,10 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         status_label: statusId !== null && statusLabels[String(statusId)]
             ? statusLabels[String(statusId)]
             : (statusId !== null ? `статус ${statusId}` : 'без статусу'),
+        // Different accounts/API versions expose this under different names, if
+        // at all. Read defensively — the print-start stamp prefers this exact
+        // moment over "when the sync first noticed".
+        status_changed_at: String(raw?.status_changed_at ?? raw?.status_updated_at ?? '').trim(),
         grand_total: Number.isFinite(total) ? total : 0,
         created_at: String(raw?.created_at ?? ''),
         updated_at: String(raw?.updated_at ?? raw?.created_at ?? ''),

@@ -105,6 +105,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
     }
 
+    // A deadline set by hand OWNS the field from here on: deadline_locked
+    // tells the mirror's resolver to keep its recomputations off it. Merged
+    // server-side against the live row so a stale client copy of
+    // custom_attributes cannot clobber other keys.
+    if (body.deadline !== undefined && body.custom_attributes === undefined) {
+        const { data: cur } = await supabase
+            .from('orders')
+            .select('custom_attributes')
+            .eq('id', id)
+            .maybeSingle();
+        const attrs = (cur?.custom_attributes && typeof cur.custom_attributes === 'object')
+            ? cur.custom_attributes as Record<string, any>
+            : {};
+        body.custom_attributes = { ...attrs, deadline_locked: true };
+    }
+
     // Remember whether this PATCH is the order's FIRST transition to paid or to
     // cancelled — both need the pre-update state, so read it before writing.
     let becamePaid = false;
