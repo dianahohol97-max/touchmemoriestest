@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { processPendingMentions } from '@/lib/chatbot/work-chat-monitor';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,9 +46,22 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Piggyback: drain the work-chat pending-mentions queue (orders that
+    // hadn't arrived from the KeyCRM mirror when they were mentioned). This
+    // cron's 15-minute cadence is exactly the retry rhythm those need.
+    let pendingResult = { attached: 0, kept: 0 };
+    try {
+        pendingResult = await processPendingMentions();
+        if (pendingResult.attached) {
+            console.log(`[telegram-webhook-sync] attached ${pendingResult.attached} pending work-chat mentions, ${pendingResult.kept} still waiting`);
+        }
+    } catch (e) {
+        console.error('[telegram-webhook-sync] pending mentions failed:', e);
+    }
+
     const token = process.env.TELEGRAM_PUBLIC_BOT_TOKEN;
     if (!token) {
-        return NextResponse.json({ ok: false, reason: 'TELEGRAM_PUBLIC_BOT_TOKEN not configured' });
+        return NextResponse.json({ ok: false, reason: 'TELEGRAM_PUBLIC_BOT_TOKEN not configured', pendingMentions: pendingResult });
     }
 
     const desiredUrl = `${SITE_URL}/api/chatbot/telegram`;
