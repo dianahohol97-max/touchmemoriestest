@@ -671,7 +671,7 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
  * Values stored as fractions of the spread (0..1) so they apply to the
  * scaled canvas regardless of zoom.
  */
-const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number; right: number }> = {
+const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number; right: number; spine?: number }> = {
   // 20×20 — spread 405×203 mm
   '20x20': { top: 2/203, bottom: 2/203, left: 3/405, right: 3/405 },
   '20×20': { top: 2/203, bottom: 2/203, left: 3/405, right: 3/405 },
@@ -687,11 +687,17 @@ const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number;
   // 30×30 — spread 610×305 mm
   '30x30': { top: 9/305, bottom: 8/305, left: 10/610, right: 10/610 },
   '30×30': { top: 9/305, bottom: 8/305, left: 10/610, right: 10/610 },
-  // Fallback for magazines/travel/wishbook — use a conservative 3 mm all round
-  // applied as a generic 1.5% inset (no partner data yet for these formats).
-  'A4':           { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
-  'magazine-A4':  { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
-  'travelbook':   { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
+  // Travel book / hard-cover journal — spread 420×297 mm (two 210×297 pages).
+  // Production spec (Diana, 2026-08-11): the 210×297 page file INCLUDES the
+  // trim allowance — верх/низ 5 мм, корінцева частина 10 мм, паралельна
+  // корінцевій 5 мм. So the guide is not decorative: 10 mm at the GUTTER of
+  // each page is physically cut away, and until now nothing warned about it
+  // (the old value was a generic 1.5% placeholder with no spine band at all).
+  // `spine` is the per-page keep-clear at the fold, as a fraction of the whole
+  // spread width.
+  'A4':           { top: 5/297, bottom: 5/297, left: 5/420, right: 5/420, spine: 10/420 },
+  'magazine-A4':  { top: 5/297, bottom: 5/297, left: 5/420, right: 5/420, spine: 10/420 },
+  'travelbook':   { top: 5/297, bottom: 5/297, left: 5/420, right: 5/420, spine: 10/420 },
   '23x23':        { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
   '23×23':        { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 },
 };
@@ -728,10 +734,13 @@ const COVER_BLEED_MARGINS: Record<string, { top: number; bottom: number; left: n
   // 30×30 — cover 646×330 mm, 18 TB / 20 LR
   '30x30': { top: 18/330, bottom: 18/330, left: 20/646, right: 20/646 },
   '30×30': { top: 18/330, bottom: 18/330, left: 20/646, right: 20/646 },
-  // Fallbacks for sizes we don't have explicit data for — 6% generic fold-in
-  'A4':           { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
-  'magazine-A4':  { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
-  'travelbook':   { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
+  // Travel book / hard-cover journal — cover 470×328 mm, 20 mm fold-in on
+  // EVERY side (production spec, Diana 2026-08-11: «з урахуванням полів 20 мм
+  // з кожної сторони які будуть загнуті»). Was a generic 6%, which reads as
+  // 19.7 mm vertically but 28 mm horizontally — an 8 mm lie on each side.
+  'A4':           { top: 20/328, bottom: 20/328, left: 20/470, right: 20/470 },
+  'magazine-A4':  { top: 20/328, bottom: 20/328, left: 20/470, right: 20/470 },
+  'travelbook':   { top: 20/328, bottom: 20/328, left: 20/470, right: 20/470 },
   '23x23':        { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
   '23×23':        { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 },
 };
@@ -8606,11 +8615,27 @@ export default function BookLayoutEditor() {
                         the print partner, not a generic percentage. Editor-only overlay,
                         does NOT affect saved/exported files. */}
                     <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${spreadW} ${cH}`} preserveAspectRatio="none">
+                      {/* With a spine margin the safe area is TWO rectangles —
+                          one per page — because the gutter allowance is cut off
+                          each page separately (travel books, journals: 10 мм). */}
+                      {bleed.spine ? (
+                        <>
+                          <rect x={spreadW*bleed.left} y={cH*bleed.top}
+                                width={spreadW*(0.5 - bleed.left - bleed.spine)}
+                                height={cH*(1 - bleed.top - bleed.bottom)}
+                                fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                          <rect x={spreadW*(0.5 + bleed.spine)} y={cH*bleed.top}
+                                width={spreadW*(0.5 - bleed.right - bleed.spine)}
+                                height={cH*(1 - bleed.top - bleed.bottom)}
+                                fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                        </>
+                      ) : (
                       <rect x={spreadW*bleed.left}
                             y={cH*bleed.top}
                             width={spreadW*(1 - bleed.left - bleed.right)}
                             height={cH*(1 - bleed.top - bleed.bottom)}
                             fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                      )}
                       {/* Centre line marks the spine fold — text/faces shouldn't sit on it */}
                       <line x1={spreadW/2} y1={cH*bleed.top} x2={spreadW/2} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
@@ -9445,11 +9470,24 @@ export default function BookLayoutEditor() {
                 {!(hasKalka && currentIdx === 1) && (
                   <>
                     <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${pageW*2} ${cH}`} preserveAspectRatio="none">
+                      {bleed.spine ? (
+                        <>
+                          <rect x={pageW*2*bleed.left} y={cH*bleed.top}
+                                width={pageW*2*(0.5 - bleed.left - bleed.spine)}
+                                height={cH*(1 - bleed.top - bleed.bottom)}
+                                fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                          <rect x={pageW*2*(0.5 + bleed.spine)} y={cH*bleed.top}
+                                width={pageW*2*(0.5 - bleed.right - bleed.spine)}
+                                height={cH*(1 - bleed.top - bleed.bottom)}
+                                fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                        </>
+                      ) : (
                       <rect x={pageW*2*bleed.left}
                             y={cH*bleed.top}
                             width={pageW*2*(1 - bleed.left - bleed.right)}
                             height={cH*(1 - bleed.top - bleed.bottom)}
                             fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                      )}
                       <line x1={pageW} y1={cH*bleed.top} x2={pageW} y2={cH*(1 - bleed.bottom)}
                             stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                     </svg>
