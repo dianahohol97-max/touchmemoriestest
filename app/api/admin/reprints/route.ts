@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { REPRINT_STATUSES, OPEN_STATUSES, FAULT_OPTIONS, type ReprintStatus } from '@/lib/automation/reprints';
 import { getAlertChatId, getWorkChatIds, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
-import { isTestOrder } from '@/lib/automation/test-orders';
+import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,23 +107,26 @@ export async function GET(request: Request) {
         .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
 
     // Overdue production orders join the важливо tab for review (Diana,
-    // 2026-08-11): the same population as the calendar's red rail — active
-    // work whose production deadline is already behind today, minus test
-    // orders and orders whose CRM stage says the work is in fact over.
+    // 2026-08-11): the SAME population as the calendar's red rail, decided by
+    // the same shared predicate. The first version re-implemented the rules
+    // inline and forgot the handover cutoff, so hand-transferred July site
+    // orders — long finished in KeyCRM — filled the section (Diana: «всі
+    // замовлення з сайту до сьогодні прибери звідси»). isVisibleProductionOrder
+    // carries all three rules: test orders, closed CRM stages, and pre-cutoff
+    // site orders hidden unless the mirror linked their CRM card back.
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const { data: overdueRows } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, deadline, order_status, source, custom_attributes')
-        .in('order_status', ['new', 'confirmed', 'in_production', 'quality_check'])
+        .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
         .lt('deadline', startOfToday.toISOString())
         .order('deadline', { ascending: true })
-        .limit(30);
+        .limit(100);
 
-    const CLOSED_STAGE = /completed|виконан|доставлен|отриман|delivered|cancel|скасов|анульов|refund|повернен|transit|дороз|відправ|to_delivery|shipped/;
     const overdueOrders = (overdueRows || [])
-        .filter(o => !isTestOrder(o as any))
-        .filter(o => !CLOSED_STAGE.test(String((o.custom_attributes as any)?.keycrm?.status_label || '').toLowerCase()))
+        .filter(o => isVisibleProductionOrder(o as any))
+        .slice(0, 30)
         .map(o => ({
             id: o.id,
             order_number: o.order_number,
