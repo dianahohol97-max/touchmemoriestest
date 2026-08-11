@@ -104,14 +104,18 @@ export async function POST(req: Request) {
                     const noteText = body.message.text || body.message.caption || '';
                     if (noteText && !noteText.startsWith('/')) {
                         try {
+                            const replyMsg = body.message.reply_to_message;
                             const result = await captureWorkChatOrderMentions({
                                 text: noteText,
+                                replyText: replyMsg ? (replyMsg.text || replyMsg.caption || '') : undefined,
+                                chatId,
                                 chatTitle: body.message.chat?.title || 'робочий чат',
                                 senderName: body.message.from?.first_name || 'учасник',
                             });
-                            if (result.captured.length) {
-                                // ✍ = instruction captured; 👌 = completion
-                                // report recorded.
+                            // ✍ = instruction captured; 👌 = completion report.
+                            // Pending counts too: the order just hasn't arrived
+                            // from the CRM mirror yet, but the mention is safe.
+                            if (result.captured.length || result.pending.length) {
                                 await reactToMessage(chatId, body.message.message_id, result.done ? '👌' : '✍');
                             }
                         } catch (e) {

@@ -8,19 +8,31 @@ import { getAdminClient } from '@/lib/supabase/admin';
  * module catches any group message that mentions an order and lands it where
  * the work actually lives:
  *
- *   1. an `order_history` row → the note shows up in the admin order page's
- *      timeline, attributed to the chat and author;
- *   2. when the message carries a dd.MM date — the order's deadline is
+ *   1. an `order_history` row (action `work_chat_note` / `work_chat_done`) —
+ *      visible in the admin order page timeline;
+ *   2. when an instruction carries a dd.MM date — the order's deadline is
  *      TIGHTENED to it (earlier-only, like CRM comment dates), so the order
  *      surfaces on the production calendar and in the morning digest.
  *
- * The bot never talks in the chat; the webhook acknowledges a captured
- * instruction with a silent ✍ reaction on the message instead.
+ * Orders that are not in the site DB yet (fresh KeyCRM orders arrive via the
+ * hourly mirror) go to a pending queue (`settings.work_chat_pending_mentions`)
+ * and are attached by `processPendingMentions()` — called from the 15-minute
+ * telegram-webhook-sync cron — as soon as the mirror delivers them. Entries
+ * expire after 48h.
+ *
+ * Completion reports without an order number are attributed two ways:
+ * a Telegram reply inherits the number from the message it answers, and a
+ * bare «зробила» falls back to the chat's last directly-mentioned order if
+ * that was within 2 hours. Deliberately NO status change from chat words —
+ * the real closure is the TTN / CRM stage, which existing syncs propagate.
+ *
+ * The bot never talks in the chat; the webhook acknowledges with a reaction:
+ * ✍ = instruction captured, 👌 = completion report recorded.
  *
  * Order references understood: TM-001234 / CRM-13808 / PB-…, and the team's
- * shorthand — a bare 5-digit number («13808») — which is treated as a KeyCRM
- * id. A bare number followed by a currency marker («13500 грн») is a price,
- * not an order, and is ignored.
+ * shorthand — a bare 5-digit number («13808»), treated as a KeyCRM id. A
+ * bare number followed by a currency marker («13500 грн») is a price and is
+ * ignored.
  */
 
 const PREFIXED = /\b(TM|CRM|PB)[-\s]?(\d{3,6})\b/gi;
@@ -57,11 +69,9 @@ export function extractDayMonth(text: string): Date | null {
 }
 
 /**
- * "Manager reports it's done" detector: the message names an order AND a
- * completion verb («відправила», «зроблено», «готово», «змінила»…) without a
- * negation right before it («ще не відправила» is NOT done). Deliberately
- * does NOT change the order status — words in a chat are a report, the real
- * closure comes from the TTN / CRM stage, which the existing syncs pick up.
+ * "Manager reports it's done" detector: a completion verb («відправила»,
+ * «зроблено», «готово», «змінила»…) without a negation right before it
+ * («ще не відправила» is NOT done).
  */
 const DONE_WORDS = /(відправлен|відправил|зроблен|зробил|готово|виконан|змінил|оновил|передал|надіслал)/i;
 const NEGATED = /(\bне\s+\S*|\bще\s+не\s+\S*)(відправ|зроб|готов|викон|змін|оновл|перед|надісл)/i;
@@ -70,60 +80,178 @@ export function looksDone(text: string): boolean {
     return DONE_WORDS.test(text) && !NEGATED.test(text);
 }
 
+type PendingMention = {
+    num: string;
+    text: string;
+    chat: string;
+    sender: string;
+    due: string | null;
+    done: boolean;
+    ts: string;
+};
+
+async function readSetting(supabase: any, key: string): Promise<any | null> {
+    const { data } = await supabase.from('settings').select('value').eq('key', key).maybeSingle();
+    return data?.value ?? null;
+}
+
+async function writeSetting(supabase: any, key: string, value: any): Promise<void> {
+    const { error } = await supabase
+        .from('settings')
+        .upsert({ key, value, updated_at: new Date().toISOString() });
+    if (error) console.error(`[work-chat] failed to save ${key}:`, error);
+}
+
+/** Attach one mention to an order if it exists. Returns false when the order is not in the DB (yet). */
+async function attachToOrder(supabase: any, orderNum: string, p: {
+    text: string;
+    chat: string;
+    sender: string;
+    due: Date | null;
+    done: boolean;
+}): Promise<boolean> {
+    const { data: order } = await supabase
+        .from('orders')
+        .select('id, order_number, deadline')
+        .eq('order_number', orderNum)
+        .maybeSingle();
+    if (!order) return false;
+
+    await supabase.from('order_history').insert({
+        order_id: order.id,
+        action: p.done ? 'work_chat_done' : 'work_chat_note',
+        notes: p.done
+            ? `Виконано (звіт у чаті «${p.chat}», ${p.sender}): «${p.text.slice(0, 300)}»`
+            : `Доручення з чату «${p.chat}» (${p.sender}): «${p.text.slice(0, 300)}»`,
+        details: {
+            source: 'telegram_work_chat',
+            chat: p.chat,
+            sender: p.sender,
+            date_found: p.due ? p.due.toISOString() : null,
+            done: p.done,
+        },
+        added_by: null,
+    });
+
+    // A completion report must not tighten the deadline — «відправила 12.08»
+    // is history, not a new commitment.
+    if (p.due && !p.done) {
+        const currentMs = order.deadline ? new Date(order.deadline).getTime() : null;
+        if (!currentMs || p.due.getTime() < currentMs) {
+            await supabase.from('orders').update({ deadline: p.due.toISOString() }).eq('id', order.id);
+            await supabase.from('order_history').insert({
+                order_id: order.id,
+                action: 'deadline_tightened',
+                notes: `Дедлайн підтягнуто до ${p.due.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Kyiv' })} за повідомленням у чаті «${p.chat}».`,
+                added_by: null,
+            });
+        }
+    }
+    return true;
+}
+
 export async function captureWorkChatOrderMentions(params: {
     text: string;
+    replyText?: string;
+    chatId: string | number;
     chatTitle: string;
     senderName: string;
-}): Promise<{ captured: string[]; done: boolean }> {
-    const numbers = extractOrderNumbers(params.text);
-    if (!numbers.length) return { captured: [], done: false };
-
+}): Promise<{ captured: string[]; pending: string[]; done: boolean }> {
     const supabase = getAdminClient();
-    const due = extractDayMonth(params.text);
     const done = looksDone(params.text);
+
+    // Attribution ladder: numbers in the message itself → numbers in the
+    // replied-to message → (completion reports only) the chat's last
+    // directly-mentioned order within 2 hours.
+    let numbers = extractOrderNumbers(params.text);
+    let noteText = params.text;
+    if (!numbers.length && params.replyText) {
+        numbers = extractOrderNumbers(params.replyText);
+        if (numbers.length) noteText = `${params.text} (відповідь на: «${params.replyText.slice(0, 120)}»)`;
+    }
+    if (!numbers.length && done) {
+        const lastMap = (await readSetting(supabase, 'work_chat_last_mention')) || {};
+        const last = lastMap[String(params.chatId)];
+        if (last?.num && last?.ts && Date.now() - new Date(last.ts).getTime() < 2 * 60 * 60 * 1000) {
+            numbers = [String(last.num)];
+            noteText = `${params.text} (звіт без номера — віднесено до останнього згаданого замовлення в чаті)`;
+        }
+    }
+    if (!numbers.length) return { captured: [], pending: [], done };
+
+    const due = extractDayMonth(params.text);
     const captured: string[] = [];
+    const pendingNew: string[] = [];
 
     for (const num of numbers.slice(0, 5)) {
-        const { data: order } = await supabase
-            .from('orders')
-            .select('id, order_number, deadline')
-            .eq('order_number', num)
-            .maybeSingle();
-        if (!order) continue;
-
-        await supabase.from('order_history').insert({
-            order_id: order.id,
-            action: done ? 'work_chat_done' : 'work_chat_note',
-            notes: done
-                ? `Виконано (звіт у чаті «${params.chatTitle}», ${params.senderName}): «${params.text.slice(0, 300)}»`
-                : `Доручення з чату «${params.chatTitle}» (${params.senderName}): «${params.text.slice(0, 300)}»`,
-            details: {
-                source: 'telegram_work_chat',
-                chat: params.chatTitle,
-                sender: params.senderName,
-                date_found: due ? due.toISOString() : null,
-                done,
-            },
-            added_by: null,
+        const ok = await attachToOrder(supabase, num, {
+            text: noteText,
+            chat: params.chatTitle,
+            sender: params.senderName,
+            due,
+            done,
         });
-
-        // A completion report must not tighten the deadline — «відправила
-        // 12.08» is history, not a new commitment.
-        if (due && !done) {
-            const currentMs = order.deadline ? new Date(order.deadline).getTime() : null;
-            if (!currentMs || due.getTime() < currentMs) {
-                await supabase.from('orders').update({ deadline: due.toISOString() }).eq('id', order.id);
-                await supabase.from('order_history').insert({
-                    order_id: order.id,
-                    action: 'deadline_tightened',
-                    notes: `Дедлайн підтягнуто до ${due.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Kyiv' })} за повідомленням у чаті «${params.chatTitle}».`,
-                    added_by: null,
-                });
-            }
-        }
-
-        captured.push(order.order_number);
+        if (ok) captured.push(num);
+        else pendingNew.push(num);
     }
 
-    return { captured, done };
+    // Orders not in the DB yet (the hourly KeyCRM mirror hasn't delivered
+    // them) wait in the queue; the 15-minute cron attaches them later.
+    if (pendingNew.length) {
+        const queue: PendingMention[] = (await readSetting(supabase, 'work_chat_pending_mentions')) || [];
+        const ts = new Date().toISOString();
+        for (const num of pendingNew) {
+            queue.push({
+                num,
+                text: noteText.slice(0, 300),
+                chat: params.chatTitle,
+                sender: params.senderName,
+                due: due ? due.toISOString() : null,
+                done,
+                ts,
+            });
+        }
+        await writeSetting(supabase, 'work_chat_pending_mentions', queue.slice(-100));
+    }
+
+    // Remember the chat's latest direct mention so a bare «зробила» right
+    // after has something to attach to.
+    const direct = extractOrderNumbers(params.text);
+    if (direct.length) {
+        const lastMap = (await readSetting(supabase, 'work_chat_last_mention')) || {};
+        lastMap[String(params.chatId)] = { num: direct[0], ts: new Date().toISOString() };
+        await writeSetting(supabase, 'work_chat_last_mention', lastMap);
+    }
+
+    return { captured, pending: pendingNew, done };
+}
+
+/**
+ * Drain the pending queue: attach mentions whose orders have since arrived
+ * (KeyCRM mirror runs hourly), keep the rest, drop entries older than 48h.
+ */
+export async function processPendingMentions(): Promise<{ attached: number; kept: number }> {
+    const supabase = getAdminClient();
+    const queue: PendingMention[] = (await readSetting(supabase, 'work_chat_pending_mentions')) || [];
+    if (!queue.length) return { attached: 0, kept: 0 };
+
+    const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+    const keep: PendingMention[] = [];
+    let attached = 0;
+
+    for (const p of queue) {
+        if (!p?.num || !p?.ts || new Date(p.ts).getTime() < cutoff) continue;
+        const ok = await attachToOrder(supabase, p.num, {
+            text: p.text,
+            chat: p.chat,
+            sender: p.sender,
+            due: p.due ? new Date(p.due) : null,
+            done: !!p.done,
+        });
+        if (ok) attached++;
+        else keep.push(p);
+    }
+
+    await writeSetting(supabase, 'work_chat_pending_mentions', keep);
+    return { attached, kept: keep.length };
 }
