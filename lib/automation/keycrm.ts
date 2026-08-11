@@ -633,6 +633,54 @@ export async function fetchKeycrmOffersByProduct(productId: string | number): Pr
 }
 
 /**
+ * Specific offers, asked for by id.
+ *
+ * Confirmed catalogue mappings store an offer id, but the bulk listing stops at
+ * its page budget — a mapping made months ago can point at an offer the walk no
+ * longer reaches (live case: the four markers, offers 21–24, reported as «не
+ * знайдено в каталозі» by both the SKU and the cost sync while existing
+ * perfectly well). This asks for exactly the missing ids, chunked, degrading
+ * across filter spellings like every other read here. Rows are defensively
+ * filtered to the requested ids in case an API version ignores the filter and
+ * returns the first page of everything.
+ */
+export async function fetchKeycrmOffersByIds(ids: Array<string | number>): Promise<KeycrmOffer[]> {
+    const wanted = [...new Set(ids.map(String).filter(Boolean))];
+    if (!wanted.length) return [];
+
+    const found: KeycrmOffer[] = [];
+
+    for (let i = 0; i < wanted.length; i += 50) {
+        if (i > 0) await sleep(PAGE_GAP_MS);
+        const chunk = wanted.slice(i, i + 50);
+        const list = encodeURIComponent(chunk.join(','));
+
+        for (const path of [
+            `/offers?filter[id]=${list}&limit=50&include=product,properties`,
+            `/offers?filter[id]=${list}&limit=50&include=product`,
+            `/offers?filter[ids]=${list}&limit=50&include=product`,
+        ]) {
+            try {
+                const payload = await keycrmRequest(path);
+                const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+                if (!rows.length) continue;
+
+                const asked = new Set(chunk);
+                const own = rows.map(parseOfferRow).filter(o => asked.has(o.offer_id));
+                if (own.length) {
+                    found.push(...own);
+                    break;
+                }
+            } catch {
+                // Try the next filter spelling.
+            }
+        }
+    }
+
+    return found;
+}
+
+/**
  * The account's tag dictionary, name → id, cached per invocation.
  *
  * Learned from a live 422 ("The selected tags.0 is invalid"): KeyCRM does not
