@@ -203,6 +203,24 @@ export async function sendViaPublicBot(params: {
 }
 
 /**
+ * Once-a-day greeting tracker: returns true exactly once per chat per Kyiv
+ * day (and records the fact), so the bot greets the first person who talks
+ * to it in the morning and doesn't repeat itself all day.
+ */
+export async function shouldGreetToday(chatId: number, kyivDateStr: string): Promise<boolean> {
+    const supabase = getAdminClient();
+    const { data } = await supabase.from('settings').select('value').eq('key', 'telegram_daily_greeted').maybeSingle();
+    const map: Record<string, string> = (data?.value && typeof data.value === 'object') ? data.value : {};
+    if (map[String(chatId)] === kyivDateStr) return false;
+    // Keep only today's entries — yesterday's greetings are dead weight.
+    const next: Record<string, string> = {};
+    for (const [id, d] of Object.entries(map)) if (d === kyivDateStr) next[id] = d;
+    next[String(chatId)] = kyivDateStr;
+    await supabase.from('settings').upsert({ key: 'telegram_daily_greeted', value: next, updated_at: new Date().toISOString() });
+    return true;
+}
+
+/**
  * Post a message to the team's alert destination: the chat claimed via
  * /alerts_here, else Diana's private chat with the bot. Silently no-ops when
  * neither exists yet — callers treat this as best-effort notification.
