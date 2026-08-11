@@ -231,6 +231,28 @@ export async function sendWorkChatAlert(text: string): Promise<{ success: boolea
     return sendViaPublicBot({ chat_id: chatId, text });
 }
 
+/**
+ * Silent acknowledgement: react to a message with an emoji instead of
+ * replying. Best-effort — a failed reaction must never affect the webhook.
+ */
+export async function reactToMessage(chatId: string | number, messageId: number, emoji = '✍'): Promise<void> {
+    const botToken = process.env.TELEGRAM_PUBLIC_BOT_TOKEN;
+    if (!botToken || !messageId) return;
+    try {
+        await fetch(`${TELEGRAM_API_URL}${botToken}/setMessageReaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                message_id: messageId,
+                reaction: [{ type: 'emoji', emoji }],
+            }),
+        });
+    } catch (e) {
+        console.error('[TG] setMessageReaction failed:', e);
+    }
+}
+
 /** Human-readable placeholder for non-text business messages, so monitoring history has no gaps. */
 export function describeNonTextMessage(msg: any): string {
     if (msg.photo) return '📷 [фото]';
