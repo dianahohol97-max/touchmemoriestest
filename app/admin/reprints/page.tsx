@@ -48,6 +48,7 @@ const STATUS_COLORS: Record<string, { fg: string; bg: string }> = {
 export default function ReprintsPage() {
     const [entries, setEntries] = useState<any[]>([]);
     const [chatTasks, setChatTasks] = useState<any[]>([]);
+    const [overdueOrders, setOverdueOrders] = useState<any[]>([]);
     const [faultOptions, setFaultOptions] = useState<string[]>([]);
     const [showAll, setShowAll] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -101,6 +102,7 @@ export default function ReprintsPage() {
             if (!res.ok) throw new Error(json?.error || 'Не вдалося завантажити чергу');
             setEntries(json.entries || []);
             setChatTasks(json.chat_tasks || []);
+            setOverdueOrders(json.overdue_orders || []);
             setFaultOptions(json.fault_options || []);
         } catch (e: any) {
             toast.error(e?.message || 'Не вдалося завантажити чергу');
@@ -307,6 +309,48 @@ export default function ReprintsPage() {
                                 </div>
                             );
                         })}
+                    </div>
+                </div>
+            )}
+
+            {!loading && overdueOrders.length > 0 && (
+                <div style={{ marginBottom: 22 }}>
+                    <h2 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 900, color: '#b91c1c' }}>
+                        ⏰ Прострочені замовлення на перевірку ({overdueOrders.length})
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {overdueOrders.map(o => (
+                            <div key={o.id} style={{
+                                background: '#fef2f2', border: '1px solid #fecaca',
+                                borderLeft: '3px solid #b91c1c', borderRadius: 10, padding: '10px 16px',
+                                display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                            }}>
+                                <a href={`/admin/orders/${o.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 800, color: '#263a99', textDecoration: 'none' }}>
+                                    {o.order_number} <ExternalLink size={12} />
+                                </a>
+                                <span style={{ fontSize: 13, color: '#64748b' }}>{o.customer_name || 'без імені'}</span>
+                                {o.crm_stage && (
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#334155', background: '#f1f5f9', borderRadius: 20, padding: '2px 8px' }}>
+                                        {o.crm_stage}
+                                    </span>
+                                )}
+                                <span style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 800, color: '#b91c1c' }}>
+                                    дедлайн {new Date(o.deadline).toLocaleDateString('uk-UA', { day: '2-digit', month: 'short' })} · прострочено {o.days_over} дн.
+                                </span>
+                                <button
+                                    onClick={() => remindChatTask(o.id)}
+                                    disabled={closingTask !== null}
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                                        fontSize: 12, fontWeight: 800, color: '#92400e',
+                                        background: '#fffbeb', border: '1px solid #fde68a',
+                                        borderRadius: 8, padding: '5px 10px', cursor: 'pointer',
+                                    }}
+                                >
+                                    🔔 Нагадати в чаті
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

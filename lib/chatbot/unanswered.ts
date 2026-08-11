@@ -101,21 +101,34 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     };
 
     // A short thanks or goodbye CLOSES a conversation — it is not a question
-    // waiting on us (Diana, 2026-08-11: «клієнтка написала дякую, і їй ніхто
-    // не відписав?» — the watchdog had flagged a bare «Дякую)»). Only short
-    // messages qualify: «дякую, а коли відправите?» carries a real question
-    // and must still alert. Emoji and punctuation are stripped before the
-    // check so «Дякую)» and «Дякую ❤️» read the same.
+    // waiting on us (Diana, 2026-08-11, twice: a bare «Дякую)», then «Дякую,
+    // навзаєм» and «Дякую і вам гарного дня ♥️» — an exact-phrase list keeps
+    // losing to the variety of politeness, so the check is a VOCABULARY: a
+    // short message with no «?» whose every word is a pleasantry counts as a
+    // closer. «Дякую, а коли відправите?» still alerts — it carries a
+    // question and non-pleasantry words.
+    const CLOSER_WORDS = new Set([
+        'дякую', 'дякуємо', 'дяки', 'спасибі', 'спс', 'вдячна', 'вдячний', 'вдячні',
+        'навзаєм', 'взаємно', 'гарного', 'чудового', 'доброго', 'приємного',
+        'дня', 'вечора', 'ночі', 'ранку', 'вихідних', 'тижня', 'свят',
+        'вам', 'тобі', 'і', 'та', 'й', 'а', 'все', 'зрозуміло', 'прийнято',
+        'добре', 'ок', 'окей', 'okay', 'ok', 'супер', 'чудово', 'клас', 'класно',
+        'дуже', 'велике', 'щиро', 'до', 'побачення', 'зустрічі', 'бувайте', 'бувай',
+        'всього', 'найкращого', 'успіхів', 'миру', 'здоровя', 'здоров',
+        'приємно', 'було', 'теж', 'також', 'ще', 'раз', 'сама', 'сам', 'вас', 'тебе',
+    ]);
     const isCloser = (text: string) => {
         const raw = String(text || '').trim();
-        if (raw.length > 40 || raw.includes('?')) return false;
-        const cleaned = raw
+        if (raw.length > 80 || raw.includes('?')) return false;
+        const words = raw
             .toLowerCase()
-            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        if (!cleaned) return true; // bare emoji / sticker reaction
-        return /^(дуже\s+)?(дякую|дякуємо|спасибі|вдячна|вдячний|ок|окей|добре|супер|чудово|клас|гарного дня|гарного вечора|до побачення|дякую вам|дякую дуже|все зрозуміло|зрозуміло|прийняла|прийняв)( вам| тобі| велике| щиро)?$/.test(cleaned);
+            .replace(/['’ʼ]/g, '')
+            .replace(/[^\p{L}\s]/gu, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!words.length) return true; // bare emoji / sticker reaction
+        if (words.length > 10) return false;
+        return words.every(w => CLOSER_WORDS.has(w));
     };
 
     const unanswered: WaitingDialog[] = [];

@@ -123,7 +123,7 @@ export default function ProductionCalendarPage() {
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                 {data.overdue.slice(0, 12).map((o: any) => (
-                                    <OrderCard key={o.id} order={o} overdue />
+                                    <OrderCard key={o.id} order={o} overdue onChanged={() => load(weekOffset)} />
                                 ))}
                             </div>
                         </div>
@@ -142,7 +142,7 @@ export default function ProductionCalendarPage() {
                             </div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                                 {data.ship_soon.slice(0, 12).map((o: any) => (
-                                    <OrderCard key={`soon-${o.id}`} order={o} overdue />
+                                    <OrderCard key={`soon-${o.id}`} order={o} overdue onChanged={() => load(weekOffset)} />
                                 ))}
                             </div>
                         </div>
@@ -199,7 +199,7 @@ export default function ProductionCalendarPage() {
                                         {orders.length === 0 && (
                                             <div style={{ fontSize: 12, color: '#cbd5e1', padding: '10px 2px' }}>Порожньо</div>
                                         )}
-                                        {orders.map((o: any) => <OrderCard key={o.id} order={o} />)}
+                                        {orders.map((o: any) => <OrderCard key={o.id} order={o} onChanged={() => load(weekOffset)} />)}
                                     </div>
                                 </div>
                             );
@@ -217,9 +217,28 @@ export default function ProductionCalendarPage() {
     );
 }
 
-function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
+function OrderCard({ order, overdue, onChanged }: { order: any; overdue?: boolean; onChanged?: () => void }) {
     const isUrgent = order.reason === 'urgent' || order.reason === 'requested-date';
     const fromInstagram = order.source === 'keycrm';
+
+    // Deadline editable right on the board (Diana, 2026-08-11). Saved through
+    // the PATCH allowlist, which also pins the date (deadline_locked) so the
+    // syncs never recompute over a hand-set value.
+    const saveDeadline = async (value: string) => {
+        if (!value) return;
+        try {
+            const resp = await fetch(`/api/admin/orders/${order.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deadline: `${value}T09:00:00Z`, updated_at: new Date().toISOString() }),
+            });
+            if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити дедлайн');
+            toast.success(`${order.order_number}: дедлайн → ${value}`);
+            onChanged?.();
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка збереження дедлайну');
+        }
+    };
 
     return (
         <a
@@ -288,6 +307,24 @@ function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
                     дедлайн ще не збережений, показано розрахунковий
                 </div>
             )}
+
+            {/* Inline deadline editor — inside a link card, so the click must
+                not navigate. */}
+            <div
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8' }}>дедлайн:</span>
+                <input
+                    type="date"
+                    defaultValue={order.deadline ? String(order.deadline).slice(0, 10) : ''}
+                    onChange={(e) => saveDeadline(e.target.value)}
+                    style={{
+                        border: '1px solid #e2e8f0', borderRadius: 6, background: 'white',
+                        fontSize: 11, fontWeight: 700, color: '#0f172a', padding: '1px 4px', outline: 'none',
+                    }}
+                />
+            </div>
         </a>
     );
 }

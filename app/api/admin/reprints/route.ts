@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { REPRINT_STATUSES, OPEN_STATUSES, FAULT_OPTIONS, type ReprintStatus } from '@/lib/automation/reprints';
 import { getAlertChatId, getWorkChatIds, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,7 +106,34 @@ export async function GET(request: Request) {
         .filter(t => all || !t.done)
         .sort((a, b) => String(b.updated_at).localeCompare(String(a.updated_at)));
 
-    return NextResponse.json({ entries: data || [], fault_options: FAULT_OPTIONS, chat_tasks: chatTasks });
+    // Overdue production orders join the важливо tab for review (Diana,
+    // 2026-08-11): the same population as the calendar's red rail — active
+    // work whose production deadline is already behind today, minus test
+    // orders and orders whose CRM stage says the work is in fact over.
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const { data: overdueRows } = await supabase
+        .from('orders')
+        .select('id, order_number, customer_name, deadline, order_status, source, custom_attributes')
+        .in('order_status', ['new', 'confirmed', 'in_production', 'quality_check'])
+        .lt('deadline', startOfToday.toISOString())
+        .order('deadline', { ascending: true })
+        .limit(30);
+
+    const CLOSED_STAGE = /completed|виконан|доставлен|отриман|delivered|cancel|скасов|анульов|refund|повернен|transit|дороз|відправ|to_delivery|shipped/;
+    const overdueOrders = (overdueRows || [])
+        .filter(o => !isTestOrder(o as any))
+        .filter(o => !CLOSED_STAGE.test(String((o.custom_attributes as any)?.keycrm?.status_label || '').toLowerCase()))
+        .map(o => ({
+            id: o.id,
+            order_number: o.order_number,
+            customer_name: o.customer_name,
+            deadline: o.deadline,
+            crm_stage: (o.custom_attributes as any)?.keycrm?.status_label || null,
+            days_over: Math.max(1, Math.floor((startOfToday.getTime() - new Date(o.deadline).getTime()) / (24 * 60 * 60 * 1000))),
+        }));
+
+    return NextResponse.json({ entries: data || [], fault_options: FAULT_OPTIONS, chat_tasks: chatTasks, overdue_orders: overdueOrders });
 }
 
 export async function POST(request: Request) {
