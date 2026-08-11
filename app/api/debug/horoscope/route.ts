@@ -24,18 +24,8 @@ export async function GET(req: Request) {
     // not — one ignores the day parameter, the other has today only — and the
     // evening post is supposed to be about the next day.
     const urls = [
-        'https://any.ge/horoscope/api/get.php?sign=gemini&type=tomorrow&lang=en',
-        'https://any.ge/horoscope/api/get.php?sign=gemini&type=tomorrow&lang=ru',
         'https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-tomorrow.aspx?sign=3',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=TOMORROW',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=gemini&day=TOMORROW',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=TOMORROW',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=tomorrow',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign=Gemini&day=TODAY',
-        'https://horoscope-app-api.vercel.app/api/v1/get-horoscope/weekly?sign=Gemini',
         'https://ohmanda.com/api/horoscope/gemini/',
-        'https://aztro.sameerkumar.website/?sign=gemini&day=tomorrow',
-        'https://horoscope-api.vercel.app/today/gemini',
     ];
 
     const out: Record<string, any> = {};
@@ -43,18 +33,30 @@ export async function GET(req: Request) {
         try {
             const res = await fetch(url, {
                 signal: AbortSignal.timeout(8000),
-                headers: { accept: 'application/json' },
-                method: url.includes('aztro') ? 'POST' : 'GET',
+                headers: {
+                    accept: 'application/json, text/html;q=0.9',
+                    'user-agent': 'Mozilla/5.0 (compatible; touchmemories-bot/1.0)',
+                },
             });
             const body = await res.text();
             // HTML pages carry the forecast far below the head, so scraped
             // sources are reported as the text around the marker instead of
             // the first bytes of markup.
-            const marker = body.indexOf('horoscope-content');
-            out[url] = {
-                status: res.status,
-                body: marker > 0 ? body.slice(marker, marker + 700) : body.slice(0, 500),
-            };
+            if (url.includes('horoscope.com')) {
+                // Where the forecast actually sits: report the markers present
+                // and the markup around the first date-stamped paragraph, which
+                // is the shape the parser has to match.
+                const stamp = body.search(/<p>\s*<strong>/i);
+                out[url] = {
+                    status: res.status,
+                    markers: ['main-horoscope', 'module-skin', 'horoscope-content', 'switch-horoscope']
+                        .map(m => `${m}:${body.indexOf(m)}`),
+                    around_paragraph: stamp > 0 ? body.slice(stamp - 200, stamp + 700) : null,
+                    head: body.slice(0, 200),
+                };
+            } else {
+                out[url] = { status: res.status, body: body.slice(0, 400) };
+            }
         } catch (e: any) {
             out[url] = { error: `${e?.name || 'error'}: ${String(e?.message || e).slice(0, 160)}` };
         }
