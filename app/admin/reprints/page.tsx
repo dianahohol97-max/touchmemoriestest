@@ -46,6 +46,7 @@ const STATUS_COLORS: Record<string, { fg: string; bg: string }> = {
 
 export default function ReprintsPage() {
     const [entries, setEntries] = useState<any[]>([]);
+    const [chatTasks, setChatTasks] = useState<any[]>([]);
     const [faultOptions, setFaultOptions] = useState<string[]>([]);
     const [showAll, setShowAll] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function ReprintsPage() {
             const json = await res.json();
             if (!res.ok) throw new Error(json?.error || 'Не вдалося завантажити чергу');
             setEntries(json.entries || []);
+            setChatTasks(json.chat_tasks || []);
             setFaultOptions(json.fault_options || []);
         } catch (e: any) {
             toast.error(e?.message || 'Не вдалося завантажити чергу');
@@ -123,9 +125,9 @@ export default function ReprintsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <Recycle size={24} style={{ color: '#263a99' }} />
                     <div>
-                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#0f172a' }}>Черга браків і передруків</h1>
+                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#0f172a' }}>Важливо</h1>
                         <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-                            {openCount} у роботі. Записи зʼявляються самі за тегом «брак» чи «передрук», або додаються вручну.
+                            {openCount} у роботі. Браки зʼявляються за тегом «брак» чи «передрук» або вручну; доручення підтягує Софія з робочих чатів.
                         </div>
                     </div>
                 </div>
@@ -146,10 +148,58 @@ export default function ReprintsPage() {
                 </div>
             )}
 
-            {!loading && entries.length === 0 && (
+            {!loading && chatTasks.length > 0 && (
+                <div style={{ marginBottom: 22 }}>
+                    <h2 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 900, color: '#0f172a' }}>
+                        💬 Доручення з чатів ({chatTasks.filter(t => !t.done).length})
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {chatTasks.map(task => (
+                            <div key={task.id} style={{
+                                background: 'white', border: '1px solid #e2e8f0',
+                                borderLeft: `3px solid ${task.done ? '#15803d' : '#7c3aed'}`,
+                                borderRadius: 10, padding: '11px 16px',
+                                opacity: task.done ? 0.65 : 1,
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 800, borderRadius: 20, padding: '3px 10px', color: task.done ? '#15803d' : '#7c3aed', background: task.done ? '#f0fdf4' : '#f5f3ff' }}>
+                                        {task.done ? 'Виконано' : 'В роботі'}
+                                    </span>
+                                    {task.order_id ? (
+                                        <a href={`/admin/orders/${task.order_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 800, color: '#263a99', textDecoration: 'none' }}>
+                                            {task.order_number} <ExternalLink size={12} />
+                                        </a>
+                                    ) : null}
+                                    {task.customer_name && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#64748b' }}>
+                                            <UserRound size={13} /> {task.customer_name}
+                                        </span>
+                                    )}
+                                    <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
+                                        {task.chat ? `${task.chat} · ` : ''}{new Date(task.created_at).toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                                {task.text && (
+                                    <div style={{ fontSize: 13.5, color: '#475569', marginTop: 6, lineHeight: 1.5, textDecoration: task.done ? 'line-through' : 'none' }}>
+                                        {task.text}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {!loading && entries.length === 0 && chatTasks.length === 0 && (
                 <div style={{ padding: '48px 20px', textAlign: 'center', color: '#94a3b8', background: 'white', border: '1px dashed #e2e8f0', borderRadius: 12 }}>
                     Черга порожня. Це найкращий стан, у якому вона може бути.
                 </div>
+            )}
+
+            {!loading && entries.length > 0 && chatTasks.length > 0 && (
+                <h2 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 900, color: '#0f172a' }}>
+                    ♻️ Браки і передруки ({openCount})
+                </h2>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

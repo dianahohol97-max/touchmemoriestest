@@ -84,7 +84,7 @@ const menuItems = [
     { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog', group: 'catalog' },
     { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production', group: 'catalog' },
     { name: 'Календар виробництва', href: '/admin/production-calendar', icon: <CalendarDays size={20} />, section: 'production', group: 'catalog' },
-    { name: 'Черга браків', href: '/admin/reprints', icon: <Recycle size={20} />, section: 'production', group: 'catalog' },
+    { name: 'Важливо', href: '/admin/reprints', icon: <Recycle size={20} />, section: 'production', group: 'catalog' },
     { name: 'Звірка з KeyCRM', href: '/admin/keycrm-catalogue', icon: <Handshake size={20} />, section: 'catalog', group: 'catalog' },
 
     // Клієнти та партнери — люди, а не товари
