@@ -833,6 +833,17 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
             .eq('confirmed', false);
     }
 
+    // The warnings are the ONLY record of why a pasted number resolved to
+    // nothing, and runtime logs rot in minutes — persist them where a human
+    // (or the assistant) can read them after the fact.
+    if (allWarnings.length) {
+        await supabase.from('settings').upsert({
+            key: 'keycrm_link_warnings',
+            value: { at: new Date().toISOString(), warnings: allWarnings.slice(0, 50) },
+            updated_at: new Date().toISOString(),
+        });
+    }
+
     return { resolved: allRows.length, warnings: allWarnings };
 }
 
