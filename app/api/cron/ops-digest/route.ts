@@ -4,6 +4,7 @@ import { sendEmail } from '@/lib/email/resend';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { fetchRecentKeycrmOrders, phoneKey, type KeycrmOrder } from '@/lib/automation/keycrm';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -525,7 +526,9 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
-        const orders = (data || []) as OrderRow[];
+        // Test orders («Киця Кицюня») would sit in the action buckets forever —
+        // nobody is ever going to "resolve" a checkout smoke test.
+        const orders = ((data || []) as OrderRow[]).filter(o => !isTestOrder(o));
         const backfilled = await backfillDeadlines(supabase, orders, now);
 
         // Which of these orders have any file attached at all. One query for the

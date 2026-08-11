@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +90,8 @@ export async function GET(request: Request) {
     const cutoff = cutoffRaw ? new Date(cutoffRaw).getTime() : NaN;
 
     const visible = (data || []).filter(o => {
+        // Test orders («Киця Кицюня») are not production work.
+        if (isTestOrder(o)) return false;
         if (o.source === 'keycrm') return true;
         if (!Number.isFinite(cutoff)) return true;
         return new Date(o.created_at).getTime() >= cutoff;

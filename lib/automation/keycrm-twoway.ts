@@ -55,6 +55,7 @@ import { readOrderMoney, money, paymentMethodIdFor } from '@/lib/automation/keyc
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { autoTagsForOrder, mergeTags, sameTags } from '@/lib/automation/order-tags';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 function fulfilmentFromLabel(label: string): string | undefined {
     const l = (label || '').toLowerCase();
@@ -433,7 +434,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
+        .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })
@@ -447,6 +448,10 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
         // outright — reconciling them would file the site's guesses about money
         // the site never took.
         .filter(o => o.source !== MIRROR_SOURCE)
+        // Test orders («Киця Кицюня») got a CRM id before the never-transfer
+        // rule existed; their CRM cards are deleted by hand, and reconciling
+        // them would just poll a deleted card forever.
+        .filter(o => !isTestOrder(o))
         // Delivered orders are usually finished business and are dropped rather
         // than polled forever — unless money is still outstanding on them. A
         // cash-on-delivery balance is settled at the moment of delivery, so

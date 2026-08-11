@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchKeycrmOffers } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
 import { isReadyForCrm } from '@/lib/automation/keycrm-money';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 /**
  * Stock: one balance, kept by the site, moved by every real order.
@@ -276,7 +277,7 @@ export async function findOrdersNeedingStock(params: { windowDays: number; limit
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, items, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, created_at')
+        .select('id, order_number, source, customer_name, items, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, created_at')
         .gte('created_at', since)
         .not('order_status', 'in', '("cancelled","refunded")')
         .order('created_at', { ascending: false })
@@ -287,7 +288,8 @@ export async function findOrdersNeedingStock(params: { windowDays: number; limit
     const candidates = (data || []).filter(o =>
         // A mirrored order exists because a manager entered it in the CRM, which
         // is confirmation enough; a site order has to have become real first.
-        o.source === 'keycrm' || isReadyForCrm(o)
+        // Test orders («Киця Кицюня») consume nothing from the shelf.
+        !isTestOrder(o) && (o.source === 'keycrm' || isReadyForCrm(o))
     );
 
     if (!candidates.length) return [];

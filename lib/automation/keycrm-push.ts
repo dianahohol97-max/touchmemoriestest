@@ -4,6 +4,7 @@ import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-cata
 import { readOrderMoney, describeMoney, isReadyForCrm, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -367,6 +368,18 @@ export async function pushOrderToKeycrm(
 
     const base: PushResult = { ok: false, status: 'error', orderId, orderNumber: order.order_number };
 
+    // Test orders never leave the site (Diana, 2026-08-11: «Замовлення киця
+    // кицюня не переноси ніколи»). Checked here, not only in the sweep, so the
+    // manual push button in the admin panel cannot send one either.
+    if (isTestOrder(order)) {
+        return {
+            ...base,
+            ok: true,
+            status: 'skipped',
+            reason: 'Тестове замовлення (Киця Кицюня) — такі ніколи не переносяться в KeyCRM.',
+        };
+    }
+
     if (!getKeycrmToken()) {
         return { ...base, status: 'skipped', reason: 'KEYCRM_API_TOKEN не заданий.' };
     }
@@ -474,7 +487,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
+        .select('id, order_number, source, customer_name, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
         // Dated on creation, not on payment: a cash-on-delivery order may never
         // get a paid_at at all, and filtering on it would hide those orders from
         // the sweep entirely.
@@ -490,6 +503,9 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // A mirrored order is a read-only copy of an order that already lives in
         // the CRM. Pushing it would create a second card for the same sale.
         .filter(o => o.source !== MIRROR_SOURCE)
+        // Test personas («Киця Кицюня») place orders only to check that the
+        // site works. They are never real sales and never go to the CRM.
+        .filter(o => !isTestOrder(o))
         .filter(isReadyForCrm)
         .slice(0, params.limit);
 }
