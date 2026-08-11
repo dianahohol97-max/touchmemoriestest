@@ -124,6 +124,14 @@ export async function GET(request: Request) {
             if (result.status === 'skipped' && !dryRun && stats.created === 0) break;
         }
 
+        // The response body is the full report, but nobody reads a cron's
+        // response — Vercel only keeps what lands in the logs. TM-001175 sat
+        // unpushed for a whole night while every run answered 200: the skip
+        // reason was in the JSON and nowhere else. Stats and per-order reasons
+        // now always land in the log.
+        console.log('[keycrm-sync] stats', JSON.stringify(stats));
+        if (details.length) console.log('[keycrm-sync] details', JSON.stringify(details.slice(0, 10)));
+
         // Second pass: orders already living in both systems. Money travels to
         // the CRM, fulfilment travels back to the site — see keycrm-twoway for
         // why the split is what stops the two sides overwriting each other.
