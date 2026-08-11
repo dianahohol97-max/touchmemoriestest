@@ -119,12 +119,30 @@ const ORDER_COMMENT_LIMIT = 450;
  * only part that stops an order from going to print. Otherwise the first line.
  * The full brief stays on the site card, one click away, where it belongs.
  */
+/**
+ * The site's automatic warnings are written for the admin panel, where there
+ * is room for a full instruction. In the CRM's list column that same sentence
+ * is a wall (Diana, 2026-08-11, seeing it a third time: «і знов супервеликий
+ * коментар»), and it always ends mid-word against the length cap. Each known
+ * warning is replaced by the short version of itself — the CRM card says WHAT
+ * is wrong; what to do about it lives on the site card.
+ */
+const WARNING_SHORTHAND: Array<[RegExp, string]> = [
+    [/файли для друку не завантажились|макет з конструктора відсутній/i, '⚠️ Немає макета з конструктора'],
+    [/без виконавця|призначте дизайнера/i, '⚠️ Дизайнер не призначений'],
+    [/без звірки з номенклатурою/i, '⚠️ Товар не звірено з каталогом'],
+];
+
 function summariseNotes(raw: any): string {
     const text = String(raw || '').replace(/\r/g, '').trim();
     if (!text) return '';
 
     const warning = text.split('\n').find(line => line.includes('⚠️'));
-    if (warning) return truncate(warning.replace(/\s+/g, ' ').trim(), 160);
+    if (warning) {
+        const short = WARNING_SHORTHAND.find(([re]) => re.test(warning));
+        if (short) return short[1];
+        return truncate(warning.replace(/\s+/g, ' ').trim(), 120);
+    }
 
     const first = text.split('\n').map(l => l.trim()).filter(Boolean)[0] || '';
     return first ? `Нотатки: ${truncate(first, 120)}` : '';
