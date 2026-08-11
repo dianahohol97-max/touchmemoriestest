@@ -4,6 +4,8 @@ import { pushOrderToKeycrm, findUnsyncedOrders } from '@/lib/automation/keycrm-p
 import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-twoway';
 import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
 import { enqueueDefectsFromTags } from '@/lib/automation/reprints';
+import { resolvePendingProductLinks, syncSkusToKeycrm, syncCostPrices } from '@/lib/automation/keycrm-catalogue';
+import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -154,6 +156,48 @@ export async function GET(request: Request) {
             }
         }
 
+        // Catalogue upkeep, only when there is actually something to do — the
+        // guards are one cheap DB count each, so an idle run costs no CRM
+        // requests at all.
+        //
+        // 1. Pending manual links: a KeyCRM number pasted where the CRM API was
+        //    not reachable (chat) or not yet resolvable (old admin saves) sits
+        //    unconfirmed until this resolves it against the live catalogue —
+        //    fanning a product id out across all its sizes.
+        // 2. SKUs: confirmed pairs whose CRM offer has no article number get
+        //    the site slug written in, because the order API links lines to the
+        //    catalogue by SKU alone.
+        // 3. Costs: freshly confirmed pairs pull their закупівельна вартість
+        //    onto the site right away instead of waiting for the nightly run.
+        let catalogue: any = null;
+        try {
+            const supabase = getAdminClient();
+            const { count: pendingLinks } = await supabase
+                .from('keycrm_product_map')
+                .select('id', { count: 'exact', head: true })
+                .eq('confirmed', false)
+                .eq('match_type', 'manual')
+                .not('keycrm_offer_id', 'is', null);
+
+            if ((pendingLinks || 0) > 0) {
+                const links = await resolvePendingProductLinks();
+                catalogue = { links };
+                if (links.resolved > 0 && !dryRun) {
+                    const skus = await syncSkusToKeycrm({ dryRun: false });
+                    const costs = await syncCostPrices({ dryRun: false });
+                    catalogue = {
+                        links,
+                        skus: { filled: skus.filled.length, adopted: skus.adopted.length, problems: skus.problems },
+                        costs: { updated: costs.updated_products.length, conflicts: costs.conflicts.length },
+                    };
+                }
+                console.log('[keycrm-sync] catalogue', JSON.stringify(catalogue));
+            }
+        } catch (e: any) {
+            console.error('[keycrm-sync] catalogue upkeep failed:', e);
+            stats.errors++;
+        }
+
         // Fourth pass: open reprint-queue entries for freshly tagged defects.
         // Runs after the reconcile pass on purpose — that is what merges tags
         // down from the CRM, so a "брак" set there minutes ago is already on
@@ -167,7 +211,7 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

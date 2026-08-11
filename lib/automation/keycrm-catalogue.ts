@@ -524,6 +524,146 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     };
 }
 
+/**
+ * Resolve one pasted KeyCRM number against the live catalogue.
+ *
+ * The number may be an OFFER id (a variant) or, when pasted from a catalogue
+ * URL like …/app/catalog/83/edit, the PARENT product's id. A product id fans
+ * out: every size of the site product is linked to the CRM variant carrying the
+ * same canonical size. Shared by the admin screen's save and by the cron that
+ * resolves links pasted into chat while the CRM was unreachable from there.
+ */
+export function linkPastedId(params: {
+    pasted: string;
+    siteSlug: string;
+    note: string | null;
+    offers: KeycrmOffer[];
+    siteProducts: SiteProduct[];
+}): { rows: any[]; warnings: string[] } {
+    const { pasted, siteSlug, note, offers, siteProducts } = params;
+    const warnings: string[] = [];
+
+    const direct = offers.find(o => String(o.offer_id) === pasted);
+    const family = direct ? [direct] : offers.filter(o => o.product_id && o.product_id === pasted);
+
+    if (!family.length) {
+        warnings.push(`${siteSlug}: номер ${pasted} не знайдено серед позицій KeyCRM — перевір, що посилання веде на товар, а не на замовлення.`);
+        return { rows: [], warnings };
+    }
+
+    const variants = siteProducts.filter(p => p.slug === siteSlug);
+    if (!variants.length) {
+        warnings.push(`${siteSlug}: товар не знайдено на сайті.`);
+        return { rows: [], warnings };
+    }
+
+    const familyBySize = new Map(family.map(o => [sizeKey(o.variant_label || o.name), o]));
+    const rows: any[] = [];
+    const unmatched: string[] = [];
+
+    for (const variant of variants) {
+        const match = familyBySize.get(variant.variant || sizeKey(variant.name))
+            ?? (family.length === 1 && variants.length === 1 ? family[0] : undefined);
+        if (!match) {
+            unmatched.push(variant.variantLabel || variant.variant || variant.name);
+            continue;
+        }
+        rows.push({
+            site_slug: variant.slug,
+            site_variant: variant.variant,
+            site_variant_label: variant.variantLabel,
+            site_product_name: variant.name,
+            keycrm_offer_id: match.offer_id,
+            keycrm_sku: match.sku || null,
+            keycrm_name: match.name,
+            match_type: 'manual',
+            match_score: null,
+            note,
+            confirmed: true,
+        });
+    }
+
+    if (unmatched.length) {
+        warnings.push(`${siteSlug}: у KeyCRM не знайшлося варіанта для розмірів: ${unmatched.join(', ')} — ці розміри лишилися незвʼязаними.`);
+    }
+
+    return { rows, warnings };
+}
+
+/**
+ * Finish manual links that could not be validated at save time.
+ *
+ * Two ways such rows appear: a number pasted on the admin screen before the
+ * product-id support existed (the «KeyCRM #190» rows), and a link Diana sends
+ * in chat — the assistant's environment cannot reach the KeyCRM API, so it
+ * seeds an unconfirmed row and THIS code, running on the server where the API
+ * is reachable, resolves it on the next sync pass. Cheap when idle: the caller
+ * checks for pending rows before fetching the catalogue.
+ */
+export async function resolvePendingProductLinks(): Promise<{ resolved: number; warnings: string[] }> {
+    const supabase = getAdminClient();
+
+    const { data: pending, error } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, site_variant, note, keycrm_offer_id')
+        .eq('confirmed', false)
+        .eq('match_type', 'manual')
+        .not('keycrm_offer_id', 'is', null);
+
+    if (error) throw error;
+    if (!pending?.length) return { resolved: 0, warnings: [] };
+
+    const offers = await fetchKeycrmOffers();
+    const siteProducts = await fetchSiteProducts();
+
+    // One pasted number per product is enough — several size rows of one
+    // product may carry the same pending number, and the fan-out covers them
+    // all at once.
+    const seen = new Set<string>();
+    const allRows: any[] = [];
+    const allWarnings: string[] = [];
+
+    for (const row of pending) {
+        const key = `${row.site_slug}::${row.keycrm_offer_id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const { rows, warnings } = linkPastedId({
+            pasted: String(row.keycrm_offer_id),
+            siteSlug: row.site_slug,
+            note: row.note ?? null,
+            offers,
+            siteProducts,
+        });
+        allRows.push(...rows);
+        allWarnings.push(...warnings);
+    }
+
+    if (allRows.length) {
+        // Deduplicate by (slug, variant) — the same size can only be written
+        // once per upsert.
+        const byKey = new Map(allRows.map(r => [`${r.site_slug}::${r.site_variant || ''}`, r]));
+        await saveMappings([...byKey.values()]);
+    }
+
+    // Retire every processed pending row the resolution did not overwrite —
+    // e.g. the sizeless seed row of a per-size product, or a number that
+    // resolved to nothing. Leaving the number in place would re-fetch the whole
+    // CRM catalogue every half hour forever.
+    const written = new Set(allRows.map(r => `${r.site_slug}::${r.site_variant || ''}`));
+    for (const row of pending) {
+        if (written.has(`${row.site_slug}::${row.site_variant || ''}`)) continue;
+        await supabase
+            .from('keycrm_product_map')
+            .update({ keycrm_offer_id: null, updated_at: new Date().toISOString() })
+            .eq('site_slug', row.site_slug)
+            .eq('site_variant', row.site_variant || '')
+            .eq('confirmed', false);
+    }
+
+    return { resolved: allRows.length, warnings: allWarnings };
+}
+
 export type SkuSyncReport = {
     dry_run: boolean;
     offers_read: number;

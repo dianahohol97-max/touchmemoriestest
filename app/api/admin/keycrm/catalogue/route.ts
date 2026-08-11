@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
-import { reconcileCatalogues, saveMappings, fetchSiteProducts, sizeKey } from '@/lib/automation/keycrm-catalogue';
+import { reconcileCatalogues, saveMappings, fetchSiteProducts, linkPastedId } from '@/lib/automation/keycrm-catalogue';
 import { fetchKeycrmOffers } from '@/lib/automation/keycrm';
 
 export const dynamic = 'force-dynamic';
@@ -70,67 +70,30 @@ export async function POST(request: Request) {
     if (manualRows.length) {
         try {
             const offers = await fetchKeycrmOffers();
-            const byId = new Map(offers.map(o => [String(o.offer_id), o]));
+            const siteProducts = await fetchSiteProducts();
 
             for (const row of manualRows) {
-                const pasted = String(row.keycrm_offer_id);
-                const offer = byId.get(pasted);
-                if (offer) {
-                    row.keycrm_name = offer.name || row.keycrm_name;
-                    row.keycrm_sku = offer.sku || null;
-                    continue;
-                }
+                // A pasted number may be a variant (offer) id or, from a
+                // catalogue URL like …/app/catalog/83/edit, the PARENT
+                // product's id — in which case every size of the site product
+                // links to its CRM counterpart at once (Diana, 2026-08-12:
+                // «всі розміри друку на полотні… щоб синхронізувалось вірно»).
+                const { rows: linked, warnings: linkWarnings } = linkPastedId({
+                    pasted: String(row.keycrm_offer_id),
+                    siteSlug: row.site_slug,
+                    note: row.note ?? null,
+                    offers,
+                    siteProducts,
+                });
 
-                // Not an offer id — a catalogue URL (…/app/catalog/83/edit)
-                // carries the PARENT product's id, and for a per-size product
-                // that is the natural thing to paste. Resolve it to the
-                // product's variants and link EVERY site size to its CRM
-                // counterpart by the size itself (Diana, 2026-08-12: «всі
-                // розміри друку на полотні… щоб синхронізувалось вірно»).
-                const family = offers.filter(o => o.product_id && o.product_id === pasted);
-                if (!family.length) {
-                    row.confirmed = false;
-                    warnings.push(`${row.site_product_name || row.site_slug}: номер ${pasted} не знайдено серед позицій KeyCRM. Пояснення збережено, звʼязку немає — перевір, що посилання веде на товар, а не на замовлення.`);
-                    continue;
-                }
+                warnings.push(...linkWarnings);
+                extraRows.push(...linked);
 
-                const siteVariants = (await fetchSiteProducts()).filter(p => p.slug === row.site_slug);
-                const familyBySize = new Map(family.map(o => [sizeKey(o.variant_label || o.name), o]));
-
-                const unmatchedSizes: string[] = [];
-                for (const variant of siteVariants) {
-                    // Size-to-size normally; when both sides have exactly one
-                    // entry there is nothing to disambiguate, so a sizeless
-                    // product pasted against a single-variant CRM item links
-                    // directly.
-                    const match = familyBySize.get(variant.variant || sizeKey(variant.name))
-                        ?? (family.length === 1 && siteVariants.length === 1 ? family[0] : undefined);
-                    if (!match) {
-                        unmatchedSizes.push(variant.variantLabel || variant.variant || variant.name);
-                        continue;
-                    }
-                    extraRows.push({
-                        site_slug: variant.slug,
-                        site_variant: variant.variant,
-                        site_variant_label: variant.variantLabel,
-                        site_product_name: variant.name,
-                        keycrm_offer_id: match.offer_id,
-                        keycrm_sku: match.sku || null,
-                        keycrm_name: match.name,
-                        match_type: 'manual',
-                        match_score: null,
-                        note: row.note ?? null,
-                        confirmed: true,
-                    });
-                }
-
-                // The pasted row itself is superseded by the per-size rows.
+                // The pasted row itself is superseded by the resolved rows; a
+                // number that resolved to nothing keeps its explanation but no
+                // link.
                 row.confirmed = false;
-                row.keycrm_offer_id = null;
-
-                if (unmatchedSizes.length) {
-                    warnings.push(`${row.site_product_name || row.site_slug}: у KeyCRM не знайшлося варіанта для розмірів: ${unmatchedSizes.join(', ')} — ці розміри лишилися незвʼязаними.`);
-                }
+                if (!linked.length) row.keycrm_offer_id = null;
             }
         } catch (e: any) {
             return NextResponse.json({ error: `Не вдалося перевірити номер у KeyCRM: ${e?.message || 'запит не вдався'}` }, { status: 502 });
