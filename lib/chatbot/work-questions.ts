@@ -219,6 +219,14 @@ export async function handleWorkQuestion(params: {
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
     if (matchDigestQuestion(text)) return buildYesterdayDigest();
 
+    // «Скільки в нас залишилось маркерів на складі?» — stock by product name
+    // (Diana, 2026-08-11: «чи можна щоб софія і залишки теж тягнула»).
+    if (/(залиш|на склад|склад[іу]|наявн)/i.test(text)
+        && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+        const stockReply = await buildStockAnswer(text);
+        if (stockReply) return stockReply;
+    }
+
     // «Які не виконані замовлення у відповідального Оксана Мацьопа?» — the
     // per-manager queue (Diana, 2026-08-11). Checked before the order-number
     // path cannot interfere: such questions carry a name, not a number.
@@ -337,6 +345,64 @@ async function buildShipToday(horizonDays = 0): Promise<string> {
     }
     if (real.length > MAX_LISTED) lines.push('…решту дивись в адмінці.');
     lines.push('', `${SITE_URL}/admin/production-calendar`);
+    return lines.join('\n');
+}
+
+// Words of a stock question that are not the product's name.
+const STOCK_STOP_WORDS = new Set([
+    'софія', 'софіє', 'софійка', 'скільки', 'залишилось', 'залишилося',
+    'залишків', 'лишилось', 'лишилося', 'склад', 'складі', 'складу',
+    'наявності', 'наявність', 'зараз', 'будь', 'ласка', 'підкажи', 'маємо',
+]);
+
+/**
+ * Stock by product name (Diana, 2026-08-11: «софія скільки в нас залишилось
+ * маркерів на складі»). The words that are not question furniture are matched
+ * against product names by stem — «маркерів» finds every «Маркер …» — and the
+ * answer shows the site balance, plus the CRM warehouse figure where the
+ * catalogue link carries one. Null when no product matches, so the router can
+ * fall through instead of guessing.
+ */
+async function buildStockAnswer(question: string): Promise<string | null> {
+    const stems = String(question)
+        .toLowerCase()
+        .replace(/@\S+/g, ' ')
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(w => w.length >= 4 && !STOCK_STOP_WORDS.has(w))
+        .map(w => (w.length > 5 ? w.slice(0, w.length - 2) : w));
+    if (!stems.length) return null;
+
+    const supabase = getAdminClient();
+    const { data: products } = await supabase
+        .from('products')
+        .select('slug, name, stock, is_active')
+        .order('name')
+        .limit(1000);
+
+    const matched = (products || []).filter((p: any) =>
+        p.is_active !== false && stems.some(s => String(p.name || '').toLowerCase().includes(s)));
+    if (!matched.length || matched.length > 25) return null;
+
+    const { data: crmRows } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, keycrm_stock')
+        .in('site_slug', matched.map((p: any) => p.slug))
+        .eq('confirmed', true)
+        .not('keycrm_stock', 'is', null);
+    const crmBySlug = new Map<string, number>();
+    for (const r of crmRows || []) {
+        crmBySlug.set(r.site_slug, (crmBySlug.get(r.site_slug) || 0) + Number(r.keycrm_stock));
+    }
+
+    const lines = [`📦 Залишки (${matched.length}):`, ''];
+    for (const p of matched.slice(0, 15)) {
+        const crm = crmBySlug.get(p.slug);
+        const site = Number(p.stock);
+        const siteLabel = site >= 999 ? 'без ліку' : `${site} шт`;
+        const crmLabel = crm !== undefined && crm !== site ? ` (склад CRM: ${crm})` : '';
+        lines.push(`• ${p.name} — ${siteLabel}${crmLabel}`);
+    }
+    if (matched.length > 15) lines.push(`…і ще ${matched.length - 15}.`);
     return lines.join('\n');
 }
 
