@@ -207,6 +207,14 @@ export async function handleWorkQuestion(params: {
     const text = String(params.text || '').trim();
     if (!text || text.startsWith('/')) return null;
 
+    // A reply to Софія's own stock clarification («Який саме цікавить?») is an
+    // answer, not a question — «білих» alone must produce the number, so this
+    // runs BEFORE the question-marker gate.
+    if (params.replyText && params.replyText.includes('Який саме цікавить?')) {
+        const clarified = await answerStockClarification(params.replyText, text);
+        if (clarified) return clarified;
+    }
+
     // Addressing the bot by name counts as talking to it, question mark or
     // not — «Софія, що по відправках» must not die on the marker check.
     const addressed = isAddressedToBot(text);
@@ -355,38 +363,30 @@ const STOCK_STOP_WORDS = new Set([
     'наявності', 'наявність', 'зараз', 'будь', 'ласка', 'підкажи', 'маємо',
 ]);
 
-/**
- * Stock by product name (Diana, 2026-08-11: «софія скільки в нас залишилось
- * маркерів на складі»). The words that are not question furniture are matched
- * against product names by stem — «маркерів» finds every «Маркер …» — and the
- * answer shows the site balance, plus the CRM warehouse figure where the
- * catalogue link carries one. Null when no product matches, so the router can
- * fall through instead of guessing.
- */
-async function buildStockAnswer(question: string): Promise<string | null> {
-    const stems = String(question)
-        .toLowerCase()
-        .replace(/@\S+/g, ' ')
-        .split(/[^\p{L}\p{N}]+/u)
-        .filter(w => w.length >= 4 && !STOCK_STOP_WORDS.has(w))
-        .map(w => (w.length > 5 ? w.slice(0, w.length - 2) : w));
-    if (!stems.length) return null;
+/** Word stem tolerant to Ukrainian inflection: «маркерів»→«маркер», «білих»→«біл». */
+function stockStem(w: string): string {
+    return w.length > 4 ? w.slice(0, w.length - 2) : w;
+}
 
+// The tail of every clarification message — the follow-up detector keys on it.
+const STOCK_CLARIFY_TAIL = 'Який саме цікавить? Відпиши одним словом — назву цифру.';
+
+async function fetchActiveProducts(): Promise<any[]> {
     const supabase = getAdminClient();
-    const { data: products } = await supabase
+    const { data } = await supabase
         .from('products')
         .select('slug, name, stock, is_active')
         .order('name')
         .limit(1000);
+    return (data || []).filter((p: any) => p.is_active !== false);
+}
 
-    const matched = (products || []).filter((p: any) =>
-        p.is_active !== false && stems.some(s => String(p.name || '').toLowerCase().includes(s)));
-    if (!matched.length || matched.length > 25) return null;
-
+async function stockLines(products: any[]): Promise<string[]> {
+    const supabase = getAdminClient();
     const { data: crmRows } = await supabase
         .from('keycrm_product_map')
         .select('site_slug, keycrm_stock')
-        .in('site_slug', matched.map((p: any) => p.slug))
+        .in('site_slug', products.map((p: any) => p.slug))
         .eq('confirmed', true)
         .not('keycrm_stock', 'is', null);
     const crmBySlug = new Map<string, number>();
@@ -394,16 +394,76 @@ async function buildStockAnswer(question: string): Promise<string | null> {
         crmBySlug.set(r.site_slug, (crmBySlug.get(r.site_slug) || 0) + Number(r.keycrm_stock));
     }
 
-    const lines = [`📦 Залишки (${matched.length}):`, ''];
-    for (const p of matched.slice(0, 15)) {
+    return products.map((p: any) => {
         const crm = crmBySlug.get(p.slug);
         const site = Number(p.stock);
         const siteLabel = site >= 999 ? 'без ліку' : `${site} шт`;
         const crmLabel = crm !== undefined && crm !== site ? ` (склад CRM: ${crm})` : '';
-        lines.push(`• ${p.name} — ${siteLabel}${crmLabel}`);
+        return `• ${p.name} — ${siteLabel}${crmLabel}`;
+    });
+}
+
+/**
+ * Stock by product name (Diana, 2026-08-11: «софія скільки в нас залишилось
+ * маркерів на складі»). One matching product answers with its number right
+ * away. Several matches — «в нас є чотири види маркерів» — get NAMED, and
+ * Софія asks which one (Diana: «софія має їх назвати та уточнити які саме, і
+ * коли хтось відпише білих, вона має назвати цифру»); the reply is handled by
+ * answerStockClarification, which recognises her own question by its tail
+ * phrase. Null when nothing matches, so the router falls through.
+ */
+async function buildStockAnswer(question: string): Promise<string | null> {
+    const stems = String(question)
+        .toLowerCase()
+        .replace(/@\S+/g, ' ')
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(w => w.length >= 4 && !STOCK_STOP_WORDS.has(w))
+        .map(stockStem);
+    if (!stems.length) return null;
+
+    const products = await fetchActiveProducts();
+    const matched = products.filter((p: any) =>
+        stems.some(s => String(p.name || '').toLowerCase().includes(s)));
+    if (!matched.length || matched.length > 25) return null;
+
+    if (matched.length === 1) {
+        const lines = await stockLines(matched);
+        return `📦 ${lines[0].replace(/^• /, '')}`;
     }
-    if (matched.length > 15) lines.push(`…і ще ${matched.length - 15}.`);
-    return lines.join('\n');
+
+    // Full product names on purpose: the follow-up finds the candidates by
+    // matching these names back out of the quoted clarification message.
+    const names = matched.slice(0, 15).map((p: any) => p.name).join('; ');
+    return `У нас ${matched.length} ${matched.length < 5 ? 'види' : 'видів'}: ${names}. ${STOCK_CLARIFY_TAIL}`;
+}
+
+/**
+ * The «білих» reply to Софія's stock clarification. Candidates are the full
+ * product names inside the quoted clarification; the reply's word stems pick
+ * one (or a few) of them, and the answer is their numbers. An unrecognised
+ * reply answers with ALL the candidates' numbers — better complete than mute.
+ */
+async function answerStockClarification(replyText: string, answer: string): Promise<string | null> {
+    const products = await fetchActiveProducts();
+    const candidates = products.filter((p: any) => replyText.includes(p.name));
+    if (!candidates.length) return null;
+
+    const stems = String(answer)
+        .toLowerCase()
+        .replace(/@\S+/g, ' ')
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter(w => w.length >= 3 && !STOCK_STOP_WORDS.has(w))
+        .map(stockStem);
+
+    let chosen = stems.length
+        ? candidates.filter((p: any) => stems.some(s => String(p.name).toLowerCase().includes(s)))
+        : [];
+    if (!chosen.length) chosen = candidates;
+
+    const lines = await stockLines(chosen.slice(0, 15));
+    return chosen.length === 1
+        ? `📦 ${lines[0].replace(/^• /, '')}`
+        : [`📦 Залишки:`, '', ...lines].join('\n');
 }
 
 /**
