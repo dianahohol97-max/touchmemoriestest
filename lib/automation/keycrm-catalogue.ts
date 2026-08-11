@@ -222,6 +222,22 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
 
     if (error) throw error;
 
+    // Active swatch colours per cover type, for the colour-split products
+    // below. One query for all of them — the table is tiny.
+    const coverColoursByType = new Map<string, string[]>();
+    const { data: colourRows } = await supabase
+        .from('cover_colors')
+        .select('name, cover_type_id, active')
+        .eq('active', true);
+    for (const c of colourRows || []) {
+        const key = String(c.cover_type_id || '');
+        const name = String(c.name || '').trim();
+        if (!key || !name) continue;
+        const list = coverColoursByType.get(key) || [];
+        list.push(name);
+        coverColoursByType.set(key, list);
+    }
+
     const products: SiteProduct[] = [];
 
     for (const row of (data || []).filter((p: any) => p.is_active !== false)) {
@@ -235,6 +251,26 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
         const sizes = Array.isArray(sizeGroup?.options) ? sizeGroup.options : [];
 
         if (!sizes.length) {
+            // Some products are split in the CRM by COLOUR instead of size:
+            // «Файликовий велюровий альбом на 200 фото» is seven separate CRM
+            // products, one per velour colour (Diana, 2026-08-11). The site
+            // keeps them as one product whose colours come from the swatch
+            // table, so the colour is this product's variant dimension.
+            const swatchGroup = groups.find((g: any) => g?.cover_type_id);
+            const colours = swatchGroup ? (coverColoursByType.get(String(swatchGroup.cover_type_id)) || []) : [];
+
+            if (colours.length) {
+                for (const colour of colours) {
+                    products.push({
+                        slug,
+                        variant: sizeKey(colour),
+                        variantLabel: colour,
+                        name: `${name} ${colour}`.trim(),
+                    });
+                }
+                continue;
+            }
+
             products.push({ slug, variant: '', variantLabel: '', name });
             continue;
         }
@@ -849,25 +885,34 @@ export async function linkPastedId(params: {
     const { pasted, siteSlug, targetVariant, note, offers, siteProducts, keepVariants } = params;
     const warnings: string[] = [];
 
+    // Several numbers at once: a site product split in the CRM by colour
+    // arrives as a list of catalogue links («Файликовий велюровий альбом» is
+    // seven CRM products, one per colour). Their variants form ONE family, so
+    // a single pass can spread the colours across the site product.
+    const ids = pasted.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+
     // Catalogue URLs (/app/catalog/ID/edit) always carry the PRODUCT id, and
     // product ids share one number space with offer ids — so an unrelated
     // OFFER №97 must not shadow PRODUCT №97 (live case: «Фото стандартні»,
     // whose fan-out silently matched a foreign offer and produced nothing).
     // The number is read as a product first; only a number that matches no
     // product at all falls back to being an offer id.
-    let family = offers.filter(o => o.product_id && o.product_id === pasted);
+    let family: KeycrmOffer[] = [];
+    for (const id of ids) {
+        let part = offers.filter(o => o.product_id && o.product_id === id);
 
-    // Not in the bulk listing — ask the CRM for exactly this product's
-    // variants. The paged catalogue read has a page budget, and a pasted link
-    // can point at any product, including one the budget never reached (live
-    // case: «Набір для відбитків», product 10).
-    if (!family.length) {
-        family = await fetchKeycrmOffersByProduct(pasted);
-    }
+        // Not in the bulk listing — ask the CRM for exactly this product's
+        // variants. The paged catalogue read has a page budget, and a pasted
+        // link can point at any product, including one the budget never
+        // reached (live case: «Набір для відбитків», product 10).
+        if (!part.length) part = await fetchKeycrmOffersByProduct(id);
 
-    if (!family.length) {
-        const direct = offers.find(o => String(o.offer_id) === pasted);
-        if (direct) family = [direct];
+        if (!part.length) {
+            const direct = offers.find(o => String(o.offer_id) === id);
+            if (direct) part = [direct];
+        }
+
+        family.push(...part);
     }
 
     if (!family.length) {
@@ -900,7 +945,20 @@ export async function linkPastedId(params: {
         // names that size explicitly — then the human is correcting it.
         if (!targetVariant && keepVariants?.has(variant.variant || '')) continue;
 
+        // Colour variants carry no dimensions, so the canonical size key
+        // cannot match them — the CRM item is recognised by CONTAINING the
+        // colour word («Велюровий альбом 200 фото Молочний» ↔ «Молочний»).
+        // Exactly one containing item counts; two would be a guess.
+        const byLabel = (() => {
+            const label = String(variant.variantLabel || '').trim().toLowerCase();
+            if (!label || /\d/.test(label)) return undefined;
+            const hits = family.filter(o =>
+                `${o.variant_label || ''} ${o.name || ''}`.toLowerCase().includes(label));
+            return hits.length === 1 ? hits[0] : undefined;
+        })();
+
         const match = familyBySize.get(variant.variant || sizeKey(variant.name))
+            ?? byLabel
             ?? (family.length === 1 && variants.length === 1 ? family[0] : undefined);
         // Nothing matched by size, but the seed named this exact size and the
         // CRM product is a single item — that IS the pair the human meant.

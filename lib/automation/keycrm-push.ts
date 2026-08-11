@@ -191,8 +191,20 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
     // size chosen by the customer is therefore part of the lookup key. Falls
     // back to the sizeless key so products without a size choice still resolve.
     const sizeLabel = String(options['Розмір'] || '').trim();
+
+    // Products the CRM splits by COLOUR instead of size («Файликовий велюровий
+    // альбом» — seven CRM cards, one per velour colour) key on the chosen
+    // colour. The stored option value can carry the workshop code («ВФ-02
+    // Молочний»), so the trailing word is what matches the catalogue variant.
+    const colourRaw = String(
+        Object.entries(options).find(([k]) => /колір/i.test(k))?.[1] ?? ''
+    ).trim();
+    const colourLabel = colourRaw.replace(/^\s*[А-ЯA-Zа-яa-z]{1,3}\s?-\s?\d+\s*/u, '').trim();
+
     const mapped = slug
-        ? (productMap[mapKey(slug, sizeKey(sizeLabel))] || (sizeLabel ? undefined : productMap[mapKey(slug, '')]))
+        ? (productMap[mapKey(slug, sizeKey(sizeLabel))]
+            || (colourLabel ? productMap[mapKey(slug, sizeKey(colourLabel))] : undefined)
+            || (sizeLabel || colourLabel ? undefined : productMap[mapKey(slug, '')]))
         : undefined;
 
     const properties = Object.entries(options)
