@@ -126,9 +126,17 @@ type Provider = {
     tomorrow: boolean;
 };
 
-/** Strip markup, entities and the leading «Aug 12, 2026 - » stamp. */
+/**
+ * The forecast paragraph of a horoscope.com page.
+ *
+ * It is the only paragraph that opens with a bold date — «<p><strong>Aug 12,
+ * 2026</strong> - Projects involving a group…» — and it sits far below the
+ * «main-horoscope» wrapper, past the whole date-picker nav, which is why
+ * anchoring on the wrapper found nothing. Anchoring on the date stamp is both
+ * simpler and steadier against layout changes.
+ */
 function textFromHtmlParagraph(html: string): string {
-    const block = html.match(/class="[^"]*main-horoscope[^"]*"[\s\S]{0,400}?<p>([\s\S]*?)<\/p>/i);
+    const block = html.match(/<p>\s*<strong>[^<]{4,30}<\/strong>\s*[-–—]?\s*([\s\S]{40,3000}?)<\/p>/i);
     if (!block) return '';
     return block[1]
         .replace(/<[^>]+>/g, ' ')
