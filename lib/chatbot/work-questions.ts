@@ -65,8 +65,9 @@ export async function handleWorkQuestion(params: {
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
 
     // A question about a specific order — the number may be in the message
-    // itself or in the message it replies to.
-    const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`);
+    // itself or in the message it replies to. Telegram handles are stripped
+    // first: the digits in «@nika11090» are not an order.
+    const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
     if (numbers.length) return answerOrderQuestion(text, numbers);
 
     return null;

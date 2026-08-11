@@ -194,13 +194,19 @@ export async function captureWorkChatOrderMentions(params: {
     const supabase = getAdminClient();
     const done = looksDone(params.text);
 
+    // Telegram handles carry digits that read exactly like order numbers —
+    // «@nika11090» once pulled the long-delivered April order 11090 out of
+    // the CRM. Mentions are stripped before any number is extracted.
+    const cleanText = params.text.replace(/@\S+/g, ' ');
+    const cleanReply = params.replyText ? params.replyText.replace(/@\S+/g, ' ') : undefined;
+
     // Attribution ladder: numbers in the message itself → numbers in the
     // replied-to message → (completion reports only) the chat's last
     // directly-mentioned order within 2 hours.
-    let numbers = extractOrderNumbers(params.text);
+    let numbers = extractOrderNumbers(cleanText);
     let noteText = params.text;
-    if (!numbers.length && params.replyText) {
-        numbers = extractOrderNumbers(params.replyText);
+    if (!numbers.length && cleanReply) {
+        numbers = extractOrderNumbers(cleanReply);
         if (numbers.length) noteText = `${params.text} (відповідь на: «${params.replyText.slice(0, 120)}»)`;
     }
     if (!numbers.length && done) {
