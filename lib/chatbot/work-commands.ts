@@ -238,13 +238,31 @@ export async function buildStatus(): Promise<string> {
 
 async function buildOrderCard(orderNumber: string): Promise<string> {
     const supabase = getAdminClient();
-    const { data: order } = await supabase
+
+    // Managers type the number the way they say it: «13644», «тм 1234»,
+    // «CRM-13644». Build every canonical form the input could mean and look
+    // them all up — a bare number is most often the KeyCRM id.
+    const candidates: string[] = [];
+    const bare = orderNumber.match(/^(\d+)$/);
+    const prefixed = orderNumber.match(/^(TM|CRM|PB)[-\s]?(\d+)$/i);
+    if (bare) {
+        candidates.push(`CRM-${bare[1]}`, `TM-${bare[1].padStart(6, '0')}`, `PB-${bare[1]}`);
+    } else if (prefixed) {
+        const prefix = prefixed[1].toUpperCase();
+        candidates.push(prefix === 'TM' ? `TM-${prefixed[2].padStart(6, '0')}` : `${prefix}-${prefixed[2]}`);
+    } else {
+        candidates.push(orderNumber);
+    }
+
+    const { data: matches } = await supabase
         .from('orders')
         .select('id, order_number, order_status, payment_status, total, customer_name, deadline, ttn, created_at, with_designer, paid_at')
-        .eq('order_number', orderNumber)
-        .maybeSingle();
+        .in('order_number', candidates)
+        .order('created_at', { ascending: false })
+        .limit(1);
+    const order = matches?.[0];
 
-    if (!order) return `Замовлення ${orderNumber} не знайшла. Перевір номер — формат виглядає як TM-001234.`;
+    if (!order) return `Замовлення ${orderNumber} не знайшла (шукала як ${candidates.join(', ')}). Якщо воно щойно створене в KeyCRM — з'явиться в базі після найближчого годинного синку.`;
 
     const lines = [
         `📦 Замовлення ${order.order_number}`,
