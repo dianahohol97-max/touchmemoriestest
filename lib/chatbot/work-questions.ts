@@ -302,6 +302,7 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
         .limit(6);
 
     const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label || null;
+    const crmManager = (order as any)?.custom_attributes?.keycrm?.manager_name || null;
     const itemsSummary = Array.isArray(order.items)
         ? order.items.map((i: any) => i?.product_name).filter(Boolean).slice(0, 4).join(', ')
         : '';
@@ -310,6 +311,7 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
         `Номер: ${order.order_number}`,
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
         crmStage ? `Етап у KeyCRM: ${crmStage}` : '',
+        crmManager ? `Відповідальний менеджер (CRM): ${crmManager}` : '',
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
         `Сума: ${order.total} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,

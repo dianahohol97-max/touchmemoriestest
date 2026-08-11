@@ -41,6 +41,8 @@ export type KeycrmOrder = {
     buyer_phone: string;
     manager_comment: string;
     buyer_comment: string;
+    /** The CRM's responsible manager (full name), when the account exposes it. */
+    manager_name: string;
     /** Waybill number when the CRM already shipped the parcel. */
     ttn: string;
     /** Carrier name as the CRM knows it, for the tracking link on the site. */
@@ -264,6 +266,10 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         buyer_phone: asStringList(raw?.buyer?.phone)[0] || '',
         manager_comment: String(raw?.manager_comment ?? '').trim(),
         buyer_comment: String(raw?.buyer_comment ?? '').trim(),
+        // Who is responsible in the CRM. Diana's team assigns every order a
+        // manager there, and «хто відповідальний?» must be answerable from
+        // the site/bot without opening the CRM.
+        manager_name: String(raw?.manager?.full_name ?? raw?.manager?.name ?? '').trim(),
         ttn,
     };
 }
@@ -309,6 +315,8 @@ export async function fetchRecentKeycrmOrders(params: {
             // per-attempt because unknown include names are rejected by some
             // API versions, and a partial mirror beats none.
             const attempts = [
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags,manager&sort=-id`,
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags,manager`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags&sort=-id`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer&sort=-id`,

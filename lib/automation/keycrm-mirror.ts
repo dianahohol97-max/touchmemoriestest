@@ -236,6 +236,10 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
                 mirrored: true,
                 status_label: crm.status_label,
                 payments_total: crm.payments_total,
+                // The responsible manager as the CRM names them — «хто
+                // відповідальний?» is a work-chat question the bot must
+                // answer without anyone opening the CRM.
+                ...(crm.manager_name ? { manager_name: crm.manager_name } : {}),
                 ...(printStartedAt ? { print_started_at: printStartedAt } : {}),
                 // The artwork attached to the CRM card. Copied as links rather
                 // than as files: the CRM stays the place they live, and the
