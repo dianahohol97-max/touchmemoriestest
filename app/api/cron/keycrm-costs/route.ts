@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { syncCostPrices } from '@/lib/automation/keycrm-catalogue';
+import { syncPhotobookCosts } from '@/lib/automation/keycrm-photobooks';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -36,7 +37,26 @@ export async function GET(request: Request) {
             console.warn('[keycrm-costs] size costs disagree, left untouched:', report.conflicts);
         }
 
-        return NextResponse.json({ ok: true, ...report });
+        // Photobooks are priced by a matrix the map cannot express, so their
+        // costs come from their own sync (size × pages). Never blocks the
+        // main report — a CRM hiccup on photobooks must not cost every other
+        // product its nightly cost update.
+        let photobooks: any = null;
+        if (!dryRun) {
+            try {
+                photobooks = await syncPhotobookCosts();
+                console.log('[keycrm-costs] photobooks', JSON.stringify({
+                    products: photobooks.products_read,
+                    rows: photobooks.rows_written,
+                    mismatches: photobooks.price_mismatches.length,
+                    problems: photobooks.problems.length,
+                }));
+            } catch (e: any) {
+                console.error('[keycrm-costs] photobook sync failed:', e);
+            }
+        }
+
+        return NextResponse.json({ ok: true, ...report, photobooks });
     } catch (e: any) {
         console.error('[keycrm-costs] Fatal error:', e);
         return NextResponse.json({ error: e?.message }, { status: 500 });
