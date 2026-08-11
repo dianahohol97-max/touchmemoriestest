@@ -451,6 +451,10 @@ export type KeycrmOffer = {
     cost_field: string | null;
     /** Units on hand in the CRM. Null when the account exposes no stock at all. */
     quantity: number | null;
+    /** The parent product's id in KeyCRM — what a catalogue URL points at. */
+    product_id: string;
+    /** The variant's own properties («розмір: 30х40см»), for size matching. */
+    variant_label: string;
 };
 
 // Stock, like cost, has been named differently across API versions and account
@@ -539,11 +543,24 @@ export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
             const price = Number(row?.price ?? row?.product?.price ?? 0);
             const { cost, field } = readCost(row);
 
+            // The variant's own properties, joined («розмір: 30х40см»). This is
+            // where per-size products carry their size, and pasting the PARENT
+            // product's URL relies on it to route each site size to the right
+            // variant.
+            const propsLabel = Array.isArray(row?.properties)
+                ? row.properties
+                    .map((p: any) => `${String(p?.name ?? '').trim()}: ${String(p?.value ?? '').trim()}`)
+                    .filter((s: string) => s !== ': ')
+                    .join(' ')
+                : '';
+
             offers.push({
                 cost,
                 cost_field: field,
                 quantity: readStock(row),
                 offer_id: String(row?.id ?? ''),
+                product_id: String(row?.product_id ?? row?.product?.id ?? ''),
+                variant_label: propsLabel || ownName,
                 sku: String(row?.sku ?? '').trim(),
                 // Prefer the parent name and append the variant when both exist,
                 // so "Фотоальбом на 200 фото" and "Зелений" become one label a
