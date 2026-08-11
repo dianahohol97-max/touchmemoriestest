@@ -116,5 +116,6 @@
       "path": "/api/cron/work-chat-evening",
       "schedule": "0 19 * * *"
     }
-  ]
+  ],
+  "ignoreCommand": "bash -c '[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] && exit 0 || exit 1'"
 }
