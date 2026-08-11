@@ -37,6 +37,19 @@ function fmtDate(iso: string | null): string {
 }
 
 /**
+ * A question addressed to Софія ABOUT the queue itself, not about one order —
+ * «що сьогодні термінового», «які доручення не виконані». The webhook checks
+ * this BEFORE the silent instruction capture: such a message is a request for
+ * a report, and capturing it as if it were an instruction is how «Які
+ * доручення ще не виконані?» once closed a live task as done.
+ */
+export function isMetaWorkQuestion(text: string): boolean {
+    const t = String(text || '').trim();
+    if (!t || t.startsWith('/')) return false;
+    return SHIP_TODAY.test(t) || OPEN_TASKS.test(t);
+}
+
+/**
  * The router. Returns the reply text, or null when this message is not a
  * question Софія should answer.
  */

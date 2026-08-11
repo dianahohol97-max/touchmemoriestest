@@ -14,7 +14,7 @@ import {
 } from '@/lib/chatbot/telegram-business';
 import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
-import { handleWorkQuestion, refreshTaskRecommendations } from '@/lib/chatbot/work-questions';
+import { handleWorkQuestion, refreshTaskRecommendations, isMetaWorkQuestion } from '@/lib/chatbot/work-questions';
 import { getWorkChatIds } from '@/lib/chatbot/telegram-business';
 
 // Note: In production we use webhooks, not polling. 
@@ -106,7 +106,13 @@ export async function POST(req: Request) {
                 const replyMsg = body.message.reply_to_message;
                 const replyText = replyMsg ? (replyMsg.text || replyMsg.caption || '') : undefined;
 
-                if (isGroup) {
+                // A report request to Софія («які доручення не виконані»)
+                // must not be captured as an instruction or a completion
+                // report — it is a question about the queue, not an event on
+                // an order.
+                const metaQuestion = isMetaWorkQuestion(noteText);
+
+                if (isGroup && !metaQuestion) {
                     if (noteText && !noteText.startsWith('/')) {
                         try {
                             const result = await captureWorkChatOrderMentions({

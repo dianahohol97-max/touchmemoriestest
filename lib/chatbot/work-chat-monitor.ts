@@ -74,7 +74,13 @@ export function extractDayMonth(text: string): Date | null {
  * («ще не відправила» is NOT done).
  */
 const DONE_WORDS = /(відправлен|відправил|зроблен|зробил|готово|виконан|змінил|оновил|передал|надіслал)/i;
-const NEGATED = /(\bне\s+\S*|\bще\s+не\s+\S*)(відправ|зроб|готов|викон|змін|оновл|перед|надісл)/i;
+// No \b here: JavaScript's \b only knows ASCII word characters, so against
+// Cyrillic text `\bне` never matches and the old guard was dead code — «Які
+// доручення ще не виконані?» read as a completion report and closed a live
+// task (CRM-13534, caught by Diana). The boundary is spelled out instead:
+// start-of-text or a separator, then optional «ще», then «не» right before
+// the verb (possibly with one word in between: «не буде відправлено»).
+const NEGATED = /(?:^|[\s,;:().«»"'-])(?:ще\s+)?не\s+\S{0,15}?(відправ|зроб|готов|викон|змін|оновл|перед|надісл)/i;
 
 export function looksDone(text: string): boolean {
     return DONE_WORDS.test(text) && !NEGATED.test(text);
