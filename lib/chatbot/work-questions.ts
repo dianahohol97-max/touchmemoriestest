@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { clientDialogContext } from '@/lib/chatbot/client-chat-lookup';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
+import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
 /**
@@ -236,9 +237,30 @@ export async function handleWorkQuestion(params: {
         if (stockReply) return stockReply;
     }
 
+    // A question about a specific order — the number may be in the message
+    // itself or in the message it replies to. Telegram handles are stripped
+    // first: the digits in «@nika11090» are not an order.
+    //
+    // Resolved BEFORE the queue questions below, because a number changes what
+    // the same words mean. Live case: «Хто відповідальний за замовлення 13815?»
+    // was swallowed by the per-manager queue, which looked for a PERSON in the
+    // text, found none and answered «Не впізнала імʼя відповідального» — while
+    // the answer sat on the order the question named.
+    const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
+    if (numbers.length) return answerOrderQuestion(text, numbers, params.chatId);
+
+    // «Скільки активних замовлень з тегом для Андрія?» — the tag queue. Tags
+    // are how the workshop routes work («для Андрія», «магніти», «фото») and
+    // they are mirrored from KeyCRM onto the site card, so this is a plain
+    // count, not something to hand back to a human. Gated on the word «тег» so
+    // that ordinary sentences containing «фото» never trigger it.
+    if (TAG_WORD.test(text)) {
+        const tagReply = await buildTagOrders(text);
+        if (tagReply) return tagReply;
+    }
+
     // «Які не виконані замовлення у відповідального Оксана Мацьопа?» — the
-    // per-manager queue (Diana, 2026-08-11). Checked before the order-number
-    // path cannot interfere: such questions carry a name, not a number.
+    // per-manager queue (Diana, 2026-08-11).
     // The responsibility word is matched loosely because live questions come
     // with typos — «відпрвідального» must trigger the same as «відповідального»
     // (anchored on «дальн», so «відправити» stays a shipping word).
@@ -247,12 +269,6 @@ export async function handleWorkQuestion(params: {
         const managerReply = await buildManagerOrders(text);
         if (managerReply) return managerReply;
     }
-
-    // A question about a specific order — the number may be in the message
-    // itself or in the message it replies to. Telegram handles are stripped
-    // first: the digits in «@nika11090» are not an order.
-    const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
-    if (numbers.length) return answerOrderQuestion(text, numbers, params.chatId);
 
     // Called by name with no work subject — small talk (Diana, 2026-08-11:
     // «якщо дівчата хочуть попереписувати з софією про життя, то чому б ні,
@@ -296,6 +312,10 @@ async function chatAboutLife(text: string, replyText?: string, chatId?: string):
                 'Ти українка і щиро цим пишаєшся.',
                 'Тобі показують останні повідомлення чату — спирайся на них, але не вигадуй того, чого в них немає.',
                 'Нічого не вигадуй про замовлення, клієнтів чи бізнес: якщо питання виявиться робочим, порадь написати номер замовлення разом із питанням.',
+                // Live case: asked to count orders by tag, she replied «я не маю
+                // доступу до CRM» — she has it, she simply had no handler for that
+                // question. Claiming the opposite teaches the team not to ask.
+                'Ніколи не кажи, що не маєш доступу до CRM, до сайту чи до даних: доступ у тебе є. Якщо саме це питання ти порахувати не вмієш, чесно скажи, що поки не вмієш саме так рахувати, і попроси переформулювати або звернутися до дівчат.',
                 'Не розкривай технічних деталей про свою будову. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
@@ -485,6 +505,70 @@ async function answerStockClarification(replyText: string, answer: string): Prom
  * «у Мацьопи», «в Оксани» — and the stage in «Статус „прийнято"» becomes a
  * substring filter on the live CRM stage when present.
  */
+/** The word that makes a question a tag question. */
+const TAG_WORD = /(тег|теґ|тега|тегом|tag|позначк)/iu;
+
+/**
+ * Orders carrying a tag — «скільки активних замовлень з тегом для Андрія».
+ *
+ * Live case (Diana, 2026-08-11, with a screenshot): Софія answered «я не маю
+ * доступу до CRM та не можу лічити замовлення по тегам», which is simply not
+ * true — the mirror writes KeyCRM tags onto every order card (see
+ * keycrm-mirror), and the workshop's own routing tags are added on top. So the
+ * count is a query, and the model never has to guess at it.
+ *
+ * Which tag was meant is decided the same way as a manager name: a tag matches
+ * when the stem of one of its words appears in the question, so «для Андрія»
+ * answers to «Андрія», «Андрію» and «Андрій» alike.
+ */
+async function buildTagOrders(question: string): Promise<string | null> {
+    const supabase = getAdminClient();
+
+    const { data } = await supabase
+        .from('orders')
+        .select('id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes')
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
+        .order('deadline', { ascending: true })
+        .limit(400);
+
+    const active = (data || []).filter(o => isVisibleProductionOrder(o as any));
+    const tagsOf = (o: any): string[] => (Array.isArray(o?.tags) ? o.tags : []).map((t: any) => String(t || '').trim()).filter(Boolean);
+
+    // The tag universe: everything currently in use, plus the workshop's own
+    // routing tags. Including the known ones matters — «скільки для Андрія?»
+    // on a quiet day must answer «жодного», not fall through to a guess.
+    const counts = new Map<string, number>();
+    for (const tag of [ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG]) counts.set(tag, 0);
+    for (const o of active) for (const tag of tagsOf(o)) counts.set(tag, 0);
+
+    const q = question.toLowerCase();
+    for (const tag of counts.keys()) {
+        let hits = 0;
+        for (const word of tag.toLowerCase().split(/\s+/)) {
+            const stem = word.length > 4 ? word.slice(0, word.length - 2) : word;
+            if (stem.length >= 3 && q.includes(stem)) hits++;
+        }
+        counts.set(tag, hits);
+    }
+    const ranked = [...counts.entries()].filter(([, hits]) => hits > 0).sort((a, b) => b[1] - a[1]);
+    if (!ranked.length) return null;
+
+    const [tag] = ranked[0];
+    const mine = active.filter(o => tagsOf(o).some(t => t.toLowerCase() === tag.toLowerCase()));
+    if (!mine.length) {
+        return `Активних замовлень з тегом «${tag}» зараз немає — усе, що було, вже поїхало або чекає на іншому етапі.`;
+    }
+
+    const lines = [`🏷 Тег «${tag}» — активні замовлення (${mine.length}):`, ''];
+    for (const o of mine.slice(0, MAX_LISTED)) {
+        const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
+        lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
+    }
+    if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
+    lines.push('', `${SITE_URL}/admin/production-calendar`);
+    return lines.join('\n');
+}
+
 async function buildManagerOrders(question: string): Promise<string | null> {
     const supabase = getAdminClient();
 
