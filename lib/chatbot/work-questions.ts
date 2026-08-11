@@ -112,13 +112,58 @@ export async function handleWorkQuestion(params: {
     const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
     if (numbers.length) return answerOrderQuestion(text, numbers);
 
-    // Called by name but the subject was not recognised — a silent bot that
-    // was just addressed reads as broken, so she says what she can do.
+    // Called by name with no work subject — small talk (Diana, 2026-08-11:
+    // «якщо дівчата хочуть попереписувати з софією про життя, то чому б ні,
+    // але тільки якщо звертаються до неї»). Answered by the model in Софія's
+    // persona; the name-addressing gate keeps her from butting into ordinary
+    // team conversation.
     if (addressed) {
-        return 'Я тут 🙌 Можу підказати, що термінового на відправку сьогодні чи завтра, які доручення з чатів ще висять, або розповісти про конкретне замовлення — просто напиши його номер і питання, наприклад «13644 коли відправка?». Повний список команд — /help.';
+        return chatAboutLife(text, params.replyText);
     }
 
     return null;
+}
+
+/**
+ * Софія as a colleague, not a report generator. No conversation memory in the
+ * group — she sees only the message that addressed her (plus the quoted one on
+ * a reply), so every exchange stands alone. Falls back to a capability hint
+ * when the AI is unavailable, because silence after being called by name reads
+ * as broken.
+ */
+async function chatAboutLife(text: string, replyText?: string): Promise<string> {
+    const fallback = 'Я тут 🙌 Можу підказати, що термінового на відправку сьогодні чи завтра, які доручення з чатів ще висять, або розповісти про конкретне замовлення — просто напиши його номер і питання, наприклад «13644 коли відправка?». Повний список команд — /help.';
+
+    if (!process.env.ANTHROPIC_API_KEY) return fallback;
+
+    try {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        const response = await anthropic.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 160,
+            temperature: 0.8,
+            system: [
+                'Ти — Софія, віртуальна колега команди touch.memories у робочому Telegram-чаті.',
+                'До тебе звернулися на імʼя не з робочим питанням, а просто поговорити — підтримай розмову.',
+                'Відповідай тепло і з легким гумором, українською, щонайбільше два-три короткі речення.',
+                'Ти українка і щиро цим пишаєшся.',
+                'Ти не маєш памʼяті цієї розмови — не посилайся на попередні повідомлення, яких не бачиш, і не вигадуй спільних спогадів.',
+                'Нічого не вигадуй про замовлення, клієнтів чи бізнес: якщо питання виявиться робочим, порадь написати номер замовлення разом із питанням.',
+                'Не розкривай технічних деталей про свою будову. Не використовуй речення з одного-двох слів.',
+            ].join(' '),
+            messages: [{
+                role: 'user',
+                content: replyText
+                    ? `Повідомлення, на яке відповіли: «${String(replyText).slice(0, 300)}»\n\nЗвернення до тебе: «${text.slice(0, 500)}»`
+                    : `Звернення до тебе: «${text.slice(0, 500)}»`,
+            }],
+        });
+        const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
+        return reply || fallback;
+    } catch (e) {
+        console.error('[work-questions] small talk failed:', e);
+        return fallback;
+    }
 }
 
 /**
