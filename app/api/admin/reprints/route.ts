@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { REPRINT_STATUSES, OPEN_STATUSES, FAULT_OPTIONS, type ReprintStatus } from '@/lib/automation/reprints';
+import { getAlertChatId, getWorkChatIds, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
 
 export const dynamic = 'force-dynamic';
 
@@ -150,6 +151,63 @@ export async function POST(request: Request) {
                 .update({ custom_attributes: { ...(order.custom_attributes as any), chat_task: null } })
                 .eq('id', orderId);
         }
+
+        return NextResponse.json({ ok: true });
+    }
+
+    // Nudge the team about a task from its card (Diana, 2026-08-11: «додай ще
+    // в кожній вкладці — нагадати в чаті»). The reminder goes to the work
+    // group chat, falling back to the alerts destination, and carries the
+    // thread's current state so nobody has to open the admin to know what is
+    // being asked.
+    if (body?.action === 'chat_task_remind') {
+        const orderId = String(body?.order_id || '').trim();
+        if (!orderId) return NextResponse.json({ error: 'order_id is required' }, { status: 400 });
+
+        const { data: order } = await supabase
+            .from('orders')
+            .select('id, order_number, customer_name, deadline, custom_attributes')
+            .eq('id', orderId)
+            .maybeSingle();
+        if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
+
+        const { data: lastNote } = await supabase
+            .from('order_history')
+            .select('notes, created_at')
+            .eq('order_id', orderId)
+            .eq('action', 'work_chat_note')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        const reco = (order.custom_attributes as any)?.chat_task?.recommendation;
+        const deadlineStr = order.deadline
+            ? new Date(order.deadline).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Kyiv' })
+            : null;
+
+        const lines = [
+            `🔔 Нагадування по ${order.order_number}${order.customer_name ? ` (${order.customer_name})` : ''}`,
+            lastNote?.notes ? `Останнє: ${String(lastNote.notes).slice(0, 250)}` : '',
+            deadlineStr ? `Дедлайн виробництва: ${deadlineStr}` : '',
+            reco ? `💡 ${reco}` : '',
+            'Хто в темі — відпишіть, будь ласка, статус у чат.',
+        ].filter(Boolean);
+
+        const workChats = await getWorkChatIds();
+        const target = workChats[0] ?? await getAlertChatId();
+        if (!target) {
+            return NextResponse.json({ error: 'Немає зареєстрованого робочого чату — виконай /register або /alerts_here у Telegram.' }, { status: 400 });
+        }
+
+        const sent = await sendViaPublicBot({ chat_id: target, text: lines.join('\n') });
+        if (!sent.success) return NextResponse.json({ error: sent.error || 'Не вдалося надіслати' }, { status: 502 });
+
+        await supabase.from('order_history').insert({
+            order_id: orderId,
+            action: 'work_chat_reminded',
+            notes: 'Нагадування надіслано в робочий чат з адмінки.',
+            added_by: null,
+        });
 
         return NextResponse.json({ ok: true });
     }

@@ -56,6 +56,24 @@ export default function ReprintsPage() {
     const [closingTask, setClosingTask] = useState<string | null>(null);
     const [form, setForm] = useState({ order_number: '', customer_name: '', reason: '', fault: '', notes: '' });
 
+    const remindChatTask = async (orderId: string) => {
+        setClosingTask(orderId);
+        try {
+            const res = await fetch('/api/admin/reprints', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'chat_task_remind', order_id: orderId }),
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.error || 'Не вдалося надіслати нагадування');
+            toast.success('Нагадування пішло в робочий чат.');
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося надіслати нагадування');
+        } finally {
+            setClosingTask(null);
+        }
+    };
+
     const markChatTaskDone = async (orderId: string) => {
         setClosingTask(orderId);
         try {
@@ -256,7 +274,20 @@ export default function ReprintsPage() {
                                     )}
 
                                     {!task.done && task.order_id && (
-                                        <div style={{ marginTop: 8 }}>
+                                        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                            <button
+                                                onClick={() => remindChatTask(task.order_id)}
+                                                disabled={closingTask !== null}
+                                                style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                    fontSize: 12.5, fontWeight: 800, color: '#92400e',
+                                                    background: '#fffbeb', border: '1px solid #fde68a',
+                                                    borderRadius: 8, padding: '6px 12px', cursor: 'pointer',
+                                                    opacity: closingTask !== null && closingTask !== task.order_id ? 0.6 : 1,
+                                                }}
+                                            >
+                                                🔔 Нагадати в чаті
+                                            </button>
                                             <button
                                                 onClick={() => markChatTaskDone(task.order_id)}
                                                 disabled={closingTask !== null}
