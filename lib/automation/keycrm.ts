@@ -665,7 +665,12 @@ export async function fetchOrderCardExtras(orderId: string | number): Promise<{ 
             .slice(0, 10);
     } catch { /* the account may not expose custom fields — fine */ }
 
-    for (const path of [`/order/${id}/comments?limit=50`, `/order/${id}/comment?limit=50`]) {
+    for (const path of [
+        `/order/${id}/comments?limit=50`,
+        `/order/${id}/comment?limit=50`,
+        `/comments?filter[order_id]=${id}&limit=50`,
+        `/order/comments?filter[order_id]=${id}&limit=50`,
+    ]) {
         try {
             const payload = await keycrmRequest(path);
             const rows: any[] = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
@@ -678,6 +683,18 @@ export async function fetchOrderCardExtras(orderId: string | number): Promise<{ 
                 break;
             }
         } catch { /* try the next spelling */ }
+    }
+
+    // Some API versions expose the feed only as an include on the order read.
+    if (!result.comments.length) {
+        try {
+            const payload = await keycrmRequest(`/order/${id}?include=comments`);
+            const rows: any[] = Array.isArray(payload?.comments) ? payload.comments : [];
+            result.comments = rows
+                .map(r => String(r?.text ?? r?.comment ?? r?.message ?? '').trim())
+                .filter(Boolean)
+                .slice(-15);
+        } catch { /* the account simply does not expose the feed */ }
     }
 
     // Visible in runtime logs on purpose: whether THIS account's API exposes
