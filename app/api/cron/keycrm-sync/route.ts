@@ -263,6 +263,43 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
+        // Photobook matrix sync, on demand. Two settings drive it so a human
+        // stays in the loop with the editor's customer-facing prices:
+        //   photobook_sync_requested = 'report' | 'apply' — one-shot, cleared
+        //     after the run so a request never repeats by accident;
+        //   'report' only fills costs and lists the differences, 'apply' also
+        //     writes CRM prices into the printed-cover matrix (guarded, with
+        //     every change recorded in photobook_price_changes).
+        try {
+            const supabase = getAdminClient();
+            const { data: reqRow } = await supabase
+                .from('settings').select('value').eq('key', 'photobook_sync_requested').maybeSingle();
+            const mode = typeof reqRow?.value === 'string' ? reqRow.value : null;
+            if (mode === 'report' || mode === 'apply') {
+                const { syncPhotobookCosts } = await import('@/lib/automation/keycrm-photobooks');
+                const pbReport = await syncPhotobookCosts({ applyPrices: mode === 'apply' });
+                await supabase.from('settings').upsert({
+                    key: 'photobook_sync_report',
+                    value: { at: new Date().toISOString(), mode, ...pbReport },
+                    updated_at: new Date().toISOString(),
+                });
+                await supabase.from('settings').upsert({
+                    key: 'photobook_sync_requested',
+                    value: '"done"',
+                    updated_at: new Date().toISOString(),
+                });
+                console.log('[keycrm-sync] photobooks', JSON.stringify({
+                    mode,
+                    products: pbReport.products_read,
+                    rows: pbReport.rows_written,
+                    applied: pbReport.prices_applied.length,
+                    held: pbReport.prices_held.length,
+                }));
+            }
+        } catch (e: any) {
+            console.error('[keycrm-sync] photobook sync failed:', e);
+        }
+
         // Fourth pass: open reprint-queue entries for freshly tagged defects.
         // Runs after the reconcile pass on purpose — that is what merges tags
         // down from the CRM, so a "брак" set there minutes ago is already on

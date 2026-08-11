@@ -39,6 +39,10 @@ export function parsePageCount(label: string): number | null {
 export type PhotobookCostReport = {
     products_read: number;
     rows_written: number;
+    /** Matrix rows updated from the CRM price (printed cover only). */
+    prices_applied: Array<{ size: string; pages: number; from: number; to: number }>;
+    /** Price moves too large to trust — reported, never applied. */
+    prices_held: Array<{ size: string; pages: number; from: number; to: number }>;
     /** Size+pages the CRM has but the site's price matrix does not. */
     missing_on_site: string[];
     /** Same size+pages where the CRM's sale price differs from the site's printed-cover price. */
@@ -50,11 +54,13 @@ export type PhotobookCostReport = {
  * Pull every photobook product listed in settings('photobook_crm_links') and
  * write one row per (size, page count) into photobook_costs.
  */
-export async function syncPhotobookCosts(): Promise<PhotobookCostReport> {
+export async function syncPhotobookCosts(opts?: { applyPrices?: boolean }): Promise<PhotobookCostReport> {
     const supabase = getAdminClient();
     const report: PhotobookCostReport = {
         products_read: 0,
         rows_written: 0,
+        prices_applied: [],
+        prices_held: [],
         missing_on_site: [],
         price_mismatches: [],
         problems: [],
@@ -73,14 +79,17 @@ export async function syncPhotobookCosts(): Promise<PhotobookCostReport> {
     // The site's printed-cover matrix, for the price comparison.
     const { data: siteRows } = await supabase
         .from('photobook_prices')
-        .select('page_count, base_price, photobook_sizes(name), cover_types(name)');
+        .select('id, page_count, base_price, photobook_sizes(name), cover_types(name)');
     const sitePriceByKey = new Map<string, number>();
+    const siteRowByKey = new Map<string, { id: string; price: number; sizeName: string }>();
     for (const row of siteRows || []) {
         const cover = (row as any)?.cover_types?.name || '';
         if (cover !== 'Друкована') continue;
-        const size = sizeKey(String((row as any)?.photobook_sizes?.name || ''));
+        const sizeName = String((row as any)?.photobook_sizes?.name || '');
+        const size = sizeKey(sizeName);
         if (!size) continue;
         sitePriceByKey.set(`${size}::${row.page_count}`, Number(row.base_price));
+        siteRowByKey.set(`${size}::${row.page_count}`, { id: (row as any).id, price: Number(row.base_price), sizeName });
     }
 
     const rows: any[] = [];
@@ -143,6 +152,52 @@ export async function syncPhotobookCosts(): Promise<PhotobookCostReport> {
             .upsert(deduped, { onConflict: 'size,page_count' });
         if (error) report.problems.push(`запис у photobook_costs: ${error.message}`);
         else report.rows_written = deduped.length;
+
+        // Diana, 2026-08-11: «CRM is the actual source of truth… fix it on
+        // site in constructor. But please be very careful to don't break
+        // anything.» So the matrix is updated ONLY for the printed cover
+        // (the covers the CRM products describe — premium covers carry the
+        // decoration surcharge on top and must never inherit a printed
+        // price), only where the CRM has that exact size+pages, only within
+        // the guard band, and every change is written to
+        // photobook_price_changes so any row can be put back.
+        if (opts?.applyPrices) {
+            const { data: guardRow } = await supabase
+                .from('settings').select('value').eq('key', 'photobook_price_guard_pct').maybeSingle();
+            const guardPct = Number(guardRow?.value ?? 40) || 40;
+
+            for (const r of deduped) {
+                const crmPrice = Number(r.crm_price || 0);
+                if (crmPrice <= 0) continue;
+                const target = siteRowByKey.get(`${r.size}::${r.page_count}`);
+                if (!target) continue;
+                if (Math.abs(target.price - crmPrice) < 0.5) continue;
+
+                const jump = target.price > 0 ? Math.abs(crmPrice - target.price) / target.price : 1;
+                if (jump > guardPct / 100) {
+                    report.prices_held.push({ size: r.size, pages: r.page_count, from: target.price, to: crmPrice });
+                    continue;
+                }
+
+                const { error: updErr } = await supabase
+                    .from('photobook_prices')
+                    .update({ base_price: crmPrice })
+                    .eq('id', target.id);
+                if (updErr) {
+                    report.problems.push(`ціна ${r.size}/${r.page_count}: ${updErr.message}`);
+                    continue;
+                }
+                await supabase.from('photobook_price_changes').insert({
+                    cover_type: 'Друкована',
+                    size: target.sizeName,
+                    page_count: r.page_count,
+                    old_price: target.price,
+                    new_price: crmPrice,
+                    source: 'keycrm',
+                });
+                report.prices_applied.push({ size: r.size, pages: r.page_count, from: target.price, to: crmPrice });
+            }
+        }
     }
 
     return report;
