@@ -275,6 +275,14 @@ function OrderCard({ order, overdue }: { order: any; overdue?: boolean }) {
                 </div>
             )}
 
+            {/* The promise to the customer is already missed — say it in red,
+                louder than a date that is merely approaching. */}
+            {order.client_date_passed && (
+                <div style={{ fontSize: 10.5, fontWeight: 800, color: '#b91c1c', marginTop: 3 }}>
+                    дата від клієнта вже минула
+                </div>
+            )}
+
             {!order.stored_deadline && (
                 <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 3 }}>
                     дедлайн ще не збережений, показано розрахунковий
