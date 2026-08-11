@@ -221,6 +221,18 @@ export default function ReprintsPage() {
                                             );
                                         })}
                                     </div>
+
+                                    {/* Софія's suggested next move for the thread —
+                                        regenerated every time a new message lands. */}
+                                    {!task.done && task.recommendation && (
+                                        <div style={{
+                                            marginTop: 8, padding: '7px 11px', borderRadius: 8,
+                                            background: '#fffbeb', border: '1px solid #fde68a',
+                                            fontSize: 13, fontWeight: 700, color: '#92400e', lineHeight: 1.45,
+                                        }}>
+                                            💡 Рекомендована дія: {task.recommendation}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

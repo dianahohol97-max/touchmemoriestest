@@ -14,6 +14,8 @@ import {
 } from '@/lib/chatbot/telegram-business';
 import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
+import { handleWorkQuestion, refreshTaskRecommendations } from '@/lib/chatbot/work-questions';
+import { getWorkChatIds } from '@/lib/chatbot/telegram-business';
 
 // Note: In production we use webhooks, not polling. 
 // We initialize the bot just to send messages.
@@ -100,14 +102,16 @@ export async function POST(req: Request) {
                 // The bot stays quiet in the chat; a ✍ reaction on the message
                 // is the only acknowledgement. Requires the bot to be a group
                 // admin (otherwise Telegram only delivers commands).
+                const noteText = body.message.text || body.message.caption || '';
+                const replyMsg = body.message.reply_to_message;
+                const replyText = replyMsg ? (replyMsg.text || replyMsg.caption || '') : undefined;
+
                 if (isGroup) {
-                    const noteText = body.message.text || body.message.caption || '';
                     if (noteText && !noteText.startsWith('/')) {
                         try {
-                            const replyMsg = body.message.reply_to_message;
                             const result = await captureWorkChatOrderMentions({
                                 text: noteText,
-                                replyText: replyMsg ? (replyMsg.text || replyMsg.caption || '') : undefined,
+                                replyText,
                                 chatId,
                                 chatTitle: body.message.chat?.title || 'робочий чат',
                                 senderName: body.message.from?.first_name || 'учасник',
@@ -118,8 +122,32 @@ export async function POST(req: Request) {
                             if (result.captured.length || result.pending.length) {
                                 await reactToMessage(chatId, body.message.message_id, result.done ? '👌' : '✍');
                             }
+                            // Keep the task card's «рекомендована дія» in step
+                            // with the thread that just grew.
+                            if (result.captured.length) {
+                                await refreshTaskRecommendations(result.captured);
+                            }
                         } catch (e) {
                             console.error('work-chat monitor failed:', e);
+                        }
+                    }
+                }
+
+                // Natural questions get an answer (Diana, 2026-08-11): «що
+                // сьогодні термінового треба відправити», «які доручення не
+                // виконані», «13644 коли відправка». Registered work chats and
+                // the owner's private chat only; anything ambiguous stays
+                // silent so the chat doesn't drown in bot noise.
+                if (noteText && !noteText.startsWith('/')) {
+                    const allowed = isOwnerPrivate || (isGroup && (await getWorkChatIds()).includes(Number(chatId)));
+                    if (allowed) {
+                        try {
+                            const answer = await handleWorkQuestion({ text: noteText, replyText });
+                            if (answer) {
+                                await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);
+                            }
+                        } catch (e) {
+                            console.error('work-chat question failed:', e);
                         }
                     }
                 }

@@ -59,7 +59,9 @@ export async function GET(request: Request) {
             // The deadline rides along because the next step often depends on
             // it: «запитати виробництво, коли будуть фото» is a different
             // conversation three days before the deadline than three weeks.
-            .select('id, order_number, customer_name, deadline, order_status')
+            // custom_attributes carries the AI-suggested next action
+            // (chat_task.recommendation), refreshed on every captured message.
+            .select('id, order_number, customer_name, deadline, order_status, custom_attributes')
             .in('id', orderIds);
         for (const o of orders || []) orderById.set(o.id, o);
     }
@@ -86,6 +88,7 @@ export async function GET(request: Request) {
             customer_name: order?.customer_name || null,
             deadline: order?.deadline || null,
             order_status: order?.order_status || null,
+            recommendation: (order?.custom_attributes as any)?.chat_task?.recommendation || null,
             messages: rows.map(r => ({
                 text: r.notes,
                 chat: r.details?.chat || null,
