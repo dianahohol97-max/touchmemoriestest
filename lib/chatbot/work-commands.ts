@@ -6,6 +6,7 @@ import {
     setWatchdogChatId,
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 /**
  * Team commands for work group chats (and for Diana's private chat with the
@@ -144,7 +145,8 @@ function unregisteredReply(isPrivate: boolean): string {
     return 'Цей чат ще не зареєстрований як робочий. Попроси Діану виконати тут команду /register.';
 }
 
-async function buildStatus(): Promise<string> {
+/** Shared with /api/cron/work-chat-digest — the morning digest is this same summary, pushed on schedule. */
+export async function buildStatus(): Promise<string> {
     const supabase = getAdminClient();
     const now = Date.now();
     const dayAgo = new Date(now - 24 * HOUR_MS).toISOString();
@@ -221,14 +223,15 @@ async function buildOverdue(): Promise<string> {
         .order('deadline', { ascending: true })
         .limit(MAX_LISTED + 1);
 
-    if (!orders?.length) return 'Прострочених дедлайнів немає — все під контролем ✅';
+    const real = (orders || []).filter(o => !isTestOrder(o as any));
+    if (!real.length) return 'Прострочених дедлайнів немає — все під контролем ✅';
 
-    const lines = [`⏰ Прострочені дедлайни (${orders.length > MAX_LISTED ? `${MAX_LISTED}+` : orders.length}):`, ''];
-    for (const o of orders.slice(0, MAX_LISTED)) {
+    const lines = [`⏰ Прострочені дедлайни (${real.length > MAX_LISTED ? `${MAX_LISTED}+` : real.length}):`, ''];
+    for (const o of real.slice(0, MAX_LISTED)) {
         const daysOver = Math.max(1, Math.floor((nowMs - new Date(o.deadline).getTime()) / (24 * HOUR_MS)));
         lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, дедлайн ${fmtDate(o.deadline)} (прострочено ${daysOver} дн)`);
     }
-    if (orders.length > MAX_LISTED) lines.push('…список неповний, решту дивись в адмінці.');
+    if (real.length > MAX_LISTED) lines.push('…список неповний, решту дивись в адмінці.');
     lines.push('', `${SITE_URL}/admin/orders`);
     return lines.join('\n');
 }

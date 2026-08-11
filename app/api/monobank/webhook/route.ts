@@ -6,6 +6,7 @@ import { processReferralReward } from '@/lib/referral/referral';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 import { startBabybookForPaidOrder } from '@/lib/babybook/orchestrate';
+import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -369,6 +370,22 @@ export async function POST(req: Request) {
                         signal: AbortSignal.timeout(8000),
                     }).catch(e => console.error('confirmation email failed (payment still confirmed):', e));
                 } catch (e) { console.error('confirmation email failed (payment still confirmed):', e); }
+
+                // Work-chat ping: the team sees new paid work the second the
+                // money lands, in the chat claimed via /alerts_here. Guarded
+                // by the same first-transition-to-paid block, so it fires at
+                // most once per order. Awaited (un-awaited fetches never leave
+                // a frozen lambda) but a Telegram failure can never break
+                // payment confirmation.
+                try {
+                    if (!isTestOrder(existingOrder)) {
+                        const { sendWorkChatAlert } = await import('@/lib/chatbot/telegram-business');
+                        const designerLine = existingOrder.with_designer ? '\nПослуга дизайнера: так' : '';
+                        await sendWorkChatAlert(
+                            `💰 Оплачено замовлення ${existingOrder.order_number} на ${existingOrder.total} ₴\nКлієнт: ${existingOrder.customer_name || 'без імені'}${designerLine}`
+                        );
+                    }
+                } catch (e) { console.error('work-chat paid ping failed (payment still confirmed):', e); }
 
                 // Referral reward: if this buyer was referred and this is their
                 // first paid order ≥1000₴, credit 50₴ to the referrer. Idempotent
