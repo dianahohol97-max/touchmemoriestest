@@ -64,7 +64,7 @@ function fulfilmentFromLabel(label: string): string | undefined {
     // both vocabularies are matched, and shipped is checked before delivered
     // because `delivered_to_delivery` means the parcel just LEFT.
     if (l.includes('to_delivery') || l.includes('дороз') || l.includes('відправ') || l.includes('transit') || l.includes('shipped')) return 'shipped';
-    if (l.includes('доставлен') || l.includes('отриман') || l.includes('delivered')) return 'delivered';
+    if (l.includes('доставлен') || l.includes('отриман') || l.includes('delivered') || l.includes('completed') || l.includes('виконан')) return 'delivered';
     return undefined;
 }
 

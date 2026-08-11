@@ -161,12 +161,22 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
     // never re-stamped — a card dragged back and forth does not restart the
     // clock.
     const stageLabel = (crm.status_label || '').toLowerCase();
+    // The CRM's own status-change timestamp when the API exposes it — exact
+    // (Diana asked for the history of status changes: KeyCRM's API has no
+    // history endpoint, so this field is as close as it gets). Without it,
+    // "now" is used ONLY when this refresh actually WITNESSED the transition
+    // (the stored stage differs from the live one). An order first seen
+    // already sitting in print gets no stamp at all: stamping "now" would
+    // hand a book that went to print weeks ago fourteen fresh working days
+    // and quietly drain the overdue rail.
+    const witnessedTransition = Boolean(
+        existingAttrs?.keycrm?.status_label
+        && existingAttrs.keycrm.status_label !== crm.status_label,
+    );
     const printStartedAt = existingAttrs?.keycrm?.print_started_at
-        // The CRM's own status-change timestamp when the API exposes it —
-        // exact; the moment of first observation otherwise (Diana asked for
-        // the history of status changes: KeyCRM's API has no history endpoint,
-        // so this field is as close as it gets).
-        || (/друк/.test(stageLabel) ? (crm.status_changed_at || new Date().toISOString()) : null);
+        || (/друк/.test(stageLabel)
+            ? (crm.status_changed_at || (witnessedTransition ? new Date().toISOString() : null))
+            : null);
 
     // Deadline ownership: the resolver owns it UNLESS a person pinned it — a
     // chat instruction or the admin date field sets deadline_locked, and a
