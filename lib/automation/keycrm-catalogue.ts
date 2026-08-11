@@ -1095,7 +1095,18 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
     const allRows: any[] = [];
     const allWarnings: string[] = [];
 
+    // The photobook seeding created 460 pending rows at once, and each one
+    // that misses the bulk list costs a CRM round trip — enough to blow the
+    // function's time budget and lose the whole run. Work is bounded per pass;
+    // what is left is picked up half an hour later, and progress is never
+    // thrown away.
+    const deadline = Date.now() + 3 * 60 * 1000;
+
     for (const row of pending) {
+        if (Date.now() > deadline) {
+            allWarnings.push('Часу на прохід не вистачило — решту зв’яжемо наступним запуском.');
+            break;
+        }
         // Name-seeded rows resolve their number first.
         let pasted = row.keycrm_offer_id ? String(row.keycrm_offer_id) : '';
         if (!pasted && row.note) {
@@ -1164,6 +1175,9 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
     const written = new Set(allRows.map(r => `${r.site_slug}::${r.site_variant || ''}`));
     for (const row of pending) {
         if (written.has(`${row.site_slug}::${row.site_variant || ''}`)) continue;
+        // Rows the pass never reached keep their trigger for the next run.
+        if (!seen.has(`${row.site_slug}::${row.site_variant || ''}::${row.keycrm_offer_id}`)
+            && Date.now() > deadline) continue;
         const retiredNote = row.note && /^пошук:/i.test(String(row.note))
             ? String(row.note).replace(/^пошук:/i, 'пошук не вдався:')
             : row.note;

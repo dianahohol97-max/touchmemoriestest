@@ -543,7 +543,24 @@ function readCost(row: any): { cost: number | null; field: string | null } {
  * looks exactly like a CRM with missing data — so the budget is now generous
  * and the walk stops on its own at the last page.
  */
+/**
+ * One catalogue read per run, shared.
+ *
+ * The upkeep pass calls this three times in a row (resolve links → write SKUs
+ * → pull costs) and the stock sync a fourth. At 40 pages with a courtesy gap
+ * between them that is four full catalogue walks in one 60-second function —
+ * which is exactly how the sync started timing out (504) the moment the page
+ * budget grew. A short-lived cache makes the extra calls free without holding
+ * stale data across runs.
+ */
+let offersCache: { at: number; offers: KeycrmOffer[] } | null = null;
+const OFFERS_CACHE_MS = 5 * 60 * 1000;
+
 export async function fetchKeycrmOffers(maxPages = 40): Promise<KeycrmOffer[]> {
+    if (offersCache && Date.now() - offersCache.at < OFFERS_CACHE_MS) {
+        return offersCache.offers;
+    }
+
     const offers: KeycrmOffer[] = [];
 
     for (let page = 1; page <= maxPages; page++) {
@@ -577,6 +594,7 @@ export async function fetchKeycrmOffers(maxPages = 40): Promise<KeycrmOffer[]> {
         if (rows.length < perPage || payload?.next_page_url === null) break;
     }
 
+    offersCache = { at: Date.now(), offers };
     return offers;
 }
 

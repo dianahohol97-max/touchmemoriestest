@@ -12,7 +12,11 @@ import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { isTestOrder } from '@/lib/automation/test-orders';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+// The catalogue upkeep walks the whole KeyCRM catalogue and can resolve
+// hundreds of pending pairs; at 60 seconds the run died mid-pass (504) and
+// nothing it had started was recorded. Five minutes is the platform maximum
+// for this plan and leaves the passes room to finish.
+export const maxDuration = 300;
 
 /**
  * Carry paid website orders into KeyCRM, so the manager stops re-typing them.
