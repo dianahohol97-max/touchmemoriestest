@@ -58,7 +58,7 @@ async function isEnabled(): Promise<boolean> {
  * keeping the meaning of the source line. Signs the model drops are dropped
  * from the message rather than filled in from imagination.
  */
-async function condense(entries: HoroscopeEntry[]): Promise<HoroscopeEntry[]> {
+async function condense(entries: HoroscopeEntry[], forDay: 'TODAY' | 'TOMORROW'): Promise<HoroscopeEntry[]> {
     if (!entries.length || !process.env.ANTHROPIC_API_KEY) return [];
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -71,6 +71,12 @@ async function condense(entries: HoroscopeEntry[]): Promise<HoroscopeEntry[]> {
             'Тобі дають англомовні гороскопи з published джерела. Твоє завдання — переказати їх українською, стисло і природно.',
             'Категорично заборонено вигадувати чи додавати передбачення, яких немає у вихідному тексті. Тільки те, що є в оригіналі.',
             'Для кожного знаку — рівно одне речення, максимум 140 символів, живою українською мовою.',
+            // The source writes «today» because on its own page it IS today;
+            // for us that page is tomorrow's forecast, and a line that opens
+            // with «Сьогодні» under the heading «на завтра» reads as an error.
+            forDay === 'TOMORROW'
+                ? 'Це прогноз на ЗАВТРА. Не пиши слово «сьогодні»: або скажи «завтра», або взагалі обійдися без згадки дня.'
+                : 'Це прогноз на сьогодні.',
             'Не використовуй речення з одного-двох слів. Без списків, без емодзі, без пояснень.',
             'Формат відповіді: кожен рядок «Знак: текст». Нічого більше.',
         ].join(' '),
@@ -122,7 +128,7 @@ export async function GET(req: Request) {
         forDay = fetched.day;
         diagnostics = fetched.diagnostics;
         raw = fetched.entries.length;
-        horoscopes = await condense(fetched.entries);
+        horoscopes = await condense(fetched.entries, fetched.day);
     } catch (e) {
         console.error('[evening-horoscope] horoscopes failed:', e);
         diagnostics.push(String((e as any)?.message || e));
