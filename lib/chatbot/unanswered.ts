@@ -58,6 +58,16 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     const rawActive = parseFloat(String(activeSetting?.value ?? ''));
     const activeHours = Number.isFinite(rawActive) && rawActive >= 0 ? rawActive : 24;
 
+    // …EXCEPT when that last human reply is the print handoff («передано в
+    // друк»): the design phase is over, so silence after it is a potentially
+    // forgotten client, not work in progress — the dialog re-enters full
+    // monitoring immediately. Phrases configurable for the team's wording.
+    const { data: handoffSetting } = await supabase
+        .from('settings').select('value').eq('key', 'social_watchdog_handoff_phrases').maybeSingle();
+    const handoffPhrases: string[] = Array.isArray(handoffSetting?.value)
+        ? handoffSetting.value.map(String)
+        : ['передано в друк', 'передаємо в друк', 'передали в друк'];
+
     const { data: conversations, error: convErr } = await supabase
         .from('social_conversations')
         .select('id, platform, external_username, status, last_message_at')
@@ -77,13 +87,18 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     if (msgErr) throw new Error(msgErr.message);
 
     const latestByConv = new Map<string, { sender: string; original_text: string | null; sent_at: string }>();
-    const lastHumanByConv = new Map<string, string>();
+    const lastHumanByConv = new Map<string, { sent_at: string; text: string }>();
     for (const m of messages || []) {
         if (!latestByConv.has(m.conversation_id)) latestByConv.set(m.conversation_id, m);
         if (m.sender === 'human_manager' && !lastHumanByConv.has(m.conversation_id)) {
-            lastHumanByConv.set(m.conversation_id, m.sent_at);
+            lastHumanByConv.set(m.conversation_id, { sent_at: m.sent_at, text: m.original_text || '' });
         }
     }
+
+    const isHandoff = (text: string) => {
+        const lower = text.toLowerCase();
+        return handoffPhrases.some(p => p && lower.includes(p.toLowerCase()));
+    };
 
     const unanswered: WaitingDialog[] = [];
     const needsHuman: WaitingDialog[] = [];
@@ -107,9 +122,10 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
             // the active window — both are being handled, alerting on them
             // trains everyone to ignore the watchdog.
             if (conv.status === 'human_handling') continue;
-            const lastHumanAt = lastHumanByConv.get(conv.id);
-            const humanActive = activeHours > 0 && lastHumanAt
-                && (now - new Date(lastHumanAt).getTime()) < activeHours * HOUR_MS;
+            const lastHuman = lastHumanByConv.get(conv.id);
+            const humanActive = activeHours > 0 && lastHuman
+                && (now - new Date(lastHuman.sent_at).getTime()) < activeHours * HOUR_MS
+                && !isHandoff(lastHuman.text);
             if (humanActive) continue;
             unanswered.push(item);
         }
