@@ -457,13 +457,19 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
     const pricesByProduct = new Map<string, Array<{ variant: string; price: number }>>();
     const withoutCost: string[] = [];
 
-    // Price-follow allowlist (Diana, 2026-08-11: «поки що ні, тільки для
-    // холстів — буде вручну перевіряти»): ONLY slugs listed in
-    // settings('keycrm_price_follow_slugs') get their variant sale prices
-    // overwritten from the CRM. Everything else keeps site-owned prices.
-    const { data: followSetting } = await supabase
-        .from('settings').select('value').eq('key', 'keycrm_price_follow_slugs').maybeSingle();
-    const priceFollow = new Set<string>(Array.isArray(followSetting?.value) ? followSetting.value.map(String) : []);
+    // Who follows the CRM's sale prices. Started as an allowlist (Diana,
+    // 2026-08-11: «поки що ні, тільки для холстів»); after verifying product
+    // after product she made it the rule — «використовуй CRM як джерело
+    // правди». settings('keycrm_price_follow_all') = true means every
+    // CONFIRMED pair follows; the slug list stays as the narrower mode and as
+    // the way back if a product ever needs a site-owned price again.
+    const [{ data: followAllSetting }, { data: followSetting }] = await Promise.all([
+        supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_all').maybeSingle(),
+        supabase.from('settings').select('value').eq('key', 'keycrm_price_follow_slugs').maybeSingle(),
+    ]);
+    const followAll = followAllSetting?.value === true || followAllSetting?.value === 'true';
+    const followList = new Set<string>(Array.isArray(followSetting?.value) ? followSetting.value.map(String) : []);
+    const priceFollow = { has: (slug: string) => followAll || followList.has(slug) };
 
     for (const row of mappings || []) {
         const offer = offerById.get(String(row.keycrm_offer_id));
@@ -545,9 +551,8 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
                 return { ...v, cost_price: cost };
             });
 
-            // Sale prices follow the CRM only for allowlisted products
-            // (settings keycrm_price_follow_slugs) — currently the canvas
-            // prints, per Diana's explicit call. Applied on top of the
+            // Sale prices follow the CRM for products in scope (see
+            // priceFollow above). Applied on top of the
             // cost-updated array so one products.update carries both.
             const priceList = priceFollow.has(slug) ? pricesByProduct.get(slug) : undefined;
             if (priceList?.length) {
