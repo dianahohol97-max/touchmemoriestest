@@ -87,7 +87,20 @@ export async function pushInstructionCommentsToCrm(): Promise<{ pushed: number; 
                 continue;
             }
 
-            const appended = `${current}\n${MARKER} ${text}`.trim().slice(0, COMMENT_LIMIT);
+            // Only the LATEST chat instruction lives on the card (Diana,
+            // 2026-08-11, after six test questions piled up on 13790:
+            // «забагато, залишай тільки останній коментар»). Every earlier
+            // «[З чату]» line is stripped; whatever a human typed themselves
+            // stays untouched above it. The full thread remains in
+            // order_history and the важливо tab — the CRM comment is a
+            // pointer, not the archive.
+            const humanPart = current
+                .split('\n')
+                .filter(line => !line.trimStart().startsWith(MARKER))
+                .join('\n')
+                .trim();
+
+            const appended = `${humanPart}\n${MARKER} ${text}`.trim().slice(0, COMMENT_LIMIT);
             await keycrmRequest(`/order/${encodeURIComponent(String(crmId))}`, {
                 method: 'PUT',
                 body: { manager_comment: appended },

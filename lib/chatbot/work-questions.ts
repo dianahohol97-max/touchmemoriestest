@@ -363,9 +363,17 @@ const STOCK_STOP_WORDS = new Set([
     'наявності', 'наявність', 'зараз', 'будь', 'ласка', 'підкажи', 'маємо',
 ]);
 
-/** Word stem tolerant to Ukrainian inflection: «маркерів»→«маркер», «білих»→«біл». */
-function stockStem(w: string): string {
-    return w.length > 4 ? w.slice(0, w.length - 2) : w;
+/**
+ * Word stems tolerant to Ukrainian inflection, progressively shorter:
+ * «маркерів»→«маркер», «білих»→«біл», «кутиками»→«кутик» (live case — the
+ * single fixed-length cut produced «кутика», which «Кутики…» does not
+ * contain, and the clarification reply fell through to the full list).
+ */
+function stemVariants(w: string): string[] {
+    const out = [w];
+    if (w.length > 4) out.push(w.slice(0, w.length - 2));
+    if (w.length > 5) out.push(w.slice(0, w.length - 3));
+    return out;
 }
 
 // The tail of every clarification message — the follow-up detector keys on it.
@@ -418,7 +426,7 @@ async function buildStockAnswer(question: string): Promise<string | null> {
         .replace(/@\S+/g, ' ')
         .split(/[^\p{L}\p{N}]+/u)
         .filter(w => w.length >= 4 && !STOCK_STOP_WORDS.has(w))
-        .map(stockStem);
+        .flatMap(stemVariants);
     if (!stems.length) return null;
 
     const products = await fetchActiveProducts();
@@ -453,7 +461,7 @@ async function answerStockClarification(replyText: string, answer: string): Prom
         .replace(/@\S+/g, ' ')
         .split(/[^\p{L}\p{N}]+/u)
         .filter(w => w.length >= 3 && !STOCK_STOP_WORDS.has(w))
-        .map(stockStem);
+        .flatMap(stemVariants);
 
     let chosen = stems.length
         ? candidates.filter((p: any) => stems.some(s => String(p.name).toLowerCase().includes(s)))
