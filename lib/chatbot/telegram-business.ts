@@ -190,6 +190,17 @@ export async function sendViaPublicBot(params: {
     }
 }
 
+/**
+ * Post a message to the team's alert destination: the chat claimed via
+ * /alerts_here, else Diana's private chat with the bot. Silently no-ops when
+ * neither exists yet — callers treat this as best-effort notification.
+ */
+export async function sendWorkChatAlert(text: string): Promise<{ success: boolean; error?: string }> {
+    const chatId = await getWatchdogChatId();
+    if (!chatId) return { success: false, error: 'no alert chat configured' };
+    return sendViaPublicBot({ chat_id: chatId, text });
+}
+
 /** Human-readable placeholder for non-text business messages, so monitoring history has no gaps. */
 export function describeNonTextMessage(msg: any): string {
     if (msg.photo) return '📷 [фото]';
