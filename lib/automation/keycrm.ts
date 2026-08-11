@@ -653,7 +653,7 @@ export async function fetchOrderCardExtras(orderId: string | number): Promise<{ 
     const result = { comments: [] as string[], custom_fields: [] as string[] };
 
     try {
-        const payload = await keycrmRequest(`/order/${id}?include=custom_fields`);
+        const payload = await keycrmRequest(`/order/${id}?include=products,custom_fields`);
         const fields: any[] = Array.isArray(payload?.custom_fields) ? payload.custom_fields : [];
         result.custom_fields = fields
             .map(f => {
@@ -663,6 +663,20 @@ export async function fetchOrderCardExtras(orderId: string | number): Promise<{ 
             })
             .filter(Boolean)
             .slice(0, 10);
+
+        // The specification the team actually writes lives in the PRODUCT
+        // LINE's «Коментар» column (Diana's screenshot of 13790: «23х23, білі
+        // сторінки / В-01, гравіювання / A&N / …») — not in the card's
+        // activity feed, which the API refuses to serve. These line comments
+        // are the primary harvest of this whole function.
+        const productRows: any[] = Array.isArray(payload?.products) ? payload.products : [];
+        for (const p of productRows) {
+            const line = String(p?.comment ?? p?.note ?? '').trim();
+            if (line) {
+                const name = String(p?.name ?? '').trim();
+                result.comments.push(name ? `${name}: ${line}` : line);
+            }
+        }
     } catch { /* the account may not expose custom fields — fine */ }
 
     for (const path of [
