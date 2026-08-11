@@ -73,8 +73,18 @@ function money(value: any): number {
 function statusFromCrm(crm: KeycrmOrder): string {
     const label = (crm.status_label || '').toLowerCase();
 
-    if (label.includes('доставлен') || label.includes('отриман')) return 'delivered';
-    if (label.includes('дороз') || label.includes('відправ')) return 'shipped';
+    // The API sometimes hands back the stage's INTERNAL key instead of its
+    // display name — English snake_case like `in_transit`, `completed`,
+    // `canceled`, `delivered_to_delivery`. Live data on 2026-08-11 held ~90
+    // mirrored orders under such keys, every one of them unmapped: cancelled
+    // orders sat on the production calendar as pending work, and completed
+    // ones were about to flood back onto it. Both vocabularies are matched.
+    if (label.includes('скасов') || label.includes('анульов') || label.includes('cancel')) return 'cancelled';
+    if (label.includes('повернен') || label.includes('refund')) return 'refunded';
+    // shipped BEFORE delivered: `delivered_to_delivery` («передано в
+    // доставку») contains the word delivered but means the parcel just left.
+    if (label.includes('to_delivery') || label.includes('дороз') || label.includes('відправ') || label.includes('transit') || label.includes('shipped')) return 'shipped';
+    if (label.includes('доставлен') || label.includes('отриман') || label.includes('delivered') || label.includes('completed') || label.includes('виконан')) return 'delivered';
 
     return 'confirmed';
 }
@@ -97,7 +107,8 @@ function deliveryMethodFrom(crm: KeycrmOrder): string {
  * than copied from a field: the CRM's own notion of paid lives in its payment
  * lines, and the site only needs to know whether the money is in.
  */
-function toOrderRow(crm: KeycrmOrder, existingId?: string) {
+function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string | null; custom_attributes?: any }) {
+    const existingId = existing?.id;
     const total = money(crm.grand_total);
     const received = money(crm.payments_total);
 
@@ -128,8 +139,26 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
         client_comment: crm.buyer_comment,
     });
 
+    // Tighten-only against what the site already holds: a deadline pulled in
+    // by a chat instruction («13808 обов'язково 12.08 відправити») must not be
+    // pushed back out an hour later by this refresh recomputing from the CRM
+    // comment alone. The earlier of the two dates wins.
+    const existingDeadline = existing?.deadline ? new Date(existing.deadline) : null;
+    const effectiveDeadline = existingDeadline
+        && Number.isFinite(existingDeadline.getTime())
+        && existingDeadline.getTime() < deadline.getTime()
+        ? existingDeadline
+        : deadline;
+
+    // Merge, never rebuild: custom_attributes carries site-owned state too
+    // (chat_task with Софія's recommendation) — only the keycrm block is ours
+    // to replace here.
+    const existingAttrs = (existing?.custom_attributes && typeof existing.custom_attributes === 'object')
+        ? existing.custom_attributes
+        : {};
+
     return {
-        deadline: deadline.toISOString(),
+        deadline: effectiveDeadline.toISOString(),
         // Tags are how the workshop routes an order, so they have to be visible
         // on the site card too, not only in the CRM.
         items,
@@ -158,6 +187,7 @@ function toOrderRow(crm: KeycrmOrder, existingId?: string) {
         created_at: crm.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
         custom_attributes: {
+            ...existingAttrs,
             keycrm: {
                 order_id: crm.id,
                 mirrored: true,
@@ -253,7 +283,10 @@ export async function mirrorKeycrmOrders(params: {
     const numbers = candidates.map(o => `${MIRROR_NUMBER_PREFIX}${o.id}`);
     const { data: existing, error: existingError } = await supabase
         .from('orders')
-        .select('id, order_number')
+        // deadline and custom_attributes ride along so the refresh can merge
+        // instead of clobbering site-owned state (tightened deadlines, Софія's
+        // chat_task recommendation).
+        .select('id, order_number, deadline, custom_attributes')
         .in('order_number', numbers);
 
     if (existingError) {
@@ -261,12 +294,13 @@ export async function mirrorKeycrmOrders(params: {
         return report;
     }
 
-    const existingByNumber = new Map((existing || []).map((r: any) => [r.order_number, r.id]));
+    const existingByNumber = new Map((existing || []).map((r: any) => [r.order_number, r]));
 
     for (const crmOrder of candidates) {
         const number = `${MIRROR_NUMBER_PREFIX}${crmOrder.id}`;
-        const existingId = existingByNumber.get(number);
-        const row = toOrderRow(crmOrder, existingId);
+        const existingRow = existingByNumber.get(number);
+        const existingId = existingRow?.id;
+        const row = toOrderRow(crmOrder, existingRow);
         const action = existingId ? 'оновлення' : 'створення';
 
         if (report.samples.length < 8) {

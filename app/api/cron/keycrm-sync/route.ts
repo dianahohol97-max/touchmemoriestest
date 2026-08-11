@@ -5,6 +5,7 @@ import { syncOrderBothWays, findSyncedOrders } from '@/lib/automation/keycrm-two
 import { applyStockForOrder, findOrdersNeedingStock } from '@/lib/automation/stock';
 import { enqueueDefectsFromTags } from '@/lib/automation/reprints';
 import { resolvePendingProductLinks, syncSkusToKeycrm, syncCostPrices } from '@/lib/automation/keycrm-catalogue';
+import { pushInstructionCommentsToCrm } from '@/lib/automation/keycrm-comments';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -198,6 +199,23 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
+        // Chat instructions → CRM card comments. One write puts the
+        // instruction where the managers work AND where the hourly mirror and
+        // the deadline resolver read it back, so tightened dates survive every
+        // refresh. Skips itself instantly when nothing is pending.
+        let chatComments: any = null;
+        try {
+            if (!dryRun) {
+                chatComments = await pushInstructionCommentsToCrm();
+                if (chatComments.pushed || chatComments.problems.length) {
+                    console.log('[keycrm-sync] chat comments', JSON.stringify(chatComments));
+                }
+            }
+        } catch (e: any) {
+            console.error('[keycrm-sync] chat comments failed:', e);
+            stats.errors++;
+        }
+
         // Fourth pass: open reprint-queue entries for freshly tagged defects.
         // Runs after the reconcile pass on purpose — that is what merges tags
         // down from the CRM, so a "брак" set there minutes ago is already on
@@ -211,7 +229,7 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, chat_comments: chatComments });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

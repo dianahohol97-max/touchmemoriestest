@@ -70,7 +70,7 @@ export async function GET(request: Request) {
         .from('orders')
         .select('id, order_number, customer_name, order_status, payment_status, source, deadline, paid_at, created_at, notes, client_comment, custom_attributes, items, total, designer_id, with_designer')
         .gte('created_at', readFrom.toISOString())
-        .not('order_status', 'in', '("cancelled","refunded","delivered","shipped")')
+        .not('order_status', 'in', '("cancelled","refunded","delivered","shipped","completed")')
         .order('deadline', { ascending: true })
         .limit(500);
 

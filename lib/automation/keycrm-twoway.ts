@@ -59,8 +59,12 @@ import { isTestOrder } from '@/lib/automation/test-orders';
 
 function fulfilmentFromLabel(label: string): string | undefined {
     const l = (label || '').toLowerCase();
-    if (l.includes('доставлен') || l.includes('отриман')) return 'delivered';
-    if (l.includes('дороз') || l.includes('відправ')) return 'shipped';
+    // The API sometimes returns the stage's internal English key
+    // (`in_transit`, `delivered_to_delivery`) instead of its display name —
+    // both vocabularies are matched, and shipped is checked before delivered
+    // because `delivered_to_delivery` means the parcel just LEFT.
+    if (l.includes('to_delivery') || l.includes('дороз') || l.includes('відправ') || l.includes('transit') || l.includes('shipped')) return 'shipped';
+    if (l.includes('доставлен') || l.includes('отриман') || l.includes('delivered')) return 'delivered';
     return undefined;
 }
 
