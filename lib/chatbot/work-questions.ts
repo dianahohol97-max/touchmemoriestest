@@ -425,6 +425,33 @@ export async function refreshTaskRecommendations(orderNumbers: string[]): Promis
 }
 
 /**
+ * The answer used when the AI is unavailable. Diana, 2026-08-11: «відповіді
+ * все ще дуже довгі» — she was seeing THIS card, because the Anthropic key
+ * was missing and every question fell back to the full fact sheet. A fallback
+ * must still answer the question asked, so it picks the few lines the words
+ * of the question point at, and only shows everything when it recognises
+ * nothing.
+ */
+function compactFallback(question: string, order: any, facts: string, link: string): string {
+    const q = String(question || '').toLowerCase();
+    const lines = facts.split('\n');
+    const pick = (...needles: string[]) =>
+        lines.filter(l => needles.some(n => l.toLowerCase().startsWith(n.toLowerCase())));
+
+    let chosen: string[] = [];
+    if (/дедлайн|коли.*(готов|відправ|поїд)|термін/.test(q)) chosen = pick('Дедлайн', 'Етап у KeyCRM', 'ТТН');
+    else if (/ттн|накладн|відправ|доставк|пошт/.test(q)) chosen = pick('ТТН', 'Етап у KeyCRM', 'Дедлайн');
+    else if (/оплат|заплат|грош|переплат|доплат/.test(q)) chosen = pick('Оплата', 'Сума');
+    else if (/менеджер|відповідальн|хто веде|чий/.test(q)) chosen = pick('Відповідальний менеджер', 'Клієнт');
+    else if (/товар|що замов|склад|велюр|колір|обкладин|розмір|сторін/.test(q)) chosen = pick('Товари', 'Нотатки менеджера');
+    else if (/статус|етап|де зараз|на якому/.test(q)) chosen = pick('Етап у KeyCRM', 'Статус на сайті', 'ТТН');
+    else if (/клієнт|замовник|телефон|ім/.test(q)) chosen = pick('Клієнт', 'Сума');
+
+    const body = chosen.length ? chosen.join('\n') : facts;
+    return `📦 ${order.order_number}\n${body}\n${link}`;
+}
+
+/**
  * A free-form question about one order: gather the order's live facts and let
  * the model answer THE QUESTION from them — nothing else. Falls back to a
  * plain fact card when the AI is unavailable, so the chat always gets an
@@ -512,7 +539,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     const link = `${SITE_URL}/admin/orders/${order.id}`;
 
     if (!process.env.ANTHROPIC_API_KEY) {
-        return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        return compactFallback(question, order, facts, link);
     }
 
     try {
@@ -547,10 +574,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
             }],
         });
         const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
-        if (!reply) return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        if (!reply) return compactFallback(question, order, facts, link);
         return `${reply}\n\n${link}`;
     } catch (e) {
         console.error('[work-questions] AI answer failed:', e);
-        return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        return compactFallback(question, order, facts, link);
     }
 }
