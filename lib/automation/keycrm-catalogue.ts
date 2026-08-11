@@ -681,8 +681,13 @@ export async function linkPastedId(params: {
     const { pasted, siteSlug, note, offers, siteProducts } = params;
     const warnings: string[] = [];
 
-    const direct = offers.find(o => String(o.offer_id) === pasted);
-    let family = direct ? [direct] : offers.filter(o => o.product_id && o.product_id === pasted);
+    // Catalogue URLs (/app/catalog/ID/edit) always carry the PRODUCT id, and
+    // product ids share one number space with offer ids — so an unrelated
+    // OFFER №97 must not shadow PRODUCT №97 (live case: «Фото стандартні»,
+    // whose fan-out silently matched a foreign offer and produced nothing).
+    // The number is read as a product first; only a number that matches no
+    // product at all falls back to being an offer id.
+    let family = offers.filter(o => o.product_id && o.product_id === pasted);
 
     // Not in the bulk listing — ask the CRM for exactly this product's
     // variants. The paged catalogue read has a page budget, and a pasted link
@@ -690,6 +695,11 @@ export async function linkPastedId(params: {
     // case: «Набір для відбитків», product 10).
     if (!family.length) {
         family = await fetchKeycrmOffersByProduct(pasted);
+    }
+
+    if (!family.length) {
+        const direct = offers.find(o => String(o.offer_id) === pasted);
+        if (direct) family = [direct];
     }
 
     if (!family.length) {
