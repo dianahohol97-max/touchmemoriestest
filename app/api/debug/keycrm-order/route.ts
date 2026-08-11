@@ -27,6 +27,23 @@ export async function GET(req: Request) {
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
     const out: any = {};
+
+    // The CRM's tag dictionary, so the site's tag list can be made identical
+    // (Diana: «створи в адмінці на сайті ідентичні теги до тих що в срм»).
+    // Only what orders happen to carry is visible from the mirror; the full
+    // list lives behind whichever of these spellings this account answers.
+    for (const path of ['/order/tags?limit=100', '/tags?limit=100', '/order/tag?limit=100', '/settings/tags?limit=100']) {
+        try {
+            const payload = await keycrmRequest(path);
+            const rows: any[] = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []);
+            if (rows.length) {
+                out.tag_dictionary = { path, names: rows.map((t: any) => t?.name ?? t?.title ?? t).slice(0, 100) };
+                break;
+            }
+        } catch (e: any) {
+            out.tag_dictionary = { lastError: `${path}: ${String(e?.message || e)}` };
+        }
+    }
     for (const include of [
         'buyer,products,payments,shipping,tags,manager,custom_fields',
         'manager,custom_fields',
