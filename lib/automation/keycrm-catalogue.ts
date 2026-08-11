@@ -506,7 +506,7 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
 
     const slugs = [...new Set([...costsByProduct.keys(), ...pricesByProduct.keys()])];
     const { data: products } = slugs.length
-        ? await supabase.from('products').select('slug, cost_price, variants').in('slug', slugs)
+        ? await supabase.from('products').select('slug, cost_price, variants, price').in('slug', slugs)
         : { data: [] as any[] };
 
     const productBySlug = new Map((products || []).map((p: any) => [p.slug, p]));
@@ -574,6 +574,22 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
             // apart — reported rather than averaged into a lie.
             conflicts.push({ slug, costs: list });
             continue;
+        }
+
+        // Flat-price products on the follow list (no variants — e.g. the
+        // travel book): products.price itself follows the CRM, but only when
+        // every linked CRM row agrees on one price — two different prices for
+        // a product with a single price field is a conflict, not an average.
+        if (!variants.length && priceFollow.has(slug)) {
+            const flatPrices = [...new Set((pricesByProduct.get(slug) || []).map(p => p.price))];
+            if (flatPrices.length === 1) {
+                const price = flatPrices[0];
+                const current = Number(product?.price ?? 0);
+                if (Math.abs(current - price) >= 0.005) {
+                    patch.price = price;
+                    updatedPrices.push({ slug, sizes: [{ variant: '', price }] });
+                }
+            }
         }
 
         // The single product-level field is written only when every size
