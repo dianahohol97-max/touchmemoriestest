@@ -36,7 +36,23 @@ const QUESTION_MARKER = /\?|(?<!\p{L})(що|шо|коли|який|яка|яке
 // чи софійка, це означає що звертаються до боту»). A message addressed by
 // name is a message TO Софія even without a question mark, and deserves at
 // least a hint instead of silence.
-const ADDRESSED_BY_NAME = /софі|sofi/i;
+const ADDRESSED_BY_NAME = /софі\p{L}*|sofi\p{L}*/iu;
+
+/**
+ * Addressed to the BOT, not merely mentioning a person who shares the name.
+ * Live case: the bare message «Sofiia Gerega» (a teammate's full name) drew
+ * the bot into the conversation. The name word immediately followed by a
+ * capitalised word is somebody's ім'я та прізвище — «Софія Герега сьогодні
+ * відправила» is about her, while «Софія, як справи» (punctuation or
+ * lowercase after the name) is to the bot.
+ */
+function isAddressedToBot(text: string): boolean {
+    const m = String(text || '').match(ADDRESSED_BY_NAME);
+    if (!m) return false;
+    const after = String(text).slice((m.index ?? 0) + m[0].length).replace(/^[ \t]+/, '');
+    if (/^[A-ZА-ЯІЇЄҐ]\p{L}+/u.test(after)) return false;
+    return true;
+}
 
 const OPEN_TASKS = /(доручен|завдан)[\s\S]{0,60}(не\s*викона|невикона|відкрит|актуальн|залишил|лишил|вис(ять|ить)|ще\s+(є|не))/i;
 
@@ -70,7 +86,7 @@ const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|те
  */
 export function matchDigestQuestion(text: string): boolean {
     const t = String(text || '');
-    if (!QUESTION_MARKER.test(t) && !ADDRESSED_BY_NAME.test(t)) return false;
+    if (!QUESTION_MARKER.test(t) && !isAddressedToBot(t)) return false;
     if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return false;
     if (/(пропустил|пропустити|пропущен)/i.test(t)) return true;
     if (/(вчора|учора|за ніч|за добу)/i.test(t) && /(було|цікав|нов|стал|відбул|змінил)/i.test(t)) return true;
@@ -79,7 +95,7 @@ export function matchDigestQuestion(text: string): boolean {
 
 export function matchShipQuestion(text: string): { horizonDays: number } | null {
     const t = String(text || '');
-    if (!QUESTION_MARKER.test(t) && !ADDRESSED_BY_NAME.test(t)) return null;
+    if (!QUESTION_MARKER.test(t) && !isAddressedToBot(t)) return null;
     if (!SHIP_WORDS.test(t) || !SHIP_URGENCY.test(t)) return null;
     if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return null;
     if (/післязавтра/i.test(t)) return { horizonDays: 2 };
@@ -193,7 +209,7 @@ export async function handleWorkQuestion(params: {
 
     // Addressing the bot by name counts as talking to it, question mark or
     // not — «Софія, що по відправках» must not die on the marker check.
-    const addressed = ADDRESSED_BY_NAME.test(text);
+    const addressed = isAddressedToBot(text);
     if (!QUESTION_MARKER.test(text) && !addressed) return null;
 
     if (NATIONALITY.test(text)) return NATIONALITY_REPLY;
@@ -241,7 +257,11 @@ export async function handleWorkQuestion(params: {
  * called by name reads as broken.
  */
 async function chatAboutLife(text: string, replyText?: string, chatId?: string): Promise<string> {
-    const fallback = 'Я тут 🙌 Можу підказати, що термінового на відправку сьогодні чи завтра, які доручення з чатів ще висять, або розповісти про конкретне замовлення — просто напиши його номер і питання, наприклад «13644 коли відправка?». Повний список команд — /help.';
+    // When Софія has no answer of her own, she hands over to a human (Diana,
+    // 2026-08-11: «якщо софія не може відповісти, то хай тагає
+    // @Alina_Avlastsova в чаті») — the tag pings Аліна, and the second
+    // sentence keeps the handoff useful instead of a dead end.
+    const fallback = 'Тут я, на жаль, не підкажу — @Alina_Avlastsova, глянь, будь ласка 🙏 А мене можна питати про відправки на сьогодні чи завтра, відкриті доручення, або про конкретне замовлення за його номером.';
 
     if (!process.env.ANTHROPIC_API_KEY) return fallback;
 
