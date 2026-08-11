@@ -9,6 +9,7 @@ import {
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
+import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 
 /**
  * Team commands for work group chats (and for Diana's private chat with the
@@ -139,6 +140,9 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
                 '/order TM-001234 — стан конкретного замовлення',
                 '/overdue — замовлення з простроченим дедлайном',
                 '/unanswered — переписки з клієнтами, що чекають на відповідь',
+                '/risk — замовлення під загрозою зриву дедлайну',
+                '/stock — матеріали, що закінчуються',
+                '/waiting — оплачені замовлення без фото від клієнта',
                 '/alerts_here — надсилати сповіщення в цей чат (тільки власниця)',
                 '/chatid — показати ID чату',
             ].join('\n');
@@ -159,6 +163,22 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
         case '/overdue': {
             if (!registered) return unregisteredReply(isPrivate);
             return withDailyGreeting(chatId, await buildOverdue());
+        }
+
+        case '/stock': {
+            if (!registered) return unregisteredReply(isPrivate);
+            return withDailyGreeting(chatId, await buildStock());
+        }
+
+        case '/risk':
+        case '/ryzyk': {
+            if (!registered) return unregisteredReply(isPrivate);
+            return withDailyGreeting(chatId, await buildRisks());
+        }
+
+        case '/waiting': {
+            if (!registered) return unregisteredReply(isPrivate);
+            return withDailyGreeting(chatId, await buildWaiting());
         }
 
         case '/unanswered': {
@@ -384,5 +404,57 @@ async function buildUnanswered(): Promise<string> {
     } catch (e: any) {
         console.error('/unanswered error:', e);
         return 'Не вдалося отримати список переписок, спробуй ще раз за хвилину.';
+    }
+}
+
+/** «Що закінчується» — CRM stock mirrored onto confirmed catalogue pairs. */
+async function buildStock(): Promise<string> {
+    try {
+        const { items, threshold } = await computeLowStock();
+        if (!items.length) return `Матеріалів менше ${threshold} шт немає — запаси в нормі ✅`;
+        const lines = [`📦 Закінчуються (менше ${threshold} шт):`, ''];
+        for (const i of items.slice(0, MAX_LISTED)) {
+            const work = i.inWork ? `, у роботі ${i.inWork} замовл.` : '';
+            lines.push(`• ${i.name}${i.variant ? ` ${i.variant}` : ''} — ${i.stock} шт${work}`);
+        }
+        if (items.length > MAX_LISTED) lines.push(`…і ще ${items.length - MAX_LISTED} позицій.`);
+        return lines.join('\n');
+    } catch (e: any) {
+        console.error('/stock failed:', e);
+        return 'Не вдалося прочитати залишки, спробуй за хвилину.';
+    }
+}
+
+/** «Що може зірватись» — deadlines still ahead but not yet handed to print. */
+async function buildRisks(): Promise<string> {
+    try {
+        const risks = await computeDeadlineRisks();
+        if (!risks.length) return 'Нічого під загрозою — усе, що з дедлайном на цьому тижні, вже в роботі ✅';
+        const lines = [`⚠️ Під загрозою зриву (${risks.length}):`, ''];
+        for (const r of risks.slice(0, MAX_LISTED)) {
+            lines.push(`• ${r.orderNumber} — ${r.customer}, ${r.reason} (стадія: ${r.stage})`);
+        }
+        if (risks.length > MAX_LISTED) lines.push(`…і ще ${risks.length - MAX_LISTED} замовлень.`);
+        return lines.join('\n');
+    } catch (e: any) {
+        console.error('/risk failed:', e);
+        return 'Не вдалося порахувати ризики, спробуй за хвилину.';
+    }
+}
+
+/** «Чекаємо матеріали» — paid orders with no files attached. */
+async function buildWaiting(): Promise<string> {
+    try {
+        const waiting = await computeWaitingForClient();
+        if (!waiting.length) return 'Усі оплачені замовлення мають матеріали від клієнтів ✅';
+        const lines = [`📥 Чекаємо фото від клієнта (${waiting.length}):`, ''];
+        for (const w of waiting.slice(0, MAX_LISTED)) {
+            lines.push(`• ${w.orderNumber} — ${w.customer}, оплачено ${w.paidDaysAgo} дн тому`);
+        }
+        if (waiting.length > MAX_LISTED) lines.push(`…і ще ${waiting.length - MAX_LISTED} замовлень.`);
+        return lines.join('\n');
+    } catch (e: any) {
+        console.error('/waiting failed:', e);
+        return 'Не вдалося отримати список, спробуй за хвилину.';
     }
 }

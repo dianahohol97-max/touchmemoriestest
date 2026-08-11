@@ -4,6 +4,7 @@ import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
 import { morningGreeting } from '@/lib/chatbot/work-commands';
 import { computeUnansweredDialogs } from '@/lib/chatbot/unanswered';
 import { isTestOrder } from '@/lib/automation/test-orders';
+import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -100,6 +101,43 @@ export async function GET(req: Request) {
         if (upcoming.length > MAX_LISTED) lines.push(`…і ще ${upcoming.length - MAX_LISTED} у цьому вікні.`);
         lines.push('');
     }
+
+    // Risks — the things that are not broken yet (Diana's picks, 2026-08-11).
+    // Each block is independent and swallowed on failure: a digest that dies
+    // on one query is worse than a digest missing one section.
+    try {
+        const risks = await computeDeadlineRisks();
+        if (risks.length) {
+            lines.push(`⚠️ Під загрозою зриву (${risks.length}):`);
+            for (const r of risks.slice(0, MAX_LISTED)) {
+                lines.push(`• ${r.orderNumber} — ${r.customer}, ${r.reason} (стадія: ${r.stage})`);
+            }
+            lines.push('');
+        }
+    } catch (e) { console.error('digest deadline risks failed:', e); }
+
+    try {
+        const waiting = await computeWaitingForClient();
+        if (waiting.length) {
+            lines.push(`📥 Чекаємо матеріали від клієнта (${waiting.length}):`);
+            for (const w of waiting.slice(0, MAX_LISTED)) {
+                lines.push(`• ${w.orderNumber} — ${w.customer}, оплачено ${w.paidDaysAgo} дн тому, фото ще немає`);
+            }
+            lines.push('');
+        }
+    } catch (e) { console.error('digest waiting-for-client failed:', e); }
+
+    try {
+        const { items, threshold } = await computeLowStock();
+        if (items.length) {
+            lines.push(`📦 Закінчуються матеріали (менше ${threshold} шт):`);
+            for (const i of items.slice(0, MAX_LISTED)) {
+                const work = i.inWork ? `, у роботі ${i.inWork} замовл.` : '';
+                lines.push(`• ${i.name}${i.variant ? ` ${i.variant}` : ''} — ${i.stock} шт${work}`);
+            }
+            lines.push('');
+        }
+    } catch (e) { console.error('digest low stock failed:', e); }
 
     try {
         const report = await computeUnansweredDialogs();
