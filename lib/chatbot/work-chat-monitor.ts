@@ -261,13 +261,36 @@ export async function processPendingMentions(): Promise<{ attached: number; kept
 
     for (const p of queue) {
         if (!p?.num || !p?.ts || new Date(p.ts).getTime() < cutoff) continue;
-        const ok = await attachToOrder(supabase, p.num, {
+        let ok = await attachToOrder(supabase, p.num, {
             text: p.text,
             chat: p.chat,
             sender: p.sender,
             due: p.due ? new Date(p.due) : null,
             done: !!p.done,
         });
+
+        // Still absent — usually an OLD CRM order outside the mirror's recency
+        // window (found live: «запитайте чи можна зняти 13020»). Pull that one
+        // order from KeyCRM by id and retry, so an instruction about any order
+        // the CRM knows lands on a real card instead of dying in this queue
+        // after 48 hours.
+        if (!ok && p.num.startsWith('CRM-')) {
+            try {
+                const { mirrorSingleKeycrmOrder } = await import('@/lib/automation/keycrm-mirror');
+                if (await mirrorSingleKeycrmOrder(p.num.slice(4))) {
+                    ok = await attachToOrder(supabase, p.num, {
+                        text: p.text,
+                        chat: p.chat,
+                        sender: p.sender,
+                        due: p.due ? new Date(p.due) : null,
+                        done: !!p.done,
+                    });
+                }
+            } catch (e) {
+                console.error('[work-chat] single-order rescue failed:', e);
+            }
+        }
+
         if (ok) attached++;
         else keep.push(p);
     }

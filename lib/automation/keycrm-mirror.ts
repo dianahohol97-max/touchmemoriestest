@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { fetchRecentKeycrmOrders, type KeycrmOrder } from '@/lib/automation/keycrm';
+import { fetchRecentKeycrmOrders, fetchKeycrmOrderById, type KeycrmOrder } from '@/lib/automation/keycrm';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 
@@ -212,6 +212,76 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
  * already exist here, and copying them back would produce a second row for the
  * same sale and double every revenue figure that counts them.
  */
+
+/**
+ * Mirror ONE order by its CRM id, on demand.
+ *
+ * The bulk mirror only reads recent orders; a chat instruction can reference
+ * any order the CRM still holds («запитайте чи можна зняти 13020» — an order
+ * far outside the window). This pulls exactly that order, honouring the same
+ * origin rules as the bulk pass: a site-pushed order is skipped (it already
+ * exists), a hand-typed site order is ADOPTED by its TM reference, everything
+ * else is mirrored as CRM-<id>. Returns true when the number is now findable.
+ */
+export async function mirrorSingleKeycrmOrder(crmId: string | number): Promise<boolean> {
+    const supabase = getAdminClient();
+
+    const crm = await fetchKeycrmOrderById(crmId);
+    if (!crm) return false;
+
+    // Site-pushed: the TM row already exists and carries this CRM id.
+    if (String(crm.source_uuid || '').trim()) return true;
+
+    const siteSourceId = String(process.env.KEYCRM_SOURCE_ID || '').trim();
+    if (siteSourceId && crm.source_id === siteSourceId) {
+        const m = String(crm.manager_comment || '').match(/TM-?\s?(\d{4,6})/i);
+        if (!m) return false;
+        const tmNumber = `TM-${m[1].padStart(6, '0')}`;
+        const { data: siteRow } = await supabase
+            .from('orders')
+            .select('id, custom_attributes')
+            .eq('order_number', tmNumber)
+            .maybeSingle();
+        if (!siteRow) return false;
+
+        const attrs = (siteRow.custom_attributes && typeof siteRow.custom_attributes === 'object')
+            ? siteRow.custom_attributes as Record<string, any>
+            : {};
+        if (attrs.keycrm?.order_id) return true;
+
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                custom_attributes: {
+                    ...attrs,
+                    keycrm: {
+                        order_id: crm.id,
+                        status_label: crm.status_label,
+                        payments_total: crm.payments_total,
+                        adopted: true,
+                        synced_at: new Date().toISOString(),
+                    },
+                },
+            })
+            .eq('id', siteRow.id);
+        return !error;
+    }
+
+    const number = `${MIRROR_NUMBER_PREFIX}${crm.id}`;
+    const { data: existing } = await supabase
+        .from('orders')
+        .select('id, order_number, deadline, custom_attributes')
+        .eq('order_number', number)
+        .maybeSingle();
+
+    const row = toOrderRow(crm, existing || undefined);
+    const { error } = existing
+        ? await supabase.from('orders').update(row).eq('id', existing.id)
+        : await supabase.from('orders').insert(row);
+
+    return !error;
+}
+
 export async function mirrorKeycrmOrders(params: {
     windowDays: number;
     dryRun?: boolean;
