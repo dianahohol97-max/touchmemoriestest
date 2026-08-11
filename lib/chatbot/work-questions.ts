@@ -72,6 +72,64 @@ function fmtDate(iso: string | null): string {
 }
 
 /**
+ * Софія's working memory of a chat (Diana, 2026-08-11: «хай має память в
+ * робочих чатах також, щоб якщо якісь запитання по замовленнях дублюються,
+ * вона могла відповісти»). The webhook records every non-command message from
+ * registered chats plus Софія's own replies; the AI paths read the last dozen
+ * back. Kept to a week — working memory, not an archive.
+ */
+export async function recordWorkChatMessage(chatId: string, params: {
+    text: string;
+    sender?: string;
+    isBot?: boolean;
+    messageId?: string;
+}): Promise<void> {
+    const text = String(params.text || '').trim();
+    if (!chatId || !text) return;
+
+    try {
+        const supabase = getAdminClient();
+        await supabase.from('work_chat_messages').insert({
+            chat_id: String(chatId),
+            message_id: params.messageId ? String(params.messageId) : null,
+            sender: params.isBot ? 'Софія' : (params.sender || null),
+            is_bot: params.isBot === true,
+            text: text.slice(0, 1000),
+        });
+        // Opportunistic prune — cheap, and keeps the table honest about being
+        // short-term memory.
+        await supabase
+            .from('work_chat_messages')
+            .delete()
+            .lt('created_at', new Date(Date.now() - 7 * 24 * HOUR_MS).toISOString());
+    } catch (e) {
+        console.error('[work-questions] chat memory write failed:', e);
+    }
+}
+
+/** The last messages of a chat, oldest first, as prompt-ready lines. */
+async function fetchChatContext(chatId: string | undefined, limit = 12): Promise<string> {
+    if (!chatId) return '';
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase
+            .from('work_chat_messages')
+            .select('sender, is_bot, text, created_at')
+            .eq('chat_id', String(chatId))
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        if (!data?.length) return '';
+        return data
+            .reverse()
+            .map(r => `${r.is_bot ? 'Софія' : (r.sender || 'колега')}: ${String(r.text || '').slice(0, 200)}`)
+            .join('\n');
+    } catch (e) {
+        console.error('[work-questions] chat memory read failed:', e);
+        return '';
+    }
+}
+
+/**
  * A question addressed to Софія ABOUT the queue itself, not about one order —
  * «що сьогодні термінового», «які доручення не виконані». The webhook checks
  * this BEFORE the silent instruction capture: such a message is a request for
@@ -91,6 +149,8 @@ export function isMetaWorkQuestion(text: string): boolean {
 export async function handleWorkQuestion(params: {
     text: string;
     replyText?: string;
+    /** Telegram chat id — unlocks Софія's short-term memory of that chat. */
+    chatId?: string;
 }): Promise<string | null> {
     const text = String(params.text || '').trim();
     if (!text || text.startsWith('/')) return null;
@@ -110,7 +170,7 @@ export async function handleWorkQuestion(params: {
     // itself or in the message it replies to. Telegram handles are stripped
     // first: the digits in «@nika11090» are not an order.
     const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
-    if (numbers.length) return answerOrderQuestion(text, numbers);
+    if (numbers.length) return answerOrderQuestion(text, numbers, params.chatId);
 
     // Called by name with no work subject — small talk (Diana, 2026-08-11:
     // «якщо дівчата хочуть попереписувати з софією про життя, то чому б ні,
@@ -118,25 +178,26 @@ export async function handleWorkQuestion(params: {
     // persona; the name-addressing gate keeps her from butting into ordinary
     // team conversation.
     if (addressed) {
-        return chatAboutLife(text, params.replyText);
+        return chatAboutLife(text, params.replyText, params.chatId);
     }
 
     return null;
 }
 
 /**
- * Софія as a colleague, not a report generator. No conversation memory in the
- * group — she sees only the message that addressed her (plus the quoted one on
- * a reply), so every exchange stands alone. Falls back to a capability hint
- * when the AI is unavailable, because silence after being called by name reads
- * as broken.
+ * Софія as a colleague, not a report generator. Her memory of the chat is the
+ * recorded last messages (see recordWorkChatMessage) — enough to keep a
+ * conversation going without inventing shared history. Falls back to a
+ * capability hint when the AI is unavailable, because silence after being
+ * called by name reads as broken.
  */
-async function chatAboutLife(text: string, replyText?: string): Promise<string> {
+async function chatAboutLife(text: string, replyText?: string, chatId?: string): Promise<string> {
     const fallback = 'Я тут 🙌 Можу підказати, що термінового на відправку сьогодні чи завтра, які доручення з чатів ще висять, або розповісти про конкретне замовлення — просто напиши його номер і питання, наприклад «13644 коли відправка?». Повний список команд — /help.';
 
     if (!process.env.ANTHROPIC_API_KEY) return fallback;
 
     try {
+        const context = await fetchChatContext(chatId);
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5',
@@ -147,15 +208,17 @@ async function chatAboutLife(text: string, replyText?: string): Promise<string> 
                 'До тебе звернулися на імʼя не з робочим питанням, а просто поговорити — підтримай розмову.',
                 'Відповідай тепло і з легким гумором, українською, щонайбільше два-три короткі речення.',
                 'Ти українка і щиро цим пишаєшся.',
-                'Ти не маєш памʼяті цієї розмови — не посилайся на попередні повідомлення, яких не бачиш, і не вигадуй спільних спогадів.',
+                'Тобі показують останні повідомлення чату — спирайся на них, але не вигадуй того, чого в них немає.',
                 'Нічого не вигадуй про замовлення, клієнтів чи бізнес: якщо питання виявиться робочим, порадь написати номер замовлення разом із питанням.',
                 'Не розкривай технічних деталей про свою будову. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
                 role: 'user',
-                content: replyText
-                    ? `Повідомлення, на яке відповіли: «${String(replyText).slice(0, 300)}»\n\nЗвернення до тебе: «${text.slice(0, 500)}»`
-                    : `Звернення до тебе: «${text.slice(0, 500)}»`,
+                content: [
+                    context ? `Останні повідомлення чату:\n${context}` : '',
+                    replyText ? `Повідомлення, на яке відповіли: «${String(replyText).slice(0, 300)}»` : '',
+                    `Звернення до тебе: «${text.slice(0, 500)}»`,
+                ].filter(Boolean).join('\n\n'),
             }],
         });
         const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
@@ -360,7 +423,7 @@ export async function refreshTaskRecommendations(orderNumbers: string[]): Promis
  * plain fact card when the AI is unavailable, so the chat always gets an
  * answer.
  */
-async function answerOrderQuestion(question: string, numbers: string[]): Promise<string | null> {
+async function answerOrderQuestion(question: string, numbers: string[], chatId?: string): Promise<string | null> {
     const supabase = getAdminClient();
 
     const { data: matches } = await supabase
@@ -446,6 +509,7 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
     }
 
     try {
+        const chatContext = await fetchChatContext(chatId);
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5',
@@ -459,12 +523,20 @@ async function answerOrderQuestion(question: string, numbers: string[]): Promise
                 'Відповідай на питання колеги українською, ТІЛЬКИ з наведених фактів про замовлення.',
                 'Відповідь — щонайбільше два короткі речення, і лише про те, що спитали.',
                 'Не переказуй решту фактів, не вітайся, не додавай підсумків чи порад, яких не просили.',
+                'Якщо в останніх повідомленнях чату на це питання вже відповідали, можеш коротко це зазначити.',
                 'Якщо відповіді на питання у фактах немає, одним реченням скажи, що в системі цього не видно, і порадь відкрити картку замовлення.',
                 'Нічого не вигадуй. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
                 role: 'user',
-                content: `Факти про замовлення:\n${facts}\n\nПитання колеги: «${question}»`,
+                content: [
+                    // Recent chat history rides along so a repeated question
+                    // can be answered as repeated («вище вже відповідала —
+                    // …») instead of from a blank slate.
+                    chatContext ? `Останні повідомлення чату:\n${chatContext}` : '',
+                    `Факти про замовлення:\n${facts}`,
+                    `Питання колеги: «${question}»`,
+                ].filter(Boolean).join('\n\n'),
             }],
         });
         const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';

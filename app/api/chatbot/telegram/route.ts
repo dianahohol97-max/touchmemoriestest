@@ -14,7 +14,7 @@ import {
 } from '@/lib/chatbot/telegram-business';
 import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
-import { handleWorkQuestion, refreshTaskRecommendations, isMetaWorkQuestion } from '@/lib/chatbot/work-questions';
+import { handleWorkQuestion, refreshTaskRecommendations, isMetaWorkQuestion, recordWorkChatMessage } from '@/lib/chatbot/work-questions';
 import { getWorkChatIds } from '@/lib/chatbot/telegram-business';
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -178,9 +178,18 @@ export async function POST(req: Request) {
                     const allowed = isOwnerPrivate || (isGroup && (await getWorkChatIds()).includes(Number(chatId)));
                     if (allowed) {
                         try {
-                            const answer = await handleWorkQuestion({ text: noteText, replyText });
+                            // The answer is built BEFORE the current message
+                            // is recorded, so «last messages» context means
+                            // the conversation before this one.
+                            const answer = await handleWorkQuestion({ text: noteText, replyText, chatId });
+                            await recordWorkChatMessage(chatId, {
+                                text: noteText,
+                                sender: body.message.from?.first_name || username,
+                                messageId,
+                            });
                             if (answer) {
                                 await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);
+                                await recordWorkChatMessage(chatId, { text: answer, isBot: true });
                             }
                         } catch (e) {
                             console.error('work-chat question failed:', e);
