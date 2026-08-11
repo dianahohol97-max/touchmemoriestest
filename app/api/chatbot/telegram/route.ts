@@ -10,8 +10,10 @@ import {
     humanRepliedRecently,
     sendViaPublicBot,
     describeNonTextMessage,
+    reactToMessage,
 } from '@/lib/chatbot/telegram-business';
 import { handleWorkCommand } from '@/lib/chatbot/work-commands';
+import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
 
 // Note: In production we use webhooks, not polling. 
 // We initialize the bot just to send messages.
@@ -87,7 +89,34 @@ export async function POST(req: Request) {
 
             if (isGroup || isOwnerPrivate) {
                 const reply = await handleWorkCommand(body.message);
-                if (reply) await bot.sendMessage(chatId, reply);
+                if (reply) {
+                    await bot.sendMessage(chatId, reply);
+                    return NextResponse.json({ ok: true });
+                }
+
+                // Silent monitoring: a non-command group message that mentions
+                // an order («13808 обов'язково 12.08 відправити») is captured
+                // onto the order itself — history note + tightened deadline.
+                // The bot stays quiet in the chat; a ✍ reaction on the message
+                // is the only acknowledgement. Requires the bot to be a group
+                // admin (otherwise Telegram only delivers commands).
+                if (isGroup) {
+                    const noteText = body.message.text || body.message.caption || '';
+                    if (noteText && !noteText.startsWith('/')) {
+                        try {
+                            const result = await captureWorkChatOrderMentions({
+                                text: noteText,
+                                chatTitle: body.message.chat?.title || 'робочий чат',
+                                senderName: body.message.from?.first_name || 'учасник',
+                            });
+                            if (result.captured.length) {
+                                await reactToMessage(chatId, body.message.message_id, '✍');
+                            }
+                        } catch (e) {
+                            console.error('work-chat monitor failed:', e);
+                        }
+                    }
+                }
                 return NextResponse.json({ ok: true });
             }
 
