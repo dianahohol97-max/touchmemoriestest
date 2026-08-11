@@ -107,8 +107,18 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
     // short message with no «?» whose every word is a pleasantry counts as a
     // closer. «Дякую, а коли відправите?» still alerts — it carries a
     // question and non-pleasantry words.
+    //
+    // The vocabulary is bilingual on purpose: a large share of the clients
+    // write Russian, and a Ukrainian-only list let «Спасибо большое ☺️» through
+    // as an unanswered question (Diana, 2026-08-11: «ми ж домовлялись такі
+    // повідомлення не підсвічувати»).
     const CLOSER_WORDS = new Set([
         'дякую', 'дякуємо', 'дяки', 'спасибі', 'спс', 'вдячна', 'вдячний', 'вдячні',
+        // Russian pleasantries — same closers, other language.
+        'спасибо', 'спасибочки', 'благодарю', 'пожалуйста', 'большое', 'огромное',
+        'хорошо', 'отлично', 'ладно', 'понятно', 'ясно', 'взаимно', 'вечера',
+        'ночи', 'утра', 'удачи', 'здоровья', 'свидания', 'пока', 'приятно',
+        'было', 'очень', 'тоже', 'ещё', 'еще', 'раз', 'вам', 'тебе', 'и', 'а',
         'навзаєм', 'взаємно', 'гарного', 'чудового', 'доброго', 'приємного',
         'дня', 'вечора', 'ночі', 'ранку', 'вихідних', 'тижня', 'свят',
         'вам', 'тобі', 'і', 'та', 'й', 'а', 'все', 'зрозуміло', 'прийнято',

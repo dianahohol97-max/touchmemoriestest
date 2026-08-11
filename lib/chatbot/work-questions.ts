@@ -495,18 +495,26 @@ async function answerStockClarification(replyText: string, answer: string): Prom
         : [`📦 Залишки:`, '', ...lines].join('\n');
 }
 
-/**
- * Active orders of ONE responsible person, matched by name from the question.
- *
- * The CRM's responsible manager rides on every mirrored order
- * (custom_attributes.keycrm.manager_name, refreshed each reconcile pass), so
- * «які не виконані замовлення у відповідального Оксана Мацьопа?» is a plain
- * filter. Names are matched by word STEMS because Ukrainian inflects them —
- * «у Мацьопи», «в Оксани» — and the stage in «Статус „прийнято"» becomes a
- * substring filter on the live CRM stage when present.
- */
 /** The word that makes a question a tag question. */
 const TAG_WORD = /(тег|теґ|тега|тегом|tag|позначк)/iu;
+
+/**
+ * «за останні 5 днів», «за тиждень», «сьогодні» — the window a question asks
+ * about, in days, or null when it asks about the current state. Diana,
+ * 2026-08-11: «скільки замовлень з тегом для Андрія за останні 5 днів».
+ */
+function matchDayWindow(text: string): { days: number; label: string } | null {
+    const t = text.toLowerCase();
+    const explicit = t.match(/за\s+(?:останн[іїяе]\w*\s+)?(\d{1,3})\s*(день|дні|днів|дн)/u);
+    if (explicit) {
+        const days = parseInt(explicit[1], 10);
+        if (days > 0 && days <= 365) return { days, label: `за останні ${days} дн.` };
+    }
+    if (/(за\s+)?сьогодн/u.test(t)) return { days: 1, label: 'за сьогодні' };
+    if (/за\s+(останн\w+\s+)?тижд|за\s+тиждень|за\s+неділ/u.test(t)) return { days: 7, label: 'за тиждень' };
+    if (/за\s+(останн\w+\s+)?місяц|за\s+місяць/u.test(t)) return { days: 30, label: 'за місяць' };
+    return null;
+}
 
 /**
  * Orders carrying a tag — «скільки активних замовлень з тегом для Андрія».
@@ -519,47 +527,73 @@ const TAG_WORD = /(тег|теґ|тега|тегом|tag|позначк)/iu;
  *
  * Which tag was meant is decided the same way as a manager name: a tag matches
  * when the stem of one of its words appears in the question, so «для Андрія»
- * answers to «Андрія», «Андрію» and «Андрій» alike.
+ * answers to «Андрія», «Андрію» and «Андрій» alike. Case is ignored throughout:
+ * the CRM writes «Для Андрія», the auto-tagger writes «для Андрія», and they
+ * are the same tag.
+ *
+ * Two questions, two scopes. Without a period the answer is the CURRENT queue —
+ * active orders only. With one («за останні 5 днів») it is everything CREATED in
+ * that window whatever its state now, because that question is about volume,
+ * not about what is left to do.
  */
 async function buildTagOrders(question: string): Promise<string | null> {
     const supabase = getAdminClient();
+    const window = matchDayWindow(question);
 
-    const { data } = await supabase
+    let query = supabase
         .from('orders')
-        .select('id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes')
-        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
-        .order('deadline', { ascending: true })
-        .limit(400);
+        .select('id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes');
 
-    const active = (data || []).filter(o => isVisibleProductionOrder(o as any));
+    if (window) {
+        const since = new Date(Date.now() - window.days * 24 * HOUR_MS).toISOString();
+        query = query.gte('created_at', since).order('created_at', { ascending: false }).limit(600);
+    } else {
+        query = query.in('order_status', PRODUCTION_ACTIVE_STATUSES).order('deadline', { ascending: true }).limit(400);
+    }
+
+    const { data } = await query;
+    const scoped = (data || []).filter(o => isVisibleProductionOrder(o as any));
     const tagsOf = (o: any): string[] => (Array.isArray(o?.tags) ? o.tags : []).map((t: any) => String(t || '').trim()).filter(Boolean);
 
-    // The tag universe: everything currently in use, plus the workshop's own
-    // routing tags. Including the known ones matters — «скільки для Андрія?»
-    // on a quiet day must answer «жодного», not fall through to a guess.
-    const counts = new Map<string, number>();
-    for (const tag of [ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG]) counts.set(tag, 0);
-    for (const o of active) for (const tag of tagsOf(o)) counts.set(tag, 0);
+    // The tag universe, keyed lower-case so «Для Андрія» and «для Андрія» are
+    // one entry. Includes the workshop's own routing tags even when nothing
+    // carries them right now — «скільки для Андрія?» on a quiet day must
+    // answer «жодного», not fall through to a guess.
+    const display = new Map<string, string>();
+    const hits = new Map<string, number>();
+    const addTag = (tag: string) => {
+        const key = tag.toLowerCase();
+        if (!display.has(key)) display.set(key, tag);
+        hits.set(key, 0);
+    };
+    for (const tag of [ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG]) addTag(tag);
+    for (const o of scoped) for (const tag of tagsOf(o)) addTag(tag);
 
     const q = question.toLowerCase();
-    for (const tag of counts.keys()) {
-        let hits = 0;
-        for (const word of tag.toLowerCase().split(/\s+/)) {
+    for (const key of hits.keys()) {
+        let score = 0;
+        for (const word of key.split(/\s+/)) {
             const stem = word.length > 4 ? word.slice(0, word.length - 2) : word;
-            if (stem.length >= 3 && q.includes(stem)) hits++;
+            if (stem.length >= 3 && q.includes(stem)) score++;
         }
-        counts.set(tag, hits);
+        hits.set(key, score);
     }
-    const ranked = [...counts.entries()].filter(([, hits]) => hits > 0).sort((a, b) => b[1] - a[1]);
+    const ranked = [...hits.entries()].filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1]);
     if (!ranked.length) return null;
 
-    const [tag] = ranked[0];
-    const mine = active.filter(o => tagsOf(o).some(t => t.toLowerCase() === tag.toLowerCase()));
+    const [key] = ranked[0];
+    const tag = display.get(key) || key;
+    const mine = scoped.filter(o => tagsOf(o).some(t => t.toLowerCase() === key));
+    const scopeNote = window ? ` ${window.label}` : '';
     if (!mine.length) {
-        return `Активних замовлень з тегом «${tag}» зараз немає — усе, що було, вже поїхало або чекає на іншому етапі.`;
+        return window
+            ? `Замовлень з тегом «${tag}» ${window.label} не було.`
+            : `Активних замовлень з тегом «${tag}» зараз немає — усе, що було, вже поїхало або чекає на іншому етапі.`;
     }
 
-    const lines = [`🏷 Тег «${tag}» — активні замовлення (${mine.length}):`, ''];
+    const lines = [window
+        ? `🏷 Тег «${tag}»${scopeNote} — ${mine.length}:`
+        : `🏷 Тег «${tag}» — активні замовлення (${mine.length}):`, ''];
     for (const o of mine.slice(0, MAX_LISTED)) {
         const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
@@ -569,6 +603,16 @@ async function buildTagOrders(question: string): Promise<string | null> {
     return lines.join('\n');
 }
 
+/**
+ * Active orders of ONE manager, matched by name from the question.
+ *
+ * The CRM's manager rides on every mirrored order
+ * (custom_attributes.keycrm.manager_name, refreshed each reconcile pass), so
+ * «які не виконані замовлення у менеджера Оксана Мацьопа?» is a plain filter.
+ * Names are matched by word STEMS because Ukrainian inflects them — «у
+ * Мацьопи», «в Оксани» — and the stage in «Статус „прийнято"» becomes a
+ * substring filter on the live CRM stage when present.
+ */
 async function buildManagerOrders(question: string): Promise<string | null> {
     const supabase = getAdminClient();
 

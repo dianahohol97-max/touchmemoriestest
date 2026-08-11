@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
 import { ZODIAC, collectHighlights, fetchHoroscopes, type HoroscopeEntry } from '@/lib/automation/evening-extras';
+import { consumeRunToken, isCronRequest } from '@/lib/automation/run-token';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -36,24 +37,8 @@ export const maxDuration = 60;
  * database in the first place.
  */
 async function authorized(req: Request): Promise<boolean> {
-    const auth = req.headers.get('authorization');
-    if (process.env.CRON_SECRET && auth === `Bearer ${process.env.CRON_SECRET}`) return true;
-
-    const token = new URL(req.url).searchParams.get('token');
-    if (!token) return false;
-
-    try {
-        const supabase = getAdminClient();
-        const { data } = await supabase.from('settings').select('value').eq('key', 'evening_horoscope_run_token').maybeSingle();
-        const stored = data?.value as any;
-        if (!stored?.token || stored.token !== token) return false;
-        // Always consume, valid or expired: one attempt per issued token.
-        await supabase.from('settings').delete().eq('key', 'evening_horoscope_run_token');
-        return !!stored.expires_at && new Date(stored.expires_at).getTime() > Date.now();
-    } catch (e) {
-        console.error('[evening-horoscope] token check failed:', e);
-        return false;
-    }
+    if (isCronRequest(req)) return true;
+    return consumeRunToken(req, 'evening_horoscope_run_token');
 }
 
 async function isEnabled(): Promise<boolean> {
