@@ -946,7 +946,7 @@ export async function linkPastedId(params: {
 export async function resolvePendingProductLinks(): Promise<{ resolved: number; warnings: string[] }> {
     const supabase = getAdminClient();
 
-    const { data: pending, error } = await supabase
+    const { data: numbered, error } = await supabase
         .from('keycrm_product_map')
         .select('site_slug, site_variant, note, keycrm_offer_id')
         .eq('confirmed', false)
@@ -954,7 +954,22 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         .not('keycrm_offer_id', 'is', null);
 
     if (error) throw error;
-    if (!pending?.length) return { resolved: 0, warnings: [] };
+
+    // The second intake: a link seeded by NAME rather than number («в CRM це
+    // Альбом для фото»). The note carries `пошук: <назва в CRM>`; the resolver
+    // finds the ONE product whose name matches strongly and fans it out by
+    // sizes like a pasted number would. Several strong candidates → a warning
+    // naming them, never a guess.
+    const { data: named } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, site_variant, note, keycrm_offer_id')
+        .eq('confirmed', false)
+        .eq('match_type', 'manual')
+        .is('keycrm_offer_id', null)
+        .ilike('note', 'пошук:%');
+
+    const pending = [...(numbered || []), ...(named || [])];
+    if (!pending.length) return { resolved: 0, warnings: [] };
 
     const offers = await fetchKeycrmOffers();
     const siteProducts = await fetchSiteProducts();
@@ -967,12 +982,35 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
     const allWarnings: string[] = [];
 
     for (const row of pending) {
-        const key = `${row.site_slug}::${row.site_variant || ''}::${row.keycrm_offer_id}`;
+        // Name-seeded rows resolve their number first.
+        let pasted = row.keycrm_offer_id ? String(row.keycrm_offer_id) : '';
+        if (!pasted && row.note) {
+            const query = String(row.note).replace(/^пошук:\s*/i, '').trim();
+            const scoreByProduct = new Map<string, { score: number; name: string }>();
+            for (const o of offers) {
+                if (!o.product_id) continue;
+                const s = similarity(query, o.name);
+                const prev = scoreByProduct.get(o.product_id);
+                if (!prev || s > prev.score) scoreByProduct.set(o.product_id, { score: s, name: o.name });
+            }
+            const strong = [...scoreByProduct.entries()].filter(([, v]) => v.score >= 0.75);
+            if (strong.length === 1) {
+                pasted = strong[0][0];
+            } else {
+                allWarnings.push(strong.length
+                    ? `${row.site_slug}: «${query}» підходить кільком товарам CRM (${strong.map(([, v]) => v.name).slice(0, 4).join('; ')}) — уточни посиланням.`
+                    : `${row.site_slug}: товар «${query}» не знайдено в каталозі CRM за назвою.`);
+                continue;
+            }
+        }
+        if (!pasted) continue;
+
+        const key = `${row.site_slug}::${row.site_variant || ''}::${pasted}`;
         if (seen.has(key)) continue;
         seen.add(key);
 
         const { rows, warnings } = await linkPastedId({
-            pasted: String(row.keycrm_offer_id),
+            pasted,
             siteSlug: row.site_slug,
             targetVariant: row.site_variant || undefined,
             note: row.note ?? null,
@@ -992,14 +1030,18 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
 
     // Retire every processed pending row the resolution did not overwrite —
     // e.g. the sizeless seed row of a per-size product, or a number that
-    // resolved to nothing. Leaving the number in place would re-fetch the whole
-    // CRM catalogue every half hour forever.
+    // resolved to nothing. Leaving the trigger in place (a number, or a
+    // `пошук:` note) would re-fetch the whole CRM catalogue every half hour
+    // forever.
     const written = new Set(allRows.map(r => `${r.site_slug}::${r.site_variant || ''}`));
     for (const row of pending) {
         if (written.has(`${row.site_slug}::${row.site_variant || ''}`)) continue;
+        const retiredNote = row.note && /^пошук:/i.test(String(row.note))
+            ? String(row.note).replace(/^пошук:/i, 'пошук не вдався:')
+            : row.note;
         await supabase
             .from('keycrm_product_map')
-            .update({ keycrm_offer_id: null, updated_at: new Date().toISOString() })
+            .update({ keycrm_offer_id: null, note: retiredNote ?? null, updated_at: new Date().toISOString() })
             .eq('site_slug', row.site_slug)
             .eq('site_variant', row.site_variant || '')
             .eq('confirmed', false);

@@ -183,7 +183,16 @@ export async function GET(request: Request) {
                 .eq('match_type', 'manual')
                 .not('keycrm_offer_id', 'is', null);
 
-            if ((pendingLinks || 0) > 0) {
+            // Name-seeded links («пошук: Альбом для фото») carry no number.
+            const { count: pendingNamed } = await supabase
+                .from('keycrm_product_map')
+                .select('id', { count: 'exact', head: true })
+                .eq('confirmed', false)
+                .eq('match_type', 'manual')
+                .is('keycrm_offer_id', null)
+                .ilike('note', 'пошук:%');
+
+            if ((pendingLinks || 0) + (pendingNamed || 0) > 0) {
                 const links = await resolvePendingProductLinks();
                 catalogue = { links };
                 if (links.resolved > 0 && !dryRun) {
