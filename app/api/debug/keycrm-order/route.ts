@@ -28,6 +28,37 @@ export async function GET(req: Request) {
 
     const out: any = {};
 
+    // «Відповідальні» — the CRM list has this column filled (Юля Валах, Тамара
+    // Коблик) while the order payload with include=manager,custom_fields shows
+    // nothing of the sort, so the assignment must hang off another endpoint or
+    // include. Every plausible spelling is probed once; the answer decides
+    // where Софія reads «хто відповідальний» from.
+    out.responsible_probe = {};
+    for (const path of [
+        `/order/${encodeURIComponent(id)}?include=responsible`,
+        `/order/${encodeURIComponent(id)}?include=responsibles`,
+        `/order/${encodeURIComponent(id)}?include=performers`,
+        `/order/${encodeURIComponent(id)}?include=users`,
+        `/order/${encodeURIComponent(id)}?include=custom_fields,manager,responsible,performers`,
+        `/order/${encodeURIComponent(id)}/responsible`,
+        `/order/${encodeURIComponent(id)}/responsibles`,
+        `/order/${encodeURIComponent(id)}/performers`,
+        `/order/${encodeURIComponent(id)}/custom-fields`,
+        `/custom-fields?entity=order&limit=50`,
+        `/order/custom-fields?limit=50`,
+    ]) {
+        try {
+            const payload = await keycrmRequest(path);
+            const keys = payload && typeof payload === 'object' ? Object.keys(payload) : [];
+            const interesting = Object.fromEntries(
+                Object.entries(payload || {}).filter(([k]) => /responsib|performer|executor|assign|custom|user|data/i.test(k)),
+            );
+            out.responsible_probe[path] = { keys: keys.slice(0, 40), interesting };
+        } catch (e: any) {
+            out.responsible_probe[path] = { error: String(e?.message || e).slice(0, 160) };
+        }
+    }
+
     // The CRM's tag dictionary, so the site's tag list can be made identical
     // (Diana: «створи в адмінці на сайті ідентичні теги до тих що в срм»).
     // Only what orders happen to carry is visible from the mirror; the full
