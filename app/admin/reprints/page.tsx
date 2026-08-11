@@ -154,38 +154,76 @@ export default function ReprintsPage() {
                         💬 Доручення з чатів ({chatTasks.filter(t => !t.done).length})
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {chatTasks.map(task => (
-                            <div key={task.id} style={{
-                                background: 'white', border: '1px solid #e2e8f0',
-                                borderLeft: `3px solid ${task.done ? '#15803d' : '#7c3aed'}`,
-                                borderRadius: 10, padding: '11px 16px',
-                                opacity: task.done ? 0.65 : 1,
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 800, borderRadius: 20, padding: '3px 10px', color: task.done ? '#15803d' : '#7c3aed', background: task.done ? '#f0fdf4' : '#f5f3ff' }}>
-                                        {task.done ? 'Виконано' : 'В роботі'}
-                                    </span>
-                                    {task.order_id ? (
-                                        <a href={`/admin/orders/${task.order_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 800, color: '#263a99', textDecoration: 'none' }}>
-                                            {task.order_number} <ExternalLink size={12} />
-                                        </a>
-                                    ) : null}
-                                    {task.customer_name && (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#64748b' }}>
-                                            <UserRound size={13} /> {task.customer_name}
+                        {chatTasks.map(task => {
+                            // The deadline "lights up" (Diana, 2026-08-11):
+                            // red when it is within 3 days or already passed —
+                            // that is when «запитати виробництво» cannot wait.
+                            const deadline = task.deadline ? new Date(task.deadline) : null;
+                            const daysLeft = deadline
+                                ? Math.ceil((deadline.getTime() - Date.now()) / (24 * 3600 * 1000))
+                                : null;
+                            const deadlineHot = daysLeft !== null && daysLeft <= 3;
+                            const messages: any[] = Array.isArray(task.messages) ? task.messages : [];
+
+                            return (
+                                <div key={task.id} style={{
+                                    background: 'white', border: '1px solid #e2e8f0',
+                                    borderLeft: `3px solid ${task.done ? '#15803d' : '#7c3aed'}`,
+                                    borderRadius: 10, padding: '11px 16px',
+                                    opacity: task.done ? 0.65 : 1,
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: 12, fontWeight: 800, borderRadius: 20, padding: '3px 10px', color: task.done ? '#15803d' : '#7c3aed', background: task.done ? '#f0fdf4' : '#f5f3ff' }}>
+                                            {task.done ? 'Виконано' : 'В роботі'}
                                         </span>
-                                    )}
-                                    <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
-                                        {task.chat ? `${task.chat} · ` : ''}{new Date(task.created_at).toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                </div>
-                                {task.text && (
-                                    <div style={{ fontSize: 13.5, color: '#475569', marginTop: 6, lineHeight: 1.5, textDecoration: task.done ? 'line-through' : 'none' }}>
-                                        {task.text}
+                                        {task.order_id ? (
+                                            <a href={`/admin/orders/${task.order_id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 800, color: '#263a99', textDecoration: 'none' }}>
+                                                {task.order_number} <ExternalLink size={12} />
+                                            </a>
+                                        ) : null}
+                                        {task.customer_name && (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#64748b' }}>
+                                                <UserRound size={13} /> {task.customer_name}
+                                            </span>
+                                        )}
+                                        {deadline && (
+                                            <span style={{
+                                                fontSize: 12, fontWeight: 800, borderRadius: 20, padding: '3px 10px',
+                                                color: deadlineHot ? '#b91c1c' : '#334155',
+                                                background: deadlineHot ? '#fef2f2' : '#f1f5f9',
+                                            }}>
+                                                дедлайн {deadline.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short' })}
+                                                {daysLeft !== null && (daysLeft < 0
+                                                    ? ` · прострочено ${Math.abs(daysLeft)} дн.`
+                                                    : daysLeft === 0 ? ' · сьогодні' : ` · ${daysLeft} дн.`)}
+                                            </span>
+                                        )}
+                                        <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
+                                            {new Date(task.updated_at || task.created_at).toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
-                                )}
-                            </div>
-                        ))}
+
+                                    {/* The whole conversation, oldest first — the last
+                                        line is the task's current state. */}
+                                    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                        {messages.map((m: any, i: number) => {
+                                            const isLast = i === messages.length - 1;
+                                            return (
+                                                <div key={i} style={{
+                                                    fontSize: isLast ? 13.5 : 12.5,
+                                                    color: isLast ? '#334155' : '#94a3b8',
+                                                    fontWeight: isLast ? 600 : 400,
+                                                    lineHeight: 1.5,
+                                                    textDecoration: m.done ? 'line-through' : 'none',
+                                                }}>
+                                                    {m.done ? '✓ ' : ''}{m.text}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
