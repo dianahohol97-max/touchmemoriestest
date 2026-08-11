@@ -76,11 +76,14 @@ const PRINT_DIMS_MM: Record<string, { spread: { w: number; h: number }; cover: {
   '30×20':       { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
   '30x30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
   '30×30':       { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
-  // A4 hard-cover magazine — spread 420×307 mm, cover 470×328 mm.
-  'A4':          { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
-  'magazine-A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
-  // Travel Book — 20×30 cm portrait pages.
-  'travelbook':  { spread: { w: 420, h: 305 }, cover: { w: 470, h: 328 } },
+  // Travel book + A4 hard-cover journal — the production spec is one sheet per
+  // physical page at EXACTLY 210×297 mm, so the spread is 420×297 and the
+  // cover 470×328 (Diana, 2026-08-11). These carried 307 and 305 — a drifted
+  // hand-copy that would have produced 210×307 / 210×305 page files, failing
+  // the print partner's size check, had the app ever failed to send geometry.
+  'A4':          { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
+  'magazine-A4': { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
+  'travelbook':  { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
   '23x23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
   '23×23':       { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
 };

@@ -61,8 +61,12 @@ const FALLBACK_SHEETS: Record<string, { spread: { w: number; h: number }; cover:
   '30x20': { spread: { w: 610, h: 203 }, cover: { w: 646, h: 238 } },
   '30x30': { spread: { w: 610, h: 305 }, cover: { w: 646, h: 330 } },
   '23x23': { spread: { w: 460, h: 230 }, cover: { w: 506, h: 256 } },
-  'A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
-  'magazine-A4': { spread: { w: 420, h: 307 }, cover: { w: 470, h: 328 } },
+  // A4 hard-cover journal — same production spec as the travel book: page
+  // files of EXACTLY 210×297 mm, so the sheet is 2 × 210 wide and 297 tall.
+  // Was 307, which made the sheet 10 mm taller than the finished spread and
+  // the difference could only ever be filled with invented pixels.
+  'A4': { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
+  'magazine-A4': { spread: { w: 420, h: 297 }, cover: { w: 470, h: 328 } },
   // Travel book: the print partner's checker demands page files of EXACTLY
   // 210×297 mm (Diana, 2026-08-06). Sheet = 2 pages with no extra overhang,
   // so the split page files come out at precisely 2480×3508 px @300 DPI.
