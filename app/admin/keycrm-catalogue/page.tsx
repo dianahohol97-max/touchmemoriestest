@@ -112,6 +112,29 @@ export default function KeycrmCataloguePage() {
         );
     };
 
+    /**
+     * SKUs are the only thing KeyCRM's order API links catalogue items by —
+     * the offer_id sent alongside is ignored. This writes the site slug as the
+     * article number for every confirmed pair whose CRM offer has none, after
+     * which pushed order lines attach to the real catalogue items.
+     */
+    const syncSkus = async () => {
+        setSaving('skus');
+        try {
+            const res = await fetch('/api/admin/keycrm/skus?apply=1', { cache: 'no-store' });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json?.error || 'Не вдалося записати артикули');
+            const filled = json.filled?.length || 0;
+            const adopted = json.adopted?.length || 0;
+            toast.success(`Артикули: записано в KeyCRM ${filled}, підхоплено наявних ${adopted}.`, { duration: 7000 });
+            if (Array.isArray(json.problems)) json.problems.forEach((p: string) => toast.error(p, { duration: 9000 }));
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося записати артикули');
+        } finally {
+            setSaving(null);
+        }
+    };
+
     const rows: any[] = report?.rows || [];
     const strong = rows.filter(r => !r.confirmed && (r.match_score ?? 0) >= 0.8 && !r.ambiguous_with && r.keycrm_offer_id);
     const weak = rows.filter(r => !r.confirmed && r.keycrm_offer_id && !strong.includes(r));
@@ -132,6 +155,12 @@ export default function KeycrmCataloguePage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={load} style={secondaryBtn}><RefreshCw size={14} /> Оновити</button>
+                    {confirmed.length > 0 && (
+                        <button onClick={syncSkus} disabled={saving !== null} style={secondaryBtn} title="Записати артикули підтверджених пар у KeyCRM, щоб позиції замовлень чіплялися до каталогу">
+                            {saving === 'skus' ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+                            Проставити артикули в KeyCRM
+                        </button>
+                    )}
                     {strong.length > 0 && (
                         <button onClick={() => confirmRows(strong, 'bulk')} disabled={saving !== null} style={primaryBtn}>
                             {saving === 'bulk' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}

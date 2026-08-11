@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { fetchKeycrmOffers, type KeycrmOffer } from '@/lib/automation/keycrm';
+import { fetchKeycrmOffers, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
 
 /**
  * Reconcile the website catalogue against the KeyCRM catalogue.
@@ -522,6 +522,115 @@ export async function syncCostPrices(opts?: { dryRun?: boolean }): Promise<CostS
         conflicts,
         without_cost: withoutCost,
     };
+}
+
+export type SkuSyncReport = {
+    dry_run: boolean;
+    offers_read: number;
+    /** CRM offers that received a new SKU (site slug + size). */
+    filled: Array<{ slug: string; variant: string; offer_id: string; sku: string }>;
+    /** CRM offers that already had a SKU — adopted into the map, never overwritten. */
+    adopted: Array<{ slug: string; variant: string; offer_id: string; sku: string }>;
+    unchanged: number;
+    problems: string[];
+};
+
+/**
+ * Make order lines attach to the CRM catalogue — by writing SKUs.
+ *
+ * Learned from order 13807 (TM-001178): KeyCRM's order-create API accepts NO
+ * offer_id or product_id on a product line — only `sku`. The offer_id the push
+ * had been sending was silently ignored, and since neither the CRM offers nor
+ * the site products carried SKUs, every line arrived as free text: readable to
+ * a human, attached to no catalogue item, invisible to CRM stock and reports.
+ *
+ * So the confirmed mapping is turned into a shared article number. For every
+ * confirmed pair whose CRM offer has an empty SKU, the site's slug (plus size
+ * for per-size products) is written INTO KeyCRM via PUT /offers — identified by
+ * offer id, so nothing is matched by name. An offer that already has a SKU is
+ * never overwritten; that SKU is adopted into the map instead, and the push
+ * sends it from there. Fill-a-blank, both directions, like every other write in
+ * this bridge.
+ *
+ * Manual action, not a cron: it edits Diana's CRM catalogue, and the team may
+ * have their own numbering plans for it.
+ */
+export async function syncSkusToKeycrm(opts?: { dryRun?: boolean }): Promise<SkuSyncReport> {
+    const dryRun = opts?.dryRun === true;
+    const supabase = getAdminClient();
+
+    const offers = await fetchKeycrmOffers();
+    const offerById = new Map(offers.map(o => [o.offer_id, o]));
+
+    const { data: mappings, error } = await supabase
+        .from('keycrm_product_map')
+        .select('site_slug, site_variant, keycrm_offer_id, keycrm_sku')
+        .eq('confirmed', true)
+        .not('keycrm_offer_id', 'is', null);
+
+    if (error) throw error;
+
+    const report: SkuSyncReport = {
+        dry_run: dryRun, offers_read: offers.length,
+        filled: [], adopted: [], unchanged: 0, problems: [],
+    };
+
+    const toWrite: Array<{ id: number; sku: string }> = [];
+
+    for (const row of mappings || []) {
+        const offer = offerById.get(String(row.keycrm_offer_id));
+        if (!offer) {
+            report.problems.push(`${row.site_slug}: офер ${row.keycrm_offer_id} не знайдено в каталозі KeyCRM.`);
+            continue;
+        }
+
+        const crmSku = String(offer.sku || '').trim();
+
+        if (crmSku) {
+            // The CRM already numbers this item — adopt, never overwrite.
+            if (crmSku !== String(row.keycrm_sku || '').trim()) {
+                report.adopted.push({ slug: row.site_slug, variant: row.site_variant || '', offer_id: offer.offer_id, sku: crmSku });
+                if (!dryRun) {
+                    await supabase
+                        .from('keycrm_product_map')
+                        .update({ keycrm_sku: crmSku, updated_at: new Date().toISOString() })
+                        .eq('site_slug', row.site_slug)
+                        .eq('site_variant', row.site_variant || '');
+                }
+            } else {
+                report.unchanged++;
+            }
+            continue;
+        }
+
+        // The slug alone for a sizeless product; slug plus canonical size for
+        // per-size ones, because two offers of one product cannot share a SKU.
+        const desired = row.site_variant ? `${row.site_slug}-${row.site_variant}` : row.site_slug;
+        report.filled.push({ slug: row.site_slug, variant: row.site_variant || '', offer_id: offer.offer_id, sku: desired });
+        toWrite.push({ id: Number(offer.offer_id), sku: desired });
+
+        if (!dryRun) {
+            await supabase
+                .from('keycrm_product_map')
+                .update({ keycrm_sku: desired, updated_at: new Date().toISOString() })
+                .eq('site_slug', row.site_slug)
+                .eq('site_variant', row.site_variant || '');
+        }
+    }
+
+    if (!dryRun && toWrite.length) {
+        // Batched: PUT /offers takes an array, identified by id.
+        for (let i = 0; i < toWrite.length; i += 50) {
+            const chunk = toWrite.slice(i, i + 50);
+            try {
+                await keycrmRequest('/offers', { method: 'PUT', body: { offers: chunk } });
+            } catch (e: any) {
+                report.problems.push(`Запис артикулів у KeyCRM не вдався (${chunk.length} шт): ${e?.message || 'невідома помилка'}`);
+            }
+        }
+    }
+
+    return report;
 }
 
 /** Persist decisions from the admin screen. Upsert by slug — one row per product. */
