@@ -203,6 +203,37 @@ export async function sendViaPublicBot(params: {
 }
 
 /**
+ * Update-id dedup: Telegram redelivers an update when the webhook answers
+ * slowly (an AI answer can take longer than Telegram's patience), and every
+ * redelivery used to produce another identical reply — Diana saw the same
+ * order answered three times. Returns true when this update_id was already
+ * processed; records it otherwise. Entries older than an hour are pruned —
+ * Telegram never retries that late.
+ */
+export async function isDuplicateUpdate(updateId: number | string | undefined): Promise<boolean> {
+    if (updateId === undefined || updateId === null) return false;
+    const supabase = getAdminClient();
+    try {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'tg_seen_updates').maybeSingle();
+        const map: Record<string, number> = (data?.value && typeof data.value === 'object') ? data.value : {};
+        const key = String(updateId);
+        if (map[key]) return true;
+
+        const cutoff = Date.now() - 60 * 60 * 1000;
+        const next: Record<string, number> = {};
+        for (const [id, ts] of Object.entries(map)) {
+            if (Number(ts) > cutoff) next[id] = Number(ts);
+        }
+        next[key] = Date.now();
+        await supabase.from('settings').upsert({ key: 'tg_seen_updates', value: next, updated_at: new Date().toISOString() });
+        return false;
+    } catch (e) {
+        console.error('[TG] update dedup failed (processing anyway):', e);
+        return false;
+    }
+}
+
+/**
  * Once-a-day greeting tracker: returns true exactly once per chat per Kyiv
  * day (and records the fact), so the bot greets the first person who talks
  * to it in the morning and doesn't repeat itself all day.

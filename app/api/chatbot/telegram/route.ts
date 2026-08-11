@@ -11,6 +11,7 @@ import {
     sendViaPublicBot,
     describeNonTextMessage,
     reactToMessage,
+    isDuplicateUpdate,
 } from '@/lib/chatbot/telegram-business';
 import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
@@ -48,6 +49,15 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
+
+        // Telegram redelivers an update when the previous delivery answered
+        // slowly (AI answers can outlast its patience), and each redelivery
+        // used to produce another identical reply — the same order was
+        // answered three times in the work chat. One update_id = one
+        // processing, ever.
+        if (await isDuplicateUpdate(body.update_id)) {
+            return NextResponse.json({ ok: true, duplicate: true });
+        }
 
         // --- Telegram Business: Diana's personal client dialogs -------------
         // These updates only arrive after the bot is connected in her
