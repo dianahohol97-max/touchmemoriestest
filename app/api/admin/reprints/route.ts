@@ -34,7 +34,56 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    return NextResponse.json({ entries: data || [], fault_options: FAULT_OPTIONS });
+    // Chat tasks captured by Софія in the work group chats («13808
+    // обов'язково 12.08 відправити»). A task counts as closed when a
+    // completion report (work_chat_done) for the same order arrived AFTER
+    // the instruction. Last 14 days — older chat instructions are stale by
+    // definition.
+    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: historyRows } = await supabase
+        .from('order_history')
+        .select('id, order_id, action, notes, details, created_at')
+        .in('action', ['work_chat_note', 'work_chat_done'])
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+    const latestDone = new Map<string, string>();
+    for (const r of historyRows || []) {
+        if (r.action === 'work_chat_done' && r.order_id) {
+            const prev = latestDone.get(r.order_id);
+            if (!prev || r.created_at > prev) latestDone.set(r.order_id, r.created_at);
+        }
+    }
+
+    const noteRows = (historyRows || []).filter(r => r.action === 'work_chat_note');
+    const orderIds = [...new Set(noteRows.map(r => r.order_id).filter(Boolean))];
+    const orderById = new Map<string, any>();
+    if (orderIds.length) {
+        const { data: orders } = await supabase
+            .from('orders')
+            .select('id, order_number, customer_name')
+            .in('id', orderIds);
+        for (const o of orders || []) orderById.set(o.id, o);
+    }
+
+    const chatTasks = noteRows.map(r => {
+        const doneAt = r.order_id ? latestDone.get(r.order_id) : undefined;
+        const order = r.order_id ? orderById.get(r.order_id) : null;
+        return {
+            id: r.id,
+            order_id: r.order_id,
+            order_number: order?.order_number || null,
+            customer_name: order?.customer_name || null,
+            text: r.notes,
+            chat: r.details?.chat || null,
+            sender: r.details?.sender || null,
+            created_at: r.created_at,
+            done: !!doneAt && doneAt >= r.created_at,
+        };
+    }).filter(t => all || !t.done);
+
+    return NextResponse.json({ entries: data || [], fault_options: FAULT_OPTIONS, chat_tasks: chatTasks });
 }
 
 export async function POST(request: Request) {
