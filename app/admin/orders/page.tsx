@@ -468,13 +468,25 @@ export default function OrdersPage() {
                                         </span>
                                     )}
                                     <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <span style={{
-                                            ...chip,
-                                            background: order.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
-                                            color: order.payment_status === 'paid' ? '#16a34a' : '#b45309',
-                                        }}>
-                                            {order.payment_status === 'paid' ? 'Оплачено' : 'Очікує оплати'}
-                                        </span>
+                                        {/* For mirrored CRM orders prepaid_amount is money actually
+                                            received (the mirror writes the CRM's payments total), so a
+                                            partial payment shows as «Передоплата». Site orders keep the
+                                            two-state badge: their prepaid_amount is the PLANNED split,
+                                            not a receipt. */}
+                                        {(() => {
+                                            const isPaid = order.payment_status === 'paid';
+                                            const prepaid = Number(order.prepaid_amount || 0);
+                                            const isPartial = !isPaid && order.source === 'keycrm' && prepaid > 0;
+                                            return (
+                                                <span style={{
+                                                    ...chip,
+                                                    background: isPaid ? '#f0fdf4' : isPartial ? '#eff6ff' : '#fffbeb',
+                                                    color: isPaid ? '#16a34a' : isPartial ? '#1d4ed8' : '#b45309',
+                                                }}>
+                                                    {isPaid ? 'Оплачено' : isPartial ? `Передоплата ${prepaid.toLocaleString('uk-UA')} ₴` : 'Очікує оплати'}
+                                                </span>
+                                            );
+                                        })()}
                                         <span style={{ fontWeight: 900, fontSize: 16, color: '#0f172a', whiteSpace: 'nowrap' }}>{Number(order.total || 0).toLocaleString('uk-UA')} ₴</span>
                                         <ChevronRight size={17} color="#cbd5e1" />
                                     </span>
