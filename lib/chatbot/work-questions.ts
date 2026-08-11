@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
+import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
 /**
  * Софія answers questions in the work chats (Diana, 2026-08-11):
@@ -602,6 +603,19 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         }).join('; ')
         : '';
 
+    // The CRM card's own comment feed and custom fields, fetched live for the
+    // asked order (Diana, 2026-08-11: «який велюр … чи може бот глянути це в
+    // коментарях до замовлення» — the colour lives on the card, not in the
+    // mirrored line items). One extra CRM call per question; empty on any
+    // failure, never an exception.
+    const crmOrderId = (order as any)?.custom_attributes?.keycrm?.order_id;
+    let cardExtras = { comments: [] as string[], custom_fields: [] as string[] };
+    if (crmOrderId && process.env.KEYCRM_API_TOKEN) {
+        try {
+            cardExtras = await fetchOrderCardExtras(crmOrderId);
+        } catch { /* garnish, not the answer */ }
+    }
+
     const facts = [
         `Номер: ${order.order_number}`,
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
@@ -616,6 +630,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         order.with_designer ? 'Послуга дизайнера: так' : '',
         itemsSummary ? `Товари: ${itemsSummary}` : '',
         order.notes ? `Нотатки менеджера: ${String(order.notes).slice(0, 300)}` : '',
+        cardExtras.custom_fields.length ? `Поля картки CRM: ${cardExtras.custom_fields.join('; ')}` : '',
+        cardExtras.comments.length ? `Коментарі з картки CRM: ${cardExtras.comments.map(c => c.slice(0, 150)).join(' | ')}` : '',
         order.client_comment ? `Коментар клієнта: ${String(order.client_comment).slice(0, 200)}` : '',
         (history || []).length
             ? `Останні події: ${(history || []).map(h => `${fmtDate(h.created_at)} — ${String(h.notes || h.action).slice(0, 100)}`).join('; ')}`
@@ -624,8 +640,31 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
 
     const link = `${SITE_URL}/admin/orders/${order.id}`;
 
+    // The no-AI answer used to be the ENTIRE fact card — that is the «дуже
+    // довга відповідь» the team kept getting while the AI key was absent. Now
+    // the fallback picks the lines the question is actually about.
+    const shortAnswer = () => {
+        const q = question.toLowerCase();
+        const pick: string[] = [`📦 ${order.order_number} — ${crmStage || ORDER_STATUS_UA[order.order_status] || order.order_status}`];
+        if (/відповідальн|менеджер|хто вед|чи[йя] /.test(q)) {
+            pick.push(crmManager ? `Відповідальна в CRM: ${crmManager}.` : 'Відповідального в CRM не видно — глянь картку замовлення.');
+        } else if (/велюр|колір|оздоблен|обкладинк|комплект|товар|що всередині/.test(q)) {
+            if (itemsSummary) pick.push(`Товари: ${itemsSummary}.`);
+            if (cardExtras.custom_fields.length) pick.push(`Поля картки: ${cardExtras.custom_fields.join('; ')}.`);
+            if (cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
+            if (order.notes) pick.push(`Нотатки: ${String(order.notes).slice(0, 150)}.`);
+            if (pick.length === 1) pick.push('Складу замовлення в системі не видно — відкрий картку.');
+        } else if (/відправ|дедлайн|коли|ттн|трек|доставк/.test(q)) {
+            pick.push(`Дедлайн виробництва: ${fmtDate(order.deadline)}.`);
+            pick.push(order.ttn ? `ТТН: ${order.ttn}${order.tracking_carrier ? ` (${order.tracking_carrier})` : ''}.` : 'ТТН ще не створено.');
+        } else {
+            pick.push(`Оплата: ${order.payment_status === 'paid' ? 'оплачено' : 'очікує'}, дедлайн ${fmtDate(order.deadline)}, ${order.ttn ? `ТТН ${order.ttn}` : 'ТТН ще немає'}.`);
+        }
+        return `${pick.join('\n')}\n\n${link}`;
+    };
+
     if (!process.env.ANTHROPIC_API_KEY) {
-        return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        return shortAnswer();
     }
 
     try {
@@ -660,10 +699,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
             }],
         });
         const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
-        if (!reply) return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        if (!reply) return shortAnswer();
         return `${reply}\n\n${link}`;
     } catch (e) {
         console.error('[work-questions] AI answer failed:', e);
-        return `📦 ${order.order_number}\n\n${facts}\n\n${link}`;
+        return shortAnswer();
     }
 }
