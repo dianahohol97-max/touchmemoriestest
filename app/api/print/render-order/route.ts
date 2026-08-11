@@ -100,10 +100,12 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
     }
     if (!missing.length) return;
 
-    const warn =
-      `⚠️ УВАГА: ${MARKER} — оплачене замовлення, але для позицій нема макета/файлів: ` +
-      `${missing.join('; ')}. НЕ ВІДПРАВЛЯТИ В ДРУК — перевірте файли і звʼяжіться з клієнтом. ` +
-      `(автоперевірка при оплаті)`;
+    // Short on purpose: this note is copied into the CRM manager comment and
+    // rendered in a narrow list column (Diana, 2026-08-11: «в CRM прилітають
+    // дуже великі коментарі, супер некомфортно»). The warning must read at a
+    // glance — the instruction «не відправляти в друк» is implied by «нема
+    // файлів» and does not need three clauses to say so.
+    const warn = `⚠️ Нема файлів для друку: ${missing.join(', ')}. Не в друк — звʼяжіться з клієнтом.`;
     await admin.from('orders')
       .update({ notes: notes.trim() ? `${warn}\n\n${notes.trim()}` : warn })
       .eq('id', orderId);
