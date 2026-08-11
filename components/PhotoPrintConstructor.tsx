@@ -1081,6 +1081,18 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         p.sizeOverride, p.polaroidText, p.showCaption, p.filter,
         selectedSize, selectedBorder, polaroidActive, polaroidColor, isNonstandard,
       ]);
+      // Copies matter (TM-001176: 19 unique photos, totalQty 24, and the print
+      // sheets held only 19 tiles — the 5 duplicates silently never printed).
+      // The FILE is rendered and uploaded once per unique photo; the ORDER gets
+      // one order_files row per copy, so the sheet generator tiles a ×2 photo
+      // twice. pageNo numbers the copies, not the photos.
+      let pageNo = 0;
+      const pushCopies = (descriptor: any, qty: number) => {
+        for (let c = 0; c < Math.max(1, qty); c++) {
+          pageNo++;
+          exportedFiles.push({ ...descriptor, pageNumber: pageNo });
+        }
+      };
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         setExportProgress({ done: i, total: photos.length });
@@ -1091,7 +1103,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
         const fp = renderFingerprint(photo);
         const cached = uploadedRef.current.get(photo.id);
         if (cached && cached.fp === fp) {
-          exportedFiles.push({ ...cached.descriptor, pageNumber: i + 1 });
+          pushCopies(cached.descriptor, (photo as any).qty || 1);
           continue;
         }
         // Clear before each render so a reason can never leak from the previous
@@ -1171,9 +1183,8 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
           fileCategory: isMagnet ? 'photomagnets' : (polaroidActive ? 'polaroid-print' : 'photo-print'),
           productType: isMagnet ? 'photomagnets' : 'photoprint',
           fileType: 'export', size: blob.size, mimeType: 'image/jpeg',
-          pageNumber: i + 1,
         };
-        exportedFiles.push(descriptor);
+        pushCopies(descriptor, (photo as any).qty || 1);
         uploadedRef.current.set(photo.id, { fp, descriptor });
         // Hand the main thread back between photos. A tight await-chain over
         // dozens of 300-DPI renders starves paint and GC, which is how a phone
@@ -1186,9 +1197,12 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       // silently skipped (continue) and only an ALL-fail was blocked — so a
       // partial failure (e.g. TM-001095 concern: some of N photos not uploaded)
       // produced a PAID order missing photos that nobody noticed until
-      // production. Now ANY failure — or any mismatch between selected photos
-      // and successfully-saved files — aborts the whole add-to-cart.
-      if (photos.length > 0 && (uploadFailed || exportedFiles.length !== photos.length)) {
+      // production. Now ANY failure — or any mismatch between the ORDERED
+      // copies (totalQty, what the customer pays for) and the saved file rows —
+      // aborts the whole add-to-cart. Compared against totalQty, not
+      // photos.length: since copies became real rows, N unique photos with
+      // duplicates legitimately produce more rows than photos.
+      if (photos.length > 0 && (uploadFailed || exportedFiles.length !== totalQty)) {
         try {
           // Say what actually went wrong. The old message blamed the connection
           // in every case, so a customer whose photos never even got rendered
@@ -1202,7 +1216,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               ? `Частина фото не підготувалася до друку (${renderFailed} із ${photos.length}). Спробуйте прибрати останнє додане фото і повторити, або напишіть нам.`
               : 'Замовлення з неповним набором ми не приймаємо — перевірте інтернет і спробуйте ще раз.';
           toast.error(
-            `Не вдалося зберегти всі фото для друку (${exportedFiles.length} із ${photos.length}). ${reason}`,
+            `Не вдалося зберегти всі фото для друку (${exportedFiles.length} із ${totalQty}). ${reason}`,
             { duration: 12000 },
           );
         } catch {}
