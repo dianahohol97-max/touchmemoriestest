@@ -23,7 +23,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.ver
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_LISTED = 12;
 
-const QUESTION_MARKER = /\?|\b(що|шо|коли|який|яка|які|чи|скільки|де|статус|хто)\b/i;
+// JavaScript's \b is ASCII-only: against Cyrillic text «\bхто\b» can never
+// match, so this list was dead weight and every question without a literal
+// «?» went unanswered (live: «13790 хто в цьому замовленні відповідальний»,
+// «які замовлення мають поїхати завтра 12 серпня»). Boundaries are spelled
+// out with Unicode-aware lookarounds instead.
+const QUESTION_MARKER = /\?|(?<!\p{L})(що|шо|коли|який|яка|яке|які|чи|скільки|де|статус|хто|кому|потрібно|треба|цікавл)(?!\p{L})/iu;
 
 // «Софія», «Софійка», «Софіє» or the bot's @username — the team's way of
 // addressing the bot directly (Diana, 2026-08-11: «якщо в чаті кажуть софія
@@ -40,8 +45,10 @@ const NATIONALITY = /національн/i;
 // національність») — do not soften or reword it.
 const NATIONALITY_REPLY = 'Я українка 🇺🇦 Батько наш — Бандера, Україна — мати!';
 
-const SHIP_WORDS = /(відправ|здат|готов)/i;
-const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|термінов)/i;
+// «поїхати» / «виїхати» / «відвантажити» are how the team says «ship» just as
+// often as «відправити» (live: «які мають поїхати завтра 12 серпня»).
+const SHIP_WORDS = /(відправ|відвантаж|здат|готов|поїха|поїде|поїд|виїха|виїде|доставит)/i;
+const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|термінов|гор(ить|ять)|встиг)/i;
 
 /**
  * A question about the shipping queue, with its time horizon in days.
