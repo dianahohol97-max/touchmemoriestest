@@ -275,9 +275,31 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
             continue;
         }
 
+        // Photobooks are split in the CRM by size AND page count («Розмір:
+        // 20х20 Кількість сторінок: 22» is its own item, and its stock and
+        // purchase price are its own — Diana, 2026-08-11: «важливо»). When the
+        // site product offers a page count, it becomes the second half of the
+        // key, so an order attaches to the exact item it consumes.
+        const pageGroup = groups.find((g: any) => /сторін/i.test(String(g?.name || '')));
+        const pageValues: string[] = (Array.isArray(pageGroup?.options) ? pageGroup.options : [])
+            .map((o: any) => String(o?.value ?? o?.label ?? '').trim())
+            .filter((v: string) => /^\d+$/.test(v));
+
         for (const size of sizes) {
             const label = String(size?.label || size?.value || '').trim();
             if (!label) continue;
+
+            if (pageValues.length) {
+                for (const pages of pageValues) {
+                    products.push({
+                        slug,
+                        variant: `${sizeKey(label)}-${pages}`,
+                        variantLabel: `${label}, ${pages} стор.`,
+                        name: `${name} ${label} ${pages} сторінок`.trim(),
+                    });
+                }
+                continue;
+            }
 
             products.push({
                 slug,
@@ -957,7 +979,27 @@ export async function linkPastedId(params: {
             return hits.length === 1 ? hits[0] : undefined;
         })();
 
-        const match = familyBySize.get(variant.variant || sizeKey(variant.name))
+        // Size + page count: the CRM writes them into one label («Розмір:
+        // 20х20 Кількість сторінок: 22»), so both tokens must appear. The
+        // site's 30×20 is «20х30» in the CRM — the same sheet, turned — so a
+        // reversed size counts as a match; the pushed line says which way
+        // round it is.
+        const bySizeAndPages = (() => {
+            const m = String(variant.variant || '').match(/^(\d+(?:\.\d+)?x\d+(?:\.\d+)?)-(\d+)$/);
+            if (!m) return undefined;
+            const [, size, pages] = m;
+            const reversed = size.split('x').reverse().join('x');
+            const hits = family.filter(o => {
+                const label = canonicaliseDimensions(`${o.variant_label || ''} ${o.name || ''}`).toLowerCase();
+                const sizeHit = label.includes(size) || label.includes(reversed);
+                const pagesHit = new RegExp(`(?<![\\d.])${pages}(?![\\d.])`).test(label);
+                return sizeHit && pagesHit;
+            });
+            return hits.length === 1 ? hits[0] : undefined;
+        })();
+
+        const match = bySizeAndPages
+            ?? familyBySize.get(variant.variant || sizeKey(variant.name))
             ?? byLabel
             ?? (family.length === 1 && variants.length === 1 ? family[0] : undefined);
         // Nothing matched by size, but the seed named this exact size and the

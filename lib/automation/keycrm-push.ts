@@ -201,11 +201,27 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
     ).trim();
     const colourLabel = colourRaw.replace(/^\s*[А-ЯA-Zа-яa-z]{1,3}\s?-\s?\d+\s*/u, '').trim();
 
+    // Page count is the second half of the key for photobooks — the CRM keeps
+    // «20х20, 22 сторінки» as its own item with its own stock and cost.
+    const pagesRaw = String(
+        Object.entries(options).find(([k]) => /сторін/i.test(k))?.[1] ?? ''
+    );
+    const pages = (pagesRaw.match(/\d+/) || [])[0] || '';
+
     const mapped = slug
-        ? (productMap[mapKey(slug, sizeKey(sizeLabel))]
+        ? ((sizeLabel && pages ? productMap[mapKey(slug, `${sizeKey(sizeLabel)}-${pages}`)] : undefined)
+            || productMap[mapKey(slug, sizeKey(sizeLabel))]
             || (colourLabel ? productMap[mapKey(slug, sizeKey(colourLabel))] : undefined)
             || (sizeLabel || colourLabel ? undefined : productMap[mapKey(slug, '')]))
         : undefined;
+
+    // The CRM has no 30×20 photobook — it is the same sheet as 20×30, turned
+    // (Diana, 2026-08-11: «важливо в коментарі прописати що це 30х20»). The
+    // line's own comment carries the orientation so the workshop binds it the
+    // right way round.
+    const orientationNote = /^30x20$/.test(sizeKey(sizeLabel)) && mapped
+        ? 'УВАГА: орієнтація 30×20 (альбомна), у CRM позиція 20х30 — той самий формат, повернутий.'
+        : '';
 
     const properties = Object.entries(options)
         .filter(([, value]) => String(value ?? '').trim() !== '')
@@ -225,7 +241,9 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         quantity: Number(item?.quantity) || 1,
         unit_type: 'шт',
         ...(properties.length ? { properties } : {}),
-        ...(specification ? { comment: specification } : {}),
+        ...(specification || orientationNote
+            ? { comment: [orientationNote, specification].filter(Boolean).join('\n') }
+            : {}),
     };
 }
 
