@@ -532,7 +532,18 @@ function readCost(row: any): { cost: number | null; field: string | null } {
  * budget runs out — a shop with tens of thousands of offers is not the shape
  * this is for.
  */
-export async function fetchKeycrmOffers(maxPages = 8): Promise<KeycrmOffer[]> {
+/**
+ * The page budget covers the WHOLE catalogue, deliberately.
+ *
+ * It was eight pages (400 offers) and the account holds twice that: every
+ * offer past the cut-off was invisible to the cost and stock syncs, which is
+ * why photobooks and photomagnets showed «немає закупівельної» while KeyCRM
+ * had it all along (Diana, 2026-08-11: «KeyCRM має закупівельну вартість для
+ * фотокниг, фотомагнітів»). A truncated catalogue read fails silently — it
+ * looks exactly like a CRM with missing data — so the budget is now generous
+ * and the walk stops on its own at the last page.
+ */
+export async function fetchKeycrmOffers(maxPages = 40): Promise<KeycrmOffer[]> {
     const offers: KeycrmOffer[] = [];
 
     for (let page = 1; page <= maxPages; page++) {
