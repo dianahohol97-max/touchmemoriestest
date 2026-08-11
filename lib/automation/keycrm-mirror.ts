@@ -63,12 +63,18 @@ function money(value: any): number {
  * «доставлено», «отримано» are the words this team actually uses. An
  * unrecognised stage stays 'confirmed' — still visible, which errs on the side
  * of showing work rather than hiding it.
+ *
+ * The stage NAME is the only source (Diana, 2026-08-11): a waybill's mere
+ * existence used to force 'shipped', but the team creates TTNs in advance
+ * while the book is still printing — CRM-13644 sat in «Передано на друк»
+ * with a ready label and the site called it shipped. A parcel counts as
+ * shipped when the CRM stage says so, not when the label is printed.
  */
 function statusFromCrm(crm: KeycrmOrder): string {
     const label = (crm.status_label || '').toLowerCase();
 
     if (label.includes('доставлен') || label.includes('отриман')) return 'delivered';
-    if (crm.ttn || label.includes('дороз') || label.includes('відправ')) return 'shipped';
+    if (label.includes('дороз') || label.includes('відправ')) return 'shipped';
 
     return 'confirmed';
 }
