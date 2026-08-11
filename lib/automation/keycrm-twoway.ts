@@ -406,9 +406,12 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
     // no longer a candidate, and the balance would never be filed at all.
     const patched = { ...order, ...patch };
 
-    const payment = await pushMissingPayment(patched, crm, dryRun);
-    result.changes.push(...payment.changes);
-    result.problems.push(...payment.problems);
+    // Payments are NOT filed into the CRM automatically (Diana, 2026-08-12):
+    // the money story travels in the order comment and a manager attaches the
+    // payment by hand, so it goes through the team's own routine —
+    // fiscalisation included. The CRM's payments still flow the other way and
+    // are read above. pushMissingPayment stays defined should the decision
+    // ever be reversed.
 
     const cancellation = await pushCancellation(patched, crm, dryRun);
     result.changes.push(...cancellation.changes);

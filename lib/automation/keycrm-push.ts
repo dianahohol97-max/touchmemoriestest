@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrmTagIdByName } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
-import { readOrderMoney, describeMoney, isReadyForCrm, paymentMethodIdFor } from '@/lib/automation/keycrm-money';
+import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -295,24 +295,17 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
         payload.manager_comment += `\nБез звірки з номенклатурою CRM: ${unmapped.join(', ')}`;
     }
 
-    // Payments are only filed when the account's payment-method id is known.
-    // A wrong id would book real money against the wrong method, which is far
-    // harder to untangle than entering the payment by hand once.
-    // Method chosen by the KIND of money (повна оплата / передоплата), because
-    // the account files arrangements, not channels — see paymentMethodIdFor.
-    const paymentMethodId = paymentMethodIdFor(order);
-    const m = readOrderMoney(order);
-    if (m.received > 0 && paymentMethodId) {
-        const amount = m.received;
-
-        payload.payments = [{
-            payment_method_id: paymentMethodId,
-            amount,
-            status: 'paid',
-            description: `Monobank, замовлення ${order?.order_number || ''}`.trim(),
-            ...(order?.paid_at ? { payment_date: String(order.paid_at).slice(0, 19).replace('T', ' ') } : {}),
-        }];
-    }
+    // NO payments block — deliberately (Diana, 2026-08-12): «не став статус
+    // оплачено, а пиши це в коментарях, а менеджер підтягне оплату». An order
+    // arriving in the CRM already marked paid skips the team's own payment
+    // routine (checking the account, fiscalisation), so the money story goes
+    // into the comment instead and a manager files the payment by hand. The
+    // comment's first line already carries the site order number, and the
+    // describeMoney line above says exactly what was received and how.
+    payload.manager_comment = truncate(
+        `${payload.manager_comment}\nОплату в CRM не проставлено автоматично — підтягніть вручну.`,
+        ORDER_COMMENT_LIMIT,
+    );
 
     return payload;
 }
