@@ -62,5 +62,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'update failed' }, { status: 500 });
   }
 
+  // Tell the team NOW, not when production reaches the order (Diana,
+  // 2026-08-12, on TM-001175: the photos never uploaded, the note sat on the
+  // card, and the gap surfaced only when a manager opened it days later). The
+  // customer still has the photos in hand at this moment — an hour later they
+  // have closed the tab.
+  try {
+    const { data: order } = await admin
+      .from('orders')
+      .select('order_number, customer_name, customer_phone, customer_email, items')
+      .eq('id', id)
+      .maybeSingle();
+
+    const { getAlertChatId, getWorkChatIds, sendViaPublicBot } = await import('@/lib/chatbot/telegram-business');
+    const workChats = await getWorkChatIds();
+    const target = workChats[0] ?? await getAlertChatId();
+
+    if (target && order) {
+      const products = Array.isArray(order.items)
+        ? order.items.map((i: any) => i?.product_name).filter(Boolean).slice(0, 3).join(', ')
+        : '';
+      const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
+      await sendViaPublicBot({
+        chat_id: target,
+        text: [
+          `⚠️ ${order.order_number}: фото від клієнта НЕ завантажились (${count} товар(ів))`,
+          products ? `Товар: ${products}` : '',
+          `Клієнт: ${order.customer_name || '—'}${order.customer_phone ? `, ${order.customer_phone}` : ''}`,
+          'Звʼяжіться з клієнтом зараз — попросіть надіслати фото повторно.',
+          `${site}/admin/orders/${id}`,
+        ].filter(Boolean).join('\n'),
+      });
+    }
+  } catch (e) {
+    // The warning on the card is the durable record; a failed notification
+    // must never fail the customer's checkout call.
+    console.error('[flag-export-failed] alert failed:', e);
+  }
+
   return NextResponse.json({ ok: true });
 }
