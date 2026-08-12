@@ -85,6 +85,7 @@ export async function findClientDialog(order: {
     order_number?: string | null;
     customer_name?: string | null;
     customer_phone?: string | null;
+    delivery_address?: string | null;
 }): Promise<ClientDialogMatch | null> {
     const supabase = getAdminClient();
 
@@ -108,10 +109,16 @@ export async function findClientDialog(order: {
     };
 
     const wantedPhone = phoneKey(order.customer_phone);
-    const wantedName = nameTokens(order.customer_name);
+    // The delivery block is the richest source of matchable words: the
+    // recipient as the client typed it, the city, the branch. Diana,
+    // 2026-08-12: «ми не вказуємо номер замовлення в чаті в телеграмі — можеш
+    // зʼєднувати по даних для відправки і номер телефону».
+    const deliveryTokens = nameTokens(order.delivery_address);
+    const wantedName = [...new Set([...nameTokens(order.customer_name), ...deliveryTokens])];
+    const cityToken = deliveryTokens.find(t => t.length >= 4) || '';
 
-    // 1. The order number typed in the dialog. Decisive when present: nobody
-    //    else's chat carries this shop's order id.
+    // 1. The order number, on the rare chance the client quoted it. Clients
+    //    normally do not, so this is first only because it is unambiguous.
     const bare = String(order.order_number || '').replace(/\D/g, '');
     if (bare.length >= 4) {
         for (const id of await conversationsMentioning(bare, 2)) {
@@ -144,10 +151,24 @@ export async function findClientDialog(order: {
     //    customer's order.
     for (const token of [...wantedName].sort((a, b) => b.length - a.length)) {
         if (token.length < 5) continue;
-        const found = await conversationsMentioning(token, 3);
+        const found = await conversationsMentioning(token, 4);
+        if (!found.length) continue;
+
         if (found.length === 1) {
             const match = describe(found[0], 'name');
             if (match) return match;
+        }
+
+        // Several dialogs carry the name — «Олена» is not rare. The city or
+        // the branch from the delivery block decides between them: the client
+        // typed both in the same conversation when giving their waybill data.
+        if (cityToken && cityToken !== token) {
+            const withCity = await conversationsMentioning(cityToken, 20);
+            const both = found.filter(id => withCity.includes(id));
+            if (both.length === 1) {
+                const match = describe(both[0], 'name');
+                if (match) return match;
+            }
         }
     }
 
@@ -204,6 +225,7 @@ export async function clientDialogContext(order: {
     order_number?: string | null;
     customer_name?: string | null;
     customer_phone?: string | null;
+    delivery_address?: string | null;
 }): Promise<string> {
     try {
         const match = await findClientDialog(order);

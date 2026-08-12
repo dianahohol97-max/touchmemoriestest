@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { extractOrderNumbers } from './work-chat-monitor';
 
@@ -248,6 +249,47 @@ async function attachQuestion(supabase: any, orderNum: string, q: OpenQuestion, 
  * Retrieval only — the reply quotes a stored message verbatim, names who wrote
  * it and when. When nothing matches, null, and Софія says nothing at all.
  */
+/**
+ * Which of these messages answers the question — by number, or none.
+ *
+ * The model is a POINTER here, not an author: it returns an index and the
+ * caller quotes that stored message verbatim. That keeps «жодних вигадувань»
+ * intact while covering the common case where the answer names neither the
+ * order nor replies to the question — «Завтра раненько» under «13745 питає за
+ * макет, коли буде?».
+ */
+async function pickAnswer(question: string, candidates: any[]): Promise<any | null> {
+    if (!candidates.length || !process.env.ANTHROPIC_API_KEY) return null;
+
+    try {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        const listing = candidates
+            .map((c, i) => `${i + 1}. ${c.sender || 'колега'}: ${String(c.text || '').slice(0, 200)}`)
+            .join('\n');
+
+        const response = await anthropic.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 8,
+            temperature: 0,
+            system: [
+                'Тобі дають питання з робочого чату і повідомлення, що йшли після нього.',
+                'Твоє завдання — вказати, яке з повідомлень є відповіддю саме на це питання.',
+                'Відповідай ЛИШЕ числом — номером повідомлення. Якщо жодне не є відповіддю, відповідай 0.',
+                'Не пиши нічого, крім числа. Краще 0, ніж здогадка.',
+            ].join(' '),
+            messages: [{ role: 'user', content: `Питання: «${question}»\n\nПовідомлення:\n${listing}` }],
+        });
+
+        const raw = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
+        const index = parseInt(raw.replace(/\D/g, ''), 10);
+        if (!Number.isFinite(index) || index < 1 || index > candidates.length) return null;
+        return candidates[index - 1];
+    } catch (e) {
+        console.error('[open-questions] answer pick failed:', e);
+        return null;
+    }
+}
+
 export async function answerFromMemory(params: {
     chatId: string | number;
     text: string;
@@ -304,7 +346,21 @@ export async function answerFromMemory(params: {
 
             // Prefer a human's answer to Софія's own — a person's word about
             // an order outranks the bot's summary of it.
-            const chosen = candidates.find(c => !c.is_bot) || candidates[0];
+            let chosen = candidates.find(c => !c.is_bot) || candidates[0];
+
+            // Nothing tied by reply or by number. The real answer often names
+            // neither — «Завтра раненько» under «13745 питає за макет, коли
+            // буде?» — so the model is asked to POINT AT one of the messages
+            // that followed. It selects, it never writes: the quote below is
+            // verbatim from the chat, so there is nothing to invent.
+            if (!chosen) {
+                const window = rows.filter(r => {
+                    const when = new Date(r.created_at).getTime();
+                    return when > askedAt && when - askedAt <= 3 * HOUR_MS && quotable(r) && !r.is_bot;
+                }).slice(0, 25);
+                const picked = await pickAnswer(String(question.text || ''), window);
+                if (picked) chosen = picked;
+            }
             if (!chosen) continue;
 
             const when = new Date(chosen.created_at).toLocaleString('uk-UA', {
