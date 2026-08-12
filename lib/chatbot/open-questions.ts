@@ -57,6 +57,13 @@ export function isQuestion(text: string): boolean {
     return /(?<!\p{L})(що|шо|коли|який|яка|яке|які|чи|скільки|де|хто|кому|чому)(?!\p{L})/iu.test(t);
 }
 
+/**
+ * Messages that answer nothing, whoever wrote them: Софія's own misses and a
+ * colleague's «не знаю». Quoting one back as «це вже питали» would present a
+ * dead end as a resolution.
+ */
+const NON_ANSWER = /(не знайшл|не видно|не підкаж|не зрозумі|напиши номер|перевір номер|це вже питали|не вмію|не знаю|хз|уточни)/i;
+
 /** Words worth comparing two questions by: four letters or more, lower-cased. */
 function significantWords(text: string): string[] {
     return String(text || '')
@@ -75,6 +82,13 @@ function sameQuestion(a: string, b: string): boolean {
     const numsA = extractOrderNumbers(a.replace(/@\S+/g, ' '));
     const numsB = extractOrderNumbers(b.replace(/@\S+/g, ' '));
     const sharedNumber = numsA.some(n => numsB.includes(n));
+
+    // Two DIFFERENT orders are two different questions, however identically
+    // they are worded. Live: «13745 питає за макет, коли буде?» was answered
+    // with what had been said about 12916 — the same sentence about another
+    // customer's order, which is exactly the kind of confident wrong answer
+    // that destroys trust in the whole thing.
+    if (numsA.length && numsB.length && !sharedNumber) return false;
 
     const wordsA = new Set(significantWords(a));
     const wordsB = significantWords(b).filter(w => wordsA.has(w));
@@ -267,8 +281,11 @@ export async function answerFromMemory(params: {
                 const laterText = String(later.text || '').trim();
                 if (!laterText || isQuestion(laterText)) continue;
                 if (new Date(later.created_at).getTime() - askedAt > 24 * HOUR_MS) break;
-                // Софія's own «не підкажу» is not an answer to quote.
-                if (later.is_bot && /не підкаж|не зрозуміла|напиши номер/i.test(laterText)) continue;
+                // «Не знайшла в базі» is not an answer — quoting it back is
+                // worse than silence, because it looks like the question was
+                // handled. Live: «13500 яка країна?» got Софія's own earlier
+                // «Замовлення CRM-13500 не знайшла в базі» read back to it.
+                if (NON_ANSWER.test(laterText)) continue;
 
                 const when = new Date(later.created_at).toLocaleString('uk-UA', {
                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
