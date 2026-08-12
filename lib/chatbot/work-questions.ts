@@ -264,8 +264,11 @@ export async function handleWorkQuestion(params: {
     // they are mirrored from KeyCRM onto the site card, so this is a plain
     // count, not something to hand back to a human. Gated on the word «тег» so
     // that ordinary sentences containing «фото» never trigger it.
-    if (TAG_WORD.test(text)) {
-        const tagReply = await buildTagOrders(text);
+    // Without the word «тег» the same question still arrives — «скільки
+    // замовлень для Андрія сьогодні» — so it is tried too, but then only a
+    // distinctive tag word counts (see requireStrongWord), never «фото».
+    if (TAG_WORD.test(text) || /замовлен/i.test(text)) {
+        const tagReply = await buildTagOrders(text, !TAG_WORD.test(text));
         if (tagReply) return tagReply;
     }
 
@@ -326,6 +329,10 @@ async function chatAboutLife(text: string, replyText?: string, chatId?: string):
                 // доступу до CRM» — she has it, she simply had no handler for that
                 // question. Claiming the opposite teaches the team not to ask.
                 'Ніколи не кажи, що не маєш доступу до CRM, до сайту чи до даних: доступ у тебе є. Якщо саме це питання ти порахувати не вмієш, чесно скажи, що поки не вмієш саме так рахувати, і попроси переформулювати або звернутися до дівчат.',
+                // Live case: «дай мені хвилинку порахувати… щойно скажу
+                // результат», after which nothing ever came. She has no way to
+                // come back later — this message IS the whole answer.
+                'Ти не можеш нічого зробити пізніше: у тебе немає можливості повернутися з відповіддю згодом. Ніколи не обіцяй «зараз порахую», «дай хвилинку», «повернуся з результатом». Або відповідай зараз, або чесно кажи, що не порахуєш.',
                 'Не розкривай технічних деталей про свою будову. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
@@ -505,14 +512,27 @@ async function answerStockClarification(replyText: string, answer: string): Prom
         : [`📦 Залишки:`, '', ...lines].join('\n');
 }
 
-/** The word that makes a question a tag question. */
-const TAG_WORD = /(тег|теґ|тега|тегом|tag|позначк)/iu;
+/**
+ * The word that makes a question a tag question.
+ *
+ * «таг» with an А is how the team actually types it — Diana's own live
+ * question was «скільки замовлень додали сьогодні в срм з тагом для Андрія»,
+ * and a тег-only pattern missed it, so the question fell through to small talk.
+ */
+const TAG_WORD = /(тег|теґ|таг|теґ|tag|позначк)/iu;
 
 /**
  * «за останні 5 днів», «за тиждень», «сьогодні» — the window a question asks
  * about, in days, or null when it asks about the current state. Diana,
  * 2026-08-11: «скільки замовлень з тегом для Андрія за останні 5 днів».
  */
+/** Hours elapsed since midnight in Kyiv, so «сьогодні» is a calendar day. */
+function hoursSinceKyivMidnight(): number {
+    const now = new Date();
+    const kyiv = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+    return Math.max(0.5, kyiv.getHours() + kyiv.getMinutes() / 60);
+}
+
 function matchDayWindow(text: string): { days: number; label: string } | null {
     const t = text.toLowerCase();
     const explicit = t.match(/за\s+(?:останн[іїяе]\w*\s+)?(\d{1,3})\s*(день|дні|днів|дн)/u);
@@ -520,7 +540,9 @@ function matchDayWindow(text: string): { days: number; label: string } | null {
         const days = parseInt(explicit[1], 10);
         if (days > 0 && days <= 365) return { days, label: `за останні ${days} дн.` };
     }
-    if (/(за\s+)?сьогодн/u.test(t)) return { days: 1, label: 'за сьогодні' };
+    // «сьогодні» means the calendar day in Kyiv, not the last 24 hours: an
+    // order added yesterday at 23:00 is not «сьогодні» at 09:00.
+    if (/(за\s+)?сьогодн/u.test(t)) return { days: hoursSinceKyivMidnight() / 24, label: 'за сьогодні' };
     if (/за\s+(останн\w+\s+)?тижд|за\s+тиждень|за\s+неділ/u.test(t)) return { days: 7, label: 'за тиждень' };
     if (/за\s+(останн\w+\s+)?місяц|за\s+місяць/u.test(t)) return { days: 30, label: 'за місяць' };
     return null;
@@ -546,7 +568,7 @@ function matchDayWindow(text: string): { days: number; label: string } | null {
  * that window whatever its state now, because that question is about volume,
  * not about what is left to do.
  */
-async function buildTagOrders(question: string): Promise<string | null> {
+async function buildTagOrders(question: string, requireStrongWord = false): Promise<string | null> {
     const supabase = getAdminClient();
     const window = matchDayWindow(question);
 
@@ -582,11 +604,18 @@ async function buildTagOrders(question: string): Promise<string | null> {
     const q = question.toLowerCase();
     for (const key of hits.keys()) {
         let score = 0;
+        let strong = false;
         for (const word of key.split(/\s+/)) {
             const stem = word.length > 4 ? word.slice(0, word.length - 2) : word;
-            if (stem.length >= 3 && q.includes(stem)) score++;
+            if (stem.length >= 3 && q.includes(stem)) {
+                score++;
+                // A long word is what makes a match trustworthy without the
+                // word «тег» in the question: «андрі» identifies a tag, «фото»
+                // appears in half the sentences this shop writes.
+                if (word.length >= 5) strong = true;
+            }
         }
-        hits.set(key, score);
+        hits.set(key, requireStrongWord && !strong ? 0 : score);
     }
     const ranked = [...hits.entries()].filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1]);
     if (!ranked.length) return null;
