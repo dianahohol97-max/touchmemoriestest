@@ -255,44 +255,63 @@ export async function answerFromMemory(params: {
     const text = String(params.text || '');
     if (!isQuestion(text)) return null;
 
+    // Only questions that NAME an order are answered from memory. Everything
+    // else was guesswork: «13745 питає за макет» was answered with what had
+    // been said about 12916, and «13500 яка країна» with «Софія мовчи!!!»,
+    // because the old version took whatever message happened to follow.
+    const numbers = extractOrderNumbers(text.replace(/@\S+/g, ' '));
+    if (!numbers.length) return null;
+    const bare = numbers.map(n => n.replace(/\D/g, '')).filter(Boolean);
+
     try {
         const supabase = getAdminClient();
         const { data: rows } = await supabase
             .from('work_chat_messages')
-            .select('sender, is_bot, text, created_at')
+            .select('message_id, reply_to_message_id, sender, is_bot, text, created_at')
             .eq('chat_id', String(params.chatId))
             .gte('created_at', new Date(Date.now() - MEMORY_DAYS * 24 * HOUR_MS).toISOString())
             .order('created_at', { ascending: true })
-            .limit(400);
+            .limit(600);
         if (!rows?.length) return null;
 
-        // The newest earlier asking of the same thing, and the first real
-        // answer that followed it within a day.
-        for (let i = rows.length - 1; i >= 0; i--) {
-            const past = rows[i];
-            const pastText = String(past.text || '');
-            if (pastText === text) continue;             // this very message
-            if (!isQuestion(pastText)) continue;
-            if (!sameQuestion(pastText, text)) continue;
+        const mentionsOrder = (t: string) => bare.some(n => t.includes(n));
+        const quotable = (row: any) => {
+            const t = String(row.text || '').trim();
+            return !!t && !isQuestion(t) && !NON_ANSWER.test(t) && t.length >= 3;
+        };
 
-            const askedAt = new Date(past.created_at).getTime();
-            for (let j = i + 1; j < rows.length; j++) {
-                const later = rows[j];
-                const laterText = String(later.text || '').trim();
-                if (!laterText || isQuestion(laterText)) continue;
-                if (new Date(later.created_at).getTime() - askedAt > 24 * HOUR_MS) break;
-                // «Не знайшла в базі» is not an answer — quoting it back is
-                // worse than silence, because it looks like the question was
-                // handled. Live: «13500 яка країна?» got Софія's own earlier
-                // «Замовлення CRM-13500 не знайшла в базі» read back to it.
-                if (NON_ANSWER.test(laterText)) continue;
+        // Every earlier asking of this same thing, newest first.
+        const asked = rows.filter(r => {
+            const t = String(r.text || '');
+            return t !== text && isQuestion(t) && sameQuestion(t, text);
+        });
 
-                const when = new Date(later.created_at).toLocaleString('uk-UA', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
-                });
-                const who = later.is_bot ? 'Софія' : (later.sender || 'колега');
-                return `Це вже питали в чаті. ${when}, ${who}: «${laterText.slice(0, 300)}»`;
-            }
+        for (let i = asked.length - 1; i >= 0; i--) {
+            const question = asked[i];
+            const askedAt = new Date(question.created_at).getTime();
+
+            // An answer is tied to its question in one of exactly two ways:
+            // it REPLIES to it, or it names the same order. Adjacency alone is
+            // not a tie — that is what quoted «Софія мовчи!!!» as an answer
+            // about a country.
+            const candidates = rows.filter(r => {
+                const when = new Date(r.created_at).getTime();
+                if (when < askedAt || when - askedAt > 24 * HOUR_MS) return false;
+                if (!quotable(r)) return false;
+                if (question.message_id && r.reply_to_message_id === question.message_id) return true;
+                return mentionsOrder(String(r.text || ''));
+            });
+
+            // Prefer a human's answer to Софія's own — a person's word about
+            // an order outranks the bot's summary of it.
+            const chosen = candidates.find(c => !c.is_bot) || candidates[0];
+            if (!chosen) continue;
+
+            const when = new Date(chosen.created_at).toLocaleString('uk-UA', {
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
+            });
+            const who = chosen.is_bot ? 'Софія' : (chosen.sender || 'колега');
+            return `Це вже питали в чаті. ${when}, ${who}: «${String(chosen.text).slice(0, 300)}»`;
         }
     } catch (e) {
         console.error('[open-questions] memory answer failed:', e);

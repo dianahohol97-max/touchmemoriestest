@@ -224,6 +224,7 @@ export async function POST(req: Request) {
                                 text: noteText,
                                 sender: body.message.from?.first_name || username,
                                 messageId,
+                                replyToMessageId: replyMsg?.message_id ? String(replyMsg.message_id) : undefined,
                             });
                             if (answer) {
                                 await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);

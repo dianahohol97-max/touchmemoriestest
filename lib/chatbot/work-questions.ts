@@ -139,6 +139,8 @@ export async function recordWorkChatMessage(chatId: string, params: {
     sender?: string;
     isBot?: boolean;
     messageId?: string;
+    /** The message this one replies to — the link that makes memory reliable. */
+    replyToMessageId?: string;
 }): Promise<void> {
     const text = String(params.text || '').trim();
     if (!chatId || !text) return;
@@ -148,6 +150,7 @@ export async function recordWorkChatMessage(chatId: string, params: {
         await supabase.from('work_chat_messages').insert({
             chat_id: String(chatId),
             message_id: params.messageId ? String(params.messageId) : null,
+            reply_to_message_id: params.replyToMessageId ? String(params.replyToMessageId) : null,
             sender: params.isBot ? 'Софія' : (params.sender || null),
             is_bot: params.isBot === true,
             text: text.slice(0, 1000),
