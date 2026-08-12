@@ -205,6 +205,10 @@ export async function handleWorkQuestion(params: {
     replyText?: string;
     /** Telegram chat id — unlocks Софія's short-term memory of that chat. */
     chatId?: string;
+    /** True when this message REPLIES to something Софія herself wrote. */
+    repliedToBot?: boolean;
+    /** True in a one-to-one dialog, where every message is addressed to her. */
+    direct?: boolean;
 }): Promise<string | null> {
     const text = String(params.text || '').trim();
     if (!text || text.startsWith('/')) return null;
@@ -217,10 +221,16 @@ export async function handleWorkQuestion(params: {
         if (clarified) return clarified;
     }
 
-    // Addressing the bot by name counts as talking to it, question mark or
-    // not — «Софія, що по відправках» must not die on the marker check.
-    const addressed = isAddressedToBot(text);
-    if (!QUESTION_MARKER.test(text) && !addressed) return null;
+    // Софія speaks only when spoken to (Diana, 2026-08-11: «якщо до Софії не
+    // звертаються, не викликають її, то вона не має відповідати»).
+    //
+    // Three ways to call her, and nothing else: by name («Софія, що по
+    // відправках»), by replying to one of her own messages, or in a private
+    // dialog with her, where every message is addressed to her by definition.
+    // A question mark is NOT a call — the team asks each other questions all
+    // day, and a bot that answers them all is a bot everyone mutes.
+    const addressed = isAddressedToBot(text) || !!params.repliedToBot || !!params.direct;
+    if (!addressed) return null;
 
     if (NATIONALITY.test(text)) return NATIONALITY_REPLY;
 

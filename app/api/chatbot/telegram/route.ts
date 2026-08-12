@@ -184,7 +184,17 @@ export async function POST(req: Request) {
                             // The answer is built BEFORE the current message
                             // is recorded, so «last messages» context means
                             // the conversation before this one.
-                            const answer = await handleWorkQuestion({ text: noteText, replyText, chatId });
+                            const answer = await handleWorkQuestion({
+                                text: noteText,
+                                replyText,
+                                chatId,
+                                // Replying to Софія's own message is calling her,
+                                // even without naming her: «а тепер?» under her
+                                // answer is obviously still to her.
+                                repliedToBot: replyMsg?.from?.is_bot === true,
+                                // A private dialog with the bot needs no name.
+                                direct: isOwnerPrivate,
+                            });
                             await recordWorkChatMessage(chatId, {
                                 text: noteText,
                                 sender: body.message.from?.first_name || username,
