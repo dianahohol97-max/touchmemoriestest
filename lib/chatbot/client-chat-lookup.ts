@@ -43,14 +43,46 @@ export type ClientDialogMatch = {
     conversationId: string;
     who: string;
     platform: string;
-    confidence: 'phone' | 'name';
+    confidence: 'order' | 'phone' | 'name';
 };
+
+/**
+ * Conversations whose MESSAGES contain a string — the order number, the phone,
+ * the customer's surname. This is what makes the link work at all: a Telegram
+ * dialog is titled «Надійка» or «vladixx», never «Біленька Валентина», so the
+ * title almost never matches a CRM name. What does match is the text the
+ * client typed — their full name and phone for the waybill, the order number
+ * when they ask about it.
+ */
+async function conversationsMentioning(term: string, limit = 5): Promise<string[]> {
+    if (!term || term.length < 4) return [];
+    const supabase = getAdminClient();
+    // Escape the LIKE wildcards so a name with «%» cannot widen the search.
+    const safe = term.replace(/[%_]/g, ' ').trim();
+    if (safe.length < 4) return [];
+
+    const { data } = await supabase
+        .from('social_messages')
+        .select('conversation_id')
+        .ilike('original_text', `%${safe}%`)
+        .order('sent_at', { ascending: false })
+        .limit(limit * 6);
+
+    const seen: string[] = [];
+    for (const row of data || []) {
+        const id = String((row as any).conversation_id || '');
+        if (id && !seen.includes(id)) seen.push(id);
+        if (seen.length >= limit) break;
+    }
+    return seen;
+}
 
 /**
  * Find the dialog that belongs to an order's customer. Returns null rather
  * than a guess when nothing matches convincingly.
  */
 export async function findClientDialog(order: {
+    order_number?: string | null;
     customer_name?: string | null;
     customer_phone?: string | null;
 }): Promise<ClientDialogMatch | null> {
@@ -63,25 +95,63 @@ export async function findClientDialog(order: {
         .limit(500);
     if (!conversations?.length) return null;
 
+    const byId = new Map(conversations.map((c: any) => [c.id, c]));
+    const describe = (id: string, confidence: ClientDialogMatch['confidence']): ClientDialogMatch | null => {
+        const conv: any = byId.get(id);
+        if (!conv) return null;
+        return {
+            conversationId: conv.id,
+            who: conv.external_username || 'клієнт',
+            platform: conv.platform,
+            confidence,
+        };
+    };
+
     const wantedPhone = phoneKey(order.customer_phone);
     const wantedName = nameTokens(order.customer_name);
 
-    // A phone in the dialog's own name field is rare but decisive.
-    if (wantedPhone) {
-        const byPhone = conversations.find(c => phoneKey(c.external_username) === wantedPhone);
-        if (byPhone) {
-            return {
-                conversationId: byPhone.id,
-                who: byPhone.external_username || 'клієнт',
-                platform: byPhone.platform,
-                confidence: 'phone',
-            };
+    // 1. The order number typed in the dialog. Decisive when present: nobody
+    //    else's chat carries this shop's order id.
+    const bare = String(order.order_number || '').replace(/\D/g, '');
+    if (bare.length >= 4) {
+        for (const id of await conversationsMentioning(bare, 2)) {
+            const match = describe(id, 'order');
+            if (match) return match;
         }
+    }
+
+    // 2. The phone. Clients type it for the waybill, in every possible format,
+    //    so the search uses the last nine digits — «0677546059» and
+    //    «677546059» both hit, and the local «067…» spelling too.
+    if (wantedPhone) {
+        for (const term of [wantedPhone, `0${wantedPhone.slice(-9)}`]) {
+            for (const id of await conversationsMentioning(term, 2)) {
+                const match = describe(id, 'phone');
+                if (match) return match;
+            }
+        }
+        // Rare, but decisive when it happens: the dialog is titled by a phone.
+        const byTitle = conversations.find((c: any) => phoneKey(c.external_username) === wantedPhone);
+        if (byTitle) return describe(byTitle.id, 'phone');
     }
 
     if (!wantedName.length) return null;
 
-    // Name overlap: at least one token of four letters or more must match.
+    // 3. The name as the client typed it for delivery — «Біленька Валентина»
+    //    in the dialog text, while the dialog itself is titled «Валя». Only a
+    //    long token counts, and only when exactly one dialog carries it: two
+    //    Оксани would be a guess, and a guess here answers about the wrong
+    //    customer's order.
+    for (const token of [...wantedName].sort((a, b) => b.length - a.length)) {
+        if (token.length < 5) continue;
+        const found = await conversationsMentioning(token, 3);
+        if (found.length === 1) {
+            const match = describe(found[0], 'name');
+            if (match) return match;
+        }
+    }
+
+    // 4. Last resort: the dialog's TITLE shares a long word with the CRM name.
     // Short tokens are dropped above precisely so «Оля» does not match every
     // Olga in the inbox; a single shared LONG token (a surname, or a rare
     // first name) is the weakest link this will accept.
@@ -131,6 +201,7 @@ export async function fetchDialogTranscript(conversationId: string, limit = MAX_
  * order alone, as before.
  */
 export async function clientDialogContext(order: {
+    order_number?: string | null;
     customer_name?: string | null;
     customer_phone?: string | null;
 }): Promise<string> {
@@ -142,7 +213,9 @@ export async function clientDialogContext(order: {
 
         const caveat = match.confidence === 'name'
             ? ' (звірено за імʼям — якщо клієнт не той, скажи про це)'
-            : '';
+            : match.confidence === 'order'
+                ? ' (у діалозі згадано номер замовлення)'
+                : ' (звірено за номером телефону)';
         return `Переписка з клієнтом «${match.who}» у ${match.platform}${caveat}:\n${transcript}`;
     } catch (e) {
         console.error('[client-chat-lookup] failed:', e);
