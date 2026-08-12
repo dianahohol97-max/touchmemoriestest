@@ -47,6 +47,12 @@ export type KeycrmOrder = {
     ttn: string;
     /** Carrier name as the CRM knows it, for the tracking link on the site. */
     shipping_service: string;
+    /**
+     * Where the parcel goes, as one readable line — country, city, branch,
+     * recipient. Diana asked «13500 яка країна?» and Софія had nothing to
+     * answer from, because the mirror kept only the delivery METHOD.
+     */
+    shipping_address: string;
     /** Sum of every payment filed against the order in the CRM. */
     payments_total: number;
     /** Tags as the team set them in the CRM. */
@@ -189,6 +195,36 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         shipping?.tracking_code ?? shipping?.declaration_id ?? shipping?.ttn ?? raw?.ttn ?? ''
     ).trim();
 
+    // The destination, assembled from whichever keys this account's delivery
+    // integration uses. Nova Poshta, Ukrposhta and the international couriers
+    // each name these differently, so the readable line is built from every
+    // spelling seen rather than one guessed, and duplicates are dropped —
+    // «Україна, Львів, Відділення №12, Шитікова Олена».
+    const shippingAddress = (() => {
+        const pick = (...keys: string[]) => {
+            for (const key of keys) {
+                const value = String((shipping as any)?.[key] ?? '').trim();
+                if (value) return value;
+            }
+            return '';
+        };
+        const parts = [
+            pick('shipping_address_country', 'country', 'country_name'),
+            pick('shipping_address_region', 'region', 'shipping_address_area'),
+            pick('shipping_address_city', 'city', 'city_name', 'shipping_city'),
+            pick('shipping_receive_point', 'warehouse', 'shipping_address_warehouse', 'address', 'shipping_address'),
+            pick('recipient_full_name', 'recipient', 'full_name'),
+        ].map(s => s.trim()).filter(Boolean);
+
+        const seen = new Set<string>();
+        return parts.filter(p => {
+            const key = p.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).join(', ');
+    })();
+
     // Payments are an array on the order; only settled ones count towards what
     // the CRM believes has been received, otherwise a pending line would look
     // like money already in and suppress the top-up the site needs to send.
@@ -249,6 +285,7 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         source_id: String(raw?.source_id ?? '').trim(),
         source_uuid: String(raw?.source_uuid ?? '').trim(),
         shipping_service: String(shipping?.shipping_service ?? shipping?.delivery_service?.name ?? '').trim(),
+        shipping_address: shippingAddress,
         payments_total: Math.round(paymentsTotal * 100) / 100,
         status_id: statusId,
         status_label: statusId !== null && statusLabels[String(statusId)]

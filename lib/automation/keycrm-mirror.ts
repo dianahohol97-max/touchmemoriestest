@@ -210,6 +210,9 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
         order_number: `${MIRROR_NUMBER_PREFIX}${crm.id}`,
         source: MIRROR_SOURCE,
         delivery_method: deliveryMethodFrom(crm),
+        // Where it goes, not just how. «13500 яка країна?» had no answer while
+        // only the method was mirrored (Diana, 2026-08-12).
+        ...(crm.shipping_address ? { delivery_address: crm.shipping_address } : {}),
         customer_name: crm.buyer_name || 'Клієнт з KeyCRM',
         customer_email: crm.buyer_email || null,
         customer_phone: crm.buyer_phone || null,

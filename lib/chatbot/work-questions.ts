@@ -5,6 +5,7 @@ import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
 import { answerFromMemory } from './open-questions';
+import { mirrorSingleKeycrmOrder } from '@/lib/automation/keycrm-mirror';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
 /**
@@ -1026,12 +1027,15 @@ export async function refreshTaskRecommendations(orderNumbers: string[]): Promis
  * plain fact card when the AI is unavailable, so the chat always gets an
  * answer.
  */
+/** Everything an order answer can need, in one place. */
+const ORDER_FIELDS = 'id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment, delivery_method, delivery_address';
+
 async function answerOrderQuestion(question: string, numbers: string[], chatId?: string): Promise<string | null> {
     const supabase = getAdminClient();
 
     const { data: matches } = await supabase
         .from('orders')
-        .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
+        .select(ORDER_FIELDS)
         .in('order_number', numbers)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -1048,15 +1052,38 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         for (const crmId of crmIds) {
             const { data: adopted } = await supabase
                 .from('orders')
-                .select('id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment')
+                .select(ORDER_FIELDS)
                 .eq('custom_attributes->keycrm->>order_id', crmId)
                 .limit(1);
             if (adopted?.[0]) { order = adopted[0]; break; }
         }
     }
 
+    // Not in the mirror — which is not the same as «does not exist». The
+    // mirror keeps the last 14 days; Diana asked «13500 яка країна?» about an
+    // order from June and got «не знайшла в базі», while the card sat in
+    // KeyCRM the whole time. Pull that one card on demand and answer from it.
     if (!order) {
-        return `Замовлення ${numbers.join(' / ')} не знайшла в базі. Якщо воно щойно створене в KeyCRM — з'явиться після найближчого годинного синку.`;
+        for (const num of numbers) {
+            const crmId = num.startsWith('CRM-') ? num.slice(4) : (/^\d{4,6}$/.test(num) ? num : '');
+            if (!crmId) continue;
+            try {
+                const pulled = await mirrorSingleKeycrmOrder(crmId);
+                if (!pulled) continue;
+                const { data: fresh } = await supabase
+                    .from('orders')
+                    .select(ORDER_FIELDS)
+                    .eq('order_number', `CRM-${crmId}`)
+                    .limit(1);
+                if (fresh?.[0]) { order = fresh[0]; break; }
+            } catch (e) {
+                console.error('[work-questions] on-demand CRM pull failed:', e);
+            }
+        }
+    }
+
+    if (!order) {
+        return `Замовлення ${numbers.join(' / ')} не знайшла ні на сайті, ні в KeyCRM. Перевір номер, будь ласка.`;
     }
 
     const { data: history } = await supabase
@@ -1118,6 +1145,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
         `Сума: ${order.total} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
+        // Delivery, not just its method: «13500 яка країна?» is a normal
+        // question and the address is where the answer lives.
+        (order as any).delivery_address ? `Доставка: ${(order as any).delivery_address}` : '',
+        (order as any).delivery_method ? `Спосіб доставки: ${(order as any).delivery_method}` : '',
         `Створене: ${fmtDate(order.created_at)}`,
         `Дедлайн виробництва: ${fmtDate(order.deadline)}`,
         order.ttn ? `ТТН: ${order.ttn}${order.tracking_carrier ? ` (${order.tracking_carrier})` : ''}` : 'ТТН ще не створено',
@@ -1154,6 +1185,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
             if (!velourCode && cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
             if (!velourCode && order.notes) pick.push(`Нотатки: ${String(order.notes).slice(0, 150)}.`);
             if (pick.length === 1) pick.push('Складу замовлення в системі не видно — відкрий картку.');
+        } else if (/країн|місто|адрес|куди|відділен|нова пошта|получател|одержувач/.test(q)) {
+            const address = (order as any).delivery_address;
+            pick.push(address ? `Доставка: ${address}.` : 'Адреси доставки в картці немає — скажи, куди дивитися, або уточни в клієнта.');
+            if ((order as any).delivery_method) pick.push(`Спосіб: ${(order as any).delivery_method}.`);
         } else if (/відправ|дедлайн|коли|ттн|трек|доставк/.test(q)) {
             pick.push(`Дедлайн виробництва: ${fmtDate(order.deadline)}.`);
             pick.push(order.ttn ? `ТТН: ${order.ttn}${order.tracking_carrier ? ` (${order.tracking_carrier})` : ''}.` : 'ТТН ще не створено.');
