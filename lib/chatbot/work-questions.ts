@@ -289,10 +289,57 @@ export async function handleWorkQuestion(params: {
     // persona; the name-addressing gate keeps her from butting into ordinary
     // team conversation.
     if (addressed) {
+        // A work question she could not route is answered with a QUESTION, not
+        // with pleasantries (Diana, 2026-08-12: «якщо не знає, то хай
+        // запитує»). Only genuinely non-work talk reaches the chat model.
+        const clarification = await clarifyWorkQuestion(text);
+        if (clarification) return clarification;
         return chatAboutLife(text, params.replyText, params.chatId);
     }
 
     return null;
+}
+
+/**
+ * The one thing missing that would let her answer.
+ *
+ * Every branch above needs a handle: an order number, a tag name, a product.
+ * When the message is clearly about work but carries none of them, the useful
+ * reply is the question that unblocks it — «який тег?», «який номер?» — and it
+ * is written deterministically, because this is precisely the moment when a
+ * model invents a helpful-sounding sentence that helps nobody.
+ *
+ * Returns null for non-work messages, which then go to the chat persona.
+ */
+async function clarifyWorkQuestion(text: string): Promise<string | null> {
+    const t = text.toLowerCase();
+
+    if (TAG_WORD.test(t)) {
+        const known = await knownTagNames();
+        const list = known.length ? ` Зараз у нас такі: ${known.slice(0, 12).join(', ')}.` : '';
+        return `Не зрозуміла, про який саме тег ідеться.${list} Напиши назву тегу — і я порахую, за сьогодні чи за будь-який період.`;
+    }
+
+    if (/(замовлен|заказ)/i.test(t)) {
+        return 'Напиши номер замовлення — і я гляну статус, дедлайн, оплату чи склад. Без номера можу хіба порахувати чергу за тегом або за менеджером, тоді скажи, за яким саме.';
+    }
+
+    if (/(залиш|склад|наявн)/i.test(t)) {
+        return 'Скажи, який саме товар цікавить — маркери, коробки, плівка — і я подивлюся залишок у CRM.';
+    }
+
+    return null;
+}
+
+/** Tag names currently in the site's tag list, mirrored from the CRM. */
+async function knownTagNames(): Promise<string[]> {
+    try {
+        const supabase = getAdminClient();
+        const { data } = await supabase.from('order_tags').select('name').order('sort_order').limit(30);
+        return (data || []).map((r: any) => String(r.name || '')).filter(Boolean);
+    } catch {
+        return [];
+    }
 }
 
 /**
@@ -1134,7 +1181,11 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 'Не переказуй решту фактів, не вітайся, не додавай підсумків чи порад, яких не просили.',
                 'Якщо в останніх повідомленнях чату на це питання вже відповідали, можеш коротко це зазначити.',
                 'Спершу шукай відповідь у фактах про замовлення. Якщо там її немає — подивись у переписці з клієнтом, і тоді ОБОВʼЯЗКОВО зазнач, що це з переписки, і назви дату.',
-                'Якщо немає ні там, ні там, одним реченням скажи, що цього ніде не видно, і порадь відкрити картку замовлення.',
+                // Diana, 2026-08-12: «якщо Софія знає відповідь, то відповідає…
+                // а якщо не знає, то хай запитує». Not knowing is fine; a vague
+                // reply that neither answers nor asks is what wastes the team's
+                // time, because nobody can tell what to do with it.
+                'Якщо немає ні там, ні там, скажи одним реченням, чого саме бракує в даних, і постав одне конкретне уточнювальне питання колезі — наприклад, попроси код кольору, номер, дату чи назву товару.',
                 'Нічого не вигадуй. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
