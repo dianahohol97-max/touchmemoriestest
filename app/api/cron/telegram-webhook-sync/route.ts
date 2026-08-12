@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { processPendingMentions } from '@/lib/chatbot/work-chat-monitor';
+import { promoteStaleQuestions } from '@/lib/chatbot/open-questions';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,17 @@ export async function GET(req: Request) {
         }
     } catch (e) {
         console.error('[telegram-webhook-sync] pending mentions failed:', e);
+    }
+
+    // Questions nobody answered within the window become items in «Важливо».
+    let openQuestions = { promoted: 0 };
+    try {
+        openQuestions = await promoteStaleQuestions();
+        if (openQuestions.promoted) {
+            console.log(`[telegram-webhook-sync] ${openQuestions.promoted} unanswered chat questions filed under Важливо`);
+        }
+    } catch (e) {
+        console.error('[telegram-webhook-sync] open questions failed:', e);
     }
 
     const token = process.env.TELEGRAM_PUBLIC_BOT_TOKEN;

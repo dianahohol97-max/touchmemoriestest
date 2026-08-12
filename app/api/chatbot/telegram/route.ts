@@ -16,6 +16,7 @@ import { handleWorkCommand } from '@/lib/chatbot/work-commands';
 import { captureWorkChatOrderMentions } from '@/lib/chatbot/work-chat-monitor';
 import { handleWorkQuestion, refreshTaskRecommendations, isMetaWorkQuestion, recordWorkChatMessage } from '@/lib/chatbot/work-questions';
 import { getWorkChatIds } from '@/lib/chatbot/telegram-business';
+import { isQuestion, noteOpenQuestion, resolveOpenQuestions } from '@/lib/chatbot/open-questions';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 // Two model calls (recommendation + answer) can outlive the default
@@ -165,6 +166,30 @@ export async function POST(req: Request) {
                             }
                         } catch (e) {
                             console.error('work-chat monitor failed:', e);
+                        }
+
+                        // A question about an order is not a task — but an
+                        // UNANSWERED one is a problem (Diana, 2026-08-12). It
+                        // waits an hour: answered in the chat, it disappears;
+                        // unanswered, the cron files it under «Важливо».
+                        try {
+                            if (isQuestion(noteText)) {
+                                await noteOpenQuestion({
+                                    chatId,
+                                    chatTitle: body.message.chat?.title || 'робочий чат',
+                                    messageId: body.message.message_id,
+                                    sender: body.message.from?.first_name || 'учасник',
+                                    text: noteText,
+                                });
+                            } else {
+                                await resolveOpenQuestions({
+                                    chatId,
+                                    text: noteText,
+                                    replyToMessageId: replyMsg?.message_id ?? null,
+                                });
+                            }
+                        } catch (e) {
+                            console.error('open questions failed:', e);
                         }
                     }
                 }

@@ -4,6 +4,7 @@ import { clientDialogContext } from '@/lib/chatbot/client-chat-lookup';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
+import { answerFromMemory } from './open-questions';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
 /**
@@ -230,7 +231,13 @@ export async function handleWorkQuestion(params: {
     // A question mark is NOT a call — the team asks each other questions all
     // day, and a bot that answers them all is a bot everyone mutes.
     const addressed = isAddressedToBot(text) || !!params.repliedToBot || !!params.direct;
-    if (!addressed) return null;
+    if (!addressed) {
+        // One exception, and it is not chatter: the same question asked again
+        // in other words, when the chat already answered it (Diana,
+        // 2026-08-12). The reply QUOTES that answer — who said it and when —
+        // and stays silent when there is nothing to quote.
+        return answerFromMemory({ chatId: params.chatId || '', text });
+    }
 
     if (NATIONALITY.test(text)) return NATIONALITY_REPLY;
 
