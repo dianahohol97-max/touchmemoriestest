@@ -131,18 +131,37 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         'чекаю', 'чекаємо', 'чекатиму', 'жду', 'ждем', 'ждём', 'буду', 'домовились',
         'домовилися', 'зрозуміла', 'зрозумів', 'гаразд', 'звісно', 'звичайно',
     ]);
+    // The vocabulary alone keeps losing to the variety of politeness: after
+    // «Дякую)», «Спасибо большое ☺️» and «Ок дякую чекаю» came «І вам гарного
+    // та мирного дня!☀️», which failed on the single word «мирного» (Diana,
+    // third time: «ми ж домовлялися, що таких повідомлень Софія не буде
+    // підсвічувати»). So the test is inverted: instead of demanding that every
+    // word be known, a short message is a closer UNLESS it carries something
+    // that actually needs doing.
+    //
+    // What still raises the alarm: a question mark, anything the shop can act
+    // on (a photo, a layout, payment, a waybill, an address, a deadline), and
+    // an opening greeting — «Добрий день» as the last message is a customer
+    // starting a conversation, not ending one.
+    const ACTIONABLE = /(коли|чому|скільки|можна|можете|можлив|потріб|треба|хочу|прошу|проси|поміня|зміни|переслат|надішл|надіш|скинь|скиньте|фото|макет|дизайн|оплат|рахун|ттн|накладн|відправ|доставк|адрес|термін|дата|уточн|питанн|проблем|не працює|помил|поверн|обмін|скасув|додайте|додати|чекаю на|коли ж)/iu;
+    const OPENING_GREETING = /^(добр(ий|ого)\s+(день|ранок|вечір|ранку)|вітаю|привіт|здравствуйте|добрый\s+(день|вечер)|доброе\s+утро)\b/iu;
+    const WISH_OR_THANKS = /(і\s+вам|навзаєм|взаємно|гарного|чудового|приємного|мирного|спокійного|вдалого|добраніч|на добраніч|до зустрічі|до побачення|дяк|спасиб|благодар|зрозумі|прийнято|чекаю|чекаємо|домовил|гаразд|добре|окей|супер|клас)/iu;
+
     const isCloser = (text: string) => {
         const raw = String(text || '').trim();
-        if (raw.length > 80 || raw.includes('?')) return false;
+        if (raw.includes('?') || raw.length > 200) return false;
+        if (ACTIONABLE.test(raw)) return false;
+        if (OPENING_GREETING.test(raw)) return false;
+
         const words = raw
             .toLowerCase()
             .replace(/['’ʼ]/g, '')
             .replace(/[^\p{L}\s]/gu, ' ')
             .split(/\s+/)
             .filter(Boolean);
-        if (!words.length) return true; // bare emoji / sticker reaction
-        if (words.length > 10) return false;
-        return words.every(w => CLOSER_WORDS.has(w));
+        if (!words.length) return true;                        // emoji or sticker
+        if (words.every(w => CLOSER_WORDS.has(w))) return true; // pure pleasantry
+        return words.length <= 12 && WISH_OR_THANKS.test(raw);  // a wish with an unknown word in it
     };
 
     const unanswered: WaitingDialog[] = [];
