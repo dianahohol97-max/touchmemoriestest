@@ -33,7 +33,9 @@ import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 const HOUR_MS = 60 * 60 * 1000;
 const ACTION_WINDOW_DAYS = 21;
-const MAX_LISTED = 10;
+// A list somebody asked for is given in full (Diana, 2026-08-13); long
+// messages are split across several Telegram posts by the sender.
+const MAX_LISTED = 60;
 
 const ORDER_STATUS_UA: Record<string, string> = {
     new: 'нове',

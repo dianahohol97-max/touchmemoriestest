@@ -229,7 +229,19 @@ export async function POST(req: Request) {
                                 replyToMessageId: replyMsg?.message_id ? String(replyMsg.message_id) : undefined,
                             });
                             if (answer) {
-                                const sent: any = await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);
+                                // Telegram refuses anything over 4096 characters, and a
+                                // full list is exactly what gets long (Diana, 2026-08-13:
+                                // «якщо я тебе запитала, то давай повну відповідь»). Split
+                                // on line boundaries so no row is cut in half.
+                                const parts: string[] = [];
+                                for (const line of answer.split('\n')) {
+                                    if (!parts.length || (parts[parts.length - 1].length + line.length + 1) > 3500) parts.push(line);
+                                    else parts[parts.length - 1] += `\n${line}`;
+                                }
+                                const sent: any = await bot.sendMessage(chatId, parts[0], { reply_to_message_id: body.message.message_id } as any);
+                                for (const part of parts.slice(1)) {
+                                    await bot.sendMessage(chatId, part);
+                                }
                                 // Her own message id and what it answered are
                                 // recorded too: a follow-up like «а колір
                                 // який?» replies to HER, and the order number

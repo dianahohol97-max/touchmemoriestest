@@ -30,6 +30,8 @@ const MEMORY_DAYS = 7;
 
 export type OpenQuestion = {
     id: string;
+    /** Somebody outside is waiting on this — see mattersForCard. */
+    matters?: boolean;
     chatId: string;
     chatTitle: string;
     messageId: string | null;
@@ -101,6 +103,47 @@ function sameQuestion(a: string, b: string): boolean {
     return topical.length >= 2;
 }
 
+/**
+ * Which unanswered questions are worth putting on the order card.
+ *
+ * Diana, 2026-08-13, seeing «13856 що там в замовленні» land there: «такі
+ * коментарі не потрібно додавати в замовлення, тільки якщо там щось супер
+ * термінове чи потрібне — наприклад клієнтка попросила вчора, клієнтка чекає
+ * відповіді коли буде відправка».
+ *
+ * So the card only hears about a question when SOMEBODY OUTSIDE is waiting on
+ * it: the customer asked, the customer is waiting, a date was promised, it is
+ * urgent. A colleague's «що там у замовленні» is curiosity — Софія answers it
+ * in the chat and nothing is filed.
+ */
+const CLIENT_WAITING_RE = /(кліє\w*|замовниц\w*|покупец\w*|людин\w*)/iu;
+const WAITING_ACTION_RE = /(чека|жде|ждут|просит|просил|питає|питала|запиту|термінов|горит|горить|обіцял|коли\s+(буде\s+)?(відправ|готов|доставк|макет)|дедлайн|встиг)/iu;
+
+function mattersForCard(text: string): boolean {
+    const t = String(text || '');
+    if (CLIENT_WAITING_RE.test(t) && WAITING_ACTION_RE.test(t)) return true;
+    // Urgency on its own counts even without the word «клієнт».
+    return /(термінов|горить|обіцял|встиг|дедлайн)/iu.test(t);
+}
+
+/**
+ * A promise made in the chat, as a date: «відправимо 15.08», «завтра»,
+ * «в пʼятницю». Diana: «якщо їй відповіли коли буде відправка, то в коментарі
+ * потрібно — відправити такого числа». The commitment is what belongs on the
+ * card, not the question that produced it.
+ */
+function promisedDate(text: string): string | null {
+    const t = String(text || '');
+    const dm = t.match(/(?<![\d.])([0-3]?\d)[./]([01]?\d)(?![\d])/);
+    if (dm) return `${dm[1].padStart(2, '0')}.${dm[2].padStart(2, '0')}`;
+    if (/післязавтра/i.test(t)) return 'післязавтра';
+    if (/завтра/i.test(t)) return 'завтра';
+    if (/сьогодні/i.test(t)) return 'сьогодні';
+    const weekday = t.match(/(понеділ\w*|вівтор\w*|серед[уи]|четвер\w*|пʼятниц\w*|п'ятниц\w*|субот\w*|неділ\w*)/iu);
+    if (weekday) return weekday[0].toLowerCase();
+    return null;
+}
+
 /** Записати питання, яке чекає на відповідь. */
 export async function noteOpenQuestion(params: {
     chatId: string | number;
@@ -127,6 +170,7 @@ export async function noteOpenQuestion(params: {
             sender: params.sender,
             text: String(params.text).slice(0, 400),
             numbers,
+            matters: mattersForCard(params.text),
             ts: new Date().toISOString(),
         });
         await writeQueue(supabase, queue);
@@ -155,14 +199,30 @@ export async function resolveOpenQuestions(params: {
         const answers = !isQuestion(text);
         const numbers = extractOrderNumbers(text.replace(/@\S+/g, ' '));
 
+        const resolved: OpenQuestion[] = [];
         const kept = queue.filter(q => {
             if (q.chatId !== chatId) return true;
-            if (replyTo && q.messageId === replyTo) return false;
-            if (answers && numbers.some(n => q.numbers.includes(n))) return false;
+            const byReply = !!replyTo && q.messageId === replyTo;
+            const byNumber = answers && numbers.some(n => q.numbers.includes(n));
+            if (byReply || byNumber) { resolved.push(q); return false; }
             return true;
         });
 
         if (kept.length !== queue.length) await writeQueue(supabase, kept);
+
+        // The ANSWER is what the card needs, not the question: «клієнтка
+        // питає коли відправка» → «Відправити 15.08» (Diana, 2026-08-13).
+        const date = promisedDate(text);
+        if (date) {
+            for (const q of resolved) {
+                if (!q.matters) continue;
+                for (const num of q.numbers) {
+                    const ok = await attachPromise(supabase, num, q, text, date);
+                    if (ok) break;
+                }
+            }
+        }
+
         return queue.length - kept.length;
     } catch (e) {
         console.error('[open-questions] resolve failed:', e);
@@ -195,6 +255,10 @@ export async function promoteStaleQuestions(): Promise<{ promoted: number }> {
             if (!Number.isFinite(age)) continue;
             // Too young to worry about — it may still get an answer.
             if (age > cutoff) { keep.push(q); continue; }
+            // Only questions somebody outside is waiting on reach the card
+            // (Diana, 2026-08-13). The rest simply expire — Софія answered
+            // them in the chat, and the chat is where they belong.
+            if (!q.matters) continue;
             // Older than a day with nobody promoting it: the order was never
             // found in the database, and repeating the search forever is noise.
             if (age < Date.now() - 24 * HOUR_MS) continue;
@@ -213,6 +277,46 @@ export async function promoteStaleQuestions(): Promise<{ promoted: number }> {
     }
 
     return { promoted };
+}
+
+/** «Клієнтка чекає відповіді коли відправка» + «15.08» → a task on the card. */
+async function attachPromise(
+    supabase: any,
+    orderNum: string,
+    q: OpenQuestion,
+    answerText: string,
+    date: string,
+): Promise<boolean> {
+    const order = await findOrderRow(supabase, orderNum);
+    if (!order) return false;
+
+    await supabase.from('order_history').insert({
+        order_id: order.id,
+        action: 'work_chat_note',
+        notes: `📌 Обіцяно в чаті: ${date}. Питання: «${q.text.slice(0, 160)}». Відповідь: «${String(answerText).slice(0, 160)}»`,
+        details: {
+            source: 'telegram_work_chat',
+            kind: 'promise',
+            chat: q.chatTitle,
+            promised: date,
+            asked_at: q.ts,
+        },
+        added_by: null,
+    });
+    return true;
+}
+
+async function findOrderRow(supabase: any, orderNum: string): Promise<{ id: string } | null> {
+    const { data } = await supabase.from('orders').select('id').eq('order_number', orderNum).maybeSingle();
+    if (data) return data;
+
+    if (orderNum.startsWith('CRM-')) {
+        const { data: adopted } = await supabase
+            .from('orders').select('id')
+            .eq('custom_attributes->keycrm->>order_id', orderNum.slice(4)).limit(1);
+        return adopted?.[0] || null;
+    }
+    return null;
 }
 
 async function attachQuestion(supabase: any, orderNum: string, q: OpenQuestion, minutes: number): Promise<boolean> {

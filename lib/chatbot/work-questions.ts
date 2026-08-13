@@ -26,7 +26,10 @@ import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories1.vercel.app';
 const HOUR_MS = 60 * 60 * 1000;
-const MAX_LISTED = 12;
+// Diana, 2026-08-13: «якщо я тебе запитала, то давай повну відповідь» — a
+// list she asked for is not shortened. The cap that remains is a sanity
+// bound, and long messages are split across several Telegram posts.
+const MAX_LISTED = 60;
 
 // JavaScript's \b is ASCII-only: against Cyrillic text «\bхто\b» can never
 // match, so this list was dead weight and every question without a literal
@@ -840,7 +843,6 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
         const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
-    if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
     return lines.join('\n');
 }
 
@@ -912,7 +914,6 @@ async function buildManagerOrders(question: string): Promise<string | null> {
         const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
-    if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
     return lines.join('\n');
 }
 
