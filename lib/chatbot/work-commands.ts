@@ -259,7 +259,7 @@ export async function buildStatus(): Promise<string> {
         `Прострочених дедлайнів: ${overdueCount}`,
         dialogsLine,
         '',
-        `Деталі: /overdue, /unanswered, або ${SITE_URL}/admin/orders`,
+        'Деталі — команди /overdue та /unanswered.',
     ].join('\n');
 }
 
@@ -347,7 +347,6 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
     ];
     if (order.with_designer) lines.push('Послуга дизайнера: так');
     if (order.ttn) lines.push(`ТТН: ${order.ttn}`);
-    lines.push('', `${SITE_URL}/admin/orders/${order.id}`);
     return lines.join('\n');
 }
 
@@ -375,7 +374,6 @@ async function buildOverdue(): Promise<string> {
         lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, дедлайн ${fmtDate(o.deadline)} (прострочено ${daysOver} дн)`);
     }
     if (real.length > MAX_LISTED) lines.push('…список неповний, решту дивись в адмінці.');
-    lines.push('', `${SITE_URL}/admin/orders`);
     return lines.join('\n');
 }
 
@@ -399,7 +397,6 @@ async function buildUnanswered(): Promise<string> {
                 lines.push(`• ${i.name} (${i.platform}), чекає ${waitingLabel(i.hours)}: «${i.text}»`);
             }
         }
-        lines.push('', `${SITE_URL}/admin/social-inbox`);
         return lines.join('\n');
     } catch (e: any) {
         console.error('/unanswered error:', e);

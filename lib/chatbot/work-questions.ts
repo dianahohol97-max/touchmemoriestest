@@ -536,7 +536,6 @@ async function buildShipToday(horizonDays = 0): Promise<string> {
         lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, дедлайн ${fmtDate(o.deadline)}${o.ttn ? `, ТТН є` : ''}${flag}`);
     }
     if (real.length > MAX_LISTED) lines.push('…решту дивись в адмінці.');
-    lines.push('', `${SITE_URL}/admin/production-calendar`);
     return lines.join('\n');
 }
 
@@ -784,7 +783,6 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
     if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
-    lines.push('', `${SITE_URL}/admin/production-calendar`);
     return lines.join('\n');
 }
 
@@ -857,7 +855,6 @@ async function buildManagerOrders(question: string): Promise<string | null> {
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
     if (mine.length > MAX_LISTED) lines.push(`…і ще ${mine.length - MAX_LISTED}.`);
-    lines.push('', `${SITE_URL}/admin/production-calendar`);
     return lines.join('\n');
 }
 
@@ -956,7 +953,7 @@ async function buildYesterdayDigest(): Promise<string> {
         lines.push(`🔥 Дедлайнів на сьогодні: ${dueToday} — спитай «що термінового на сьогодні?», дам список.`);
     }
 
-    lines.push('', `Деталі: /status, вкладка «Важливо» — ${SITE_URL}/admin/reprints`);
+    lines.push('', 'Деталі — команда /status або вкладка «Важливо» в адмінці.');
     return lines.join('\n');
 }
 
@@ -1009,7 +1006,6 @@ async function buildOpenChatTasks(): Promise<string> {
         lines.push(`• ${head} — останнє: ${sender}«${String(last.notes || '').slice(0, 120)}»`);
     }
     if (open.length > MAX_LISTED) lines.push('…решту дивись у вкладці доручень.');
-    lines.push('', `${SITE_URL}/admin/reprints`);
     return lines.join('\n');
 }
 
@@ -1257,7 +1253,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     // The admin-card link is attached ONLY when it is asked for (Diana,
     // 2026-08-11: «прибери ось ці посилання з відповідей, тільки якщо тебе
     // запитують») — in a phone chat the long URL was most of the message.
-    const link = /посилан|лінк|link|url|картк/i.test(question)
+    const link = /посилан|лінк|link|url/i.test(question)
         ? `\n\n${SITE_URL}/admin/orders/${order.id}`
         : '';
 

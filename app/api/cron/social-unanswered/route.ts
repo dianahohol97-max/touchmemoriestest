@@ -93,7 +93,6 @@ export async function GET(req: Request) {
         }
         if (unanswered.length > MAX_LISTED) lines.push(`…і ще ${unanswered.length - MAX_LISTED} діалогів без відповіді.`);
     }
-    lines.push('', 'Повний список: https://touchmemories1.vercel.app/admin/social-inbox');
     const text = lines.join('\n');
 
     if (preview) {

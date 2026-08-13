@@ -126,6 +126,10 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         'дуже', 'велике', 'щиро', 'до', 'побачення', 'зустрічі', 'бувайте', 'бувай',
         'всього', 'найкращого', 'успіхів', 'миру', 'здоровя', 'здоров',
         'приємно', 'було', 'теж', 'також', 'ще', 'раз', 'сама', 'сам', 'вас', 'тебе',
+        // «Ок дякую чекаю» is a client settling in to wait, not a question
+        // (Diana, 2026-08-13) — waiting words close a thread just like thanks.
+        'чекаю', 'чекаємо', 'чекатиму', 'жду', 'ждем', 'ждём', 'буду', 'домовились',
+        'домовилися', 'зрозуміла', 'зрозумів', 'гаразд', 'звісно', 'звичайно',
     ]);
     const isCloser = (text: string) => {
         const raw = String(text || '').trim();
