@@ -101,6 +101,15 @@ export function matchDigestQuestion(text: string): boolean {
     const t = String(text || '');
     if (!QUESTION_MARKER.test(t) && !isAddressedToBot(t)) return false;
     if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return false;
+
+    // A COUNTING question is not a digest, however many «вчора» and «було» it
+    // contains. Live: «скільки замовлень з тегом терміновий з доплатою було
+    // зроблено вчора» got the whole shift digest — twenty-two new orders and
+    // eighteen chat instructions — because «вчора» + «було» matched here
+    // first. Anything naming a tag, a count, stock or a person belongs to the
+    // narrower handlers below.
+    if (/(скільки|кількість|тег|таг|позначк|залиш|склад|менеджер|відповідальн)/iu.test(t)) return false;
+
     if (/(пропустил|пропустити|пропущен)/i.test(t)) return true;
     if (/(вчора|учора|за ніч|за добу)/i.test(t) && /(було|цікав|нов|стал|відбул|змінил)/i.test(t)) return true;
     return false;
@@ -282,6 +291,15 @@ export async function handleWorkQuestion(params: {
     }
 
     if (NATIONALITY.test(text)) return NATIONALITY_REPLY;
+
+    // The tag count goes FIRST among the queue questions. It is the narrowest
+    // of them and the most easily swallowed: «скільки замовлень з тегом
+    // терміновий з доплатою було зроблено вчора» was answered with the whole
+    // shift digest, because «вчора» plus «було» matched the digest first.
+    if (TAG_WORD.test(text) && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+        const tagReply = await buildTagOrders(text);
+        if (tagReply) return tagReply;
+    }
 
     const ship = matchShipQuestion(text);
     if (ship) return buildShipToday(ship.horizonDays);
@@ -716,8 +734,19 @@ function matchDayWindow(text: string): { since: number; until: number | null; la
     // midnight rather than trailing into today.
     if (/(за\s+)?сьогодн/u.test(t)) return { since: kyivMidnight(0), until: null, label: 'за сьогодні' };
     if (/(за\s+)?(вчора|учора)/u.test(t)) return { since: kyivMidnight(1), until: kyivMidnight(0), label: 'за вчора' };
-    if (/за\s+(останн\w+\s+)?тижд|за\s+тиждень|за\s+неділ/u.test(t)) return { since: Date.now() - 7 * 24 * HOUR_MS, until: null, label: 'за тиждень' };
-    if (/за\s+(останн\w+\s+)?місяц|за\s+місяць/u.test(t)) return { since: Date.now() - 30 * 24 * HOUR_MS, until: null, label: 'за місяць' };
+    // «за цей тиждень» is the week we are in, from Monday — not the last seven
+    // days (Diana asked whether she would understand it; she does now).
+    if (/(цей|цього|поточн\w*|з\s+понеділка)\s*\w*\s*(тижд|тижн)/u.test(t)) {
+        const kyiv = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+        const mondayOffset = (kyiv.getDay() + 6) % 7;
+        return { since: kyivMidnight(mondayOffset), until: null, label: 'за цей тиждень' };
+    }
+    if (/(цей|цього|поточн\w*)\s*\w*\s*місяц/u.test(t)) {
+        const kyiv = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
+        return { since: kyivMidnight(kyiv.getDate() - 1), until: null, label: 'за цей місяць' };
+    }
+    if (/тижд|тижн|за\s+неділ/u.test(t)) return { since: Date.now() - 7 * 24 * HOUR_MS, until: null, label: 'за останній тиждень' };
+    if (/місяц|місяць/u.test(t)) return { since: Date.now() - 30 * 24 * HOUR_MS, until: null, label: 'за останній місяць' };
     return null;
 }
 
