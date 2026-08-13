@@ -453,7 +453,13 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
     const updateOptionValue = (i: number, j: number, field: string, value: any) =>
         setProductOptions(o => o.map((opt, idx) => idx === i ? { ...opt, options: (opt.options || []).map((v: any, vj: number) => vj === j ? { ...v, [field]: value } : v) } : opt));
 
-    const handleSubmit = async (publish: boolean) => {
+    // `publish === true` comes from the «Опублікувати» button and puts the
+    // product live regardless of the toggle. `publish === undefined` is a plain
+    // save and keeps whatever the «Активний / Чернетка» switch says — before
+    // this, the switch was destructured out of the payload and the button alone
+    // decided the state, so unticking «Активний» and saving quietly republished
+    // the product (the same complaint Diana hit in the catalogue panel).
+    const handleSubmit = async (publish?: boolean) => {
         setLoading(true);
 
         const lowestPrice = variants.length > 0
@@ -461,14 +467,15 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
             : formData.price;
 
         const { stock, is_active, ...restFormData } = formData;
+        const active = publish === true ? true : is_active !== false;
 
         const payload = {
             ...restFormData,
             category_id: restFormData.category_id === '' || restFormData.category_id === 'none' || !restFormData.category_id ? null : restFormData.category_id,
             price: lowestPrice,
             stock_quantity: stock,
-            status: publish ? 'active' : 'draft',
-            is_active: publish,
+            status: active ? 'active' : 'draft',
+            is_active: active,
             images: images,
             variants: variants,
             options: productOptions,
@@ -486,13 +493,13 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                     .update(payload)
                     .eq('id', initialData.id);
                 if (error) throw error;
-                toast.success(publish ? 'Товар опубліковано!' : 'Зміни збережено.');
+                toast.success(publish ? 'Товар опубліковано!' : active ? 'Зміни збережено.' : 'Збережено, товар неактивний.');
             } else {
                 const { error } = await supabase
                     .from('products')
                     .insert([payload]);
                 if (error) throw error;
-                toast.success(publish ? 'Товар створено та опубліковано!' : 'Товар збережено як чернетку.');
+                toast.success(publish ? 'Товар створено та опубліковано!' : active ? 'Товар створено.' : 'Товар збережено як чернетку.');
             }
             router.push('/admin/products');
             router.refresh();
@@ -520,9 +527,9 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <button type="button" onClick={() => handleSubmit(false)} disabled={loading} style={draftBtnStyle}>
+                    <button type="button" onClick={() => handleSubmit()} disabled={loading} style={draftBtnStyle}>
                         {loading ? <Loader2 size={18} className={styles.animateSpin} /> : <Save size={18} />}
-                        Зберегти чернетку
+                        {formData.is_active ? 'Зберегти' : 'Зберегти як чернетку'}
                     </button>
                     <button type="button" onClick={() => handleSubmit(true)} disabled={loading} style={publishBtnStyle}>
                         {loading ? <Loader2 size={18} className={styles.animateSpin} /> : <Globe size={18} />}

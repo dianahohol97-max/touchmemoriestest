@@ -121,24 +121,50 @@ export default function ProductsAdminPage() {
         setLoading(false);
     }
 
+    /** The fields the panel owns, in the shape both save routes expect. */
+    function productPayload(p: Product) {
+        return {
+            name: p.name, slug: p.slug, category_id: p.category_id,
+            price: p.price, sale_price: p.sale_price, price_from: p.price_from,
+            cost_price: p.cost_price, designer_service_price: p.designer_service_price,
+            short_description: p.short_description, description: p.description,
+            production_time: p.production_time, fulfillment_type: p.fulfillment_type,
+            images: p.images, video_url: p.video_url, og_image: p.og_image,
+            options: p.options, is_active: p.is_active,
+            is_personalized: p.is_personalized, has_designer_option: p.has_designer_option,
+            stock_quantity: p.stock_quantity, track_inventory: p.track_inventory,
+            tags: p.tags, meta_title: p.meta_title, meta_description: p.meta_description,
+            is_popular: p.is_popular, product_type: p.product_type,
+        };
+    }
+
+    // The save goes through /api/admin/products/[id], not straight from the
+    // browser (Diana, 2026-08-13: «ставлю неактивним, зберігаю, а потім воно
+    // знову світиться активним»). A browser write is subject to RLS on the
+    // products table, and an UPDATE that RLS refuses does not fail — it matches
+    // zero rows and comes back without an error, so the panel congratulated
+    // itself on a save that never happened. The route writes with the service
+    // key after checking the caller server-side and returns the row it wrote.
     async function save() {
         if (!sel) return;
         setSaving(true);
-        const { error } = await supabase.from('products').update({
-            name: sel.name, category_id: sel.category_id,
-            price: sel.price, sale_price: sel.sale_price, price_from: sel.price_from,
-            cost_price: sel.cost_price, designer_service_price: sel.designer_service_price,
-            short_description: sel.short_description, description: sel.description, production_time: sel.production_time, fulfillment_type: sel.fulfillment_type,
-            images: sel.images, video_url: sel.video_url, og_image: sel.og_image,
-            options: sel.options, is_active: sel.is_active,
-            is_personalized: sel.is_personalized, has_designer_option: sel.has_designer_option,
-            stock_quantity: sel.stock_quantity, track_inventory: sel.track_inventory,
-            tags: sel.tags, meta_title: sel.meta_title, meta_description: sel.meta_description,
-            is_popular: sel.is_popular, product_type: sel.product_type,
-        }).eq('id', sel.id);
+        let saved: any = null;
+        try {
+            const res = await fetch(`/api/admin/products/${sel.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productPayload(sel)),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+            saved = json.product;
+        } catch (e: any) {
+            setSaving(false);
+            toast.error('Не збережено: ' + (e?.message || 'невідома помилка'));
+            return;
+        }
         setSaving(false);
-        if (error) { toast.error('Помилка: ' + error.message); return; }
-        toast.success('Збережено');
+        toast.success(saved?.is_active === false ? 'Збережено — товар неактивний' : 'Збережено');
         setProducts(prev => prev.map(p => p.id === sel.id ? { ...sel } : p));
         setModal(false);
         // Revalidate cache so changes appear on site immediately
@@ -375,22 +401,24 @@ export default function ProductsAdminPage() {
         if (!sel) return;
         if (!sel.name.trim() || !sel.slug.trim()) { toast.error('Заповніть назву та slug'); return; }
         setSaving(true);
-        const { data, error } = await supabase.from('products').insert({
-            name: sel.name, slug: sel.slug, category_id: sel.category_id,
-            price: sel.price, sale_price: sel.sale_price, price_from: sel.price_from,
-            cost_price: sel.cost_price, designer_service_price: sel.designer_service_price,
-            short_description: sel.short_description, description: sel.description, production_time: sel.production_time, fulfillment_type: sel.fulfillment_type,
-            images: sel.images, video_url: sel.video_url, og_image: sel.og_image,
-            options: sel.options, is_active: sel.is_active,
-            is_personalized: sel.is_personalized, has_designer_option: sel.has_designer_option,
-            stock_quantity: sel.stock_quantity, track_inventory: sel.track_inventory,
-            tags: sel.tags, meta_title: sel.meta_title, meta_description: sel.meta_description,
-            is_popular: sel.is_popular, product_type: sel.product_type,
-        }).select().single();
+        let created: any = null;
+        try {
+            const res = await fetch('/api/admin/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productPayload(sel)),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok || !json?.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+            created = json.product;
+        } catch (e: any) {
+            setSaving(false);
+            toast.error('Не створено: ' + (e?.message || 'невідома помилка'));
+            return;
+        }
         setSaving(false);
-        if (error) { toast.error('Помилка: ' + error.message); return; }
         toast.success('Товар створено');
-        const newProd = { ...sel, id: data.id };
+        const newProd = { ...sel, id: created.id };
         // Revalidate cache
         fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: newProd?.slug || '' }) }).catch(() => {});
         setProducts(prev => [...prev, newProd].sort((a,b) => a.name.localeCompare(b.name)));
