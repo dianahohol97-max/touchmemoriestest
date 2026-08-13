@@ -219,6 +219,8 @@ export async function POST(req: Request) {
                                 repliedToBot: replyMsg?.from?.is_bot === true,
                                 // A private dialog with the bot needs no name.
                                 direct: isOwnerPrivate,
+                                replyToMessageId: replyMsg?.message_id ? String(replyMsg.message_id) : undefined,
+                                senderName: body.message.from?.first_name || username,
                             });
                             await recordWorkChatMessage(chatId, {
                                 text: noteText,
@@ -227,8 +229,17 @@ export async function POST(req: Request) {
                                 replyToMessageId: replyMsg?.message_id ? String(replyMsg.message_id) : undefined,
                             });
                             if (answer) {
-                                await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);
-                                await recordWorkChatMessage(chatId, { text: answer, isBot: true });
+                                const sent: any = await bot.sendMessage(chatId, answer, { reply_to_message_id: body.message.message_id } as any);
+                                // Her own message id and what it answered are
+                                // recorded too: a follow-up like «а колір
+                                // який?» replies to HER, and the order number
+                                // is found by walking that chain back.
+                                await recordWorkChatMessage(chatId, {
+                                    text: answer,
+                                    isBot: true,
+                                    messageId: sent?.message_id ? String(sent.message_id) : undefined,
+                                    replyToMessageId: messageId,
+                                });
                             }
                         } catch (e) {
                             console.error('work-chat question failed:', e);

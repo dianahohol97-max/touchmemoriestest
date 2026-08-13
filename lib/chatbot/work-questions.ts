@@ -214,6 +214,10 @@ export async function handleWorkQuestion(params: {
     repliedToBot?: boolean;
     /** True in a one-to-one dialog, where every message is addressed to her. */
     direct?: boolean;
+    /** Telegram id of the message this one replies to. */
+    replyToMessageId?: string;
+    /** Who is asking — used to resolve «а колір який?» to their last order. */
+    senderName?: string;
 }): Promise<string | null> {
     const text = String(params.text || '').trim();
     if (!text || text.startsWith('/')) return null;
@@ -267,7 +271,20 @@ export async function handleWorkQuestion(params: {
     // was swallowed by the per-manager queue, which looked for a PERSON in the
     // text, found none and answered «Не впізнала імʼя відповідального» — while
     // the answer sat on the order the question named.
-    const numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
+    let numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
+
+    // A follow-up carries no number: «А колір обкладинки який?» right under
+    // her own answer about 13852 (Diana, 2026-08-13). The thread knows which
+    // order is meant, so the number is recovered from it before giving up.
+    if (!numbers.length) {
+        const carried = await carriedOrderNumber({
+            chatId: params.chatId,
+            replyToMessageId: params.replyToMessageId,
+            senderName: params.senderName,
+        });
+        if (carried) numbers = [carried];
+    }
+
     if (numbers.length) return answerOrderQuestion(text, numbers, params.chatId);
 
     // «Скільки активних замовлень з тегом для Андрія?» — the tag queue. Tags
@@ -306,6 +323,77 @@ export async function handleWorkQuestion(params: {
         const clarification = await clarifyWorkQuestion(text);
         if (clarification) return clarification;
         return chatAboutLife(text, params.replyText, params.chatId);
+    }
+
+    return null;
+}
+
+/**
+ * The order a numberless follow-up is about.
+ *
+ * Two ways to recover it, both from what the chat actually holds:
+ *  · the reply chain — the message being answered, and if that is one of
+ *    Софія's own, the question SHE was answering, which is where the number
+ *    was typed;
+ *  · failing that, the last order this same person named in this chat within
+ *    half an hour. Same person and a short window, because in a chat of
+ *    thirteen the last number overall belongs to somebody else's thread.
+ *
+ * Returns null rather than a guess, and then the clarifier asks for a number.
+ */
+async function carriedOrderNumber(params: {
+    chatId?: string;
+    replyToMessageId?: string;
+    senderName?: string;
+}): Promise<string | null> {
+    if (!params.chatId) return null;
+
+    try {
+        const supabase = getAdminClient();
+
+        if (params.replyToMessageId) {
+            const { data: replied } = await supabase
+                .from('work_chat_messages')
+                .select('text, reply_to_message_id')
+                .eq('chat_id', params.chatId)
+                .eq('message_id', params.replyToMessageId)
+                .limit(1);
+
+            const row: any = replied?.[0];
+            if (row) {
+                const direct = extractOrderNumbers(String(row.text || '').replace(/@\S+/g, ' '));
+                if (direct.length) return direct[0];
+
+                if (row.reply_to_message_id) {
+                    const { data: parent } = await supabase
+                        .from('work_chat_messages')
+                        .select('text')
+                        .eq('chat_id', params.chatId)
+                        .eq('message_id', row.reply_to_message_id)
+                        .limit(1);
+                    const up = extractOrderNumbers(String(parent?.[0]?.text || '').replace(/@\S+/g, ' '));
+                    if (up.length) return up[0];
+                }
+            }
+        }
+
+        if (params.senderName) {
+            const { data: recent } = await supabase
+                .from('work_chat_messages')
+                .select('text, created_at')
+                .eq('chat_id', params.chatId)
+                .eq('sender', params.senderName)
+                .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            for (const row of recent || []) {
+                const found = extractOrderNumbers(String((row as any).text || '').replace(/@\S+/g, ' '));
+                if (found.length) return found[0];
+            }
+        }
+    } catch (e) {
+        console.error('[work-questions] carried order lookup failed:', e);
     }
 
     return null;
