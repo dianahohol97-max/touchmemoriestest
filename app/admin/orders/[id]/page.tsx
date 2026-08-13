@@ -47,6 +47,7 @@ import {
     ShieldCheck,
     DollarSign,
     Copy,
+    Upload,
     RefreshCw,
     Palette
 , Image as ImageIcon } from 'lucide-react';
@@ -229,6 +230,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [designCoverUrl, setDesignCoverUrl] = useState<string | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [rerendering, setRerendering] = useState(false);
     const [strippingBleed, setStrippingBleed] = useState(false);
     const [rebuildingPoster, setRebuildingPoster] = useState(false);
@@ -2357,6 +2359,52 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                                         <label style={{ ...smallLabelStyle, margin: 0 }}>Файли замовлення ({uploadedFiles.length})</label>
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        {/* Manager upload (Diana, 2026-08-12): when the customer's own
+                                            upload dies mid-checkout they re-send the photos in a chat, and
+                                            somebody has to get them into the order. These land in the same
+                                            bucket and table as a customer's, so production sees them
+                                            without knowing who attached them. */}
+                                        <label
+                                            title="Завантажити фото клієнта в це замовлення (якщо клієнт надіслав їх у переписці)"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#263A99', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: uploadingPhotos ? 'default' : 'pointer', opacity: uploadingPhotos ? 0.7 : 1 }}
+                                        >
+                                            {uploadingPhotos ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                            {uploadingPhotos ? 'Завантаження…' : 'Завантажити фото'}
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*,application/pdf"
+                                                disabled={uploadingPhotos}
+                                                style={{ display: 'none' }}
+                                                onChange={async (e) => {
+                                                    const picked = Array.from(e.target.files || []);
+                                                    e.target.value = '';
+                                                    if (!picked.length) return;
+
+                                                    setUploadingPhotos(true);
+                                                    try {
+                                                        const fd = new FormData();
+                                                        picked.forEach(f => fd.append('files', f));
+                                                        const r = await fetch(`/api/admin/orders/${id}/upload-photos`, { method: 'POST', body: fd });
+                                                        const j = await r.json();
+                                                        if (!r.ok) throw new Error(j?.error || 'Не вдалося завантажити');
+
+                                                        if (j.uploaded > 0) toast.success(`Завантажено ${j.uploaded} файл(ів)`);
+                                                        (j.problems || []).forEach((p: string) => toast.error(p, { duration: 8000 }));
+
+                                                        const pr = await fetch(`/api/designer/order-photos?order_id=${id}`);
+                                                        if (pr.ok) {
+                                                            const { photos } = await pr.json();
+                                                            if (Array.isArray(photos)) setUploadedFiles(photos);
+                                                        }
+                                                    } catch (err: any) {
+                                                        toast.error(err?.message || 'Не вдалося завантажити');
+                                                    } finally {
+                                                        setUploadingPhotos(false);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
                                         <button
                                             onClick={async () => {
                                                 setCloningProject(true);
