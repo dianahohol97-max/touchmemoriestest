@@ -51,11 +51,20 @@ const ADDRESSED_BY_NAME = /софі\p{L}*|sofi\p{L}*/iu;
  * lowercase after the name) is to the bot.
  */
 function isAddressedToBot(text: string): boolean {
-    const m = String(text || '').match(ADDRESSED_BY_NAME);
+    const raw = String(text || '');
+    const m = raw.match(ADDRESSED_BY_NAME);
     if (!m) return false;
-    const after = String(text).slice((m.index ?? 0) + m[0].length).replace(/^[ \t]+/, '');
-    if (/^[A-ZА-ЯІЇЄҐ]\p{L}+/u.test(after)) return false;
-    return true;
+
+    const after = raw.slice((m.index ?? 0) + m[0].length).replace(/^[ \t]+/, '');
+    if (!/^[A-ZА-ЯІЇЄҐ]\p{L}+/u.test(after)) return true;
+
+    // A capitalised word follows. That is a full name — «Sofiia Gerega
+    // сьогодні відправила» — only when the message IS just the name. A live
+    // miss: «Софія Скажи мені скільки замовлень…» went unanswered because the
+    // capital in «Скажи» made it look like somebody's surname, and the team
+    // capitalises the first word after the name all the time.
+    const words = raw.trim().split(/\s+/);
+    return words.length > 3;
 }
 
 const OPEN_TASKS = /(доручен|завдан)[\s\S]{0,60}(не\s*викона|невикона|відкрит|актуальн|залишил|лишил|вис(ять|ить)|ще\s+(є|не))/i;
@@ -402,21 +411,6 @@ async function carriedOrderNumber(params: {
             }
         }
 
-        if (params.senderName) {
-            const { data: recent } = await supabase
-                .from('work_chat_messages')
-                .select('text, created_at')
-                .eq('chat_id', params.chatId)
-                .eq('sender', params.senderName)
-                .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
-                .order('created_at', { ascending: false })
-                .limit(10);
-
-            for (const row of recent || []) {
-                const found = extractOrderNumbers(String((row as any).text || '').replace(/@\S+/g, ' '));
-                if (found.length) return found[0];
-            }
-        }
     } catch (e) {
         console.error('[work-questions] carried order lookup failed:', e);
     }
@@ -696,25 +690,34 @@ const TAG_WORD = /(тег|теґ|таг|теґ|tag|позначк)/iu;
  * about, in days, or null when it asks about the current state. Diana,
  * 2026-08-11: «скільки замовлень з тегом для Андрія за останні 5 днів».
  */
-/** Hours elapsed since midnight in Kyiv, so «сьогодні» is a calendar day. */
-function hoursSinceKyivMidnight(): number {
+/** Midnight in Kyiv, `daysAgo` days back, as a timestamp. */
+function kyivMidnight(daysAgo = 0): number {
     const now = new Date();
     const kyiv = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
-    return Math.max(0.5, kyiv.getHours() + kyiv.getMinutes() / 60);
+    const offset = now.getTime() - kyiv.getTime();
+    kyiv.setHours(0, 0, 0, 0);
+    kyiv.setDate(kyiv.getDate() - daysAgo);
+    return kyiv.getTime() + offset;
 }
 
-function matchDayWindow(text: string): { days: number; label: string } | null {
+function matchDayWindow(text: string): { since: number; until: number | null; label: string } | null {
     const t = text.toLowerCase();
+
     const explicit = t.match(/за\s+(?:останн[іїяе]\w*\s+)?(\d{1,3})\s*(день|дні|днів|дн)/u);
     if (explicit) {
         const days = parseInt(explicit[1], 10);
-        if (days > 0 && days <= 365) return { days, label: `за останні ${days} дн.` };
+        if (days > 0 && days <= 365) {
+            return { since: Date.now() - days * 24 * HOUR_MS, until: null, label: `за останні ${days} дн.` };
+        }
     }
-    // «сьогодні» means the calendar day in Kyiv, not the last 24 hours: an
-    // order added yesterday at 23:00 is not «сьогодні» at 09:00.
-    if (/(за\s+)?сьогодн/u.test(t)) return { days: hoursSinceKyivMidnight() / 24, label: 'за сьогодні' };
-    if (/за\s+(останн\w+\s+)?тижд|за\s+тиждень|за\s+неділ/u.test(t)) return { days: 7, label: 'за тиждень' };
-    if (/за\s+(останн\w+\s+)?місяц|за\s+місяць/u.test(t)) return { days: 30, label: 'за місяць' };
+
+    // Calendar days in Kyiv, not rolling 24-hour windows: an order added
+    // yesterday at 23:00 is not «сьогодні» at 09:00, and «вчора» ends at
+    // midnight rather than trailing into today.
+    if (/(за\s+)?сьогодн/u.test(t)) return { since: kyivMidnight(0), until: null, label: 'за сьогодні' };
+    if (/(за\s+)?(вчора|учора)/u.test(t)) return { since: kyivMidnight(1), until: kyivMidnight(0), label: 'за вчора' };
+    if (/за\s+(останн\w+\s+)?тижд|за\s+тиждень|за\s+неділ/u.test(t)) return { since: Date.now() - 7 * 24 * HOUR_MS, until: null, label: 'за тиждень' };
+    if (/за\s+(останн\w+\s+)?місяц|за\s+місяць/u.test(t)) return { since: Date.now() - 30 * 24 * HOUR_MS, until: null, label: 'за місяць' };
     return null;
 }
 
@@ -747,8 +750,9 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
         .select('id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes');
 
     if (window) {
-        const since = new Date(Date.now() - window.days * 24 * HOUR_MS).toISOString();
-        query = query.gte('created_at', since).order('created_at', { ascending: false }).limit(600);
+        query = query.gte('created_at', new Date(window.since).toISOString());
+        if (window.until) query = query.lt('created_at', new Date(window.until).toISOString());
+        query = query.order('created_at', { ascending: false }).limit(600);
     } else {
         query = query.in('order_status', PRODUCTION_ACTIVE_STATUSES).order('deadline', { ascending: true }).limit(400);
     }

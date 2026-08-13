@@ -68,3 +68,35 @@ export function isVisibleProductionOrder(order: ProductionVisibilityRow): boolea
 
     return new Date(order.created_at || 0).getTime() >= cutoff;
 }
+
+/**
+ * The same predicate plus the hand-transfer cutoff the team can move without a
+ * deploy: settings('legacy_site_cutoff') holds a date before which SITE orders
+ * were carried into KeyCRM by hand, back when no sync existed.
+ *
+ * Diana, 2026-08-13, on a digest listing fifty overdue July orders: «прибери
+ * звідси замовлення з сайту, створені до вчора — ми їх всі переносили в CRM, і
+ * тоді ще не було синхронізації». They are not overdue; they are duplicates of
+ * cards the CRM is already running. Mirrored CRM orders and site orders that
+ * carry a CRM id are untouched.
+ */
+export async function fetchProductionFilter(): Promise<(order: any) => boolean> {
+    let cutoff = NaN;
+    try {
+        const { getAdminClient } = await import('@/lib/supabase/admin');
+        const { data } = await getAdminClient()
+            .from('settings').select('value').eq('key', 'legacy_site_cutoff').maybeSingle();
+        const raw = typeof data?.value === 'string' ? data.value : (data?.value as any)?.date;
+        if (raw) cutoff = new Date(String(raw)).getTime();
+    } catch (e) {
+        console.error('[production-visibility] legacy cutoff read failed:', e);
+    }
+
+    return (order: any) => {
+        if (!isVisibleProductionOrder(order)) return false;
+        if (!Number.isFinite(cutoff)) return true;
+        if (order?.source === 'keycrm') return true;
+        if (order?.custom_attributes?.keycrm?.order_id) return true;
+        return new Date(order?.created_at || 0).getTime() >= cutoff;
+    };
+}

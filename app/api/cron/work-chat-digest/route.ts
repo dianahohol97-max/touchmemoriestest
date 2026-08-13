@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
 import { morningGreeting } from '@/lib/chatbot/work-commands';
 import { computeUnansweredDialogs } from '@/lib/chatbot/unanswered';
+import { fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { isTestOrder } from '@/lib/automation/test-orders';
 import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 
@@ -61,14 +62,14 @@ export async function GET(req: Request) {
     const [{ data: overdueRows }, { data: upcomingRows }] = await Promise.all([
         supabase
             .from('orders')
-            .select('id, order_number, customer_name, deadline, order_status')
+            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
             .lt('deadline', nowIso)
             .in('order_status', ACTIVE_STATUSES)
             .order('deadline', { ascending: true })
             .limit(50),
         supabase
             .from('orders')
-            .select('id, order_number, customer_name, deadline, order_status')
+            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
             .gte('deadline', nowIso)
             .lt('deadline', new Date(now + upcomingDays * 24 * HOUR_MS).toISOString())
             .in('order_status', ACTIVE_STATUSES)
@@ -76,8 +77,12 @@ export async function GET(req: Request) {
             .limit(50),
     ]);
 
-    const overdue = (overdueRows || []).filter(o => !isTestOrder(o as any));
-    const upcoming = (upcomingRows || []).filter(o => !isTestOrder(o as any));
+    // Site orders from before the sync existed were carried into KeyCRM by
+    // hand and are run there — listing them as overdue doubles every one of
+    // them (Diana, 2026-08-13).
+    const visible = await fetchProductionFilter();
+    const overdue = (overdueRows || []).filter(o => !isTestOrder(o as any) && visible(o));
+    const upcoming = (upcomingRows || []).filter(o => !isTestOrder(o as any) && visible(o));
 
     const lines: string[] = [morningGreeting(), ''];
 
@@ -134,6 +139,12 @@ export async function GET(req: Request) {
             for (const i of items.slice(0, MAX_LISTED)) {
                 const work = i.inWork ? `, у роботі ${i.inWork} замовл.` : '';
                 lines.push(`• ${i.name}${i.variant ? ` ${i.variant}` : ''} — ${i.stock} шт${work}`);
+            }
+            // A negative quantity is a bookkeeping error, not a shortage: the
+            // CRM sold more than it ever received (Diana, 2026-08-13: «якщо
+            // десь стоїть мінус, треба пінгувати Аліну, щоб вона подивилась»).
+            if (items.some(i => i.stock < 0)) {
+                lines.push('@Alina_Avlastsova — там мінусові залишки, глянь, будь ласка, чи все правильно оприбутковано.');
             }
             lines.push('');
         }

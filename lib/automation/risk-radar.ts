@@ -71,19 +71,54 @@ export async function computeLowStock(): Promise<{ items: LowStockItem[]; thresh
         }
     }
 
-    const items: LowStockItem[] = rows.map((r: any) => {
-        const label = String(r.site_product_name || r.site_slug || '');
-        const key = label.toLowerCase().split('(')[0].trim();
-        const inWork = key ? activeItems.filter(n => n.includes(key) || key.includes(n)).length : 0;
-        return {
-            name: label,
-            variant: r.site_variant_label || '',
-            stock: Number(r.crm_stock),
-            inWork,
-        };
-    });
+    const madeToOrder = await madeToOrderMatcher(supabase);
+
+    const items: LowStockItem[] = rows
+        // A personalised product made per order is never «in stock» — printing
+        // a photo, a magazine, a certificate or a poster starts when the order
+        // arrives (Diana, 2026-08-13, annotating the digest line by line). Its
+        // CRM quantity drifting to −1 says nothing to anybody.
+        .filter((r: any) => !madeToOrder(String(r.site_product_name || r.site_slug || '')))
+        .map((r: any) => {
+            const label = String(r.site_product_name || r.site_slug || '');
+            const key = label.toLowerCase().split('(')[0].trim();
+            const inWork = key ? activeItems.filter(n => n.includes(key) || key.includes(n)).length : 0;
+            return {
+                name: label,
+                variant: r.site_variant_label || '',
+                stock: Number(r.crm_stock),
+                inWork,
+            };
+        });
 
     return { items, threshold };
+}
+
+/**
+ * Which catalogue entries are made per order rather than kept on a shelf.
+ *
+ * Editable without a deploy: settings('stock_alert_exclude') holds extra name
+ * fragments. The defaults are the groups Diana marked in the morning digest —
+ * photo printing, magazines, certificates, calendars, posters, canvas prints,
+ * photobooks and albums are produced from the customer's own files.
+ */
+async function madeToOrderMatcher(supabase: any): Promise<(name: string) => boolean> {
+    const defaults = [
+        'фотодрук', 'полароїд', 'журнал', 'сертифікат', 'календар', 'постер',
+        'полотн', 'фотокниг', 'тревел', 'вішбук', 'книга побажань', 'газет',
+    ];
+
+    let extra: string[] = [];
+    try {
+        const { data } = await supabase.from('settings').select('value').eq('key', 'stock_alert_exclude').maybeSingle();
+        if (Array.isArray(data?.value)) extra = data.value.map((v: any) => String(v || '').toLowerCase()).filter(Boolean);
+    } catch { /* defaults are enough */ }
+
+    const fragments = [...defaults, ...extra];
+    return (name: string) => {
+        const lower = String(name || '').toLowerCase();
+        return !!lower && fragments.some(f => lower.includes(f));
+    };
 }
 
 export type DeadlineRisk = {
