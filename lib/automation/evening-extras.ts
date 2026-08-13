@@ -21,9 +21,11 @@
 // how its tomorrow page is addressed.
 export const ZODIAC = [
     { key: 'aries', ua: 'Овен', emoji: '♈', hc: 1 },
+    { key: 'taurus', ua: 'Телець', emoji: '♉', hc: 2 },
     { key: 'gemini', ua: 'Близнюки', emoji: '♊', hc: 3 },
     { key: 'cancer', ua: 'Рак', emoji: '♋', hc: 4 },
     { key: 'virgo', ua: 'Діва', emoji: '♍', hc: 6 },
+    { key: 'libra', ua: 'Терези', emoji: '♎', hc: 7 },
     { key: 'scorpio', ua: 'Скорпіон', emoji: '♏', hc: 8 },
     { key: 'sagittarius', ua: 'Стрілець', emoji: '♐', hc: 9 },
     { key: 'aquarius', ua: 'Водолій', emoji: '♒', hc: 11 },

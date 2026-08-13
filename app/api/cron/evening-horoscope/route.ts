@@ -64,7 +64,9 @@ async function condense(entries: HoroscopeEntry[], forDay: 'TODAY' | 'TOMORROW')
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5',
-        max_tokens: 700,
+        // Nine signs now (Diana added Телець and Терези) — the budget has to
+        // cover every line, or the last signs come back missing.
+        max_tokens: 900,
         temperature: 0.2,
         system: [
             'Ти — перекладачка гороскопів для українського робочого чату.',
