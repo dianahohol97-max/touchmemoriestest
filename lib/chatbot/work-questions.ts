@@ -119,6 +119,31 @@ function fmtDate(iso: string | null): string {
  * occasionally with a Latin B. Returned exactly as many digits as written —
  * the code IS the answer, not something to normalise.
  */
+/**
+ * A colour named in words rather than by its code.
+ *
+ * Every velour colour has a number, and the number is the answer (Diana,
+ * 2026-08-13). When there is none, a word like «бордовий» may still be in the
+ * chat — worth reporting, but only as something somebody SAID, to be checked.
+ * The word is only taken when it stands next to a colour subject, so «біле
+ * вино» in a wedding conversation is not mistaken for a cover.
+ */
+const COLOUR_WORDS = /(бордов|пудров|беж|чорн|біл|син|блакитн|зелен|червон|рожев|сір|коричнев|кремов|мʼятн|мятн|лаванд|бірюз|персик|теракот|оливков|гірчичн|шоколадн|молочн|срібн|золот|фіолетов|бузков|марсал|капучін|карамель)\p{L}*/iu;
+
+export function findSpokenColour(...texts: string[]): string | null {
+    for (const raw of texts) {
+        const text = String(raw || '');
+        if (!text) continue;
+
+        for (const sentence of text.split(/[\n.!?;]+/)) {
+            if (!/(велюр|колір|кольор|обкладин)/i.test(sentence)) continue;
+            const m = sentence.match(COLOUR_WORDS);
+            if (m) return m[0].toLowerCase();
+        }
+    }
+    return null;
+}
+
 export function findVelourCode(...texts: string[]): string | null {
     for (const t of texts) {
         const m = String(t || '').match(/(?<![\p{L}\d])[вВbB]\s?-\s?(\d{1,3})(?![\d])/u);
@@ -1216,11 +1241,29 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     // usually inside the specification comment (Diana, 2026-08-11: «в-11 це
     // колір велюру»). Fished out of every text the order carries, so the
     // answer can name it directly instead of quoting paragraphs.
+    //
+    // The client's own dialog is read BEFORE the facts are assembled, because
+    // the colour usually lives there and nowhere else (Diana, 2026-08-13:
+    // «кожен колір має свій номер, зазвичай в чаті будуть номери»).
+    const clientDialog = await clientDialogContext(order as any);
+
     const velourCode = findVelourCode(
         cardExtras.comments.join('\n'),
         String(order.notes || ''),
         String(order.client_comment || ''),
         itemsSummary,
+        clientDialog,
+    );
+
+    // A colour named in WORDS is not the same fact as a code. Diana: «якщо
+    // немає саме номера, то називати не треба — можна написати, що людина
+    // сказала бордовий, але треба перевірити чат». So the word is reported as
+    // what somebody said, never as the order's colour.
+    const spokenColour = velourCode ? null : findSpokenColour(
+        clientDialog,
+        cardExtras.comments.join('\n'),
+        String(order.notes || ''),
+        String(order.client_comment || ''),
     );
 
     const facts = [
@@ -1228,7 +1271,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
         crmStage ? `Етап у KeyCRM: ${crmStage}` : '',
         crmManager ? `Відповідальний менеджер (CRM): ${crmManager}` : '',
-        velourCode ? `Колір велюру (код з картки): ${velourCode}` : '',
+        velourCode ? `Колір велюру (код): ${velourCode}` : '',
+        spokenColour ? `УВАГА: коду кольору ніде немає. У переписці/коментарях звучить слово «${spokenColour}» — це НЕ підтверджений колір, треба перевірити чат із клієнтом.` : '',
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
         `Сума: ${order.total} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
@@ -1266,7 +1310,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         if (/відповідальн|менеджер|хто вед|чи[йя] /.test(q)) {
             pick.push(crmManager ? `Відповідальна в CRM: ${crmManager}.` : 'Відповідального в CRM не видно — глянь картку замовлення.');
         } else if (/велюр|колір|оздоблен|обкладинк|комплект|товар|що всередині/.test(q)) {
-            if (velourCode) pick.push(`Колір велюру: ${velourCode} (код з картки CRM).`);
+            if (velourCode) pick.push(`Колір велюру: ${velourCode}.`);
+            if (!velourCode && spokenColour) pick.push(`Коду кольору немає. У переписці звучить «${spokenColour}» — варто перевірити в чаті з клієнтом.`);
             if (itemsSummary) pick.push(`Товари: ${itemsSummary}.`);
             if (!velourCode && cardExtras.custom_fields.length) pick.push(`Поля картки: ${cardExtras.custom_fields.join('; ')}.`);
             if (!velourCode && cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
@@ -1291,10 +1336,6 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
 
     try {
         const chatContext = await fetchChatContext(chatId);
-        // The answer often lives only in the client's own dialog — the velour
-        // colour, the cover, the Nova Poshta branch (Diana, 2026-08-11). The
-        // order stays the primary source; the dialog is consulted after it.
-        const clientDialog = await clientDialogContext(order as any);
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
         const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5',
@@ -1314,6 +1355,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 // клієнтом» — she has it, the dialogs are stored; that
                 // particular dialog just was not matched to the order.
                 'Ніколи не кажи, що не маєш доступу до переписки з клієнтом чи до CRM: доступ у тебе є. Якщо переписки цього клієнта тобі не показали або в ній цього немає — так і скажи: у знайдених повідомленнях цього немає.',
+                // Diana, 2026-08-13: «кожен колір має свій номер… якщо немає
+                // саме номера, то називати не треба — можна написати, людина
+                // сказала бордовий, але треба перевірити чат».
+                'Колір велюру називай ТІЛЬКИ кодом (наприклад В-11). Якщо коду немає, не подавай колір як факт: скажи, що коду немає, і що в переписці звучало таке-то слово, яке варто перевірити в чаті з клієнтом.',
                 // Diana, 2026-08-12: «якщо Софія знає відповідь, то відповідає…
                 // а якщо не знає, то хай запитує». Not knowing is fine; a vague
                 // reply that neither answers nor asks is what wastes the team's
