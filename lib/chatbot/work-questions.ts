@@ -304,6 +304,15 @@ export async function handleWorkQuestion(params: {
         if (tagReply) return tagReply;
     }
 
+    // «Скільки замовлень було сьогодні оформлено на сайті?» — a plain count,
+    // by period and by where the order came from (Diana, 2026-08-13; Софія had
+    // asked for an order number instead, which no count question can give).
+    if (/скільки/iu.test(text) && /(замовлен|заказ)/iu.test(text)
+        && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+        const countReply = await buildOrderCount(text);
+        if (countReply) return countReply;
+    }
+
     const ship = matchShipQuestion(text);
     if (ship) return buildShipToday(ship.horizonDays);
     if (OPEN_TASKS.test(text)) return buildOpenChatTasks();
@@ -780,6 +789,59 @@ function matchDayWindow(text: string): { since: number; until: number | null; la
  * that window whatever its state now, because that question is about volume,
  * not about what is left to do.
  */
+/**
+ * How many orders arrived — by period, and by where they came from.
+ *
+ * «Скільки замовлень було сьогодні оформлено на сайті?» is a question the shop
+ * asks daily and Софія could not answer at all: she asked for an order number,
+ * which is exactly what a counting question does not have (Diana, 2026-08-13).
+ *
+ * Source matters as much as the count here. The site and the CRM are two
+ * intake channels, and «на сайті» means the ones customers placed themselves.
+ * Without a period the answer is about today, and it says so.
+ */
+async function buildOrderCount(question: string): Promise<string | null> {
+    const supabase = getAdminClient();
+    const window = matchDayWindow(question) || { since: kyivMidnight(0), until: null, label: 'за сьогодні' };
+
+    const t = question.toLowerCase();
+    const wantsSite = /(на сайт|з сайт|сайт[іу]|через сайт)/iu.test(t);
+    const wantsCrm = /(в срм|у срм|срм|crm|кейкрм|кей срм)/iu.test(t) && !wantsSite;
+
+    let query = supabase
+        .from('orders')
+        .select('order_number, customer_name, source, created_at, custom_attributes, order_status')
+        .gte('created_at', new Date(window.since).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(400);
+    if (window.until) query = query.lt('created_at', new Date(window.until).toISOString());
+
+    const { data } = await query;
+    const all = (data || []).filter(o => !isTestOrderName((o as any).customer_name));
+
+    const site = all.filter(o => (o as any).source !== 'keycrm');
+    const crm = all.filter(o => (o as any).source === 'keycrm');
+    const chosen = wantsSite ? site : wantsCrm ? crm : all;
+
+    const where = wantsSite ? ' з сайту' : wantsCrm ? ' з CRM' : '';
+    if (!chosen.length) return `Замовлень${where} ${window.label} не було.`;
+
+    const lines = [`🧾 Замовлень${where} ${window.label} — ${chosen.length}:`, ''];
+    for (const o of chosen.slice(0, MAX_LISTED)) {
+        const when = new Date((o as any).created_at).toLocaleTimeString('uk-UA', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
+        });
+        const stage = (o as any)?.custom_attributes?.keycrm?.status_label
+            || ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status;
+        lines.push(`• ${(o as any).order_number} — ${when}, ${stage}${(o as any).customer_name ? `, ${(o as any).customer_name}` : ''}`);
+    }
+    // Both channels are worth naming when the question did not pick one: «22»
+    // reads very differently once you know 3 of them came from the site.
+    if (!wantsSite && !wantsCrm) lines.push('', `З сайту — ${site.length}, з CRM — ${crm.length}.`);
+
+    return lines.join('\n');
+}
+
 async function buildTagOrders(question: string, requireStrongWord = false): Promise<string | null> {
     const supabase = getAdminClient();
     const window = matchDayWindow(question);
