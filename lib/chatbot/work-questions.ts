@@ -706,6 +706,13 @@ async function answerStockClarification(replyText: string, answer: string): Prom
  */
 const TAG_WORD = /(тег|теґ|таг|теґ|tag|позначк)/iu;
 
+/** Tag words too ordinary to identify a tag on their own. */
+const GENERIC_TAG_WORDS = new Set([
+    'оплата', 'оплату', 'оплати', 'доставка', 'доставкою', 'доставки', 'перед',
+    'фото', 'сайт', 'наявності', 'наявність', 'журналу', 'замовлення', 'клієнту',
+    'клієнтці', 'дані', 'відправити', 'зробити', 'тільки',
+]);
+
 /**
  * «за останні 5 днів», «за тиждень», «сьогодні» — the window a question asks
  * about, in days, or null when it asks about the current state. Diana,
@@ -834,8 +841,11 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
             score++;
             // A long word is what makes a match trustworthy without the word
             // «тег» in the question: «андрі» identifies a tag, «фото» appears
-            // in half the sentences this shop writes.
-            if (word.length >= 5) strong = true;
+            // in half the sentences this shop writes. Words that name ordinary
+            // business things — оплата, доставка, сайт — never carry a tag on
+            // their own either, or «скільки замовлень оплачено сьогодні?»
+            // would be answered as the tag «Оплата перед доставкою».
+            if (word.length >= 5 && !GENERIC_TAG_WORDS.has(word)) strong = true;
         }
         hits.set(key, requireStrongWord && !strong ? 0 : score);
     }
