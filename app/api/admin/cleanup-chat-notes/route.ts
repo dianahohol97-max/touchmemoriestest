@@ -49,13 +49,19 @@ export async function GET(req: Request) {
     const dry = new URL(req.url).searchParams.get('dry') === '1';
     const supabase = getAdminClient();
 
-    const { data: rows } = await supabase
-        .from('order_history')
-        .select('id, order_id, notes, details')
-        .in('action', ['work_chat_note'])
-        .limit(500);
+    // Two sources: notes still in the history, and the ones already removed
+    // from the site (kept in order_history_removed_chat_notes as the backup of
+    // that clean-up). The CRM card still carries both, and the removed ones
+    // are exactly the list of what has to disappear from it.
+    const [{ data: live }, { data: removed }] = await Promise.all([
+        supabase.from('order_history').select('id, order_id, notes').eq('action', 'work_chat_note').limit(500),
+        supabase.from('order_history_removed_chat_notes').select('id, order_id, notes').limit(500),
+    ]);
 
-    const noise = (rows || []).filter(r => isNoise(String(r.notes || '')));
+    const noise = [
+        ...(live || []).filter(r => isNoise(String(r.notes || ''))).map(r => ({ ...r, live: true })),
+        ...(removed || []).map(r => ({ ...r, live: false })),
+    ];
     if (!noise.length) return NextResponse.json({ ok: true, removed: 0, crmCleaned: 0 });
 
     const orderIds = [...new Set(noise.map(r => r.order_id).filter(Boolean))];
@@ -105,14 +111,17 @@ export async function GET(req: Request) {
         }
     }
 
-    if (!dry) {
-        await supabase.from('order_history').delete().in('id', noise.map(r => r.id));
+    // Only rows still in the history are deleted; the backup stays untouched.
+    const liveIds = noise.filter(r => r.live).map(r => r.id);
+    if (!dry && liveIds.length) {
+        await supabase.from('order_history').delete().in('id', liveIds);
     }
 
     return NextResponse.json({
         ok: true,
         dry,
-        removed: noise.length,
+        removed: liveIds.length,
+        crmCandidates: noise.length,
         crmCleaned,
         sample: noise.slice(0, 10).map(r => String(r.notes || '').slice(0, 90)),
         report: report.slice(0, 30),
