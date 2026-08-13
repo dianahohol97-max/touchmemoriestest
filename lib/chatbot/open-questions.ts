@@ -92,6 +92,11 @@ function sameQuestion(a: string, b: string): boolean {
     // customer's order, which is exactly the kind of confident wrong answer
     // that destroys trust in the whole thing.
     if (numsA.length && numsB.length && !sharedNumber) return false;
+    // And when the NEW question names an order, only a question about that
+    // same order can be «the same question». Live: «13841 можете скинути як
+    // має виглядати макет?» was matched against a tag-count question that
+    // named no order at all, and answered with the tag list.
+    if (numsB.length && !numsA.length) return false;
 
     const wordsA = new Set(significantWords(a));
     const wordsB = significantWords(b).filter(w => wordsA.has(w));
@@ -421,9 +426,13 @@ export async function answerFromMemory(params: {
         if (!rows?.length) return null;
 
         const mentionsOrder = (t: string) => bare.some(n => t.includes(n));
+        // Only what a PERSON wrote can be quoted back as an answer. Софія's
+        // own output is derived from the same data, and quoting it is
+        // circular: her tag list happened to contain «CRM-13841», so it looked
+        // like an answer to «13841 можете скинути як має виглядати макет?».
         const quotable = (row: any) => {
             const t = String(row.text || '').trim();
-            return !!t && !isQuestion(t) && !NON_ANSWER.test(t) && t.length >= 3;
+            return !!t && !row.is_bot && !isQuestion(t) && !NON_ANSWER.test(t) && t.length >= 3;
         };
 
         // Every earlier asking of this same thing, newest first.
@@ -448,9 +457,7 @@ export async function answerFromMemory(params: {
                 return mentionsOrder(String(r.text || ''));
             });
 
-            // Prefer a human's answer to Софія's own — a person's word about
-            // an order outranks the bot's summary of it.
-            let chosen = candidates.find(c => !c.is_bot) || candidates[0];
+            let chosen = candidates[0];
 
             // Nothing tied by reply or by number. The real answer often names
             // neither — «Завтра раненько» under «13745 питає за макет, коли
