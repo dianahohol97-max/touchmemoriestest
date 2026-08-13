@@ -805,25 +805,48 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
         hits.set(key, 0);
     };
     for (const tag of [ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG]) addTag(tag);
+    // The WHOLE dictionary, not only what the window happens to contain. Live
+    // miss (Diana, 2026-08-13): «сьогодні були замовлення зі статусом
+    // „Терміновий з доплатою"?» was answered about «Оплата перед доставкою»,
+    // because no order today carried the asked-for tag, so it was not among
+    // the candidates at all and the nearest word-match won. A tag that exists
+    // and has no orders must answer «жодного».
+    for (const name of await knownTagNames()) addTag(name);
     for (const o of scoped) for (const tag of tagsOf(o)) addTag(tag);
 
-    const q = question.toLowerCase();
+    // Matching is word-to-word, not substring-in-sentence: «оплата» must not
+    // be found inside «доплатою», which is how «Оплата перед доставкою» beat
+    // «Терміновий з доплатою» on a question about the latter.
+    const questionWords = question
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+
     for (const key of hits.keys()) {
         let score = 0;
         let strong = false;
         for (const word of key.split(/\s+/)) {
             const stem = word.length > 4 ? word.slice(0, word.length - 2) : word;
-            if (stem.length >= 3 && q.includes(stem)) {
-                score++;
-                // A long word is what makes a match trustworthy without the
-                // word «тег» in the question: «андрі» identifies a tag, «фото»
-                // appears in half the sentences this shop writes.
-                if (word.length >= 5) strong = true;
-            }
+            if (stem.length < 3) continue;
+            const matched = questionWords.some(w => w.startsWith(stem) || stem.startsWith(w.slice(0, Math.max(3, w.length - 2))) && w.length >= 4);
+            if (!matched) continue;
+            score++;
+            // A long word is what makes a match trustworthy without the word
+            // «тег» in the question: «андрі» identifies a tag, «фото» appears
+            // in half the sentences this shop writes.
+            if (word.length >= 5) strong = true;
         }
         hits.set(key, requireStrongWord && !strong ? 0 : score);
     }
-    const ranked = [...hits.entries()].filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1]);
+    // A one-word coincidence loses to a two-word match, and a tag whose words
+    // ALL appear wins outright.
+    const ranked = [...hits.entries()]
+        .filter(([, score]) => score > 0)
+        .sort((a, b) => {
+            const coverage = (k: string, s: number) => s / Math.max(1, k.split(/\s+/).filter(w => w.length >= 3).length);
+            return (b[1] - a[1]) || (coverage(b[0], b[1]) - coverage(a[0], a[1]));
+        });
     if (!ranked.length) return null;
 
     const [key] = ranked[0];
