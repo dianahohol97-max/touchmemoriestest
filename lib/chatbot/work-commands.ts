@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
+import { ensureUploadLink, uploadLinkUrl } from '@/lib/orders/upload-links';
 import {
     getBusinessConnection,
     getWorkChatIds,
@@ -144,6 +145,7 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
                 '/unanswered — переписки з клієнтами, що чекають на відповідь',
                 '/risk — замовлення під загрозою зриву дедлайну',
                 '/stock — матеріали, що закінчуються',
+                '/upload 13876 — посилання, за яким клієнт завантажить фото просто до нас',
                 '/waiting — оплачені замовлення без фото від клієнта',
                 '/alerts_here — надсилати сповіщення в цей чат (тільки власниця)',
                 '/chatid — показати ID чату',
@@ -176,6 +178,11 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
         case '/ryzyk': {
             if (!registered) return unregisteredReply(isPrivate);
             return withDailyGreeting(chatId, await buildRisks());
+        }
+
+        case '/upload': {
+            if (!registered) return unregisteredReply(isPrivate);
+            return withDailyGreeting(chatId, await buildUploadLink(args[0] || ''));
         }
 
         case '/waiting': {
@@ -263,6 +270,46 @@ export async function buildStatus(): Promise<string> {
         '',
         'Деталі — команди /overdue та /unanswered.',
     ].join('\n');
+}
+
+/**
+ * The order a manager typed, however they typed it: «13644», «тм 1234»,
+ * «CRM-13644». Shared by the order card and the upload link, so both accept
+ * the same shorthand.
+ */
+async function findOrderByNumber(orderNumber: string): Promise<{ id: string; order_number: string } | null> {
+    const supabase = getAdminClient();
+
+    const candidates: string[] = [];
+    const bare = orderNumber.match(/^(\d+)$/);
+    const prefixed = orderNumber.match(/^(TM|CRM|PB)[-\s]?(\d+)$/i);
+    if (bare) {
+        candidates.push(`CRM-${bare[1]}`, `TM-${bare[1].padStart(6, '0')}`, `PB-${bare[1]}`);
+    } else if (prefixed) {
+        const prefix = prefixed[1].toUpperCase();
+        candidates.push(prefix === 'TM' ? `TM-${prefixed[2].padStart(6, '0')}` : `${prefix}-${prefixed[2]}`);
+    } else {
+        candidates.push(orderNumber);
+    }
+
+    const { data } = await supabase
+        .from('orders')
+        .select('id, order_number')
+        .in('order_number', candidates)
+        .order('created_at', { ascending: false })
+        .limit(1);
+    if (data?.[0]) return data[0];
+
+    // A bare CRM number may belong to a hand-transferred site order.
+    if (bare) {
+        const { data: adopted } = await supabase
+            .from('orders')
+            .select('id, order_number')
+            .eq('custom_attributes->keycrm->>order_id', bare[1])
+            .limit(1);
+        if (adopted?.[0]) return adopted[0];
+    }
+    return null;
 }
 
 async function buildOrderCard(orderNumber: string): Promise<string> {
@@ -442,6 +489,34 @@ async function buildRisks(): Promise<string> {
 }
 
 /** «Чекаємо матеріали» — paid orders with no files attached. */
+/**
+ * A link the customer can open to send photos straight into our storage.
+ *
+ * Diana, 2026-08-14: a client's eighteen-megabyte photos kept failing to
+ * upload in Telegram. The link is per order, lives thirty days, and the same
+ * order always gets the same live link — asking twice does not invalidate the
+ * one already sent to the customer.
+ */
+async function buildUploadLink(args: string): Promise<string> {
+    const number = String(args || '').trim();
+    if (!number) return 'Напиши номер замовлення: /upload 13876';
+
+    const order = await findOrderByNumber(number);
+    if (!order) return `Замовлення ${number} не знайшла. Перевір номер, будь ласка.`;
+
+    const link = await ensureUploadLink(order.id);
+    if (!link) return 'Не вдалося створити посилання — спробуй ще раз за хвилину.';
+
+    const until = new Date(link.expiresAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
+    return [
+        `📤 Посилання для ${link.orderNumber}${link.customerName ? ` (${link.customerName})` : ''}:`,
+        uploadLinkUrl(link.token),
+        '',
+        `Діє до ${until}. Клієнт відкриває його з телефона й обирає фото — вони йдуть по одному, тож великі файли не обриваються.`,
+        link.uploads ? `Уже завантажено файлів: ${link.uploads}.` : '',
+    ].filter(Boolean).join('\n');
+}
+
 async function buildWaiting(): Promise<string> {
     try {
         const waiting = await computeWaitingForClient();
