@@ -18,7 +18,7 @@ type Row = {
     error?: string;
 };
 
-type LinkInfo = { orderNumber: string; customerName: string; uploads: number };
+type LinkInfo = { orderNumber: string | null; label: string; uploads: number };
 
 export default function UploadClient({ token }: { token: string }) {
     const [info, setInfo] = useState<LinkInfo | null>(null);
@@ -30,7 +30,7 @@ export default function UploadClient({ token }: { token: string }) {
     useEffect(() => {
         fetch(`/api/upload-link/${token}`)
             .then(r => (r.ok ? r.json() : Promise.reject(new Error('invalid'))))
-            .then(d => setInfo({ orderNumber: d.orderNumber, customerName: d.customerName, uploads: d.uploads }))
+            .then(d => setInfo({ orderNumber: d.orderNumber ?? null, label: d.label || '', uploads: d.uploads }))
             .catch(() => setInvalid(true));
     }, [token]);
 
@@ -96,9 +96,9 @@ export default function UploadClient({ token }: { token: string }) {
         <main className="mx-auto max-w-lg px-5 py-10">
             <h1 className="mb-1 text-2xl font-semibold">Завантаження фото</h1>
             <p className="mb-6 text-gray-600">
-                {info?.customerName ? `${info.customerName}, ц` : 'Ц'}е сторінка для вашого замовлення
-                {info?.orderNumber ? ` ${info.orderNumber}` : ''}. Оберіть фото — вони підуть до нас по одному,
-                тож навіть великі файли дійдуть без обривів.
+                Оберіть фото для вашого замовлення
+                {info?.orderNumber ? ` ${info.orderNumber}` : ''} — вони підуть до нас по одному,
+                тож навіть великі файли дійдуть без обривів. Нічого встановлювати не треба.
             </p>
 
             <button

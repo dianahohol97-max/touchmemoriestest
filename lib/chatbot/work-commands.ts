@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { ensureUploadLink, uploadLinkUrl } from '@/lib/orders/upload-links';
+import { createUploadLink, findUploadLinkByCode, attachBatchToOrder, uploadLinkUrl } from '@/lib/orders/upload-links';
 import {
     getBusinessConnection,
     getWorkChatIds,
@@ -145,7 +145,8 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
                 '/unanswered — переписки з клієнтами, що чекають на відповідь',
                 '/risk — замовлення під загрозою зриву дедлайну',
                 '/stock — матеріали, що закінчуються',
-                '/upload 13876 — посилання, за яким клієнт завантажить фото просто до нас',
+                '/upload Надія — посилання, за яким клієнт завантажить фото просто до нас (без замовлення)',
+                '/upload 13876 Ф-7K3Q — прикріпити завантажену партію до замовлення',
                 '/waiting — оплачені замовлення без фото від клієнта',
                 '/alerts_here — надсилати сповіщення в цей чат (тільки власниця)',
                 '/chatid — показати ID чату',
@@ -182,7 +183,7 @@ export async function handleWorkCommand(msg: any): Promise<string | null> {
 
         case '/upload': {
             if (!registered) return unregisteredReply(isPrivate);
-            return withDailyGreeting(chatId, await buildUploadLink(args[0] || ''));
+            return withDailyGreeting(chatId, await buildUploadLink(args));
         }
 
         case '/waiting': {
@@ -497,24 +498,38 @@ async function buildRisks(): Promise<string> {
  * order always gets the same live link — asking twice does not invalidate the
  * one already sent to the customer.
  */
-async function buildUploadLink(args: string): Promise<string> {
-    const number = String(args || '').trim();
-    if (!number) return 'Напиши номер замовлення: /upload 13876';
+async function buildUploadLink(args: string[]): Promise<string> {
+    const first = String(args[0] || '').trim();
 
-    const order = await findOrderByNumber(number);
-    if (!order) return `Замовлення ${number} не знайшла. Перевір номер, будь ласка.`;
+    // «/upload 13876 Ф-7K3Q» — the batch turned out to belong to that order.
+    const code = args.find(a => /^Ф-?[A-Z0-9]{4}$/iu.test(a));
+    if (code && first && !/^Ф/iu.test(first)) {
+        const order = await findOrderByNumber(first);
+        if (!order) return `Замовлення ${first} не знайшла. Перевір номер, будь ласка.`;
 
-    const link = await ensureUploadLink(order.id);
+        const link = await findUploadLinkByCode(code);
+        if (!link) return `Партію ${code} не знайшла. Перевір код, будь ласка.`;
+
+        const { attached } = await attachBatchToOrder(link.token, order.id);
+        return attached
+            ? `✅ ${attached} файл(ів) із ${link.code}${link.label ? ` («${link.label}»)` : ''} тепер на замовленні ${order.order_number}.`
+            : `У партії ${link.code} немає нових файлів — можливо, їх уже прикріпили раніше.`;
+    }
+
+    // «/upload Надія Семенівна» — a link for a person, before any order exists.
+    const label = args.join(' ').trim();
+    const link = await createUploadLink(label);
     if (!link) return 'Не вдалося створити посилання — спробуй ще раз за хвилину.';
 
     const until = new Date(link.expiresAt).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
     return [
-        `📤 Посилання для ${link.orderNumber}${link.customerName ? ` (${link.customerName})` : ''}:`,
+        `📤 Посилання для завантаження фото${label ? ` — «${label}»` : ''}:`,
         uploadLinkUrl(link.token),
         '',
-        `Діє до ${until}. Клієнт відкриває його з телефона й обирає фото — вони йдуть по одному, тож великі файли не обриваються.`,
-        link.uploads ? `Уже завантажено файлів: ${link.uploads}.` : '',
-    ].filter(Boolean).join('\n');
+        `Код партії: ${link.code}. Діє до ${until}.`,
+        'Клієнт відкриває з телефона й обирає фото — вони йдуть по одному, тож великі файли не обриваються.',
+        `Коли створите замовлення: /upload <номер> ${link.code} — і всі файли стануть на його картку. Або просто вставте це посилання в коментар у CRM.`,
+    ].join('\n');
 }
 
 async function buildWaiting(): Promise<string> {
