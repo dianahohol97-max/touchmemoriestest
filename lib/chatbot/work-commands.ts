@@ -489,14 +489,14 @@ async function buildRisks(): Promise<string> {
     }
 }
 
-/** «Чекаємо матеріали» — paid orders with no files attached. */
 /**
  * A link the customer can open to send photos straight into our storage.
  *
  * Diana, 2026-08-14: a client's eighteen-megabyte photos kept failing to
- * upload in Telegram. The link is per order, lives thirty days, and the same
- * order always gets the same live link — asking twice does not invalidate the
- * one already sent to the customer.
+ * upload in Telegram. The link belongs to a PERSON, not to an order — a
+ * Telegram order reaches KeyCRM hours later, so waiting for the order would
+ * defeat the purpose. Any name at all works; nothing is looked up anywhere.
+ * The batch is attached to its order later, by its short code.
  */
 async function buildUploadLink(args: string[]): Promise<string> {
     const first = String(args[0] || '').trim();
@@ -532,6 +532,7 @@ async function buildUploadLink(args: string[]): Promise<string> {
     ].join('\n');
 }
 
+/** «Чекаємо матеріали» — paid orders with no files attached. */
 async function buildWaiting(): Promise<string> {
     try {
         const waiting = await computeWaitingForClient();
