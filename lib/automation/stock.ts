@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchKeycrmOffers } from '@/lib/automation/keycrm';
-import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
+import { fetchConfirmedMap, mapKey, sizeKey, itemSlug } from '@/lib/automation/keycrm-catalogue';
 import { isReadyForCrm } from '@/lib/automation/keycrm-money';
 import { isTestOrder } from '@/lib/automation/test-orders';
 
@@ -191,7 +191,7 @@ export async function applyStockForOrder(order: any, opts?: { dryRun?: boolean }
     const counted = new Set((existing || []).map((m: any) => m.product_id));
 
     for (const item of items) {
-        const slug = String(item?.slug || '');
+        const slug = itemSlug(item);
         const product = slug ? bySlug.get(slug) : null;
 
         if (!product) {

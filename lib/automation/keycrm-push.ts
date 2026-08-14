@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrmTagIdByName } from '@/lib/automation/keycrm';
-import { fetchConfirmedMap, mapKey, sizeKey } from '@/lib/automation/keycrm-catalogue';
+import { fetchConfirmedMap, mapKey, sizeKey, itemSlug } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
@@ -72,6 +72,31 @@ function sourceId(): number | null {
 function optionalNumber(name: string): number | null {
     const raw = Number(process.env[name]);
     return Number.isFinite(raw) && raw > 0 ? raw : null;
+}
+
+/**
+ * What one unit of this line costs.
+ *
+ * The cart writes the price under three different names depending on which
+ * flow built the item: `unit_price`, `total_price` (whole line) or plain
+ * `price`. Reading only `unit_price` sent 0,00 ₴ to the CRM for every order
+ * built by the flow that writes `price` — 54 line items in the last two months,
+ * including 13876, whose card shows «Глянцевий журнал» at 0,00 while the
+ * customer paid 720 ₴ (Diana, 2026-08-14).
+ */
+function itemUnitPrice(item: any): number {
+    const quantity = Number(item?.quantity) || 1;
+
+    const unit = Number(item?.unit_price);
+    if (Number.isFinite(unit) && unit > 0) return money(unit);
+
+    const plain = Number(item?.price);
+    if (Number.isFinite(plain) && plain > 0) return money(plain);
+
+    const total = Number(item?.total_price);
+    if (Number.isFinite(total) && total > 0) return money(total / quantity);
+
+    return 0;
 }
 
 function money(value: any): number {
@@ -173,7 +198,7 @@ function formatSpecification(item: any): string {
         : [];
 
     const quantity = Number(item?.quantity) || 1;
-    const unitPrice = money(item?.unit_price);
+    const unitPrice = itemUnitPrice(item);
 
     // Checked against the data: `total_price` is already the whole line
     // (unit_price × quantity), and `price_breakdown` always sums to the price of
@@ -202,7 +227,7 @@ function formatSpecification(item: any): string {
 
 function mapProduct(item: any, productMap: ProductMap = {}) {
     const options = item?.options && typeof item.options === 'object' ? item.options : {};
-    const slug = String(item?.slug || '');
+    const slug = itemSlug(item);
 
     // One website product is several CRM items when it has sizes: a wish book is
     // sold as 23×23, 20×30 and 30×20, and each is its own entry in the CRM. The
@@ -255,7 +280,7 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         sku: mapped?.sku || slug || String(item?.product_id || ''),
         ...(mapped?.offer_id ? { offer_id: mapped.offer_id } : {}),
         name: String(item?.product_name || 'Товар'),
-        price: money(item?.unit_price),
+        price: itemUnitPrice(item),
         quantity: Number(item?.quantity) || 1,
         unit_type: 'шт',
         ...(properties.length ? { properties } : {}),
@@ -365,7 +390,7 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
     // only discovered later, when the product reports come out empty.
     const unmapped = items
         .map((item: any) => {
-            const slug = String(item?.slug || '');
+            const slug = itemSlug(item);
             if (!slug) return '';
             const size = String(item?.options?.['Розмір'] || '').trim();
             const found = productMap[mapKey(slug, sizeKey(size))]

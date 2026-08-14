@@ -31,6 +31,19 @@ export type SiteProduct = {
 };
 
 /** Composite key for the map: one row per product and size. */
+/**
+ * The slug of an ordered line.
+ *
+ * Two cart flows write it under different names — `slug` and `product_slug` —
+ * and 67 of the last 90 days' line items carry only the second. Reading just
+ * `slug` left them with no catalogue link at all: order 13876's magazine went
+ * into KeyCRM as a bare name with no offer and no SKU, although the pair was
+ * confirmed in the map (Diana, 2026-08-14: «мало бути синхронізовано»).
+ */
+export function itemSlug(item: any): string {
+    return String(item?.slug || item?.product_slug || '').trim();
+}
+
 export function mapKey(slug: string, variant: string): string {
     return `${slug}::${variant || ''}`;
 }

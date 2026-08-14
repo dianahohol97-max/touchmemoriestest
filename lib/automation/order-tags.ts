@@ -31,7 +31,7 @@ function lineText(item: any): string {
     const options = item?.options && typeof item.options === 'object' ? item.options : {};
 
     return [
-        String(item?.slug || ''),
+        String(item?.slug || item?.product_slug || ''),
         String(item?.product_name || item?.name || ''),
         ...Object.entries(options).map(([key, value]) => `${key} ${value}`),
     ]
