@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { resolveMissingPhotoPaths } from '@/lib/print/resolve-photo-paths';
 
 /**
  * POST /api/projects/save-design
@@ -107,6 +108,28 @@ export async function POST(request: NextRequest) {
     uploaded_photos: uploadedPhotos || [],
     updated_at: new Date().toISOString(),
   };
+
+  // The browser is not a reliable keeper of the photos' storage paths. A photo
+  // rehydrated from a reopened draft can arrive with its id and size but no
+  // `path` and no preview to re-upload from, and every save after that writes
+  // it back path-less — which is how TM-001185 reached print as blank pages
+  // while all 74 originals sat safely in storage. The files are named after the
+  // photo id, so the server can put the pointer back before it stores anything.
+  try {
+    const resolved = await resolveMissingPhotoPaths(admin, {
+      user_id: userId,
+      cart_payload: cartPayloadToStore,
+      uploaded_photos: row.uploaded_photos,
+    });
+    if (resolved.changed) {
+      row.uploaded_photos = resolved.photos as any;
+      console.warn('[save-design] recovered photo paths from storage', {
+        orderId, cartId, recovered: resolved.recovered, unresolved: resolved.unresolved,
+      });
+    }
+  } catch (e: any) {
+    console.error('[save-design] photo path recovery failed', { orderId, cartId, error: e?.message });
+  }
 
   if (existing) {
     // Update the existing project with the latest design, and — crucially —

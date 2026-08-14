@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { registerExportFiles, pruneStaleExports } from '@/lib/print/register-export-files';
+import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
 
 export const dynamic = 'force-dynamic';
 // The Railway render of every spread can take 1–2 min for a large book; give the
@@ -114,6 +115,25 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
     console.error('[render-order] artifact audit failed', { orderId, e });
   }
 }
+/**
+ * Mark an order whose design places photos we cannot find. Same short wording
+ * as the artifact audit, because it lands in the CRM manager comment and has to
+ * read at a glance.
+ */
+async function flagMissingPhotos(admin: ReturnType<typeof getAdminClient>, orderId: string, count: number) {
+  try {
+    const { data: ord } = await admin.from('orders').select('notes').eq('id', orderId).maybeSingle();
+    const notes: string = (ord as any)?.notes || '';
+    const warn = `⚠️ У макеті бракує ${count} фото — друк порожній. Не в друк, звʼяжіться з клієнтом.`;
+    if (notes.includes('бракує') && notes.includes('фото')) return; // already flagged
+    await admin.from('orders')
+      .update({ notes: notes.trim() ? `${warn}\n\n${notes.trim()}` : warn })
+      .eq('id', orderId);
+  } catch (e) {
+    console.error('[render-order] could not flag missing photos', { orderId, e });
+  }
+}
+
 export async function POST(request: NextRequest) {
   // Internal auth — same secret the webhook uses for fiscalize / email.
   const secret = request.headers.get('x-cron-secret');
@@ -141,7 +161,7 @@ export async function POST(request: NextRequest) {
   // items, there can be multiple projects — render them all.
   const { data: projects, error } = await admin
     .from('projects')
-    .select('id, name, product_type')
+    .select('id, user_id, cart_payload, name, product_type, pages_data, cover_data, overlays_data, uploaded_photos')
     .eq('order_id', orderId);
 
   if (error) {
@@ -197,6 +217,38 @@ export async function POST(request: NextRequest) {
       results.push({ projectId: project.id, ok: true, detail: `skipped: not railway-renderable (${project.product_type})` });
       continue;
     }
+    // Pre-flight: does every PLACED photo still have a file behind it?
+    //
+    // The render service draws whatever the /print page shows, and a slot whose
+    // photo path was lost shows nothing — the job "succeeds" and produces blank
+    // white sheets (TM-001185: 22 of them, plus a cover with only the title).
+    // Worse, the prune below would then delete the previous good export as
+    // stale. Rebuild the lost pointers from storage first, and if any placed
+    // photo is still unaccounted for, flag the order and DO NOT render it.
+    let projectPhotos = Array.isArray((project as any).uploaded_photos) ? (project as any).uploaded_photos : [];
+    try {
+      const resolved = await resolveMissingPhotoPaths(admin, project as any);
+      if (resolved.changed) {
+        projectPhotos = resolved.photos;
+        await admin.from('projects').update({ uploaded_photos: resolved.photos }).eq('id', project.id);
+        console.warn('[render-order] recovered photo paths before render', {
+          orderId, projectId: project.id, recovered: resolved.recovered,
+        });
+      }
+    } catch (e: any) {
+      console.error('[render-order] photo path recovery failed', { orderId, projectId: project.id, error: e?.message });
+    }
+
+    const unprintable = countUnprintablePhotos(project as any, projectPhotos);
+    if (unprintable > 0) {
+      console.error('[render-order] refusing to render a design with missing photos', {
+        orderId, projectId: project.id, unprintable,
+      });
+      await flagMissingPhotos(admin, orderId, unprintable);
+      results.push({ projectId: project.id, ok: false, detail: `skipped: ${unprintable} placed photos have no file` });
+      continue;
+    }
+
     try {
       const res = await fetch(`${renderUrl.replace(/\/$/, '')}/render`, {
         method: 'POST',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, type SizeRow } from '@/lib/print/geometry';
+import { resolveMissingPhotoPaths } from '@/lib/print/resolve-photo-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,12 +43,26 @@ export async function GET(
 
   const { data, error } = await supabase
     .from('projects')
-    .select('id, name, product_type, format, cover_type, total_pages, pages_data, cover_data, overlays_data, uploaded_photos')
+    .select('id, user_id, cart_payload, name, product_type, format, cover_type, total_pages, pages_data, cover_data, overlays_data, uploaded_photos')
     .eq('id', projectId)
     .single();
 
   if (error || !data) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  }
+
+  // A photo with no `path` cannot be drawn, and the render service has no way
+  // of knowing that — it screenshots the empty slot and calls it a page
+  // (TM-001185 came back as 22 blank sheets). The originals are in storage
+  // named after their photo id, so rebuild the pointer from the files before
+  // signing anything, and write it back so the next reader gets it for free.
+  const resolved = await resolveMissingPhotoPaths(supabase, data as any);
+  if (resolved.changed) {
+    (data as any).uploaded_photos = resolved.photos;
+    await supabase.from('projects').update({ uploaded_photos: resolved.photos }).eq('id', projectId);
+    console.warn('[print] recovered photo paths from storage', {
+      projectId, recovered: resolved.recovered, unresolved: resolved.unresolved,
+    });
   }
 
   // Resolve each photo's storage path into a signed URL so the /print page can
