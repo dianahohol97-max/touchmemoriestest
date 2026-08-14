@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/automation/test-orders';
+import { buildResponsibleLookup } from '@/lib/chatbot/responsible';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 
 /**
@@ -128,6 +129,8 @@ export type DeadlineRisk = {
     daysLeft: number;
     stage: string;
     reason: string;
+    /** «Відповідальні» from the CRM card, or the site's designer. */
+    responsible: string;
 };
 
 /**
@@ -146,12 +149,14 @@ export async function computeDeadlineRisks(): Promise<DeadlineRisk[]> {
 
     const { data } = await supabase
         .from('orders')
-        .select('order_number, customer_name, deadline, order_status, source, created_at, custom_attributes, items')
+        .select('order_number, customer_name, deadline, order_status, source, created_at, custom_attributes, items, designer_id')
         .gte('deadline', new Date(now).toISOString())
         .lte('deadline', new Date(now + horizonDays * DAY_MS).toISOString())
         .in('order_status', PRODUCTION_ACTIVE_STATUSES)
         .order('deadline', { ascending: true })
         .limit(200);
+
+    const responsible = await buildResponsibleLookup(data || []);
 
     const risks: DeadlineRisk[] = [];
     for (const o of data || []) {
@@ -179,6 +184,7 @@ export async function computeDeadlineRisks(): Promise<DeadlineRisk[]> {
             reason: daysLeft <= 1
                 ? 'дедлайн завтра, а в друк ще не передано'
                 : `${daysLeft} дн до дедлайну, ще не в друці`,
+            responsible: responsible(o),
         });
     }
     return risks;

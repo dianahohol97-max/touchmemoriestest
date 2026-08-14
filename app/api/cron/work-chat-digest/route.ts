@@ -4,6 +4,7 @@ import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
 import { morningGreeting } from '@/lib/chatbot/work-commands';
 import { computeUnansweredDialogs } from '@/lib/chatbot/unanswered';
 import { fetchProductionFilter } from '@/lib/automation/production-visibility';
+import { buildResponsibleLookup } from '@/lib/chatbot/responsible';
 import { isTestOrder } from '@/lib/automation/test-orders';
 import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 
@@ -62,14 +63,14 @@ export async function GET(req: Request) {
     const [{ data: overdueRows }, { data: upcomingRows }] = await Promise.all([
         supabase
             .from('orders')
-            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
+            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes, designer_id')
             .lt('deadline', nowIso)
             .in('order_status', ACTIVE_STATUSES)
             .order('deadline', { ascending: true })
             .limit(50),
         supabase
             .from('orders')
-            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes')
+            .select('id, order_number, customer_name, deadline, order_status, source, created_at, custom_attributes, designer_id')
             .gte('deadline', nowIso)
             .lt('deadline', new Date(now + upcomingDays * 24 * HOUR_MS).toISOString())
             .in('order_status', ACTIVE_STATUSES)
@@ -84,13 +85,18 @@ export async function GET(req: Request) {
     const overdue = (overdueRows || []).filter(o => !isTestOrder(o as any) && visible(o));
     const upcoming = (upcomingRows || []).filter(o => !isTestOrder(o as any) && visible(o));
 
+    // Every line names who is on it (Diana, 2026-08-14): a late order without
+    // a name says something slipped but not whom to ask.
+    const responsible = await buildResponsibleLookup([...overdue, ...upcoming]);
+
     const lines: string[] = [morningGreeting(), ''];
 
     if (overdue.length) {
         lines.push(`⏰ Прострочені дедлайни (${overdue.length}):`);
         for (const o of overdue.slice(0, MAX_LISTED)) {
             const daysOver = Math.max(1, Math.floor((now - new Date(o.deadline).getTime()) / (24 * HOUR_MS)));
-            lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, мав бути ${fmtDate(o.deadline)} (уже ${daysOver} дн)`);
+            const who = responsible(o);
+            lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, мав бути ${fmtDate(o.deadline)} (уже ${daysOver} дн)${who ? ` — ${who}` : ''}`);
         }
         if (overdue.length > MAX_LISTED) lines.push(`…і ще ${overdue.length - MAX_LISTED} у списку.`);
         lines.push('');
@@ -101,7 +107,8 @@ export async function GET(req: Request) {
     if (upcoming.length) {
         lines.push(`🔥 Дедлайн у найближчі ${upcomingDays} дні (${upcoming.length}):`);
         for (const o of upcoming.slice(0, MAX_LISTED)) {
-            lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, до ${fmtDate(o.deadline)}`);
+            const who = responsible(o);
+            lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}, до ${fmtDate(o.deadline)}${who ? ` — ${who}` : ''}`);
         }
         if (upcoming.length > MAX_LISTED) lines.push(`…і ще ${upcoming.length - MAX_LISTED} у цьому вікні.`);
         lines.push('');
@@ -115,7 +122,7 @@ export async function GET(req: Request) {
         if (risks.length) {
             lines.push(`⚠️ Під загрозою зриву (${risks.length}):`);
             for (const r of risks.slice(0, MAX_LISTED)) {
-                lines.push(`• ${r.orderNumber} — ${r.customer}, ${r.reason} (стадія: ${r.stage})`);
+                lines.push(`• ${r.orderNumber} — ${r.customer}, ${r.reason} (стадія: ${r.stage})${r.responsible ? ` — ${r.responsible}` : ''}`);
             }
             lines.push('');
         }
