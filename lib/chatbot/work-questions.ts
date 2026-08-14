@@ -2,9 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { clientDialogContext } from '@/lib/chatbot/client-chat-lookup';
 import { extractOrderNumbers } from './work-chat-monitor';
-import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
+import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES, fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
 import { answerFromMemory } from './open-questions';
+import { buildResponsibleLookup } from './responsible';
 import { mirrorSingleKeycrmOrder } from '@/lib/automation/keycrm-mirror';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
 
@@ -299,7 +300,8 @@ export async function handleWorkQuestion(params: {
     // of them and the most easily swallowed: «скільки замовлень з тегом
     // терміновий з доплатою було зроблено вчора» was answered with the whole
     // shift digest, because «вчора» plus «було» matched the digest first.
-    if (TAG_WORD.test(text) && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+    const aboutPeople = /(дизайнер|менеджер|відповідальн)/iu.test(text);
+    if (TAG_WORD.test(text) && !aboutPeople && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
         const tagReply = await buildTagOrders(text);
         if (tagReply) return tagReply;
     }
@@ -359,7 +361,7 @@ export async function handleWorkQuestion(params: {
     // Without the word «тег» the same question still arrives — «скільки
     // замовлень для Андрія сьогодні» — so it is tried too, but then only a
     // distinctive tag word counts (see requireStrongWord), never «фото».
-    if (TAG_WORD.test(text) || /замовлен/i.test(text)) {
+    if (!aboutPeople && (TAG_WORD.test(text) || /замовлен/i.test(text))) {
         const tagReply = await buildTagOrders(text, !TAG_WORD.test(text));
         if (tagReply) return tagReply;
     }
@@ -369,6 +371,15 @@ export async function handleWorkQuestion(params: {
     // The responsibility word is matched loosely because live questions come
     // with typos — «відпрвідального» must trigger the same as «відповідального»
     // (anchored on «дальн», so «відправити» stays a shipping word).
+    // «Які замовлення в дизайнерів з дедлайнами» — the whole board by person,
+    // the way the tag list works (Diana, 2026-08-14: «треба щоб працювало так
+    // як з тегами»). Only when no single person is named — with a name the
+    // per-person queue below is the right answer.
+    if (/(дизайнер|відповідальн)/iu.test(text) && /(замовлен|черга|дедлайн)/iu.test(text)) {
+        const grouped = await buildDesignerQueues(text);
+        if (grouped) return grouped;
+    }
+
     const RESP_WORD = /(відповідальн|відп[а-яіїє]*дальн|менеджер|дизайнер|веде(?!\p{L})|(у|в)\s+кого)/iu;
     if (/(замовлен|черга|в роботі)/i.test(text) && RESP_WORD.test(text)) {
         const managerReply = await buildManagerOrders(text);
@@ -951,6 +962,71 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
  * Мацьопи», «в Оксани» — and the stage in «Статус „прийнято"» becomes a
  * substring filter on the live CRM stage when present.
  */
+/**
+ * The whole design board: every designer and what sits on them.
+ *
+ * Diana, 2026-08-14: «напиши які замовлення в дизайнерів з дедлайнами… треба
+ * щоб працювало так як з тегами». The per-person queue needs a name; this one
+ * needs nobody — it groups the active queue by «Відповідальні» (the site's own
+ * designer for site orders) and lists each person's orders with deadlines.
+ *
+ * Orders with nobody assigned are shown last under «без дизайнера», because
+ * that is the group worth looking at first thing in the morning.
+ */
+async function buildDesignerQueues(question: string): Promise<string | null> {
+    const supabase = getAdminClient();
+
+    const { data } = await supabase
+        .from('orders')
+        .select('order_number, customer_name, deadline, order_status, source, created_at, custom_attributes, designer_id')
+        .in('order_status', PRODUCTION_ACTIVE_STATUSES)
+        .order('deadline', { ascending: true })
+        .limit(400);
+
+    const visible = await fetchProductionFilter();
+    let active = (data || []).filter(o => isVisibleProductionOrder(o as any) && visible(o));
+
+    // «зі статусом „прийнято"» narrows it the same way the per-manager queue does.
+    const stageMatch = question.match(/статус[^«"']*[«"']([^»"']{2,40})[»"']/iu)
+        || question.match(/статус[^\p{L}]*(\p{L}[\p{L}\s]{2,30})/iu);
+    const stageFilter = stageMatch ? stageMatch[1].toLowerCase().trim() : null;
+    if (stageFilter) {
+        active = active.filter(o =>
+            String((o as any)?.custom_attributes?.keycrm?.status_label || '').toLowerCase().includes(stageFilter));
+    }
+    if (!active.length) {
+        return stageFilter
+            ? `Активних замовлень зі статусом «${stageFilter}» зараз немає.`
+            : 'Активних замовлень у дизайнерів зараз немає.';
+    }
+
+    const responsible = await buildResponsibleLookup(active);
+    const byPerson = new Map<string, any[]>();
+    for (const o of active) {
+        const who = responsible(o) || 'без дизайнера';
+        if (!byPerson.has(who)) byPerson.set(who, []);
+        byPerson.get(who)!.push(o);
+    }
+
+    const groups = [...byPerson.entries()].sort((a, b) => {
+        if (a[0] === 'без дизайнера') return 1;
+        if (b[0] === 'без дизайнера') return -1;
+        return b[1].length - a[1].length;
+    });
+
+    const stageNote = stageFilter ? ` зі статусом «${stageFilter}»` : '';
+    const lines = [`🎨 Замовлення в дизайнерів${stageNote} — ${active.length}:`];
+    for (const [who, orders] of groups) {
+        lines.push('', `${who} (${orders.length}):`);
+        for (const o of orders.slice(0, MAX_LISTED)) {
+            const stage = (o as any)?.custom_attributes?.keycrm?.status_label
+                || ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status;
+            lines.push(`• ${(o as any).order_number} — ${stage}, дедлайн ${fmtDate((o as any).deadline)}${(o as any).customer_name ? `, ${(o as any).customer_name}` : ''}`);
+        }
+    }
+    return lines.join('\n');
+}
+
 async function buildManagerOrders(question: string): Promise<string | null> {
     const supabase = getAdminClient();
 
