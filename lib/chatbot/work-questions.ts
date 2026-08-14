@@ -1347,11 +1347,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         .limit(6);
 
     const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label || null;
-    const crmManager = (order as any)?.custom_attributes?.keycrm?.manager_name || null;
     // Two different people, two different questions (Diana, 2026-08-14): the
     // manager leads the order, «Відповідальні» are the designers doing the
     // layout. Answering one for the other is the confusion she caught.
-    const crmDesigners: string[] = Array.isArray((order as any)?.custom_attributes?.keycrm?.assigned_names)
+    const mirroredDesigners: string[] = Array.isArray((order as any)?.custom_attributes?.keycrm?.assigned_names)
         ? (order as any).custom_attributes.keycrm.assigned_names
         : [];
 
@@ -1377,12 +1376,18 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     // mirrored line items). One extra CRM call per question; empty on any
     // failure, never an exception.
     const crmOrderId = (order as any)?.custom_attributes?.keycrm?.order_id;
-    let cardExtras = { comments: [] as string[], custom_fields: [] as string[] };
+    let cardExtras = { comments: [] as string[], custom_fields: [] as string[], manager: '', assigned: [] as string[] };
     if (crmOrderId && process.env.KEYCRM_API_TOKEN) {
         try {
             cardExtras = await fetchOrderCardExtras(crmOrderId);
         } catch { /* garnish, not the answer */ }
     }
+
+    // Live values win over mirrored ones: the mirror only refreshes the last
+    // fourteen days, so an older card keeps whatever it had when it was last
+    // seen — which for «Відповідальні» is nothing at all.
+    const crmManager = cardExtras.manager || (order as any)?.custom_attributes?.keycrm?.manager_name || null;
+    const crmDesigners: string[] = cardExtras.assigned.length ? cardExtras.assigned : mirroredDesigners;
 
     // The velour colour is written as a code on the card — «В-01», «в-11» —
     // usually inside the specification comment (Diana, 2026-08-11: «в-11 це
@@ -1504,6 +1509,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 'Відповідай стисло і лише про те, що спитали — але не губи деталей: якщо питання стосується кількох деталей (тип обкладинки, надпис, що на останній сторінці), назви їх усі.',
                 'Не переказуй решту фактів, не вітайся, не додавай підсумків чи порад, яких не просили.',
                 'Якщо в останніх повідомленнях чату на це питання вже відповідали, можеш коротко це зазначити.',
+                // Live: asked about 13534, she volunteered a paragraph about
+                // TM-001185 discussed higher up. Context is for understanding
+                // the question, not for adding orders nobody asked about.
+                'Пиши ТІЛЬКИ про те замовлення, про яке спитали. Не згадуй інші замовлення з чату, навіть якщо їх обговорювали поруч.',
                 'Спершу шукай відповідь у фактах про замовлення. Якщо там її немає — подивись у переписці з клієнтом, і тоді ОБОВʼЯЗКОВО зазнач, що це з переписки, і назви дату.',
                 // Live: «мені не вистачає доступу до телеграм-переписки з
                 // клієнтом» — she has it, the dialogs are stored; that

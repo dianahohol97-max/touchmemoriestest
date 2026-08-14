@@ -742,12 +742,26 @@ export async function fetchKeycrmOffersByProduct(productId: string | number): Pr
  * other read here, and failure means an empty result, never an exception —
  * these are garnish on an answer, not the answer.
  */
-export async function fetchOrderCardExtras(orderId: string | number): Promise<{ comments: string[]; custom_fields: string[] }> {
+export async function fetchOrderCardExtras(orderId: string | number): Promise<{
+    comments: string[];
+    custom_fields: string[];
+    /** Who leads the order in the CRM, read live. */
+    manager: string;
+    /** «Відповідальні» — the designers, read live. */
+    assigned: string[];
+}> {
     const id = encodeURIComponent(String(orderId));
-    const result = { comments: [] as string[], custom_fields: [] as string[] };
+    const result = { comments: [] as string[], custom_fields: [] as string[], manager: '', assigned: [] as string[] };
 
     try {
-        const payload = await keycrmRequest(`/order/${id}?include=products,custom_fields`);
+        // manager and assigned ride along on the call the answer already
+        // makes. The mirror only refreshes orders from the last fourteen days,
+        // so an older card — 13534, asked about live — would otherwise never
+        // gain its designers (Diana, 2026-08-14: «вона так і не дає
+        // відповідального»).
+        const payload = await keycrmRequest(`/order/${id}?include=products,custom_fields,manager,assigned`);
+        result.manager = String(payload?.manager?.full_name ?? payload?.manager?.name ?? '').trim();
+        result.assigned = assignedNames(payload);
         const fields: any[] = Array.isArray(payload?.custom_fields) ? payload.custom_fields : [];
         result.custom_fields = fields
             .map(f => {
