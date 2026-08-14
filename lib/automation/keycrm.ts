@@ -130,7 +130,10 @@ async function fetchJson(path: string, token: string, init?: { method?: string; 
             // the only way to debug a payload shape without shell access to the
             // account. Truncated so a hostile response cannot flood the logs.
             const detail = await res.text().catch(() => '');
-            throw new Error(`KeyCRM повернув ${res.status}. ${detail.slice(0, 300)}`.trim());
+            // 300 characters used to cut the «allowed include(s)» list of a 400
+            // mid-word, which is precisely the part needed to find where this
+            // account keeps «Відповідальні».
+            throw new Error(`KeyCRM повернув ${res.status}. ${detail.slice(0, 1200)}`.trim());
         }
 
         // 5xx on a write is ambiguous: KeyCRM may have created the order before
