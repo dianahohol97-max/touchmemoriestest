@@ -41,8 +41,16 @@ export type KeycrmOrder = {
     buyer_phone: string;
     manager_comment: string;
     buyer_comment: string;
-    /** The CRM's responsible manager (full name), when the account exposes it. */
+    /** The CRM's manager (full name) — who leads the order. */
     manager_name: string;
+    /**
+     * «Відповідальні» on the CRM card — the designers doing the layout. A
+     * different field and a different role from the manager (Diana,
+     * 2026-08-14: «менеджер — це менеджер, а відповідальний — це дизайнер»).
+     * The API exposes it under `include=assigned`, which is the one spelling
+     * the allowed-include list actually contains.
+     */
+    assigned_names: string[];
     /** Waybill number when the CRM already shipped the parcel. */
     ttn: string;
     /** Carrier name as the CRM knows it, for the tracking link on the site. */
@@ -76,6 +84,21 @@ export type KeycrmFetchResult = {
     /** Human-readable reason the pull was skipped or cut short, for the report footer. */
     warning?: string;
 };
+
+/** «Відповідальні» as plain names, whatever shape the account returns. */
+function assignedNames(raw: any): string[] {
+    const value = raw?.assigned ?? raw?.assigned_users ?? raw?.assignedUsers;
+    const list = Array.isArray(value) ? value : (value ? [value] : []);
+    return list
+        .map((u: any) => {
+            if (typeof u === 'string') return u;
+            const full = u?.full_name ?? u?.name;
+            if (full) return String(full);
+            return [u?.first_name, u?.last_name].filter(Boolean).join(' ');
+        })
+        .map((s: string) => String(s || '').trim())
+        .filter(Boolean);
+}
 
 function asStringList(value: any): string[] {
     if (value === null || value === undefined) return [];
@@ -310,6 +333,7 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         // manager there, and «хто відповідальний?» must be answerable from
         // the site/bot without opening the CRM.
         manager_name: String(raw?.manager?.full_name ?? raw?.manager?.name ?? '').trim(),
+        assigned_names: assignedNames(raw),
         ttn,
     };
 }
@@ -355,6 +379,7 @@ export async function fetchRecentKeycrmOrders(params: {
             // per-attempt because unknown include names are rejected by some
             // API versions, and a partial mirror beats none.
             const attempts = [
+                `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags,manager,assigned&sort=-id`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags,manager&sort=-id`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags,manager`,
                 `/order?page=${page}&limit=${PAGE_SIZE}&include=buyer,products,payments,shipping,tags&sort=-id`,
@@ -470,7 +495,7 @@ export async function fetchKeycrmPaymentMethods(): Promise<Array<{ id: number | 
  * every half hour forever.
  */
 export async function fetchKeycrmOrderById(id: string | number): Promise<KeycrmOrder | null> {
-    const payload = await keycrmRequest(`/order/${encodeURIComponent(String(id))}?include=buyer,payments,shipping,products,tags`);
+    const payload = await keycrmRequest(`/order/${encodeURIComponent(String(id))}?include=buyer,payments,shipping,products,tags,manager,assigned`);
     const raw = payload?.data ?? payload;
     if (!raw?.id) return null;
 

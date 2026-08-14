@@ -243,6 +243,10 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
                 // відповідальний?» is a work-chat question the bot must
                 // answer without anyone opening the CRM.
                 ...(crm.manager_name ? { manager_name: crm.manager_name } : {}),
+                // «Відповідальні» — the designers, kept apart from the manager
+                // because the team asks about them separately (Diana,
+                // 2026-08-14).
+                ...(crm.assigned_names?.length ? { assigned_names: crm.assigned_names } : {}),
                 ...(printStartedAt ? { print_started_at: printStartedAt } : {}),
                 // The artwork attached to the CRM card. Copied as links rather
                 // than as files: the CRM stays the place they live, and the

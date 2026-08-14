@@ -968,12 +968,22 @@ async function buildManagerOrders(question: string): Promise<string | null> {
     // text, so «Мацьопа/Мацьопи/Мацьопі» all count. Requiring ANY word of the
     // full name keeps «Оксана» alone working while two Оксани would both
     // match — then the longer (more words matched) one wins.
+    // Whose queue is being asked about: the designers («відповідальні», «хто
+    // робить макет») or the manager. Two different fields on the CRM card
+    // (Diana, 2026-08-14), so the wrong one gives the wrong list of orders.
     const q = question.toLowerCase();
-    const managers = new Map<string, number>();
-    for (const o of active) {
+    const wantsDesigner = /(дизайнер|відповідальн|макет)/iu.test(q) && !/менеджер/iu.test(q);
+    const peopleOf = (o: any): string[] => {
+        if (wantsDesigner) {
+            const list = (o as any)?.custom_attributes?.keycrm?.assigned_names;
+            return Array.isArray(list) ? list.map((n: any) => String(n || '').trim()).filter(Boolean) : [];
+        }
         const name = String((o as any)?.custom_attributes?.keycrm?.manager_name || '').trim();
-        if (name) managers.set(name, 0);
-    }
+        return name ? [name] : [];
+    };
+
+    const managers = new Map<string, number>();
+    for (const o of active) for (const name of peopleOf(o)) managers.set(name, 0);
     for (const name of managers.keys()) {
         let hits = 0;
         for (const word of name.toLowerCase().split(/\s+/)) {
@@ -984,7 +994,9 @@ async function buildManagerOrders(question: string): Promise<string | null> {
     }
     const ranked = [...managers.entries()].filter(([, hits]) => hits > 0).sort((a, b) => b[1] - a[1]);
     if (!ranked.length) {
-        return 'Не впізнала імʼя відповідального серед активних замовлень — напиши його так, як воно записане в KeyCRM, і я перерахую.';
+        return wantsDesigner
+            ? 'Не впізнала імʼя дизайнера серед активних замовлень — напиши його так, як воно стоїть у полі «Відповідальні» в KeyCRM.'
+            : 'Не впізнала імʼя менеджера серед активних замовлень — напиши його так, як воно записане в KeyCRM.';
     }
     const [managerName] = ranked[0];
 
@@ -992,8 +1004,7 @@ async function buildManagerOrders(question: string): Promise<string | null> {
     const stageMatch = question.match(/статус[^«"']*[«"']([^»"']{2,40})[»"']/iu);
     const stageFilter = stageMatch ? stageMatch[1].toLowerCase().trim() : null;
 
-    let mine = active.filter(o =>
-        String((o as any)?.custom_attributes?.keycrm?.manager_name || '').trim() === managerName);
+    let mine = active.filter(o => peopleOf(o).includes(managerName));
     if (stageFilter) {
         mine = mine.filter(o =>
             String((o as any)?.custom_attributes?.keycrm?.status_label || '').toLowerCase().includes(stageFilter));
@@ -1001,10 +1012,11 @@ async function buildManagerOrders(question: string): Promise<string | null> {
 
     const stageNote = stageFilter ? ` зі статусом «${stageFilter}»` : '';
     if (!mine.length) {
-        return `У ${managerName} зараз немає активних замовлень${stageNote} — або в CRM відповідальним стоїть хтось інший.`;
+        return `У ${managerName} зараз немає активних замовлень${stageNote} — або в CRM у цьому полі стоїть хтось інший.`;
     }
 
-    const lines = [`👩‍💼 ${managerName} — активні замовлення${stageNote} (${mine.length}):`, ''];
+    const role = wantsDesigner ? 'дизайнерка' : 'менеджерка';
+    const lines = [`👩‍💼 ${managerName} (${role}) — активні замовлення${stageNote} (${mine.length}):`, ''];
     for (const o of mine.slice(0, MAX_LISTED)) {
         const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
@@ -1336,6 +1348,12 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
 
     const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label || null;
     const crmManager = (order as any)?.custom_attributes?.keycrm?.manager_name || null;
+    // Two different people, two different questions (Diana, 2026-08-14): the
+    // manager leads the order, «Відповідальні» are the designers doing the
+    // layout. Answering one for the other is the confusion she caught.
+    const crmDesigners: string[] = Array.isArray((order as any)?.custom_attributes?.keycrm?.assigned_names)
+        ? (order as any).custom_attributes.keycrm.assigned_names
+        : [];
 
     // Items WITH their chosen options — «Альбом 23х23 (сторінки: білі,
     // обкладинка: преміум)», not just the name. Live case (Diana, 2026-08-11):
@@ -1399,7 +1417,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         `Номер: ${order.order_number}`,
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
         crmStage ? `Етап у KeyCRM: ${crmStage}` : '',
-        crmManager ? `Відповідальний менеджер (CRM): ${crmManager}` : '',
+        crmManager ? `Менеджер замовлення (CRM): ${crmManager}` : '',
+        crmDesigners.length ? `Відповідальні — дизайнери (CRM): ${crmDesigners.join(', ')}` : '',
         velourCode ? `Колір велюру (код): ${velourCode}` : '',
         spokenColour ? `УВАГА: коду кольору ніде немає. У переписці/коментарях звучить слово «${spokenColour}» — це НЕ підтверджений колір, треба перевірити чат із клієнтом.` : '',
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
@@ -1436,8 +1455,14 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     const shortAnswer = () => {
         const q = question.toLowerCase();
         const pick: string[] = [`📦 ${order.order_number} — ${crmStage || ORDER_STATUS_UA[order.order_status] || order.order_status}`];
-        if (/відповідальн|менеджер|хто вед|чи[йя] /.test(q)) {
-            pick.push(crmManager ? `Відповідальна в CRM: ${crmManager}.` : 'Відповідального в CRM не видно — глянь картку замовлення.');
+        if (/відповідальн|дизайнер|макет/.test(q)) {
+            pick.push(crmDesigners.length
+                ? `Відповідальні (дизайнери): ${crmDesigners.join(', ')}.`
+                : 'Відповідальних у картці CRM не проставлено.');
+            if (crmManager) pick.push(`Менеджер: ${crmManager}.`);
+        } else if (/менеджер|хто вед|чи[йя] /.test(q)) {
+            pick.push(crmManager ? `Менеджер: ${crmManager}.` : 'Менеджера в CRM не видно — глянь картку замовлення.');
+            if (crmDesigners.length) pick.push(`Відповідальні (дизайнери): ${crmDesigners.join(', ')}.`);
         } else if (/велюр|колір|оздоблен|обкладинк|комплект|товар|що всередині/.test(q)) {
             if (velourCode) pick.push(`Колір велюру: ${velourCode}.`);
             if (!velourCode && spokenColour) pick.push(`Коду кольору немає. У переписці звучить «${spokenColour}» — варто перевірити в чаті з клієнтом.`);
@@ -1483,6 +1508,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 // Live: «мені не вистачає доступу до телеграм-переписки з
                 // клієнтом» — she has it, the dialogs are stored; that
                 // particular dialog just was not matched to the order.
+                'У KeyCRM «менеджер» і «відповідальні» — це різні люди: менеджер веде замовлення, а відповідальні це дизайнери, які роблять макет. Ніколи не називай менеджера відповідальним і навпаки.',
                 'Ніколи не кажи, що не маєш доступу до переписки з клієнтом чи до CRM: доступ у тебе є. Якщо переписки цього клієнта тобі не показали або в ній цього немає — так і скажи: у знайдених повідомленнях цього немає.',
                 // Diana, 2026-08-13: «кожен колір має свій номер… якщо немає
                 // саме номера, то називати не треба — можна написати, людина
