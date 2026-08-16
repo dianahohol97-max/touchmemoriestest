@@ -272,7 +272,10 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
     {
       name: 'Кількість сторінок',
-      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
+      // Read off TRAVEL_BOOK, never retyped: the list and the price table must
+      // never disagree, and they did the moment the scale gained every even
+      // count while this literal still said 12/16/20/24.
+      values: TRAVEL_BOOK.pagesAvailable,
       prices: TRAVELBOOK_PAGE_PRICES,
       required: true
     },

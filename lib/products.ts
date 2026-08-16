@@ -258,22 +258,62 @@ export const TRAVEL_BOOK: TravelBookProduct = {
   format: 'A4 (21×29.7 cm)',
   canvasDimensions: '2480×3508 px',
   productionTime: 'до 10 робочих днів',
-  pagesAvailable: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
-  // Per Diana's price list (May 2026). Identical scale to hard journal.
+  pagesAvailable: [
+    12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48,
+    50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80,
+  ],
+  // Every EVEN page count, 12–80 (Diana, 2026-08-16: «крок між сторінками
+  // 75 грн» — 12 ст 675, 14 ст 750, 16 ст 825, 20 ст 975, 22 ст 1050).
+  //
+  // Why the scale had to grow: the editor adds pages by SPREAD, two at a time,
+  // while the old list moved in fours. A customer who added one spread to a
+  // 20-page book landed on 22 — a count the price list did not contain — and
+  // lookupPagePrice rounded her up to the 24 tier. She then paid for 24 pages,
+  // received 22, and nothing in the interface ever said so (TM-001195,
+  // TM-001185, TM-001197 and four more since March). With every even count
+  // priced, the spread step and the price step finally agree and the rounding
+  // never happens.
+  //
+  // Every price Diana had already set is preserved to the hryvnia. The 75 ₴
+  // step is hers and holds exactly from 12 to 48; above 48 her own list rises
+  // more slowly (a volume discount she set deliberately), so the counts filled
+  // in there follow HER anchors at 50 ₴ rather than imposing the 75 ₴ step.
   prices: {
     12: 675,
+    14: 750,
     16: 825,
+    18: 900,
     20: 975,
+    22: 1050,
     24: 1125,
+    26: 1200,
     28: 1275,
+    30: 1350,
     32: 1425,
+    34: 1500,
     36: 1575,
+    38: 1650,
     40: 1725,
+    42: 1800,
     44: 1875,
+    46: 1950,
     48: 2025,
+    // ── above 48 the step is Diana's own 50 ₴, anchors untouched ──
+    50: 2075,
     52: 2150,
+    54: 2200,
+    56: 2250,
+    58: 2300,
     60: 2350,
+    62: 2400,
+    64: 2450,
+    66: 2500,
+    68: 2550,
+    70: 2600,
     72: 2650,
+    74: 2700,
+    76: 2750,
+    78: 2800,
     80: 2900
   },
   extras: {
