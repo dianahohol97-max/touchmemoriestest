@@ -70,8 +70,22 @@ export function readOrderMoney(order: any): OrderMoney {
     }
 
     // No cash on delivery: 'paid' means the whole thing, and anything else means
-    // only whatever prepayment was recorded.
-    const received = order?.payment_status === 'paid' ? total : Math.max(0, prepaidRaw);
+    // NOTHING has arrived.
+    //
+    // `prepaid_amount` is the planned figure here exactly as it is on the
+    // cash-on-delivery branch above — checkout writes the full total into it the
+    // moment the Monobank invoice is created, before the customer has so much as
+    // opened the payment page. Reading it as money in hand said an unpaid order
+    // was settled: TM-001203 (2838 ₴, invoice created, never paid) reached the
+    // CRM as card 13938 carrying «Оплачено повністю: 2838 грн» while the account
+    // had not seen a hryvnia (Diana, 2026-08-17). It also let the order into the
+    // CRM at all — isReadyForCrm below asks this same function for money in
+    // hand, and a bare unpaid cart is meant to stay out.
+    //
+    // payment_status only ever holds 'paid' or 'pending' (verified across all
+    // 546 orders), and no column records a partial receipt on a non-COD order,
+    // so there is no middle case to preserve.
+    const received = order?.payment_status === 'paid' ? total : 0;
 
     return {
         total,
