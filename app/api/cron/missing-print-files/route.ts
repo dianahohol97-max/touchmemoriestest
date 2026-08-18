@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
+import { generateOrderPrintSheets } from '@/lib/print/generate-sheets';
 
 export const dynamic = 'force-dynamic';
+// Sheet repair below composes JPEGs with Jimp, which needs the Node runtime and
+// real time — a 48-photo polaroid order is a minute of work on its own.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+// At most one order is re-imposed per run. The generator is the slow part, and
+// a cron that times out half-way leaves a partial set of sheets on the order.
+// One per run always finishes, and the next run picks up the following order.
+const SHEET_REPAIRS_PER_RUN = 1;
 
 /**
  * GET /api/cron/missing-print-files
@@ -57,7 +67,7 @@ export async function GET(request: Request) {
   const floor = new Date(now - 72 * 3600_000).toISOString(); // 72h ago
   const ceiling = new Date(now - 1 * 3600_000).toISOString(); // 1h ago
 
-  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0 };
+  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0, sheetsRepaired: 0, sheetsPending: 0 };
 
   const { data: orders, error } = await admin
     .from('orders')
@@ -95,6 +105,50 @@ export async function GET(request: Request) {
     if (countErr) { stats.errors++; continue; }
 
     if ((count ?? 0) > 0) {
+      // Having files is not the same as being ready to print. A gang-printed
+      // order (полароїд, нестандартний фотодрук, магніти) needs its photos
+      // IMPOSED onto sheets — that is the artefact the workshop prints. Those
+      // sheets were only ever requested by the customer's browser at checkout,
+      // one line before it redirects to Monobank, so they almost never got
+      // built: six of the seven such orders in the last 45 days had all their
+      // per-photo files and not one sheet, and the designer rebuilt the sheets
+      // by hand in Canva (Diana, 2026-08-18). This check makes the sheets a
+      // property of the order rather than of a browser that stayed open.
+      const { count: sourceCount } = await admin
+        .from('order_files')
+        .select('id', { count: 'exact', head: true })
+        .eq('order_id', order.id)
+        .in('file_category', ['photo-print', 'polaroid-print', 'photomagnets']);
+
+      if ((sourceCount ?? 0) > 0) {
+        const { count: sheetCount } = await admin
+          .from('order_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('order_id', order.id)
+          .eq('file_category', 'print_sheet');
+
+        if ((sheetCount ?? 0) === 0) {
+          if (stats.sheetsRepaired >= SHEET_REPAIRS_PER_RUN) {
+            // Counted, not silently dropped: a backlog has to be visible in the
+            // response, otherwise "sheetsRepaired: 1" reads as "all done".
+            stats.sheetsPending++;
+          } else {
+            try {
+              // force: print_file_generated_at may already be stamped by another
+              // part of the pipeline, and the generator treats that stamp alone
+              // as "done" — without force it would skip an order that has no
+              // sheets at all, which is the very case being repaired here.
+              const res = await generateOrderPrintSheets(order.id, { force: true });
+              if (res.ok && (res.sheets ?? 0) > 0) stats.sheetsRepaired++;
+              else stats.errors++;
+            } catch (e) {
+              console.error('[missing-print-files] sheet generation failed', order.order_number, e);
+              stats.errors++;
+            }
+          }
+        }
+      }
+
       // The order has its print files, but a soft-cover book with гравіювання
       // or флекс also needs the monochrome engraving макет — Railway never
       // produces one, it photographs the design in colour. Nothing else in the

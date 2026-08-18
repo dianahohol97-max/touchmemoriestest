@@ -725,7 +725,18 @@ export default function CheckoutPage() {
                     const s = `${it.slug || ''} ${it.category_slug || ''}`.toLowerCase();
                     return s.includes('print') || s.includes('magnet') || s.includes('polaroid') || s.includes('druk');
                 });
-                if (hasPrintables) fetch(`/api/orders/${orderId}/print-sheets`, { method: 'POST' }).catch(() => {});
+                // keepalive, and it is not optional. Forty lines below this the
+                // page does window.location.href = <Monobank>, and a plain
+                // fire-and-forget fetch is CANCELLED the moment the document is
+                // torn down. Building the sheets takes seconds (Jimp, dozens of
+                // photos), so the request never survived the redirect: every
+                // real gang-print order since July has its per-photo files and
+                // zero sheets, and Оксана has been re-assembling them by hand in
+                // Canva (Diana, 2026-08-18). keepalive lets the request outlive
+                // the page. The cron safety net covers the rest.
+                if (hasPrintables) {
+                    fetch(`/api/orders/${orderId}/print-sheets`, { method: 'POST', keepalive: true }).catch(() => {});
+                }
             } catch { /* ignore */ }
 
             // Fire-and-forget: generate the wishbook cover.jpg fully server-side.
