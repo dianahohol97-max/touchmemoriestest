@@ -165,6 +165,66 @@ function getSizeKey(label: string): string {
   return m ? `${m[1]}x${m[2]}` : '';
 }
 
+/**
+ * Will this photo survive being printed at its physical size?
+ *
+ * Everything here renders onto a 300 DPI canvas, so a small original is simply
+ * upscaled and prints soft — and until now nothing said a word about it. In
+ * TM-001199 one of forty-eight polaroids came out visibly blurry (its rendered
+ * file is 95 KB against 170–240 KB for the rest, on an identical canvas), the
+ * designer noticed it only after downloading the set, and the customer had no
+ * way to know at all (Diana, 2026-08-18).
+ *
+ * The photo is cover-fitted into the aperture, so the delivered resolution is
+ * set by whichever axis has to stretch more, and zooming in stretches it
+ * further.
+ *
+ * The thresholds are Diana's existing book-editor numbers, and they are
+ * deliberately unchanged here pending her decision — but they are close to
+ * inert on a product this small, and that has to be said out loud rather than
+ * discovered later. A polaroid aperture is 6.46 × 7.27 cm, so 91 DPI is reached
+ * by a photo of only ~232 × 261 px; even a 600 × 800 px messenger save measures
+ * 236 DPI and stays silent. The blurry print in TM-001199 was almost certainly
+ * in that "silent" band. For prints held in the hand the honest warn line is
+ * nearer 200 DPI, but that is a product call and 91 is Diana's own number, so
+ * it stays until she picks (CLAUDE.md: «Diana picked this number specifically —
+ * don't round it»).
+ */
+const DPI_WARN = 91;   // below this: soft
+const DPI_BAD = 70;    // below this: visibly bad
+
+function checkPrintDpi(
+  imgW?: number, imgH?: number, areaWcm?: number, areaHcm?: number, zoom?: number,
+): { level: 'ok' | 'warn' | 'bad'; dpi: number } | null {
+  if (!imgW || !imgH || !areaWcm || !areaHcm) return null;
+  const z = Math.max(0.1, zoom || 1);
+  const dpi = Math.min(imgW / (areaWcm / 2.54), imgH / (areaHcm / 2.54)) / z;
+  if (!Number.isFinite(dpi) || dpi <= 0) return null;
+  if (dpi >= DPI_WARN) return { level: 'ok', dpi: Math.round(dpi) };
+  if (dpi >= DPI_BAD) return { level: 'warn', dpi: Math.round(dpi) };
+  return { level: 'bad', dpi: Math.round(dpi) };
+}
+
+/** The badge itself — shown only when there is something to warn about. */
+function DpiBadge({ check }: { check: ReturnType<typeof checkPrintDpi> }) {
+  if (!check || check.level === 'ok') return null;
+  const bad = check.level === 'bad';
+  return (
+    <p style={{
+      fontSize: 11, fontWeight: 700, textAlign: 'center', marginTop: 6,
+      color: bad ? '#b91c1c' : '#b45309',
+      background: bad ? '#fef2f2' : '#fffbeb',
+      border: `1px solid ${bad ? '#fecaca' : '#fde68a'}`,
+      borderRadius: 8, padding: '6px 8px',
+    }}>
+      {check.dpi} DPI · {bad
+        ? 'фото замале для цього розміру, на друку буде помітно розмито'
+        : 'фото невеликої роздільності, на друку може бути мʼяким'}
+      {' '}Спробуйте надіслати оригінал, не з месенджера, або зменшити наближення.
+    </p>
+  );
+}
+
 // ─── PhotoPreview ─────────────────────────────────────────────────────────────
 
 function PhotoPreview({
@@ -339,6 +399,9 @@ function PhotoPreview({
             style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
         </div>
         <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>{t('photo_print.crop_hint')}</p>
+        {/* Aperture, not the whole polaroid: the white frame is printed paper,
+            the photo only has to fill the window inside it. */}
+        <DpiBadge check={checkPrintDpi(photo.width, photo.height, photoW, photoH, photo.zoom)} />
       </div>
     );
   }
@@ -430,6 +493,7 @@ function PhotoPreview({
           style={{ padding:'4px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#fff', cursor:'pointer', fontSize:10, color:'#64748b' }}>↺</button>
       </div>
       <p style={{ fontSize:10, color:'#94a3b8', textAlign:'center', marginTop:4 }}>Тягніть фото для кадрування · коліщатко для масштабу</p>
+      <DpiBadge check={checkPrintDpi(photo.width, photo.height, photoW, photoH, photo.zoom)} />
     </div>
   );
 }
