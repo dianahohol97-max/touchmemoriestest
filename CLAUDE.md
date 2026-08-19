@@ -37,6 +37,15 @@ npx tsc --noEmit | grep "error TS" | grep -v "TS2307"
 
 `TS2307` is "cannot find module" — it fires on dynamic imports the build tool resolves at runtime, so we filter it out. Real errors stop the commit.
 
+**If the change touches a price — in code, in a migration, or in the admin panel — also run:**
+```bash
+npm test
+```
+
+It finishes in about a second and pins every tier of every page-priced product plus the order in which rush and the flat extras are applied. A failure means either a price genuinely changed (then say so in the commit message and update `tests/pricing-scales.test.ts` in the same commit) or something drifted. Prices had never had a single test until 2026-08-19, which is why the same bugs kept coming back — a price change with a green `npm test` and no explanation in the diff is the thing to be suspicious of.
+
+The database half is checked separately, because tests cannot see Supabase: open `GET /api/admin/pricing/audit` after any price change and confirm `clean: true`.
+
 ---
 
 ## How to make code changes
