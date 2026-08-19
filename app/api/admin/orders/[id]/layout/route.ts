@@ -101,7 +101,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       isPrintSet,
       updatedAt: p.updated_at,
       // Staff-viewable now that /api/print/[projectId] accepts a staff session.
-      previewUrl: `/uk/print/${p.id}`,
+      // ?guides=1 draws the product's trim/safety lines over each spread —
+      // human-review only: /print ignores the flag the moment a print width
+      // (?w) is requested, so the render service's screenshots stay clean.
+      previewUrl: `/uk/print/${p.id}?guides=1`,
       // The honest verdict, so nobody prints an empty draft by mistake.
       // Wishbooks are complete without photos — their cover carries the design.
       // Print sets are complete when their exported prints are in storage.

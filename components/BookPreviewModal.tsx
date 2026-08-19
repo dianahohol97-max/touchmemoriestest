@@ -178,6 +178,11 @@ interface BookPreviewProps {
    *  printed. Only the caller knows it, and the cover inscription needs it to
    *  convert the editor's stored size into print pixels. */
   printCoverMm?: { w: number; h: number } | null;
+  /** Overlay rendered absolutely over the print spread (trim/safety guides for
+   *  the admin's human review on /print?guides=1). NEVER passed by the render
+   *  service — its screenshots must stay guide-free, so /print only sets this
+   *  when no ?w print width is requested. */
+  printOverlay?: React.ReactNode;
 }
 
 //  Component 
@@ -189,7 +194,7 @@ export function BookPreviewModal({
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
-  printSpreadIndex, printPageW, printPageH, printCoverMm,
+  printSpreadIndex, printPageW, printPageH, printCoverMm, printOverlay,
 }: BookPreviewProps) {
 
   const isPrint = typeof printSpreadIndex === 'number';
@@ -805,6 +810,7 @@ export function BookPreviewModal({
       <div data-print-spread={spread} style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff' }}>
         <div style={{ position: 'relative', width: spreadW + (spread === 0 ? spineW * 2 : 0), height: pageH, display: 'flex', justifyContent: 'center', background: '#fff' }}>
           {renderSpread(spread)}
+          {printOverlay}
         </div>
       </div>
     );

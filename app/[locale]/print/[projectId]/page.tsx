@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
-import { resolveProjectSizeKey, pageMm } from '@/lib/print/geometry';
+import { resolveProjectSizeKey, pageMm, deriveGeometry } from '@/lib/print/geometry';
+import { buildTrimGuides, type TrimGuideSpec } from '@/lib/print/trim-guides';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 /**
@@ -23,6 +24,34 @@ import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
  * renders. Pixel-exact sizing, photo-URL restoration from storage, and per-page
  * screenshotting come in the next steps.
  */
+/**
+ * Лінії обрізки поверх контентного розвороту — ТІЛЬКИ для людського перегляду
+ * (адмінська кнопка «Переглянути макет» відкриває /print?guides=1). Рендер-
+ * сервіс цього оверлея не бачить ніколи: він завжди приходить із ?w, а guides
+ * вимикаються, щойно задана друкарська ширина, — тож у файли друку жодна
+ * лінія потрапити не може.
+ */
+function TrimGuidesOverlay({ spec }: { spec: TrimGuideSpec }) {
+  const cut = 'rgba(220,38,38,0.85)';
+  const safe = 'rgba(37,99,235,0.75)';
+  const dash = `2px dashed ${safe}`;
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 999 }}>
+      {/* Лінія обрізу: ніж проходить по краю видимого розвороту. */}
+      <div style={{ position: 'absolute', inset: 0, border: `2px solid ${cut}`, boxSizing: 'border-box' }} />
+      {/* Різ по корінцю — лише в товарів, що друкуються посторінково. */}
+      {spec.cutsAtGutter && (
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 0, borderLeft: `2px solid ${cut}` }} />
+      )}
+      {/* Безпечна зона: текст і обличчя мають лишатися всередині. */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: `${spec.safetyPct.top}%`, borderTop: dash }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${spec.safetyPct.bottom}%`, borderBottom: dash }} />
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${spec.safetyPct.left}%`, borderLeft: dash }} />
+      <div style={{ position: 'absolute', top: 0, bottom: 0, right: `${spec.safetyPct.right}%`, borderRight: dash }} />
+    </div>
+  );
+}
+
 export default function PrintPage() {
   const params = useParams();
   const search = useSearchParams();
@@ -172,6 +201,18 @@ export default function PrintPage() {
   // the 300-DPI print width so the screenshot comes out at print resolution.
   const wParam = search.get('w');
   const printPageW = wParam ? parseInt(wParam, 10) : undefined;
+  // ?guides=1 — лінії обрізки для людського перегляду з адмінки. Подвійний
+  // запобіжник: ІГНОРУЄТЬСЯ, щойно задана друкарська ширина ?w (так ходить
+  // тільки рендер-сервіс), тож потрапити у файли друку лінії не можуть навіть
+  // помилково скопійованим посиланням.
+  const guidesRequested = search.get('guides') === '1' && !printPageW;
+  const guideGeometry = (geometry?.finished?.w > 0 && geometry?.safety) ? geometry : deriveGeometry(sizeKey);
+  const trimGuides = guidesRequested && guideGeometry
+    ? buildTrimGuides(guideGeometry, {
+        productSlug: config.productSlug,
+        productType: project.product_type,
+      })
+    : null;
   const spreadsToRender = singleSpread !== null
     ? [singleSpread]
     : Array.from({ length: spreadCount }, (_, i) => i);
@@ -265,6 +306,12 @@ export default function PrintPage() {
         [class*="newsletter" i], [class*="toast" i],
         [aria-label*="Notification" i] { display: none !important; }
       `}</style>
+      {trimGuides && (
+        <div style={{ maxWidth: 900, width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px 18px', fontFamily: 'sans-serif', fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
+          <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>Лінії обрізки цього товару</div>
+          {trimGuides.notes.map((n, i) => <div key={i}>{n}</div>)}
+        </div>
+      )}
       {spreadsToRender.map((idx) => (
         <BookPreviewModal
           key={idx}
@@ -273,6 +320,7 @@ export default function PrintPage() {
           printPageW={printPageW}
           printPageH={idx === 0 ? coverPrintH : undefined}
           printCoverMm={idx === 0 ? coverMm : undefined}
+          printOverlay={idx > 0 && trimGuides ? <TrimGuidesOverlay spec={trimGuides} /> : undefined}
         />
       ))}
     </div>
