@@ -5,6 +5,8 @@ import { getLocalized } from '@/lib/i18n/localize';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
+import { toMetaText } from '@/lib/seo/text';
+import { getServerT } from '@/lib/i18n/server';
 
 interface Props {
   params: Promise<{ slug: string; locale: string }>;
@@ -49,7 +51,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // final <title> carries it exactly once and og/twitter titles carry none.
   const title = stripBrandSuffix(String(rawTitle));
   const rawDesc = tr.meta_description || (isUk ? product.meta_description : '') || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '';
-  const description = rawDesc.toString().slice(0, 160);
+  // The last two fallbacks are rich text from the DB — a meta description that
+  // still contains "<p>" is printed literally in the SERP snippet. Strip markup
+  // and cut on a word boundary rather than mid-word.
+  const description = toMetaText(rawDesc, 160);
   const ogImage = product.og_image || (product.images && product.images[0]) || `${getBaseUrl()}/og-image.jpg`;
   const path = `/catalog/${slug}`;
 
@@ -147,38 +152,87 @@ export default async function ProductPage({ params }: Props) {
     const tr = ((product.translations as any) || {})[locale] || {};
     const isUk = locale === 'uk';
     const name = tr.name || getLocalized(product, locale, 'name') || product.name || 'Touch.Memories';
-    const desc = (tr.meta_description || (isUk ? product.meta_description : '')
-      || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '').toString().slice(0, 300);
-    const image = product.og_image || (product.images && (product.images as any[])[0]) || `${base}/og-image.jpg`;
+    const desc = toMetaText(
+      tr.meta_description || (isUk ? product.meta_description : '')
+        || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '',
+      300,
+    );
+    // Google prefers several images per product (different aspect ratios rank
+    // better in image search and in the merchant carousel), so pass the whole
+    // gallery, not just the first shot. og_image leads when it is set.
+    const gallery = Array.isArray(product.images) ? (product.images as any[]).filter(Boolean) : [];
+    const images = Array.from(new Set([product.og_image, ...gallery].filter(Boolean))) as string[];
+    const image = images.length ? images : [`${base}/og-image.jpg`];
     const price = Number(product.price || 0);
     const category = (product.categories as any) || null;
     // Real availability: only products that actually track stock can be out of
     // stock. stock_available is generated = stock_quantity - reserved.
     const inStock = !(product as any).track_inventory || Number((product as any).stock_available) > 0;
 
+    // Configurable products (size, finish, cover…) span a price range, and the
+    // page itself shows "від 350 ₴". A flat Offer at the base price makes the
+    // SERP promise a price the customer cannot get for every configuration,
+    // which is what Merchant Center flags as a price mismatch. Derive the real
+    // range: the lowest configuration is the base price, the highest adds the
+    // dearest choice of every option group. `variants` carries absolute prices
+    // instead of deltas, so it is read separately.
+    const optionGroups = Array.isArray(product.options) ? (product.options as any[]) : [];
+    const maxSurcharge = optionGroups.reduce((sum, group) => {
+      const choices = Array.isArray(group?.options) ? group.options : [];
+      const deltas = choices.map((c: any) => Number(c?.price) || 0);
+      return sum + (deltas.length ? Math.max(0, ...deltas) : 0);
+    }, 0);
+    const variantPrices = (Array.isArray(product.variants) ? (product.variants as any[]) : [])
+      .map((v) => Number(v?.price))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    const lowPrice = Math.min(price, ...(variantPrices.length ? variantPrices : [price]));
+    const highPrice = Math.max(price + maxSurcharge, ...(variantPrices.length ? variantPrices : [price]));
+    const availability = inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
+    // Google warns when an Offer has no priceValidUntil and drops the price
+    // from the rich result once the date passes, so keep it rolling a year out.
+    const priceValidUntil = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const seller = { '@type': 'Organization', name: 'Touch.Memories' };
+
+    const offers =
+      highPrice > lowPrice
+        ? {
+            '@type': 'AggregateOffer',
+            url: productUrl,
+            priceCurrency: 'UAH',
+            lowPrice: lowPrice.toFixed(2),
+            highPrice: highPrice.toFixed(2),
+            offerCount: Math.max(variantPrices.length, 2),
+            availability,
+            itemCondition: 'https://schema.org/NewCondition',
+            seller,
+          }
+        : {
+            '@type': 'Offer',
+            url: productUrl,
+            priceCurrency: 'UAH',
+            price: price.toFixed(2),
+            priceValidUntil,
+            availability,
+            itemCondition: 'https://schema.org/NewCondition',
+            seller,
+          };
+
     jsonLdProduct = {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name,
       description: desc,
-      image: Array.isArray(image) ? image : [image],
+      image,
       brand: { '@type': 'Brand', name: 'Touch.Memories' },
+      // Google needs at least one product identifier to match the page against
+      // a merchant listing; the row id is stable and already the identifier the
+      // Facebook catalog feed uses, so reuse it when no SKU has been entered.
+      sku: String((product as any).sku || (product as any).id || ''),
+      ...(category?.slug ? { category: getLocalized(category, locale, 'name') || category.name } : {}),
       url: productUrl,
       ...(aggregateRating ? { aggregateRating } : {}),
       ...(reviewLd.length ? { review: reviewLd } : {}),
-      ...(price > 0
-        ? {
-            offers: {
-              '@type': 'Offer',
-              url: productUrl,
-              priceCurrency: 'UAH',
-              price: price.toFixed(2),
-              availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-              itemCondition: 'https://schema.org/NewCondition',
-              seller: { '@type': 'Organization', name: 'Touch.Memories' },
-            },
-          }
-        : {}),
+      ...(price > 0 ? { offers } : {}),
     };
 
     productMeta = {
@@ -191,15 +245,20 @@ export default async function ProductPage({ params }: Props) {
       'product:brand': 'Touch.Memories',
     };
 
+    // Breadcrumb labels have to match the language of the page they describe —
+    // Google renders them verbatim in the SERP, so hardcoded Ukrainian on the
+    // /en, /de, /pl and /ro versions showed a Cyrillic trail under an English
+    // result. Categories carry their own translations JSONB.
+    const t = getServerT(locale);
     const crumbs: Record<string, any>[] = [
-      { '@type': 'ListItem', position: 1, name: 'Головна', item: getCanonicalUrl(locale) },
-      { '@type': 'ListItem', position: 2, name: 'Каталог', item: getCanonicalUrl(locale, '/catalog') },
+      { '@type': 'ListItem', position: 1, name: t('product_page.home'), item: getCanonicalUrl(locale) },
+      { '@type': 'ListItem', position: 2, name: t('product_page.catalog'), item: getCanonicalUrl(locale, '/catalog') },
     ];
     if (category?.slug) {
       crumbs.push({
         '@type': 'ListItem',
         position: 3,
-        name: category.name || 'Категорія',
+        name: getLocalized(category, locale, 'name') || category.name || t('product_page.catalog'),
         item: getCanonicalUrl(locale, `/category/${toPublicCategorySlug(category.slug)}`),
       });
     }

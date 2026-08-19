@@ -914,7 +914,9 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                             border: mainImage === src && !mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
                                             cursor: 'pointer', background: '#f8fafc', padding: 0, transition: 'border-color 0.15s',
                                         }}>
-                                        <Image src={imgThumbnail(src)} alt={`фото ${idx + 1}`} fill
+                                        {/* Alt carries the product name, not a bare "фото 2" — image
+                                            search indexes these and the generic form matched nothing. */}
+                                        <Image src={imgThumbnail(src)} alt={`${getLocalized(product, locale, 'name')} — ${t('product_page.photo_alt')} ${idx + 1}`} fill
                                             sizes="72px"
                                             quality={60}
                                             style={{ objectFit: 'cover' }} />

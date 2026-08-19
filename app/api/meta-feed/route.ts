@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getBaseUrl } from '@/lib/seo/locales';
+// Descriptions in the DB are rich text (<p>, <br>…) — Meta wants plain text.
+// Shared with the product page's meta/JSON-LD builder so both strip identically.
+import { stripHtml } from '@/lib/seo/text';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,22 +41,6 @@ function csvField(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
-}
-
-/** Descriptions in the DB are rich text (<p>, <br>…) — Meta wants plain text. */
-function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<\/(p|div|li|h[1-6])>/gi, ' ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 export async function GET() {
