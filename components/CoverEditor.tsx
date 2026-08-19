@@ -1,5 +1,6 @@
 'use client';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
+import { PrintedCoverArtwork } from './PrintedCoverArtwork';
 import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/i18n/context';
 import { ImageIcon, Move } from 'lucide-react';
@@ -130,6 +131,9 @@ interface CoverEditorProps {
   photos: { id: string; preview: string }[];
   onChange: (patch: Partial<CoverConfig>) => void;
   hidePhotoSlot?: boolean;
+  /** Укладання готового файлу обкладинки — див. BookPreviewModal.coverArtworkInset.
+   *  Обчислює викликач (BookLayoutEditor знає товар); null → повне полотно. */
+  coverArtworkInset?: { topPct: number; bottomPct: number; outerPct: number } | null;
 }
 
 // Re-exported for callers that already import it from here. The constant and
@@ -353,7 +357,7 @@ function ClampedTextWrapper({
   );
 }
 
-export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
+export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false, coverArtworkInset = null }: CoverEditorProps) {
   const t = useT();
   const [dragOver, setDragOver] = useState(false);
   // Snap guide lines — {x?: number, y?: number} in % (0-100), shown while dragging
@@ -566,10 +570,9 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           leatherette / fabric) must never show a printed background image, even
           if one lingers in stale state. */}
       {!isSoft && config.printedBgImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={config.printedBgImage} alt=""
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}
-          draggable={false}/>
+        <div style={{ position:'absolute', inset:0, zIndex:0, pointerEvents:'none' }}>
+          <PrintedCoverArtwork src={config.printedBgImage} inset={coverArtworkInset} side="front" />
+        </div>
       )}
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 

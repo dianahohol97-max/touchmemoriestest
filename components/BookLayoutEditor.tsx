@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
+import { coverArtworkInset, cutsAtGutter } from '@/lib/print/trim-guides';
+import { deriveGeometry, resolveProjectSizeKey } from '@/lib/print/geometry';
+import { PrintedCoverArtwork } from './PrintedCoverArtwork';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
 import { trackFunnelStep, resetFunnel } from '@/lib/analytics/funnel';
@@ -2015,6 +2018,14 @@ export default function BookLayoutEditor() {
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
   const usedIds = React.useMemo(() => new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean))), [pages]);
   const _slug = (config?.productSlug || '').toLowerCase();
+  // Готовий файл обкладинки (шаблони тревел-буків/журналів) сідає ДО лінії
+  // загину, а поля загину добудовує розмита копія самого себе — щоб шаблон,
+  // намальований «впритул», не втрачав заголовок за кантом. Одна цифра на
+  // конструктор, превʼю і друк: /print рахує так само, тож клієнт бачить
+  // рівно те, що поїде в друкарню. Фотокниг не стосується (null).
+  const coverArtInset = cutsAtGutter(_slug, '')
+    ? coverArtworkInset(deriveGeometry(resolveProjectSizeKey({ product_type: '', format: '', config: { productSlug: _slug } })))
+    : null;
   // Graduation photobooks have a minimum order of 5 copies (class sets are
   // produced in batches — a single graduation book is never sold).
   const isGraduation = _slug.includes('graduation') || _slug.includes('vypusk') ||
@@ -7775,6 +7786,7 @@ export default function BookLayoutEditor() {
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
+                    coverArtworkInset={coverArtInset}
                     onChange={onCoverChange}
                   />
                   {/* Shapes, stickers, frames on top of cover — for printed/magazine/travelbook covers */}
@@ -7853,6 +7865,7 @@ export default function BookLayoutEditor() {
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
+                    coverArtworkInset={coverArtInset}
                     onChange={onCoverChange}
                   />
                   {isPrinted && (
@@ -9541,7 +9554,7 @@ export default function BookLayoutEditor() {
                     <div style={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {/* Ready-made cover background (travel book) — full bleed */}
                       {coverState.printedBgImage && (
-                        <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
+                        <PrintedCoverArtwork src={coverState.printedBgImage} inset={coverArtInset} side="front" />
                       )}
                       {isPrinted && frontPhoto && (
                         <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
@@ -11303,6 +11316,7 @@ export default function BookLayoutEditor() {
           propW={prop.w}
           propH={prop.h}
           freeSlots={freeSlots}
+          coverArtworkInset={coverArtInset}
           coverState={coverState}
           isPrinted={isPrinted}
           selectedCoverType={config?.selectedCoverType || ''}

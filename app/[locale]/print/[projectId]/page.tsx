@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
 import { resolveProjectSizeKey, pageMm, deriveGeometry } from '@/lib/print/geometry';
-import { buildTrimGuides, buildCoverGuides, type TrimGuideSpec, type CoverGuideSpec } from '@/lib/print/trim-guides';
+import { buildTrimGuides, buildCoverGuides, coverArtworkInset, cutsAtGutter, type TrimGuideSpec, type CoverGuideSpec } from '@/lib/print/trim-guides';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 /**
@@ -235,6 +235,14 @@ export default function PrintPage() {
       })
     : null;
   const coverGuides = trimGuides && guideGeometry ? buildCoverGuides(guideGeometry) : null;
+  // Готовий файл обкладинки (шаблони тревел-буків/журналів) сідає ДО лінії
+  // загину, а поля добудовує розмита копія самого себе — інакше шаблон,
+  // намальований «впритул», втрачав заголовок за кантом. Це ПРОДУКЦІЙНА
+  // поведінка: діє і для скріншотів рендер-сервіса, не лише для guides.
+  const artworkGeometry = (geometry?.cover?.w > 0 ? geometry : null) || deriveGeometry(sizeKey);
+  const artworkInset = cutsAtGutter(config.productSlug, project.product_type)
+    ? coverArtworkInset(artworkGeometry)
+    : null;
   // Щоб лінії загину не брехали, обкладинка в guides-режимі рендериться в
   // пропорції ДРУКАРСЬКОГО аркуша — тим самим механізмом, яким її знімає
   // рендер-сервіс, лише з екранною шириною замість 300-DPI. Контентні
@@ -353,6 +361,7 @@ export default function PrintPage() {
           printPageW={idx === 0 && coverGuides ? guidesCoverW : printPageW}
           printPageH={idx === 0 ? (coverGuides ? guidesCoverH : coverPrintH) : undefined}
           printCoverMm={idx === 0 ? (coverGuides ? coverGuides.cover : coverMm) : undefined}
+          coverArtworkInset={artworkInset}
           printOverlay={
             idx === 0
               ? (coverGuides ? <CoverGuidesOverlay spec={coverGuides} /> : undefined)

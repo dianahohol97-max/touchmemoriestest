@@ -11,6 +11,7 @@ import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
+import { PrintedCoverArtwork } from './PrintedCoverArtwork';
 
 /**
  * Renders a printed-cover caption the same way the editor's FitText does:
@@ -178,6 +179,13 @@ interface BookPreviewProps {
    *  printed. Only the caller knows it, and the cover inscription needs it to
    *  convert the editor's stored size into print pixels. */
   printCoverMm?: { w: number; h: number } | null;
+  /** How the ready-made cover artwork (printedBgImage) is laid on the front
+   *  half of the cover sheet. Computed by the CALLER (it knows the product) via
+   *  lib/print/trim-guides.coverArtworkInset: null → legacy full-bleed cover.
+   *  Non-null → the sharp image sits INSIDE the fold line and the fold margins
+   *  are filled with a blurred copy of itself — so a template drawn edge-to-
+   *  edge no longer loses its title behind the wrap (Diana, 2026-08-19). */
+  coverArtworkInset?: { topPct: number; bottomPct: number; outerPct: number } | null;
   /** Overlay rendered absolutely over the print spread (trim/safety guides for
    *  the admin's human review on /print?guides=1). NEVER passed by the render
    *  service — its screenshots must stay guide-free, so /print only sets this
@@ -195,6 +203,7 @@ export function BookPreviewModal({
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
   printSpreadIndex, printPageW, printPageH, printCoverMm, printOverlay,
+  coverArtworkInset = null,
 }: BookPreviewProps) {
 
   const isPrint = typeof printSpreadIndex === 'number';
@@ -676,8 +685,7 @@ export function BookPreviewModal({
             preview used to SKIP it, so template covers showed as a bare
             colour with floating text blocks («ваш текст» / «2019»). */}
         {(coverState as any)?.printedBgImage && (
-          <img src={(coverState as any).printedBgImage} alt="" draggable={false}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <PrintedCoverArtwork src={(coverState as any).printedBgImage} inset={coverArtworkInset} side="front" />
         )}
         {/* Main photo slot — absent entirely when the slot was explicitly removed */}
         {slot && (
