@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { consumeRunToken } from '@/lib/automation/run-token';
 import { sendBrevoEmail } from '@/lib/email/brevo';
 import { buildLaunchEmail, launchEmailSubject } from '@/lib/email/campaign-launch';
 
@@ -25,8 +26,17 @@ export const maxDuration = 30;
 const DEFAULT_TO = 'gogolka16@gmail.com';
 
 export async function GET(req: NextRequest) {
-    const guard = await requireAdmin();
-    if (!guard.ok) return guard.response;
+    // Either an admin session OR a one-time token. The session path failed in
+    // practice: Diana opened the link and nothing arrived, because the admin
+    // cookie lives on the domain she is logged into and an API URL pasted into
+    // a fresh tab carries no session — the route refused before sending, which
+    // is invisible from the outside. The token needs no login and dies on first
+    // use (Diana, 2026-08-19: «я не отримала листа»).
+    const viaToken = await consumeRunToken(req, 'campaign_test_send_token');
+    if (!viaToken) {
+        const guard = await requireAdmin();
+        if (!guard.ok) return guard.response;
+    }
 
     const url = new URL(req.url);
     const to = (url.searchParams.get('to') || DEFAULT_TO).trim();
