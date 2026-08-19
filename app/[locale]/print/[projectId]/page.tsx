@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
 import { resolveProjectSizeKey, pageMm, deriveGeometry } from '@/lib/print/geometry';
-import { buildTrimGuides, type TrimGuideSpec } from '@/lib/print/trim-guides';
+import { buildTrimGuides, buildCoverGuides, type TrimGuideSpec, type CoverGuideSpec } from '@/lib/print/trim-guides';
 import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
 
 /**
@@ -48,6 +48,27 @@ function TrimGuidesOverlay({ spec }: { spec: TrimGuideSpec }) {
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${spec.safetyPct.bottom}%`, borderBottom: dash }} />
       <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${spec.safetyPct.left}%`, borderLeft: dash }} />
       <div style={{ position: 'absolute', top: 0, bottom: 0, right: `${spec.safetyPct.right}%`, borderRight: dash }} />
+    </div>
+  );
+}
+
+/**
+ * Лінії обкладинки: різ по краю аркуша + помаранчева лінія загину, що
+ * загортається на картон. Чесні ТІЛЬКИ тому, що в guides-режимі обкладинка
+ * рендериться в пропорції друкарського аркуша (printPageW/printPageH/
+ * printCoverMm — той самий шлях, яким ходить рендер-сервіс).
+ */
+function CoverGuidesOverlay({ spec }: { spec: CoverGuideSpec }) {
+  const cut = 'rgba(220,38,38,0.85)';
+  const fold = 'rgba(217,119,6,0.85)';
+  const dash = `2px dashed ${fold}`;
+  return (
+    <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 999 }}>
+      <div style={{ position: 'absolute', inset: 0, border: `2px solid ${cut}`, boxSizing: 'border-box' }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, top: `${spec.foldPct.top}%`, borderTop: dash }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: `${spec.foldPct.bottom}%`, borderBottom: dash }} />
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${spec.foldPct.left}%`, borderLeft: dash }} />
+      <div style={{ position: 'absolute', top: 0, bottom: 0, right: `${spec.foldPct.right}%`, borderRight: dash }} />
     </div>
   );
 }
@@ -213,6 +234,17 @@ export default function PrintPage() {
         productType: project.product_type,
       })
     : null;
+  const coverGuides = trimGuides && guideGeometry ? buildCoverGuides(guideGeometry) : null;
+  // Щоб лінії загину не брехали, обкладинка в guides-режимі рендериться в
+  // пропорції ДРУКАРСЬКОГО аркуша — тим самим механізмом, яким її знімає
+  // рендер-сервіс, лише з екранною шириною замість 300-DPI. Контентні
+  // розвороти лишаються як були.
+  const guidesCoverW = coverGuides
+    ? Math.min(Math.floor(((typeof window !== 'undefined' ? window.innerWidth : 1200) * 0.92 - 8) / 2), 560)
+    : undefined;
+  const guidesCoverH = coverGuides && guidesCoverW
+    ? Math.round(guidesCoverW * 2 * (coverGuides.cover.h / coverGuides.cover.w))
+    : undefined;
   const spreadsToRender = singleSpread !== null
     ? [singleSpread]
     : Array.from({ length: spreadCount }, (_, i) => i);
@@ -310,6 +342,7 @@ export default function PrintPage() {
         <div style={{ maxWidth: 900, width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px 18px', fontFamily: 'sans-serif', fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
           <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>Лінії обрізки цього товару</div>
           {trimGuides.notes.map((n, i) => <div key={i}>{n}</div>)}
+          {coverGuides?.notes.map((n, i) => <div key={'c' + i}>{n}</div>)}
         </div>
       )}
       {spreadsToRender.map((idx) => (
@@ -317,10 +350,14 @@ export default function PrintPage() {
           key={idx}
           {...common}
           printSpreadIndex={idx}
-          printPageW={printPageW}
-          printPageH={idx === 0 ? coverPrintH : undefined}
-          printCoverMm={idx === 0 ? coverMm : undefined}
-          printOverlay={idx > 0 && trimGuides ? <TrimGuidesOverlay spec={trimGuides} /> : undefined}
+          printPageW={idx === 0 && coverGuides ? guidesCoverW : printPageW}
+          printPageH={idx === 0 ? (coverGuides ? guidesCoverH : coverPrintH) : undefined}
+          printCoverMm={idx === 0 ? (coverGuides ? coverGuides.cover : coverMm) : undefined}
+          printOverlay={
+            idx === 0
+              ? (coverGuides ? <CoverGuidesOverlay spec={coverGuides} /> : undefined)
+              : (trimGuides ? <TrimGuidesOverlay spec={trimGuides} /> : undefined)
+          }
         />
       ))}
     </div>

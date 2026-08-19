@@ -717,6 +717,11 @@ const BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number;
  *   30×30  cover 646×330  fold-in: top/bottom 18, left/right 20
  *
  * Values stored as fractions of the cover sheet (0..1).
+ *
+ * The SAME fold margins live in lib/print/trim-guides.ts (COVER_FOLD_MM, in
+ * millimetres) and draw the admin's fold line on /print?guides=1. If the
+ * partner's spec changes, update BOTH tables — tests/trim-guides.test.ts pins
+ * the admin side to these exact numbers.
  */
 const COVER_BLEED_MARGINS: Record<string, { top: number; bottom: number; left: number; right: number }> = {
   // 20×20 — cover 457×243 mm, 18 mm all round

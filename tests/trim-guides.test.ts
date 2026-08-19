@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTrimGuides, cutsAtGutter, SAFETY_MIN_MM } from '@/lib/print/trim-guides';
+import { buildTrimGuides, buildCoverGuides, cutsAtGutter, SAFETY_MIN_MM } from '@/lib/print/trim-guides';
 import { deriveGeometry } from '@/lib/print/geometry';
 
 /**
@@ -107,5 +107,55 @@ describe('квадратна фотокнига 20×20', () => {
         expect(spec.finished).toEqual({ w: 400, h: 200 });
         expect(spec.cutsAtGutter).toBe(false);
         expect(spec.notes.join(' ')).toContain('200×200');
+    });
+});
+
+describe('лінії загину обкладинки', () => {
+    // Значення — специфікація друкарні (травень 2026). Конструктор малює
+    // клієнтові ту саму лінію з COVER_BLEED_MARGINS у BookLayoutEditor;
+    // числа тут звірені з нею вручну і зафіксовані літералами, щоб адмінка
+    // ніколи не показувала іншу лінію, ніж бачив клієнт.
+    it('20×30: аркуш 470×328, загин 18 мм по вертикалі і 20 по горизонталі', () => {
+        const g = deriveGeometry('20x30')!;
+        const spec = buildCoverGuides(g)!;
+        expect(spec.cover).toEqual({ w: 470, h: 328 });
+        expect(spec.foldMm).toEqual({ tb: 18, lr: 20 });
+        expect(spec.foldPct.top).toBeCloseTo((18 / 328) * 100, 5);
+        expect(spec.foldPct.left).toBeCloseTo((20 / 470) * 100, 5);
+    });
+
+    it('travelbook і журнали: 20 мм з кожного боку аркуша 470×328', () => {
+        const spec = buildCoverGuides(deriveGeometry('travelbook')!)!;
+        expect(spec.foldMm).toEqual({ tb: 20, lr: 20 });
+        expect(spec.foldPct.top).toBeCloseTo((20 / 328) * 100, 5);
+        expect(spec.notes.join(' ')).toContain('20 мм з кожного боку');
+    });
+
+    it('20×20: 18 мм звідусіль на аркуші 457×243', () => {
+        const spec = buildCoverGuides(deriveGeometry('20x20')!)!;
+        expect(spec.foldMm).toEqual({ tb: 18, lr: 18 });
+        expect(spec.foldPct.left).toBeCloseTo((18 / 457) * 100, 5);
+    });
+
+    it('23×23 не має міліметрів у специфікації — чесні 6% аркуша, як у конструкторі', () => {
+        const spec = buildCoverGuides(deriveGeometry('23x23')!)!;
+        expect(spec.foldMm).toBeNull();
+        expect(spec.foldPct).toEqual({ top: 6, bottom: 6, left: 6, right: 6 });
+        expect(spec.notes.join(' ')).toContain('6%');
+    });
+
+    it('без розмірів аркуша ліній нема — краще нічого, ніж вигадане', () => {
+        const g = { ...deriveGeometry('20x30')!, cover: { w: 0, h: 0 } };
+        expect(buildCoverGuides(g)).toBeNull();
+    });
+
+    // Відсоткова лінія має сенс лише якщо рендер обкладинки йде в пропорції
+    // аркуша: /print у guides-режимі передає їй printPageW/printPageH тим
+    // самим шляхом, яким ходить рендер-сервіс. Ця перевірка тримає пропорцію.
+    it('висота guides-рендера обкладинки виводиться з її ж міліметрів', () => {
+        const g = deriveGeometry('travelbook')!;
+        const w = 520;                                   // екранна ширина половини
+        const h = Math.round(w * 2 * (g.cover.h / g.cover.w));
+        expect(h).toBe(Math.round(1040 * 328 / 470));    // 726 — пропорція аркуша
     });
 });
