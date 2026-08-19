@@ -390,12 +390,17 @@ app.post('/render', async (req, res) => {
       console.warn(`[render] app sent no geometry for '${sizeKey}' — falling back to the local table`);
     }
 
-    // NO BLEED on inner spreads and pages. The sheet size (420×305 for a 20×30)
-    // is bigger than the finished spread (400×300), and the difference was
-    // filled with pixels this service invented — first a shifted copy of the
-    // whole spread, then a mirrored edge. Neither is the customer's design, and
-    // both reached print. The file is now exactly the finished size: what the
-    // customer laid out, nothing added.
+    // Two different spread contracts, per the printer's own checker:
+    //
+    //   · PAGE-SPLIT products (travel books, journals) — each page file must
+    //     measure EXACTLY the finished page (210.0×297.0), no bleed: the
+    //     checker rejected 210.1 for one stray pixel. Target = content.
+    //   · PHOTOBOOK spreads — the checker demands the full SHEET
+    //     (photobook_sizes.spread_*_mm, e.g. 405×203 for a 20×20; a finished
+    //     400×200 came back «ширина 400 і не є рівна 405», Diana 2026-08-20).
+    //     Target = sheet; the margin past the finished spread is built by the
+    //     mirrored bleedFill below — the customer's own edge pixels continued
+    //     outward, never a shifted copy of the artwork.
     //
     // The COVER keeps its sheet size. Its extra 35 mm per side is not bleed —
     // it is the fold-in that physically wraps the board, so cutting it would
@@ -457,15 +462,19 @@ app.post('/render', async (req, res) => {
     for (let spread = 0; spread < spreadCount; spread++) {
       const isCover = spread === 0;
       const mm = isCover ? dims.cover : dims.spread;
-      // A finished spread is two whole pages, so measure it as two whole pages
-      // — same reason as pagePxW above. Rounding the 420 mm spread on its own
-      // put the target at 4961 px against 4960 px of content, which then read
-      // as a stray pixel of «SYNTHESIZED edge» on every travel book. The
-      // padded fallback (no finished size known → spread keeps the sheet)
-      // still measures the sheet, because there the padding is the point.
+      // Content is always two whole pages (2 × pagePxW — rounding the spread
+      // millimetres in one go differs by a pixel, which the checker rejects).
+      // The TARGET depends on the contract above: page-split products keep the
+      // content size exactly; photobook spreads grow to the sheet and the
+      // difference becomes mirrored bleed. The padded fallback (no finished
+      // size known → sheet) is unchanged: there the padding is the point.
       const spreadIsTwoPages = !isCover && geometry?.finished?.w > 0;
-      const pxW = spreadIsTwoPages ? 2 * pagePxW : mmToPx(mm.w);
-      const pxH = spreadIsTwoPages ? pagePxH : mmToPx(mm.h);
+      const pxW = spreadIsTwoPages
+        ? (splitToPages ? 2 * pagePxW : mmToPx(sheetDims.spread.w))
+        : mmToPx(mm.w);
+      const pxH = spreadIsTwoPages
+        ? (splitToPages ? pagePxH : mmToPx(sheetDims.spread.h))
+        : mmToPx(mm.h);
 
       // The /print page sizes one spread to printPageW per HALF page. Ask it
       // for the page's OWN pixel width, not half the spread: round(pxW / 2)
@@ -573,14 +582,20 @@ app.post('/render', async (req, res) => {
           throw new Error(`print target ${pxW}x${pxH} smaller than content ${contentPxW}x${contentPxH}`);
         }
         if (dx > 0 || dy > 0) {
-          // Inner spreads must land here with dx = dy = 0. Anything else means
-          // pixels are being invented, so name it in the log rather than let it
-          // pass as a normal render.
-          console.warn(
-            `[render] ${isCover ? 'cover' : `spread ${spread}`}: padding ${dx}x${dy} px of SYNTHESIZED edge `
-            + `(${(dx / 2 / 300 * 25.4).toFixed(1)}x${(dy / 2 / 300 * 25.4).toFixed(1)} mm per side) — `
-            + (isCover ? 'fold-in, pending a sheet-native cover render' : 'THIS SHOULD BE ZERO'),
-          );
+          // Page-split products must land here with dx = dy = 0 — their files
+          // are exact pages. Photobook spreads grow to the sheet by design:
+          // mirrored bleed is the printer's expected margin, log it as normal.
+          if (!isCover && splitToPages) {
+            console.warn(
+              `[render] spread ${spread}: padding ${dx}x${dy} px of SYNTHESIZED edge — THIS SHOULD BE ZERO for page-split products`,
+            );
+          } else {
+            console.log(
+              `[render] ${isCover ? 'cover' : `spread ${spread}`}: +${dx}x${dy} px `
+              + `(${(dx / 2 / 300 * 25.4).toFixed(1)}x${(dy / 2 / 300 * 25.4).toFixed(1)} mm per side) — `
+              + (isCover ? 'fold-in, pending a sheet-native cover render' : 'mirrored bleed out to the sheet'),
+            );
+          }
         }
 
         const scaled = await sharp(raw)
