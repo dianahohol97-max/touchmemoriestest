@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
+import { sendBrevoEmail } from '@/lib/email/brevo';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,8 +18,10 @@ export const maxDuration = 60;
  * actually received, and as a side effect it says which day's batch converted.
  *
  * The code is the date, so nobody has to look it up: the letters going out on
- * the twentieth of August carry SITE2008. The cron posts it to the work chat
- * each morning together with what the previous days have brought in.
+ * the twentieth of August carry SITE2008. Each morning the code is emailed to
+ * Diana together with what the campaign has brought in so far — she sends the
+ * fifty letters herself, so it has to reach her inbox rather than the work chat
+ * (Diana, 2026-08-19: «хай це приходить не в чат а мені на пошту»).
  *
  * Idempotent: running twice on the same day re-uses the existing row.
  */
@@ -27,6 +29,8 @@ export const maxDuration = 60;
 const PREFIX = 'SITE';
 const PERCENT = 10;
 const LIVE_DAYS = 7;
+/** Where the morning code goes. Diana's own address, given 2026-08-19. */
+const REPORT_TO = 'gogolka16@gmail.com';
 
 /** Kyiv is UTC+3 in summer; the code must be named for the local send day. */
 function kyivToday(): Date {
@@ -121,17 +125,45 @@ export async function GET(request: Request) {
         .toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' });
 
     const text = [
-        `📮 Код дня для розсилки: ${code}`,
+        `Код дня для розсилки: ${code}`,
         `Діє до ${until}, знижка ${PERCENT}%, один раз на клієнта.`,
-        '',
         orders
             ? `За всю розсилку замовлень по кодах: ${orders}, із них від старих клієнтів ${fromOldBase}, на суму ${revenue} грн.`
             : 'Замовлень по кодах розсилки поки немає.',
     ].join('\n');
 
+    const html = `
+        <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;color:#1f2937;line-height:1.6">
+          <p style="margin:0 0 18px">Доброго ранку! Ось код для сьогоднішніх листів.</p>
+          <p style="margin:0 0 18px;text-align:center">
+            <span style="display:inline-block;padding:14px 28px;border-radius:12px;background:#1e2d7d;color:#fff;font-size:26px;font-weight:800;letter-spacing:2px">${code}</span>
+          </p>
+          <p style="margin:0 0 18px">Знижка ${PERCENT} відсотків, діє до ${until}, спрацьовує один раз на клієнта.</p>
+          <p style="margin:0 0 8px"><strong>Що вже принесла розсилка</strong></p>
+          <p style="margin:0 0 18px">${
+              orders
+                  ? `Замовлень по кодах розсилки ${orders}, із них від старих клієнтів ${fromOldBase}, на загальну суму ${revenue} грн.`
+                  : 'Замовлень по кодах розсилки поки немає — це нормально в перші дні.'
+          }</p>
+          <p style="margin:0;color:#6b7280;font-size:13px">Лист сформовано автоматично щоранку о девʼятій.</p>
+        </div>`;
+
+    let emailed = false;
     if (!preview) {
-        await sendWorkChatAlert(text).catch(e => console.error('[daily-promo-code] alert failed:', e));
+        try {
+            // Marketing budget on purpose: this is campaign admin, and it must
+            // never eat into the reserve that carries order confirmations.
+            await sendBrevoEmail({
+                to: REPORT_TO,
+                subject: `Код дня ${code} — розсилка про запуск сайту`,
+                html,
+                kind: 'marketing',
+            });
+            emailed = true;
+        } catch (e) {
+            console.error('[daily-promo-code] email failed:', e);
+        }
     }
 
-    return NextResponse.json({ ok: true, code, created, orders, fromOldBase, revenue, text });
+    return NextResponse.json({ ok: true, code, created, orders, fromOldBase, revenue, emailed, text });
 }
