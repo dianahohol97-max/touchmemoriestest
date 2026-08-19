@@ -64,6 +64,38 @@ function syncFrom(): Date | null {
     return Number.isFinite(parsed.getTime()) ? parsed : null;
 }
 
+/**
+ * A second, movable cutoff on top of KEYCRM_SYNC_FROM — settings('crm_push_from').
+ *
+ * Diana, 2026-08-19, right after unpaid orders started travelling: «старі вже
+ * не перенось, дівчата вручну їх забрали, перенось тільки ті що будуть після
+ * цього виправлення». Sixteen orders had been sitting unsynced precisely
+ * because the old rule held unpaid ones back, and the team had already typed
+ * them into the CRM by hand. Sending them now would duplicate a day's work.
+ *
+ * It lives in the database rather than in an env var so the line can be moved
+ * the moment a rule changes, without a deploy — the same reason
+ * legacy_site_cutoff lives there.
+ *
+ * Judged on created_at, never on paid_at: the question is when the ORDER
+ * appeared, and an old order that happens to be paid today is still one the
+ * girls have already carried over.
+ */
+async function crmPushFrom(): Promise<Date | null> {
+    try {
+        const { data } = await getAdminClient()
+            .from('settings').select('value').eq('key', 'crm_push_from').maybeSingle();
+        const raw = typeof data?.value === 'string' ? data.value : (data?.value as any)?.date;
+        if (!raw) return null;
+        const parsed = new Date(String(raw));
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    } catch (e) {
+        console.error('[keycrm-push] crm_push_from read failed:', e);
+        // Unreadable cutoff must not silently reopen the backlog.
+        return new Date(8640000000000000);
+    }
+}
+
 function sourceId(): number | null {
     const raw = Number(process.env.KEYCRM_SOURCE_ID);
     return Number.isFinite(raw) && raw > 0 ? raw : null;
@@ -511,6 +543,18 @@ export async function pushOrderToKeycrm(
         };
     }
 
+    // The movable cutoff, on created_at — see crmPushFrom.
+    const pushFrom = await crmPushFrom();
+    const createdAt = new Date(order.created_at).getTime();
+    if (pushFrom && (!Number.isFinite(createdAt) || createdAt < pushFrom.getTime())) {
+        return {
+            ...base,
+            ok: true,
+            status: 'skipped',
+            reason: `Замовлення створене до відсічки crm_push_from (${pushFrom.toISOString().slice(0, 16).replace('T', ' ')}) — такі вже перенесені вручну.`,
+        };
+    }
+
     const productMap = await fetchConfirmedMap();
     const tagIdByName = await fetchKeycrmTagIdByName();
     const payload = buildKeycrmOrderPayload(order, productMap, tagIdByName);
@@ -582,7 +626,12 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     if (!cutoff) return [];
 
     const windowStart = Date.now() - params.windowDays * 24 * 60 * 60 * 1000;
-    const since = new Date(Math.max(cutoff.getTime(), windowStart)).toISOString();
+    // The movable cutoff joins the floor, so the backlog the team already typed
+    // in by hand is never even fetched — see crmPushFrom.
+    const pushFrom = await crmPushFrom();
+    const since = new Date(
+        Math.max(cutoff.getTime(), windowStart, pushFrom ? pushFrom.getTime() : 0),
+    ).toISOString();
 
     const supabase = getAdminClient();
     const { data, error } = await supabase
