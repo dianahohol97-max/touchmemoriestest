@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
+import { engravingRefusalReason } from '@/lib/products/decoration-rules';
 
 /**
  * What the shop actually sells, answered from the catalogue.
@@ -51,20 +52,26 @@ async function answerDecoration(question: string): Promise<CatalogueAnswer> {
     const asksEngraving = /(гравіюв|гравірув)/iu.test(question);
     const asksFlex = /(флекс|друк\s+кольором)/iu.test(question);
 
-    if (asksEngraving || asksFlex) {
-        const what = asksEngraving ? 'Гравірування' : 'Друк кольором';
-        if (cover === 'Друкована') {
+    if (asksEngraving) {
+        // Diana's production rule, 2026-08-20, held in one shared module so the
+        // constructor and this answer can never disagree.
+        if (cover) {
+            const reason = engravingRefusalReason(cover);
             return {
-                text: `${what} на друкованій обкладинці немає — там весь малюнок і так друкується, тож напис роблять частиною макета.`,
+                text: reason
+                    ? `Ні, на обкладинці «${cover}» гравіювання не робимо — ${reason}. Замість нього там друк кольором.`
+                    : `Так, на обкладинці «${cover}» гравіювання робимо. Напис коштує 180 грн, спосіб обирається в конструкторі.`,
             };
         }
+        return {
+            text: 'Гравіювання робимо тільки на велюрі. На тканині та шкірзаміннику його немає, там лишається друк кольором, а на друкованій обкладинці напис іде частиною макета.',
+        };
+    }
+
+    if (asksFlex) {
         const onCover = cover ? ` на обкладинці «${cover}»` : '';
         return {
-            text: [
-                `${what}${onCover} конструктор пропонує: у ньому цей напис доступний на всіх обкладинках, крім друкованої, тобто і на велюрі, і на тканині, і на шкірзаміннику.`,
-                'Окремого переліку розмірів чи обмежень для нього в базі немає — на відміну від акрилу, металевої вставки та фотовставки, у яких варіанти прописані по кожному формату.',
-                'Якщо виробництво каже інакше саме для цього матеріалу, це розбіжність між сайтом і цехом, і її треба закривати рішенням, а не здогадом.',
-            ].join(' '),
+            text: `Друк кольором${onCover} доступний на всіх обкладинках, крім друкованої, — і на велюрі, і на тканині, і на шкірзаміннику. Напис коштує 180 грн.`,
         };
     }
 

@@ -39,6 +39,7 @@ import {
 import { calculateDynamicPrice } from '@/lib/editor/pricing';
 import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
+import { engravingAllowedOn } from '@/lib/products/decoration-rules';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
@@ -6252,7 +6253,14 @@ export default function BookLayoutEditor() {
                   </div>
                   {showDecoList && !isPrintedCover && (
                     <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:4 }}>
-                      {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[]).map(id => (
+                      {(['none','acryl','photovstavka','metal','flex','graviruvannya'] as CoverDecoType[])
+                        // Гравіювання не показуємо на тканині та шкірзаміннику
+                        // (Diana, 2026-08-20). Раніше воно пропонувалося на всіх
+                        // обкладинках, крім друкованої, і клієнт міг замовити те,
+                        // чого цех не робить — саме через це в чаті й виникло
+                        // питання про тканину. Велюр лишається.
+                        .filter(id => id !== 'graviruvannya' || engravingAllowedOn(config?.selectedCoverType))
+                        .map(id => (
                         <button key={id} onClick={() => {
                           const sizeKey = (config?.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/g,'').trim();
                           const firstVariant =
@@ -7354,7 +7362,11 @@ export default function BookLayoutEditor() {
                               <div style={{ marginTop:6, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:8, background:'#f8fafc' }}>
                                 <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
                                 <div style={{ display:'flex', gap:6 }}>
-                                  {([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const).map(([id,label]) => (
+                                  {(([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const)
+                                    // Тканина і шкірзамінник гравіювання не приймають
+                                    // (Diana, 2026-08-20) — лишається тільки друк кольором.
+                                    .filter(([id]) => id !== 'graviruvannya' || engravingAllowedOn(config?.selectedCoverType))
+                                  ).map(([id,label]) => (
                                     <button key={id} type="button"
                                       onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
                                       style={{ flex:1, padding:'7px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:6, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:11, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
@@ -10840,7 +10852,11 @@ export default function BookLayoutEditor() {
                                 <div style={{ marginTop:4, padding:'10px 12px', border:'1px solid #e2e8f0', borderRadius:10, background:'#f8fafc' }}>
                                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Спосіб нанесення напису</div>
                                   <div style={{ display:'flex', gap:6 }}>
-                                    {([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const).map(([id,label]) => (
+                                    {(([['graviruvannya',t('constructor.engraving')],['flex',t('constructor.color_print')]] as const)
+                                    // Тканина і шкірзамінник гравіювання не приймають
+                                    // (Diana, 2026-08-20) — лишається тільки друк кольором.
+                                    .filter(([id]) => id !== 'graviruvannya' || engravingAllowedOn(config?.selectedCoverType))
+                                  ).map(([id,label]) => (
                                       <button key={id} type="button"
                                         onClick={() => setCoverState(p => ({ ...p, inscriptionMethod: id }))}
                                         style={{ flex:1, padding:'8px', border: coverState.inscriptionMethod===id?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background: coverState.inscriptionMethod===id?'#f0f3ff':'#fff', cursor:'pointer', fontSize:12, fontWeight:700, color: coverState.inscriptionMethod===id?'#1e2d7d':'#374151' }}>
