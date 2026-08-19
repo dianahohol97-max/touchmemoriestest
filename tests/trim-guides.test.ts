@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTrimGuides, buildCoverGuides, coverArtworkInset, cutsAtGutter, SAFETY_MIN_MM } from '@/lib/print/trim-guides';
+import { buildTrimGuides, buildCoverGuides, cutsAtGutter, SAFETY_MIN_MM } from '@/lib/print/trim-guides';
 import { deriveGeometry } from '@/lib/print/geometry';
 
 /**
@@ -157,25 +157,5 @@ describe('лінії загину обкладинки', () => {
         const w = 520;                                   // екранна ширина половини
         const h = Math.round(w * 2 * (g.cover.h / g.cover.w));
         expect(h).toBe(Math.round(1040 * 328 / 470));    // 726 — пропорція аркуша
-    });
-});
-
-describe('укладання готової обкладинки до лінії загину', () => {
-    it('travelbook: 20 мм від висоти аркуша і від половини його ширини', () => {
-        const inset = coverArtworkInset(deriveGeometry('travelbook'))!;
-        expect(inset.topPct).toBeCloseTo((20 / 328) * 100, 5);
-        expect(inset.bottomPct).toBeCloseTo((20 / 328) * 100, 5);
-        expect(inset.outerPct).toBeCloseTo((20 / 235) * 100, 5);
-    });
-
-    it('фотокнижковий розмір теж має відсотки — рішення «чи застосовувати» приймає викликач', () => {
-        const inset = coverArtworkInset(deriveGeometry('20x30'))!;
-        expect(inset.topPct).toBeCloseTo((18 / 328) * 100, 5);
-        expect(inset.outerPct).toBeCloseTo((20 / 235) * 100, 5);
-    });
-
-    it('без геометрії або без специфікації загину — null, малюємо по-старому', () => {
-        expect(coverArtworkInset(null)).toBeNull();
-        expect(coverArtworkInset(deriveGeometry('23x23'))).toBeNull();
     });
 });

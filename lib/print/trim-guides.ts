@@ -174,31 +174,3 @@ export function buildCoverGuides(g: SizeGeometry): CoverGuideSpec | null {
 
     return { foldPct, foldMm: mm, cover: { ...g.cover }, notes };
 }
-
-/**
- * Як укладати ГОТОВИЙ файл обкладинки (printedBgImage — шаблони тревел-буків
- * і журналів) на передню половину аркуша.
- *
- * Раніше картинка натягувалась objectFit:cover на всю половину аркуша разом
- * із полями загину, тож у шаблона, намальованого «впритул», заголовок їхав
- * за кант (Діана, 2026-08-19, скрін «HELSINKI»). Тепер чітка картинка сідає
- * ДО лінії загину, а самі поля добудовуються з неї ж — розмитою підкладкою,
- * яка для плоского фону дає рівно той самий колір, а для строкатого — м'яке
- * продовження без чужих кольорів і швів.
- *
- * Відсотки рахуються від передньої ПОЛОВИНИ аркуша (ширина W/2, висота H):
- * top/bottom — tb-загин, outer — lr-загин зовнішнього краю; внутрішній край
- * (до корінця) лишається нульовим, бо там не загин, а згин корінця.
- * Повертає null для розмірів без міліметрів у специфікації і для товарів,
- * яких це не стосується, — викликач тоді малює по-старому.
- */
-export function coverArtworkInset(g: SizeGeometry | null): { topPct: number; bottomPct: number; outerPct: number } | null {
-    if (!g || !(g.cover.w > 0 && g.cover.h > 0)) return null;
-    const mm = COVER_FOLD_MM[g.sizeKey];
-    if (!mm) return null;
-    return {
-        topPct: (mm.tb / g.cover.h) * 100,
-        bottomPct: (mm.tb / g.cover.h) * 100,
-        outerPct: (mm.lr / (g.cover.w / 2)) * 100,
-    };
-}
