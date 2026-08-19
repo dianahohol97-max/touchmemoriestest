@@ -570,13 +570,27 @@ export async function POST(request: NextRequest) {
   if (capPromoId && typeof capPromoId === 'string') {
     const { data: capPromo } = await admin
       .from('promo_codes')
-      .select('type, value')
+      .select('type, value, excluded_product_ids')
       .eq('id', capPromoId)
       .maybeSingle();
+    // The cap must know about excluded products too. /api/promo/validate already
+    // refuses to discount them, but this is the only SERVER-side ceiling on what
+    // a submitted order may claim — computing it on the full subtotal would let
+    // a crafted request take 10% off the Fujifilm camera that the page itself
+    // would never have discounted (Diana, 2026-08-19).
+    const capExcluded = new Set<string>(
+      Array.isArray((capPromo as any)?.excluded_product_ids) ? (capPromo as any).excluded_product_ids : [],
+    );
+    const discountableSubtotal = capExcluded.size
+      ? (body.items as any[]).reduce((sum, it) => {
+          if (capExcluded.has(it?.product_id)) return sum;
+          return sum + (Number(it.unit_price) || 0) * (Number(it.quantity) || 1);
+        }, 0)
+      : subtotal;
     if (capPromo?.type === 'percent') {
-      allowedDiscount += Math.round(subtotal * (Number(capPromo.value) / 100) * 100) / 100;
+      allowedDiscount += Math.round(discountableSubtotal * (Number(capPromo.value) / 100) * 100) / 100;
     } else if (capPromo?.type === 'fixed') {
-      allowedDiscount += Math.min(Number(capPromo.value), subtotal);
+      allowedDiscount += Math.min(Number(capPromo.value), discountableSubtotal);
     }
   }
   // The legacy flat-10% referral_codes path was removed (Diana, 31.07.2026):

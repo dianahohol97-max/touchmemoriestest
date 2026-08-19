@@ -63,6 +63,14 @@ export async function GET(request: Request) {
     let created = false;
     if (!existing) {
         const validUntil = new Date(Date.now() + LIVE_DAYS * 24 * 60 * 60 * 1000);
+        // Resold Fujifilm goods carry a thin margin and are excluded from the
+        // campaign discount (Diana, 2026-08-19). Looked up by slug rather than
+        // pinned by id so a re-created product keeps the exclusion.
+        const { data: excluded } = await admin
+            .from('products')
+            .select('id')
+            .in('slug', ['instax-mini-12', 'instax-mini-cartridge']);
+        const excludedIds = (excluded || []).map(p => p.id);
         const { error } = await admin.from('promo_codes').insert({
             code,
             type: 'percent',
@@ -73,6 +81,7 @@ export async function GET(request: Request) {
             // One per customer: this is what makes the count of "old customers who
             // came back" a count of people rather than of orders.
             is_single_use_per_customer: true,
+            excluded_product_ids: excludedIds,
             valid_from: new Date().toISOString(),
             valid_until: validUntil.toISOString(),
             is_active: true,

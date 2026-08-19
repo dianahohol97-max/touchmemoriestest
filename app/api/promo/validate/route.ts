@@ -135,9 +135,31 @@ export async function POST(request: Request) {
         // not) must get 7% off the photobook only.
         let eligibleTotal = cart_total; // 'all' → whole cart qualifies
 
+        // Excluded products drop out first, whatever the scope says. Diana,
+        // 2026-08-19: the launch code must not touch the Fujifilm camera or its
+        // cartridges — resold goods on a thin margin, unlike the print products
+        // the shop makes itself. Handled here rather than by hiding the products,
+        // so they stay on sale at full price during the campaign.
+        const excludedIds = new Set<string>(
+            Array.isArray((promo as any).excluded_product_ids) ? (promo as any).excluded_product_ids : [],
+        );
+        let scopedItems: any[] = items || [];
+        if (excludedIds.size > 0) {
+            scopedItems = scopedItems.filter((i: any) => !excludedIds.has(i.product_id));
+            if (scopedItems.length === 0) {
+                return NextResponse.json(
+                    { valid: false, message: 'Промокод не діє на товари у кошику' },
+                    { status: 400 },
+                );
+            }
+            eligibleTotal = scopedItems.reduce(
+                (s: number, i: any) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0,
+            );
+        }
+
         if (promo.applies_to === 'products' && Array.isArray(promo.applicable_product_ids) && promo.applicable_product_ids.length > 0) {
             const eligibleSet = new Set(promo.applicable_product_ids);
-            const eligibleItems = (items || []).filter((i: any) => eligibleSet.has(i.product_id));
+            const eligibleItems = scopedItems.filter((i: any) => eligibleSet.has(i.product_id));
             if (eligibleItems.length === 0) {
                 return NextResponse.json({ valid: false, message: 'Промокод не діє на товари у кошику' }, { status: 400 });
             }
@@ -145,7 +167,7 @@ export async function POST(request: Request) {
         }
 
         if (promo.applies_to === 'categories' && Array.isArray(promo.applicable_category_ids) && promo.applicable_category_ids.length > 0) {
-            const productIds = (items || []).map((i: any) => i.product_id).filter(Boolean);
+            const productIds = scopedItems.map((i: any) => i.product_id).filter(Boolean);
             if (productIds.length === 0) {
                 return NextResponse.json({ valid: false, message: 'Немає товарів у кошику' }, { status: 400 });
             }
@@ -156,7 +178,7 @@ export async function POST(request: Request) {
             // product_id → category_id map, so we can pick only eligible items.
             const catById = new Map((prods || []).map((p: any) => [p.id, p.category_id]));
             const eligibleSet = new Set(promo.applicable_category_ids);
-            const eligibleItems = (items || []).filter((i: any) => eligibleSet.has(catById.get(i.product_id)));
+            const eligibleItems = scopedItems.filter((i: any) => eligibleSet.has(catById.get(i.product_id)));
             if (eligibleItems.length === 0) {
                 return NextResponse.json({ valid: false, message: 'Промокод не діє на категорії у кошику' }, { status: 400 });
             }
