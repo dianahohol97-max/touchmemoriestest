@@ -7,6 +7,7 @@ import { fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { buildResponsibleLookup } from '@/lib/chatbot/responsible';
 import { isTestOrder } from '@/lib/automation/test-orders';
 import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
+import { isSupersededAttempt } from '@/lib/automation/keycrm-push';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -32,6 +33,10 @@ export const maxDuration = 60;
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_LISTED = 10;
 const ACTIVE_STATUSES = ['new', 'confirmed'];
+// How far back the unpaid list looks. A week is the span where a call still
+// changes the outcome; older unpaid orders are abandoned carts, and listing
+// them every morning would train everyone to skip the section.
+const UNPAID_WINDOW_DAYS = 7;
 
 function unauthorized(req: Request) {
     const auth = req.headers.get('authorization');
@@ -138,6 +143,51 @@ export async function GET(req: Request) {
             lines.push('');
         }
     } catch (e) { console.error('digest waiting-for-client failed:', e); }
+
+    // Unpaid orders (Diana, 2026-08-19: «і софія має повідомлення про неоплачені
+    // замовлення також, в телеграм чаті»). These are the ones a call still
+    // rescues — an invoice was created and nobody paid it. Listed newest first,
+    // because a two-hour-old unpaid order is worth a message and a ten-day-old
+    // one usually is not.
+    try {
+        const since = new Date(now - UNPAID_WINDOW_DAYS * 24 * HOUR_MS).toISOString();
+        // PAID orders are fetched too, and deliberately. They are not listed —
+        // they are what the twin check needs. A retried checkout leaves the
+        // abandoned attempt unpaid and its twin paid, so a pool of unpaid rows
+        // alone would find no twin and the chat would chase TM-001193, whose
+        // sale was paid twenty-three seconds later as TM-001194.
+        const { data: windowRows } = await supabase
+            .from('orders')
+            .select('id, order_number, customer_name, customer_phone, total, created_at, payment_status, order_status, source, custom_attributes')
+            .eq('source', 'site')
+            .gte('created_at', since)
+            .not('order_status', 'in', '("cancelled","refunded")')
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+        const pool = windowRows || [];
+        const unpaid = pool
+            .filter(o => o.payment_status !== 'paid')
+            .filter(o => !isTestOrder(o as any))
+            // An empty cart is not an unpaid order.
+            .filter(o => (Number(o.total) || 0) > 0)
+            // The same guard the CRM push uses, so the chat never nags about a
+            // checkout the customer simply retried and paid on the second go.
+            .filter(o => !isSupersededAttempt(o, pool));
+
+        if (unpaid.length) {
+            const sum = unpaid.reduce((s, o) => s + (Number(o.total) || 0), 0);
+            lines.push(`💳 Не оплачені замовлення (${unpaid.length}, разом ${Math.round(sum)} грн):`);
+            for (const o of unpaid.slice(0, MAX_LISTED)) {
+                const ageH = Math.max(1, Math.round((now - new Date(o.created_at).getTime()) / HOUR_MS));
+                const age = ageH < 48 ? `${ageH} год тому` : `${Math.round(ageH / 24)} дн тому`;
+                const phone = o.customer_phone ? `, ${o.customer_phone}` : '';
+                lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}${phone}, ${Math.round(Number(o.total))} грн, оформлено ${age}`);
+            }
+            if (unpaid.length > MAX_LISTED) lines.push(`…і ще ${unpaid.length - MAX_LISTED} у списку.`);
+            lines.push('');
+        }
+    } catch (e) { console.error('digest unpaid orders failed:', e); }
 
     try {
         const { items, threshold } = await computeLowStock();

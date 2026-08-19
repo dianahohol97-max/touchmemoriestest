@@ -96,6 +96,56 @@ async function crmPushFrom(): Promise<Date | null> {
     }
 }
 
+/**
+ * Is this order the discarded half of a retried checkout?
+ *
+ * A customer who reaches the payment page, closes it and orders again leaves
+ * TWO rows for one sale — same phone, same total, minutes apart, one unpaid and
+ * one paid. While only paid orders travelled to the CRM this was invisible; the
+ * moment unpaid ones started going, the abandoned attempt would have opened a
+ * second card beside the real one. The live data already held the pattern:
+ * TM-001193 and TM-001194 (Ілля Косов, 720 ₴, twenty-three seconds apart, the
+ * second paid and synced as card 13876), TM-001130 and TM-001131 (Марія Дудар,
+ * 1025 ₴, the same minute).
+ *
+ * Shared by the CRM push and by Софія's unpaid-orders digest on purpose: two
+ * copies of this rule would drift, and then the chat would nag about an order
+ * the sync had rightly ignored.
+ *
+ * `pool` is the set of orders to look for a twin in — whatever the caller has
+ * already fetched.
+ */
+export function isSupersededAttempt(order: any, pool: any[]): boolean {
+    const TWIN_WINDOW_MS = 20 * 60 * 1000;
+    const twinKey = (o: any) =>
+        `${String(o?.customer_phone || '').replace(/\D/g, '').slice(-9)}|${Number(o?.total) || 0}`;
+    const crmIdOf = (o: any) => (o?.custom_attributes as any)?.keycrm?.order_id;
+
+    const phoneDigits = String(order?.customer_phone || '').replace(/\D/g, '');
+    if (phoneDigits.length < 9) return false; // no phone, no reliable twin
+
+    const key = twinKey(order);
+    const at = new Date(order?.created_at).getTime();
+    const twins = pool.filter(c =>
+        c.id !== order.id &&
+        twinKey(c) === key &&
+        Math.abs(new Date(c.created_at).getTime() - at) <= TWIN_WINDOW_MS,
+    );
+    if (!twins.length) return false;
+
+    // A twin that already has a CRM card settles it for either kind of row: the
+    // sale is in the CRM and this is the spare attempt. Verified against the live
+    // data — TM-001131 is PAID yet its sale already sits on a card from an
+    // earlier attempt, so exempting paid rows would have duplicated it. That was
+    // the first version of this rule, and it was wrong.
+    if (twins.some(crmIdOf)) return true;
+
+    // Otherwise only an unpaid row yields, and only to a paid twin. Two paid
+    // twins with no card yet are left alone: dropping one could lose a real sale,
+    // and a duplicate card is the cheaper mistake to undo.
+    return order?.payment_status !== 'paid' && twins.some(c => c.payment_status === 'paid');
+}
+
 function sourceId(): number | null {
     const raw = Number(process.env.KEYCRM_SOURCE_ID);
     return Number.isFinite(raw) && raw > 0 ? raw : null;
@@ -649,48 +699,6 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
 
     const rows = data || [];
 
-    // Abandoned retries must not become their own CRM cards.
-    //
-    // A customer who reaches the payment page, closes it and orders again leaves
-    // TWO rows for one sale — the same phone, the same total, minutes apart, one
-    // unpaid and one paid. While only paid orders travelled this was invisible;
-    // now that unpaid ones do, the abandoned attempt would open a second card
-    // beside the real one. The data already holds the pattern: TM-001193 and
-    // TM-001194 (Ілля Косов, 720 ₴, 23 seconds apart, second one paid and synced
-    // as 13876), TM-001130 and TM-001131 (Марія Дудар, 1025 ₴, same minute).
-    //
-    // So an unpaid order is skipped when a twin — same phone, same total, within
-    // twenty minutes — has either been paid or already reached the CRM. The twin
-    // IS the order; this row is the discarded attempt at it.
-    const TWIN_WINDOW_MS = 20 * 60 * 1000;
-    const twinKey = (o: any) =>
-        `${String(o?.customer_phone || '').replace(/\D/g, '').slice(-9)}|${Number(o?.total) || 0}`;
-    const crmIdOf = (o: any) => (o?.custom_attributes as any)?.keycrm?.order_id;
-    const isSupersededAttempt = (o: any): boolean => {
-        const phoneDigits = String(o?.customer_phone || '').replace(/\D/g, '');
-        if (phoneDigits.length < 9) return false; // no phone, no reliable twin
-        const key = twinKey(o);
-        const at = new Date(o?.created_at).getTime();
-        const twins = rows.filter(c =>
-            c.id !== o.id &&
-            twinKey(c) === key &&
-            Math.abs(new Date(c.created_at).getTime() - at) <= TWIN_WINDOW_MS,
-        );
-        if (!twins.length) return false;
-
-        // A twin that already has a CRM card settles it for either kind of row:
-        // the sale is in the CRM, and this is the spare attempt. Verified against
-        // the live data — TM-001131 is PAID yet its sale already sits on a card
-        // from an earlier attempt, so exempting paid rows would have duplicated
-        // it. That was the first version of this rule, and it was wrong.
-        if (twins.some(crmIdOf)) return true;
-
-        // Otherwise only an unpaid row yields, and only to a paid twin. Two paid
-        // twins with no card yet are left alone: dropping one could lose a real
-        // sale, and a duplicate card is the cheaper mistake to undo.
-        return o?.payment_status !== 'paid' && twins.some(c => c.payment_status === 'paid');
-    };
-
     return rows
         .filter(o => !(o.custom_attributes as any)?.keycrm?.order_id)
         // A mirrored order is a read-only copy of an order that already lives in
@@ -703,7 +711,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // that never got a product. Diana asked for unpaid orders in the CRM,
         // not for empty rows (TM-001212, TM-001163 are both 0 ₴).
         .filter(o => (Number(o.total) || 0) > 0)
-        .filter(o => !isSupersededAttempt(o))
+        .filter(o => !isSupersededAttempt(o, rows))
         .filter(shouldPushToCrm)
         .slice(0, params.limit);
 }
