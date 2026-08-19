@@ -153,6 +153,7 @@ Production files are made by the **Railway render service** (`render-service/`, 
 
 - **Output shape:** travel books & magazines export page-by-page, named `01.jpg…NN.jpg` per the print partner's checker; soft-cover magazines also split the cover into `00_cover_back/front.jpg`; hard covers stay one wrap sheet (`00_cover.jpg`); photobooks export 2-page spreads (`NN_spread.jpg`). Empty forzats (forzats-as-extra-pages model, no content) are skipped and pages renumbered.
 - **Travel book page geometry:** sold as «20×30» but printed on **210×297 mm** pages (partner's hard requirement) — size key `travelbook` everywhere (editor proportions, `lib/print/geometry.ts`, render service). It is NOT the photobook `20x30` (200×300).
+- **A spread is TWO WHOLE PAGES, never one double-width sheet.** `mmToPx` rounds, and the two forms disagree: `mmToPx(2 × 210) = 4961` (odd, cannot halve) versus `2 × mmToPx(210) = 4960`. The service derives the spread from `pagePxW = mmToPx(page.w)`, so both halves come out at exactly one page. Measuring the spread on its own gave halves of 2480 and 2481 px, and 2481 px is 210.06 mm — the partner's checker measures to one decimal and rejected every second page («ширина 210.1 і не є рівна 210»), failing whole travel book and hard-journal uploads. 30×30 had the same latent defect (300.0 / 300.1). The `?w=` the service passes to `/print` is that same per-page width, so the capture is never resampled either.
 - **Storage layout:** `guest/pb-…/print/` for order-time uploads, `drafts/<uid>/<projectId>/print/` for draft-based projects. The folder is ALWAYS unique per project — a shared `drafts/<uid>/print` folder once let one order's re-render overwrite another's cover.
 - **Registration is triple-redundant:** (1) `render-order` awaits the render and registers `order_files` rows — dies on big books (maxDuration); (2) the service POSTs a completion callback to `/api/print/render-complete` with the uploaded paths; (3) the hourly `reconcile-print-files` cron lists each recent order project's print folder and registers anything missing. All three go through `lib/print/register-export-files.ts` and are idempotent.
 - **Stale-deploy detection:** the service's `/health` and its completion callback report `RAILWAY_GIT_COMMIT_SHA` — check it against origin/main before debugging «фікс не працює».
@@ -186,6 +187,26 @@ Photobook prices are NOT hardcoded in the codebase. They live in Supabase, in th
 **Why this shape:** the editor route uses `dynamic: 'force-dynamic'` + `ssr: false` (the editor needs browser APIs and is 200KB+), so a Server Component cannot pass prices in as a prop. Going through a thin API route lets us keep server-side caching while still letting the client refresh on its own schedule.
 
 **Tracing paper ("калька") on the product page is not added to the displayed price** — the radio is intentionally lead-gen ("ціна уточнюється"). The editor, where kalka is part of the live config, does add the `kalka_surcharge` from the DB.
+
+### Page-priced products (журнали + Travel Book) — and the drift check
+
+Photobooks are priced from one table (`photobook_prices`) and have no second copy. The **page-priced** products do, and that is where price bugs keep coming from:
+
+| Half | Where | Who prices from it |
+|---|---|---|
+| The scale — absolute ₴ per page count | `lib/products.ts` (`PHOTO_JOURNAL_SOFT`, `PHOTO_JOURNAL_HARD`, `TRAVEL_BOOK`) | конструктор (`BookConstructorConfig`), картка товару через `getCalculatedPrice` |
+| База + надбавка за опцію | `products.price` + `products.options['Кількість сторінок'][].price` | сторінка товару (`ProductClient` Source 2/3) |
+
+The two agree **only while `products.price` equals the cheapest tier of the scale.** Nothing enforced that, and on 2026-08 the hard-cover journal gained a 12-сторінковий tier at 675 ₴ while the column stayed at its old 825 ₴ — every configuration of that product went out exactly 150 ₴ over until TM-001202 was paid at 825 ₴ instead of 675 ₴.
+
+Two things now hold it together:
+
+- **`lib/pricing/audit.ts`** — pure; recomputes both halves for every tier of every page-priced product and reports each hryvnia of disagreement. When all tiers are off by the same amount it names the correct база, so the report is an instruction and not a list of symptoms. Read it from `GET /api/admin/pricing/audit` (staff-only) after any price change, and it runs inside the twice-daily **ops digest**, where drift is pinned above every order bucket.
+- **`ProductClient`** derives `dynamicPrice` for journals from the scale on every options change (Travel Book already did). `products.price` is a display fallback, not the charged price.
+
+**Adding a product to the audit:** append it to `PAGE_PRICED_PRODUCTS` in `lib/pricing/audit.ts` with its scale from `lib/products.ts`. Do NOT add photobooks — they have no second copy to drift from, and a hardcoded photobook table here would recreate the bug the audit exists to catch.
+
+**Known gap:** the hard journal is sold in 4-page steps (12, 16, 20…) while its twin Travel Book is sold in 2-page steps (12, 14, 16…) off the identical 75 ₴ scale. A hard journal built to 14 pages in the editor rounds up to the 16-page price — the same "paid for 24, received 22" class as TM-001195. Filling in the odd tiers is a product decision for Diana, not a code fix.
 
 **Historical note:** Until 2026-05-14, `pricing.ts` shipped a hardcoded ~150-row table. The table drifted from the DB — `velour_20×30` was missing entirely, so the editor showed 1200₴ instead of 1985₴ for velour 20×30 / 10pp / +kalka. The hardcoded table has been removed; the DB is now the single source of truth.
 

@@ -40,6 +40,29 @@ const PHOTOJOURNAL_HARD_PAGE_PRICES: Record<number, number> = PHOTO_JOURNAL_HARD
 // Book scale is identical to hard journal.
 const TRAVELBOOK_PAGE_PRICES: Record<number, number> = TRAVEL_BOOK.prices;
 
+/**
+ * Read «Кількість сторінок» out of a selected-options map as a number.
+ *
+ * The value arrives in two shapes depending on which UI wrote it: the
+ * hardcoded PRODUCT_OPTIONS pickers below store a real number (12), while
+ * ProductClient seeds its defaults from the DB `products.options` list,
+ * where every option value is a string ("12"). The page-price branches used
+ * to demand `typeof pages === 'number'`, so on a DB-configured product the
+ * lookup silently returned null, ProductClient fell back to `products.price`
+ * — and whatever number sat in that column became the charged price with no
+ * check against the price scale in lib/products. That is exactly how the
+ * hard journal sold 12 сторінок at its 16-сторінковий base of 825 ₴
+ * (TM-001202) instead of 675 ₴. Reading both shapes keeps the code table
+ * authoritative regardless of which UI filled the option in.
+ */
+function readPageCount(value: string | number | undefined): number | null {
+    if (value === undefined || value === null || value === '') return null;
+    const pages = typeof value === 'number'
+        ? value
+        : parseInt(String(value).match(/\d+/)?.[0] || '', 10);
+    return Number.isFinite(pages) && pages > 0 ? pages : null;
+}
+
 // Wishbook (книга побажань) prices by material × size. This constant is the
 // single source of truth — both ProductOptionsSelector (card price) and
 // BookConstructorConfig (configurator price) import from here. Keep both
@@ -624,8 +647,8 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
 
     // Журнали - ціна залежить від кількості сторінок
     if (productType === 'magazine') {
-      const pages = opts['Кількість сторінок'];
-      if (pages && typeof pages === 'number') {
+      const pages = readPageCount(opts['Кількість сторінок']);
+      if (pages) {
         // IMPORTANT: dynamicPrice for the magazine must return the BASE
         // price without the typesetting surcharge. ProductClient adds
         // the +195 ₴ typesetting on top AFTER applying the urgency
@@ -644,16 +667,16 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
 
     // Фотожурнал твердий
     if (productType === 'photojournal') {
-      const pages = opts['Кількість сторінок'];
-      if (pages && typeof pages === 'number') {
+      const pages = readPageCount(opts['Кількість сторінок']);
+      if (pages) {
         return PHOTOJOURNAL_PAGE_PRICES[pages] || null;
       }
     }
 
     // Журнал з твердою обкладинкою (hard cover variant)
     if (productType === 'photojournal-hard') {
-      const pages = opts['Кількість сторінок'];
-      if (pages && typeof pages === 'number') {
+      const pages = readPageCount(opts['Кількість сторінок']);
+      if (pages) {
         let total = PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || 0;
         if (!total) return null;
         // NB: typesetting (Верстка тексту, +195 / +395) is intentionally NOT
@@ -1248,24 +1271,24 @@ export function getCalculatedPrice(slug: string, selectedOptions: Record<string,
 
   // Журнали
   if (productType === 'magazine') {
-    const pages = selectedOptions['Кількість сторінок'];
-    if (pages && typeof pages === 'number') {
+    const pages = readPageCount(selectedOptions['Кількість сторінок']);
+    if (pages) {
       return MAGAZINE_PAGE_PRICES[pages] || null;
     }
   }
 
   // Фотожурнал
   if (productType === 'photojournal') {
-    const pages = selectedOptions['Кількість сторінок'];
-    if (pages && typeof pages === 'number') {
+    const pages = readPageCount(selectedOptions['Кількість сторінок']);
+    if (pages) {
       return PHOTOJOURNAL_PAGE_PRICES[pages] || null;
     }
   }
 
   // Журнал з твердою обкладинкою (hard cover variant)
   if (productType === 'photojournal-hard') {
-    const pages = selectedOptions['Кількість сторінок'];
-    if (pages && typeof pages === 'number') {
+    const pages = readPageCount(selectedOptions['Кількість сторінок']);
+    if (pages) {
       return PHOTOJOURNAL_HARD_PAGE_PRICES[pages] || null;
     }
   }

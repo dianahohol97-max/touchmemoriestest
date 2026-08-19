@@ -319,6 +319,32 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
         if (!total) return;
         setDynamicPrice(total);
     }, [customProductOptions, product]);
+
+    // Same for the journals (глянцевий журнал + фотожурнал з твердою
+    // обкладинкою). Their page scales live in lib/products, but dynamicPrice
+    // used to be set only from ProductOptionsSelector's onChange — i.e. only
+    // after the customer touched a dropdown. On first paint it stayed null,
+    // so Source 2 was skipped and the price came out as products.price plus
+    // the option surcharge. That works only while products.price matches the
+    // cheapest tier of the scale, and for the hard journal it did not: the
+    // column held 825 ₴ (16 сторінок) while the surcharges were anchored to
+    // 675 ₴ (12 сторінок), so every configuration left the page 150 ₴ over —
+    // TM-001202 was ordered and paid at 825 ₴ instead of 675 ₴. Deriving the
+    // price from the scale on every options change makes lib/products the
+    // authority and leaves the DB column as a display fallback only.
+    useEffect(() => {
+        if (!product) return;
+        const slugLower = (product.slug || '').toLowerCase();
+        const isJournal = /magazine|zhurnal|journal/.test(slugLower);
+        if (!isJournal) return;
+
+        const total = getCalculatedPrice(
+            product.slug || '',
+            customProductOptions as Record<string, string | number>
+        );
+        if (!total) return;
+        setDynamicPrice(total);
+    }, [customProductOptions, product]);
     const [personalizationNote, setPersonalizationNote] = useState('');
     const [showPersonalizationInput, setShowPersonalizationInput] = useState(false);
     const [guestbookModalOpen, setGuestbookModalOpen] = useState(false);

@@ -5,6 +5,7 @@ import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { fetchRecentKeycrmOrders, phoneKey, type KeycrmOrder } from '@/lib/automation/keycrm';
 import { isTestOrder } from '@/lib/automation/test-orders';
+import { auditPagePricing, describePricingAudit, PAGE_PRICED_PRODUCTS } from '@/lib/pricing/audit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -101,6 +102,33 @@ type Bucket = {
     countOnly?: boolean;
     hint?: string;
 };
+
+/**
+ * Compare the price list in lib/products against what the site actually
+ * charges, and return one Ukrainian line per disagreement.
+ *
+ * Best-effort like the KeyCRM pull: a failure here must never cost the digest
+ * its order sections, so a broken read is logged and reported as no drift
+ * rather than thrown. The check itself is arithmetic on rows already in
+ * Postgres — no external call, nothing that can hang.
+ */
+async function auditPricingSafely(): Promise<string[]> {
+    try {
+        const supabase = getAdminClient();
+        const { data, error } = await supabase
+            .from('products')
+            .select('slug, name, price, options')
+            .in('slug', PAGE_PRICED_PRODUCTS.map(p => p.slug));
+        if (error) {
+            console.error('[ops-digest] pricing audit could not read products:', error.message);
+            return [];
+        }
+        return describePricingAudit(auditPagePricing(data || []));
+    } catch (err: any) {
+        console.error('[ops-digest] pricing audit failed:', err?.message || err);
+        return [];
+    }
+}
 
 function unauthorized(req: Request) {
     const auth = req.headers.get('authorization');
@@ -541,6 +569,25 @@ export async function GET(request: Request) {
 
         const crm = await fetchRecentKeycrmOrders({ sinceIso: since });
         const buckets = buildBuckets(orders, crm, ordersWithFiles, now);
+
+        // Price drift goes FIRST, above every queue item. A stuck order costs a
+        // day; a wrong price costs money on every sale until somebody notices,
+        // and the last one (hard-cover journal, база 825 ₴ замість 675 ₴) was
+        // only caught because a customer's order looked odd — TM-001202 was
+        // already paid by then. This check is cheap and repeats until fixed.
+        const pricing = await auditPricingSafely();
+        if (pricing.length > 0) {
+            buckets.unshift({
+                title: 'Ціни на сайті розійшлися з прайсом',
+                items: pricing.map(line => {
+                    const split = line.indexOf(': ');
+                    return split > 0
+                        ? { label: line.slice(0, split), sublabel: line.slice(split + 2), waitingHours: 0 }
+                        : { label: line, sublabel: '', waitingHours: 0 };
+                }),
+                hint: 'Поки це не виправлено, кожне замовлення цих товарів іде з неправильною сумою.',
+            });
+        }
 
         const summary = {
             ok: true,

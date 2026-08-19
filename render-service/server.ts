@@ -412,6 +412,35 @@ app.post('/render', async (req, res) => {
     if (!(geometry?.finished?.w > 0)) {
       console.warn(`[render] no finished size for '${sizeKey}' — spreads keep the sheet size and WILL be padded`);
     }
+
+    // ONE finished page in mm, and — the number that actually matters — in
+    // pixels. Hoisted out of the spread loop because every page of a book is
+    // the same size, and because the split below must cut on a page boundary
+    // the loop cannot invent for itself.
+    //
+    // A spread must be measured as TWO WHOLE PAGES, never as one double-width
+    // sheet. mmToPx rounds, and 420 mm does not survive the round trip:
+    //   mmToPx(2 × 210) = round(4960.63) = 4961  ← odd, cannot halve
+    //   2 × mmToPx(210) = 2 × 2480       = 4960  ← two exact pages
+    // With the first form the split gave halves of 2480 and 2481 px, and the
+    // 2481 px one is 210.06 mm. The print partner's checker measures to one
+    // decimal, so every second page came back «ширина 210.1 і не є рівна 210»
+    // and the whole upload was rejected — a travel book and a hard-cover
+    // journal both failed on it. Deriving the spread from the page makes both
+    // halves exactly 2480 px = 210.0 mm.
+    const namedPage = PAGE_MM[sizeKey];
+    const sizePartsMm = sizeKey.split(/[x×]/).map((n) => parseFloat(n));
+    const pageMm = (geometry?.page?.w > 0 && geometry?.page?.h > 0 ? { ...geometry.page } : null)
+      || namedPage
+      || (sizePartsMm.length === 2 && sizePartsMm.every((n) => n > 0)
+        ? { w: sizePartsMm[0] * 10, h: sizePartsMm[1] * 10 }   // '20x30' = centimetres
+        : null);
+    if (!pageMm) {
+      throw new Error(`cannot derive page size from '${sizeKey}' — refusing to guess bleed`);
+    }
+    const pagePxW = mmToPx(pageMm.w);
+    const pagePxH = mmToPx(pageMm.h);
+
     const pages = project?.pages_data || [];
     const spreadCount = Math.ceil((pages.length - 1) / 2) + 1; // cover + content spreads
 
@@ -428,12 +457,22 @@ app.post('/render', async (req, res) => {
     for (let spread = 0; spread < spreadCount; spread++) {
       const isCover = spread === 0;
       const mm = isCover ? dims.cover : dims.spread;
-      const pxW = mmToPx(mm.w);
-      const pxH = mmToPx(mm.h);
+      // A finished spread is two whole pages, so measure it as two whole pages
+      // — same reason as pagePxW above. Rounding the 420 mm spread on its own
+      // put the target at 4961 px against 4960 px of content, which then read
+      // as a stray pixel of «SYNTHESIZED edge» on every travel book. The
+      // padded fallback (no finished size known → spread keeps the sheet)
+      // still measures the sheet, because there the padding is the point.
+      const spreadIsTwoPages = !isCover && geometry?.finished?.w > 0;
+      const pxW = spreadIsTwoPages ? 2 * pagePxW : mmToPx(mm.w);
+      const pxH = spreadIsTwoPages ? pagePxH : mmToPx(mm.h);
 
-      // The /print page sizes one spread to printPageW per HALF page. A spread is
-      // two halves, so each half is pxW/2. The page reads ?w to fix that width.
-      const halfW = Math.round(pxW / 2);
+      // The /print page sizes one spread to printPageW per HALF page. Ask it
+      // for the page's OWN pixel width, not half the spread: round(pxW / 2)
+      // was 2481 for an A4 page, so the capture came back one pixel per half
+      // too wide and was then squashed onto 4961 px. Passing pagePxW makes the
+      // capture 2 × 2480 = exactly the content size, with nothing resampled.
+      const halfW = isCover ? Math.round(pxW / 2) : pagePxW;
 
       // Fetch the browser per spread: recycleBrowserIfNeeded() may have closed
       // the one captured before the loop, and a stale handle throws
@@ -498,20 +537,10 @@ app.post('/render', async (req, res) => {
         // content pixels (aspect preserved), then grow the edges outward by
         // replicating the border pixels — exactly what the client-side
         // extendBleed() does, and what a printer expects to trim away.
-        const named = PAGE_MM[sizeKey];
-        const sizeParts = sizeKey.split(/[x×]/).map((n) => parseFloat(n));
-        // Same source as the sheet above: the app's derived geometry first, the
-        // local parse only as a fallback. Deriving the finished page here and
-        // the sheet there from two different tables is exactly how the two
-        // drifted apart.
-        const pageMm = (geometry?.page?.w > 0 && geometry?.page?.h > 0 ? { ...geometry.page } : null)
-          || named
-          || (sizeParts.length === 2 && sizeParts.every((n) => n > 0)
-            ? { w: sizeParts[0] * 10, h: sizeParts[1] * 10 }   // '20x30' = centimetres
-            : null);
-        if (!pageMm) {
-          throw new Error(`cannot derive page size from '${sizeKey}' — refusing to guess bleed`);
-        }
+        // pageMm / pagePxW / pagePxH are derived once above the loop — the
+        // split has to cut on a page boundary, so the page size cannot be a
+        // per-spread local.
+        //
         // The COVER is one sheet with its own proportion (470×328 for a 20×30),
         // NOT two pages side by side: the extra area is fold-in that wraps the
         // board, and the customer designs on that whole sheet. Treating it as
@@ -520,10 +549,11 @@ app.post('/render', async (req, res) => {
         // carries a squashed second copy of the artwork. /print now lays the
         // cover out at its own size, so the capture already IS the target and
         // nothing is added.
-        const contentMmW = isCover ? mm.w : 2 * pageMm.w;   // spread = two pages wide
-        const contentMmH = isCover ? mm.h : pageMm.h;
-        const contentPxW = mmToPx(contentMmW);
-        const contentPxH = mmToPx(contentMmH);
+        // Two WHOLE pages, not one 420 mm sheet — see the pagePxW comment
+        // above. mmToPx(2 × w) and 2 × mmToPx(w) differ by a pixel on A4, and
+        // that pixel is what the print partner's checker rejects.
+        const contentPxW = isCover ? mmToPx(mm.w) : 2 * pagePxW;
+        const contentPxH = isCover ? mmToPx(mm.h) : pagePxH;
 
         // The capture must match the CONTENT aspect (not the bleed target).
         const capturedAspect = (probe.width || 1) / (probe.height || 1);
@@ -651,11 +681,13 @@ app.post('/render', async (req, res) => {
           // Travel books / magazines: cut the clean 2-page content down the
           // gutter and bleed each half on all four sides, so the workshop gets
           // one 300-DPI file per physical page instead of a 2-page spread.
-          const halfW = Math.floor(contentPxW / 2);
+          // Both halves are exactly one page wide. contentPxW is 2 × pagePxW
+          // by construction, so there is no odd pixel left over to hand to one
+          // side — which is what made every second file 210.1 mm.
           const leftPageNo = (spread - 1) * 2 + 1;   // spread 1 → pages 1,2; spread 2 → 3,4; …
           const halves = [
-            { left: 0, width: halfW, pageNo: leftPageNo },
-            { left: halfW, width: contentPxW - halfW, pageNo: leftPageNo + 1 },
+            { left: 0, width: pagePxW, pageNo: leftPageNo },
+            { left: pagePxW, width: contentPxW - pagePxW, pageNo: leftPageNo + 1 },
           ];
           for (const h of halves) {
             if (skipPageNos.has(h.pageNo)) {
