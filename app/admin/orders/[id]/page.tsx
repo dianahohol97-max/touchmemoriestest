@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, use } from 'react';
+import { isPrintSetCategory } from '@/lib/print/print-set-categories';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import DesignerProjectBlock from './DesignerProjectBlock';
@@ -2344,10 +2345,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             // so split the section per product and give each its
                             // own ZIP. Single-product orders collapse back to one
                             // section, exactly as before.
-                            // Same category list the imposition sheets use
-                            // (lib/print/generate-sheets PRINT_CATEGORIES).
-                            const isPrintSetFile = (f: any) =>
-                                ['photo-print', 'polaroid-print', 'photomagnets'].includes((f.category || '').toLowerCase());
+                            const isPrintSetFile = (f: any) => isPrintSetCategory(f.category);
                             const exportBook = exportFiles.filter((f: any) => !isPrintSetFile(f));
                             const exportPrints = exportFiles.filter(isPrintSetFile);
                             const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);

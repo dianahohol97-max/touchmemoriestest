@@ -1,12 +1,13 @@
 import Jimp from 'jimp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { PRINT_SIZES, mmToPx, bestGrid, detectSize } from './imposition';
+import { PRINT_SET_CATEGORIES } from './print-set-categories';
 
 // Customer-uploaded, print-ready per-photo exports live in order_files under
-// these categories. Standard sizes (10×15 etc.) are printed one-up at the lab
-// and are intentionally skipped here — only the tile sizes get ganged onto a
-// sheet (detectSize returns null for anything else).
-const PRINT_CATEGORIES = ['photo-print', 'polaroid-print', 'photomagnets'];
+// the shared print-set categories. Standard sizes (10×15 etc.) are printed
+// one-up at the lab and are intentionally skipped here — only the tile sizes
+// get ganged onto a sheet (detectSize returns null for anything else).
+const PRINT_CATEGORIES = [...PRINT_SET_CATEGORIES];
 const SHEET_CATEGORY = 'print_sheet';
 const BUCKET = 'order-files';
 const JPEG_QUALITY = 92;

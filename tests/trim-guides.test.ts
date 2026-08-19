@@ -159,3 +159,19 @@ describe('лінії загину обкладинки', () => {
         expect(h).toBe(Math.round(1040 * 328 / 470));    // 726 — пропорція аркуша
     });
 });
+
+describe('категорії друк-наборів — один список на всіх', () => {
+    // Значення зафіксовані літералами: саме ці рядки пише PhotoPrintConstructor
+    // у дескриптор кожного відбитка (photomagnets / polaroid-print /
+    // photo-print), і саме за ними адмінка відділяє «Фотодрук — готові
+    // відбитки» від «Макету для друку», а generate-sheets складає аркуші.
+    it('список містить рівно три канонічні категорії конструктора', async () => {
+        const { PRINT_SET_CATEGORIES, isPrintSetCategory } = await import('@/lib/print/print-set-categories');
+        expect([...PRINT_SET_CATEGORIES].sort()).toEqual(['photo-print', 'photomagnets', 'polaroid-print']);
+        expect(isPrintSetCategory('photo-print')).toBe(true);
+        expect(isPrintSetCategory('Photo-Print')).toBe(true);
+        expect(isPrintSetCategory('book-spread')).toBe(false);
+        expect(isPrintSetCategory('print_sheet')).toBe(false);
+        expect(isPrintSetCategory(null)).toBe(false);
+    });
+});
