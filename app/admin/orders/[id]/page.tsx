@@ -2335,6 +2335,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         )}
                         {uploadedFiles.length > 0 && (() => {
                             const exportFiles = uploadedFiles.filter((f: any) => f.isExport);
+                            // A mixed order (photobook + photo prints in one, e.g.
+                            // TM-001208) registers BOTH products' print files as
+                            // export — 11 book files and 58 prints landed in one
+                            // «Макет для друку (69)» pile and one ZIP, and Diana
+                            // could not tell which files were the photo-print
+                            // item at all. file_category already separates them,
+                            // so split the section per product and give each its
+                            // own ZIP. Single-product orders collapse back to one
+                            // section, exactly as before.
+                            // Same category list the imposition sheets use
+                            // (lib/print/generate-sheets PRINT_CATEGORIES).
+                            const isPrintSetFile = (f: any) =>
+                                ['photo-print', 'polaroid-print', 'photomagnets'].includes((f.category || '').toLowerCase());
+                            const exportBook = exportFiles.filter((f: any) => !isPrintSetFile(f));
+                            const exportPrints = exportFiles.filter(isPrintSetFile);
                             const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);
                             const isOriginal = (f: any) => (f.category || '').toLowerCase() === 'original';
                             const originals = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && isOriginal(f));
@@ -2519,24 +2534,42 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     </div>
 
-                                    {exportFiles.length > 0 && (
+                                    {exportBook.length > 0 && (
                                         <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                    <Printer size={13} /> Макет для друку ({exportFiles.length}) · готовий
+                                                    <Printer size={13} /> Макет для друку ({exportBook.length}) · готовий
                                                 </div>
                                                 {/* The toolbar's "Завантажити всі" ZIP holds EVERYTHING — print
                                                     files, originals and client photos in one archive. The
                                                     workshop needs only the print set, so give it its own button
                                                     next to the files it actually covers. */}
-                                                <button onClick={() => downloadAllAsZip(exportFiles, 'макет')} disabled={downloadingZip}
+                                                <button onClick={() => downloadAllAsZip(exportBook, 'макет')} disabled={downloadingZip}
                                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                                     {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                                                     Тільки макет (ZIP)
                                                 </button>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
-                                                {exportFiles.map((f: any) => thumb(f, true))}
+                                                {exportBook.map((f: any) => thumb(f, true))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {exportPrints.length > 0 && (
+                                        <div style={{ marginBottom: 12, padding: 10, background: '#fefce8', border: '1px solid #fde68a', borderRadius: 8 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                    <Printer size={13} /> Фотодрук — готові відбитки ({exportPrints.length})
+                                                </div>
+                                                <button onClick={() => downloadAllAsZip(exportPrints, 'фотодрук')} disabled={downloadingZip}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#fcd34d' : '#d97706', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                    Фотодрук (ZIP)
+                                                </button>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                {exportPrints.map((f: any) => thumb(f, true))}
                                             </div>
                                         </div>
                                     )}
