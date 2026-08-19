@@ -199,6 +199,8 @@ Photobooks are priced from one table (`photobook_prices`) and have no second cop
 
 The two agree **only while `products.price` equals the cheapest tier of the scale.** Nothing enforced that, and on 2026-08 the hard-cover journal gained a 12-сторінковий tier at 675 ₴ while the column stayed at its old 825 ₴ — every configuration of that product went out exactly 150 ₴ over until TM-001202 was paid at 825 ₴ instead of 675 ₴.
 
+**Migration to a single source is underway** (started 2026-08-19). `page_product_prices` (Supabase) holds the same 87 tiers as absolute prices — one row = slug × page_count × ₴, seeded by script from `lib/products.ts`, mirrored to the hryvnia at creation (SQL cross-check: 0 mismatches). `GET /api/pricing/page-products` serves it with the same 60s-revalidate contract as the photobook route. **Reads are NOT switched yet** — the site still prices from the old pair, while the audit now compares all THREE copies twice a day in the ops digest (`tableDrift` / `tableMissing` / `tableExtra` in the report). Switching reads (product page, selector, constructor, catalog cards) is the next step, only after several days of clean three-way audit.
+
 Two things now hold it together:
 
 - **`lib/pricing/audit.ts`** — pure; recomputes both halves for every tier of every page-priced product and reports each hryvnia of disagreement. When all tiers are off by the same amount it names the correct база, so the report is an instruction and not a list of symptoms. Read it from `GET /api/admin/pricing/audit` (staff-only) after any price change, and it runs inside the twice-daily **ops digest**, where drift is pinned above every order bucket.

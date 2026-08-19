@@ -194,3 +194,81 @@ describe('стійкість до кривих даних', () => {
         expect(auditPagePricing(rows).drift).toEqual([]);
     });
 });
+
+describe('третя копія — таблиця page_product_prices', () => {
+    /** Дзеркальний вміст таблиці, згенерований зі шкал у коді. */
+    const mirrorTable = () => {
+        const rows: { product_slug: string; page_count: number; price: number }[] = [];
+        for (const p of PAGE_PRICED_PRODUCTS) {
+            for (const pages of Object.keys(p.scale).map(Number)) {
+                rows.push({ product_slug: p.slug, page_count: pages, price: p.scale[pages] });
+            }
+        }
+        return rows;
+    };
+
+    it('дзеркальна таблиця не породжує жодного зауваження', () => {
+        const report = auditPagePricing(CORRECT_ROWS(), mirrorTable());
+        expect(report.tableChecked).toBe(true);
+        expect(report.tableDrift).toEqual([]);
+        expect(report.tableMissing).toEqual([]);
+        expect(report.tableExtra).toEqual([]);
+        expect(isPricingClean(report)).toBe(true);
+    });
+
+    it('без рядків таблиці аудит чесно каже, що її не дивився', () => {
+        const report = auditPagePricing(CORRECT_ROWS());
+        expect(report.tableChecked).toBe(false);
+        // Стара пара чиста — і звіт лишається чистим: відсутність даних
+        // таблиці не вигадує проблему, але й не вдає перевірку.
+        expect(isPricingClean(report)).toBe(true);
+    });
+
+    it('зсунута ціна в таблиці названа поіменно і валить clean', () => {
+        const table = mirrorTable().map(r =>
+            r.product_slug === 'travelbook-20x30' && r.page_count === 24
+                ? { ...r, price: 1200 }
+                : r);
+        const report = auditPagePricing(CORRECT_ROWS(), table);
+        expect(report.tableDrift).toEqual([{
+            slug: 'travelbook-20x30',
+            label: 'Travel Book',
+            pages: 24,
+            table: 1200,
+            code: 1125,
+        }]);
+        expect(isPricingClean(report)).toBe(false);
+        expect(describePricingAudit(report).join(' ')).toContain('page_product_prices');
+    });
+
+    it('тариф, якого в таблиці бракує, і зайвий тариф — окремі списки', () => {
+        const table = mirrorTable()
+            .filter(r => !(r.product_slug === 'fotozhurnal-tverd-obkladynka' && r.page_count === 14))
+            .concat([{ product_slug: 'personalized-glossy-magazine', page_count: 90, price: 3000 }]);
+        const report = auditPagePricing(CORRECT_ROWS(), table);
+        expect(report.tableMissing).toEqual([{
+            slug: 'fotozhurnal-tverd-obkladynka',
+            label: 'Фотожурнал з твердою обкладинкою',
+            pages: [14],
+        }]);
+        expect(report.tableExtra).toEqual([{
+            slug: 'personalized-glossy-magazine',
+            label: 'Глянцевий журнал з м\'якою обкладинкою',
+            pages: [90],
+        }]);
+        expect(isPricingClean(report)).toBe(false);
+    });
+
+    it('порожня таблиця це не «чисто», це все тарифи відсутні', () => {
+        const report = auditPagePricing(CORRECT_ROWS(), []);
+        expect(report.tableChecked).toBe(true);
+        expect(report.tableMissing).toHaveLength(PAGE_PRICED_PRODUCTS.length);
+        expect(isPricingClean(report)).toBe(false);
+    });
+
+    it('ціна рядком з бази рахується числом', () => {
+        const table = mirrorTable().map(r => ({ ...r, price: `${r.price}.00` })) as any;
+        const report = auditPagePricing(CORRECT_ROWS(), table);
+        expect(report.tableDrift).toEqual([]);
+    });
+});

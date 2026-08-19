@@ -90,6 +90,24 @@ export type PricingAuditReport = {
     cleanProducts: string[];
     /** Suggested база for each product whose surcharges are self-consistent. */
     suggestedBase: Array<{ slug: string; label: string; current: number; shouldBe: number }>;
+    /**
+     * Третя копія — таблиця page_product_prices (майбутнє єдине джерело).
+     * Поки читання не перемкнули, вона живе під цим наглядом: кожен рядок,
+     * що розійшовся зі шкалою в коді, і кожен тариф, якого бракує чи який
+     * зайвий. Порожні масиви + tableChecked=true — таблиця дзеркальна.
+     * tableChecked=false — рядків таблиці аудиту не передали (старий виклик),
+     * і про таблицю звіт свідомо мовчить, а не вдає, що вона чиста.
+     */
+    tableChecked: boolean;
+    tableDrift: Array<{ slug: string; label: string; pages: number; table: number; code: number }>;
+    tableMissing: Array<{ slug: string; label: string; pages: number[] }>;
+    tableExtra: Array<{ slug: string; label: string; pages: number[] }>;
+};
+
+export type PageProductPriceTableRow = {
+    product_slug: string;
+    page_count: number;
+    price: number | string;
 };
 
 function pagesOptionOf(row: PricingProductRow): Array<{ pages: number; surcharge: number }> {
@@ -112,8 +130,16 @@ function pagesOptionOf(row: PricingProductRow): Array<{ pages: number; surcharge
  *
  * `rows` is whatever `select slug, name, price, options from products` returns
  * — the audit picks out the slugs it knows and ignores the rest.
+ *
+ * `tableRows`, коли передані, — вміст page_product_prices: третя копія цін,
+ * майбутнє єдине джерело. Її звіряємо з шкалою в коді окремими полями звіту
+ * (tableDrift / tableMissing / tableExtra), щоб перед перемиканням читання
+ * було чорним по білому видно, що таблиця дзеркальна.
  */
-export function auditPagePricing(rows: PricingProductRow[]): PricingAuditReport {
+export function auditPagePricing(
+    rows: PricingProductRow[],
+    tableRows?: PageProductPriceTableRow[],
+): PricingAuditReport {
     const bySlug = new Map<string, PricingProductRow>();
     for (const row of rows || []) {
         if (row?.slug) bySlug.set(row.slug, row);
@@ -126,7 +152,45 @@ export function auditPagePricing(rows: PricingProductRow[]): PricingAuditReport 
         missingProducts: [],
         cleanProducts: [],
         suggestedBase: [],
+        tableChecked: tableRows !== undefined,
+        tableDrift: [],
+        tableMissing: [],
+        tableExtra: [],
     };
+
+    if (tableRows !== undefined) {
+        const tableBySlug = new Map<string, Map<number, number>>();
+        for (const r of tableRows || []) {
+            if (!r?.product_slug) continue;
+            const m = tableBySlug.get(r.product_slug) ?? new Map<number, number>();
+            m.set(Number(r.page_count), Number(r.price));
+            tableBySlug.set(r.product_slug, m);
+        }
+        for (const product of PAGE_PRICED_PRODUCTS) {
+            const table = tableBySlug.get(product.slug) ?? new Map<number, number>();
+            const scalePages = Object.keys(product.scale).map(Number).sort((a, b) => a - b);
+
+            const missing = scalePages.filter(p => !table.has(p));
+            if (missing.length) {
+                report.tableMissing.push({ slug: product.slug, label: product.label, pages: missing });
+            }
+            const extra = [...table.keys()].filter(p => product.scale[p] === undefined).sort((a, b) => a - b);
+            if (extra.length) {
+                report.tableExtra.push({ slug: product.slug, label: product.label, pages: extra });
+            }
+            for (const pages of scalePages) {
+                const tablePrice = table.get(pages);
+                if (tablePrice === undefined || tablePrice === product.scale[pages]) continue;
+                report.tableDrift.push({
+                    slug: product.slug,
+                    label: product.label,
+                    pages,
+                    table: tablePrice,
+                    code: product.scale[pages],
+                });
+            }
+        }
+    }
 
     for (const product of PAGE_PRICED_PRODUCTS) {
         const row = bySlug.get(product.slug);
@@ -196,7 +260,10 @@ export function isPricingClean(report: PricingAuditReport): boolean {
     return report.drift.length === 0
         && report.missingInDb.length === 0
         && report.missingInScale.length === 0
-        && report.missingProducts.length === 0;
+        && report.missingProducts.length === 0
+        && report.tableDrift.length === 0
+        && report.tableMissing.length === 0
+        && report.tableExtra.length === 0;
 }
 
 /** Ukrainian summary for the ops digest and the Telegram alert. */
@@ -224,6 +291,18 @@ export function describePricingAudit(report: PricingAuditReport): string[] {
     }
     for (const slug of report.missingProducts) {
         lines.push(`Товар ${slug} очікується аудитом, але його нема в базі.`);
+    }
+    for (const d of report.tableDrift) {
+        lines.push(
+            `${d.label}, ${d.pages} стор.: таблиця page_product_prices каже ${d.table} ₴, `
+            + `а прайс у коді ${d.code} ₴ — до перемикання читання це треба звести.`
+        );
+    }
+    for (const m of report.tableMissing) {
+        lines.push(`${m.label}: у таблиці page_product_prices бракує тарифів на ${m.pages.join(', ')} стор.`);
+    }
+    for (const m of report.tableExtra) {
+        lines.push(`${m.label}: у таблиці page_product_prices є зайві тарифи на ${m.pages.join(', ')} стор., яких прайс не знає.`);
     }
     return lines;
 }

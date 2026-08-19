@@ -123,7 +123,20 @@ async function auditPricingSafely(): Promise<string[]> {
             console.error('[ops-digest] pricing audit could not read products:', error.message);
             return [];
         }
-        return describePricingAudit(auditPagePricing(data || []));
+        // Третя копія — page_product_prices, майбутнє єдине джерело. Її звірка
+        // теж best-effort: зламане читання таблиці не сміє з'їсти звірку
+        // перших двох копій, тож передаємо undefined і аудит чесно каже, що
+        // таблицю цього разу не дивився.
+        let tableRows: { product_slug: string; page_count: number; price: number }[] | undefined;
+        const { data: tData, error: tError } = await supabase
+            .from('page_product_prices')
+            .select('product_slug, page_count, price');
+        if (tError) {
+            console.error('[ops-digest] pricing audit could not read page_product_prices:', tError.message);
+        } else {
+            tableRows = tData || [];
+        }
+        return describePricingAudit(auditPagePricing(data || [], tableRows));
     } catch (err: any) {
         console.error('[ops-digest] pricing audit failed:', err?.message || err);
         return [];

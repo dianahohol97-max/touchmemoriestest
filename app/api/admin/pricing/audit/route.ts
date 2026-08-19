@@ -36,7 +36,17 @@ export async function GET() {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const report = auditPagePricing(data || []);
+    // Третя копія — page_product_prices. Тут, на ручному роуті, помилка її
+    // читання ПОКАЗУЄТЬСЯ (на відміну від best-effort у ops-digest): людина
+    // відкрила перевірку — людина має побачити, що таблицю прочитати не вдалось.
+    const { data: tableRows, error: tableError } = await supabase
+        .from('page_product_prices')
+        .select('product_slug, page_count, price');
+    if (tableError) {
+        return NextResponse.json({ error: `page_product_prices: ${tableError.message}` }, { status: 500 });
+    }
+
+    const report = auditPagePricing(data || [], tableRows || []);
     return NextResponse.json({
         clean: isPricingClean(report),
         summary: describePricingAudit(report),
