@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrmTagIdByName } from '@/lib/automation/keycrm';
 import { fetchConfirmedMap, mapKey, sizeKey, itemSlug } from '@/lib/automation/keycrm-catalogue';
-import { readOrderMoney, describeMoney, isReadyForCrm } from '@/lib/automation/keycrm-money';
+import { readOrderMoney, describeMoney, shouldPushToCrm } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -561,15 +561,17 @@ export async function pushOrderToKeycrm(
 /**
  * Orders that still need to go to the CRM, newest first.
  *
- * An order qualifies once there is real work behind it — money in hand or a
- * manager's confirmation — not once it is fully paid. Waiting for full payment
- * would keep every cash-on-delivery order out of the CRM until after it had
- * been delivered, which is the one point at which the CRM is no longer useful
- * for it. Orders that started as an Instagram conversation arrive here the same
- * way, because they are entered and paid through the site.
+ * Payment is not a condition (Diana, 2026-08-19). Every order goes over — paid,
+ * part-paid, or unpaid — because an unpaid order is exactly the one somebody
+ * has to follow up on, and the CRM is where the team does that. Holding it back
+ * until the money arrives hides it during the hours when a call would still
+ * rescue the sale, and cash-on-delivery orders would otherwise reach the CRM
+ * only after delivery, the one moment it stops being useful.
  *
- * A bare unpaid cart is still excluded: it may never be completed, and filling
- * the CRM with those would recreate the noise this is meant to remove.
+ * What is still excluded is what was never a sale: cancelled and refunded
+ * orders (the query), mirrored copies the CRM already owns, and test personas.
+ * The money story travels in the comment, and no payment is filed until the
+ * money is genuinely in — see readOrderMoney.
  *
  * The floor is the later of the sync start date and the sweep window, so the
  * historical backlog — already carried over by hand — is never a candidate.
@@ -585,7 +587,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, customer_name, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
+        .select('id, order_number, source, customer_name, customer_phone, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
         // Dated on creation, not on payment: a cash-on-delivery order may never
         // get a paid_at at all, and filtering on it would hide those orders from
         // the sweep entirely.
@@ -596,7 +598,51 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
 
     if (error) throw error;
 
-    return (data || [])
+    const rows = data || [];
+
+    // Abandoned retries must not become their own CRM cards.
+    //
+    // A customer who reaches the payment page, closes it and orders again leaves
+    // TWO rows for one sale — the same phone, the same total, minutes apart, one
+    // unpaid and one paid. While only paid orders travelled this was invisible;
+    // now that unpaid ones do, the abandoned attempt would open a second card
+    // beside the real one. The data already holds the pattern: TM-001193 and
+    // TM-001194 (Ілля Косов, 720 ₴, 23 seconds apart, second one paid and synced
+    // as 13876), TM-001130 and TM-001131 (Марія Дудар, 1025 ₴, same minute).
+    //
+    // So an unpaid order is skipped when a twin — same phone, same total, within
+    // twenty minutes — has either been paid or already reached the CRM. The twin
+    // IS the order; this row is the discarded attempt at it.
+    const TWIN_WINDOW_MS = 20 * 60 * 1000;
+    const twinKey = (o: any) =>
+        `${String(o?.customer_phone || '').replace(/\D/g, '').slice(-9)}|${Number(o?.total) || 0}`;
+    const crmIdOf = (o: any) => (o?.custom_attributes as any)?.keycrm?.order_id;
+    const isSupersededAttempt = (o: any): boolean => {
+        const phoneDigits = String(o?.customer_phone || '').replace(/\D/g, '');
+        if (phoneDigits.length < 9) return false; // no phone, no reliable twin
+        const key = twinKey(o);
+        const at = new Date(o?.created_at).getTime();
+        const twins = rows.filter(c =>
+            c.id !== o.id &&
+            twinKey(c) === key &&
+            Math.abs(new Date(c.created_at).getTime() - at) <= TWIN_WINDOW_MS,
+        );
+        if (!twins.length) return false;
+
+        // A twin that already has a CRM card settles it for either kind of row:
+        // the sale is in the CRM, and this is the spare attempt. Verified against
+        // the live data — TM-001131 is PAID yet its sale already sits on a card
+        // from an earlier attempt, so exempting paid rows would have duplicated
+        // it. That was the first version of this rule, and it was wrong.
+        if (twins.some(crmIdOf)) return true;
+
+        // Otherwise only an unpaid row yields, and only to a paid twin. Two paid
+        // twins with no card yet are left alone: dropping one could lose a real
+        // sale, and a duplicate card is the cheaper mistake to undo.
+        return o?.payment_status !== 'paid' && twins.some(c => c.payment_status === 'paid');
+    };
+
+    return rows
         .filter(o => !(o.custom_attributes as any)?.keycrm?.order_id)
         // A mirrored order is a read-only copy of an order that already lives in
         // the CRM. Pushing it would create a second card for the same sale.
@@ -604,6 +650,11 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // Test personas («Киця Кицюня») place orders only to check that the
         // site works. They are never real sales and never go to the CRM.
         .filter(o => !isTestOrder(o))
-        .filter(isReadyForCrm)
+        // An order of 0 ₴ is not an unpaid order, it is an empty one — a cart
+        // that never got a product. Diana asked for unpaid orders in the CRM,
+        // not for empty rows (TM-001212, TM-001163 are both 0 ₴).
+        .filter(o => (Number(o.total) || 0) > 0)
+        .filter(o => !isSupersededAttempt(o))
+        .filter(shouldPushToCrm)
         .slice(0, params.limit);
 }

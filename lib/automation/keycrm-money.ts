@@ -78,9 +78,13 @@ export function readOrderMoney(order: any): OrderMoney {
     // opened the payment page. Reading it as money in hand said an unpaid order
     // was settled: TM-001203 (2838 ₴, invoice created, never paid) reached the
     // CRM as card 13938 carrying «Оплачено повністю: 2838 грн» while the account
-    // had not seen a hryvnia (Diana, 2026-08-17). It also let the order into the
-    // CRM at all — isReadyForCrm below asks this same function for money in
-    // hand, and a bare unpaid cart is meant to stay out.
+    // had not seen a hryvnia (Diana, 2026-08-17). Worse, the two-way sync then
+    // filed a real 2838 ₴ payment against that card, because it too asks this
+    // function what has arrived.
+    //
+    // Note what this is NOT about: whether the order belongs in the CRM. Unpaid
+    // orders go over as a matter of course (shouldPushToCrm) — they simply go
+    // over honestly, marked as still to collect, with no payment filed.
     //
     // payment_status only ever holds 'paid' or 'pending' (verified across all
     // 546 orders), and no column records a partial receipt on a non-COD order,
@@ -110,6 +114,28 @@ export function readOrderMoney(order: any): OrderMoney {
  * the site and paid through it, so the site sees the money first regardless of
  * where the conversation started.
  */
+/**
+ * Should this order be carried into the CRM?
+ *
+ * Deliberately NOT a money question (Diana, 2026-08-19: «в кі срм переносяться
+ * тільки оплачені замовлення, важливо щоб і не оплачені переносились»). An
+ * unpaid order is precisely the one somebody has to chase, and the CRM is where
+ * the team does the chasing — keeping it on the site until the money lands
+ * means nobody sees it during the hours when following up would still help.
+ *
+ * So every real order goes: paid, half-paid, or not paid at all. What the
+ * caller still filters out is what was never a sale — test personas, mirrored
+ * copies of CRM-owned orders, and cancelled/refunded ones (dropped by the
+ * sweep's own query).
+ *
+ * Kept separate from isReadyForCrm on purpose. That one answers a different
+ * question — has this order become real enough to consume stock — and widening
+ * it would write off shelf inventory for orders that may never be paid.
+ */
+export function shouldPushToCrm(_order: any): boolean {
+  return true;
+}
+
 export function isReadyForCrm(order: any): boolean {
     if (order?.payment_status === 'paid') return true;
 
@@ -168,6 +194,11 @@ export function describeMoney(m: OrderMoney): string {
                 : `Післяплата при отриманні: ${m.cod} грн`,
         ].join('. ');
     }
+
+    // Unpaid orders now reach the CRM as a matter of course, so the nothing-yet
+    // case says so outright instead of «Оплачено 0 грн із 2838 грн» — a manager
+    // opening the card has to see at a glance that this one is still to collect.
+    if (m.received <= 0) return `Не оплачено: до сплати ${m.total} грн`;
 
     return m.outstanding > 0
         ? `Оплачено ${m.received} грн із ${m.total} грн, залишок ${m.outstanding} грн`
