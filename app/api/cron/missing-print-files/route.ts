@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { generateOrderPrintSheets } from '@/lib/print/generate-sheets';
+import { reconcileOrderPageCount } from '@/lib/print/reconcile-page-count';
 
 export const dynamic = 'force-dynamic';
 // Sheet repair below composes JPEGs with Jimp, which needs the Node runtime and
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
   const floor = new Date(now - 72 * 3600_000).toISOString(); // 72h ago
   const ceiling = new Date(now - 1 * 3600_000).toISOString(); // 1h ago
 
-  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0, sheetsRepaired: 0, sheetsPending: 0 };
+  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0, sheetsRepaired: 0, sheetsPending: 0, pagesReconciled: 0 };
 
   const { data: orders, error } = await admin
     .from('orders')
@@ -89,6 +90,20 @@ export async function GET(request: Request) {
     if (!needsFiles) continue;
 
     stats.scanned++;
+
+    // Does the order line still describe the design? A spread added during
+    // checkout leaves the two disagreeing, and the printer follows the design —
+    // see reconcileOrderPageCount. Runs before the flagging below because it is
+    // about a complete order, not a missing one.
+    try {
+        const fixed = await reconcileOrderPageCount(order.id);
+        if (fixed) {
+            stats.pagesReconciled++;
+            console.log('[missing-print-files] pages reconciled', fixed);
+        }
+    } catch (e) {
+        console.error('[missing-print-files] page reconcile failed', order.order_number, e);
+    }
 
     // Already flagged? skip.
     if ((order.notes || '').includes(WARNING_MARKER)) {
