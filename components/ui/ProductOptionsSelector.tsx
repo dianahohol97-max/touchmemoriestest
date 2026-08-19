@@ -269,7 +269,10 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
     },
     {
       name: 'Кількість сторінок',
-      values: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
+      // Read off PHOTO_JOURNAL_HARD, never retyped — same rule as the Travel
+      // Book below. The literal that used to sit here (12/16/20/24…) is what
+      // let the list and the price scale disagree.
+      values: PHOTO_JOURNAL_HARD.pagesAvailable,
       prices: PHOTOJOURNAL_HARD_PAGE_PRICES,
       required: true
     },

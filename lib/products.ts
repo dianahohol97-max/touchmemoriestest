@@ -365,26 +365,24 @@ export const PHOTO_JOURNAL_HARD: PhotoJournalProduct = {
   format: 'A4',
   canvasDimensions: '2480×3508 px',
   productionTime: '5–7 business days',
-  pagesAvailable: [12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80],
-  // Per Diana's price list (May 2026). Hard journal and Travel Book share
-  // the identical scale — both are +100 ₴ over the soft journal at every
-  // page count (12–80).
-  prices: {
-    12: 675,
-    16: 825,
-    20: 975,
-    24: 1125,
-    28: 1275,
-    32: 1425,
-    36: 1575,
-    40: 1725,
-    44: 1875,
-    48: 2025,
-    52: 2150,
-    60: 2350,
-    72: 2650,
-    80: 2900
-  },
+  // The hard journal is sold in two-page steps, exactly like the Travel Book
+  // (Diana, 2026-08-19). Both lists and both scales are now READ off
+  // TRAVEL_BOOK rather than retyped beside it.
+  //
+  // Why they are one number and not two copies: these products are the same
+  // physical book with a different name on the card — same A4 sheet, same
+  // 170 g coated paper, same hard cover, and Diana has priced them the same
+  // to the hryvnia at every page count since May 2026. Two literal copies of
+  // one price list is precisely the shape that already cost real money here.
+  // When the Travel Book gained every even count at a 75 ₴ step, the journal
+  // kept its four-page list, so a 14-page journal was charged the 16-page
+  // price of 825 ₴ and printed with fourteen pages — the same «paid for 24,
+  // received 22» as TM-001195. Sharing the scale makes that impossible.
+  //
+  // If the two ever need to diverge, replace these two lines with a literal
+  // table and say in a comment what pulled them apart.
+  pagesAvailable: TRAVEL_BOOK.pagesAvailable,
+  prices: TRAVEL_BOOK.prices,
   extras: {
     'Lamination': '7 UAH/page',
     'Endpapers': '100 UAH',
