@@ -8,6 +8,7 @@ import { answerFromMemory } from './open-questions';
 import { buildResponsibleLookup } from './responsible';
 import { mirrorSingleKeycrmOrder } from '@/lib/automation/keycrm-mirror';
 import { fetchOrderCardExtras } from '@/lib/automation/keycrm';
+import { answerCatalogueQuestion } from './catalogue-answers';
 
 /**
  * Софія answers questions in the work chats (Diana, 2026-08-11):
@@ -378,6 +379,18 @@ export async function handleWorkQuestion(params: {
     if (/(дизайнер|відповідальн)/iu.test(text) && /(замовлен|черга|дедлайн)/iu.test(text)) {
         const grouped = await buildDesignerQueues(text);
         if (grouped) return grouped;
+    }
+
+    // «Чи доступне гравіювання на фотокнигах з тканинною обкладинкою?» — a
+    // question about the CATALOGUE, not about an order. Софія used to send
+    // these back to the team and ask for an order number, which is the one
+    // thing they do not have: nobody is asking about an order (Diana,
+    // 2026-08-20: «софія ж має доступ до супабейз … і вона точно може
+    // відповідати на такі запитання»). Placed after the order handlers so a
+    // question that names an order still goes there first.
+    {
+        const catalogue = await answerCatalogueQuestion(text);
+        if (catalogue) return catalogue;
     }
 
     const RESP_WORD = /(відповідальн|відп[а-яіїє]*дальн|менеджер|дизайнер|веде(?!\p{L})|(у|в)\s+кого)/iu;
