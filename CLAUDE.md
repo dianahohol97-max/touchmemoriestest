@@ -104,6 +104,10 @@ The photo product editor is the most complex component and the place where bugs 
 
 ---
 
+10. **Polaroid has no finish option, and that is deliberate** (Diana, 2026-08-19). Every sibling in the print family — `photoprint-standard`, `photoprint-nonstandard`, `photomagnets` — carries a «Покриття» option with Глянцеве/Матове. `polaroid-print` carries only «Формат», so polaroid orders arrive with no finish recorded and the admin card shows nothing for it. Asked whether to add the option, Diana said no. **Polaroid is matte by default** — that is the standing answer for production, not something to ask the customer. Don't "fix" the missing option.
+
+---
+
 ## Git workflow
 
 Direct-to-main, no PRs. Standard sequence after code changes:
