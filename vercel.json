@@ -126,7 +126,7 @@
     },
     {
       "path": "/api/cron/campaign-daily-batch",
-      "schedule": "45 13 * * *"
+      "schedule": "0 13 * * *"
     }
   ],
   "ignoreCommand": "bash -c '[ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ] && exit 0 || exit 1'"
