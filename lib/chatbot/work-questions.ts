@@ -1370,7 +1370,7 @@ export async function refreshTaskRecommendations(orderNumbers: string[]): Promis
  * answer.
  */
 /** Everything an order answer can need, in one place. */
-const ORDER_FIELDS = 'id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment, delivery_method, delivery_address';
+const ORDER_FIELDS = 'id, order_number, order_status, payment_status, total, prepaid_amount, customer_name, customer_phone, customer_email, customer_telegram, deadline, ttn, tracking_carrier, created_at, paid_at, with_designer, items, custom_attributes, source, notes, client_comment, delivery_method, delivery_address';
 
 async function answerOrderQuestion(question: string, numbers: string[], chatId?: string): Promise<string | null> {
     const supabase = getAdminClient();
@@ -1518,6 +1518,15 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         `Оплата: ${order.payment_status === 'paid' ? `оплачено${order.paid_at ? ` ${fmtDate(order.paid_at)}` : ''}` : (Number(order.prepaid_amount) > 0 && (order as any).source === 'keycrm' ? `передоплата ${order.prepaid_amount} ₴ із ${order.total} ₴` : 'очікує оплати')}`,
         `Сума: ${order.total} ₴`,
         `Клієнт: ${order.customer_name || '—'}`,
+        // Контакти — ЯВНИМ фактом, і відсутність теж факт. Спитана про пошту
+        // клієнтки з TM-001217 (дизайнерське замовлення, канал «телеграм»,
+        // email порожній), Софія сконструювала правдоподібну адресу з імені —
+        // iryna.sokhan@email.com, якої немає в жодному нашому джерелі, — і
+        // Діана мало не написала на неї клієнтці. Модель вигадує там, де в
+        // фактах діра; рядок «не лишила» цю діру закриває.
+        `Телефон клієнта: ${order.customer_phone || 'не вказано'}`,
+        `Email клієнта: ${(order as any).customer_email || 'клієнт НЕ лишив email (для звʼязку — телефон/телеграм)'}`,
+        (order as any).customer_telegram ? `Telegram клієнта: ${(order as any).customer_telegram}` : '',
         // Delivery, not just its method: «13500 яка країна?» is a normal
         // question and the address is where the answer lives.
         (order as any).delivery_address ? `Доставка: ${(order as any).delivery_address}` : '',
@@ -1565,6 +1574,12 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
             if (!velourCode && cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
             if (!velourCode && order.notes) pick.push(`Нотатки: ${String(order.notes).slice(0, 150)}.`);
             if (pick.length === 1) pick.push('Складу замовлення в системі не видно — відкрий картку.');
+        } else if (/пошт[аиу]\b|email|е-?мейл|мейл|імейл|контакт|телефон|телеграм|telegram/.test(q) && !/нова пошта|новою поштою/.test(q)) {
+            pick.push(`Телефон: ${order.customer_phone || 'не вказано'}.`);
+            pick.push((order as any).customer_email
+                ? `Email: ${(order as any).customer_email}.`
+                : 'Email клієнт не лишив — звʼязок через телефон/телеграм.');
+            if ((order as any).customer_telegram) pick.push(`Telegram: ${(order as any).customer_telegram}.`);
         } else if (/країн|місто|адрес|куди|відділен|нова пошта|получател|одержувач/.test(q)) {
             const address = (order as any).delivery_address;
             pick.push(address ? `Доставка: ${address}.` : 'Адреси доставки в картці немає — скажи, куди дивитися, або уточни в клієнта.');
@@ -1617,6 +1632,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 // reply that neither answers nor asks is what wastes the team's
                 // time, because nobody can tell what to do with it.
                 'Якщо немає ні там, ні там, скажи одним реченням, чого саме бракує в даних, і постав одне конкретне уточнювальне питання колезі — наприклад, попроси код кольору, номер, дату чи назву товару.',
+                'КОНТАКТИ — ЗАЛІЗНЕ ПРАВИЛО: email, телефон, телеграм і адреси наводь ЛИШЕ дослівно скопійовані з фактів або з переписки (тоді назви джерело). НІКОЛИ не складай адресу чи email з імені клієнта. Якщо у фактах сказано, що клієнт не лишив email — саме це і є відповідь.',
                 'Нічого не вигадуй. Не використовуй речення з одного-двох слів.',
             ].join(' '),
             messages: [{
