@@ -32,6 +32,7 @@ interface OrderFormData {
   phone: string
   contactChannel: 'telegram' | 'email' | ''
   contactHandle: string
+  email: string
   coverInscription: string
   coverPhoto: UploadedFile | null
 }
@@ -442,10 +443,10 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
   )
 }
 
-function ContactsStep({ name, lastName, phone, channel, handle, onChange }: { name: string, lastName: string, phone: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
+function ContactsStep({ name, lastName, phone, email, channel, handle, onChange }: { name: string, lastName: string, phone: string, email: string, channel: string, handle: string, onChange: (f: string, v: string) => void }) {
   const channels = [
     { val: 'telegram', label: 'Telegram', desc: "Рекомендовано — найшвидший зв'язок", icon: MessageCircle, badge: true },
-    { val: 'email', label: 'Email', desc: 'Вкажіть свій email нижче', icon: Mail, badge: false },
+    { val: 'email', label: 'Email', desc: 'Писатимемо на пошту, вказану вище', icon: Mail, badge: false },
   ]
   return (
     <div>
@@ -473,6 +474,18 @@ function ContactsStep({ name, lastName, phone, channel, handle, onChange }: { na
             <input value={phone} onChange={e => onChange('phone', e.target.value)} type="tel" placeholder="+380 __ ___ ____" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
           </div>
         </div>
+        {/* Email обовʼязковий і тут (Діана, 2026-08-20): TM-001215/16/17
+            прийшли зовсім без пошти, і клієнтці не було куди слати ні
+            підтвердження, ні посилання на оплату. Канал звʼязку нижче — про
+            те, ДЕ спілкуватися; пошта — про листи, і вона потрібна завжди. */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+            <input value={email} onChange={e => onChange('email', e.target.value)} type="email" placeholder="your@email.com" className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]" />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">На цю адресу надійде підтвердження замовлення та посилання на оплату.</p>
+        </div>
       </div>
       <p className="text-sm font-semibold text-gray-700 mb-3">Зручний канал для зв'язку *</p>
       <div className="space-y-3">
@@ -497,16 +510,17 @@ function ContactsStep({ name, lastName, phone, channel, handle, onChange }: { na
           )
         })}
       </div>
-      {channel && (
+      {channel === 'telegram' && (
         <div className="mt-5">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            {channel === 'telegram' ? 'Ваш Telegram @нікнейм або номер' : 'Ваша Email адреса'}
+            Ваш Telegram @нікнейм або номер
           </label>
           <input
             value={handle}
             onChange={e => onChange('contactHandle', e.target.value)}
-            type={channel === 'email' ? 'email' : 'text'}
-            placeholder={channel === 'telegram' ? '@username або +380...' : 'your@email.com'}
+            type="text"
+            placeholder="@username або +380..."
+
             className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e2d7d]/30 focus:border-[#1e2d7d]"
           />
         </div>
@@ -553,7 +567,8 @@ function ConfirmationStep({ data }: { data: OrderFormData }) {
         <div className="bg-[#f0f2f8] rounded-xl p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Контакти</p>
           <p className="font-medium text-gray-800">{data.name} {data.lastName} · {data.phone}</p>
-          <p className="text-sm text-gray-500">{ch}: {data.contactHandle}</p>
+          <p className="text-sm text-gray-500">Email: {data.email}</p>
+          {data.contactChannel === 'telegram' && <p className="text-sm text-gray-500">{ch}: {data.contactHandle}</p>}
         </div>
       </div>
     </div>
@@ -772,7 +787,7 @@ function OrderForm() {
 
   const [formData, setFormData] = useState<OrderFormData>({
     files: [], comment: '', ownText: '', kalkaText: '', delivery: '', city: '', address: '',
-    name: '', lastName: '', phone: '', contactChannel: '', contactHandle: '',
+    name: '', lastName: '', phone: '', contactChannel: '', contactHandle: '', email: '',
     coverInscription: '', coverPhoto: null,
   })
 
@@ -794,7 +809,10 @@ function OrderForm() {
   const canProceed = () => {
     if (step === 1) return formData.files.length > 0
     if (step === 3) return !!formData.delivery
-    if (step === 4) return !!formData.name && !!formData.lastName && !!formData.phone && !!formData.contactChannel && !!formData.contactHandle
+    if (step === 4) return !!formData.name && !!formData.lastName && !!formData.phone
+      && /.+@.+\..+/.test(formData.email.trim())
+      && !!formData.contactChannel
+      && (formData.contactChannel === 'email' || !!formData.contactHandle)
     return true
   }
 
@@ -901,7 +919,7 @@ function OrderForm() {
           customer_first_name: formData.name,
           customer_last_name: formData.lastName,
           customer_phone: formData.phone,
-          customer_email: formData.contactChannel === 'email' ? formData.contactHandle : null,
+          customer_email: formData.email.trim() || null,
           customer_telegram: formData.contactChannel === 'telegram' ? formData.contactHandle : null,
           with_designer: true,
           items: [{
@@ -923,7 +941,7 @@ function OrderForm() {
           payment_status: 'pending',
           custom_attributes: {
             contact_channel: formData.contactChannel,
-            contact_handle: formData.contactHandle,
+            contact_handle: formData.contactChannel === 'email' ? formData.email.trim() : formData.contactHandle,
             delivery: formData.delivery,
             city: formData.city,
             address: formData.address,
@@ -1234,7 +1252,7 @@ function OrderForm() {
             );
           })()}
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
-          {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
+          {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} email={formData.email} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
           {submitting && progress && progress.total > 0 && (
             <div className="mt-4 bg-blue-50 rounded-lg px-4 py-3">
