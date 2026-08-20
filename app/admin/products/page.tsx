@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { compressImageFile } from '@/lib/compress-upload-image';
+import { uploadViaSignedUrl } from '@/lib/admin/uploadViaSignedUrl';
 import VelourColorToggles from '@/components/admin/VelourColorToggles';
 import { toast } from 'sonner';
 import {
@@ -12,6 +13,44 @@ import {
     Image as ImageIcon, Settings, X,
     Eye, EyeOff, Search, ToggleLeft, ToggleRight, FileText,
 } from 'lucide-react';
+
+/**
+ * Persist a field change through the admin API rather than from the browser.
+ *
+ * Both helpers return an error string, or null on success. They exist for the
+ * reason spelled out above `save()`: a browser UPDATE on `products` runs under
+ * RLS, and an UPDATE that RLS refuses does not raise — it matches zero rows and
+ * returns cleanly, so the panel reports a save that never happened.
+ */
+async function patchProductImages(id: string, images: string[]): Promise<string | null> {
+    try {
+        const res = await fetch(`/api/admin/products/${id}/images`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) return json?.error || `HTTP ${res.status}`;
+        return null;
+    } catch (e: any) {
+        return e?.message || 'мережева помилка';
+    }
+}
+
+async function patchProductFields(id: string, fields: Record<string, unknown>): Promise<string | null> {
+    try {
+        const res = await fetch(`/api/admin/products/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(fields),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json?.ok === false) return json?.error || `HTTP ${res.status}`;
+        return null;
+    } catch (e: any) {
+        return e?.message || 'мережева помилка';
+    }
+}
 
 const UA_TRANSLIT: Record<string, string> = {
     а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ie',ж:'zh',з:'z',и:'y',і:'i',ї:'i',й:'i',
@@ -255,30 +294,32 @@ export default function ProductsAdminPage() {
                 failureReasons.push(msg);
                 continue;
             }
-            const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-            const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-            const { error } = await supabaseClient.storage
-                .from('touch-memories-assets')
-                .upload(path, file, { upsert: true, contentType: file.type || undefined });
-            if (error) {
-                // Common: mime type not in bucket allowlist, RLS denying upload (not admin), or quota.
-                const msg = `${file.name}: ${error.message}`;
-                console.error('[admin upload]', file.name, file.type, file.size, error);
+            try {
+                // Signed URL from the server instead of a direct browser upload.
+                // The direct call ran under storage RLS, which needs is_admin()
+                // to resolve from the session JWT — when it does not, every file
+                // fails with «new row violates row-level security policy».
+                const publicUrl = await uploadViaSignedUrl('product-asset-image', file);
+                uploadedUrls.push(publicUrl);
+            } catch (e: any) {
+                const msg = `${file.name}: ${e?.message || 'помилка завантаження'}`;
+                console.error('[admin upload]', file.name, file.type, file.size, e);
                 toast.error(msg, { id: 'img-upload', duration: 8000 });
                 failureReasons.push(msg);
                 continue;
             }
-            const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
-            uploadedUrls.push(publicUrl);
         }
         if (uploadedUrls.length) {
             const newImages = [...sel.images, ...uploadedUrls];
             upd('images', newImages);
             // Auto-save to DB so user doesn't lose uploads if they close modal without clicking Save
             if (sel.id) {
-                const { error: dbError } = await supabase.from('products').update({ images: newImages }).eq('id', sel.id);
+                // Save through the server route for the same reason the upload
+                // now is: a browser UPDATE is subject to RLS on products, and a
+                // refused UPDATE returns no error, it just matches zero rows.
+                const dbError = await patchProductImages(sel.id, newImages);
                 if (dbError) {
-                    toast.error(`Завантажено, але не збережено: ${dbError.message}`, { id: 'img-upload' });
+                    toast.error(`Завантажено, але не збережено: ${dbError}`, { id: 'img-upload' });
                 } else {
                     setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: newImages } : p));
                     toast.success(`Додано ${uploadedUrls.length} фото ✓ (збережено)`, { id: 'img-upload' });
@@ -359,18 +400,19 @@ export default function ProductsAdminPage() {
         if (!file.type.startsWith('video/')) { toast.error('Оберіть відео файл'); return; }
         if (file.size > 100 * 1024 * 1024) { toast.error('Відео не більше 100MB'); return; }
         toast.loading('Завантаження відео...', { id: 'video-upload' });
-        const ext = file.name.split('.').pop();
-        const path = `products/videos/${Date.now()}.${ext}`;
-        const supabaseClient = createClient();
-        const { error } = await supabaseClient.storage.from('touch-memories-assets').upload(path, file, { upsert: true, cacheControl: '31536000' });
-        if (error) { toast.error('Помилка: ' + error.message, { id: 'video-upload' }); return; }
-        const { data: { publicUrl } } = supabaseClient.storage.from('touch-memories-assets').getPublicUrl(path);
+        let publicUrl: string;
+        try {
+            publicUrl = await uploadViaSignedUrl('product-asset-video', file);
+        } catch (e: any) {
+            toast.error('Помилка: ' + (e?.message || 'не вдалося завантажити'), { id: 'video-upload' });
+            return;
+        }
         upd('video_url', publicUrl);
         // Auto-save to DB so user doesn't lose upload if they close modal without clicking Save
         if (sel.id) {
-            const { error: dbError } = await supabase.from('products').update({ video_url: publicUrl }).eq('id', sel.id);
+            const dbError = await patchProductFields(sel.id, { video_url: publicUrl });
             if (dbError) {
-                toast.error(`Завантажено, але не збережено: ${dbError.message}`, { id: 'video-upload' });
+                toast.error(`Завантажено, але не збережено: ${dbError}`, { id: 'video-upload' });
             } else {
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, video_url: publicUrl } : p));
                 toast.success('Відео завантажено ✓ (збережено)', { id: 'video-upload' });

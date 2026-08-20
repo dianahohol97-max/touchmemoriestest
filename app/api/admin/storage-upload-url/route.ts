@@ -42,6 +42,19 @@ const TARGETS: Record<string, { bucket: string; folder: string; extensions: stri
     folder: 'product-videos',
     extensions: ['mp4', 'mov', 'avi', 'webm'],
   },
+  // The products LIST page (app/admin/products) writes into a different bucket
+  // than the edit form does — touch-memories-assets, which is where every
+  // existing product image actually lives. Both surfaces are kept working.
+  'product-asset-image': {
+    bucket: 'touch-memories-assets',
+    folder: 'products',
+    extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'],
+  },
+  'product-asset-video': {
+    bucket: 'touch-memories-assets',
+    folder: 'products/videos',
+    extensions: ['mp4', 'mov', 'avi', 'webm'],
+  },
 };
 
 export async function POST(request: Request) {
