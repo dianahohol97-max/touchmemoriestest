@@ -185,6 +185,16 @@ export default async function ProductPage({ params }: Props) {
     const variantPrices = (Array.isArray(product.variants) ? (product.variants as any[]) : [])
       .map((v) => Number(v?.price))
       .filter((n) => Number.isFinite(n) && n > 0);
+    // How many distinct buyable configurations the range covers. Products with
+    // `variants` list them outright; page-priced products (magazines, books)
+    // express them as choices inside an option group instead — the glossy
+    // magazine has seventeen page counts, and reporting "2" there understated
+    // the range Google is being shown.
+    const largestOptionGroup = optionGroups.reduce(
+      (max, group) => Math.max(max, Array.isArray(group?.options) ? group.options.length : 0),
+      0,
+    );
+    const offerCount = Math.max(variantPrices.length, largestOptionGroup, 2);
     const lowPrice = Math.min(price, ...(variantPrices.length ? variantPrices : [price]));
     const highPrice = Math.max(price + maxSurcharge, ...(variantPrices.length ? variantPrices : [price]));
     const availability = inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock';
@@ -201,7 +211,7 @@ export default async function ProductPage({ params }: Props) {
             priceCurrency: 'UAH',
             lowPrice: lowPrice.toFixed(2),
             highPrice: highPrice.toFixed(2),
-            offerCount: Math.max(variantPrices.length, 2),
+            offerCount,
             availability,
             itemCondition: 'https://schema.org/NewCondition',
             seller,
