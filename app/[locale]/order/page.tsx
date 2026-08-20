@@ -755,6 +755,14 @@ function OrderForm() {
   // Stable across retries: a retry reuses the same folder and SKIPS files that
   // already made it, instead of re-uploading everything from zero.
   const sessionIdRef = useRef<string>('')
+  // Ідемпотентність між СПРОБАМИ. Фото ретрай пропускає (uploadedRef), а
+  // замовлення інсертилось заново щоразу — Ірина Сохан отримала TM-001215/16/17
+  // за три натискання, бо після створення замовлення падав наступний крок і
+  // текст помилки чесно кликав «спробуйте ще раз». Тепер перший успішний
+  // insert запам'ятовується, і повтор ДОЗАВЕРШУЄ те саме замовлення (файли,
+  // рахунок) замість плодити нові. Той самий принцип, що submitKey у чекауті.
+  const createdOrderRef = useRef<{ id: string; order_number: string } | null>(null)
+  const filesInsertedRef = useRef(false)
   const uploadedRef = useRef<Map<number, { path: string; name: string; size: number; type: string }>>(new Map())
 
   const supabase = createBrowserClient(
@@ -877,7 +885,9 @@ function OrderForm() {
         ? 'Самовивіз — Тернопіль, вул. Омеляна Польового 4а'
         : `Нова Пошта — ${formData.city}${formData.address ? ', ' + formData.address : ''}`
 
-      const { data: order, error: orderError } = await supabase
+      let order = createdOrderRef.current
+      if (!order) {
+      const { data: created, error: orderError } = await supabase
         .from('orders')
         .insert({
           // orders.order_number and orders.delivery_method are NOT NULL with no
@@ -931,8 +941,11 @@ function OrderForm() {
         .single()
 
       if (orderError) throw orderError
+      order = created
+      createdOrderRef.current = created
+      }
 
-      if (order && uploaded.length > 0) {
+      if (order && uploaded.length > 0 && !filesInsertedRef.current) {
         await supabase.from('order_files').insert(
           uploaded.map((it) => ({
             order_id: order.id,
@@ -944,6 +957,7 @@ function OrderForm() {
             bucket_name: 'order-files',
           }))
         )
+        filesInsertedRef.current = true
       }
 
       if (order) { setOrderId(order.id); setOrderNumber(order.order_number) }
