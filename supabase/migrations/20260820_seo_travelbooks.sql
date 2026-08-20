@@ -1,0 +1,90 @@
+-- Travel Book: product page rewrite, three data corrections, and a second wave
+-- of country landing pages.
+--
+-- Applied to Supabase as two migrations, seo_travelbook_product and
+-- seo_travelbook_countries_wave2, reproduced here so the repo stays the record.
+--
+-- ── Data corrections on products.slug = 'travelbook-20x30' ──────────────────
+--
+-- The page contradicted itself in three places at once:
+--
+--   production time   specs said «10–14 робочих днів», while production_time
+--                     and the body both said 8–10. Two sources against one.
+--   urgency label     options «Терміновість» offered «Стандартна (5–8 днів)»,
+--                     a copy-paste from the glossy magazine, which is genuinely
+--                     5–8. Travel Book is not.
+--   page lamination   specs said «+5 ₴/стор» while options carry per_page 7 and
+--                     the body says 7 ₴. The charged price is 7; specs were the
+--                     outlier, so a customer could read 5 and be billed 7.
+--
+-- Also trimmed the trailing space in products.name («Travel Book ») and filled
+-- the empty sku.
+--
+-- ── SEO on the product ──────────────────────────────────────────────────────
+--
+-- The body was 776 characters and was mostly a price list duplicating the
+-- configurator, in bullet form, which breaks the copy rules as well. It is now
+-- a real page: what goes inside a travel book, how to pick a page count, what
+-- lamination and the endpaper print are for, and an FAQ. Non-Ukrainian locales
+-- had no meta_title or meta_description at all and now do.
+--
+-- ── Country landings ────────────────────────────────────────────────────────
+--
+-- Eleven country pages already existed (Італія, Іспанія, Франція, Греція,
+-- Туреччина, Єгипет, Грузія, Португалія, Хорватія, Чорногорія, Карпати). Six
+-- more are added here, chosen from what the 2026 Ukrainian outbound research
+-- names as top destinations that we did not cover: Польща, Чехія, Німеччина,
+-- Кіпр, Болгарія, Албанія. Молдова and Китай appear in the same research but
+-- are skipped — neither carries meaningful travel-book intent.
+--
+-- Each landing follows the shape the existing eleven use: plain-text intro split
+-- into paragraphs on blank lines (the route renders it as <p>, NOT as HTML), a
+-- four-item faq that the route turns into FAQPage structured data, and
+-- product_slugs pointing at the one Travel Book product. FAQ answers are written
+-- country-specific rather than boilerplate, so seventeen pages do not end up
+-- sharing one answer set.
+--
+-- These are Ukrainian-only, matching the existing eleven. Translations for the
+-- country landings are a separate pass and are still missing across all
+-- seventeen — see the note at the end of this file.
+--
+-- A companion code change in app/[locale]/category/[slug]/page.tsx drops the
+-- `kind = 'subcategory'` filter, because the category page linked to none of
+-- these landings and they were orphaned from internal linking.
+--
+-- Copy rules applied (CLAUDE.md + brand guide v1.1): "ти" not "Ви", no bullet
+-- lists, no one- or two-word sentences.
+--
+-- Prices named in the copy match products.options as of this migration:
+-- 12 pages 675 ₴, page lamination 7 ₴ per page, endpaper print 100 ₴, QR 50 ₴,
+-- rush +30%.
+
+-- ── Product ─────────────────────────────────────────────────────────────────
+-- Applied as migration `seo_travelbook_product`. See Supabase migration history
+-- for the full statement; it sets name, sku, meta_title, meta_description,
+-- short_description, description, specs, the options urgency label, and adds
+-- meta_title / meta_description / short_description to en, pl, ro and de.
+
+-- ── Country landings, wave 2 ────────────────────────────────────────────────
+-- Applied as migration `seo_travelbook_countries_wave2`. Inserts the six rows
+-- below into landing_pages, guarded by NOT EXISTS on (category_slug, occasion)
+-- so a re-run cannot duplicate them:
+--
+--   travelbooks / polshcha     sort_order 120
+--   travelbooks / chekhiya     sort_order 130
+--   travelbooks / nimechchyna  sort_order 140
+--   travelbooks / kipr         sort_order 150
+--   travelbooks / bolhariya    sort_order 160
+--   travelbooks / albaniya     sort_order 170
+--
+-- Verification after applying: seventeen active rows with kind='country' under
+-- category_slug='travelbooks', each with a 700–990 character intro and four FAQ
+-- entries.
+
+-- ── Known gap, deliberately left open ───────────────────────────────────────
+-- landing_pages.translations carries h1 for the older rows but NO intro and NO
+-- faq for any locale on any of the seventeen country pages. The route falls back
+-- to the Ukrainian text, so /en, /pl, /ro and /de currently render Ukrainian
+-- bodies under a translated heading — sixty-eight URLs in that state. Fixing it
+-- is a content pass, not a code change: fill translations.{locale}.intro and
+-- translations.{locale}.faq, which the route already reads.

@@ -49,14 +49,24 @@ async function getProducts(categoryId: string) {
   return (data as any[]) || [];
 }
 
+/**
+ * Every active landing page of this category, whatever its kind.
+ *
+ * This used to filter `kind = 'subcategory'`, which meant the category page
+ * linked to nothing else: the eleven Travel Book country pages, the fifteen
+ * photobook city pages and every occasion cluster had no inbound internal link
+ * at all. They were reachable only from each other and from the sitemap, so
+ * they got the crawl priority of orphan pages while sitting on the exact
+ * queries we want. Dropping the filter turns the category into the hub it was
+ * always meant to be. sort_order already puts clusters ahead of geo/country.
+ */
 async function getSubcategories(categorySlug: string) {
   const supabase = getAdminClient();
   if (!supabase) return [];
   const { data } = await supabase
     .from('landing_pages')
-    .select('occasion, h1')
+    .select('occasion, h1, kind, translations')
     .eq('category_slug', categorySlug)
-    .eq('kind', 'subcategory')
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
   return (data as any[]) || [];
@@ -215,7 +225,9 @@ export default async function CategoryPage({
                 href={`/${locale}/category/${toPublicCategorySlug(cat.slug)}/${s.occasion}`}
                 style={{ padding: '8px 16px', borderRadius: 999, border: '1px solid #c7d2fe', background: '#f0f3ff', color: '#1e2d7d', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
               >
-                {s.h1}
+                {/* h1 carries its own translations JSONB — a Cyrillic chip under
+                    an English category heading is what the raw field gave us. */}
+                {getLocalized(s, locale, 'h1') || s.h1}
               </Link>
             ))}
           </div>
