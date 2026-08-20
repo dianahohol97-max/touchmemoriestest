@@ -32,6 +32,38 @@ import {
 import { toast } from 'sonner';
 import MDEditor from '@uiw/react-md-editor';
 import { useDropzone } from 'react-dropzone';
+
+/**
+ * Upload one file to Supabase Storage through a server-issued signed URL.
+ *
+ * Uploading straight from the browser puts the request under the storage RLS
+ * policy, which calls is_admin() on the session JWT. Whenever that claim is not
+ * resolvable the write is rejected with «new row violates row-level security
+ * policy», which is what broke every product photo and video upload for a
+ * signed-in admin. /api/admin/storage-upload-url is guarded by requireAdmin on
+ * the server, picks the destination path itself and hands back a one-shot
+ * token, so no RLS check is involved. The bytes still travel browser → storage,
+ * which keeps a 200MB video clear of the route body limit on Vercel.
+ */
+async function uploadViaSignedUrl(
+    target: 'product-image' | 'product-video',
+    file: File,
+): Promise<{ publicUrl: string }> {
+    const res = await fetch('/api/admin/storage-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, fileName: file.name }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.error || `Не вдалося отримати посилання (HTTP ${res.status})`);
+
+    const { error } = await createClient()
+        .storage.from(json.bucket)
+        .uploadToSignedUrl(json.path, json.token, file);
+    if (error) throw error;
+
+    return { publicUrl: json.publicUrl as string };
+}
 import {
     DndContext,
     closestCenter,
@@ -271,21 +303,15 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
             const file = validFiles[i];
             const toastId = toast.loading(`Завантаження ${i + 1}/${total}...`);
 
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const filePath = `products/${fileName}`;
-
             try {
-                const { error: uploadError } = await supabase.storage
-                    .from('products')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('products')
-                    .getPublicUrl(filePath);
-
+                // Upload via a server-issued signed URL rather than straight
+                // from the browser. The direct call ran under the storage RLS
+                // policy, which needs is_admin() to resolve from the session
+                // JWT — when it does not, every upload fails with «new row
+                // violates row-level security policy» even for a signed-in
+                // admin. The bytes still go browser → storage, so the 200MB
+                // video and the 10MB photo never touch a route body limit.
+                const { publicUrl } = await uploadViaSignedUrl('product-image', file);
                 newImagesBatch.push(publicUrl);
                 toast.dismiss(toastId);
             } catch (err: any) {
@@ -353,20 +379,10 @@ function ProductFormContent({ initialData, isEditing = false }: ProductFormProps
         }
 
         setVideoUploading(true);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `product-videos/${fileName}`;
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('videos')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('videos')
-                .getPublicUrl(filePath);
+            // Same signed-URL path as the photos above — see uploadViaSignedUrl.
+            const { publicUrl } = await uploadViaSignedUrl('product-video', file);
 
             setFormData(prev => ({ ...prev, video_url: publicUrl }));
 
