@@ -622,6 +622,31 @@ export default function CheckoutPage() {
         }
     };
 
+    /**
+     * Ключ ідемпотентності: один на ВМІСТ кошика, стабільний між кліками і
+     * між поверненнями «назад» зі сторінки Monobank (bfcache воскрешає цю
+     * сторінку з повним кошиком і розблокованою кнопкою — саме так один кошик
+     * став трьома замовленнями TM-001215/16/17). Сервер за цим ключем
+     * повертає вже створене замовлення замість нового рядка. Зміна складу
+     * кошика (id, кількість, ціна) дає новий ключ — нове замовлення legit.
+     */
+    const submitKeyFor = (cartItems: any[]): string => {
+        const sig = JSON.stringify(cartItems.map((it: any) => [it.id, it.qty, it.price]));
+        let h = 5381;
+        for (let i = 0; i < sig.length; i++) h = ((h * 33) ^ sig.charCodeAt(i)) >>> 0;
+        const hash = h.toString(36);
+        try {
+            const saved = JSON.parse(sessionStorage.getItem('tm_submit_key_v1') || 'null');
+            if (saved && saved.h === hash && typeof saved.k === 'string') return saved.k;
+            const k = (crypto as any).randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+            sessionStorage.setItem('tm_submit_key_v1', JSON.stringify({ h: hash, k }));
+            return k;
+        } catch {
+            // sessionStorage недоступний (приватний режим тощо) — ключ на
+            // життя сторінки: повторні кліки все одно накриті.
+            return `mem-${hash}-${(crypto as any).randomUUID?.() || Math.random().toString(36).slice(2, 12)}`;
+        }
+    };
     const handleSubmitOrder = async (paymentRegion: 'ua' | 'international' = getDefaultRegion()) => {
         setIsSubmitting(true);
         // Capture cart item ids now — clearCart() later wipes the store, but the
@@ -648,6 +673,7 @@ export default function CheckoutPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    client_request_id: submitKeyFor(items),
                     customer_name: formData.name,
                     customer_phone: formData.phone,
                     customer_email: formData.email,

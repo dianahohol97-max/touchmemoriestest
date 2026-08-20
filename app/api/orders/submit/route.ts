@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { isTestOrder } from '@/lib/automation/test-orders';
 import { createClient } from '@/lib/supabase/server';
 import { computePaymentAmounts, getAvailablePaymentOptions, type CartItemPayment } from '@/lib/payment/options';
 import { resolvePriceMultiplier, resolveDisplayCurrency, normalizeShipRegion, shipRegionToPaymentRegion, computeIntlShippingUah } from '@/lib/payment/pricing-region';
@@ -106,6 +107,41 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  // Idempotency. The checkout sends one client_request_id per CART: however
+  // many times the button is pressed — a second click while the first request
+  // is in flight, or a bfcache «назад» from the Monobank page that revives the
+  // page with a full cart and an unlocked button — the same key comes back,
+  // and the same order is returned instead of a new row. TM-001215/16/17
+  // (20.08.2026) were three copies of one cart, each with its own invoice,
+  // each mirrored to KeyCRM. The check runs BEFORE any promo/bonus/certificate
+  // reservation so a replay costs nothing; the race of two simultaneous
+  // clicks is closed by the unique index (see the 23505 handler at insert).
+  const submitKey = typeof (body as any).client_request_id === 'string'
+    && /^[A-Za-z0-9_-]{8,80}$/.test((body as any).client_request_id)
+    ? (body as any).client_request_id
+    : null;
+  if (submitKey) {
+    const adminIdem = getAdminClient();
+    const { data: existing } = await adminIdem
+      .from('orders')
+      .select('id, order_number, payment_type, prepaid_amount, cod_amount, pickup_unpaid_balance')
+      .eq('client_request_id', submitKey)
+      .maybeSingle();
+    if (existing) {
+      console.log(`orders/submit: idempotent replay of ${existing.order_number} (key ${submitKey.slice(0, 12)}…)`);
+      return NextResponse.json({
+        success: true,
+        reused: true,
+        order_id: existing.id,
+        order_number: existing.order_number,
+        payment_type: existing.payment_type,
+        prepaid_amount: existing.prepaid_amount,
+        cod_amount: existing.cod_amount,
+        pickup_unpaid_balance: existing.pickup_unpaid_balance,
+      });
+    }
   }
 
   // Validate. Reject anything that doesn't look like a real checkout payload.
@@ -767,6 +803,7 @@ export async function POST(request: NextRequest) {
       prepaid_amount: amounts.prepaid_amount,
       cod_amount: amounts.cod_amount,
       pickup_unpaid_balance: amounts.pickup_unpaid_balance,
+      client_request_id: submitKey,
     })
     .select('id, order_number, payment_type, prepaid_amount, cod_amount, pickup_unpaid_balance')
     .single();
@@ -782,11 +819,50 @@ export async function POST(request: NextRequest) {
       const refunded = await creditBonusCAS(admin, customer_id, bonusDebited).catch(() => false);
       if (!refunded) console.error(`orders/submit: FAILED to refund ${bonusDebited} bonuses to customer ${customer_id} after insert error`);
     }
+    // Two simultaneous clicks both passed the early check and raced to insert;
+    // the loser hits the unique index. Its own reservations are rolled back
+    // just above — hand back the winner's order instead of a 500.
+    if (submitKey && (error as any)?.code === '23505') {
+      const { data: winner } = await admin
+        .from('orders')
+        .select('id, order_number, payment_type, prepaid_amount, cod_amount, pickup_unpaid_balance')
+        .eq('client_request_id', submitKey)
+        .maybeSingle();
+      if (winner) {
+        console.log(`orders/submit: lost idempotency race, returning ${winner.order_number}`);
+        return NextResponse.json({
+          success: true,
+          reused: true,
+          order_id: winner.id,
+          order_number: winner.order_number,
+          payment_type: winner.payment_type,
+          prepaid_amount: winner.prepaid_amount,
+          cod_amount: winner.cod_amount,
+          pickup_unpaid_balance: winner.pickup_unpaid_balance,
+        });
+      }
+    }
     return NextResponse.json(
       { error: 'Failed to create order', detail: error?.message || null, code: (error as any)?.code || null },
       { status: 500 },
     );
   }
+
+  // Work-chat ping about the NEW order, before any payment. The 💰 ping fires
+  // only on the first transition to paid, so an unpaid order was invisible
+  // until the next morning digest — Diana asked why Софія said nothing about
+  // a fresh order (20.08.2026). Idempotency above guarantees at most one ping
+  // per cart; test orders stay silent. Fire-and-forget: Telegram must never
+  // break checkout.
+  try {
+    if (!isTestOrder({ customer_name: body.customer_name })) {
+      const { sendWorkChatAlert } = await import('@/lib/chatbot/telegram-business');
+      sendWorkChatAlert(
+        `🆕 Нове замовлення ${inserted.order_number} на ${markedTotal} ₴ — ще не оплачене\n`
+        + `Клієнт: ${body.customer_name.trim()}\nТелефон: ${body.customer_phone.trim()}`
+      ).catch((e: any) => console.error('work-chat new-order ping failed:', e?.message || e));
+    }
+  } catch (e) { console.error('work-chat new-order ping failed:', e); }
 
   // Audit trail
   await admin.from('order_history').insert({
