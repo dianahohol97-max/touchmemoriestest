@@ -7,7 +7,7 @@ import { STAR_CATALOG, CONSTELLATION_LINES, CONSTELLATION_LABELS, CONSTELLATION_
 interface StarMapConfig {
     date: string; time: string; location: string;
     latitude: number; longitude: number;
-    headline: string; subtitle: string; dedication: string;
+    headline: string; subtitle: string; subtitleCustom?: boolean; dedication: string;
     style: string;
     backgroundColor: string; skyColor?: string; starColor: string; textColor: string; fontFamily: string;
     size: string; productType: string; price: number;
@@ -534,14 +534,38 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
             // (heart symbol removed)
             currentY += 6*s;
 
-            // Location — show only city name (first part before comma)
-            const rawLoc = config.location || '';
-            const locParts = rawLoc.split(',');
-            const loc = locParts[0].trim(); // Just city name
-            const ds = config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
+            // Subtitle — the customer's own line when they wrote one, otherwise
+            // the automatic city + Ukrainian date pair.
+            //
+            // The «Підзаголовок / Дата» field used to be decorative: it was
+            // filled in, stored on the order, and never drawn, so somebody who
+            // typed «1 September 2021» still received a poster reading
+            // «Фонтанка» / «01 вересня 2021 р.» (daniella., 2026-08-24).
+            // Honouring it here is also what makes the poster available in any
+            // language — the automatic line is Ukrainian and always will be.
             ctx.font=`${Math.round(14*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.75;
-            if(loc){ ctx.fillText(loc, W/2, currentY); currentY += 20*s; }
-            if(ds){ ctx.fillText(ds, W/2, currentY); currentY += 20*s; }
+            const custom = config.subtitleCustom ? (config.subtitle || '').trim() : '';
+            if (custom) {
+                const mw = W*0.80;
+                const words = custom.split(' ');
+                let line='', lineY=currentY;
+                for(let i=0;i<words.length;i++){
+                    const t=line+words[i]+' ';
+                    if(ctx.measureText(t).width>mw&&i>0){
+                        ctx.fillText(line.trim(),W/2,lineY); line=words[i]+' '; lineY+=20*s;
+                    } else line=t;
+                }
+                ctx.fillText(line.trim(),W/2,lineY);
+                currentY = lineY + 20*s;
+            } else {
+                // Location — show only city name (first part before comma)
+                const rawLoc = config.location || '';
+                const locParts = rawLoc.split(',');
+                const loc = locParts[0].trim(); // Just city name
+                const ds = config.date ? new Date(config.date+'T12:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'}) : '';
+                if(loc){ ctx.fillText(loc, W/2, currentY); currentY += 20*s; }
+                if(ds){ ctx.fillText(ds, W/2, currentY); currentY += 20*s; }
+            }
             ctx.globalAlpha=1;
 
             // Dedication (italic)
@@ -559,16 +583,30 @@ export default function StarMapPreview({ config, onConfigChange }: { config: Sta
                 ctx.fillText(line.trim(),W/2,lineY);
             }
 
-            // Coordinates — optional, hugging the very bottom edge. They used to
-            // float 20pt above it, reading as a stray caption under the
-            // dedication; now they sit at the margin (or vanish entirely).
-            if (config.showCoordinates !== false) {
-                ctx.globalAlpha=1;
-                ctx.font=`${Math.round(9*s)}px ${config.fontFamily}`; ctx.globalAlpha=0.28;
-                const latS=lat>=0?`${lat.toFixed(2)}°N`:`${Math.abs(lat).toFixed(2)}°S`;
-                const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
-                ctx.fillText(`${latS}  ${lonS}`, W/2, H-9*s); ctx.globalAlpha=1;
-            }
+        }
+
+        // Coordinates — optional, hugging the very bottom edge. They used to
+        // float 20pt above it, reading as a stray caption under the
+        // dedication; now they sit at the margin (or vanish entirely).
+        //
+        // Two things changed on 2026-08-24, after a customer asked for
+        // coordinates on a poster that already had them switched on. They were
+        // drawn at 28% opacity in 9pt, which on a light poster is barely ink at
+        // all — 0.5 is still discreet but actually reads. And they were drawn
+        // only in the framed styles, so on full-bleed the toggle promised
+        // «Координати внизу постера» and did nothing; there they need the same
+        // shadow the headline gets to survive over the sky.
+        if (config.showCoordinates !== false) {
+            ctx.save();
+            ctx.fillStyle = isFull ? '#ffffff' : config.textColor;
+            ctx.textAlign = 'center';
+            ctx.font = `${Math.round(10*s)}px ${config.fontFamily}`;
+            ctx.globalAlpha = isFull ? 0.8 : 0.5;
+            if (isFull) { ctx.shadowColor='rgba(0,0,0,0.9)'; ctx.shadowBlur=10; }
+            const latS=lat>=0?`${lat.toFixed(2)}°N`:`${Math.abs(lat).toFixed(2)}°S`;
+            const lonS=config.longitude>=0?`${config.longitude.toFixed(2)}°E`:`${Math.abs(config.longitude).toFixed(2)}°W`;
+            ctx.fillText(`${latS}  ${lonS}`, W/2, H-10*s);
+            ctx.restore();
         }
     }, [config, fontTick]);
 

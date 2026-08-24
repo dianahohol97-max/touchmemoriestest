@@ -121,10 +121,25 @@ const getOrderUrl = (slug: string, selectedOptions: Record<string, number>, prod
   if (slug.includes('poster')) {
     const base = getConstructorUrl(slug);
     const params = new URLSearchParams();
-    // Pass selected size if available
-    const selectedSize = product?.options?.find((o: any) => o.name === 'Розмір')
-      ?.options?.find((o: any) => o.value === selectedOptions['Розмір'])?.label || selectedOptions['Розмір'];
-    if (selectedSize) params.set('size', String(selectedOptions['Розмір'] || selectedSize));
+
+    // The size the customer clicked lives in `customProductOptions` — the same
+    // map the photoprint branch below reads. `selectedOptions` is a leftover
+    // that nothing ever writes to, so reading the size from it always produced
+    // `undefined`, no ?size= in the URL, and a constructor that opened on its
+    // default format. For the star map that meant picking A3 (450 ₴) on the
+    // product page and landing in the editor on A4 at 350 ₴ — the customer's
+    // choice silently downgraded, price included (daniella., 2026-08-24).
+    //
+    // Forward the option `value` ('a3'), never the label: every poster
+    // constructor matches on the value, and the labels are booby-trapped —
+    // «A4 (21×30 см)» contains "30", which the star map's own parser would
+    // read as the 30×40 format.
+    const sizeOpt = product?.options?.find((o: any) => o.name === 'Розмір' || o.name === 'Формат');
+    const picked = customOpts['Розмір'] ?? customOpts['Формат'];
+    const matched = sizeOpt?.options?.find((o: any) => String(o.value) === String(picked));
+    const selectedSize = matched?.value ?? picked ?? selectedOptions['Розмір'];
+    if (selectedSize !== undefined && selectedSize !== '') params.set('size', String(selectedSize));
+
     // Pass other selected options
     const otherOpts = Object.entries(selectedOptions)
       .filter(([k]) => k !== 'Розмір')

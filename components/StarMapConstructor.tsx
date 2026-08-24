@@ -25,6 +25,12 @@ interface StarMapConfig {
     // Step 2: Personalize
     headline: string;
     subtitle: string;
+    /**
+     * True once the customer has edited the subtitle themselves. While it is
+     * false the field mirrors the date and place picked in step 1; once it is
+     * true nothing overwrites it and the poster prints the typed line verbatim.
+     */
+    subtitleCustom?: boolean;
     dedication: string;
 
     // Step 3: Design
@@ -90,8 +96,13 @@ export default function StarMapConstructor() {
     const previewAreaRef = useRef<HTMLDivElement>(null);
 
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    // A4 is tested first on purpose: the catalogue label for A4 is «A4 (21×30
+    // см)», so a bare `includes('30')` would read the A4 label as the 30×40
+    // format. Values ('a4'/'a3') are what the product page forwards, but the
+    // parser has to survive a label too.
     const urlSize = searchParams?.get('size')?.toUpperCase() || '';
-    const initialStarMapSize = urlSize.includes('A3') ? 'A3 (29.7×42 см)'
+    const initialStarMapSize = urlSize.includes('A4') ? 'A4 (21×29.7 см)'
+        : urlSize.includes('A3') ? 'A3 (29.7×42 см)'
         : urlSize.includes('30') ? '30×40 см'
         : 'A4 (21×29.7 см)';
 
@@ -193,21 +204,23 @@ export default function StarMapConstructor() {
         setConfig(prev => ({ ...prev, price: basePrice + qrSurcharge }));
     }, [config.size, config.qrUrl]);
 
-    // Update subtitle when date/time/location changes
+    // Keep the subtitle in step with the date and place chosen in step 1 —
+    // but only while the customer has not written their own. This effect used
+    // to fire unconditionally, so a typed subtitle was wiped the moment the
+    // place autocomplete or the date input settled, and the poster went back
+    // to the Ukrainian date. Clearing the field hands control back to the
+    // automatic line.
     useEffect(() => {
-        if (config.date && config.location) {
-            const dateObj = new Date(config.date);
-            const formattedDate = dateObj.toLocaleDateString('uk-UA', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-            setConfig(prev => ({
-                ...prev,
-                subtitle: `${formattedDate}, ${config.location.split(',')[0]}`
-            }));
-        }
-    }, [config.date, config.location]);
+        if (config.subtitleCustom) return;
+        if (!config.date || !config.location) return;
+        const formattedDate = new Date(config.date).toLocaleDateString('uk-UA', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+        const auto = `${formattedDate}, ${config.location.split(',')[0]}`;
+        setConfig(prev => (prev.subtitle === auto ? prev : { ...prev, subtitle: auto }));
+    }, [config.date, config.location, config.subtitleCustom]);
 
     const handleAddToCart = async () => {
         if (!product) {
@@ -617,12 +630,22 @@ function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setCon
                 <input
                     type="text"
                     value={config.subtitle}
-                    onChange={(e) => setConfig({ ...config, subtitle: e.target.value })}
+                    onChange={(e) => setConfig({
+                        ...config,
+                        subtitle: e.target.value,
+                        // An empty field means «поверни автоматичний рядок»;
+                        // anything else is the customer's own line and stays.
+                        subtitleCustom: e.target.value.trim().length > 0,
+                    })}
                     placeholder={t('starmap.example_date')}
                     maxLength={60}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e2d7d] focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">{config.subtitle.length}/60 символів</p>
+                <p className="text-xs text-gray-500 mt-1">
+                    {config.subtitleCustom
+                        ? `Цей рядок надрукуємо замість дати й міста. ${config.subtitle.length}/60 символів`
+                        : `Заповнюється автоматично з дати та міста, можна написати свій текст будь-якою мовою. ${config.subtitle.length}/60 символів`}
+                </p>
             </div>
 
             {/* Dedication */}
