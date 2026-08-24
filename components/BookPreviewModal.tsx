@@ -174,6 +174,12 @@ interface BookPreviewProps {
    *  the page aspect — it must be given. */
   printPageH?: number;
   printPageW?: number;
+  /** Безпечна зона у ЧАСТКАХ розвороту (0..1) — приходить з редактора, який
+   *  знає формат. Без неї модалка малювала фіксовані 5–6 %, вигадані в коді:
+   *  для розвороту 20×30 це 15 мм зверху проти реальних 3 мм, тобто вп'ятеро
+   *  ширша смуга, ніж насправді (Diana, 2026-08-22 — питання про весільну
+   *  фотокнигу, де дві прев'ю показували різні лінії). */
+  trimInset?: { top: number; bottom: number; left: number; right: number };
   /** Cover sheet size in mm (fold-in + spine included) for the spread being
    *  printed. Only the caller knows it, and the cover inscription needs it to
    *  convert the editor's stored size into print pixels. */
@@ -195,6 +201,7 @@ export function BookPreviewModal({
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
   printSpreadIndex, printPageW, printPageH, printCoverMm, printOverlay,
+  trimInset,
 }: BookPreviewProps) {
 
   const isPrint = typeof printSpreadIndex === 'number';
@@ -851,9 +858,17 @@ export function BookPreviewModal({
                   being trimmed off; the small label explains it. */}
               {showTrim && (
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 60 }}>
-                  <div style={{ position: 'absolute', left: '6%', right: '6%', top: '5%', bottom: '5%', border: '1.5px dashed rgba(220,38,38,0.75)', borderRadius: 2 }} />
+                  {(() => {
+                    // Fallback 1.5 % is the same conservative inset the editor
+                    // uses for a format we have no partner data for.
+                    const t = trimInset || { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 };
+                    const pc = (v: number) => `${(v * 100).toFixed(2)}%`;
+                    return (
+                      <div style={{ position: 'absolute', left: pc(t.left), right: pc(t.right), top: pc(t.top), bottom: pc(t.bottom), border: '1.5px dashed rgba(220,38,38,0.75)', borderRadius: 2 }} />
+                    );
+                  })()}
                   <div style={{ position: 'absolute', top: 6, left: '50%', transform: 'translateX(-50%)', background: 'rgba(220,38,38,0.92)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap' }}>
-                    ✂ Лінія обрізки — за пунктиром може обрізатись
+                    ✂ Ніж іде по краю розвороту · пунктир — безпечна зона
                   </div>
                 </div>
               )}

@@ -11318,6 +11318,7 @@ export default function BookLayoutEditor() {
           photos={photos}
           propW={prop.w}
           propH={prop.h}
+          trimInset={bleed}
           freeSlots={freeSlots}
           coverState={coverState}
           isPrinted={isPrinted}
