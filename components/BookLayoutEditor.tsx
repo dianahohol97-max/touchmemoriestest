@@ -40,6 +40,8 @@ import { calculateDynamicPrice } from '@/lib/editor/pricing';
 import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { engravingAllowedOn } from '@/lib/products/decoration-rules';
+import { buildTrimGuides } from '@/lib/print/trim-guides';
+import type { SizeGeometry } from '@/lib/print/geometry';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import { applySnap } from '@/lib/editor/snap';
@@ -2199,13 +2201,52 @@ export default function BookLayoutEditor() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.enableEndpaper, hasEndpaper]);
+
+  // Printer geometry, fetched once. /api/print/geometry reads photobook_sizes
+  // and derives sheet, finished spread, real overhang and keep-clear margins —
+  // the same source the render service and the admin's /print guides use.
+  const [printGeometry, setPrintGeometry] = useState<Record<string, SizeGeometry> | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/print/geometry')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled && d?.sizes) setPrintGeometry(d.sizes); })
+      .catch(() => { /* fallback table keeps the guide drawn */ });
+    return () => { cancelled = true; };
+  }, []);
   const cur = pages[currentIdx];
 
   const sizeKey = getSizeKeyForProduct(config);
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
-  // Real bleed margins from print partner — fall back to a small conservative inset
-  // for sizes we don't yet have explicit data for (1.5% all round ≈ 3 mm on a small book).
-  const bleed = BLEED_MARGINS[sizeKey] ?? { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 };
+  // The guide line comes from the printer's own numbers in photobook_sizes,
+  // through the same geometry the render service and /print use
+  // (Diana, 2026-08-22: «зроби так щоб лінії були синхронізовані по реальній
+  // лінії обрізки з друкарні»). The local BLEED_MARGINS table below stays only
+  // as a fallback for the seconds before the fetch lands and for a size the DB
+  // has never heard of — it is a fourth copy of the printer's data and every
+  // copy of that data has drifted at least once.
+  const geoBleed = printGeometry?.[sizeKey]
+    ? (() => {
+        const spec = buildTrimGuides(printGeometry[sizeKey], {
+          productSlug: config?.productSlug,
+          productType: (config as any)?.productType,
+        });
+        return {
+          top: spec.safetyPct.top / 100,
+          bottom: spec.safetyPct.bottom / 100,
+          left: spec.safetyPct.left / 100,
+          right: spec.safetyPct.right / 100,
+          // The gutter keep-clear for page-printed products (Travel Book,
+          // journals) has no equivalent in the geometry table, so it stays with
+          // the local spec — geometry improves the four outer edges, it does not
+          // erase what only the local table knows.
+          spine: BLEED_MARGINS[sizeKey]?.spine,
+        };
+      })()
+    : null;
+  const bleed = geoBleed
+    ?? BLEED_MARGINS[sizeKey]
+    ?? { top: 0.015, bottom: 0.015, left: 0.015, right: 0.015 };
   // Cover fold-in margins — what wraps around the inside of the board (much larger
   // than the spread bleed, typically 18–20 mm on hardcover books).
   const coverBleed = COVER_BLEED_MARGINS[sizeKey] ?? { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 };
