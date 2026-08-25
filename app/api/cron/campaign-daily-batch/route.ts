@@ -29,6 +29,8 @@ export const maxDuration = 300;
  */
 
 const BATCH_SIZE = 50;
+/** Стеля для ручного `?size=` — вище за неї впирається денний бюджет. */
+const MAX_BATCH_SIZE = 200;
 const ARMED_KEY = 'campaign_send_date';
 const REPORT_TO = 'gogolka16@gmail.com';
 
@@ -45,6 +47,15 @@ export async function GET(request: Request) {
 
     const admin = getAdminClient();
     const today = kyivDate();
+
+    // Розмір партії. Cron завжди шле свої пʼятдесят; `?size=` — це коли Diana
+    // каже конкретне число на конкретний день («відправляй сьогодні 100»), і
+    // саме тому воно приймається тільки в токен-запуску. Денний бюджет усе одно
+    // головніший: якщо на маркетинг лишилося менше, піде скільки лишилося.
+    const askedSize = parseInt(new URL(request.url).searchParams.get('size') || '', 10);
+    const batchSize = viaToken && Number.isFinite(askedSize) && askedSize > 0
+        ? Math.min(askedSize, MAX_BATCH_SIZE)
+        : BATCH_SIZE;
 
     const { data: armedRow } = await admin
         .from('settings').select('value').eq('key', ARMED_KEY).maybeSingle();
@@ -74,7 +85,7 @@ export async function GET(request: Request) {
         .select('id, campaign_id')
         .eq('status', 'scheduled')
         .order('created_at', { ascending: true })
-        .limit(BATCH_SIZE);
+        .limit(batchSize);
 
     const releaseIds = (waiting || []).map(r => r.id);
     if (releaseIds.length) {
@@ -106,7 +117,7 @@ export async function GET(request: Request) {
         }
     }
 
-    const result = await drainCampaignQueue(BATCH_SIZE);
+    const result = await drainCampaignQueue(batchSize);
 
     // Everything still waiting for a future batch — the honest "how much base
     // is left" number, which `remaining` alone does not give since it counts
