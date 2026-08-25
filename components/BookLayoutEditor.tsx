@@ -1028,7 +1028,36 @@ export default function BookLayoutEditor() {
         const decoType = detectDecoType(c.selectedDecorationType || c.selectedDecoration || '');
         const variant = c.selectedDecorationVariant || '';
         const decoColor = resolveInitDecoColor(decoType, c.selectedDecorationColor || '');
-        return { decoType, decoVariant: variant, photoId: null, decoText: '', decoColor, textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
+        const base: CoverState = { decoType, decoVariant: variant, photoId: null, decoText: '', decoColor, textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
+
+        // Готова обкладинка, обрана ще на кроці конфігурації.
+        //
+        // Той екран показує каталог наших обкладинок для тревелбука, і клієнт
+        // справедливо вважає, що обрав обкладинку. Але вибір лежав у конфізі й
+        // не читався тут ніким — редактор відкривався з порожньою друкованою
+        // обкладинкою, людина ставила туди своє фото, і на друк ішло воно
+        // (TM-001185: обрано Париж, надруковано власне фото з написом
+        // «Париж 2026»). Ready-made обкладинку можна було застосувати лише
+        // вдруге, вже всередині редактора.
+        //
+        // Стан збігається з тим, що робить ReadyCoversPicker: картинка на весь
+        // виліт, слот під фото прибрано, накладення скинуто. Це початкове
+        // значення — збережений чернетковий макет нижче все одно перекриває
+        // його цілком, тож нічия вже зроблена робота не затирається.
+        const ready = c?.selectedCover?.image_url;
+        if (ready) {
+          return {
+            ...base,
+            printedBgImage: String(ready),
+            printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
+            printedPhotoSlots: undefined,
+            printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
+            ...(c.selectedCover?.background_color
+              ? { backCoverBgColor: String(c.selectedCover.background_color) }
+              : {}),
+          };
+        }
+        return base;
       }
     } catch {}
     return { decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };

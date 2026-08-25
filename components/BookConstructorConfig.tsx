@@ -226,9 +226,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
     const [enableKalka, setEnableKalka] = useState(_saved?.enableKalka || false);
     const [kalkaText, setKalkaText] = useState<string>(_saved?.kalkaText || '');
 
-    // Travel Book cover selector state
+    // Travel Book cover selector state.
+    //
+    // selectedCover MUST be restored from the draft like every other field.
+    // While it was a plain useState(null) outside the autosave list, the готова
+    // обкладинка the customer picked here lived only as long as this component
+    // instance: any remount — «назад», перезавантаження, повернення з іншого
+    // кроку — стирав вибір мовчки, і «Далі» записував selectedCover: null.
+    // Саме так вийшло в TM-001185: клієнтка обрала нашу обкладинку Парижа, у
+    // збереженому конфізі порожньо, а на друк пішло її власне фото.
     const [showCoverSelector, setShowCoverSelector] = useState(false);
-    const [selectedCover, setSelectedCover] = useState<any>(null);
+    const [selectedCover, setSelectedCover] = useState<any>(_saved?.selectedCover || null);
 
     // New state for photobook pricing
     const [photobookPrices, setPhotobookPrices] = useState<any[]>([]);
@@ -377,13 +385,14 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (typeof window === 'undefined') return;
         const state = {
             selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
-            enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
+            enableEndpaper, enableKalka, kalkaText, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
             selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor,
+            selectedCover,
         };
         sessionStorage.setItem(`bookConfig_${productSlug}`, JSON.stringify(state));
     }, [selectedSize, selectedCoverType, selectedPageCount, selectedCopies,
-        enableEndpaper, enableKalka, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
-        selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor, productSlug]);
+        enableEndpaper, enableKalka, kalkaText, selectedDecorationType, selectedDecorationVariant, selectedDecorationColor,
+        selectedLamination, selectedCoverColor, selectedPageLamination, selectedPageColor, selectedCover, productSlug]);
 
     // Pre-fill from URL query params (when coming from catalog product page)
     useEffect(() => {
