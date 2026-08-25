@@ -26,6 +26,18 @@ export const maxDuration = 300;
  * Covers are skipped on purpose: their extra 18–20 mm is fold-in that physically
  * wraps the board, not bleed. Cutting it would ruin the cover.
  *
+ * PHOTOBOOK SPREADS ARE NOW REFUSED (TM-001233, 2026-08-24). The premise above —
+ * «orders that go to print without a bleed allowance» — does not describe our
+ * printing house. Its file checker demands the SHEET: a 20×30 slimbook must
+ * arrive as 420×305 mm, and 400×300 comes back «ширина 400 і не є рівна 420».
+ * The same rejection already happened on 2026-08-20 for a 20×20 («400 і не є
+ * рівна 405»), which is why the render service was changed to output the sheet.
+ * Cropping the ring back off undoes exactly that fix, and TM-001233 was rejected
+ * by the printer because this endpoint ran on it. Page-split products
+ * (travel books, magazines) still pass through: there the contract really is the
+ * exact finished page, and the renderer already produces it, so the crop is a
+ * no-op safety net rather than a way to break a book.
+ *
  * Idempotent: a file already at the finished size is reported as `skipped`.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -86,10 +98,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Немає розворотів чи сторінок для обрізки (обкладинки й вставки не чіпаємо)' }, { status: 400 });
   }
 
+  // A two-page spread goes to the printer as the SHEET, bleed included. Nothing
+  // here may cut that down — see the header comment and TM-001233.
+  const spreads = targets.filter((f: any) => /_spread\.jpe?g$/i.test(String(f.file_name)));
+  if (spreads.length === targets.length) {
+    return NextResponse.json({
+      error: `Це фотокнига — друкарня приймає розворот у розмірі аркуша ${geo.sheet.w}×${geo.sheet.h} мм разом із вилетом. `
+        + `Обрізаний до готових ${geo.finished.w}×${geo.finished.h} мм файл вона відхиляє: «ширина ${geo.finished.w} і не є рівна ${geo.sheet.w}». `
+        + `Саме через це не пройшло TM-001233. Якщо файли вже обрізані, натисніть «Перегенерувати макет (Railway)».`,
+    }, { status: 400 });
+  }
+
   const batch = targets.slice(offset, offset + limit);
   const report: any[] = [];
   for (const f of batch) {
     const bucket = f.bucket_name || 'photobook-uploads';
+    if (/_spread\.jpe?g$/i.test(String(f.file_name))) {
+      report.push({ file: f.file_name, status: 'skipped', reason: `розворот фотокниги друкується аркушем ${geo.sheet.w}×${geo.sheet.h} мм — виліт лишається` });
+      continue;
+    }
     const isSinglePage = /_page\.jpe?g$/i.test(String(f.file_name)) || /^\d+\.jpe?g$/i.test(String(f.file_name));
     const targetW = mmToPx(isSinglePage ? geo.page.w : geo.finished.w);
     const targetH = mmToPx(isSinglePage ? geo.page.h : geo.finished.h);

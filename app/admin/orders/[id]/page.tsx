@@ -2474,7 +2474,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </button>
                                         <button
                                             onClick={async () => {
-                                                if (!confirm('Обрізати розвороти до готового розміру — прибрати припуск на виліт?\n\nВиліт домальовує рендер, це не дизайн клієнта. Обкладинки не чіпаються: їхні 18–20 мм — це загин на палітурку, а не виліт.')) return;
+                                                // Тільки для посторінкових виробів (тревелбук, журнал). Для
+                                                // фотокниг друкарня вимагає аркуш із вилетом, і обрізка ламає
+                                                // замовлення — TM-001233 через це відхилили. Сам ендпоінт
+                                                // відмовляється різати розвороти, це лише чесніший текст.
+                                                if (!confirm('Обрізати сторінки до готового розміру — прибрати припуск на виліт?\n\nЦе тільки для тревелбуків і журналів, де друкарня приймає рівно готову сторінку. Розвороти фотокниг не чіпаються: друкарня вимагає їх у розмірі аркуша разом із вилетом. Обкладинки теж не чіпаються, їхні 18–20 мм — це загин на палітурку.')) return;
                                                 setStrippingBleed(true);
                                                 // Crop in batches. One request per book blew the function's
                                                 // time budget on an 18-spread order and died with no response,
@@ -2509,10 +2513,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 setStrippingBleed(false);
                                             }}
                                             disabled={strippingBleed}
-                                            title="Зрізає припуск на виліт із розворотів, лишаючи макет клієнта рівно в готовому розмірі. Пікселі не перераховуються — просто відкидається кільце, яке домалював рендер."
+                                            title="Для тревелбуків і журналів: зрізає припуск зі сторінок, лишаючи макет рівно в готовому розмірі. Розвороти фотокниг не чіпає — друкарня приймає їх аркушем із вилетом."
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0891b2', border: '1.5px solid #0891b2', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: strippingBleed ? 'default' : 'pointer' }}>
                                             {strippingBleed ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
-                                            {strippingBleed ? 'Обрізаю…' : 'Прибрати виліт'}
+                                            {strippingBleed ? 'Обрізаю…' : 'Прибрати виліт (тревелбук / журнал)'}
                                         </button>
                                         {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.product_name || ''} ${it?.slug || ''}`)) && (
                                         <button
