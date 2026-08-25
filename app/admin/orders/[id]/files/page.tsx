@@ -117,8 +117,19 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
         }
     };
 
-    const downloadAllAsZip = async () => {
-        if (files.length === 0) {
+    /**
+     * ZIP із файлів замовлення.
+     *
+     * `only` звужує архів до однієї половини: оригінали клієнта окремо від
+     * макета (Diana, 2026-08-25). Раніше кнопка була одна й клала все в один
+     * архів — дизайнеру, якому потрібні лише фото, доводилось качати разом із
+     * ним усі розвороти, а в друкарню їхали зайві оригінали.
+     */
+    const downloadAllAsZip = async (only?: 'upload' | 'export', label?: string) => {
+        const picked = only
+            ? files.filter(f => (only === 'upload' ? f.file_type === 'upload' : f.file_type !== 'upload'))
+            : files;
+        if (picked.length === 0) {
             toast.error('Немає файлів для завантаження');
             return;
         }
@@ -127,30 +138,48 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
         const zip = new JSZip();
 
         try {
-            // Download all files in parallel
-            const downloadPromises = files.map(async (file) => {
-                try {
-                    const { data, error } = await supabase.storage
-                        .from(file.bucket_name)
-                        .download(file.file_path);
+            // По шість за раз. Оригінали важать по кілька мегабайт, і скачування
+            // всього списку одночасно на великому замовленні з'їдало памʼять
+            // вкладки — частина файлів мовчки не потрапляла в архів.
+            const POOL = 6;
+            let cursor = 0;
+            let added = 0;
+            const worker = async () => {
+                for (;;) {
+                    const i = cursor++;
+                    if (i >= picked.length) return;
+                    const file = picked[i];
+                    try {
+                        const { data, error } = await supabase.storage
+                            .from(file.bucket_name)
+                            .download(file.file_path);
 
-                    if (error) throw error;
+                        if (error) throw error;
 
-                    // Add file to zip with folder structure
-                    const folderName = file.file_type === 'upload' ? 'uploads' : 'exports';
-                    zip.file(`${folderName}/${file.file_name}`, data);
-                } catch (err) {
-                    console.error(`Failed to download ${file.file_name}:`, err);
+                        // Add file to zip with folder structure
+                        const folderName = file.file_type === 'upload' ? 'uploads' : 'exports';
+                        zip.file(`${folderName}/${file.file_name}`, data);
+                        added++;
+                        if (picked.length > 20 && added % 10 === 0) {
+                            toast.info(`Збираю ZIP… ${added} з ${picked.length}`, { id: 'zip-progress' });
+                        }
+                    } catch (err) {
+                        console.error(`Failed to download ${file.file_name}:`, err);
+                    }
                 }
-            });
+            };
+            await Promise.all(Array.from({ length: Math.min(POOL, picked.length) }, worker));
 
-            await Promise.all(downloadPromises);
+            if (added === 0) {
+                toast.error('Жоден файл не вдалося завантажити');
+                return;
+            }
 
             // Generate ZIP file
             const zipBlob = await zip.generateAsync({ type: 'blob' });
-            saveAs(zipBlob, `order-${order?.order_number || id}-files.zip`);
+            saveAs(zipBlob, `order-${order?.order_number || id}-${label || 'files'}.zip`);
 
-            toast.success('Всі файли завантажено в ZIP');
+            toast.success(`Завантажено ${added} файл(ів) у ZIP`);
         } catch (error: any) {
             console.error('ZIP creation error:', error);
             toast.error('Помилка створення ZIP архіву');
@@ -255,7 +284,47 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
                         <ExternalLink size={16} /> Переглянути замовлення
                     </Link>
                     <button
-                        onClick={downloadAllAsZip}
+                        onClick={() => downloadAllAsZip('upload', 'оригінали')}
+                        disabled={downloadingAll || !files.some(f => f.file_type === 'upload')}
+                        title="Тільки фото клієнта в повному розмірі, без файлів макета"
+                        style={{
+                            padding: '12px 24px',
+                            backgroundColor: 'white',
+                            color: '#2563eb',
+                            border: '1.5px solid #2563eb',
+                            borderRadius: '3px',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            cursor: downloadingAll ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <Archive size={16} /> Оригінали фото (ZIP)
+                    </button>
+                    <button
+                        onClick={() => downloadAllAsZip('export', 'макет')}
+                        disabled={downloadingAll || !files.some(f => f.file_type !== 'upload')}
+                        title="Тільки готові файли на друк, без оригіналів клієнта"
+                        style={{
+                            padding: '12px 24px',
+                            backgroundColor: 'white',
+                            color: '#16a34a',
+                            border: '1.5px solid #16a34a',
+                            borderRadius: '3px',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            cursor: downloadingAll ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <Archive size={16} /> Тільки макет (ZIP)
+                    </button>
+                    <button
+                        onClick={() => downloadAllAsZip()}
                         disabled={downloadingAll || files.length === 0}
                         style={{
                             padding: '12px 24px',

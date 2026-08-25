@@ -179,20 +179,35 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       const zip = new JSZip();
       const used = new Set<string>();
       let added = 0;
-      await Promise.all(files.map(async (f: any) => {
-        if (!f.url) return;
-        try {
-          const resp = await fetch(f.url);
-          if (!resp.ok) return;
-          const blob = await resp.blob();
-          // Keep names unique and put the cover first alphabetically.
-          let name = (f.isCover ? '000_ОБКЛАДИНКА_' : '') + (f.name || `photo_${added + 1}`);
-          while (used.has(name)) name = `dup_${Math.random().toString(36).slice(2, 6)}_${name}`;
-          used.add(name);
-          zip.file(name, blob);
-          added++;
-        } catch { /* skip a single failed file */ }
-      }));
+      // Шість файлів за раз, а не всі одразу. Оригінали важать по 5–10 МБ, і на
+      // замовленні з сотнею фото Promise.all над усім списком тягнув їх усі
+      // паралельно — вкладка з'їдала памʼять і частина запитів відвалювалась,
+      // тобто саме на великих замовленнях архів виходив неповним.
+      const POOL = 6;
+      let cursor = 0;
+      const worker = async () => {
+        for (;;) {
+          const i = cursor++;
+          if (i >= files.length) return;
+          const f: any = files[i];
+          if (!f?.url) continue;
+          try {
+            const resp = await fetch(f.url);
+            if (!resp.ok) continue;
+            const blob = await resp.blob();
+            // Keep names unique and put the cover first alphabetically.
+            let name = (f.isCover ? '000_ОБКЛАДИНКА_' : '') + (f.name || `photo_${added + 1}`);
+            while (used.has(name)) name = `dup_${Math.random().toString(36).slice(2, 6)}_${name}`;
+            used.add(name);
+            zip.file(name, blob);
+            added++;
+            if (files.length > 20 && added % 10 === 0) {
+              toast.info(`Збираю ZIP… ${added} з ${files.length}`, { id: 'zip-progress' });
+            }
+          } catch { /* skip a single failed file */ }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(POOL, files.length) }, worker));
       if (added === 0) { toast.error('Не вдалося завантажити файли'); return; }
       const content = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(content);
@@ -2541,6 +2556,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rebuildingPoster ? 'Збираю постер…' : 'Зібрати постер з дизайну'}
                                         </button>
                                         )}
+                                        {/* Оригінали окремо від макету (Diana, 2026-08-25).
+                                            «Завантажити всі» кладе в один архів і макет, і фото,
+                                            а в друкарню й дизайнеру потрібне різне. Беремо все,
+                                            що НЕ експорт: і category='original', і 'designer-order',
+                                            і файли без категорії з folder-scan — інакше кнопка
+                                            працювала б лише на тих замовленнях, де категорія
+                                            проставилась саме як 'original'. */}
+                                        {uploadedFiles.some((f: any) => !f.isExport) && (
+                                            <button onClick={() => downloadAllAsZip(uploadedFiles.filter((f: any) => !f.isExport), 'оригінали')} disabled={downloadingZip}
+                                                title="Тільки фото клієнта в повному розмірі, без файлів макета"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#2563eb', border: '1.5px solid #2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                                Оригінали фото (ZIP)
+                                            </button>
+                                        )}
                                         <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
@@ -2619,7 +2649,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
                                     {photos.length > 0 && (
                                         <div>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Фото клієнта ({photos.length})</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Фото клієнта ({photos.length})</div>
+                                                {/* Ця група збирає все, що не позначене категорією
+                                                    'original' — а це переважна більшість завантажень
+                                                    ('designer-order'). Кнопки в неї не було взагалі,
+                                                    тож ці фото доводилось клікати по одному. */}
+                                                <button onClick={() => downloadAllAsZip(photos, 'фото-клієнта')} disabled={downloadingZip}
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#cbd5e1' : '#475569', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                    Фото клієнта (ZIP)
+                                                </button>
+                                            </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px' }}>
                                                 {photos.map((f: any) => thumb(f))}
                                             </div>
