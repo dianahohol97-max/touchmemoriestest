@@ -1,7 +1,7 @@
 'use client';
 
 export const dynamic = 'force-dynamic';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
@@ -109,8 +109,9 @@ export default function OrdersPage() {
         setCommentSaving(false);
     };
 
+    // Перше завантаження робить ефект пошуку нижче — тут тільки довідники
+    // й підписка, інакше список тягнувся б двічі підряд на кожному відкритті.
     useEffect(() => {
-        fetchOrders();
         fetchStaff();
         fetchTags();
 
@@ -123,6 +124,14 @@ export default function OrdersPage() {
 
         return () => { supabase.removeChannel(channel); };
     }, []);
+
+    // Пошук і дати — із затримкою, щоб не бити в базу на кожній літері.
+    // Цей же ефект робить перше завантаження списку.
+    useEffect(() => {
+        filtersRef.current = { search: searchQuery, start: dateRange.start, end: dateRange.end };
+        const t = setTimeout(() => { fetchOrders(); }, firstLoad.current ? 0 : 350);
+        return () => clearTimeout(t);
+    }, [searchQuery, dateRange.start, dateRange.end]);
 
     const fetchStaff = async () => {
         const res = await fetch('/api/admin/staff');
@@ -137,10 +146,34 @@ export default function OrdersPage() {
         if (res.ok) setAvailableTags(await res.json());
     };
 
+    /**
+     * Пошук і діапазон дат ідуть НА СЕРВЕР, а не фільтрують уже завантажене.
+     *
+     * Список тягне 200 найновіших замовлень, а рядок пошуку просіював саме їх.
+     * TM-001185 — 297-ме з кінця, тому воно просто не доїжджало до браузера і
+     * пошук його «не знаходив» (Diana, 2026-08-25). Те саме було з фільтром за
+     * датою: старий діапазон шукався всередині вже обрізаної сторінки й давав
+     * порожньо. Тепер обидва параметри йдуть у запит, і знайти можна будь-яке
+     * замовлення з усієї бази.
+     *
+     * Ref, а не стан: підписка на realtime створюється один раз і викликає
+     * fetchOrders() без аргументів, тож поточні фільтри вона має звідки взяти.
+     */
+    const filtersRef = useRef({ search: '', start: '', end: '' });
+    const firstLoad = useRef(true);
+
     const fetchOrders = async () => {
-        setLoading(true);
+        // Спінер тільки на першому завантаженні — інакше список блимав би на
+        // кожній літері в пошуку.
+        if (firstLoad.current) setLoading(true);
         try {
-            const res = await fetch('/api/admin/orders');
+            const f = filtersRef.current;
+            const params = new URLSearchParams();
+            const q = f.search.trim();
+            if (q.length >= 2) params.set('search', q);
+            if (f.start) params.set('from', f.start);
+            if (f.end) params.set('to', f.end);
+            const res = await fetch(`/api/admin/orders${params.toString() ? `?${params}` : ''}`);
             if (res.status === 401 || res.status === 403) {
                 setAuthError(true);
                 setOrders([]);
@@ -154,6 +187,7 @@ export default function OrdersPage() {
             console.error('Failed to fetch orders:', err);
             setOrders([]);
         } finally {
+            firstLoad.current = false;
             setLoading(false);
         }
     };
