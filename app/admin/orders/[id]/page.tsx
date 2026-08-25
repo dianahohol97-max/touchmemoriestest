@@ -101,9 +101,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       try {
         const res = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
         if (!res.ok) return;
-        const { photos, coverImageUrl } = await res.json();
+        const { photos, coverImageUrl, coverName } = await res.json();
         if (!cancelled && Array.isArray(photos)) setUploadedFiles(photos);
         if (!cancelled && coverImageUrl) setDesignCoverUrl(coverImageUrl);
+        if (!cancelled && coverName) setDesignCoverName(coverName);
       } catch { /* non-blocking */ }
     })();
     // The customer's saved layout — independent of whether print files exist.
@@ -229,6 +230,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [coverColorIndex, setCoverColorIndex] = useState<CoverColorRow[]>([]);
     // Travel-book cover chosen by the client (from the saved design) — not on the order item.
     const [designCoverUrl, setDesignCoverUrl] = useState<string | null>(null);
+    // Назва готової обкладинки з каталогу, якщо клієнт обрав саме її.
+    // Раніше картка показувала тільки картинку, і назвати вибір можна було
+    // лише впізнавши місто на око.
+    const [designCoverName, setDesignCoverName] = useState<string | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -317,7 +322,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (res.ok && data.ok) {
                 toast.success(data.skipped ? 'Обкладинка вже існує' : 'Обкладинку згенеровано');
                 const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
-                if (pr.ok) { const { photos, coverImageUrl } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); }
+                if (pr.ok) { const { photos, coverImageUrl, coverName } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); if (coverName) setDesignCoverName(coverName); }
                 fetchOrder();
             } else {
                 toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
@@ -1337,6 +1342,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             .map(([k, v]) => `${k}: ${v}`).join(' • ')
                                                     }
                                                 </div>
+                                                {/* Готова обкладинка з нашого каталогу — називаємо її,
+                                                    щоб не впізнавати місто по картинці. Порожньо означає,
+                                                    що клієнт зібрав обкладинку сам. */}
+                                                {/travel|тревел/i.test(`${item.slug || item.product_slug || ''} ${item.product_name || item.name || ''}`) && designCoverName && (
+                                                    <div style={{ fontSize: 13, color: '#0f766e', marginTop: 4, fontWeight: 700 }}>
+                                                        Готова обкладинка: {designCoverName}
+                                                    </div>
+                                                )}
                                                 {/* Material line for the workshop. A colour NAME alone is
                                                     not orderable — thirteen names exist in two materials at
                                                     once — so state the code explicitly, or say out loud that

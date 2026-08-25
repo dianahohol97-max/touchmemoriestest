@@ -80,6 +80,10 @@ export async function GET(req: NextRequest) {
     // photo lives in cover_data.printedBgImage. Resolve either so the admin card
     // can show which cover the client picked.
     let coverImageUrl: string | null = null;
+    // The cover's NAME, when it is one of ours. A picture alone made the card
+    // say «якась готова обкладинка» and left the girls to recognise the city by
+    // eye; the design now records which cover was applied, so say it out loud.
+    let coverName: string | null = null;
     try {
         const { data: projs } = await admin
             .from('projects')
@@ -90,7 +94,11 @@ export async function GET(req: NextRequest) {
             const sc = p?.overlays_data?.config?.selectedCover;
             const cd = p?.cover_data;
             const url = sc?.image_url || sc?.thumbnail_url || cd?.printedBgImage || cd?.printedPhotoUrl;
-            if (url) { coverImageUrl = url; break; }
+            if (url) {
+                coverImageUrl = url;
+                coverName = cd?.readyCoverName || sc?.city_name || sc?.name || null;
+                break;
+            }
         }
     } catch { /* non-critical: card falls back to files/catalog */ }
 
@@ -244,7 +252,10 @@ export async function GET(req: NextRequest) {
                 const slotRemoved = slot && !((slot.w ?? 0) > 0 && (slot.h ?? 0) > 0);
                 const usesReadyCover = !!cd?.printedBgImage;
                 const coverPhotoId = (usesReadyCover || slotRemoved) ? null : (cd?.photoId || null);
-                if (usesReadyCover && !coverImageUrl) coverImageUrl = String(cd.printedBgImage);
+                if (usesReadyCover && !coverImageUrl) {
+                    coverImageUrl = String(cd.printedBgImage);
+                    coverName = cd?.readyCoverName || coverName;
+                }
                 collect(coverPhotoId);
                 const ups = allUps.filter((u: any) => usedIds.has(u?.id));
                 const byB: Record<string, any[]> = {};
@@ -277,5 +288,5 @@ export async function GET(req: NextRequest) {
     // layout at the top of the grid; raw customer uploads follow.
     photos.sort((a, b) => (Number(b.isExport) - Number(a.isExport)) || (Number(b.isCover) - Number(a.isCover)));
 
-    return NextResponse.json({ photos, coverImageUrl });
+    return NextResponse.json({ photos, coverImageUrl, coverName });
 }

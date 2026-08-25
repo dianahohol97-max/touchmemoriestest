@@ -125,6 +125,13 @@ interface CoverState {
   // When set, the front cover renders this image full-bleed; the customer
   // can still add text on top. Mutually informative with printedBgColor.
   printedBgImage?: string | null;
+  // WHICH ready cover it is, by identity rather than by URL. The image alone
+  // told the admin card «якась готова обкладинка» and nothing more, so the only
+  // way to name the customer's choice was to recognise the picture. Recorded at
+  // the moment it is applied, from either entry point — the config step or the
+  // picker inside the editor.
+  readyCoverId?: string | null;
+  readyCoverName?: string | null;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
   backCoverCropX?: number;
@@ -1049,6 +1056,8 @@ export default function BookLayoutEditor() {
           return {
             ...base,
             printedBgImage: String(ready),
+            readyCoverId: c.selectedCover?.id ? String(c.selectedCover.id) : null,
+            readyCoverName: String(c.selectedCover?.city_name || c.selectedCover?.name || '') || null,
             printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
             printedPhotoSlots: undefined,
             printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
@@ -5991,6 +6000,8 @@ export default function BookLayoutEditor() {
                         setCoverState(p => ({
                           ...p,
                           printedBgImage: cover.image_url,
+                          readyCoverId: cover.id,
+                          readyCoverName: cover.name,
                           // Clear photo slots so the ready cover shows full-bleed;
                           // customer can still add text blocks on top.
                           printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
@@ -6027,6 +6038,13 @@ export default function BookLayoutEditor() {
                     pushHistory();
                     setCoverState(p => ({
                       ...p,
+                      // Шаблон — це вже інша обкладинка, тож готова має піти.
+                      // Інакше її картинка лишалася б підкладкою під шаблоном і
+                      // друкувалася б разом із ним, а адмінка й далі називала б
+                      // місто, якого на обкладинці вже немає.
+                      printedBgImage: null,
+                      readyCoverId: null,
+                      readyCoverName: null,
                       printedBgColor: tmpl.bgColor,
                       printedPhotoSlot: tmpl.photoSlots ? tmpl.photoSlots[0] : (tmpl.photoSlot ? { ...tmpl.photoSlot } : { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const }),
                       printedPhotoSlots: tmpl.photoSlots ? tmpl.photoSlots.map(s => ({ ...s, photoId: null, cropX: 50, cropY: 50, zoom: 1 })) : undefined,
