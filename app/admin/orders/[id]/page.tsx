@@ -101,10 +101,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       try {
         const res = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
         if (!res.ok) return;
-        const { photos, coverImageUrl, coverName } = await res.json();
+        const { photos, coverImageUrl, coverName, books: bks } = await res.json();
         if (!cancelled && Array.isArray(photos)) setUploadedFiles(photos);
         if (!cancelled && coverImageUrl) setDesignCoverUrl(coverImageUrl);
         if (!cancelled && coverName) setDesignCoverName(coverName);
+        if (!cancelled && Array.isArray(bks)) setBooks(bks);
       } catch { /* non-blocking */ }
     })();
     // The customer's saved layout — independent of whether print files exist.
@@ -249,6 +250,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Раніше картка показувала тільки картинку, і назвати вибір можна було
     // лише впізнавши місто на око.
     const [designCoverName, setDesignCoverName] = useState<string | null>(null);
+    // Вироби замовлення. У замовленні може бути кілька окремих книг, і файли
+    // всіх лежать одним списком з однаковими іменами — див. TM-001234.
+    const [books, setBooks] = useState<Array<{ id: string; pages: number | null; label: string }>>([]);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -337,7 +341,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (res.ok && data.ok) {
                 toast.success(data.skipped ? 'Обкладинка вже існує' : 'Обкладинку згенеровано');
                 const pr = await fetch(`/api/designer/order-photos?order_id=${order.id}`);
-                if (pr.ok) { const { photos, coverImageUrl, coverName } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); if (coverName) setDesignCoverName(coverName); }
+                if (pr.ok) { const { photos, coverImageUrl, coverName, books: bks } = await pr.json(); if (Array.isArray(photos)) setUploadedFiles(photos); if (coverImageUrl) setDesignCoverUrl(coverImageUrl); if (coverName) setDesignCoverName(coverName); if (Array.isArray(bks)) setBooks(bks); }
                 fetchOrder();
             } else {
                 toast.error(`Не вдалося: ${data.error || res.status}${data.detail ? ` (${data.detail})` : ''}`);
@@ -2579,7 +2583,64 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     </div>
 
-                                    {exportBook.length > 0 && (
+                                    {/* КІЛЬКА ВИРОБІВ В ОДНОМУ ЗАМОВЛЕННІ.
+                                        TM-001234 — пʼять тревелбуків: файли всіх пʼяти лежать одним
+                                        списком, і імена в них однакові («cover.jpg», «01.jpg»), тож
+                                        зрозуміти, який аркуш до якої книги, було неможливо. Кожен
+                                        файл тепер знає свій макет, тож показуємо книгу окремо, з
+                                        власним ZIP і чесним рядком про те, чого в ній бракує. */}
+                                    {books.length > 1 && exportBook.length > 0 && (
+                                        <div style={{ marginBottom: 12 }}>
+                                            {books.map((bk, i) => {
+                                                const mine = exportBook.filter((f: any) => f.bookId === bk.id);
+                                                const pageFiles = mine.filter((f: any) => (f.category || '') === 'book-page' || /^\d+\.jpe?g$/i.test(f.name || ''));
+                                                const hasCover = mine.some((f: any) => f.isCover);
+                                                const expected = bk.pages || null;
+                                                const incomplete = !hasCover || (expected !== null && pageFiles.length === 0);
+                                                return (
+                                                    <div key={bk.id} style={{ marginBottom: 10, padding: 10, background: incomplete ? '#fef2f2' : '#f0fdf4', border: `1px solid ${incomplete ? '#fecaca' : '#bbf7d0'}`, borderRadius: 8 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                            <div style={{ fontSize: 11, fontWeight: 700, color: incomplete ? '#b91c1c' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                                <Printer size={13} /> {bk.label} — {mine.length} файл(ів)
+                                                            </div>
+                                                            {mine.length > 0 && (
+                                                                <button onClick={() => downloadAllAsZip(mine, `виріб-${i + 1}`)} disabled={downloadingZip}
+                                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                                    Макет виробу {i + 1} (ZIP)
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        {incomplete && (
+                                                            <div style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600, marginBottom: 6 }}>
+                                                                {mine.length === 0
+                                                                    ? 'Макета немає взагалі — перегенеруйте через Railway, не віддавайте в друк.'
+                                                                    : !hasCover
+                                                                        ? 'Немає обкладинки.'
+                                                                        : 'Є тільки обкладинка, сторінок немає — перегенеруйте через Railway.'}
+                                                            </div>
+                                                        )}
+                                                        {mine.length > 0 && (
+                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                                {mine.map((f: any) => thumb(f, true))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {/* Файли, які не прив'язалися до жодного виробу — щоб нічого не зникло з очей. */}
+                                            {exportBook.some((f: any) => !f.bookId) && (
+                                                <div style={{ padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>Без прив'язки до виробу</div>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                        {exportBook.filter((f: any) => !f.bookId).map((f: any) => thumb(f, true))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {books.length <= 1 && exportBook.length > 0 && (
                                         <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>

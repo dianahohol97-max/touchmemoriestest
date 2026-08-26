@@ -102,6 +102,36 @@ export async function GET(req: NextRequest) {
         }
     } catch { /* non-critical: card falls back to files/catalog */ }
 
+    // Книги замовлення. Одне замовлення може містити кілька окремих виробів
+    // (TM-001234 — пʼять тревелбуків), і кожен має свій макет. Файли всіх пʼяти
+    // лежать в одній таблиці з однаковими іменами «01.jpg», «cover.jpg», тож без
+    // цієї прив'язки картка показує їх однією купою, у якій неможливо
+    // розібратися, який аркуш до якої книги.
+    const books: Array<{ id: string; pages: number | null; label: string }> = [];
+    try {
+        const { data: projRows } = await admin
+            .from('projects')
+            .select('id, total_pages, format, created_at')
+            .eq('order_id', orderId)
+            .order('created_at', { ascending: true });
+        (projRows || []).forEach((p: any, i: number) => {
+            const pages = typeof p.total_pages === 'number' ? p.total_pages : null;
+            books.push({
+                id: String(p.id),
+                pages,
+                label: `Виріб ${i + 1}${p.format ? ` · ${p.format}` : ''}${pages ? ` · ${pages} стор.` : ''}`,
+            });
+        });
+    } catch { /* без списку книг картка просто не групуватиме */ }
+    const bookIds = new Set(books.map(b => b.id));
+    /** id макета, до якого належить файл — шукається у шляху сховища. */
+    const bookOf = (path: string): string | null => {
+        for (const seg of String(path || '').split('/')) {
+            if (bookIds.has(seg)) return seg;
+        }
+        return null;
+    };
+
     const { data: files, error } = await admin
         .from('order_files')
         .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type')
@@ -137,6 +167,7 @@ export async function GET(req: NextRequest) {
         page_number: number | null;
         mime_type: string | null;
         product_id?: string | null;
+        bookId?: string | null;
     }> = [];
 
     const ONE_DAY = 60 * 60 * 24;
@@ -158,6 +189,7 @@ export async function GET(req: NextRequest) {
                 page_number: f.page_number,
                 mime_type: f.mime_type,
                 product_id: null,
+                bookId: bookOf(f.file_path),
             });
         });
     }
@@ -288,5 +320,5 @@ export async function GET(req: NextRequest) {
     // layout at the top of the grid; raw customer uploads follow.
     photos.sort((a, b) => (Number(b.isExport) - Number(a.isExport)) || (Number(b.isCover) - Number(a.isCover)));
 
-    return NextResponse.json({ photos, coverImageUrl, coverName });
+    return NextResponse.json({ photos, coverImageUrl, coverName, books });
 }
