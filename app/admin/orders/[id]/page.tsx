@@ -332,6 +332,31 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Generate (or regenerate) the wishbook cover.jpg fully server-side from the
     // order options. Lets staff produce/fix the print cover for a книга побажань
     // without depending on the customer's browser export.
+    /**
+     * Перегенерувати ОДИН виріб замовлення. Кнопка «Перегенерувати макет
+     * (Railway)» згори бере все замовлення, і на пʼяти книгах поспіль це не
+     * вкладається в час функції — саме так TM-001234 і лишилося з чотирма
+     * недорендереними книгами.
+     */
+    const rerenderBook = async (projectId: string, label: string) => {
+        if (!order?.id) return;
+        if (!confirm(`Перегенерувати макет: ${label}?\n\nРендериться лише цей виріб, решта замовлення не чіпається. Займе 1–2 хв.`)) return;
+        setRerendering(true);
+        try {
+            const r = await fetch(`/api/admin/orders/${order.id}/rerender?project=${encodeURIComponent(projectId)}`, { method: 'POST' });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok) {
+                toast.success(`${label}: рендер запущено, файли оновляться за 1–2 хв`);
+                setTimeout(() => fetchOrder(), 90000);
+            } else {
+                toast.error(j.error || 'Не вдалося перегенерувати');
+            }
+        } catch (e: any) {
+            toast.error(`Помилка: ${e?.message || e}`);
+        }
+        setRerendering(false);
+    };
+
     const generateWishbookCover = async (force = false) => {
         if (!order?.id) return;
         setIsGenCover(true);
@@ -2589,7 +2614,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         зрозуміти, який аркуш до якої книги, було неможливо. Кожен
                                         файл тепер знає свій макет, тож показуємо книгу окремо, з
                                         власним ZIP і чесним рядком про те, чого в ній бракує. */}
-                                    {books.length > 1 && exportBook.length > 0 && (
+                                    {/* Умова навмисно тільки по кількості виробів: якщо жоден не
+                                        відрендерився, секції з кнопкою «Перегенерувати» потрібні
+                                        найбільше — а по exportBook їх би не показало взагалі. */}
+                                    {books.length > 1 && (
                                         <div style={{ marginBottom: 12 }}>
                                             {books.map((bk, i) => {
                                                 const mine = exportBook.filter((f: any) => f.bookId === bk.id);
@@ -2603,6 +2631,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             <div style={{ fontSize: 11, fontWeight: 700, color: incomplete ? '#b91c1c' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
                                                                 <Printer size={13} /> {bk.label} — {mine.length} файл(ів)
                                                             </div>
+                                                            <button onClick={() => rerenderBook(bk.id, bk.label)} disabled={rerendering}
+                                                                title="Перегенерувати макет лише цього виробу через Railway"
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#ea580c', border: '1.5px solid #ea580c', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: rerendering ? 'default' : 'pointer' }}>
+                                                                {rerendering ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                                                                Перегенерувати
+                                                            </button>
                                                             {mine.length > 0 && (
                                                                 <button onClick={() => downloadAllAsZip(mine, `виріб-${i + 1}`)} disabled={downloadingZip}
                                                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>

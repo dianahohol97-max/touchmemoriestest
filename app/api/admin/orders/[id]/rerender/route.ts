@@ -26,6 +26,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const guard = await requireStaff();
   if (!guard.ok) return guard.response;
 
+  // ?project=<id> — перегенерувати лише один виріб замовлення. Без нього
+  // рендеряться всі, що на замовленні з пʼятьма книгами не вкладається в час.
+  const projectId = new URL(_req.url).searchParams.get('project') || undefined;
+
   const { id } = await params;
   const admin = getAdminClient();
   const { data: order } = await admin
@@ -45,7 +49,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       const res = await fetch(`${base}/api/print/render-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-cron-secret': secret },
-        body: JSON.stringify({ orderId: order.id }),
+        body: JSON.stringify({ orderId: order.id, ...(projectId ? { projectId } : {}) }),
       });
       const detail: any = await res.json().catch(() => ({}));
       console.log('[rerender] render-order done', { order: order.order_number, status: res.status, detail });

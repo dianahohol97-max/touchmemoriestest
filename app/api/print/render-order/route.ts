@@ -141,7 +141,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { orderId } = await request.json().catch(() => ({ orderId: undefined }));
+  // `projectId` звужує рендер до ОДНОГО виробу.
+  //
+  // Замовлення може містити кілька книг (TM-001234 — пʼять тревелбуків, 114
+  // сторінок разом), і рендер усіх підряд не вкладається у 300 секунд функції:
+  // перші книги встигали віддати обкладинку, далі виклик уривався. Тому крім
+  // «перегенерувати все» має бути «перегенерувати оцю» — і саме її дає кнопка
+  // в секції виробу.
+  const { orderId, projectId } = await request.json().catch(() => ({ orderId: undefined, projectId: undefined }));
   if (!orderId) {
     return NextResponse.json({ error: 'orderId required' }, { status: 400 });
   }
@@ -159,10 +166,12 @@ export async function POST(request: NextRequest) {
   // Find the design saved for this order. saveDesignToProjects writes order_id
   // onto the project at checkout. If a single order ever has multiple book
   // items, there can be multiple projects — render them all.
-  const { data: projects, error } = await admin
+  let projectQuery = admin
     .from('projects')
     .select('id, user_id, cart_payload, name, product_type, pages_data, cover_data, overlays_data, uploaded_photos')
     .eq('order_id', orderId);
+  if (projectId) projectQuery = projectQuery.eq('id', projectId);
+  const { data: projects, error } = await projectQuery;
 
   if (error) {
     console.error('[render-order] project lookup failed', { orderId, error: error.message });
