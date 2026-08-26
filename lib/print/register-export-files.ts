@@ -113,6 +113,17 @@ export async function pruneStaleExports(
   admin: SupabaseClient,
   orderId: string,
   keepPaths: string[],
+  /**
+   * Обмежити прибирання файлами ОДНОГО виробу.
+   *
+   * Без цього прибирання рахує застарілим усе, чого немає в новому наборі, — а
+   * при рендері одного виробу в новому наборі є лише його файли. У TM-001234
+   * (пʼять тревелбуків) перегенерація однієї книги стерла сторінки іншої, уже
+   * готової: 32 аркуші зникли зі сховища й з бази, бо не входили в набір щойно
+   * відрендереного виробу. Коли рендериться один макет, прибирати можна тільки
+   * його власні файли.
+   */
+  scopeToProjectId?: string,
 ): Promise<void> {
   if (!keepPaths.length) return;
   const newSet = new Set(keepPaths);
@@ -123,6 +134,7 @@ export async function pruneStaleExports(
     .eq('file_type', 'export');
   const stale = (oldFiles || []).filter((f: any) =>
     !newSet.has(f.file_path) &&
+    (!scopeToProjectId || String(f.file_path || '').includes(scopeToProjectId)) &&
     !SERVER_GENERATED_COVER.test(String(f.file_path || '')) &&
     RAILWAY_RENDERABLE.test(String(f.product_type || '')),
   );

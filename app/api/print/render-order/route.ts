@@ -302,7 +302,9 @@ export async function POST(request: NextRequest) {
   // drafts (pb-…) and any previous Railway render — from storage AND the DB, so
   // the admin shows only the new spreads and no orphans pile up in storage.
   // Guarded inside by allUploaded.length so a failed render never deletes files.
-  await pruneStaleExports(admin, orderId, allUploaded);
+  // При рендері одного виробу прибирання обмежене його ж файлами — інакше воно
+  // зносить готові макети інших книг замовлення (див. коментар у pruneStaleExports).
+  await pruneStaleExports(admin, orderId, allUploaded, projectId || undefined);
 
   // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
   // флекс also needs the monochrome engraving макет, which Railway does not
