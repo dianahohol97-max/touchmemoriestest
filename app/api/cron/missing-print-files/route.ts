@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { generateOrderPrintSheets } from '@/lib/print/generate-sheets';
 import { reconcileOrderPageCount } from '@/lib/print/reconcile-page-count';
+import { auditOrderPrintQuality } from '@/lib/print/audit-print-quality';
 
 export const dynamic = 'force-dynamic';
 // Sheet repair below composes JPEGs with Jimp, which needs the Node runtime and
@@ -14,6 +15,15 @@ export const maxDuration = 60;
 // a cron that times out half-way leaves a partial set of sheets on the order.
 // One per run always finishes, and the next run picks up the following order.
 const SHEET_REPAIRS_PER_RUN = 1;
+
+// Так само один за прохід: перевірка якості декодує великі JPEG, і разом із
+// перескладанням аркушів вона мусить уміститись у ті самі 60 секунд.
+const QUALITY_AUDITS_PER_RUN = 1;
+// Дивимось лише свіжі файли. Замовлення живе у вікні крона до 72 годин, і без
+// цього обмеження чистий комплект перевірявся б щогодини заново. Три години
+// означають, що кожен комплект перевіриться кілька разів одразу після появи —
+// і що перегенерований файл теж потрапить під перевірку.
+const QUALITY_FRESH_MS = 3 * 3600_000;
 
 /**
  * GET /api/cron/missing-print-files
@@ -50,6 +60,9 @@ const PRINT_FILE_SLUG_PATTERNS = [
 ];
 
 const WARNING_MARKER = 'файли для друку не завантажились';
+// Мусить бути шматком самого попередження, інакше перевірка «вже позначено» не
+// спрацює й замовлення переflagується щогодини.
+const QUALITY_MARKER = 'Перевірте макет:';
 
 function itemNeedsPrintFiles(item: any): boolean {
   const slug = String(item?.slug || '').toLowerCase();
@@ -68,7 +81,7 @@ export async function GET(request: Request) {
   const floor = new Date(now - 72 * 3600_000).toISOString(); // 72h ago
   const ceiling = new Date(now - 1 * 3600_000).toISOString(); // 1h ago
 
-  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0, sheetsRepaired: 0, sheetsPending: 0, pagesReconciled: 0 };
+  const stats = { scanned: 0, flagged: 0, alreadyFlagged: 0, ok: 0, generated: 0, errors: 0, sheetsRepaired: 0, sheetsPending: 0, pagesReconciled: 0, qualityChecked: 0, qualityFlagged: 0 };
 
   const { data: orders, error } = await admin
     .from('orders')
@@ -182,6 +195,44 @@ export async function GET(request: Request) {
           } catch { /* next hour tries again */ }
         }
       }
+      // Файли є — але чи можна їх друкувати? Розмір і порожнеча, більше нічого.
+      // Саме цього бракувало, коли друкарня відхилила TM-001233 за 400×300
+      // замість 420×305, а обкладинка TM-001232 приїхала бежевим прямокутником:
+      // обидва файли існували й були правильно названі.
+      if (
+        stats.qualityChecked < QUALITY_AUDITS_PER_RUN
+        && !(order.notes || '').includes(QUALITY_MARKER)
+      ) {
+        try {
+          const { data: newest } = await admin
+            .from('order_files')
+            .select('created_at')
+            .eq('order_id', order.id)
+            .eq('file_type', 'export')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const freshEnough = newest?.created_at
+            && (now - new Date(newest.created_at).getTime()) < QUALITY_FRESH_MS;
+          if (freshEnough) {
+            const report = await auditOrderPrintQuality(order.id);
+            if (report.checked > 0) stats.qualityChecked++;
+            if (report.problems.length) {
+              const warn = `⚠️ Перевірте макет: ${report.problems.join('; ')}. Не в друк, поки не перегенеруєте.`;
+              const { data: cur } = await admin.from('orders').select('notes').eq('id', order.id).maybeSingle();
+              const prev = (cur?.notes || '').trim();
+              await admin.from('orders')
+                .update({ notes: prev ? `${warn}\n${prev}` : warn })
+                .eq('id', order.id);
+              stats.qualityFlagged++;
+              console.warn('[missing-print-files] print quality problem', order.order_number, report.problems);
+            }
+          }
+        } catch (e) {
+          console.error('[missing-print-files] quality audit failed', order.order_number, e);
+        }
+      }
+
       stats.ok++;
       continue;
     }
