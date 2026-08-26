@@ -253,8 +253,18 @@ async function fetchGoogleFont(family: string, text: string): Promise<ArrayBuffe
  */
 const FALLBACK_FAMILIES = ['Noto Sans Mono', 'Noto Sans Symbols 2'];
 
+/**
+ * Емодзі окремо. Ці два шрифти їх не мають, а вписати 💍 чи 🤍 у назву книги
+ * ніхто не заважає — поле звичайне текстове. Noto Emoji чорно-білий: на друку
+ * серце вийде контуром, а не червоним. Для гравіювання це навіть правильно, а
+ * для друкованої обкладинки все одно незрівнянно краще за чорний квадрат.
+ */
+const EMOJI_FALLBACK_FAMILY = 'Noto Emoji';
+
 /** Символи поза базовою латиницею, кирилицею й звичайною пунктуацією. */
 const NEEDS_FALLBACK_RX = /[^\u0000-\u024F\u0400-\u04FF\s]/u;
+/** Справжні емодзі — усе поза базовою площиною. */
+const HAS_EMOJI_RX = /[\u{1F000}-\u{1FAFF}]/u;
 
 /**
  * Довантажує запасні шрифти, якщо в тексті є хоч один незвичний символ. На
@@ -264,9 +274,12 @@ async function loadFallbackFonts(
   allText: string,
 ): Promise<Array<{ name: string; data: ArrayBuffer; weight: 400; style: 'normal' }>> {
   if (!NEEDS_FALLBACK_RX.test(allText)) return [];
-  const uniq = Array.from(new Set(allText.split(''))).join('');
+  const uniq = Array.from(new Set(Array.from(allText))).join('');
+  const families = HAS_EMOJI_RX.test(allText)
+    ? [...FALLBACK_FAMILIES, EMOJI_FALLBACK_FAMILY]
+    : FALLBACK_FAMILIES;
   const out: Array<{ name: string; data: ArrayBuffer; weight: 400; style: 'normal' }> = [];
-  for (const fam of FALLBACK_FAMILIES) {
+  for (const fam of families) {
     const data = await loadGoogleFont(fam, uniq);
     if (data) out.push({ name: fam, data, weight: 400 as const, style: 'normal' as const });
   }
