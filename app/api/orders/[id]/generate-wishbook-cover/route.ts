@@ -98,15 +98,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // див. нижче.
   let printedDesign: PrintedCoverDesign | null = null;
   let coverNeedsPhoto = false;
+  // Фігури, наліпки й рамка, покладені на обкладинку в редакторі. Цей генератор
+  // їх не малює — див. відмову нижче.
+  let coverExtras: string[] = [];
   try {
     const { data: proj } = await admin
       .from('projects')
-      .select('cover_data')
+      .select('cover_data, overlays_data')
       .eq('order_id', id)
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
     const cd: any = proj?.cover_data;
+    const ov: any = proj?.overlays_data || {};
+    // Редактор дозволяє класти на друковану обкладинку СПРАВЖНІ елементи —
+    // лінії, кола, зірки (ShapesLayer), наліпки й рамку. Вони живуть не в
+    // cover_data, а в overlays_data під ключем сторінки 0.
+    if (Array.isArray(ov?.pageShapes?.['0']) && ov.pageShapes['0'].length) {
+      coverExtras.push(`фігури (${ov.pageShapes['0'].length})`);
+    }
+    if (Array.isArray(ov?.pageStickers?.['0']) && ov.pageStickers['0'].length) {
+      coverExtras.push(`наліпки (${ov.pageStickers['0'].length})`);
+    }
+    if (Array.isArray(ov?.freeSlots?.['0']) && ov.freeSlots['0'].length) {
+      coverExtras.push(`вільні слоти (${ov.freeSlots['0'].length})`);
+    }
     if (cd) {
       const slot: any = cd.printedPhotoSlot;
       const slotActive = slot ? ((slot.w ?? 0) > 0 && (slot.h ?? 0) > 0) : false;
@@ -172,6 +188,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Фото на обкладинці цей рендер не вміє: воно лежить в uploaded_photos і
       // потребує підписаних посилань та кадрування, якого тут немає. Мовчки
       // віддати обкладинку без клієнтського фото — гірше, ніж не віддати нічого.
+      // Справжні елементи редактора цей генератор не малює. Мовчки віддати
+      // обкладинку без лінії, яку клієнт поставив, — це те саме, що й чорний
+      // квадрат: помітять уже на друці.
+      if (coverExtras.length) {
+        return NextResponse.json({
+          error: `На обкладинці є елементи, які цей генератор не малює: ${coverExtras.join(', ')}. `
+            + 'Щоб не надрукувати обкладинку без них, файл не створюю.',
+        }, { status: 400 });
+      }
       if (coverNeedsPhoto) {
         return NextResponse.json({
           error: 'На друкованій обкладинці є фото клієнта, а цей генератор малює лише текст і фон. '
