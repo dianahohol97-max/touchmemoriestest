@@ -49,7 +49,11 @@ export async function POST(req: NextRequest) {
   }
 
   const insertError = await registerExportFiles(admin, project.order_id, project.product_type, uploaded);
-  await pruneStaleExports(admin, project.order_id, uploaded);
+  // Прибирати можна ТІЛЬКИ файли цього макета. Цей колбек приходить від сервісу
+  // на кожен окремий виріб, і без обмеження він зносив макети сусідніх книг
+  // того самого замовлення — саме так TM-001234 двічі втратило вже готову
+  // книгу, поки перерендерювали іншу.
+  await pruneStaleExports(admin, project.order_id, uploaded, [String(project.id)]);
 
   // A successful render supersedes any «РЕНДЕР НЕ ВДАВСЯ» note the timed-out
   // path may have written on the order.

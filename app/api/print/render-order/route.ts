@@ -208,6 +208,10 @@ export async function POST(request: NextRequest) {
 
   const results: Array<{ projectId: string; ok: boolean; detail?: unknown }> = [];
   const allUploaded: string[] = []; // every path the render produced, across projects
+  // Макети, які в ЦЬОМУ запуску дійшли до кінця. Прибирання застарілих файлів
+  // обмежене саме ними: інакше книга, що впала цього разу, втрачає вчорашній
+  // цілий макет (TM-001234 — двічі за два дні).
+  const renderedProjectIds: string[] = [];
   for (const project of projects) {
     if (WISHBOOK.test(String(project.product_type || ''))) {
       // Make sure the generated cover exists (idempotent — skips when a
@@ -282,6 +286,9 @@ export async function POST(request: NextRequest) {
       const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
       if (uploaded.length) {
         allUploaded.push(...uploaded);
+        // Тільки тепер цей макет вважається перерендереним — і тільки його старі
+        // файли можна прибирати.
+        renderedProjectIds.push(String(project.id));
         // Shared with /api/print/render-complete (the service's completion
         // callback that covers renders outliving this route's maxDuration).
         const ofErrMsg = await registerExportFiles(admin, orderId, project.product_type, uploaded);
@@ -304,7 +311,7 @@ export async function POST(request: NextRequest) {
   // Guarded inside by allUploaded.length so a failed render never deletes files.
   // При рендері одного виробу прибирання обмежене його ж файлами — інакше воно
   // зносить готові макети інших книг замовлення (див. коментар у pruneStaleExports).
-  await pruneStaleExports(admin, orderId, allUploaded, projectId || undefined);
+  await pruneStaleExports(admin, orderId, allUploaded, renderedProjectIds);
 
   // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
   // флекс also needs the monochrome engraving макет, which Railway does not
