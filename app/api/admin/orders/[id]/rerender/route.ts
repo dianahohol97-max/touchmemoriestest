@@ -74,10 +74,32 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         .trim();
 
       if (detail && detail.ok === false) {
+        // Причина йде в нотатку, яку читають люди й яку копіюють у CRM, тож із
+        // неї треба ВИТЯГТИ рядок, а не вивалити все, що віддав сервіс. Коли
+        // Playwright не піднімає браузер, він повертає ВЕСЬ лог запуску —
+        // командний рядок Chromium на пів екрана плюс попередження про dbus і
+        // vaapi. Одного разу цей лог цілком приїхав у notes замовлення
+        // TM-001234 і зробив картку нечитаною. Беремо перший осмислений рядок і
+        // обрізаємо до 300 символів.
+        const firstUseful = (raw: unknown): string => {
+          const lines = String(raw ?? '')
+            .split('\n')
+            .map(l => l.trim())
+            .filter(l =>
+              l
+              && !l.startsWith('<launching>')
+              && !l.startsWith('<launched>')
+              && !l.startsWith('<gracefully')
+              && !/^\[pid=\d+\]/.test(l)
+              && !l.startsWith('--'),
+            );
+          return (lines[0] || String(raw ?? '')).slice(0, 300);
+        };
         const why = (detail.results || [])
-          .map((r: any) => r?.error || r?.detail?.message || r?.detail?.error)
+          .map((r: any) => firstUseful(r?.error || r?.detail?.message || r?.detail?.error))
           .filter(Boolean)
-          .join('; ');
+          .join('; ')
+          .slice(0, 600);
         const warn = `${RENDER_FAIL_MARKER} (${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC): `
           + `зібрано ${detail.rendered ?? 0} з ${detail.total ?? '?'}. `
           + (why ? `Причина: ${why}. ` : '')
