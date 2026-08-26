@@ -235,6 +235,44 @@ async function fetchGoogleFont(family: string, text: string): Promise<ArrayBuffe
   }
 }
 
+/**
+ * Запасні шрифти для декоративних символів.
+ *
+ * Satori малює тільки тими шрифтами, які їй дали, і не має системного запасу.
+ * Google віддає підмножину шрифту рівно з тих гліфів, які ми попросили, — але
+ * якщо гліфа в шрифті НЕМАЄ, у підмножині його теж не буде, і Satori малює
+ * чорний прямокутник. Саме це сталося з обкладинкою TM-001232: роздільники
+ * «─────── ♡ ───────» (Inter) і «· ── ∞ ── ·» (Montserrat) приїхали рядами
+ * чорних квадратиків. У браузері клієнтка їх бачила нормально, бо там система
+ * підставляє власний шрифт.
+ *
+ * Перевірено проти живого Google Fonts: символу ─ (U+2500) немає ні в Inter, ні
+ * в Montserrat, ні в Great Vibes, ні в Cormorant Garamond, ні в Noto Sans. Пара
+ * Noto Sans Mono (рамки, лінії, ∞) плюс Noto Sans Symbols 2 (серця, зірки,
+ * квіти) закриває всі декоративні символи, які пропонує редактор.
+ */
+const FALLBACK_FAMILIES = ['Noto Sans Mono', 'Noto Sans Symbols 2'];
+
+/** Символи поза базовою латиницею, кирилицею й звичайною пунктуацією. */
+const NEEDS_FALLBACK_RX = /[^\u0000-\u024F\u0400-\u04FF\s]/u;
+
+/**
+ * Довантажує запасні шрифти, якщо в тексті є хоч один незвичний символ. На
+ * звичайній обкладинці не робить жодного запиту.
+ */
+async function loadFallbackFonts(
+  allText: string,
+): Promise<Array<{ name: string; data: ArrayBuffer; weight: 400; style: 'normal' }>> {
+  if (!NEEDS_FALLBACK_RX.test(allText)) return [];
+  const uniq = Array.from(new Set(allText.split(''))).join('');
+  const out: Array<{ name: string; data: ArrayBuffer; weight: 400; style: 'normal' }> = [];
+  for (const fam of FALLBACK_FAMILIES) {
+    const data = await loadGoogleFont(fam, uniq);
+    if (data) out.push({ name: fam, data, weight: 400 as const, style: 'normal' as const });
+  }
+  return out;
+}
+
 export interface WishbookRenderOptions {
   /**
    * Monochrome production макет: FRONT COVER ONLY, pure white background, pure
@@ -477,11 +515,12 @@ export async function renderWishbookCoverPng(
     const fam = ex.fontFamily || titleFont;
     famText.set(fam, `${famText.get(fam) || ''} ${ex.text}`);
   }
-  const fonts: Array<{ name: string; data: ArrayBuffer; weight: 700; style: 'normal' }> = [];
+  const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: 'normal' }> = [];
   for (const [fam, txt] of famText) {
     const data = await loadGoogleFont(fam, txt);
     if (data) fonts.push({ name: fam, data, weight: 700 as const, style: 'normal' as const });
   }
+  fonts.push(...await loadFallbackFonts(Array.from(famText.values()).join('')));
 
   const image = new ImageResponse(
     (
@@ -667,6 +706,8 @@ export async function renderPrintedCoverPng(
         const data = await loadGoogleFont(fam, txt);
         if (data) fonts.push({ name: fam, data, weight: 400 as const, style: 'normal' as const });
     }
+    // Запасні шрифти для декоративних символів — див. loadFallbackFonts.
+    fonts.push(...await loadFallbackFonts(Array.from(famText.values()).join('')));
 
     // Satori не вміє міряти текст наперед, а редактор ужимає надто довгий рядок
     // під 84 % ширини обкладинки. Без цієї оцінки довгий рядок виїхав би за
