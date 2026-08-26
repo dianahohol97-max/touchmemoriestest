@@ -184,7 +184,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             + 'Файл не створюю, бо це був би порожній аркуш. Перевірте, чи клієнт зберіг обкладинку в конструкторі.',
         }, { status: 400 });
       }
-      const pngPrinted = await renderPrintedCoverPng(spec.sizeKey, printedDesign as PrintedCoverDesign);
+      // Якщо якийсь символ не намалювався в жодному шрифті, він не потрапляє у
+      // файл — і замовлення має про це сказати вголос. Мовчазний пропуск нічим
+      // не кращий за чорний квадрат: і те, і те помітять уже на друці.
+      let droppedChars: string[] = [];
+      const pngPrinted = await renderPrintedCoverPng(
+        spec.sizeKey,
+        printedDesign as PrintedCoverDesign,
+        chars => { droppedChars = chars; },
+      );
       jpeg = await sharp(Buffer.from(pngPrinted))
         .flatten({ background: '#ffffff' })
         .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
@@ -193,6 +201,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Чорно-білий макет друкованій обкладинці не потрібен: нічого не
       // гравіюється. Далі йде спільний код вивантаження.
       jpegBw = null;
+      if (droppedChars.length) {
+        const warn = `⚠️ На обкладинці не намалювалися символи: ${droppedChars.join(' ')}. `
+          + 'Шрифт їх не має — перевірте макет перед друком.';
+        try {
+          const { data: cur } = await admin.from('orders').select('notes').eq('id', id).maybeSingle();
+          const prev = (cur?.notes || '').trim();
+          if (!prev.includes('не намалювалися символи')) {
+            await admin.from('orders').update({ notes: prev ? `${warn}\n${prev}` : warn }).eq('id', id);
+          }
+        } catch { /* попередження не має ламати генерацію */ }
+        console.warn('[wishbook-cover] dropped glyphs', order.order_number, droppedChars);
+      }
     } else {
 
     if (!spec.title) {

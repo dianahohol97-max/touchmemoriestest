@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geometry';
 import { coverTextScale } from './text-scale';
+import { glyphCoverage, fixToPrintableText } from './font-coverage';
 import { engravedInk } from './engraved-ink';
 
 export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
@@ -682,6 +683,8 @@ export function hasPrintedCoverDesign(d: PrintedCoverDesign | null | undefined):
 export async function renderPrintedCoverPng(
     sizeKey: string,
     design: PrintedCoverDesign,
+    /** Викликається, якщо якісь символи не намалювалися й були прибрані. */
+    onDropped?: (chars: string[]) => void,
 ): Promise<Uint8Array> {
     const key = normalizeCoverSize(sizeKey);
     const sizeMm = resolveSizeMm(key);
@@ -722,6 +725,23 @@ export async function renderPrintedCoverPng(
     // Запасні шрифти для декоративних символів — див. loadFallbackFonts.
     fonts.push(...await loadFallbackFonts(Array.from(famText.values()).join('')));
 
+    // Останній рубіж: питаємо самі шрифти, що вони вміють намалювати.
+    //
+    // Запасні шрифти закривають той набір символів, який ми знаємо. Але поле
+    // напису звичайне текстове — вписати можна будь-що, і невідомий символ
+    // мовчки став би чорним квадратом у файлі, який поїде в друк. Тут він
+    // або замінюється на схожий, або не потрапляє у файл узагалі, а замовлення
+    // отримує попередження. Порожнє місце гірше за задум клієнта, але
+    // незрівнянно краще за квадрат, якого ніхто не помітить.
+    const coverage = new Set<number>();
+    for (const f of fonts) for (const cp of glyphCoverage(f.data)) coverage.add(cp);
+    const droppedAll = new Set<string>();
+    const printable = (t: string) => {
+        const r = fixToPrintableText(t, coverage);
+        r.dropped.forEach(c => droppedAll.add(c));
+        return r.text;
+    };
+
     // Satori не вміє міряти текст наперед, а редактор ужимає надто довгий рядок
     // під 84 % ширини обкладинки. Без цієї оцінки довгий рядок виїхав би за
     // обріз — краще приблизно вузько, ніж точно за краєм.
@@ -737,6 +757,9 @@ export async function renderPrintedCoverPng(
         // Та сама безпечна зона 8..92 %, що в редакторі та прев'ю.
         const sx = Math.max(8, Math.min(92, b.x ?? 50));
         const sy = Math.max(8, Math.min(92, b.y ?? 50));
+        // Розмір рахуємо вже по тому тексту, який реально піде у файл.
+        const shown = printable(b.text);
+        if (!shown.trim()) return null;
         return (
             <div
                 key={i}
@@ -748,13 +771,13 @@ export async function renderPrintedCoverPng(
                     transform: 'translate(-50%, -50%)',
                     fontFamily: `"${b.fontFamily || 'Montserrat'}"`,
                     fontWeight: b.bold ? 700 : 400,
-                    fontSize: `${Math.round(fitFontSize(b, boxW))}px`,
+                    fontSize: `${Math.round(fitFontSize({ ...b, text: shown }, boxW))}px`,
                     color: b.color && b.color.startsWith('#') ? b.color : '#1f2937',
                     lineHeight: 1.15,
                     whiteSpace: 'nowrap',
                 }}
             >
-                {b.text}
+                {shown}
             </div>
         );
     };
@@ -782,5 +805,6 @@ export async function renderPrintedCoverPng(
     );
 
     const buf = await image.arrayBuffer();
+    if (droppedAll.size && onDropped) onDropped(Array.from(droppedAll));
     return new Uint8Array(buf);
 }
