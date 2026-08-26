@@ -253,6 +253,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     // Вироби замовлення. У замовленні може бути кілька окремих книг, і файли
     // всіх лежать одним списком з однаковими іменами — див. TM-001234.
     const [books, setBooks] = useState<Array<{ id: string; pages: number | null; label: string }>>([]);
+    const [verifying, setVerifying] = useState(false);
+    const [verifyReport, setVerifyReport] = useState<any | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -338,6 +340,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
      * вкладається в час функції — саме так TM-001234 і лишилося з чотирма
      * недорендереними книгами.
      */
+    /**
+     * Звірити готові файли з макетом клієнта. Відповідає на «чи те, що поїде в
+     * друк, це те, що людина склала» — по кожному виробу, з переліком того, що
+     * не збіглося.
+     */
+    const verifyPrint = async () => {
+        if (!order?.id) return;
+        setVerifying(true);
+        setVerifyReport(null);
+        try {
+            const r = await fetch(`/api/admin/orders/${order.id}/verify-print`, { method: 'POST' });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) { toast.error(j.error || 'Не вдалося перевірити'); return; }
+            setVerifyReport(j);
+            if (j.ok) toast.success(j.summary);
+            else toast.error(j.summary, { duration: 8000 });
+        } catch (e: any) {
+            toast.error(`Помилка перевірки: ${e?.message || e}`);
+        }
+        setVerifying(false);
+    };
+
     const rerenderBook = async (projectId: string, label: string) => {
         if (!order?.id) return;
         if (!confirm(`Перегенерувати макет: ${label}?\n\nРендериться лише цей виріб, решта замовлення не чіпається. Займе 1–2 хв.`)) return;
@@ -2600,6 +2624,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 Оригінали фото (ZIP)
                                             </button>
                                         )}
+                                        <button onClick={verifyPrint} disabled={verifying}
+                                            title="Відкриває кожен готовий файл і звіряє з макетом клієнта: кількість сторінок, порожні аркуші, розмір, чи всі поставлені фото мають файли"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0f766e', border: '1.5px solid #0f766e', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: verifying ? 'default' : 'pointer' }}>
+                                            {verifying ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                            {verifying ? 'Перевіряю…' : 'Перевірити макети'}
+                                        </button>
                                         <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                             {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
@@ -2607,6 +2637,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </button>
                                         </div>
                                     </div>
+
+                                    {verifyReport && (
+                                        <div style={{ marginBottom: 12, padding: 12, borderRadius: 8, background: verifyReport.ok ? '#f0fdf4' : '#fef2f2', border: `1px solid ${verifyReport.ok ? '#bbf7d0' : '#fecaca'}` }}>
+                                            <div style={{ fontWeight: 800, fontSize: 13, color: verifyReport.ok ? '#16a34a' : '#b91c1c', marginBottom: 8 }}>
+                                                {verifyReport.ok ? '✓ ' : '⚠️ '}{verifyReport.summary}
+                                            </div>
+                                            {(verifyReport.books || []).map((b: any) => (
+                                                <div key={b.projectId} style={{ marginBottom: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+                                                    <div style={{ fontWeight: 700, color: b.ok ? '#16a34a' : '#b91c1c' }}>
+                                                        {b.ok ? '✓' : '⚠️'} {b.label}
+                                                    </div>
+                                                    <div style={{ color: '#475569' }}>
+                                                        Сторінок у макеті {b.designPages}, файлів {b.filePages}
+                                                        {b.hasCover ? ', обкладинка є' : ', обкладинки немає'}
+                                                        {b.photosPlaced > 0 ? `, розставлено фото ${b.photosPlaced}` : ''}
+                                                    </div>
+                                                    {(b.problems || []).map((pr: string, k: number) => (
+                                                        <div key={k} style={{ color: '#b91c1c' }}>· {pr}</div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+                                                Перевірка бачить кількість сторінок, порожні аркуші, розмір і чи всі поставлені фото мають файли. Вона не порівнює, яке саме фото стоїть на якій сторінці.
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* КІЛЬКА ВИРОБІВ В ОДНОМУ ЗАМОВЛЕННІ.
                                         TM-001234 — пʼять тревелбуків: файли всіх пʼяти лежать одним
