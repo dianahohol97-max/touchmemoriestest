@@ -581,3 +581,152 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
     fontFamily,
   };
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Друкована обкладинка книги побажань — з макета клієнта.
+ *
+ * Усе вище малює ГРАВІЮВАЛЬНИЙ макет: колір матеріалу, накладка, один напис із
+ * опцій замовлення. Для велюру, тканини й шкірзамінника це і є обкладинка.
+ *
+ * Для друкованої обкладинки це неправильна відповідь, і TM-001232 показало
+ * наскільки: у клієнтки цілий дизайн у cover_data — «WEDDING», «Guest Book»
+ * шрифтом Great Vibes, імена, дата, шість текстових блоків, — а
+ * specFromOrderOptions читає лише items[].options, де ніякого напису немає.
+ * Матеріал «Друкована» дає нейтральний бежевий #EAE7E0, напис порожній, і на
+ * друк пішов би рівно бежевий прямокутник. Саме його Аліна й викачала.
+ *
+ * Тут малюється те, що людина справді зібрала: колір фону, готова картинка
+ * (якщо є) і текстові блоки на тих самих відсоткових координатах, що в
+ * редакторі та прев'ю, з тим самим масштабом шрифту (fontSize × 0.85 ×
+ * coverTextScale) — інакше друк не збігався б із тим, що бачив клієнт.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export interface PrintedCoverTextBlock {
+    text: string;
+    x?: number;              // % по ширині ПЕРЕДНЬОЇ обкладинки
+    y?: number;              // % по висоті
+    fontSize?: number;       // px у базовому полотні редактора
+    fontFamily?: string;
+    color?: string;
+    bold?: boolean;
+}
+
+export interface PrintedCoverDesign {
+    bgColor?: string | null;
+    bgImage?: string | null;
+    textBlocks?: PrintedCoverTextBlock[] | null;
+    backCoverBgColor?: string | null;
+    backCoverTexts?: PrintedCoverTextBlock[] | null;
+}
+
+/** Чи є в макеті хоч що-небудь, крім порожнього тла. */
+export function hasPrintedCoverDesign(d: PrintedCoverDesign | null | undefined): boolean {
+    if (!d) return false;
+    if (d.bgImage) return true;
+    if ((d.textBlocks || []).some(t => String(t?.text || '').trim())) return true;
+    return false;
+}
+
+export async function renderPrintedCoverPng(
+    sizeKey: string,
+    design: PrintedCoverDesign,
+): Promise<Uint8Array> {
+    const key = normalizeCoverSize(sizeKey);
+    const sizeMm = resolveSizeMm(key);
+    const mm = sizeMm.cover;
+
+    const fullW = mmToPx300(mm.w);
+    const fullH = mmToPx300(mm.h);
+    const k = Math.min(1, MAX_RENDER_PX / Math.max(fullW, fullH));
+    const W = Math.round(fullW * k);
+    const H = Math.round(fullH * k);
+
+    // Аркуш це задня | передня, передня праворуч — та сама розкладка, що й у
+    // гравіювального рендера, і саме проти неї відкладені відсотки редактора.
+    const frontLeft = W / 2;
+    const frontW = W / 2;
+
+    const frontBg = design.bgColor || '#ffffff';
+    const backBg = design.backCoverBgColor || frontBg;
+
+    const blocks = (design.textBlocks || []).filter(t => String(t?.text || '').trim());
+    const backBlocks = (design.backCoverTexts || []).filter(t => String(t?.text || '').trim());
+
+    // Той самий масштаб, що в редакторі й прев'ю: 0.85 від збереженого розміру,
+    // перерахованого з базового полотна редактора на друкарські пікселі.
+    const editorScale = coverTextScale(H / mm.h, sizeMm.page.h) * 0.85;
+
+    // Шрифти — кожен зі своїм набором гліфів, як і вище.
+    const famText = new Map<string, string>();
+    for (const b of [...blocks, ...backBlocks]) {
+        const fam = b.fontFamily || 'Montserrat';
+        famText.set(fam, `${famText.get(fam) || ''} ${b.text}`);
+    }
+    const fonts: Array<{ name: string; data: ArrayBuffer; weight: 400 | 700; style: 'normal' }> = [];
+    for (const [fam, txt] of famText) {
+        const data = await loadGoogleFont(fam, txt);
+        if (data) fonts.push({ name: fam, data, weight: 400 as const, style: 'normal' as const });
+    }
+
+    // Satori не вміє міряти текст наперед, а редактор ужимає надто довгий рядок
+    // під 84 % ширини обкладинки. Без цієї оцінки довгий рядок виїхав би за
+    // обріз — краще приблизно вузько, ніж точно за краєм.
+    const fitFontSize = (b: PrintedCoverTextBlock, boxW: number): number => {
+        const base = Math.max(6, (b.fontSize || 20) * editorScale);
+        const chars = Math.max(1, String(b.text).length);
+        const estimated = chars * base * 0.52;
+        const maxW = boxW * 0.84;
+        return estimated > maxW ? Math.max(6, base * (maxW / estimated)) : base;
+    };
+
+    const textNode = (b: PrintedCoverTextBlock, i: number, left: number, boxW: number) => {
+        // Та сама безпечна зона 8..92 %, що в редакторі та прев'ю.
+        const sx = Math.max(8, Math.min(92, b.x ?? 50));
+        const sy = Math.max(8, Math.min(92, b.y ?? 50));
+        return (
+            <div
+                key={i}
+                style={{
+                    display: 'flex',
+                    position: 'absolute',
+                    left: `${Math.round(left + (sx / 100) * boxW)}px`,
+                    top: `${Math.round((sy / 100) * H)}px`,
+                    transform: 'translate(-50%, -50%)',
+                    fontFamily: `"${b.fontFamily || 'Montserrat'}"`,
+                    fontWeight: b.bold ? 700 : 400,
+                    fontSize: `${Math.round(fitFontSize(b, boxW))}px`,
+                    color: b.color && b.color.startsWith('#') ? b.color : '#1f2937',
+                    lineHeight: 1.15,
+                    whiteSpace: 'nowrap',
+                }}
+            >
+                {b.text}
+            </div>
+        );
+    };
+
+    const image = new ImageResponse(
+        (
+            <div style={{ display: 'flex', position: 'relative', width: '100%', height: '100%', background: backBg }}>
+                {/* Передня половина аркуша */}
+                <div style={{ display: 'flex', position: 'absolute', left: `${Math.round(frontLeft)}px`, top: 0, width: `${Math.round(frontW)}px`, height: `${H}px`, background: frontBg }} />
+                {design.bgImage && /^https?:\/\//i.test(design.bgImage) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={design.bgImage}
+                        alt=""
+                        width={Math.round(frontW)}
+                        height={H}
+                        style={{ position: 'absolute', left: `${Math.round(frontLeft)}px`, top: 0, width: `${Math.round(frontW)}px`, height: `${H}px`, objectFit: 'cover' }}
+                    />
+                )}
+                {backBlocks.map((b, i) => textNode(b, i, 0, frontW))}
+                {blocks.map((b, i) => textNode(b, 1000 + i, frontLeft, frontW))}
+            </div>
+        ),
+        { width: W, height: H, fonts },
+    );
+
+    const buf = await image.arrayBuffer();
+    return new Uint8Array(buf);
+}

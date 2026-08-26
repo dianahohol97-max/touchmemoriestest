@@ -4,7 +4,10 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
 import {
   renderWishbookCoverPng,
+  renderPrintedCoverPng,
+  hasPrintedCoverDesign,
   specFromOrderOptions,
+  type PrintedCoverDesign,
 } from '@/lib/print/wishbook-cover';
 
 // next/og + sharp both need the Node runtime; rendering takes a couple seconds.
@@ -91,6 +94,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // мізерний centred напис that looked nothing like the editor (TM-001132).
   let editorLayout: { xPct?: number; yPct?: number; fontPxEditor?: number; color?: string } | null = null;
   let editorExtras: Array<{ text: string; xPct?: number; yPct?: number; fontPxEditor?: number; color?: string; fontFamily?: string }> | null = null;
+  // Друкована обкладинка малюється з макета клієнта, а не з опцій замовлення —
+  // див. нижче.
+  let printedDesign: PrintedCoverDesign | null = null;
+  let coverNeedsPhoto = false;
   try {
     const { data: proj } = await admin
       .from('projects')
@@ -100,6 +107,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .limit(1)
       .maybeSingle();
     const cd: any = proj?.cover_data;
+    if (cd) {
+      const slot: any = cd.printedPhotoSlot;
+      const slotActive = slot ? ((slot.w ?? 0) > 0 && (slot.h ?? 0) > 0) : false;
+      coverNeedsPhoto =
+        (slotActive && typeof cd.photoId === 'string' && cd.photoId.length === 36)
+        || (Array.isArray(cd.printedPhotoSlots) && cd.printedPhotoSlots.some((ps: any) => ps?.photoId))
+        || (Array.isArray(cd.coverPhotos) && cd.coverPhotos.some((cp: any) => cp?.photoId));
+      printedDesign = {
+        bgColor: typeof cd.printedBgColor === 'string' ? cd.printedBgColor : null,
+        bgImage: typeof cd.printedBgImage === 'string' ? cd.printedBgImage : null,
+        backCoverBgColor: typeof cd.backCoverBgColor === 'string' ? cd.backCoverBgColor : null,
+        textBlocks: Array.isArray(cd.printedTextBlocks) ? cd.printedTextBlocks : null,
+        backCoverTexts: Array.isArray(cd.backCoverTexts) ? cd.backCoverTexts : null,
+      };
+    }
     if (cd && (cd.decoText || '').trim()) {
       editorLayout = {
         xPct: typeof cd.textX === 'number' ? cd.textX : undefined,
@@ -134,6 +156,45 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     spec.layout = editorLayout;
     spec.extras = editorExtras;
     specSize = spec.sizeKey;
+
+    // ДРУКОВАНА обкладинка — окремий шлях.
+    //
+    // specFromOrderOptions читає лише items[].options, де для друкованої
+    // обкладинки немає ані напису, ані кольору: увесь дизайн клієнта лежить у
+    // cover_data редактора. Гравіювальний рендер у такому разі малює нейтральне
+    // тло #EAE7E0 з порожнім написом — рівно бежевий прямокутник, який і
+    // приїхав у TM-001232 замість весільної обкладинки з «Guest Book».
+    //
+    // Якщо обкладинка друкована й макет є — малюємо макет. Якщо друкована, а
+    // макета немає, чесніше відмовитись, ніж віддати в друк порожній аркуш.
+    const isPrintedCover = /друкован|printed/i.test(String(spec.material || ''));
+    if (isPrintedCover) {
+      // Фото на обкладинці цей рендер не вміє: воно лежить в uploaded_photos і
+      // потребує підписаних посилань та кадрування, якого тут немає. Мовчки
+      // віддати обкладинку без клієнтського фото — гірше, ніж не віддати нічого.
+      if (coverNeedsPhoto) {
+        return NextResponse.json({
+          error: 'На друкованій обкладинці є фото клієнта, а цей генератор малює лише текст і фон. '
+            + 'Щоб не надрукувати обкладинку без фото, файл не створюю — зберіть її через редактор.',
+        }, { status: 400 });
+      }
+      if (!hasPrintedCoverDesign(printedDesign)) {
+        return NextResponse.json({
+          error: 'Друкована обкладинка порожня — у макеті немає ні тексту, ні картинки. '
+            + 'Файл не створюю, бо це був би порожній аркуш. Перевірте, чи клієнт зберіг обкладинку в конструкторі.',
+        }, { status: 400 });
+      }
+      const pngPrinted = await renderPrintedCoverPng(spec.sizeKey, printedDesign as PrintedCoverDesign);
+      jpeg = await sharp(Buffer.from(pngPrinted))
+        .flatten({ background: '#ffffff' })
+        .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
+        .withMetadata({ density: 300 })
+        .toBuffer();
+      // Чорно-білий макет друкованій обкладинці не потрібен: нічого не
+      // гравіюється. Далі йде спільний код вивантаження.
+      jpegBw = null;
+    } else {
+
     if (!spec.title) {
       // A wishbook with no title is still printable (blank cover), but flag it.
       console.warn(`[wishbook-cover] order ${order.order_number} has no title`);
@@ -166,6 +227,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .jpeg({ quality: 98, chromaSubsampling: '4:4:4' })
         .withMetadata({ density: 300 })
         .toBuffer();
+    }
     }
   } catch (e: any) {
     console.error('[wishbook-cover] render failed:', e?.message || e);
