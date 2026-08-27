@@ -2376,6 +2376,19 @@ export default function BookLayoutEditor() {
   // Default layout based on mode
   const defaultLayout = (): LayoutType => isSpreadMode ? 'sp-full' : 'p-full';
 
+  // Скільки сторінок додається й прибирається за раз.
+  //
+  // Журнал із МʼЯКОЮ обкладинкою зшивається скобою по згину: один аркуш це
+  // чотири сторінки, тому кількість сторінок фізично мусить бути кратна
+  // чотирьом, і весь прайс такий — 8, 12, 16, 20… Крок у два дозволяв
+  // зупинитися на числі, якого не існує: TM-001239 приїхало як «34 сторінок»,
+  // а ціна порахувалася за 36, бо пошук тарифу округлив угору.
+  //
+  // Твердий журнал сюди НЕ входить: він продається кроком у дві сторінки за
+  // рішенням Diana від 19.08 і читає шкалу тревелбука. Тревелбук і фотокниги
+  // теж лишаються на двох.
+  const pagesPerStep = (isMagazine && !isHardCoverJournal) ? 4 : 2;
+
   const addSpread = () => {
     // Product maximum — the price scale ends here (lib/products.ts tiers:
     // travelbook 12–80, hard journal to 80, soft magazine to 100), and the
@@ -2383,7 +2396,7 @@ export default function BookLayoutEditor() {
     // beyond the maximum were not just unsupported — they were FREE: TM-001113
     // reached 82 photo pages billed as 80. Refuse instead.
     const maxContentPages = isTravel ? 80 : isMagazine ? (isHardCoverJournal ? 80 : 100) : Infinity;
-    if (billableContentPages + 2 > maxContentPages) {
+    if (billableContentPages + pagesPerStep > maxContentPages) {
       toast.error(`Максимум для цього продукту — ${maxContentPages} сторінок. Більше додати не можна.`);
       return;
     }
@@ -2394,26 +2407,42 @@ export default function BookLayoutEditor() {
     // reconciliation (edits appearing on the wrong page). Labels stay
     // positional (they're display text), ids come from max+1.
     const maxId = pages.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
-    const newId1 = maxId + 1;
-    const newId2 = maxId + 2;
     setPages(prev => [
       ...prev,
-      { id: newId1, label: `${t('constructor.page_short')} ${prev.length}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
-      { id: newId2, label: `${t('constructor.page_short')} ${prev.length + 1}`, layout: defaultLayout(), slots: makeSlots(1), textBlocks: [] },
+      ...Array.from({ length: pagesPerStep }, (_, k) => ({
+        id: maxId + 1 + k,
+        label: `${t('constructor.page_short')} ${prev.length + k}`,
+        layout: defaultLayout(),
+        slots: makeSlots(1),
+        textBlocks: [],
+      })),
     ]);
     const newSpreadIdx = Math.ceil(pages.length / 2);
     setCurrentIdx(newSpreadIdx);
+    if (pagesPerStep === 4) {
+      toast.success('Додано 4 сторінки — у журналі з мʼякою обкладинкою вони йдуть по чотири, бо аркуш згинається навпіл.');
+    }
   };
 
   const removeCurrentSpread = () => {
     // Guards BEFORE pushHistory — a rejected delete must not pollute the
     // undo stack with a duplicate snapshot.
-    if (pages.length <= minPagesLen) { toast.error(`${t('constructor.min_spreads')} ${minSpreads}`); return; }
+    if (pages.length - pagesPerStep < minPagesLen) { toast.error(`${t('constructor.min_spreads')} ${minSpreads}`); return; }
     if (currentIdx === 0) { toast.error(t('constructor.cannot_delete_cover')); return; }
     pushHistory();
-    // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2]
-    const p1 = (currentIdx - 1) * 2 + 1;
-    const p2 = p1 + 1;
+    // pages[0] = cover, spread N = pages[(N-1)*2+1] and pages[(N-1)*2+2].
+    // Журнал із мʼякою обкладинкою прибирає ДВА розвороти за раз — див.
+    // pagesPerStep: кількість сторінок мусить лишатися кратною чотирьом.
+    let p1 = (currentIdx - 1) * 2 + 1;
+    let p2 = p1 + pagesPerStep - 1;
+    if (p2 > pages.length - 1) {
+      // Це останній розворот, і після нього немає пари — забираємо разом із
+      // попереднім, а не виходимо за межі масиву.
+      p1 = Math.max(1, p1 - (pagesPerStep - 2));
+      p2 = p1 + pagesPerStep - 1;
+    }
+    const removeSet = new Set<number>();
+    for (let i = p1; i <= p2; i++) removeSet.add(i);
     // Every decoration store (free slots, shapes, stickers, QR, backgrounds,
     // frames) is keyed by PAGE ARRAY INDEX. Removing two pages shifts every
     // later index down by 2, so those maps must be re-keyed by the same
@@ -2421,7 +2450,7 @@ export default function BookLayoutEditor() {
     // deleting a middle spread silently moved backgrounds/stickers/free
     // photos of all later spreads onto the wrong pages, and the book could
     // be printed that way. order[newIdx] = oldIdx over the surviving pages.
-    const order = pages.map((_, i) => i).filter(i => i !== p1 && i !== p2);
+    const order = pages.map((_, i) => i).filter(i => !removeSet.has(i));
     const remap = <T,>(m: Record<number, T>): Record<number, T> => {
       const out: Record<number, T> = {};
       order.forEach((oldIdx, newIdx) => { if (m[oldIdx] !== undefined) out[newIdx] = m[oldIdx]; });
@@ -2437,7 +2466,7 @@ export default function BookLayoutEditor() {
     // the deletion actually shifted, tell the user, and drop its free slots.
     const clearedForzacIdx: number[] = [];
     setPages(prev => {
-      const next = prev.filter((_, i) => i !== p1 && i !== p2);
+      const next = prev.filter((_, i) => !removeSet.has(i));
       if (hasEndpaper && next.length > 2) {
         const clearShifted = (idx: number, unlocked: boolean) => {
           const pg: any = next[idx];
@@ -2465,8 +2494,10 @@ export default function BookLayoutEditor() {
     setQrOverlays(prev => remap(prev));
     setPageBgs(prev => remap(prev));
     setPageFrames(prev => remap(prev));
-    setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 3) / 2))));
-    toast.success(t('constructor.spread_deleted'));
+    setCurrentIdx(prev => Math.max(1, Math.min(prev, Math.ceil((pages.length - 1 - pagesPerStep) / 2))));
+    toast.success(pagesPerStep === 4
+      ? 'Прибрано 4 сторінки — у журналі з мʼякою обкладинкою вони йдуть по чотири.'
+      : t('constructor.spread_deleted'));
   };
 
   // Move a content spread to another position in the rail. Reorders the pages
@@ -3960,6 +3991,23 @@ export default function BookLayoutEditor() {
     // the exact layout being ordered. This is the belt to the stale-interval
     // suspenders fix above (TM-001046: order existed, layout didn't).
     try { await persistDraft(); } catch { /* ordering must not break on save */ }
+
+    // Журнал із мʼякою обкладинкою мусить мати кількість сторінок, кратну
+    // чотирьом: аркуш згинається навпіл і зшивається скобою. Крок додавання вже
+    // тримає це правило, але макет, збережений до нього, може лежати на 34 —
+    // і саме таким пішло TM-001239, де в замовленні стояло неможливе число, а
+    // ціна порахувалася за наступний тариф. Не пускаємо в кошик, поки число не
+    // стане справжнім.
+    if (isMagazine && !isHardCoverJournal && billableContentPages % 4 !== 0) {
+      const lower = billableContentPages - (billableContentPages % 4);
+      const upper = lower + 4;
+      toast.error(
+        `У журналі з мʼякою обкладинкою кількість сторінок має бути кратна чотирьом — аркуш згинається навпіл. `
+        + `Зараз ${billableContentPages}. Приберіть або додайте розворот, щоб вийшло ${lower} або ${upper}.`,
+        { duration: 9000 },
+      );
+      return;
+    }
 
     // HARD GUARD — never let a blank book into the cart. TM-001036 was paid
     // (3705₴) and printed with every page empty: after a refresh with many
