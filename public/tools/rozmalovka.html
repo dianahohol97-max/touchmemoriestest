@@ -239,14 +239,22 @@ footer a{color:inherit}
       <div class="block" id="blockTune" data-locked="true">
         <div class="step"><span class="step-n">03</span><h2>Тонке налаштування</h2></div>
         <div class="field">
-          <div class="field-top"><label for="detail">Кількість деталей</label><output id="detailOut">44</output></div>
-          <p>Ліворуч залишаються тільки головні контури, а праворуч додаються дрібніші деталі та межі тіней.</p>
-          <input type="range" id="detail" min="0" max="100" value="44">
+          <div class="field-top"><label id="styleLabel">Стиль малюнка</label></div>
+          <p>Контурний варіант дає найчистіші замкнені фігури, а ескізний зберігає більше рис обличчя та дрібних деталей.</p>
+          <div class="seg" id="style" role="group" aria-labelledby="styleLabel">
+            <button type="button" data-v="contour" aria-pressed="false">чіткі контури</button>
+            <button type="button" data-v="sketch" aria-pressed="true">мʼякий ескіз</button>
+          </div>
         </div>
         <div class="field">
-          <div class="field-top"><label for="clean">Чистота ліній</label><output id="cleanOut">58</output></div>
+          <div class="field-top"><label for="detail">Кількість деталей</label><output id="detailOut">52</output></div>
+          <p>Ліворуч залишаються тільки головні контури, а праворуч додаються дрібніші деталі та межі тіней.</p>
+          <input type="range" id="detail" min="0" max="100" value="52">
+        </div>
+        <div class="field">
+          <div class="field-top"><label for="clean">Чистота ліній</label><output id="cleanOut">60</output></div>
           <p>Згладжує фактуру на кшталт волосся, тканини чи піску та прибирає дрібні цятки, через які малюнок виглядає брудним.</p>
-          <input type="range" id="clean" min="0" max="100" value="58">
+          <input type="range" id="clean" min="0" max="100" value="60">
         </div>
         <div class="field">
           <div class="field-top"><label id="thickLabel">Товщина ліній</label><output id="thickOut">середня</output></div>
@@ -305,6 +313,7 @@ var els = {
   clean: document.getElementById('clean'),
   cleanOut: document.getElementById('cleanOut'),
   thick: document.getElementById('thick'),
+  style: document.getElementById('style'),
   thickOut: document.getElementById('thickOut'),
   sheetMode: document.getElementById('sheetMode'),
   save: document.getElementById('save'),
@@ -314,13 +323,13 @@ var els = {
 
 var THICK_WORDS = {1:'тонка', 2:'середня', 3:'товста', 4:'дуже товста'};
 var PRESETS = {
-  portrait: {detail:44, clean:58, thick:2},
-  kids:     {detail:12, clean:82, thick:4},
-  scene:    {detail:80, clean:38, thick:1},
-  pet:      {detail:56, clean:50, thick:2}
+  portrait: {style:'sketch',  detail:52, clean:60, thick:2},
+  kids:     {style:'contour', detail:12, clean:82, thick:4},
+  scene:    {style:'contour', detail:80, clean:38, thick:1},
+  pet:      {style:'sketch',  detail:60, clean:52, thick:2}
 };
 
-var state = {source:null, name:'', detail:44, clean:58, thick:2, mode:'a4', busy:false};
+var state = {source:null, name:'', style:'sketch', detail:52, clean:60, thick:2, mode:'a4', busy:false};
 var srcCanvas = null;     // photo at preview scale
 var resultCanvas = null;  // processed lines at preview scale
 var downloads = null, framed = !!(window.claude && typeof window.claude.use === 'function');
@@ -472,6 +481,9 @@ function median3(src,w,h){
 function levelsFor(g,n,K){
   var hist = new Float64Array(256), i, k;
   for(i=0;i<n;i++) hist[g[i] < 0 ? 0 : (g[i] > 255 ? 255 : g[i]|0)]++;
+  /* square root damping: a large plain background would otherwise pull every
+     level into the whites and leave the person with no shades of their own */
+  for(i=0;i<256;i++) hist[i] = Math.sqrt(hist[i]);
   var c = new Float64Array(K);
   for(k=0;k<K;k++) c[k] = (k + 0.5) * 255/K;
   for(var it=0;it<14;it++){
@@ -546,7 +558,7 @@ function mergeSmall(q,w,h,K,minArea){
    flattened into a few tone areas, and only the borders between those areas
    become ink. Borders are closed curves, so every shape can actually be
    coloured in, and nothing is ever filled solid black. */
-function trace(imgData, opt){
+function traceContour(imgData, opt){
   var w = imgData.width, h = imgData.height, n = w*h;
   var base = Math.min(w,h), scale = Math.max(base/900, 0.4);
   var gray = grayscale(imgData.data, n);
@@ -586,20 +598,80 @@ function trace(imgData, opt){
   mask = dilate(mask, w, h, penR);
   mask = hollow(mask, w, h, penR + 2);
 
-  var soft = new Float32Array(n);
-  for(var k=0;k<n;k++) soft[k] = mask[k] ? 255 : 0;
-  soft = blur(soft, w, h, 0.5 * Math.max(scale, 0.7));
+  return paint(mask, w, h, scale);
+}
 
-  var out = new ImageData(w, h), d2 = out.data;
-  for(var m=0,p2=0;m<n;m++,p2+=4){
+/* Sketch style: ink lands wherever the photo is darker than its surroundings,
+   confident pixels seed the line and faint ones join only in contact with a
+   seed. It keeps far more of a face than the contour style does, and hollow()
+   makes sure that dense areas such as hair still print as outlines. */
+function traceSketch(imgData, opt){
+  var w = imgData.width, h = imgData.height, n = w*h;
+  var base = Math.min(w,h), scale = Math.max(base/900, 0.4);
+  var gray = grayscale(imgData.data, n);
+  stretch(gray);
+
+  var g = blur(gray, w, h, (0.55 + opt.clean/100 * 1.8) * scale);
+  var local = blur(g, w, h, Math.max(2.5, base/95));
+
+  var C = 12.5 - opt.detail/100 * 9.5;
+  var gmin = (10.5 - opt.detail/100 * 7.5) / scale;
+  var Cw = C * 0.45, gw = gmin * 0.5;
+
+  var mask = new Uint8Array(n), weak = new Uint8Array(n), stack = new Int32Array(n), sp = 0, x, y, i;
+  for(y=1;y<h-1;y++){
+    for(x=1;x<w-1;x++){
+      i = y*w + x;
+      var d = local[i] - g[i];
+      if(d <= Cw) continue;
+      var tl=g[i-w-1], tt=g[i-w], tr=g[i-w+1], ll=g[i-1], rr=g[i+1], bl=g[i+w-1], bb=g[i+w], br=g[i+w+1];
+      var gx = (tr + 2*rr + br) - (tl + 2*ll + bl);
+      var gy = (bl + 2*bb + br) - (tl + 2*tt + tr);
+      var m = Math.sqrt(gx*gx + gy*gy)/8;
+      if(m <= gw) continue;
+      if(d >= C && m >= gmin){ mask[i] = 1; stack[sp++] = i; }
+      else weak[i] = 1;
+    }
+  }
+  while(sp > 0){
+    var p = stack[--sp], px = p % w, py = (p / w) | 0;
+    for(var dy=-1;dy<=1;dy++){
+      var ny = py + dy; if(ny < 1 || ny >= h-1) continue;
+      for(var dx=-1;dx<=1;dx++){
+        var nx = px + dx; if(nx < 1 || nx >= w-1) continue;
+        var q = ny*w + nx;
+        if(weak[q] && !mask[q]){ mask[q] = 1; stack[sp++] = q; }
+      }
+    }
+  }
+
+  despeckle(mask, w, h, Math.round((6 + opt.clean/100 * 80) * scale * scale));
+  var penR = Math.round((opt.thick - 1) * scale * 0.9);
+  mask = dilate(mask, w, h, penR);
+  mask = hollow(mask, w, h, penR + 2);
+  return paint(mask, w, h, scale);
+}
+
+/* Lines are drawn in warm black on white with a touch of softening, so printed
+   edges look drawn rather than pixelated. */
+function paint(mask,w,h,scale){
+  var n = w*h, soft = new Float32Array(n), k;
+  for(k=0;k<n;k++) soft[k] = mask[k] ? 255 : 0;
+  soft = blur(soft, w, h, 0.5 * Math.max(scale, 0.7));
+  var out = new ImageData(w, h), d = out.data;
+  for(var m=0,q=0;m<n;m++,q+=4){
     var a = soft[m] * 1.5; if(a > 255) a = 255;
     var t = a/255, inv = 1-t;
-    d2[p2]   = 255*inv + 23*t;
-    d2[p2+1] = 255*inv + 21*t;
-    d2[p2+2] = 255*inv + 15*t;
-    d2[p2+3] = 255;
+    d[q]   = 255*inv + 23*t;
+    d[q+1] = 255*inv + 21*t;
+    d[q+2] = 255*inv + 15*t;
+    d[q+3] = 255;
   }
   return out;
+}
+
+function trace(imgData, opt){
+  return opt.style === 'sketch' ? traceSketch(imgData, opt) : traceContour(imgData, opt);
 }
 
 /* ================= plumbing ================= */
@@ -771,6 +843,7 @@ els.presets.addEventListener('click', function(e){
   var p = PRESETS[b.dataset.preset];
   Array.prototype.forEach.call(els.presets.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
   state.detail = p.detail; state.clean = p.clean; state.thick = p.thick;
+  setStyle(p.style);
   els.detail.value = p.detail; els.detailOut.textContent = p.detail;
   els.clean.value = p.clean; els.cleanOut.textContent = p.clean;
   setThick(p.thick);
@@ -784,6 +857,14 @@ els.detail.addEventListener('input', function(){
 });
 els.clean.addEventListener('input', function(){
   state.clean = +this.value; els.cleanOut.textContent = this.value; clearPreset(); schedule();
+});
+function setStyle(v){
+  state.style = v;
+  Array.prototype.forEach.call(els.style.children, function(c){ c.setAttribute('aria-pressed', String(c.dataset.v === v)); });
+}
+els.style.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-v]'); if(!b) return;
+  setStyle(b.dataset.v); clearPreset(); schedule();
 });
 function setThick(v){
   state.thick = v;
