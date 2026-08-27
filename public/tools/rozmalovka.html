@@ -195,7 +195,7 @@ footer a{color:inherit}
   <header>
     <p class="brand">touch.memories · майстерня</p>
     <h1>Розмальовка з вашого фото</h1>
-    <p class="lede">Завантажте будь&#8209;яку світлину, і вона перетвориться на контурний малюнок, який можна роздрукувати та розмальовувати олівцями чи фломастерами. Уся обробка відбувається просто у вашому браузері, тому фотографія нікуди не надсилається.</p>
+    <p class="lede">Завантажте будь&#8209;яку світлину, і вона перетвориться на замкнені контури з білими ділянками всередині, які можна роздрукувати та розмальовувати олівцями чи фломастерами. Уся обробка відбувається просто у вашому браузері, тому фотографія нікуди не надсилається.</p>
     <div class="crayons" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
   </header>
 
@@ -239,14 +239,14 @@ footer a{color:inherit}
       <div class="block" id="blockTune" data-locked="true">
         <div class="step"><span class="step-n">03</span><h2>Тонке налаштування</h2></div>
         <div class="field">
-          <div class="field-top"><label for="detail">Кількість деталей</label><output id="detailOut">58</output></div>
-          <p>Ліворуч залишаються тільки головні контури, праворуч додається дрібне штрихування.</p>
-          <input type="range" id="detail" min="0" max="100" value="58">
+          <div class="field-top"><label for="detail">Кількість деталей</label><output id="detailOut">44</output></div>
+          <p>Ліворуч залишаються тільки головні контури, а праворуч додаються дрібніші деталі та межі тіней.</p>
+          <input type="range" id="detail" min="0" max="100" value="44">
         </div>
         <div class="field">
-          <div class="field-top"><label for="clean">Чистота ліній</label><output id="cleanOut">52</output></div>
-          <p>Прибирає дрібні цятки та зернистість, через які малюнок виглядає брудним.</p>
-          <input type="range" id="clean" min="0" max="100" value="52">
+          <div class="field-top"><label for="clean">Чистота ліній</label><output id="cleanOut">58</output></div>
+          <p>Згладжує фактуру на кшталт волосся, тканини чи піску та прибирає дрібні цятки, через які малюнок виглядає брудним.</p>
+          <input type="range" id="clean" min="0" max="100" value="58">
         </div>
         <div class="field">
           <div class="field-top"><label id="thickLabel">Товщина ліній</label><output id="thickOut">середня</output></div>
@@ -314,13 +314,13 @@ var els = {
 
 var THICK_WORDS = {1:'тонка', 2:'середня', 3:'товста', 4:'дуже товста'};
 var PRESETS = {
-  portrait: {detail:58, clean:52, thick:2},
-  kids:     {detail:30, clean:76, thick:4},
-  scene:    {detail:74, clean:34, thick:1},
-  pet:      {detail:66, clean:44, thick:2}
+  portrait: {detail:44, clean:58, thick:2},
+  kids:     {detail:12, clean:82, thick:4},
+  scene:    {detail:80, clean:38, thick:1},
+  pet:      {detail:56, clean:50, thick:2}
 };
 
-var state = {source:null, name:'', detail:58, clean:52, thick:2, mode:'a4', busy:false};
+var state = {source:null, name:'', detail:44, clean:58, thick:2, mode:'a4', busy:false};
 var srcCanvas = null;     // photo at preview scale
 var resultCanvas = null;  // processed lines at preview scale
 var downloads = null, framed = !!(window.claude && typeof window.claude.use === 'function');
@@ -425,72 +425,179 @@ function dilate(mask,w,h,r){
   return out;
 }
 
-/* Turns a photo into line art.
-   Every pixel is compared with the average of its surroundings, so ink lands
-   where the photo goes darker than its neighbourhood, and a gradient gate drops
-   the mushy contours that smooth gradients like sky or skin would otherwise
-   leave. Confident pixels become seeds and weaker ones join only when they
-   touch a seed, which keeps contours continuous instead of dashed. Component
-   removal then takes away grain and dilation sets the pen width. */
+/* Keeps drawings colourable: anything wider than the pen is replaced by its own
+   outline, so a dark mass such as hair never prints as a solid black patch. */
+function hollow(mask,w,h,r){
+  var n = w*h, tmp = new Uint8Array(n), inner = new Uint8Array(n), x, y, k;
+  for(y=0;y<h;y++){
+    for(x=0;x<w;x++){
+      var v = 1, a = Math.max(0,x-r), b = Math.min(w-1,x+r);
+      for(k=a;k<=b;k++){ if(!mask[y*w+k]){ v = 0; break; } }
+      tmp[y*w+x] = (x-r < 0 || x+r > w-1) ? 0 : v;
+    }
+  }
+  for(x=0;x<w;x++){
+    for(y=0;y<h;y++){
+      var v2 = 1, a2 = Math.max(0,y-r), b2 = Math.min(h-1,y+r);
+      for(k=a2;k<=b2;k++){ if(!tmp[k*w+x]){ v2 = 0; break; } }
+      inner[y*w+x] = (y-r < 0 || y+r > h-1) ? 0 : v2;
+    }
+  }
+  var out = new Uint8Array(n);
+  for(var i=0;i<n;i++) out[i] = (mask[i] && !inner[i]) ? 1 : 0;
+  return out;
+}
+
+/* Median of a 3x3 window: flattens texture such as hair, knitwear or sand
+   while leaving real edges where they are. */
+function median3(src,w,h){
+  var out = new Float32Array(src.length), x, y, v = new Float32Array(9), i, j, k, t;
+  for(y=0;y<h;y++){
+    var ym = y > 0 ? y-1 : 0, yp = y < h-1 ? y+1 : h-1;
+    for(x=0;x<w;x++){
+      var xm = x > 0 ? x-1 : 0, xp = x < w-1 ? x+1 : w-1;
+      v[0]=src[ym*w+xm]; v[1]=src[ym*w+x]; v[2]=src[ym*w+xp];
+      v[3]=src[y*w+xm];  v[4]=src[y*w+x];  v[5]=src[y*w+xp];
+      v[6]=src[yp*w+xm]; v[7]=src[yp*w+x]; v[8]=src[yp*w+xp];
+      for(i=0;i<5;i++){ k=i; for(j=i+1;j<9;j++) if(v[j] < v[k]) k=j; t=v[i]; v[i]=v[k]; v[k]=t; }
+      out[y*w+x] = v[4];
+    }
+  }
+  return out;
+}
+
+/* Sorts the tones of the photo into a handful of levels, the way a colourist
+   would decide how many shades a drawing needs. One dimensional k-means over
+   the histogram, so the levels follow this picture instead of a fixed ladder. */
+function levelsFor(g,n,K){
+  var hist = new Float64Array(256), i, k;
+  for(i=0;i<n;i++) hist[g[i] < 0 ? 0 : (g[i] > 255 ? 255 : g[i]|0)]++;
+  var c = new Float64Array(K);
+  for(k=0;k<K;k++) c[k] = (k + 0.5) * 255/K;
+  for(var it=0;it<14;it++){
+    var sum = new Float64Array(K), cnt = new Float64Array(K);
+    for(i=0;i<256;i++){
+      if(hist[i] === 0) continue;
+      var best = 0, bd = 1e9;
+      for(k=0;k<K;k++){ var d = Math.abs(i - c[k]); if(d < bd){ bd = d; best = k; } }
+      sum[best] += i * hist[i]; cnt[best] += hist[i];
+    }
+    var moved = 0;
+    for(k=0;k<K;k++){ if(cnt[k] > 0){ var nc = sum[k]/cnt[k]; moved += Math.abs(nc - c[k]); c[k] = nc; } }
+    if(moved < 0.4) break;
+  }
+  c.sort();
+  var lut = new Uint8Array(256);
+  for(i=0;i<256;i++){
+    var b = 0, bd2 = 1e9;
+    for(k=0;k<K;k++){ var dd = Math.abs(i - c[k]); if(dd < bd2){ bd2 = dd; b = k; } }
+    lut[i] = b;
+  }
+  return lut;
+}
+
+/* Regions too small to colour in are absorbed by the neighbour they touch most,
+   which is what turns a noisy tone map into a page with real areas on it. */
+function mergeSmall(q,w,h,K,minArea){
+  var n = w*h, label = new Int32Array(n).fill(-1), stack = new Int32Array(n);
+  var sizes = [], levels = [], count = 0, i;
+  for(i=0;i<n;i++){
+    if(label[i] >= 0) continue;
+    var lv = q[i], sp = 0, size = 0;
+    label[i] = count; stack[sp++] = i;
+    while(sp > 0){
+      var p = stack[--sp]; size++;
+      var px = p % w, py = (p / w) | 0;
+      if(px > 0   && label[p-1] < 0 && q[p-1] === lv){ label[p-1] = count; stack[sp++] = p-1; }
+      if(px < w-1 && label[p+1] < 0 && q[p+1] === lv){ label[p+1] = count; stack[sp++] = p+1; }
+      if(py > 0   && label[p-w] < 0 && q[p-w] === lv){ label[p-w] = count; stack[sp++] = p-w; }
+      if(py < h-1 && label[p+w] < 0 && q[p+w] === lv){ label[p+w] = count; stack[sp++] = p+w; }
+    }
+    sizes.push(size); levels.push(lv); count++;
+  }
+  var tally = new Int32Array(count * K);
+  for(var y=0;y<h;y++){
+    for(var x=0;x<w;x++){
+      i = y*w + x;
+      var a = label[i];
+      if(x < w-1 && label[i+1] !== a){ tally[a*K + q[i+1]]++; tally[label[i+1]*K + q[i]]++; }
+      if(y < h-1 && label[i+w] !== a){ tally[a*K + q[i+w]]++; tally[label[i+w]*K + q[i]]++; }
+    }
+  }
+  var remap = new Int8Array(count).fill(-1), moved = false, tiny = minArea * 0.16;
+  for(var r=0;r<count;r++){
+    if(sizes[r] >= minArea) continue;
+    var own = levels[r], bestLv = -1, bestN = 0;
+    for(var k=0;k<K;k++){
+      if(k === own) continue;
+      if(tally[r*K + k] > bestN){ bestN = tally[r*K + k]; bestLv = k; }
+    }
+    if(bestLv < 0) continue;
+    /* an eye or a nostril is small but far darker than the skin around it, so
+       a strong tone jump earns the region its place on the page */
+    if(sizes[r] > tiny && Math.abs(bestLv - own) >= 2) continue;
+    remap[r] = bestLv; moved = true;
+  }
+  if(moved){ for(i=0;i<n;i++){ var m = remap[label[i]]; if(m >= 0) q[i] = m; } }
+  return moved;
+}
+
+/* Turns a photo into line art the way a colouring book is drawn: the picture is
+   flattened into a few tone areas, and only the borders between those areas
+   become ink. Borders are closed curves, so every shape can actually be
+   coloured in, and nothing is ever filled solid black. */
 function trace(imgData, opt){
   var w = imgData.width, h = imgData.height, n = w*h;
   var base = Math.min(w,h), scale = Math.max(base/900, 0.4);
   var gray = grayscale(imgData.data, n);
   stretch(gray);
 
-  var sigma = (0.55 + opt.clean/100 * 1.8) * scale;
-  var g = blur(gray, w, h, sigma);
-  var local = blur(g, w, h, Math.max(2.5, base/95));
+  var passes = 1 + Math.round(opt.clean/100 * 2), i;
+  for(i=0;i<passes;i++) gray = median3(gray, w, h);
+  var g = blur(gray, w, h, (0.7 + opt.clean/100 * 1.5) * scale);
 
-  var C = 12.5 - opt.detail/100 * 9.5;
-  var gmin = (10.5 - opt.detail/100 * 7.5) / scale;
-  var Cw = C * 0.45, gw = gmin * 0.5;
+  var K = 3 + Math.round(opt.detail/100 * 5);
+  var lut = levelsFor(g, n, K);
+  var q = new Uint8Array(n);
+  for(i=0;i<n;i++){ var v = g[i]; q[i] = lut[v < 0 ? 0 : (v > 255 ? 255 : v|0)]; }
 
-  var mask = new Uint8Array(n), stack = new Int32Array(n), sp = 0;
-  var weak = new Uint8Array(n), x, y, i;
+  var minArea = Math.round(n * (0.0003 + opt.clean/100 * 0.0026));
+  for(i=0;i<3;i++){ if(!mergeSmall(q, w, h, K, minArea)) break; }
+
+  /* ink lands on the darker side of every border, and a gradient gate keeps
+     slow transitions such as sky from turning into contour-map rings */
+  var gfloor = 2.6 - opt.detail/100 * 1.7;
+  var mask = new Uint8Array(n), x, y;
   for(y=1;y<h-1;y++){
     for(x=1;x<w-1;x++){
       i = y*w + x;
-      var d = local[i] - g[i];
-      if(d <= Cw) continue;
+      var lv = q[i];
+      if(lv <= q[i+1] && lv <= q[i-1] && lv <= q[i+w] && lv <= q[i-w]) continue;
+      if(lv === q[i+1] && lv === q[i-1] && lv === q[i+w] && lv === q[i-w]) continue;
       var tl=g[i-w-1], tt=g[i-w], tr=g[i-w+1], ll=g[i-1], rr=g[i+1], bl=g[i+w-1], bb=g[i+w], br=g[i+w+1];
       var gx = (tr + 2*rr + br) - (tl + 2*ll + bl);
       var gy = (bl + 2*bb + br) - (tl + 2*tt + tr);
-      var m = Math.sqrt(gx*gx + gy*gy)/8;
-      if(m <= gw) continue;
-      if(d >= C && m >= gmin){ mask[i] = 1; stack[sp++] = i; }
-      else weak[i] = 1;
+      if(Math.sqrt(gx*gx + gy*gy)/8 >= gfloor) mask[i] = 1;
     }
   }
 
-  /* a faint line survives only where it hangs off a confident one */
-  while(sp > 0){
-    var p = stack[--sp], px = p % w, py = (p / w) | 0;
-    for(var dy=-1;dy<=1;dy++){
-      var ny = py + dy; if(ny < 1 || ny >= h-1) continue;
-      for(var dx=-1;dx<=1;dx++){
-        var nx = px + dx; if(nx < 1 || nx >= w-1) continue;
-        var q = ny*w + nx;
-        if(weak[q] && !mask[q]){ mask[q] = 1; stack[sp++] = q; }
-      }
-    }
-  }
-
-  despeckle(mask, w, h, Math.round((6 + opt.clean/100 * 80) * scale * scale));
-  mask = dilate(mask, w, h, Math.round((opt.thick - 1) * scale * 0.9));
+  despeckle(mask, w, h, Math.round((6 + opt.clean/100 * 26) * scale));
+  var penR = Math.round((0.3 + (opt.thick - 1) * 0.75) * scale);
+  mask = dilate(mask, w, h, penR);
+  mask = hollow(mask, w, h, penR + 2);
 
   var soft = new Float32Array(n);
   for(var k=0;k<n;k++) soft[k] = mask[k] ? 255 : 0;
   soft = blur(soft, w, h, 0.5 * Math.max(scale, 0.7));
 
   var out = new ImageData(w, h), d2 = out.data;
-  for(var m2=0,q2=0;m2<n;m2++,q2+=4){
-    var a = soft[m2] * 1.5; if(a > 255) a = 255;
+  for(var m=0,p2=0;m<n;m++,p2+=4){
+    var a = soft[m] * 1.5; if(a > 255) a = 255;
     var t = a/255, inv = 1-t;
-    d2[q2]   = 255*inv + 23*t;
-    d2[q2+1] = 255*inv + 21*t;
-    d2[q2+2] = 255*inv + 15*t;
-    d2[q2+3] = 255;
+    d2[p2]   = 255*inv + 23*t;
+    d2[p2+1] = 255*inv + 21*t;
+    d2[p2+2] = 255*inv + 15*t;
+    d2[p2+3] = 255;
   }
   return out;
 }
