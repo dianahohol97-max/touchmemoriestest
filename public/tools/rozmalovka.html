@@ -262,8 +262,9 @@ footer a{color:inherit}
 
       <div class="block" id="blockAi" hidden data-locked="true">
         <div class="step"><span class="step-n">04</span><h2>Перемалювати штучним інтелектом</h2></div>
-        <p class="note">Безкоштовна модель перемальовує знімок у стилі друкованої розмальовки і може домалювати те, чого фільтр не вміє. Вона доступна тільки під вашим акаунтом і відповідає не завжди, тож контурний варіант завжди лишається під рукою.</p>
-        <button class="btn" id="aiRun" type="button">Спробувати ШІ-розмальовку</button>
+        <p class="note">Обидві кнопки працюють тільки під вашим акаунтом. Безкоштовна модель нічого не коштує, але відповідає не завжди. Replicate малює лінійний малюнок надійно і коштує приблизно дві копійки за фото, проте нічого не домальовує понад те, що вже є на знімку. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
+        <button class="btn" id="aiRun" type="button">Спробувати безкоштовну модель</button>
+        <button class="btn" id="aiPaid" type="button" style="margin-top:8px">Спробувати Replicate, близько двох копійок за фото</button>
         <p class="status" id="aiStatus"></p>
       </div>
 
@@ -319,6 +320,7 @@ var els = {
   saveStatus: document.getElementById('saveStatus'),
   aiBlock: document.getElementById('blockAi'),
   aiRun: document.getElementById('aiRun'),
+  aiPaid: document.getElementById('aiPaid'),
   aiStatus: document.getElementById('aiStatus'),
   blocks: [document.getElementById('blockPresets'), document.getElementById('blockTune'), document.getElementById('blockAi'), document.getElementById('blockSave')]
 };
@@ -844,16 +846,18 @@ function sourceBlob(){
     c.toBlob(function(b){ b ? res(b) : rej(new Error('blob')); }, 'image/jpeg', 0.92);
   });
 }
-function runAi(){
+function runAi(provider){
   if(!state.source || state.busy) return;
+  var btn = provider === 'replicate' ? els.aiPaid : els.aiRun;
   state.busy = true;
-  els.aiRun.disabled = true;
-  var label = els.aiRun.textContent;
-  els.aiRun.textContent = 'Малюємо…';
-  say(els.aiStatus, 'Модель отримала фото, перша спроба за день може тривати до хвилини, поки вона прокидається.', '');
+  els.aiRun.disabled = true; els.aiPaid.disabled = true;
+  var label = btn.textContent;
+  btn.textContent = 'Малюємо…';
+  say(els.aiStatus, 'Модель отримала фото, перша спроба може тривати до хвилини, поки вона прокидається.', '');
   sourceBlob().then(function(blob){
     var fd = new FormData();
     fd.append('image', blob, 'photo.jpg');
+    fd.append('provider', provider);
     return fetch('/api/coloring', {method:'POST', body:fd, credentials:'same-origin'});
   }).then(function(res){
     return res.json().then(function(data){ return {ok:res.ok, status:res.status, data:data}; });
@@ -879,11 +883,12 @@ function runAi(){
     say(els.aiStatus, 'Запит не вдався: ' + (err && err.message ? err.message : 'невідома помилка') + '.', 'bad');
   }).then(function(){
     state.busy = false;
-    els.aiRun.disabled = false;
-    els.aiRun.textContent = label;
+    els.aiRun.disabled = false; els.aiPaid.disabled = false;
+    btn.textContent = label;
   });
 }
-els.aiRun.addEventListener('click', runAi);
+els.aiRun.addEventListener('click', function(){ runAi('hf'); });
+els.aiPaid.addEventListener('click', function(){ runAi('replicate'); });
 
 /* ================= events ================= */
 
