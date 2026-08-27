@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail } from '@/lib/email/brevo';
 import { reserveEmailQuota } from '@/lib/email/quota';
 import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
+import { trackingPixel, trackedLink } from '@/lib/email/tracking';
 
 /**
  * Drains queued newsletter recipients within today's marketing budget.
@@ -16,13 +17,33 @@ import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe';
 const SEND_GAP_MS = 350; // ~3 req/s, Brevo's per-second limit
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-function buildHtml(bodyHtml: string, email: string, token: string | null, campaignId: string) {
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
+
+/**
+ * Підміняє посилання на сайт відстежуваними — по одному на отримувача.
+ *
+ * Тіло листа зберігається в кампанії одне на всіх, тож id рядка черги можна
+ * підставити лише тут, безпосередньо перед відправкою. Чіпаємо ТІЛЬКИ адреси
+ * власного сайту: посилання на відписку має лишитися прямим, інакше відписка
+ * ламається саме тоді, коли людина вже роздратована.
+ */
+function withTrackedLinks(html: string, queueId: string): string {
+    if (!queueId) return html;
+    const escaped = SITE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return html.replace(
+        new RegExp(`href="(${escaped}[^"]*)"`, 'g'),
+        (_m, url) => `href="${trackedLink(queueId, url)}"`,
+    );
+}
+
+function buildHtml(bodyHtml: string, email: string, token: string | null, campaignId: string, queueId: string) {
     const url = buildUnsubscribeUrl({ email, token, campaignId });
-    return `${bodyHtml}
+    return `${withTrackedLinks(bodyHtml, queueId)}
 <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;font-family:sans-serif;">
   Touch.Memories &nbsp;·&nbsp;
   <a href="${url}" style="color:#9ca3af;text-decoration:underline;">Відписатися від розсилки</a>
-</div>`;
+</div>
+${trackingPixel(queueId)}`;
 }
 
 export interface DrainResult {
@@ -105,7 +126,7 @@ export async function drainCampaignQueue(maxToSend?: number): Promise<DrainResul
                 to: row.email,
                 toName: row.name || undefined,
                 subject: campaign.subject,
-                html: buildHtml(campaign.body_html, row.email, tokenByEmail.get(String(row.email).toLowerCase()) || null, String(row.campaign_id)),
+                html: buildHtml(campaign.body_html, row.email, tokenByEmail.get(String(row.email).toLowerCase()) || null, String(row.campaign_id), String(row.id)),
                 kind: 'marketing',
                 // The whole batch was reserved above; reserving again per letter
                 // would charge the budget twice.

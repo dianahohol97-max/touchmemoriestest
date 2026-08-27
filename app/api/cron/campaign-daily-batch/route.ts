@@ -130,11 +130,35 @@ export async function GET(request: Request) {
     // Disarm: one batch means one batch. The next one has to be asked for.
     await admin.from('settings').delete().eq('key', ARMED_KEY);
 
+    // Відкриття й переходи по ВСІХ надісланих раніше листах. Свіжа партія ще
+    // нічого не встигла показати, тож сенс має тільки накопичена картина —
+    // інакше у звіті щоразу стояли б нулі.
+    let engagement = '';
+    try {
+        const { count: sentTotal } = await admin.from('email_campaign_queue')
+            .select('id', { count: 'exact', head: true }).eq('status', 'sent');
+        const { count: openedTotal } = await admin.from('email_campaign_queue')
+            .select('id', { count: 'exact', head: true }).not('opened_at', 'is', null);
+        const { count: clickedTotal } = await admin.from('email_campaign_queue')
+            .select('id', { count: 'exact', head: true }).not('clicked_at', 'is', null);
+        const pct = (n: number) => (sentTotal ? Math.round((n / sentTotal) * 100) : 0);
+        engagement = [
+            '',
+            `Загалом надіслано за весь час: ${sentTotal}.`,
+            `Відкрили: ${openedTotal} (${pct(openedTotal || 0)}%) — число завищене, Apple Mail підвантажує картинки сам.`,
+            `Перейшли на сайт: ${clickedTotal} (${pct(clickedTotal || 0)}%) — оце справжній показник.`,
+        ].join('\n');
+    } catch (e) {
+        console.error('[campaign-daily-batch] engagement stats failed:', e);
+    }
+
     const text = [
         `Партію розіслано: ${result.sent} листів.`,
         result.failed ? `Не пройшло: ${result.failed}.` : '',
         `У черзі лишилося: ${result.remaining}.`,
         `Заготовлено на наступні партії: ${scheduledLeft}.`,
+        '',
+        engagement,
         '',
         'Наступної партії не буде, доки ви не скажете — розсилка знову роззброєна.',
     ].filter(Boolean).join('\n');
