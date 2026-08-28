@@ -23,7 +23,16 @@ const BASE =
   'Create a black and white coloring book page from this photo. Pure white background, ' +
   'clean black outlines of even thickness, closed shapes that can be filled in with pencils. ' +
   'No shading, no grey tones, no hatching, no solid black areas, no photographic texture. ' +
-  'Keep the same pose, composition and faces so the people stay recognisable.';
+  'Keep the same pose, composition and faces so the people stay recognisable. ' +
+  // The model redraws rather than traces, so left alone it quietly swaps things
+  // out: a birthday balloon shaped like an 8 came back as a plain round one and
+  // a room turned into a corridor with doors. Naming what must survive is the
+  // only lever there is over that.
+  'Draw exactly what is in the photograph and nothing else. Keep every object, and keep the ' +
+  'numbers, letters and logos on them exactly as they appear, including balloon shapes, prints ' +
+  'on clothes and writing on things. Do not invent furniture, doors, windows, plants or ' +
+  'decorations that are not in the photo, and do not replace the room or the place with another one. ' +
+  'Keep the whole frame: do not crop, do not zoom in and do not change the proportions of the picture.';
 
 const LEVELS: Record<string, string> = {
   simple:
