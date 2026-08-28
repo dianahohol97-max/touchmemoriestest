@@ -262,7 +262,7 @@ footer a{color:inherit}
 
       <div class="block" id="blockAi" hidden data-locked="true">
         <div class="step"><span class="step-n">04</span><h2>Перемалювати штучним інтелектом</h2></div>
-        <p class="note">Обидві кнопки працюють тільки під вашим акаунтом. Безкоштовна модель нічого не коштує, але відповідає не завжди. Моделі Replicate платні: контурна коштує копійки, бо рахується за секунди роботи, а та, що перемальовує, дорожча, і точну суму ви побачите у своєму кабінеті Replicate після першого запуску. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
+        <p class="note">Кнопка працює тільки під вашим акаунтом і кожен запуск оплачується з вашого рахунку Replicate. Контурна модель коштує копійки, бо рахується за секунди роботи відеокарти, а та, що перемальовує, дорожча, і точну суму видно у кабінеті Replicate після першого запуску. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
         <div class="field" style="margin-bottom:12px">
           <div class="field-top"><label id="modelLabel">Модель Replicate</label></div>
           <p>Перша перемальовує знімок за письмовою вказівкою і найближча до справжніх розмальовок, друга створена саме для розмальовок, третя лише витягує контур і коштує найдешевше.</p>
@@ -272,8 +272,7 @@ footer a{color:inherit}
             <button type="button" data-v="outline" aria-pressed="false">контур</button>
           </div>
         </div>
-        <button class="btn" id="aiRun" type="button">Спробувати безкоштовну модель</button>
-        <button class="btn" id="aiPaid" type="button" style="margin-top:8px">Намалювати через Replicate</button>
+        <button class="btn btn-primary" id="aiPaid" type="button">Намалювати через Replicate</button>
         <p class="status" id="aiStatus"></p>
       </div>
 
@@ -328,7 +327,6 @@ var els = {
   save: document.getElementById('save'),
   saveStatus: document.getElementById('saveStatus'),
   aiBlock: document.getElementById('blockAi'),
-  aiRun: document.getElementById('aiRun'),
   aiPaid: document.getElementById('aiPaid'),
   model: document.getElementById('model'),
   aiStatus: document.getElementById('aiStatus'),
@@ -858,9 +856,9 @@ function sourceBlob(){
 }
 function runAi(provider){
   if(!state.source || state.busy) return;
-  var btn = provider === 'replicate' ? els.aiPaid : els.aiRun;
+  var btn = els.aiPaid;
   state.busy = true;
-  els.aiRun.disabled = true; els.aiPaid.disabled = true;
+  els.aiPaid.disabled = true;
   var label = btn.textContent;
   btn.textContent = 'Малюємо…';
   say(els.aiStatus, 'Модель отримала фото, перша спроба може тривати до хвилини, поки вона прокидається.', '');
@@ -894,7 +892,7 @@ function runAi(provider){
     say(els.aiStatus, 'Запит не вдався: ' + (err && err.message ? err.message : 'невідома помилка') + '.', 'bad');
   }).then(function(){
     state.busy = false;
-    els.aiRun.disabled = false; els.aiPaid.disabled = false;
+    els.aiPaid.disabled = false;
     btn.textContent = label;
   });
 }
@@ -903,7 +901,6 @@ els.model.addEventListener('click', function(e){
   state.model = b.dataset.v;
   Array.prototype.forEach.call(els.model.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
 });
-els.aiRun.addEventListener('click', function(){ runAi('hf'); });
 els.aiPaid.addEventListener('click', function(){ runAi('replicate'); });
 
 /* ================= events ================= */
