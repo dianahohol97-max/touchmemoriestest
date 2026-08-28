@@ -244,7 +244,7 @@ footer a{color:inherit}
         <div class="step"><span class="step-n">03</span><h2>Готовий файл</h2></div>
         <div class="field">
           <div class="field-top"><label id="sheetLabel">Формат аркуша</label></div>
-          <p>Варіант A4 показує і зберігає малюнок на аркуші з полями під друк, а другий віддає його рівно в тих пропорціях, які повернула модель. Перед збереженням малюнок збільшується до розміру друку, а лінії зміцнюються, щоб на папері вони не були розмитими.</p>
+          <p>Варіант A4 показує і зберігає малюнок на аркуші з полями під друк, а другий віддає його рівно в тих пропорціях, які повернула модель. Малюнок збільшується до розміру друку і зміцнюється одразу після генерації, тому на екрані ви бачите те саме, що потрапить у файл.</p>
           <div class="seg" id="sheetMode" role="group" aria-labelledby="sheetLabel">
             <button type="button" data-v="a4" aria-pressed="true">аркуш A4</button>
             <button type="button" data-v="raw" aria-pressed="false">лише малюнок</button>
@@ -266,7 +266,7 @@ footer a{color:inherit}
 "use strict";
 
 var UPLOAD_MAX = 1024;                       /* what the model receives */
-var RAW_LONG = 2400;
+var PRINT_LONG = 2400;                       /* what the drawing is enlarged to */
 var A4_LONG = 3508, A4_SHORT = 2480, A4_MARGIN = 150;
 
 var els = {
@@ -421,11 +421,16 @@ function runDraw(){
     }
     var im = new Image();
     im.onload = function(){
-      state.ai = im;
-      els.hint.hidden = false;
-      els.blockSave.dataset.locked = 'false';
-      redraw();
-      say(els.drawStatus, 'Готово. Якщо ліній забагато або замало, змініть рівень і намалюйте ще раз.', 'good');
+      // Enlarged and sharpened here rather than at save time, so what is on the
+      // screen is exactly what the file will contain, and saving is instant.
+      say(els.drawStatus, 'Малюнок надійшов, збільшуємо його до розміру друку і зміцнюємо лінії.', '');
+      setTimeout(function(){
+        state.ai = enhance(im);
+        els.hint.hidden = false;
+        els.blockSave.dataset.locked = 'false';
+        redraw();
+        say(els.drawStatus, 'Готово, малюнок уже у розмірі для друку. Якщо ліній забагато або замало, змініть рівень і намалюйте ще раз.', 'good');
+      }, 30);
     };
     im.onerror = function(){ say(els.drawStatus, 'Малюнок надійшов пошкодженим, спробуйте ще раз.', 'bad'); };
     im.src = r.data.url;
@@ -439,6 +444,16 @@ function runDraw(){
 }
 
 /* ================= the printable file ================= */
+
+/* Brings the model's answer up to print size once, straight after it arrives.
+   Below print size there is nothing to gain from enlarging, so a picture that
+   is already large is left alone. */
+function enhance(image){
+  var target = PRINT_LONG;
+  var k = target / Math.max(image.width, image.height);
+  if(k <= 1.05) return image;
+  return scaleUp(image, Math.round(image.width*k), Math.round(image.height*k));
+}
 
 /* The model returns roughly nine hundred pixels on the long side, which on A4
    is about 110 dots per inch. Stretching that straight to print size leaves
@@ -488,8 +503,11 @@ function sharpenLines(ctx, w, h){
 function buildExport(){
   var im = state.ai, page = document.createElement('canvas'), pc;
   if(state.mode === 'raw'){
-    var d = fit(im.width, im.height, RAW_LONG, true);
-    return scaleUp(im, d.w, d.h);
+    page.width = im.width; page.height = im.height;
+    pc = page.getContext('2d');
+    pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, page.width, page.height);
+    pc.drawImage(im, 0, 0);
+    return page;
   }
   var landscape = im.width > im.height;
   page.width  = landscape ? A4_LONG : A4_SHORT;
@@ -501,7 +519,7 @@ function buildExport(){
   var boxW = page.width - A4_MARGIN*2, boxH = page.height - A4_MARGIN*2;
   var k = Math.min(boxW/im.width, boxH/im.height);
   var dw = Math.round(im.width*k), dh = Math.round(im.height*k);
-  pc.drawImage(scaleUp(im, dw, dh), Math.round((page.width-dw)/2), Math.round((page.height-dh)/2));
+  pc.drawImage(im, Math.round((page.width-dw)/2), Math.round((page.height-dh)/2), dw, dh);
   return page;
 }
 function toBlob(canvas){
@@ -515,7 +533,6 @@ function exportPng(){
   els.save.disabled = true;
   var label = els.save.textContent;
   els.save.textContent = 'Готуємо файл…';
-  say(els.saveStatus, 'Збільшуємо малюнок до розміру друку і зміцнюємо лінії, це триває кілька секунд.', '');
   setTimeout(function(){
     var name = 'rozmalovka-' + (state.name || 'foto').slice(0, 40) + '.png';
     toBlob(buildExport()).then(function(blob){
