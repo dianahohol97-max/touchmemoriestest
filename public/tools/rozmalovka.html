@@ -244,7 +244,7 @@ footer a{color:inherit}
         <div class="step"><span class="step-n">03</span><h2>Готовий файл</h2></div>
         <div class="field">
           <div class="field-top"><label id="sheetLabel">Формат аркуша</label></div>
-          <p>Варіант A4 додає поля для друку, а другий зберігає малюнок рівно в пропорціях, які повернула модель.</p>
+          <p>Варіант A4 показує і зберігає малюнок на аркуші з полями під друк, а другий віддає його рівно в тих пропорціях, які повернула модель. Перегляд ліворуч одразу показує обраний варіант.</p>
           <div class="seg" id="sheetMode" role="group" aria-labelledby="sheetLabel">
             <button type="button" data-v="a4" aria-pressed="true">аркуш A4</button>
             <button type="button" data-v="raw" aria-pressed="false">лише малюнок</button>
@@ -309,19 +309,37 @@ function fit(w,h,max,up){
   k = up ? Math.min(k, 4) : Math.min(k, 1);
   return {w: Math.max(1, Math.round(w*k)), h: Math.max(1, Math.round(h*k))};
 }
-function show(image, label){
-  var d = fit(image.width, image.height, 1400);
-  els.sheet.width = d.w; els.sheet.height = d.h;
-  var ctx = els.sheet.getContext('2d');
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, d.w, d.h);
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(image, 0, 0, d.w, d.h);
-  els.meta.textContent = image.width + ' × ' + image.height + ' px · ' + label;
+/* The preview shows the sheet that will be saved, margins and all. Before, the
+   A4 layout happened only inside the exported file, so switching the format
+   looked like a button that does nothing. */
+function show(image, label, asSheet){
+  var ctx = els.sheet.getContext('2d'), d, ox, oy, dw, dh;
+  if(asSheet){
+    var landscape = image.width > image.height;
+    var pw = landscape ? 1240 : 877, ph = landscape ? 877 : 1240;
+    var margin = Math.round(pw * 0.06);
+    els.sheet.width = pw; els.sheet.height = ph;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, pw, ph);
+    ctx.imageSmoothingQuality = 'high';
+    var k = Math.min((pw - margin*2)/image.width, (ph - margin*2)/image.height);
+    dw = Math.round(image.width*k); dh = Math.round(image.height*k);
+    ox = Math.round((pw - dw)/2); oy = Math.round((ph - dh)/2);
+    ctx.drawImage(image, ox, oy, dw, dh);
+  } else {
+    d = fit(image.width, image.height, 1400);
+    els.sheet.width = d.w; els.sheet.height = d.h;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, d.w, d.h);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(image, 0, 0, d.w, d.h);
+  }
+  els.meta.textContent = image.width + ' × ' + image.height + ' px · ' + label +
+    (asSheet ? ' · аркуш A4' : '');
 }
 function redraw(){
-  if(state.ai) show(state.ai, 'розмальовка');
-  else if(state.source) show(state.source, 'фотографія');
+  if(state.ai) show(state.ai, 'розмальовка', state.mode === 'a4');
+  else if(state.source) show(state.source, 'фотографія', false);
 }
 function say(node, text, tone){
   node.textContent = text;
@@ -520,13 +538,15 @@ els.sheetMode.addEventListener('click', function(e){
   var b = e.target.closest('button[data-v]'); if(!b) return;
   state.mode = b.dataset.v;
   Array.prototype.forEach.call(els.sheetMode.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
+  redraw();
 });
 els.save.addEventListener('click', exportPng);
 
 /* press and hold puts the photograph back for a moment */
 function compare(on){
   if(!state.ai || !state.source) return;
-  show(on ? state.source : state.ai, on ? 'фотографія' : 'розмальовка');
+  if(on) show(state.source, 'фотографія', false);
+  else redraw();
 }
 els.sheet.addEventListener('pointerdown', function(e){ e.preventDefault(); compare(true); });
 ['pointerup','pointerleave','pointercancel'].forEach(function(t){
