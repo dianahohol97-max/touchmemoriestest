@@ -149,11 +149,13 @@ async function replicateDiagnostics(token: string): Promise<string> {
   const notes: string[] = [];
 
   const candidates = [
-    'carolineec/informativedrawings',
+    ...Object.values(REPLICATE_MODELS),
     'jagilley/controlnet-scribble',
     'rossjillian/controlnet',
     'catacolabs/cartoonify',
     'fofr/style-transfer',
+    'flux-kontext-apps/restore-image',
+    'openai/gpt-image-1.5',
   ];
   const alive: string[] = [];
   for (const name of candidates) {
@@ -313,7 +315,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, url: result.url, provider: 'replicate', model });
     }
     console.warn('coloring: Replicate failed', result);
-    let detail = `${result.status}: ${result.detail}`;
+
+    // 402 is not a bug: the request was accepted and the model exists, the
+    // account simply has no credit. Saying that plainly saves a round of
+    // debugging something that is not broken.
+    if (result.status === 402) {
+      return NextResponse.json(
+        {
+          error: 'На рахунку Replicate немає коштів, тому модель не запустилася.',
+          detail: `Поповніть баланс на replicate.com/account/billing і спробуйте за кілька хвилин. Модель ${model} відповіла, тобто решта працює.`,
+        },
+        { status: 402 },
+      );
+    }
+
+    let detail = `модель ${model} — ${result.status}: ${result.detail}`;
     if (result.status === 404) {
       detail += ` — ${await replicateDiagnostics(rToken)}`;
     }
