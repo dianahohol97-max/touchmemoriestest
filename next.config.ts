@@ -341,6 +341,15 @@ const nextConfig = {
         ],
       },
       {
+        // Standalone tools are single files that change with every fix, and a
+        // browser holding an old copy looks exactly like a deploy that did not
+        // happen. Revalidate on each visit so what you see is what was shipped.
+        source: '/tools/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
+        ],
+      },
+      {
         // Public catalog and category pages — allow CDN + Google caching
         source: '/:locale(uk|en|ro|de|pl)/:path(catalog|category|blog)/:rest*',
         headers: [
