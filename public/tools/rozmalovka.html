@@ -262,9 +262,18 @@ footer a{color:inherit}
 
       <div class="block" id="blockAi" hidden data-locked="true">
         <div class="step"><span class="step-n">04</span><h2>Перемалювати штучним інтелектом</h2></div>
-        <p class="note">Обидві кнопки працюють тільки під вашим акаунтом. Безкоштовна модель нічого не коштує, але відповідає не завжди. Replicate малює лінійний малюнок надійно і коштує приблизно дві копійки за фото, проте нічого не домальовує понад те, що вже є на знімку. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
+        <p class="note">Обидві кнопки працюють тільки під вашим акаунтом. Безкоштовна модель нічого не коштує, але відповідає не завжди. Моделі Replicate платні: контурна коштує копійки, бо рахується за секунди роботи, а та, що перемальовує, дорожча, і точну суму ви побачите у своєму кабінеті Replicate після першого запуску. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
+        <div class="field" style="margin-bottom:12px">
+          <div class="field-top"><label id="modelLabel">Модель Replicate</label></div>
+          <p>Перша перемальовує знімок за письмовою вказівкою і найближча до справжніх розмальовок, друга створена саме для розмальовок, третя лише витягує контур і коштує найдешевше.</p>
+          <div class="seg" id="model" role="group" aria-labelledby="modelLabel">
+            <button type="button" data-v="edit" aria-pressed="true">перемальовує</button>
+            <button type="button" data-v="coloring" aria-pressed="false">розмальовка</button>
+            <button type="button" data-v="outline" aria-pressed="false">контур</button>
+          </div>
+        </div>
         <button class="btn" id="aiRun" type="button">Спробувати безкоштовну модель</button>
-        <button class="btn" id="aiPaid" type="button" style="margin-top:8px">Спробувати Replicate, близько двох копійок за фото</button>
+        <button class="btn" id="aiPaid" type="button" style="margin-top:8px">Намалювати через Replicate</button>
         <p class="status" id="aiStatus"></p>
       </div>
 
@@ -321,6 +330,7 @@ var els = {
   aiBlock: document.getElementById('blockAi'),
   aiRun: document.getElementById('aiRun'),
   aiPaid: document.getElementById('aiPaid'),
+  model: document.getElementById('model'),
   aiStatus: document.getElementById('aiStatus'),
   blocks: [document.getElementById('blockPresets'), document.getElementById('blockTune'), document.getElementById('blockAi'), document.getElementById('blockSave')]
 };
@@ -333,7 +343,7 @@ var PRESETS = {
   pet:      {detail:66, clean:52, thick:2}
 };
 
-var state = {source:null, name:'', detail:62, clean:48, thick:2, mode:'a4', busy:false, paths:null, pw:0, ph:0, ai:null};
+var state = {source:null, name:'', detail:62, clean:48, thick:2, mode:'a4', busy:false, paths:null, pw:0, ph:0, ai:null, model:'edit'};
 var srcCanvas = null, resultCanvas = null, downloads = null;
 var framed = !!(window.claude && typeof window.claude.use === 'function');
 var timer = null;
@@ -858,6 +868,7 @@ function runAi(provider){
     var fd = new FormData();
     fd.append('image', blob, 'photo.jpg');
     fd.append('provider', provider);
+    fd.append('model', state.model);
     return fetch('/api/coloring', {method:'POST', body:fd, credentials:'same-origin'});
   }).then(function(res){
     return res.json().then(function(data){ return {ok:res.ok, status:res.status, data:data}; });
@@ -887,6 +898,11 @@ function runAi(provider){
     btn.textContent = label;
   });
 }
+els.model.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-v]'); if(!b) return;
+  state.model = b.dataset.v;
+  Array.prototype.forEach.call(els.model.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
+});
 els.aiRun.addEventListener('click', function(){ runAi('hf'); });
 els.aiPaid.addEventListener('click', function(){ runAi('replicate'); });
 

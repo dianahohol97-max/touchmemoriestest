@@ -89,7 +89,48 @@ async function tryModel(host: string, model: string, base64: string, token: stri
 // photo against a hryvnia and a half for Gemini — and it draws clean even
 // strokes, but it only redraws what the photo already contains. Cartoon eyes
 // or invented decorations are outside what it does.
-const REPLICATE_MODEL = 'carolineec/informativedrawings';
+// Confirmed to exist by asking Replicate itself — the previous name was written
+// from memory and did not. Each entry is a different bargain between price and
+// how much the model is allowed to reinvent:
+//   qwen-image-edit-plus  — follows a written instruction, so it can actually
+//                           redraw a face into colouring-book line art;
+//   retro-coloring-book   — purpose-built for colouring pages;
+//   controlnet-scribble   — the cheap one, extracts an outline and nothing more.
+const REPLICATE_MODELS: Record<string, string> = {
+  edit: 'qwen/qwen-image-edit-plus',
+  coloring: 'paappraiser/retro-coloring-book',
+  outline: 'jagilley/controlnet-scribble',
+};
+
+/* Input field names differ from model to model, so they are read from the
+   model's own schema instead of guessed. One wrong key is the difference
+   between a drawing and a 422. */
+function buildInput(props: Record<string, any>, dataUrl: string): Record<string, unknown> {
+  const keys = Object.keys(props);
+  const imageKey =
+    ['image', 'input_image', 'image_1', 'images', 'img', 'image_path'].find(k => keys.includes(k)) ||
+    keys.find(k => /image/i.test(k));
+  const input: Record<string, unknown> = {};
+  if (imageKey) {
+    input[imageKey] = props[imageKey]?.type === 'array' ? [dataUrl] : dataUrl;
+  }
+  const promptKey = ['prompt', 'instruction', 'text'].find(k => keys.includes(k));
+  if (promptKey) input[promptKey] = PROMPT;
+  return input;
+}
+
+function firstImageUrl(output: unknown): string | null {
+  if (typeof output === 'string') return output;
+  if (Array.isArray(output)) {
+    const found = output.find(v => typeof v === 'string');
+    return typeof found === 'string' ? found : null;
+  }
+  if (output && typeof output === 'object') {
+    const values = Object.values(output as Record<string, unknown>);
+    return firstImageUrl(values.find(v => typeof v === 'string' || Array.isArray(v)));
+  }
+  return null;
+}
 
 async function fetchAsDataUrl(url: string): Promise<string> {
   const res = await fetch(url);
@@ -151,19 +192,37 @@ async function replicateDiagnostics(token: string): Promise<string> {
 async function generateWithReplicate(
   dataUrl: string,
   token: string,
+  model: string,
 ): Promise<{ ok: true; url: string } | { ok: false; status: number; detail: string }> {
+  const auth = { Authorization: `Bearer ${token}` };
+
+  // Read the model's own input schema first, so the request uses the field
+  // names the model actually declares.
+  let props: Record<string, any> = {};
+  try {
+    const infoRes = await fetch(`https://api.replicate.com/v1/models/${model}`, { headers: auth });
+    if (!infoRes.ok) {
+      return { ok: false, status: infoRes.status, detail: `модель ${model}: ${(await infoRes.text()).slice(0, 200)}` };
+    }
+    const info = await infoRes.json();
+    props = info?.latest_version?.openapi_schema?.components?.schemas?.Input?.properties || {};
+  } catch (err: any) {
+    return { ok: false, status: 0, detail: err?.message || 'schema fetch failed' };
+  }
+
+  const input = buildInput(props, dataUrl);
+  if (Object.keys(input).length === 0) {
+    return { ok: false, status: 422, detail: `у моделі ${model} немає поля для зображення` };
+  }
+
   // The /models/{owner}/{name}/predictions form runs the model's current
   // version, which saves pinning a version hash that would go stale.
   let res: Response;
   try {
-    res = await fetch(`https://api.replicate.com/v1/models/${REPLICATE_MODEL}/predictions`, {
+    res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Prefer: 'wait=55',
-      },
-      body: JSON.stringify({ input: { image: dataUrl, style: 'anime_style' } }),
+      headers: { ...auth, 'Content-Type': 'application/json', Prefer: 'wait=55' },
+      body: JSON.stringify({ input }),
     });
   } catch (err: any) {
     return { ok: false, status: 0, detail: err?.message || 'network error' };
@@ -194,7 +253,10 @@ async function generateWithReplicate(
     };
   }
 
-  const outUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+  const outUrl = firstImageUrl(prediction.output);
+  if (!outUrl) {
+    return { ok: false, status: 502, detail: `модель повернула не зображення: ${JSON.stringify(prediction.output).slice(0, 200)}` };
+  }
   try {
     // Proxied rather than handed over as a link on purpose: the page draws the
     // result on a canvas to lay it out on A4, and a cross origin image would
@@ -211,10 +273,12 @@ export async function POST(request: Request) {
 
   let imageFile: File | null = null;
   let provider = 'hf';
+  let variant = 'edit';
   try {
     const formData = await request.formData();
     imageFile = formData.get('image') as File | null;
     provider = (formData.get('provider') as string) || 'hf';
+    variant = (formData.get('model') as string) || 'edit';
   } catch {
     return NextResponse.json({ error: 'Не вдалося прочитати завантажений файл.' }, { status: 400 });
   }
@@ -239,10 +303,14 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+    const model = REPLICATE_MODELS[variant];
+    if (!model) {
+      return NextResponse.json({ error: 'Невідома модель.' }, { status: 400 });
+    }
     const mime = imageFile.type || 'image/jpeg';
-    const result = await generateWithReplicate(`data:${mime};base64,${base64}`, rToken);
+    const result = await generateWithReplicate(`data:${mime};base64,${base64}`, rToken, model);
     if (result.ok) {
-      return NextResponse.json({ success: true, url: result.url, provider: 'replicate', model: REPLICATE_MODEL });
+      return NextResponse.json({ success: true, url: result.url, provider: 'replicate', model });
     }
     console.warn('coloring: Replicate failed', result);
     let detail = `${result.status}: ${result.detail}`;
