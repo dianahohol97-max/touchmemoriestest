@@ -265,11 +265,11 @@ footer a{color:inherit}
         <p class="note">Кнопка працює тільки під вашим акаунтом, і кожне натискання списує гроші з вашого рахунку Replicate. Модель, що перемальовує, оплачується за зображення і коштувала три центи за запуск, тобто близько 1,2 гривні. Дві інші рахуються за секунди роботи відеокарти, тож виходять дешевше, але точну суму видно вже після запуску. Контурний варіант із фільтра вище безкоштовний і лишається доступним завжди.</p>
         <div class="field" style="margin-bottom:12px">
           <div class="field-top"><label id="modelLabel">Модель Replicate</label></div>
-          <p>Перша перемальовує знімок за письмовою вказівкою і найближча до справжніх розмальовок, друга створена саме для розмальовок, третя лише витягує контур. Ціна кожного запуску написана на кнопці нижче і списується з вашого рахунку Replicate.</p>
+          <p>Перша перемальовує знімок за письмовою вказівкою, друга створена саме для сторінок розмальовок, третя розуміє вказівку найкраще з усіх і коштує найбільше. Ціна кожного запуску написана на кнопці нижче і списується з вашого рахунку Replicate.</p>
           <div class="seg" id="model" role="group" aria-labelledby="modelLabel">
             <button type="button" data-v="edit" aria-pressed="true">перемальовує</button>
             <button type="button" data-v="coloring" aria-pressed="false">розмальовка</button>
-            <button type="button" data-v="outline" aria-pressed="false">контур</button>
+            <button type="button" data-v="best" aria-pressed="false">найкраща</button>
           </div>
         </div>
         <button class="btn btn-primary" id="aiPaid" type="button">Намалювати через Replicate, близько 1,2 грн</button>
@@ -340,7 +340,7 @@ var THICK_WORDS = {1:'тонка', 2:'середня', 3:'товста', 4:'ду
 var MODEL_PRICE = {
   edit: 'близько 1,2 грн',
   coloring: 'оплата за секунди роботи',
-  outline: 'кілька копійок'
+  best: 'найдорожча, ціна за рахунком'
 };
 var PRESETS = {
   portrait: {detail:62, clean:48, thick:2},

@@ -13,6 +13,12 @@ import { requireAuth } from '@/lib/auth/guards';
 // feature, and the guard keeps the free quota from being drained by anyone
 // who finds the endpoint.
 
+// A cold community model can take most of a minute to answer, and the default
+// serverless budget is ten seconds — the browser sees that cut-off as a bare
+// "Failed to fetch" with nothing to act on. Sixty seconds is the ceiling here,
+// and every wait below is sized to finish inside it.
+export const maxDuration = 60;
+
 const PROMPT =
   'turn this photo into a black and white coloring book page: clean uniform black outlines, ' +
   'pure white background, no shading, no grey, no hatching, no solid black areas, ' +
@@ -95,11 +101,14 @@ async function tryModel(host: string, model: string, base64: string, token: stri
 //   qwen-image-edit-plus  — follows a written instruction, so it can actually
 //                           redraw a face into colouring-book line art;
 //   retro-coloring-book   — purpose-built for colouring pages;
-//   controlnet-scribble   — the cheap one, extracts an outline and nothing more.
+//   gpt-image-1.5         — the strongest instruction editor of the three, and
+//                           the dearest.
+// controlnet-scribble was here and is gone: it answered with black masses
+// rather than line art, which is the one thing a colouring page cannot be.
 const REPLICATE_MODELS: Record<string, string> = {
   edit: 'qwen/qwen-image-edit-plus',
   coloring: 'paappraiser/retro-coloring-book',
-  outline: 'jagilley/controlnet-scribble',
+  best: 'openai/gpt-image-1.5',
 };
 
 /* Input field names differ from model to model, so they are read from the
@@ -233,7 +242,7 @@ async function generateWithReplicate(
   try {
     res = await fetch(url, {
       method: 'POST',
-      headers: { ...auth, 'Content-Type': 'application/json', Prefer: 'wait=55' },
+      headers: { ...auth, 'Content-Type': 'application/json', Prefer: 'wait=40' },
       body: JSON.stringify(body),
     });
   } catch (err: any) {
@@ -247,9 +256,11 @@ async function generateWithReplicate(
 
   let prediction = await res.json();
   // Prefer: wait usually returns a finished prediction, but a cold model can
-  // still be running when the header times out, so poll a little.
-  for (let i = 0; i < 12 && prediction?.status && prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled'; i++) {
-    await new Promise(r => setTimeout(r, 2500));
+  // still be running when the header times out, so poll for what is left of
+  // the budget rather than for a fixed number of rounds.
+  const deadline = Date.now() + 12_000;
+  for (let i = 0; i < 6 && Date.now() < deadline && prediction?.status && prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled'; i++) {
+    await new Promise(r => setTimeout(r, 2000));
     const pollUrl = prediction?.urls?.get;
     if (!pollUrl) break;
     const pollRes = await fetch(pollUrl, { headers: { Authorization: `Bearer ${token}` } });
@@ -258,6 +269,15 @@ async function generateWithReplicate(
   }
 
   if (prediction?.status !== 'succeeded' || !prediction?.output) {
+    // Still running is a different answer from failed, and it is the one worth
+    // telling apart: the model is warm now, so a second press usually lands.
+    if (prediction?.status === 'starting' || prediction?.status === 'processing') {
+      return {
+        ok: false,
+        status: 504,
+        detail: 'модель ще малює довше, ніж дозволяє сервер. Вона щойно прокинулася, тож натисніть кнопку ще раз — друга спроба зазвичай встигає.',
+      };
+    }
     return {
       ok: false,
       status: 502,
