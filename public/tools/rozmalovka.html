@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="description" content="Безкоштовний інструмент touch.memories: завантажте фото і отримайте контурну розмальовку у форматі A4, готову до друку.">
+<meta name="description" content="Інструмент touch.memories: завантажте фото і отримайте розмальовку для друку, намальовану штучним інтелектом.">
 <title>Розмальовка з фото</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -190,12 +190,11 @@ footer a{color:inherit}
   .workbench{display:block}
 }
 </style>
-
 <div class="wrap">
   <header>
     <p class="brand">touch.memories · майстерня</p>
     <h1>Розмальовка з вашого фото</h1>
-    <p class="lede">Завантажте будь&#8209;яку світлину, і вона перетвориться на рівні плавні лінії однакової товщини, як у друкованих розмальовках, які можна роздрукувати та розмальовувати олівцями чи фломастерами. Контурний малюнок рахується просто у вашому браузері, і для нього фотографія нікуди не надсилається.</p>
+    <p class="lede">Завантажте світлину, оберіть, наскільки складною має бути розмальовка, і штучний інтелект перемалює її у контурний малюнок для друку. Кожен запуск оплачується з вашого рахунку Replicate, тому кнопка доступна тільки під вашим акаунтом.</p>
     <div class="crayons" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
   </header>
 
@@ -219,81 +218,46 @@ footer a{color:inherit}
     <aside class="panel">
       <div class="block">
         <div class="step"><span class="step-n">01</span><h2>Фотографія</h2></div>
-        <p class="note">Найкраще працюють кадри з чітким головним об’єктом і спокійним тлом.</p>
+        <p class="note">Найкраще працюють кадри з чітким головним обʼєктом і спокійним тлом.</p>
         <button class="btn" id="pick" type="button">Обрати фото на пристрої</button>
         <input type="file" id="file" accept="image/*" hidden>
         <p class="status" id="fileStatus"></p>
       </div>
 
-      <div class="block" id="blockPresets" data-locked="true">
-        <div class="step"><span class="step-n">02</span><h2>Готове налаштування</h2></div>
-        <p class="note">Оберіть варіант, який найближчий до вашого сюжету, а далі за бажанням підкрутіть повзунки.</p>
-        <div class="chips" id="presets">
-          <button class="chip" type="button" data-preset="portrait" aria-pressed="true"><i style="background:var(--c5)"></i>Портрет</button>
-          <button class="chip" type="button" data-preset="kids" aria-pressed="false"><i style="background:var(--c2)"></i>Для малюків</button>
-          <button class="chip" type="button" data-preset="scene" aria-pressed="false"><i style="background:var(--c4)"></i>Краєвид</button>
-          <button class="chip" type="button" data-preset="pet" aria-pressed="false"><i style="background:var(--c1)"></i>Улюбленці</button>
-        </div>
-      </div>
-
-      <div class="block" id="blockTune" data-locked="true">
-        <div class="step"><span class="step-n">03</span><h2>Тонке налаштування</h2></div>
+      <div class="block" id="blockDraw" data-locked="true">
+        <div class="step"><span class="step-n">02</span><h2>Складність розмальовки</h2></div>
+        <p class="note">Від цього залежить, скільки ліній буде на аркуші. Для найменших дітей потрібні великі прості форми, а дорослим цікавіше розмальовувати дрібні деталі.</p>
         <div class="field">
-          <div class="field-top"><label for="detail">Кількість деталей</label><output id="detailOut">62</output></div>
-          <p>Ліворуч лишаються тільки великі форми, як у розмальовках для найменших, а праворуч додаються дрібніші фігури.</p>
-          <input type="range" id="detail" min="0" max="100" value="62">
-        </div>
-        <div class="field">
-          <div class="field-top"><label for="clean">Спрощення ліній</label><output id="cleanOut">48</output></div>
-          <p>Згладжує контури та прибирає дрібні фігури, щоб аркуш був схожий на друковану розмальовку, а не на обведену фотографію.</p>
-          <input type="range" id="clean" min="0" max="100" value="48">
-        </div>
-        <div class="field">
-          <div class="field-top"><label id="thickLabel">Товщина ліній</label><output id="thickOut">середня</output></div>
-          <p>Для маленьких дітей краще брати товщі лінії, бо їх легше не виходити за межі.</p>
-          <div class="seg" id="thick" role="group" aria-labelledby="thickLabel">
-            <button type="button" data-v="1" aria-pressed="false">тонка</button>
-            <button type="button" data-v="2" aria-pressed="true">середня</button>
-            <button type="button" data-v="3" aria-pressed="false">товста</button>
-            <button type="button" data-v="4" aria-pressed="false">дуже товста</button>
+          <div class="field-top"><label id="levelLabel">Рівень</label><output id="levelOut">звичайна</output></div>
+          <div class="seg" id="level" role="group" aria-labelledby="levelLabel">
+            <button type="button" data-v="simple" aria-pressed="false">для малюків</button>
+            <button type="button" data-v="normal" aria-pressed="true">звичайна</button>
+            <button type="button" data-v="detailed" aria-pressed="false">детальна</button>
           </div>
+          <p id="levelNote">Класична дитяча розмальовка: головні форми плюс деталі, які роблять малюнок упізнаваним.</p>
         </div>
-      </div>
-
-      <div class="block" id="blockAi" hidden data-locked="true">
-        <div class="step"><span class="step-n">04</span><h2>Перемалювати штучним інтелектом</h2></div>
-        <p class="note">Кнопка працює тільки під вашим акаунтом, і кожне натискання списує гроші з вашого рахунку Replicate. Модель, що перемальовує, оплачується за зображення і коштувала три центи за запуск, тобто близько 1,2 гривні. Дві інші рахуються за секунди роботи відеокарти, тож виходять дешевше, але точну суму видно вже після запуску. Контурний варіант із фільтра вище безкоштовний і лишається доступним завжди.</p>
-        <div class="field" style="margin-bottom:12px">
-          <div class="field-top"><label id="modelLabel">Модель Replicate</label></div>
-          <p>Перша перемальовує знімок за письмовою вказівкою, друга створена саме для сторінок розмальовок, третя розуміє вказівку найкраще з усіх і коштує найбільше. Ціна кожного запуску написана на кнопці нижче і списується з вашого рахунку Replicate.</p>
-          <div class="seg" id="model" role="group" aria-labelledby="modelLabel">
-            <button type="button" data-v="edit" aria-pressed="true">перемальовує</button>
-            <button type="button" data-v="coloring" aria-pressed="false">розмальовка</button>
-            <button type="button" data-v="best" aria-pressed="false">найкраща</button>
-          </div>
-        </div>
-        <button class="btn btn-primary" id="aiPaid" type="button">Намалювати через Replicate, близько 1,2 грн</button>
-        <p class="status" id="aiStatus"></p>
+        <button class="btn btn-primary" id="draw" type="button">Намалювати розмальовку, близько 1,2 грн</button>
+        <p class="status" id="drawStatus">Малювання триває до півхвилини, а якщо модель щойно прокинулася, то довше.</p>
       </div>
 
       <div class="block" id="blockSave" data-locked="true">
-        <div class="step"><span class="step-n">05</span><h2>Готовий файл</h2></div>
+        <div class="step"><span class="step-n">03</span><h2>Готовий файл</h2></div>
         <div class="field">
           <div class="field-top"><label id="sheetLabel">Формат аркуша</label></div>
-          <p>Варіант A4 додає поля для друку, а другий зберігає малюнок рівно в пропорціях вашого фото.</p>
+          <p>Варіант A4 додає поля для друку, а другий зберігає малюнок рівно в пропорціях, які повернула модель.</p>
           <div class="seg" id="sheetMode" role="group" aria-labelledby="sheetLabel">
             <button type="button" data-v="a4" aria-pressed="true">аркуш A4</button>
             <button type="button" data-v="raw" aria-pressed="false">лише малюнок</button>
           </div>
         </div>
-        <button class="btn btn-primary" id="save" type="button">Зберегти розмальовку у PNG</button>
-        <p class="status" id="saveStatus">Лінії зберігаються як криві, тому у файлі вони виходять чіткими незалежно від розміру вихідного фото.</p>
+        <button class="btn" id="save" type="button">Зберегти розмальовку у PNG</button>
+        <p class="status" id="saveStatus"></p>
       </div>
     </aside>
   </div>
 
   <footer>
-    <p>Контурний малюнок обчислюється безпосередньо на вашому пристрої, тому для нього знімок не потрапляє на жоден сервер. Окрема кнопка з штучним інтелектом працює інакше: вона надсилає зменшену копію фотографії у сервіс генерації, тож із чутливими знімками нею краще не користуватися.</p>
+    <p>Фотографія надсилається у сервіс генерації Replicate, щоб модель могла її перемалювати, тому з чутливими знімками користуйтеся інструментом свідомо. Готовий малюнок повертається на сторінку і ніде більше не зберігається.</p>
   </footer>
 </div>
 
@@ -301,8 +265,7 @@ footer a{color:inherit}
 (function(){
 "use strict";
 
-var WORK_MAX = 1000;              /* resolution the drawing is worked out at */
-var PREVIEW_SCALE = 1.6;          /* the preview is stroked larger, since lines are curves */
+var UPLOAD_MAX = 1024;                       /* what the model receives */
 var RAW_LONG = 2400;
 var A4_LONG = 3508, A4_SHORT = 2480, A4_MARGIN = 150;
 
@@ -316,408 +279,57 @@ var els = {
   fileStatus: document.getElementById('fileStatus'),
   meta: document.getElementById('meta'),
   hint: document.getElementById('hint'),
-  presets: document.getElementById('presets'),
-  detail: document.getElementById('detail'),
-  detailOut: document.getElementById('detailOut'),
-  clean: document.getElementById('clean'),
-  cleanOut: document.getElementById('cleanOut'),
-  thick: document.getElementById('thick'),
-  thickOut: document.getElementById('thickOut'),
+  level: document.getElementById('level'),
+  levelOut: document.getElementById('levelOut'),
+  levelNote: document.getElementById('levelNote'),
+  draw: document.getElementById('draw'),
+  drawStatus: document.getElementById('drawStatus'),
   sheetMode: document.getElementById('sheetMode'),
   save: document.getElementById('save'),
   saveStatus: document.getElementById('saveStatus'),
-  aiBlock: document.getElementById('blockAi'),
-  aiPaid: document.getElementById('aiPaid'),
-  model: document.getElementById('model'),
-  aiStatus: document.getElementById('aiStatus'),
-  blocks: [document.getElementById('blockPresets'), document.getElementById('blockTune'), document.getElementById('blockAi'), document.getElementById('blockSave')]
+  blockDraw: document.getElementById('blockDraw'),
+  blockSave: document.getElementById('blockSave')
 };
 
-var THICK_WORDS = {1:'тонка', 2:'середня', 3:'товста', 4:'дуже товста'};
-/* Prices are what the account was actually charged, not an estimate. The edit
-   model bills per image; the other two bill by the second the GPU runs, so
-   their cost is smaller but only exact after the fact. */
-var MODEL_PRICE = {
-  edit: 'близько 1,2 грн',
-  coloring: 'оплата за секунди роботи',
-  best: 'найдорожча, ціна за рахунком'
-};
-var PRESETS = {
-  portrait: {detail:62, clean:48, thick:2},
-  kids:     {detail:20, clean:84, thick:4},
-  scene:    {detail:74, clean:44, thick:1},
-  pet:      {detail:66, clean:52, thick:2}
+var LEVELS = {
+  simple:   {word:'для малюків', note:'Великі прості форми, товсті лінії й майже порожнє тло, щоб малюк не виходив за межі.'},
+  normal:   {word:'звичайна',    note:'Класична дитяча розмальовка: головні форми плюс деталі, які роблять малюнок упізнаваним.'},
+  detailed: {word:'детальна',    note:'Багато дрібних ділянок: волосся, складки одягу, рослини і тло, як у розмальовках для дорослих.'}
 };
 
-var state = {source:null, name:'', detail:62, clean:48, thick:2, mode:'a4', busy:false, paths:null, pw:0, ph:0, ai:null, model:'edit'};
-var srcCanvas = null, resultCanvas = null, downloads = null;
+var state = {source:null, name:'', level:'normal', mode:'a4', busy:false, ai:null};
+var downloads = null;
 var framed = !!(window.claude && typeof window.claude.use === 'function');
-var timer = null;
+var onSite = !framed && /^https?:$/.test(location.protocol);
 
-/* ================= greyscale groundwork ================= */
-
-function grayscale(data,n){
-  var g = new Float32Array(n);
-  for(var i=0,p=0;i<n;i++,p+=4) g[i] = 0.299*data[p] + 0.587*data[p+1] + 0.114*data[p+2];
-  return g;
-}
-function stretch(g){
-  var hist = new Uint32Array(256), i, n = g.length;
-  for(i=0;i<n;i++) hist[g[i]|0]++;
-  var lo = 0, hi = 255, cut = n*0.012, acc = 0;
-  for(i=0;i<256;i++){ acc += hist[i]; if(acc > cut){ lo = i; break; } }
-  acc = 0;
-  for(i=255;i>=0;i--){ acc += hist[i]; if(acc > cut){ hi = i; break; } }
-  if(hi - lo < 24) return;
-  var k = 255/(hi-lo);
-  for(i=0;i<n;i++){ var v = (g[i]-lo)*k; g[i] = v < 0 ? 0 : (v > 255 ? 255 : v); }
-}
-function boxSizes(sigma, n){
-  var wIdeal = Math.sqrt((12*sigma*sigma/n)+1);
-  var wl = Math.floor(wIdeal); if(wl%2===0) wl--;
-  var wu = wl+2;
-  var mIdeal = (12*sigma*sigma - n*wl*wl - 4*n*wl - 3*n)/(-4*wl-4);
-  var m = Math.round(mIdeal), out = [];
-  for(var i=0;i<n;i++) out.push((((i<m)?wl:wu)-1)/2);
-  return out;
-}
-function boxH(src,dst,w,h,r){
-  if(r<1){ dst.set(src); return; }
-  var iarr = 1/(r+r+1);
-  for(var i=0;i<h;i++){
-    var ti=i*w, li=ti, ri=ti+r, fv=src[ti], lv=src[ti+w-1], val=(r+1)*fv, j;
-    for(j=0;j<r;j++) val+=src[ti+j];
-    for(j=0;j<=r;j++){ val+=src[ri++]-fv; dst[ti++]=val*iarr; }
-    for(j=r+1;j<w-r;j++){ val+=src[ri++]-src[li++]; dst[ti++]=val*iarr; }
-    for(j=w-r;j<w;j++){ val+=lv-src[li++]; dst[ti++]=val*iarr; }
-  }
-}
-function boxV(src,dst,w,h,r){
-  if(r<1){ dst.set(src); return; }
-  var iarr = 1/(r+r+1);
-  for(var i=0;i<w;i++){
-    var ti=i, li=ti, ri=ti+r*w, fv=src[ti], lv=src[ti+w*(h-1)], val=(r+1)*fv, j;
-    for(j=0;j<r;j++) val+=src[ti+j*w];
-    for(j=0;j<=r;j++){ val+=src[ri]-fv; dst[ti]=val*iarr; ri+=w; ti+=w; }
-    for(j=r+1;j<h-r;j++){ val+=src[ri]-src[li]; dst[ti]=val*iarr; li+=w; ri+=w; ti+=w; }
-    for(j=h-r;j<h;j++){ val+=lv-src[li]; dst[ti]=val*iarr; li+=w; ti+=w; }
-  }
-}
-function blur(src,w,h,sigma){
-  var out = new Float32Array(src);
-  if(sigma < 0.35) return out;
-  var tmp = new Float32Array(src.length), b = boxSizes(sigma,3);
-  for(var i=0;i<3;i++){ boxH(out,tmp,w,h,b[i]|0); boxV(tmp,out,w,h,b[i]|0); }
-  return out;
-}
-/* Median of a 3x3 window flattens texture such as hair, knitwear or sand while
-   leaving real edges where they are. */
-function median3(src,w,h){
-  var out = new Float32Array(src.length), x, y, v = new Float32Array(9), i, j, k, t;
-  for(y=0;y<h;y++){
-    var ym = y > 0 ? y-1 : 0, yp = y < h-1 ? y+1 : h-1;
-    for(x=0;x<w;x++){
-      var xm = x > 0 ? x-1 : 0, xp = x < w-1 ? x+1 : w-1;
-      v[0]=src[ym*w+xm]; v[1]=src[ym*w+x]; v[2]=src[ym*w+xp];
-      v[3]=src[y*w+xm];  v[4]=src[y*w+x];  v[5]=src[y*w+xp];
-      v[6]=src[yp*w+xm]; v[7]=src[yp*w+x]; v[8]=src[yp*w+xp];
-      for(i=0;i<5;i++){ k=i; for(j=i+1;j<9;j++) if(v[j] < v[k]) k=j; t=v[i]; v[i]=v[k]; v[k]=t; }
-      out[y*w+x] = v[4];
-    }
-  }
-  return out;
-}
-
-/* ================= tones and areas ================= */
-
-/* Sorts the tones of the photo into a handful of levels, the way a colourist
-   decides how many shades a drawing needs. The histogram is damped by a square
-   root so a large plain background cannot pull every level into the whites. */
-function levelsFor(g,n,K){
-  var hist = new Float64Array(256), i, k;
-  for(i=0;i<n;i++) hist[g[i] < 0 ? 0 : (g[i] > 255 ? 255 : g[i]|0)]++;
-  for(i=0;i<256;i++) hist[i] = Math.sqrt(hist[i]);
-  var c = new Float64Array(K);
-  for(k=0;k<K;k++) c[k] = (k + 0.5) * 255/K;
-  for(var it=0;it<14;it++){
-    var sum = new Float64Array(K), cnt = new Float64Array(K);
-    for(i=0;i<256;i++){
-      if(hist[i] === 0) continue;
-      var best = 0, bd = 1e9;
-      for(k=0;k<K;k++){ var d = Math.abs(i - c[k]); if(d < bd){ bd = d; best = k; } }
-      sum[best] += i * hist[i]; cnt[best] += hist[i];
-    }
-    var moved = 0;
-    for(k=0;k<K;k++){ if(cnt[k] > 0){ var nc = sum[k]/cnt[k]; moved += Math.abs(nc - c[k]); c[k] = nc; } }
-    if(moved < 0.4) break;
-  }
-  c.sort();
-  var lut = new Uint8Array(256);
-  for(i=0;i<256;i++){
-    var b = 0, bd2 = 1e9;
-    for(k=0;k<K;k++){ var dd = Math.abs(i - c[k]); if(dd < bd2){ bd2 = dd; b = k; } }
-    lut[i] = b;
-  }
-  return lut;
-}
-
-/* Areas too small to colour in are absorbed by the neighbour they touch most,
-   which is what turns a noisy tone map into a page with real shapes on it. */
-function mergeSmall(q,w,h,K,minArea){
-  var n = w*h, label = new Int32Array(n).fill(-1), stack = new Int32Array(n);
-  var sizes = [], levels = [], count = 0, i;
-  for(i=0;i<n;i++){
-    if(label[i] >= 0) continue;
-    var lv = q[i], sp = 0, size = 0;
-    label[i] = count; stack[sp++] = i;
-    while(sp > 0){
-      var p = stack[--sp]; size++;
-      var px = p % w, py = (p / w) | 0;
-      if(px > 0   && label[p-1] < 0 && q[p-1] === lv){ label[p-1] = count; stack[sp++] = p-1; }
-      if(px < w-1 && label[p+1] < 0 && q[p+1] === lv){ label[p+1] = count; stack[sp++] = p+1; }
-      if(py > 0   && label[p-w] < 0 && q[p-w] === lv){ label[p-w] = count; stack[sp++] = p-w; }
-      if(py < h-1 && label[p+w] < 0 && q[p+w] === lv){ label[p+w] = count; stack[sp++] = p+w; }
-    }
-    sizes.push(size); levels.push(lv); count++;
-  }
-  var tally = new Int32Array(count * K);
-  for(var y=0;y<h;y++){
-    for(var x=0;x<w;x++){
-      i = y*w + x;
-      var a = label[i];
-      if(x < w-1 && label[i+1] !== a){ tally[a*K + q[i+1]]++; tally[label[i+1]*K + q[i]]++; }
-      if(y < h-1 && label[i+w] !== a){ tally[a*K + q[i+w]]++; tally[label[i+w]*K + q[i]]++; }
-    }
-  }
-  var remap = new Int8Array(count).fill(-1), moved = false, tiny = minArea * 0.10;
-  for(var r=0;r<count;r++){
-    if(sizes[r] >= minArea) continue;
-    var own = levels[r], bestLv = -1, bestN = 0;
-    for(var k=0;k<K;k++){
-      if(k === own) continue;
-      if(tally[r*K + k] > bestN){ bestN = tally[r*K + k]; bestLv = k; }
-    }
-    if(bestLv < 0) continue;
-    /* an eye or a nostril is small but far darker than the skin around it, so a
-       strong tone jump earns the shape its place on the page */
-    if(sizes[r] > tiny && Math.abs(bestLv - own) >= 2) continue;
-    remap[r] = bestLv; moved = true;
-  }
-  if(moved){ for(i=0;i<n;i++){ var m = remap[label[i]]; if(m >= 0) q[i] = m; } }
-  return moved;
-}
-
-/* ================= from areas to drawn curves ================= */
-
-/* Walks the borders between tone areas and returns them as polylines. Borders
-   run between pixels rather than through them, so each one is found exactly
-   once and every shape closes properly. */
-function borderPaths(q,w,h){
-  var W1 = w+1, N = W1*(h+1), x, y;
-  var hE = new Uint8Array(N), vE = new Uint8Array(N);
-  for(y=0;y<h;y++) for(x=1;x<w;x++) if(q[y*w+x] !== q[y*w+x-1]) vE[y*W1+x] = 1;
-  for(y=1;y<h;y++) for(x=0;x<w;x++) if(q[y*w+x] !== q[(y-1)*w+x]) hE[y*W1+x] = 1;
-
-  var hU = new Uint8Array(N), vU = new Uint8Array(N);
-  function degree(node,x,y){
-    var d = 0;
-    if(x < w && hE[node]) d++;
-    if(x > 0 && hE[node-1]) d++;
-    if(y < h && vE[node]) d++;
-    if(y > 0 && vE[node-W1]) d++;
-    return d;
-  }
-  function freeEdge(node,x,y){
-    if(x < w && hE[node] && !hU[node]) return 0;
-    if(x > 0 && hE[node-1] && !hU[node-1]) return 1;
-    if(y < h && vE[node] && !vU[node]) return 2;
-    if(y > 0 && vE[node-W1] && !vU[node-W1]) return 3;
-    return -1;
-  }
-  function walk(sx,sy){
-    var x = sx, y = sy, node = y*W1 + x, pts = [x,y];
-    for(;;){
-      var d = freeEdge(node,x,y);
-      if(d < 0) break;
-      if(d === 0){ hU[node] = 1; x++; }
-      else if(d === 1){ hU[node-1] = 1; x--; }
-      else if(d === 2){ vU[node] = 1; y++; }
-      else { vU[node-W1] = 1; y--; }
-      node = y*W1 + x;
-      pts.push(x,y);
-      if(degree(node,x,y) !== 2) break;
-    }
-    return pts;
-  }
-
-  var paths = [], node, d0;
-  for(y=0;y<=h;y++){
-    for(x=0;x<=w;x++){
-      node = y*W1 + x;
-      d0 = degree(node,x,y);
-      if(d0 === 0 || d0 === 2) continue;
-      while(freeEdge(node,x,y) >= 0) paths.push(walk(x,y));
-    }
-  }
-  for(y=0;y<=h;y++){
-    for(x=0;x<=w;x++){
-      node = y*W1 + x;
-      if(freeEdge(node,x,y) >= 0) paths.push(walk(x,y));
-    }
-  }
-  return paths;
-}
-
-/* Ramer-Douglas-Peucker: keeps the shape, drops the staircase that pixel
-   borders always have. */
-function simplify(pts, eps){
-  var n = pts.length/2;
-  if(n < 3) return pts;
-  var keep = new Uint8Array(n); keep[0] = 1; keep[n-1] = 1;
-  var stack = [0, n-1];
-  while(stack.length){
-    var b = stack.pop(), a = stack.pop();
-    if(b - a < 2) continue;
-    var ax = pts[a*2], ay = pts[a*2+1], bx = pts[b*2], by = pts[b*2+1];
-    var dx = bx-ax, dy = by-ay, len = Math.sqrt(dx*dx + dy*dy), far = -1, fd = eps;
-    for(var i=a+1;i<b;i++){
-      var px = pts[i*2], py = pts[i*2+1], dist;
-      if(len < 1e-6) dist = Math.hypot(px-ax, py-ay);
-      else dist = Math.abs(dy*px - dx*py + bx*ay - by*ax)/len;
-      if(dist > fd){ fd = dist; far = i; }
-    }
-    if(far >= 0){ keep[far] = 1; stack.push(a, far, far, b); }
-  }
-  var out = [];
-  for(var k=0;k<n;k++) if(keep[k]) out.push(pts[k*2], pts[k*2+1]);
-  return out;
-}
-function pathLength(p){
-  var d = 0;
-  for(var i=2;i<p.length;i+=2) d += Math.hypot(p[i]-p[i-2], p[i+1]-p[i-1]);
-  return d;
-}
-
-/* The whole drawing: a photo in, a set of curves out. */
-function tracePaths(imgData, opt){
-  var w = imgData.width, h = imgData.height, n = w*h, base = Math.min(w,h), i;
-  var gray = grayscale(imgData.data, n);
-  stretch(gray);
-  var passes = 1 + Math.round(opt.clean/100 * 2);
-  for(i=0;i<passes;i++) gray = median3(gray, w, h);
-  var g = blur(gray, w, h, (0.8 + opt.clean/100 * 1.7) * base/900);
-
-  var K = 3 + Math.round(opt.detail/100 * 4);
-  var lut = levelsFor(g, n, K);
-  var q = new Uint8Array(n);
-  for(i=0;i<n;i++){ var v = g[i]; q[i] = lut[v < 0 ? 0 : (v > 255 ? 255 : v|0)]; }
-
-  var minArea = Math.round(n * (0.0060 - opt.detail/100 * 0.0048) * (0.55 + opt.clean/100 * 1.1));
-  for(i=0;i<4;i++){ if(!mergeSmall(q, w, h, K, minArea)) break; }
-
-  var raw = borderPaths(q, w, h);
-  var eps = (0.8 + opt.clean/100 * 2.4) * base/900;
-  var minLen = base * (0.035 + opt.clean/100 * 0.075);
-  var out = [];
-  for(i=0;i<raw.length;i++){
-    if(pathLength(raw[i]) < minLen) continue;
-    var sp = simplify(raw[i], eps);
-    if(sp.length >= 4) out.push(Float32Array.from(sp));
-  }
-  return out;
-}
-
-/* One pen, one weight, round joins: the look of a printed colouring page. */
-function drawPaths(ctx, paths, ox, oy, k, lw){
-  ctx.save();
-  ctx.strokeStyle = '#17150F';
-  ctx.lineWidth = lw;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  for(var j=0;j<paths.length;j++){
-    var p = paths[j], last = p.length - 2, i;
-    if(p.length < 4) continue;
-    ctx.beginPath();
-    ctx.moveTo(ox + p[0]*k, oy + p[1]*k);
-    for(i=2;i<last;i+=2){
-      var cx = ox + p[i]*k, cy = oy + p[i+1]*k;
-      var mx = ox + (p[i] + p[i+2])/2*k, my = oy + (p[i+1] + p[i+3])/2*k;
-      ctx.quadraticCurveTo(cx, cy, mx, my);
-    }
-    ctx.lineTo(ox + p[last]*k, oy + p[last+1]*k);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-function penWidth(shortSide, thick){
-  return Math.max(1, (0.0026 + (thick - 1) * 0.0019) * shortSide);
-}
-
-/* ================= plumbing ================= */
+/* ================= preview ================= */
 
 function fit(w,h,max,up){
   var k = max/Math.max(w,h);
   k = up ? Math.min(k, 4) : Math.min(k, 1);
   return {w: Math.max(1, Math.round(w*k)), h: Math.max(1, Math.round(h*k))};
 }
-function drawSource(max){
-  var s = state.source, d = fit(s.width, s.height, max);
-  var c = document.createElement('canvas');
-  c.width = d.w; c.height = d.h;
-  var ctx = c.getContext('2d', {willReadFrequently:true});
+function show(image, label){
+  var d = fit(image.width, image.height, 1400);
+  els.sheet.width = d.w; els.sheet.height = d.h;
+  var ctx = els.sheet.getContext('2d');
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, d.w, d.h);
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(s, 0, 0, d.w, d.h);
-  return c;
+  ctx.drawImage(image, 0, 0, d.w, d.h);
+  els.meta.textContent = image.width + ' × ' + image.height + ' px · ' + label;
 }
-function renderAi(){
-  var im = state.ai;
-  var k = Math.min(1, 1400/Math.max(im.width, im.height));
-  var w = Math.round(im.width*k), h = Math.round(im.height*k);
-  resultCanvas = document.createElement('canvas');
-  resultCanvas.width = w; resultCanvas.height = h;
-  var rc = resultCanvas.getContext('2d');
-  rc.fillStyle = '#FFFFFF'; rc.fillRect(0, 0, w, h);
-  rc.imageSmoothingQuality = 'high';
-  rc.drawImage(im, 0, 0, w, h);
-  els.sheet.width = w; els.sheet.height = h;
-  els.sheet.getContext('2d').drawImage(resultCanvas, 0, 0);
-  els.meta.textContent = im.width + ' × ' + im.height + ' px · малюнок ШІ';
-}
-function render(){
-  if(!state.source) return;
-  if(state.ai){ renderAi(); return; }
-  els.stage.classList.add('working');
-  requestAnimationFrame(function(){
-    setTimeout(function(){
-      var ctx = srcCanvas.getContext('2d', {willReadFrequently:true});
-      var img = ctx.getImageData(0, 0, srcCanvas.width, srcCanvas.height);
-      state.pw = srcCanvas.width; state.ph = srcCanvas.height;
-      state.paths = tracePaths(img, state);
-
-      var pw = Math.round(state.pw * PREVIEW_SCALE), ph = Math.round(state.ph * PREVIEW_SCALE);
-      resultCanvas = document.createElement('canvas');
-      resultCanvas.width = pw; resultCanvas.height = ph;
-      var rc = resultCanvas.getContext('2d');
-      rc.fillStyle = '#FFFFFF'; rc.fillRect(0, 0, pw, ph);
-      drawPaths(rc, state.paths, 0, 0, PREVIEW_SCALE, penWidth(Math.min(pw,ph), state.thick));
-
-      els.sheet.width = pw; els.sheet.height = ph;
-      els.sheet.getContext('2d').drawImage(resultCanvas, 0, 0);
-      els.stage.classList.remove('working');
-      els.meta.textContent = state.source.width + ' × ' + state.source.height + ' px · ' + state.paths.length + ' ліній';
-    }, 0);
-  });
-}
-function schedule(){
-  state.ai = null;
-  say(els.aiStatus, '', '');
-  clearTimeout(timer);
-  timer = setTimeout(render, 130);
+function redraw(){
+  if(state.ai) show(state.ai, 'розмальовка');
+  else if(state.source) show(state.source, 'фотографія');
 }
 function say(node, text, tone){
   node.textContent = text;
   node.dataset.tone = tone || '';
 }
+
+/* ================= the photo ================= */
+
 function loadFile(file){
   if(!file) return;
   if(!/^image\//.test(file.type)){
@@ -727,14 +339,16 @@ function loadFile(file){
   say(els.fileStatus, 'Читаємо файл, це триває буквально мить.', '');
   var done = function(bitmap){
     state.source = bitmap;
+    state.ai = null;
     state.name = (file.name || 'photo').replace(/\.[^.]+$/, '');
-    srcCanvas = drawSource(WORK_MAX);
     els.drop.hidden = true;
     els.sheet.hidden = false;
-    els.hint.hidden = false;
-    els.blocks.forEach(function(b){ b.dataset.locked = 'false'; });
+    els.hint.hidden = true;
+    els.blockDraw.dataset.locked = onSite ? 'false' : 'true';
+    els.blockSave.dataset.locked = 'true';
     say(els.fileStatus, 'Фотографія «' + file.name + '» готова до роботи.', 'good');
-    render();
+    if(!onSite) say(els.drawStatus, 'Малювання доступне лише на сайті touchmemories.com.ua під вашим акаунтом.', 'bad');
+    redraw();
   };
   var fail = function(){
     say(els.fileStatus, 'Цей файл не вдалося прочитати як зображення. Спробуйте зберегти його у форматі JPG і завантажити ще раз.', 'bad');
@@ -750,51 +364,86 @@ function legacy(file, done, fail){
   im.src = url;
 }
 
+/* ================= drawing ================= */
+
+function sourceBlob(){
+  var im = state.source, d = fit(im.width, im.height, UPLOAD_MAX);
+  var c = document.createElement('canvas');
+  c.width = d.w; c.height = d.h;
+  var ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(im, 0, 0, d.w, d.h);
+  return new Promise(function(res, rej){
+    c.toBlob(function(b){ b ? res(b) : rej(new Error('blob')); }, 'image/jpeg', 0.92);
+  });
+}
+function runDraw(){
+  if(!state.source || state.busy) return;
+  state.busy = true;
+  els.draw.disabled = true;
+  var label = els.draw.textContent;
+  els.draw.textContent = 'Малюємо…';
+  say(els.drawStatus, 'Модель отримала фото. Зачекайте до півхвилини, а після холодного старту трохи довше.', '');
+  sourceBlob().then(function(blob){
+    var fd = new FormData();
+    fd.append('image', blob, 'photo.jpg');
+    fd.append('level', state.level);
+    return fetch('/api/coloring', {method:'POST', body:fd, credentials:'same-origin'});
+  }).then(function(res){
+    return res.json().then(function(data){ return {ok:res.ok, status:res.status, data:data}; });
+  }).then(function(r){
+    if(r.status === 401 || r.status === 403){
+      say(els.drawStatus, 'Спершу увійдіть у свій акаунт на сайті, бо ця кнопка працює тільки для вас.', 'bad');
+      return;
+    }
+    if(!r.ok || !r.data || !r.data.url){
+      var detail = r.data && r.data.detail ? ' ' + r.data.detail : '';
+      say(els.drawStatus, ((r.data && r.data.error) || 'Модель не повернула малюнок.') + detail, 'bad');
+      return;
+    }
+    var im = new Image();
+    im.onload = function(){
+      state.ai = im;
+      els.hint.hidden = false;
+      els.blockSave.dataset.locked = 'false';
+      redraw();
+      say(els.drawStatus, 'Готово. Якщо ліній забагато або замало, змініть рівень і намалюйте ще раз.', 'good');
+    };
+    im.onerror = function(){ say(els.drawStatus, 'Малюнок надійшов пошкодженим, спробуйте ще раз.', 'bad'); };
+    im.src = r.data.url;
+  })['catch'](function(err){
+    say(els.drawStatus, 'Запит не вдався: ' + (err && err.message ? err.message : 'невідома помилка') + '.', 'bad');
+  }).then(function(){
+    state.busy = false;
+    els.draw.disabled = false;
+    els.draw.textContent = label;
+  });
+}
+
 /* ================= the printable file ================= */
 
 function buildExport(){
-  var page = document.createElement('canvas'), pc, k, ox, oy, boxW, boxH;
-  if(state.ai){
-    var im = state.ai;
-    if(state.mode === 'raw'){
-      page.width = im.width; page.height = im.height;
-      pc = page.getContext('2d');
-      pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, page.width, page.height);
-      pc.drawImage(im, 0, 0);
-      return page;
-    }
-    var land = im.width > im.height;
-    page.width = land ? A4_LONG : A4_SHORT;
-    page.height = land ? A4_SHORT : A4_LONG;
-    pc = page.getContext('2d');
-    pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, page.width, page.height);
-    pc.imageSmoothingQuality = 'high';
-    var bw = page.width - A4_MARGIN*2, bh = page.height - A4_MARGIN*2;
-    var kk = Math.min(bw/im.width, bh/im.height);
-    pc.drawImage(im, Math.round((page.width - im.width*kk)/2), Math.round((page.height - im.height*kk)/2),
-                 Math.round(im.width*kk), Math.round(im.height*kk));
-    return page;
-  }
+  var im = state.ai, page = document.createElement('canvas'), pc;
   if(state.mode === 'raw'){
-    var d = fit(state.pw, state.ph, RAW_LONG, true);
+    var d = fit(im.width, im.height, RAW_LONG, true);
     page.width = d.w; page.height = d.h;
     pc = page.getContext('2d');
-    pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, page.width, page.height);
-    k = d.w / state.pw; ox = 0; oy = 0;
-    drawPaths(pc, state.paths, ox, oy, k, penWidth(Math.min(page.width, page.height), state.thick));
+    pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, d.w, d.h);
+    pc.imageSmoothingQuality = 'high';
+    pc.drawImage(im, 0, 0, d.w, d.h);
     return page;
   }
-  var landscape = state.pw > state.ph;
+  var landscape = im.width > im.height;
   page.width  = landscape ? A4_LONG : A4_SHORT;
   page.height = landscape ? A4_SHORT : A4_LONG;
   pc = page.getContext('2d');
   pc.fillStyle = '#FFFFFF';
   pc.fillRect(0, 0, page.width, page.height);
-  boxW = page.width - A4_MARGIN*2; boxH = page.height - A4_MARGIN*2;
-  k = Math.min(boxW/state.pw, boxH/state.ph);
-  ox = Math.round((page.width - state.pw*k)/2);
-  oy = Math.round((page.height - state.ph*k)/2);
-  drawPaths(pc, state.paths, ox, oy, k, penWidth(Math.min(state.pw*k, state.ph*k), state.thick));
+  pc.imageSmoothingQuality = 'high';
+  var boxW = page.width - A4_MARGIN*2, boxH = page.height - A4_MARGIN*2;
+  var k = Math.min(boxW/im.width, boxH/im.height);
+  var dw = Math.round(im.width*k), dh = Math.round(im.height*k);
+  pc.drawImage(im, Math.round((page.width-dw)/2), Math.round((page.height-dh)/2), dw, dh);
   return page;
 }
 function toBlob(canvas){
@@ -803,12 +452,11 @@ function toBlob(canvas){
   });
 }
 function exportPng(){
-  if(!state.source || state.busy || (!state.paths && !state.ai)) return;
+  if(!state.ai || state.busy) return;
   state.busy = true;
   els.save.disabled = true;
   var label = els.save.textContent;
   els.save.textContent = 'Готуємо файл…';
-  say(els.saveStatus, 'Малюємо контури у повній роздільній здатності, зачекайте кілька секунд.', '');
   setTimeout(function(){
     var name = 'rozmalovka-' + (state.name || 'foto').slice(0, 40) + '.png';
     toBlob(buildExport()).then(function(blob){
@@ -818,12 +466,11 @@ function exportPng(){
         })['catch'](function(err){
           var code = err && err.code;
           if(code === 'declined') say(els.saveStatus, 'Збереження скасовано, а малюнок залишився на місці.', '');
-          else if(code === 'too_large') say(els.saveStatus, 'Файл вийшов завеликим, тож спробуйте варіант «лише малюнок».', 'bad');
           else say(els.saveStatus, 'Зберегти файл не вдалося, спробуйте, будь ласка, ще раз.', 'bad');
         });
       }
       if(framed){
-        say(els.saveStatus, 'Це вікно не дозволяє зберігати файли, тому відкрийте сторінку в окремій вкладці або натисніть на малюнок правою кнопкою миші та оберіть «Зберегти зображення».', 'bad');
+        say(els.saveStatus, 'Це вікно не дозволяє зберігати файли, тому натисніть на малюнок правою кнопкою миші та оберіть «Зберегти зображення».', 'bad');
         return;
       }
       var url = URL.createObjectURL(blob), a = document.createElement('a');
@@ -832,7 +479,7 @@ function exportPng(){
       setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
       say(els.saveStatus, 'Розмальовку збережено, і її вже можна відправляти на друк.', 'good');
     })['catch'](function(){
-      say(els.saveStatus, 'Під час підготовки файлу сталася помилка, спробуйте зменшити кількість деталей.', 'bad');
+      say(els.saveStatus, 'Під час підготовки файлу сталася помилка, спробуйте ще раз.', 'bad');
     }).then(function(){
       state.busy = false;
       els.save.disabled = false;
@@ -840,77 +487,6 @@ function exportPng(){
     });
   }, 30);
 }
-
-/* ================= the free model ================= */
-
-/* The endpoint lives on the site and is limited to the signed in owner, so the
-   button only makes sense when the page is served from there. Inside the
-   Claude viewer, or opened as a local file, it is hidden rather than shown
-   broken. */
-var onSite = !framed && /^https?:$/.test(location.protocol);
-if(onSite) els.aiBlock.hidden = false;
-
-function sourceBlob(){
-  var im = state.source;
-  var k = Math.min(1, 768/Math.max(im.width, im.height));
-  var c = document.createElement('canvas');
-  c.width = Math.round(im.width*k); c.height = Math.round(im.height*k);
-  var ctx = c.getContext('2d');
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(im, 0, 0, c.width, c.height);
-  return new Promise(function(res, rej){
-    c.toBlob(function(b){ b ? res(b) : rej(new Error('blob')); }, 'image/jpeg', 0.92);
-  });
-}
-function runAi(provider){
-  if(!state.source || state.busy) return;
-  var btn = els.aiPaid;
-  state.busy = true;
-  els.aiPaid.disabled = true;
-  var label = btn.textContent;
-  btn.textContent = 'Малюємо…';
-  say(els.aiStatus, 'Модель отримала фото, перша спроба може тривати до хвилини, поки вона прокидається.', '');
-  sourceBlob().then(function(blob){
-    var fd = new FormData();
-    fd.append('image', blob, 'photo.jpg');
-    fd.append('provider', provider);
-    fd.append('model', state.model);
-    return fetch('/api/coloring', {method:'POST', body:fd, credentials:'same-origin'});
-  }).then(function(res){
-    return res.json().then(function(data){ return {ok:res.ok, status:res.status, data:data}; });
-  }).then(function(r){
-    if(r.status === 401 || r.status === 403){
-      say(els.aiStatus, 'Спершу увійдіть у свій акаунт на сайті, бо ця кнопка працює тільки для вас.', 'bad');
-      return;
-    }
-    if(!r.ok || !r.data || !r.data.url){
-      var detail = r.data && r.data.detail ? ' Відповідь сервісу: ' + r.data.detail : '';
-      say(els.aiStatus, ((r.data && r.data.error) || 'Модель не відповіла малюнком.') + detail, 'bad');
-      return;
-    }
-    var im = new Image();
-    im.onload = function(){
-      state.ai = im;
-      renderAi();
-      say(els.aiStatus, 'Готово. Щоб повернутися до контурного варіанта, посуньте будь-який повзунок.', 'good');
-    };
-    im.onerror = function(){ say(els.aiStatus, 'Малюнок надійшов пошкодженим, спробуйте ще раз.', 'bad'); };
-    im.src = r.data.url;
-  })['catch'](function(err){
-    say(els.aiStatus, 'Запит не вдався: ' + (err && err.message ? err.message : 'невідома помилка') + '.', 'bad');
-  }).then(function(){
-    state.busy = false;
-    els.aiPaid.disabled = false;
-    btn.textContent = label;
-  });
-}
-els.model.addEventListener('click', function(e){
-  var b = e.target.closest('button[data-v]'); if(!b) return;
-  state.model = b.dataset.v;
-  Array.prototype.forEach.call(els.model.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
-  els.aiPaid.textContent = 'Намалювати через Replicate, ' + MODEL_PRICE[state.model];
-});
-els.aiPaid.addEventListener('click', function(){ runAi('replicate'); });
 
 /* ================= events ================= */
 
@@ -932,34 +508,14 @@ window.addEventListener('paste', function(e){
   if(items && items.length) loadFile(items[0]);
 });
 
-function clearPreset(){
-  Array.prototype.forEach.call(els.presets.children, function(c){ c.setAttribute('aria-pressed','false'); });
-}
-els.presets.addEventListener('click', function(e){
-  var b = e.target.closest('button[data-preset]'); if(!b) return;
-  var p = PRESETS[b.dataset.preset];
-  Array.prototype.forEach.call(els.presets.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
-  state.detail = p.detail; state.clean = p.clean;
-  els.detail.value = p.detail; els.detailOut.textContent = p.detail;
-  els.clean.value = p.clean; els.cleanOut.textContent = p.clean;
-  setThick(p.thick);
-  schedule();
-});
-els.detail.addEventListener('input', function(){
-  state.detail = +this.value; els.detailOut.textContent = this.value; clearPreset(); schedule();
-});
-els.clean.addEventListener('input', function(){
-  state.clean = +this.value; els.cleanOut.textContent = this.value; clearPreset(); schedule();
-});
-function setThick(v){
-  state.thick = v;
-  els.thickOut.textContent = THICK_WORDS[v];
-  Array.prototype.forEach.call(els.thick.children, function(c){ c.setAttribute('aria-pressed', String(+c.dataset.v === v)); });
-}
-els.thick.addEventListener('click', function(e){
+els.level.addEventListener('click', function(e){
   var b = e.target.closest('button[data-v]'); if(!b) return;
-  setThick(+b.dataset.v); clearPreset(); schedule();
+  state.level = b.dataset.v;
+  Array.prototype.forEach.call(els.level.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
+  els.levelOut.textContent = LEVELS[state.level].word;
+  els.levelNote.textContent = LEVELS[state.level].note;
 });
+els.draw.addEventListener('click', runDraw);
 els.sheetMode.addEventListener('click', function(e){
   var b = e.target.closest('button[data-v]'); if(!b) return;
   state.mode = b.dataset.v;
@@ -967,15 +523,14 @@ els.sheetMode.addEventListener('click', function(e){
 });
 els.save.addEventListener('click', exportPng);
 
-function showOriginal(on){
-  if(!state.source || !resultCanvas) return;
-  var ctx = els.sheet.getContext('2d');
-  if(on) ctx.drawImage(srcCanvas, 0, 0, els.sheet.width, els.sheet.height);
-  else ctx.drawImage(resultCanvas, 0, 0);
+/* press and hold puts the photograph back for a moment */
+function compare(on){
+  if(!state.ai || !state.source) return;
+  show(on ? state.source : state.ai, on ? 'фотографія' : 'розмальовка');
 }
-els.sheet.addEventListener('pointerdown', function(e){ e.preventDefault(); showOriginal(true); });
+els.sheet.addEventListener('pointerdown', function(e){ e.preventDefault(); compare(true); });
 ['pointerup','pointerleave','pointercancel'].forEach(function(t){
-  els.sheet.addEventListener(t, function(){ showOriginal(false); });
+  els.sheet.addEventListener(t, function(){ compare(false); });
 });
 
 if(framed){
