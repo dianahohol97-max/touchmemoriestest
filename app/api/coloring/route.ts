@@ -99,6 +99,55 @@ async function fetchAsDataUrl(url: string): Promise<string> {
   return `data:${mime};base64,${Buffer.from(buf).toString('base64')}`;
 }
 
+// When the model call fails, ask Replicate itself what exists. The name below
+// was written from memory and could not be verified from the build environment,
+// where api.replicate.com is blocked — this turns a dead end into an answer the
+// page can show, instead of another round of guessing.
+async function replicateDiagnostics(token: string): Promise<string> {
+  const headers = { Authorization: `Bearer ${token}` };
+  const notes: string[] = [];
+
+  const candidates = [
+    'carolineec/informativedrawings',
+    'jagilley/controlnet-scribble',
+    'rossjillian/controlnet',
+    'catacolabs/cartoonify',
+    'fofr/style-transfer',
+  ];
+  const alive: string[] = [];
+  for (const name of candidates) {
+    try {
+      const res = await fetch(`https://api.replicate.com/v1/models/${name}`, { headers });
+      if (res.ok) alive.push(name);
+    } catch {
+      /* a probe that cannot reach the API tells us nothing, so skip it */
+    }
+  }
+  notes.push(alive.length ? `існують: ${alive.join(', ')}` : 'жодна з відомих назв не існує');
+
+  try {
+    const res = await fetch('https://api.replicate.com/v1/models', {
+      method: 'QUERY',
+      headers: { ...headers, 'Content-Type': 'text/plain' },
+      body: 'photo to line drawing coloring book',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const names = (data?.results || [])
+        .slice(0, 8)
+        .map((m: any) => `${m.owner}/${m.name}`)
+        .join(', ');
+      if (names) notes.push(`пошук: ${names}`);
+    } else {
+      notes.push(`пошук недоступний (${res.status})`);
+    }
+  } catch (err: any) {
+    notes.push(`пошук не вдався: ${err?.message || 'помилка'}`);
+  }
+
+  return notes.join(' · ');
+}
+
 async function generateWithReplicate(
   dataUrl: string,
   token: string,
@@ -196,10 +245,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, url: result.url, provider: 'replicate', model: REPLICATE_MODEL });
     }
     console.warn('coloring: Replicate failed', result);
-    return NextResponse.json(
-      { error: 'Replicate не повернув малюнок.', detail: `${result.status}: ${result.detail}` },
-      { status: 502 },
-    );
+    let detail = `${result.status}: ${result.detail}`;
+    if (result.status === 404) {
+      detail += ` — ${await replicateDiagnostics(rToken)}`;
+    }
+    return NextResponse.json({ error: 'Replicate не повернув малюнок.', detail }, { status: 502 });
   }
 
   const token = process.env.HUGGINGFACE_API_TOKEN;
