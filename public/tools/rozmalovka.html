@@ -244,7 +244,7 @@ footer a{color:inherit}
         <div class="step"><span class="step-n">03</span><h2>Готовий файл</h2></div>
         <div class="field">
           <div class="field-top"><label id="sheetLabel">Формат аркуша</label></div>
-          <p>Варіант A4 показує і зберігає малюнок на аркуші з полями під друк, а другий віддає його рівно в тих пропорціях, які повернула модель. Перегляд ліворуч одразу показує обраний варіант.</p>
+          <p>Варіант A4 показує і зберігає малюнок на аркуші з полями під друк, а другий віддає його рівно в тих пропорціях, які повернула модель. Перед збереженням малюнок збільшується до розміру друку, а лінії зміцнюються, щоб на папері вони не були розмитими.</p>
           <div class="seg" id="sheetMode" role="group" aria-labelledby="sheetLabel">
             <button type="button" data-v="a4" aria-pressed="true">аркуш A4</button>
             <button type="button" data-v="raw" aria-pressed="false">лише малюнок</button>
@@ -440,16 +440,56 @@ function runDraw(){
 
 /* ================= the printable file ================= */
 
+/* The model returns roughly nine hundred pixels on the long side, which on A4
+   is about 110 dots per inch. Stretching that straight to print size leaves
+   soft grey edges, so the drawing is enlarged in doubling steps — each step
+   interpolates from a sharper source than one big jump would — and the lines
+   are then pulled back to black and white. */
+function scaleUp(image, w, h){
+  var cur = document.createElement('canvas');
+  cur.width = image.width; cur.height = image.height;
+  cur.getContext('2d').drawImage(image, 0, 0);
+  while(cur.width * 2 <= w && cur.height * 2 <= h){
+    var next = document.createElement('canvas');
+    next.width = cur.width * 2; next.height = cur.height * 2;
+    var nx = next.getContext('2d');
+    nx.imageSmoothingQuality = 'high';
+    nx.drawImage(cur, 0, 0, next.width, next.height);
+    cur = next;
+  }
+  var out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  var ctx = out.getContext('2d', {willReadFrequently:true});
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cur, 0, 0, w, h);
+  sharpenLines(ctx, w, h);
+  return out;
+}
+
+/* Enlarging turns a crisp edge into a grey ramp. This pushes the ramp back
+   towards black and white while leaving a narrow band of grey, so the lines
+   read as drawn rather than as stair steps. */
+function sharpenLines(ctx, w, h){
+  var img = ctx.getImageData(0, 0, w, h), d = img.data;
+  var mid = 150, band = 42;               /* where the ramp is cut, and how soft */
+  for(var i=0;i<d.length;i+=4){
+    var v = d[i] < d[i+1] ? (d[i] < d[i+2] ? d[i] : d[i+2]) : (d[i+1] < d[i+2] ? d[i+1] : d[i+2]);
+    var t = (v - (mid - band)) / (band * 2);
+    t = t < 0 ? 0 : (t > 1 ? 1 : t);
+    t = t * t * (3 - 2 * t);              /* smooth ends, no hard threshold */
+    var out = Math.round(255 * t);
+    d[i] = out; d[i+1] = out; d[i+2] = out; d[i+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
 function buildExport(){
   var im = state.ai, page = document.createElement('canvas'), pc;
   if(state.mode === 'raw'){
     var d = fit(im.width, im.height, RAW_LONG, true);
-    page.width = d.w; page.height = d.h;
-    pc = page.getContext('2d');
-    pc.fillStyle = '#FFFFFF'; pc.fillRect(0, 0, d.w, d.h);
-    pc.imageSmoothingQuality = 'high';
-    pc.drawImage(im, 0, 0, d.w, d.h);
-    return page;
+    return scaleUp(im, d.w, d.h);
   }
   var landscape = im.width > im.height;
   page.width  = landscape ? A4_LONG : A4_SHORT;
@@ -461,7 +501,7 @@ function buildExport(){
   var boxW = page.width - A4_MARGIN*2, boxH = page.height - A4_MARGIN*2;
   var k = Math.min(boxW/im.width, boxH/im.height);
   var dw = Math.round(im.width*k), dh = Math.round(im.height*k);
-  pc.drawImage(im, Math.round((page.width-dw)/2), Math.round((page.height-dh)/2), dw, dh);
+  pc.drawImage(scaleUp(im, dw, dh), Math.round((page.width-dw)/2), Math.round((page.height-dh)/2));
   return page;
 }
 function toBlob(canvas){
@@ -475,6 +515,7 @@ function exportPng(){
   els.save.disabled = true;
   var label = els.save.textContent;
   els.save.textContent = 'Готуємо файл…';
+  say(els.saveStatus, 'Збільшуємо малюнок до розміру друку і зміцнюємо лінії, це триває кілька секунд.', '');
   setTimeout(function(){
     var name = 'rozmalovka-' + (state.name || 'foto').slice(0, 40) + '.png';
     toBlob(buildExport()).then(function(blob){
