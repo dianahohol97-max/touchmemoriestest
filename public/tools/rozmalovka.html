@@ -262,17 +262,17 @@ footer a{color:inherit}
 
       <div class="block" id="blockAi" hidden data-locked="true">
         <div class="step"><span class="step-n">04</span><h2>Перемалювати штучним інтелектом</h2></div>
-        <p class="note">Кнопка працює тільки під вашим акаунтом і кожен запуск оплачується з вашого рахунку Replicate. Контурна модель коштує копійки, бо рахується за секунди роботи відеокарти, а та, що перемальовує, дорожча, і точну суму видно у кабінеті Replicate після першого запуску. Контурний варіант із фільтра лишається доступним у будь-якому разі.</p>
+        <p class="note">Кнопка працює тільки під вашим акаунтом, і кожне натискання списує гроші з вашого рахунку Replicate. Модель, що перемальовує, оплачується за зображення і коштувала три центи за запуск, тобто близько 1,2 гривні. Дві інші рахуються за секунди роботи відеокарти, тож виходять дешевше, але точну суму видно вже після запуску. Контурний варіант із фільтра вище безкоштовний і лишається доступним завжди.</p>
         <div class="field" style="margin-bottom:12px">
           <div class="field-top"><label id="modelLabel">Модель Replicate</label></div>
-          <p>Перша перемальовує знімок за письмовою вказівкою і найближча до справжніх розмальовок, друга створена саме для розмальовок, третя лише витягує контур і коштує найдешевше.</p>
+          <p>Перша перемальовує знімок за письмовою вказівкою і найближча до справжніх розмальовок, друга створена саме для розмальовок, третя лише витягує контур. Ціна кожного запуску написана на кнопці нижче і списується з вашого рахунку Replicate.</p>
           <div class="seg" id="model" role="group" aria-labelledby="modelLabel">
             <button type="button" data-v="edit" aria-pressed="true">перемальовує</button>
             <button type="button" data-v="coloring" aria-pressed="false">розмальовка</button>
             <button type="button" data-v="outline" aria-pressed="false">контур</button>
           </div>
         </div>
-        <button class="btn btn-primary" id="aiPaid" type="button">Намалювати через Replicate</button>
+        <button class="btn btn-primary" id="aiPaid" type="button">Намалювати через Replicate, близько 1,2 грн</button>
         <p class="status" id="aiStatus"></p>
       </div>
 
@@ -334,6 +334,14 @@ var els = {
 };
 
 var THICK_WORDS = {1:'тонка', 2:'середня', 3:'товста', 4:'дуже товста'};
+/* Prices are what the account was actually charged, not an estimate. The edit
+   model bills per image; the other two bill by the second the GPU runs, so
+   their cost is smaller but only exact after the fact. */
+var MODEL_PRICE = {
+  edit: 'близько 1,2 грн',
+  coloring: 'оплата за секунди роботи',
+  outline: 'кілька копійок'
+};
 var PRESETS = {
   portrait: {detail:62, clean:48, thick:2},
   kids:     {detail:20, clean:84, thick:4},
@@ -900,6 +908,7 @@ els.model.addEventListener('click', function(e){
   var b = e.target.closest('button[data-v]'); if(!b) return;
   state.model = b.dataset.v;
   Array.prototype.forEach.call(els.model.children, function(c){ c.setAttribute('aria-pressed', String(c === b)); });
+  els.aiPaid.textContent = 'Намалювати через Replicate, ' + MODEL_PRICE[state.model];
 });
 els.aiPaid.addEventListener('click', function(){ runAi('replicate'); });
 
