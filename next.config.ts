@@ -304,13 +304,11 @@ const nextConfig = {
       { source: '/catalog/:slug*', destination: '/uk/catalog/:slug*', permanent: true },
       { source: '/category/:slug*', destination: '/uk/category/:slug*', permanent: true },
 
-      // Standalone tools live in /public, so they have no locale segment. Every
-      // other page on the site does, and the habit of typing /uk/ in front of a
-      // path lands on a 404 — these send the locale-prefixed form back to the
-      // real file, and give the colouring tool a short address worth sharing.
-      { source: '/rozmalovka',                                        destination: '/tools/rozmalovka.html', permanent: false },
-      { source: '/:locale(uk|en|ro|pl|de)/rozmalovka',                destination: '/tools/rozmalovka.html', permanent: false },
-      { source: '/:locale(uk|en|ro|pl|de)/tools/:path*',              destination: '/tools/:path*',          permanent: false },
+      // Short address for the colouring tool, worth sharing out loud. The
+      // locale-prefixed form of the tool itself is handled by a rewrite in
+      // rewrites(), never a redirect — see the comment there.
+      { source: '/rozmalovka',                         destination: '/tools/rozmalovka.html', permanent: false },
+      { source: '/:locale(uk|en|ro|pl|de)/rozmalovka', destination: '/tools/rozmalovka.html', permanent: false },
 
       // Catch-all: any remaining /shop/ path → home
       { source: '/shop/:path*',                              destination: '/uk', permanent: true },

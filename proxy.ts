@@ -9,6 +9,11 @@ const SKIP_PREFIXES = [
     '/admin', '/api', '/_next', '/favicon',
     '/robots', '/sitemap', '/public',
     '/auth', // supabase auth callback
+    // Standalone tools served straight out of /public as .html files. The
+    // matcher below only excludes a list of asset extensions, and .html is not
+    // among them, so without this every /tools/x.html was redirected to
+    // /uk/tools/x.html — where no route exists and the site answered 404.
+    '/tools',
 ];
 
 const PUBLIC_ADMIN_PATHS = new Set(['/admin/login', '/admin/no-access']);
@@ -170,6 +175,20 @@ export async function proxy(request: NextRequest) {
             // auth cookies are preserved.
             return response;
         }
+    }
+
+    // Standalone tools are plain files in /public. They need no locale, no
+    // session and no cookies, so hand them straight through — refreshing a
+    // Supabase session for a static .html file only adds latency. A link that
+    // arrived with a locale in front is rewritten, never redirected: a redirect
+    // to the bare path would race the locale redirect below and the browser
+    // would give up with ERR_TOO_MANY_REDIRECTS.
+    const localisedTool = pathname.match(/^\/(?:uk|en|ro|pl|de)(\/tools\/.*)$/);
+    if (localisedTool) {
+        return NextResponse.rewrite(new URL(localisedTool[1], request.url));
+    }
+    if (pathname.startsWith('/tools/')) {
+        return NextResponse.next();
     }
 
     // Skip non-page routes
