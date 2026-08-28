@@ -201,13 +201,15 @@ async function generateWithReplicate(
   // Read the model's own input schema first, so the request uses the field
   // names the model actually declares.
   let props: Record<string, any> = {};
+  let versionId: string | undefined;
   try {
     const infoRes = await fetch(`https://api.replicate.com/v1/models/${model}`, { headers: auth });
     if (!infoRes.ok) {
-      return { ok: false, status: infoRes.status, detail: `модель ${model}: ${(await infoRes.text()).slice(0, 200)}` };
+      return { ok: false, status: infoRes.status, detail: `опис моделі недоступний: ${(await infoRes.text()).slice(0, 200)}` };
     }
     const info = await infoRes.json();
     props = info?.latest_version?.openapi_schema?.components?.schemas?.Input?.properties || {};
+    versionId = info?.latest_version?.id;
   } catch (err: any) {
     return { ok: false, status: 0, detail: err?.message || 'schema fetch failed' };
   }
@@ -217,14 +219,22 @@ async function generateWithReplicate(
     return { ok: false, status: 422, detail: `у моделі ${model} немає поля для зображення` };
   }
 
-  // The /models/{owner}/{name}/predictions form runs the model's current
-  // version, which saves pinning a version hash that would go stale.
+  // Two different endpoints, and picking the wrong one answers 404 even though
+  // the model plainly exists: /models/{owner}/{name}/predictions runs only
+  // official models, while a community model is started through /predictions
+  // with the id of its current version. The version id comes from the same
+  // model description that was just read, so nothing here is pinned by hand.
+  const url = versionId
+    ? 'https://api.replicate.com/v1/predictions'
+    : `https://api.replicate.com/v1/models/${model}/predictions`;
+  const body = versionId ? { version: versionId, input } : { input };
+
   let res: Response;
   try {
-    res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
+    res = await fetch(url, {
       method: 'POST',
       headers: { ...auth, 'Content-Type': 'application/json', Prefer: 'wait=55' },
-      body: JSON.stringify({ input }),
+      body: JSON.stringify(body),
     });
   } catch (err: any) {
     return { ok: false, status: 0, detail: err?.message || 'network error' };
