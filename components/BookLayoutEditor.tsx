@@ -224,6 +224,34 @@ interface TextBlock { id: string; text: string; x: number; y: number; fontSize: 
 interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
 /**
+ * Переносить напис на нове полотно, коли сторінка змінює макет.
+ *
+ * `tb.x` — це відсоток ширини полотна, а полотно змінює ширину разом із макетом:
+ * розворотні макети (`sp-*`) малюються на двох сторінках, посторінкові (`p-*`) —
+ * на одній. Ті самі 50 % означають центр сторінки в одному випадку і згин у
+ * другому, тож напис, який клієнтка поставила посеред сторінки, після зміни
+ * макета переїжджав на пів сторінки — однаково і в конструкторі, і у файлі на
+ * друк, бо обидва малюють збережений відсоток чесно.
+ *
+ * По висоті полотно не змінюється, тому `y` лишається як є. Напис із правої
+ * половини розвороту при переході на одну сторінку впирається у 100 %: місця
+ * для нього на цій сторінці просто немає, і край — найближче чесне місце.
+ */
+function remapTextX(
+  blocks: TextBlock[] = [],
+  fromLayout: string,
+  toLayout: string,
+  isSpreadMode: boolean,
+): TextBlock[] {
+  const wide = (l: string) => isSpreadMode && String(l || '').startsWith('sp-');
+  const wasWide = wide(fromLayout);
+  const willBeWide = wide(toLayout);
+  if (wasWide === willBeWide) return blocks;
+  const factor = wasWide ? 2 : 0.5;
+  return blocks.map(tb => ({ ...tb, x: Math.min(100, Math.max(0, tb.x * factor)) }));
+}
+
+/**
  * Was the rush option («Терміновість: Термінова», +30 %) chosen?
  *
  * It used to be read from the URL alone. The editor is reachable by paths that
@@ -2629,6 +2657,16 @@ export default function BookLayoutEditor() {
     const freePhotos = (freeSlots[targetIdx] || []).map(fs => fs.photoId).filter(Boolean) as string[];
     const allPhotos = [...layoutPhotos, ...freePhotos];
 
+    // Текст живе у відсотках від полотна, а полотно змінює ширину разом із
+    // макетом: розворотні макети (`sp-*`) малюються на двох сторінках, посторінкові
+    // (`p-*`) — на одній. Ті самі 50 % означають центр сторінки в одному випадку
+    // і згин у другому, тож напис, який клієнтка поставила посеред сторінки, після
+    // зміни макета опинявся на пів сторінки правіше — і в конструкторі, і у файлі
+    // на друк. Переводимо x у нове полотно, щоб напис лишався там, де його
+    // поставили. По висоті полотно не змінюється, тому y чіпати не треба.
+    const carryText = (blocks: TextBlock[] = []) =>
+      remapTextX(blocks, page?.layout as string, layout as string, isSpreadMode);
+
     if (def.slots > 0) {
       // Create as many slots as the renderer will ACTUALLY show for this layout
       // (getSlotDefs is the source of truth), not the declared table count — this
@@ -2640,14 +2678,14 @@ export default function BookLayoutEditor() {
       }));
       // Extra photos (beyond slot count) remain available in the photo strip
       setPages(prev => prev.map((p, i) =>
-        i !== targetIdx ? p : { ...p, layout, slots: newSlots, textBlocks: p.textBlocks || [] }
+        i !== targetIdx ? p : { ...p, layout, slots: newSlots, textBlocks: carryText(p.textBlocks) }
       ));
       // Clear any existing FreeSlots on this page (their photos were carried above)
       setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
     } else {
       // Text-only layout — clear all slots and FreeSlots
       setPages(prev => prev.map((p, i) =>
-        i !== targetIdx ? p : { ...p, layout, slots: [], textBlocks: p.textBlocks || [] }
+        i !== targetIdx ? p : { ...p, layout, slots: [], textBlocks: carryText(p.textBlocks) }
       ));
       setFreeSlots(prev => { const u = { ...prev }; delete u[targetIdx]; return u; });
     }
@@ -2951,7 +2989,8 @@ export default function BookLayoutEditor() {
     // Fill layout slots with photos (up to slot count)
     const layoutSlots = Array.from({ length: best.slots }, (_, si) => ({ photoId: photoIds[si] || null, ...getFocalCrop(photoIds[si] || null), zoom: 1 }));
     setPages(prev => {
-      const next = prev.map((p, i) => i !== pageIdx ? p : { ...p, layout, slots: layoutSlots, textBlocks: p.textBlocks || [] });
+      const next = prev.map((p, i) => i !== pageIdx ? p
+        : { ...p, layout, slots: layoutSlots, textBlocks: remapTextX(p.textBlocks, p.layout, layout, isSpreadMode) });
       return next;
     });
     // Extra photos beyond layout slots → clear freeSlots (extras dropped silently)
@@ -8220,7 +8259,7 @@ export default function BookLayoutEditor() {
                         setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== 0 ? s2 : { ...s2, photoId }) }));
                       } else {
                         // No slots at all (shouldn't happen) — use sp-full fallback
-                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: p.textBlocks || [] }));
+                        setPages(prev => prev.map((p, i) => i !== spreadPageIdx ? p : { ...p, layout: 'sp-full' as LayoutType, slots: [{ photoId, cropX: 50, cropY: 50, zoom: 1 }], textBlocks: remapTextX(p.textBlocks, p.layout, 'sp-full', isSpreadMode) }));
                       }
                     }}
                     onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
