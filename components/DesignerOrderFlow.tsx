@@ -220,6 +220,26 @@ export default function DesignerOrderFlow() {
             // Upload photos
             const fileItems = await uploadPhotosToStorage();
 
+            // Жодне замовлення не створюється без фотографій, які клієнтка
+            // обрала. Раніше збій завантаження лише показував тост, а форма
+            // йшла далі й оформлювала замовлення далі — з тими файлами, що
+            // встигли пройти, або взагалі без жодного. Дизайнерська заявка не
+            // має ні проєкту в конструкторі, ні папки клієнта у сховищі, тож
+            // відновити втрачене вже нізвідки: у картці просто порожньо, і
+            // ніхто про це не дізнається, доки замовлення не візьмуть у роботу.
+            // Тепер невдале завантаження зупиняє оформлення, а клієнтка бачить,
+            // скільки фото не пройшло, і може спробувати ще раз.
+            if (fileItems.length < photos.length) {
+                const lost = photos.length - fileItems.length;
+                toast.error(
+                    `Не вдалося завантажити ${lost} з ${photos.length} фото, тому замовлення не оформлене. `
+                    + 'Перевірте зв\'язок і натисніть «Оформити замовлення» ще раз, '
+                    + 'вже завантажені фото повторно не надсилатимуться.',
+                    { duration: 12000 },
+                );
+                return; // `finally` знімає стан «оформлюється»
+            }
+
             // Persist the brief server-side (service-role insert + validation).
             // Photos were already uploaded to the order-files bucket above; we
             // only send their metadata. total stays 0 — the manager prices it

@@ -187,8 +187,10 @@ export async function POST(request: NextRequest) {
   }
 
   const files = Array.isArray(body.files) ? body.files.slice(0, 200) : [];
+  let filesAttached = 0;
+  let filesError: any = null;
   if (files.length > 0) {
-    const { error: filesError } = await admin.from('order_files').insert(
+    const res = await admin.from('order_files').insert(
       files.map((it, idx) => ({
         order_id: order.id,
         file_path: it.path,
@@ -202,8 +204,36 @@ export async function POST(request: NextRequest) {
         page_number: idx + 1,
       }))
     );
+    filesError = res.error;
     if (filesError) console.error('designer-brief order_files error:', filesError);
+    else filesAttached = files.length;
   }
 
-  return NextResponse.json({ success: true, order_id: order.id, order_number: order.order_number });
+  // Скільки фото прийшло і чи вони прикріпилися — записуємо на саме замовлення.
+  //
+  // Дизайнерська заявка не має ні проєкту в конструкторі, ні папки клієнта у
+  // сховищі: файли лежать за шляхом `designer-<час>/...` у корені бакета, і
+  // єдине, що на них указує, — рядки в `order_files`. Якщо той вставний запит
+  // не пройшов, зв'язок зникає повністю, замовлення виглядає як заявка взагалі
+  // без фото, і знайти завантажене вже нічим. Тому шляхи дублюються тут: навіть
+  // при збої їх видно на картці, і файли можна прикріпити назад.
+  try {
+    await admin.from('orders').update({
+      custom_attributes: {
+        contact_method: body.contactMethod || null,
+        photos_submitted: files.length,
+        photos_attached: filesAttached,
+        ...(filesError ? { photos_orphaned_paths: files.map(f => f.path) } : {}),
+      },
+    }).eq('id', order.id);
+  } catch (e) {
+    console.error('designer-brief: could not record photo counts', e);
+  }
+
+  return NextResponse.json({
+    success: true,
+    order_id: order.id,
+    order_number: order.order_number,
+    photos_attached: filesAttached,
+  });
 }
