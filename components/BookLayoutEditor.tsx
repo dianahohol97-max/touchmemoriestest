@@ -1689,6 +1689,7 @@ export default function BookLayoutEditor() {
             if (d.pageStickers) setPageStickers(d.pageStickers);
             if (d.pageShapes) setPageShapes(d.pageShapes);
             if (d.pageBgs) setPageBgs(d.pageBgs);
+            if (d.kalkaState) setKalkaState(d.kalkaState);
             if (d.coverState) {
               if (isReopen) {
                 // Reopen: draft is authoritative — restore coverState as-is.
@@ -1838,7 +1839,10 @@ export default function BookLayoutEditor() {
       try {
         const slug = (config?.productSlug || '').toLowerCase().trim();
         const draftKey = slug ? `bookEditorDraft_${slug}` : 'bookEditorDraft';
-        const draft = { productSlug: slug, pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount };
+        // kalkaState теж у чернетці: без нього все, що людина написала чи
+        // поклала на кальку, живе лише в памʼяті вкладки й зникає при
+        // перезавантаженні — див. коментар біля overlays_data нижче.
+        const draft = { productSlug: slug, pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount, kalkaState };
         sessionStorage.setItem(draftKey, JSON.stringify(draft));
         setSaveStatus('saved');
         // Reset to idle after 3 seconds
@@ -1989,6 +1993,7 @@ export default function BookLayoutEditor() {
         if (cd.pageFrames) setPageFrames(cd.pageFrames);
         if (cd.pageStickers) setPageStickers(cd.pageStickers);
         if (cd.qrOverlays) setQrOverlays(cd.qrOverlays);
+        if (cd.kalkaState) setKalkaState(cd.kalkaState);
         if (typeof cd.generatedQRCount === 'number') setGeneratedQRCount(cd.generatedQRCount);
         toast.success(`Завантажено макет "${project.title}"${project.revision_notes ? ' — є правки від клієнта' : ''}`);
       } catch (e) {
@@ -3744,7 +3749,14 @@ export default function BookLayoutEditor() {
         status: 'draft',
         pages_data: pages,
         cover_data: coverState,
-        overlays_data: { pageStickers, pageShapes, pageBgs, freeSlots, qrOverlays, generatedQRCount, config },
+        // kalkaState зберігається разом з рештою оверлеїв.
+        //
+        // Досі його не було НІДЕ: ні в чернетці, ні в базі. Прапорець «калька»
+        // доїжджав до замовлення й до ціни (+300 ₴), а сам вміст кальки —
+        // напис, картинка, календарик — існував лише в памʼяті відкритої
+        // вкладки. Тому в TM-001243 калька в замовленні є, а файлу, схожого
+        // на кальку, у макеті немає: зберігати було нічого.
+        overlays_data: { pageStickers, pageShapes, pageBgs, freeSlots, qrOverlays, generatedQRCount, kalkaState, config },
         uploaded_photos: uploadedPhotosMeta,
         updated_at: new Date().toISOString(),
       };

@@ -327,6 +327,9 @@ export default function PrintPage() {
     pageBorder: config.pageBorder || { width: 0, color: '#e2e8f0' },
     isSpreadMode: config.isSpreadMode ?? true,
     hasKalka: !!config.hasKalka,
+    // Без цього сторінка кальки друкувалася порожньою навіть тоді, коли
+    // вміст був: прапорець сюди доходив, а сам напис із картинкою — ні.
+    kalkaState: (overlays as any).kalkaState || undefined,
   };
 
   return (
