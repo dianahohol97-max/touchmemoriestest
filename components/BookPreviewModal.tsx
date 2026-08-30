@@ -813,8 +813,10 @@ export function BookPreviewModal({
   // gradients or shadows. This is what the render service screenshots, and it's
   // what fixed both the "jumping" photos (animation) and chrome bleeding in.
   if (isPrint) {
+    // Ніякого машинного перекладу на макеті — тут текст клієнта, а не наш
+    // інтерфейс. Той самий захист, що й на канві редактора.
     return (
-      <div data-print-spread={spread} style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff' }}>
+      <div data-print-spread={spread} translate="no" className="notranslate" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff' }}>
         <div style={{ position: 'relative', width: spreadW + (spread === 0 ? spineW * 2 : 0), height: pageH, display: 'flex', justifyContent: 'center', background: '#fff' }}>
           {renderSpread(spread)}
           {printOverlay}

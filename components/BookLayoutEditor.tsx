@@ -7716,8 +7716,17 @@ export default function BookLayoutEditor() {
               Активна сторінка: <b style={{color:'#1e2d7d'}}>{activeSide === 0 ? 'ліва' : 'права'}</b> — клікніть на сторінку для вибору
             </div>
           )}
+          {/*
+            translate="no" на канві — і це не дрібниця. Браузер клієнтки
+            перекладав сторінку на російську, і разом з інтерфейсом переписував
+            ВЛАСНИЙ текст клієнтки: вона ввела «Каріна & Олексій», а на сторінці
+            бачила «КАРІНА & АЛЕКСЕЙ» (TM-001243). У полі вводу лишалося
+            правильно, бо значення input браузер не чіпає, — звідси й відчуття,
+            що сайт «виправляє на російську». На друк ішов правильний текст,
+            але людина цього не знала.
+          */}
           {currentIdx === 0 ? (
-            <div data-spread-snapshot="root" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+            <div data-spread-snapshot="root" translate="no" className="notranslate" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — editable */}
                 {(() => {
                   const backBg = isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
@@ -7995,7 +8004,7 @@ export default function BookLayoutEditor() {
           >
             {currentIdx === 0 ? (
               /* Cover: left=back spine(grey), right=front cover with deco */
-              <div style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+              <div translate="no" className="notranslate" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
                 <div style={{ width: pageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
