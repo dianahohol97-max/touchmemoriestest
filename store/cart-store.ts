@@ -90,8 +90,13 @@ export const useCartStore = create<CartState>()(
 
                 return { items: currentItems, isDrawerOpen: true };
             }),
+            // String() on both sides, same as removeItems below. The signature
+            // accepts string | number while CartItem.id is a string, so a
+            // numeric id would silently match nothing and the item would stay
+            // in the cart with no error. Every caller passes item.id today, so
+            // this closes a trap rather than fixing a live bug.
             removeItem: (id) => set((state) => ({
-                items: state.items.filter((i) => i.id !== id),
+                items: state.items.filter((i) => String(i.id) !== String(id)),
             })),
             removeItems: (ids) => set((state) => {
                 const drop = new Set(ids.map((x) => String(x)));
@@ -99,7 +104,13 @@ export const useCartStore = create<CartState>()(
             }),
             updateQuantity: (id, qty) => set((state) => ({
                 items: state.items.map((i) =>
-                    i.id === id ? { ...i, qty: Math.max(i.min_qty ?? 1, qty) } : i
+                    String(i.id) === String(id)
+                        // Number() guards against a NaN arriving from an input:
+                        // Math.max(1, NaN) is NaN, which would put the cart into
+                        // a state where the line renders no quantity and the
+                        // total becomes NaN.
+                        ? { ...i, qty: Math.max(i.min_qty ?? 1, Number(qty) || (i.min_qty ?? 1)) }
+                        : i
                 ),
             })),
             clearCart: () => set({ items: [] }),
