@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { likeEscape } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +27,16 @@ function overRateLimit(ip: string): boolean {
  * Validate a promo (or referral) code before checkout.
  *
  * Single-use enforcement works for BOTH logged-in customers and guests:
- *  - logged-in: dedupe by customer_id
+ *  - logged-in: dedupe by customer_id, resolved from the SESSION here
  *  - guest:     dedupe by lower(email)
+ *
+ * The customer is read from the session cookie, never from the request body.
+ * The body value used to be trusted, which was both a hole (any UUID that owns
+ * no usage rows satisfies the single-use check, so passing a random one
+ * bypassed it) and, in practice, the reason partner referral LINKS never
+ * applied their discount: the checkout page does not send customer_id at all,
+ * so every partner code — they all carry is_single_use_per_customer — fell
+ * into the "cannot identify the buyer" branch below and was rejected.
  * Usage is recorded later, at order creation (orders/submit), into
  * promo_code_usages. This route only *checks* prior usage.
  *
@@ -46,8 +55,31 @@ export async function POST(request: Request) {
             );
         }
 
-        const { code, customer_id, cart_total, items, email: rawEmail } = await request.json();
+        const { code, cart_total, items, email: rawEmail } = await request.json();
         const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : null;
+
+        // Who is asking, according to their session cookie. A logged-in buyer
+        // is identified here even before they have typed anything into the
+        // checkout form, which is what lets the ?ref= auto-apply succeed on
+        // page load. Never fatal: an anonymous visitor simply gets nulls and
+        // falls back to email-based dedupe.
+        let sessionCustomerId: string | null = null;
+        let sessionEmail: string | null = null;
+        try {
+            const userClient = await createClient();
+            const { data: { user } } = await userClient.auth.getUser();
+            if (user) {
+                sessionEmail = user.email?.trim().toLowerCase() || null;
+                const { data: customer } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .or(`auth_user_id.eq.${user.id},id.eq.${user.id}`)
+                    .maybeSingle();
+                sessionCustomerId = customer?.id || null;
+            }
+        } catch (e) {
+            console.warn('promo/validate: session lookup failed, treating caller as guest', e);
+        }
 
         if (!code) {
             return NextResponse.json({ valid: false, message: 'Промокод не передано' }, { status: 400 });
@@ -77,7 +109,7 @@ export async function POST(request: Request) {
         // single-use check. customer_id must be a plain UUID; email must not
         // carry the comma/paren metacharacters PostgREST parses.
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const safeCustomerId = typeof customer_id === 'string' && UUID_RE.test(customer_id) ? customer_id : null;
+        const safeCustomerId = typeof sessionCustomerId === 'string' && UUID_RE.test(sessionCustomerId) ? sessionCustomerId : null;
         if (email && /[,()]/.test(email)) {
             return NextResponse.json({ valid: false, message: 'Невірний email' }, { status: 400 });
         }
@@ -163,6 +195,13 @@ export async function POST(request: Request) {
             const orFilters: string[] = [];
             if (safeCustomerId) orFilters.push(`customer_id.eq.${safeCustomerId}`);
             if (email) orFilters.push(`email.eq.${email}`);
+            // A logged-in buyer's account email counts too, and it is known
+            // before they type anything. Without it a returning customer whose
+            // earlier order was placed as a guest (usage row carries the email
+            // but no customer_id) would slip past the single-use check.
+            if (sessionEmail && sessionEmail !== email && !/[,()]/.test(sessionEmail)) {
+                orFilters.push(`email.eq.${sessionEmail}`);
+            }
 
             if (orFilters.length > 0) {
                 const { data: usages } = await supabase

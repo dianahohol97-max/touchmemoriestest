@@ -167,55 +167,6 @@ export default function CheckoutPage() {
         }
     };
 
-    // Auto-apply a code arriving via a referral link (?ref=CODE) or the promo
-    // link (?promo=CODE), or one ReferralCapture stashed in localStorage. This
-    // is what makes agency referral LINKS work end-to-end: the agency shares
-    // touchmemories.com.ua/?ref=THEIRCODE, and by the time the client reaches
-    // checkout the discount is already applied — no manual entry. If the code
-    // is a customer referral code (not a promo_code), validation just fails
-    // quietly and the friend-referral path handles it separately.
-    useEffect(() => {
-        if (promoCode || rawTotal <= 0) return;
-        let code = '';
-        try {
-            const params = new URLSearchParams(window.location.search);
-            code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
-            if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
-        } catch { /* ignore */ }
-        // Partner codes may contain Cyrillic (generated from agency names,
-        // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
-        // referral links applied no discount.
-        if (!code || !/^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(code)) return;
-
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await fetch('/api/promo/validate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        code,
-                        cart_total: rawTotal,
-                        email: formData.email || undefined,
-                        items: items.map((it: any) => ({
-                            product_id: it.product_id || it.id,
-                            price: it.price,
-                            qty: it.qty ?? it.quantity ?? 1,
-                        })),
-                    }),
-                });
-                const result = await res.json();
-                if (cancelled || !result.valid) return;
-                const discount = typeof result.discount_amount === 'number' ? result.discount_amount : 0;
-                setPromoDiscount(Math.min(discount, rawTotal));
-                setPromoCode(code);
-                setPromoInput(code);
-                setPromoId(result.promo_id || null);
-            } catch { /* silent — no code applied */ }
-        })();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [rawTotal]);
 
     const applyCertificate = async () => {
         if (!certInput.trim()) return;
@@ -263,6 +214,77 @@ export default function CheckoutPage() {
         addressLine: '',
         paymentChoice: 'full_online' as 'full_online' | 'split_50_50',
     });
+
+    // Auto-apply a code arriving via a referral link (?ref=CODE) or the promo
+    // link (?promo=CODE), or one ReferralCapture stashed in localStorage. This
+    // is what makes agency referral LINKS work end-to-end: the agency shares
+    // touchmemories.com.ua/?ref=THEIRCODE, and by the time the client reaches
+    // checkout the discount is already applied — no manual entry. If the code
+    // is a customer referral code (not a promo_code), validation just fails
+    // quietly and the friend-referral path handles it separately.
+    //
+    // RETRIES WHEN THE EMAIL ARRIVES. Every partner code carries
+    // is_single_use_per_customer, and for a guest that check needs an email to
+    // dedupe against. This effect used to depend on [rawTotal] alone, so it
+    // fired exactly once — at page load, when the email field is still empty —
+    // got «вкажіть email» back, swallowed it, and never tried again. The result
+    // was that a partner link applied no discount at all, and because the code
+    // therefore never reached orders.promo_code, the agency and the sales
+    // manager earned no commission either. Depending on the email too (settled
+    // by the debounce below) lets the same attempt succeed the moment the guest
+    // has typed one. A logged-in buyer no longer needs it: the route resolves
+    // them from their session cookie.
+    useEffect(() => {
+        if (promoCode || rawTotal <= 0) return;
+        let code = '';
+        try {
+            const params = new URLSearchParams(window.location.search);
+            code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
+            if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
+        } catch { /* ignore */ }
+        // Partner codes may contain Cyrillic (generated from agency names,
+        // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
+        // referral links applied no discount.
+        if (!code || !/^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(code)) return;
+
+        // Only send an email once it looks complete — otherwise every
+        // keystroke would post a half-typed address as the dedupe key.
+        const typedEmail = formData.email.trim().toLowerCase();
+        const emailReady = /.+@.+\..+/.test(typedEmail);
+
+        let cancelled = false;
+        // Debounced so typing an address costs one request, not one per letter.
+        const timer = setTimeout(() => {
+            (async () => {
+                try {
+                    const res = await fetch('/api/promo/validate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            code,
+                            cart_total: rawTotal,
+                            email: emailReady ? typedEmail : undefined,
+                            items: items.map((it: any) => ({
+                                product_id: it.product_id || it.id,
+                                price: it.price,
+                                qty: it.qty ?? it.quantity ?? 1,
+                            })),
+                        }),
+                    });
+                    const result = await res.json();
+                    if (cancelled || !result.valid) return;
+                    const discount = typeof result.discount_amount === 'number' ? result.discount_amount : 0;
+                    setPromoDiscount(Math.min(discount, rawTotal));
+                    setPromoCode(code);
+                    setPromoInput(code);
+                    setPromoId(result.promo_id || null);
+                } catch { /* silent — no code applied */ }
+            })();
+        }, emailReady ? 700 : 0);
+
+        return () => { cancelled = true; clearTimeout(timer); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rawTotal, formData.email]);
 
     // Determine available payment options based on current cart contents
     // Authoritative payment_mode per product, looked up from the DB by
