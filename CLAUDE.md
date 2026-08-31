@@ -83,7 +83,7 @@ The photo product editor is the most complex component and the place where bugs 
 
 **The slot photo toolbar is now ONE component.** It used to exist twice — once for spread layouts and once for page layouts — with a standing instruction here to remember to change both. They drifted anyway (the page copy grew edge-clamping and a divider the spread copy never got; the spread copy kept a comment the page copy lost). It now lives in `components/editor/SlotPhotoToolbar.tsx` and both modes render it. Change it there.
 
-Two differences are still deliberately per-call-site, and both are noted in that file: the spread call site passes no `shiftX`, so its bar is not edge-clamped yet, and the «Слот» tooltip text differs between the modes pending confirmation of whether shape editing is offered in both.
+One difference is still deliberately per-call-site and is noted in that file: the «Слот» tooltip text differs between the modes, pending confirmation of whether shape editing is offered in both. (`shiftX` is also per-call-site, but only because the two canvases measure against different widths — both now pass one, so the bar is edge-clamped in both modes.)
 
 **Photo edit pipeline (read this before touching upload code):**
 1. Original file kept on disk for print upload

@@ -30,11 +30,11 @@ import type { SlotData } from '@/lib/editor/types';
  * degree label were improvements the spread copy simply never received, and
  * they are cosmetic, so adopting them everywhere is safe.
  *
- * `shiftX` is the exception: it is caller-supplied and the spread call site
- * does not compute one, so the spread bar is positioned exactly as it is
- * today. Giving it the same edge-clamping is now a small follow-up (the
- * spread scope has the slot box and canvas width it would need) rather than
- * something silently folded into a de-duplication.
+ * `shiftX` stays caller-supplied because the two canvases measure against
+ * different widths — a single page in page mode, the whole spread in spread
+ * mode. Both call sites now pass one, so the bar is edge-clamped in both;
+ * the spread side got it in a follow-up rather than silently folded into the
+ * de-duplication itself.
  *
  * Deliberately NOT changed here: rotation does not push an undo entry, while
  * zoom, reset and the fit toggle do. That asymmetry exists in both copies
