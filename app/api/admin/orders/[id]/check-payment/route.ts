@@ -17,11 +17,17 @@ export const dynamic = 'force-dynamic';
  * landed, admin showed 'Очікує оплати' with no way to fix it but SQL.
  *
  * Tries every active Monobank token (dual-account routing) plus env
- * fallbacks until one recognizes the invoice. Side effects on transition:
- * customer confirmation email (fire-and-forget). Inventory/referrals are
- * NOT touched here — if the webhook later arrives it will be a no-op on
- * payment_status but will still run its own guarded side effects; and for
- * manual recovery cases Diana controls stock by hand anyway.
+ * fallbacks until one recognizes the invoice.
+ *
+ * Side effects on transition: partner commission, friend-referral bonus,
+ * certificate redemption, and the customer confirmation email — the same set
+ * the webhook runs, all idempotent. (This paragraph used to say referrals were
+ * NOT touched here; they were added later and the comment was never updated,
+ * which is misleading in a file about money.)
+ *
+ * Inventory genuinely is NOT touched: if the webhook later arrives it is a
+ * no-op on payment_status but still runs its own guarded stock deduction, and
+ * for manual recovery cases Diana controls stock by hand anyway.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
     const guard = await requireStaff();

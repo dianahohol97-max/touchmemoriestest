@@ -20,7 +20,13 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!id) return NextResponse.json({ error: 'order id required' }, { status: 400 });
+  // Validate the shape before it reaches the query, as the sibling routes on
+  // /api/orders/[id] do. Not a hole today — a non-uuid fails the Postgres cast
+  // and falls out as a 404 below — but this route is unauthenticated by design,
+  // so it is the last place to leave input unchecked on the way in.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id || ''))) {
+    return NextResponse.json({ error: 'order id required' }, { status: 400 });
+  }
 
   let count = 1;
   try {

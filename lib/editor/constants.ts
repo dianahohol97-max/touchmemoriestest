@@ -9,9 +9,12 @@
 // have no geometry in slot-defs.ts, so they could never have rendered. It was
 // invisible because LayoutType in ./types was typed `string`.
 //
-// Moving the editor's real LAYOUTS here (so the list lives beside the fonts
-// and colours it belongs with) is the natural follow-up; it is left out of
-// this change to keep the type consolidation reviewable.
+// Moving the editor's real LAYOUTS here was floated as the natural follow-up
+// and then deliberately dropped: nothing outside BookLayoutEditor consumes
+// that list (the template picker reads PAGE_TEMPLATES from its own module),
+// so relocating it would be churn with no consumer on the other side. Left
+// where it is on purpose — this note is here so the idea does not get
+// rediscovered and acted on.
 
 //  Page proportions 
 
