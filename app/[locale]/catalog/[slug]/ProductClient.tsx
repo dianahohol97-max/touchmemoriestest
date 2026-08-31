@@ -1587,12 +1587,25 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     return;
                                                 }
                                                 let constructorUrl = base;
-                                                // Forward product options to desk-calendar constructor
-                                                if (base.includes('/order/desk-calendar') && Object.keys(customProductOptions).length > 0) {
+                                                // Forward product options to BOTH calendar constructors.
+                                                //
+                                                // Настінний календар довго не отримував нічого: ані розміру,
+                                                // ані «Обведення дат». Тому вибір A3 (+100 ₴) на картці товару
+                                                // мовчки скидався на A4 у редакторі — та сама історія, що вже
+                                                // була із зоряною мапою, — а платні обведення дат (10 ₴ за
+                                                // дату) конструктор віддавав безкоштовно, бо просто не знав
+                                                // про них. Розмір додатково дублюємо як ?size=, бо сторінка
+                                                // /order/wall-calendar читає саме його.
+                                                if ((base.includes('/order/desk-calendar') || base.includes('/order/wall-calendar'))
+                                                    && Object.keys(customProductOptions).length > 0) {
                                                     const url = new URL(base, 'http://x');
                                                     Object.entries(customProductOptions).forEach(([key, val]) => {
                                                         if (val !== undefined && val !== '') url.searchParams.set(key, String(val));
                                                     });
+                                                    const pickedSize = customProductOptions['Розмір'];
+                                                    if (base.includes('/order/wall-calendar') && pickedSize !== undefined && pickedSize !== '') {
+                                                        url.searchParams.set('size', String(pickedSize));
+                                                    }
                                                     constructorUrl = url.pathname + '?' + url.searchParams.toString();
                                                 }
                                                 if (base.includes('/order/book') && (Object.keys(customProductOptions).length > 0 || photobookOptions)) {

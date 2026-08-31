@@ -459,7 +459,13 @@ function MonthPreview({ page, photos, size, accent, onSlotDrop, onCropChange, ac
 }
 
 //  Main constructor 
-export default function WallCalendarConstructor({ initialSize='A4' }: { initialSize?: string }) {
+// Обведення дат — платна опція-лічильник на картці товару (10 ₴ за дату),
+// така сама, як у настільного календаря. Настінний брав з неї нуль: опція
+// взагалі не доїжджала в конструктор, тож клієнтка обводила дати в редакторі
+// й не платила за них нічого.
+const MARKED_DATE_PRICE = 10;
+
+export default function WallCalendarConstructor({ initialSize='A4', markedDatesPaid=0 }: { initialSize?: string; markedDatesPaid?: number }) {
     const t = useT();
   const { locale } = useTranslation();
     const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -481,6 +487,14 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     const [markColor, setMarkColor] = useState('#1e2d7d');
     const [step, setStep]           = useState<'config'|'editor'>('config');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Рахуємо тільки оплачені обведення — рівно так само, як у настільного
+    // календаря: якщо клієнтка обвела більше дат, ніж оплатила на картці
+    // товару, зайві не дораховуються, але обидва числа їдуть у замовлення,
+    // щоб менеджер бачив розбіжність, а не мовчки друкував зайве.
+    const totalMarkedDates = Object.values(markedDates).reduce((n, arr) => n + arr.length, 0);
+    const chargedMarkedDates = Math.min(totalMarkedDates, Math.max(0, markedDatesPaid));
+    const markedDatesCharge = chargedMarkedDates * MARKED_DATE_PRICE;
 
     useEffect(() => {
         supabase.from('products').select('*').eq('slug','wall-calendar-2026').eq('is_active',true).single().then(({data})=>setProduct(data));
@@ -533,7 +547,8 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     };
 
     const addToCart = async () => {
-        const basePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
+        const sizePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
+        const basePrice = sizePrice + markedDatesCharge;
         const cartItemId = `wall-cal-${Date.now()}`;
         const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
         const cartImage = await makeCartThumbnail(photos[0]?.preview);
@@ -551,8 +566,13 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     .join(', ');
                 return `${MONTHS_UK[monthIdx] || key}: ${days}`;
             });
-        const totalMarked = Object.values(markedDates).reduce((n, arr) => n + arr.length, 0);
         const coverText = coverConfig.printedTextBlocks?.map(b => b.text).filter(Boolean).join(' / ') || '';
+        // Скільки обведень оплачено і скільки клієнтка реально проставила.
+        // Числа збігаються у переважній більшості замовлень, тож пишемо
+        // розбіжність окремим рядком лише коли вона є.
+        const markedNote = totalMarkedDates === chargedMarkedDates
+            ? `${totalMarkedDates} дат`
+            : `${totalMarkedDates} дат (оплачено ${chargedMarkedDates})`;
 
         const cartPayload = {
             id: cartItemId,
@@ -564,14 +584,20 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                 'Розмір':SIZE_DIMS[size].label,
                 ...(coverText ? { 'Напис на обкладинці': coverText } : {}),
                 ...(markSummary.length ? {
-                    'Обведення дат': `${totalMarked} дат`,
+                    'Обведення дат': markedNote,
                     'Які дати обвести': markSummary.join(' · '),
                 } : {}),
             },
+            price_breakdown: [
+                { label: `Календар ${SIZE_DIMS[size].label}`, amount: sizePrice },
+                ...(markedDatesCharge > 0
+                    ? [{ label: `Обведення дат (${chargedMarkedDates} × ${MARKED_DATE_PRICE} ₴)`, amount: markedDatesCharge }]
+                    : []),
+            ],
             personalization_note: [
                 `Настінний календар 2027, ${SIZE_DIMS[size].label}`,
                 ...(coverText ? [`Обкладинка: ${coverText}`] : []),
-                ...(markSummary.length ? [`Обведення дат (${totalMarked}):`, ...markSummary] : []),
+                ...(markSummary.length ? [`Обведення дат — ${markedNote}:`, ...markSummary] : []),
             ].join('\n'),
             slug:'wall-calendar-2026',
         };
@@ -676,7 +702,10 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
     const isCover = currentIdx === 0;
     const curMonth = pages[currentIdx-1] || null;
     const usedIds = new Set(pages.flatMap(p=>p.slots.map(s=>s.photoId).filter(Boolean)));
-    const basePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
+    const sizePrice = product ? (size==='A3' ? Number(product.price)+100 : Number(product.price)) : 590;
+    // Ціна у шапці редактора мусить збігатися з тим, що піде в кошик, інакше
+    // обведення дат виглядали б безкоштовними аж до кошика.
+    const basePrice = sizePrice + markedDatesCharge;
 
     // Cover canvas size
     const coverW = Math.round(SIZE_DIMS[size].w * 480 / SIZE_DIMS[size].h);
@@ -750,7 +779,19 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
                     </div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:12}}>
-                    <span style={{fontSize:15,fontWeight:800,color:'#1e2d7d'}}>{basePrice} ₴</span>
+                    <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:15,fontWeight:800,color:'#1e2d7d'}}>{basePrice} ₴</div>
+                        {markedDatesCharge > 0 && (
+                            <div style={{fontSize:10,color:'#64748b'}}>
+                                у тому числі обведення дат {chargedMarkedDates} × {MARKED_DATE_PRICE} ₴
+                            </div>
+                        )}
+                        {markedDatesPaid > 0 && totalMarkedDates > markedDatesPaid && (
+                            <div style={{fontSize:10,color:'#b45309'}}>
+                                обведено {totalMarkedDates}, оплачено {markedDatesPaid}
+                            </div>
+                        )}
+                    </div>
                     <button onClick={addToCart} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',background:'#1e2d7d',color:'#fff',border:'none',borderRadius:10,fontWeight:700,fontSize:14,cursor:'pointer'}}>
                         <ShoppingCart size={15}/> До кошика
                     </button>
