@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { isAllowedUpload, IMAGE_RULE } from '@/lib/upload/file-type';
 
 export const dynamic = 'force-dynamic';
 
 const MAX_BYTES = 12 * 1024 * 1024; // 12MB per photo
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 /**
  * POST /api/babybook/upload  (multipart/form-data)
@@ -26,8 +26,10 @@ export async function POST(request: Request) {
         }
         if (!(file instanceof File)) return NextResponse.json({ error: 'file required' }, { status: 400 });
         if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Файл завеликий (макс 12MB)' }, { status: 400 });
-        if (file.type && !ALLOWED.includes(file.type)) {
-            return NextResponse.json({ error: 'Підтримуються JPG, PNG, WEBP, HEIC' }, { status: 400 });
+        // Falls back to the extension when no Content-Type is declared, so an
+        // omitted header no longer skips the allow-list entirely.
+        if (!isAllowedUpload(file.name, file.type, IMAGE_RULE)) {
+            return NextResponse.json({ error: 'Підтримуються JPG, PNG, WEBP, HEIC' }, { status: 415 });
         }
 
         const admin = getAdminClient();
