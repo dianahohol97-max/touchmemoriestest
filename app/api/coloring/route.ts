@@ -22,38 +22,45 @@ const MODEL = 'qwen/qwen-image-edit-plus';
 const BASE =
   'Create a black and white coloring book page from this photo. Pure white background, ' +
   'clean black outlines of even thickness, closed shapes that can be filled in with pencils. ' +
-  'No shading, no grey tones, no hatching, no solid black areas, no photographic texture. ' +
+  'No shading, no grey tones, no hatching, no cross-hatching, no stippling, no solid black areas, ' +
+  'no photographic texture. ' +
+  // Skin is where the model reaches for texture first, and a face covered in
+  // little strokes is neither colourable nor pleasant to look at.
+  'Leave all skin completely white and empty: no strokes, dots or shading on the face, cheeks, ' +
+  'forehead, neck or hands, only the outlines of the features themselves. ' +
+  // Describing the anatomy of an eye invites the model to draw it in detail.
+  // Forbidding is what works: an earlier prompt that described the almond, the
+  // iris and the pupil came back with heavier eyes than before.
+  'Eyes are the one thing to keep deliberately plain: draw each eye as a single simple outline ' +
+  'with one small round pupil, and leave everything else inside the eye white. Draw no eyelashes ' +
+  'at all, no thick dark line along the eyelid, no shading on or around the eye. Heavy dark lashes ' +
+  'make a child look as if they are wearing make-up, which is wrong on a colouring page. ' +
   'Keep the same pose, composition and faces so the people stay recognisable. ' +
-  // The model redraws rather than traces, so left alone it quietly swaps things
-  // out: a birthday balloon shaped like an 8 came back as a plain round one and
-  // a room turned into a corridor with doors. Naming what must survive is the
-  // only lever there is over that.
   'Draw exactly what is in the photograph and nothing else. Keep every object, and keep the ' +
   'numbers, letters and logos on them exactly as they appear, including balloon shapes, prints ' +
   'on clothes and writing on things. Do not invent furniture, doors, windows, plants or ' +
   'decorations that are not in the photo, and do not replace the room or the place with another one. ' +
-  // Left to itself the model draws lashes as thick black spikes and fills the
-  // eyelid, which reads as eye makeup on a child.
-  'Draw eyes as clean simple outlines: an almond shape, a round iris with a small pupil inside, ' +
-  'and one thin line for each eyebrow. No thick black eyelashes, no filled dark eyelids, ' +
-  'no eyeliner or makeup, no shading inside the eye. ' +
-  // A page where the child occupies a third of the sheet wastes the print.
-  'Place the person large in the frame so they fill most of the page. If you leave the background ' +
-  'out, enlarge the person to fill the sheet instead of leaving wide empty margins around them.';
+  // "Fill the page" on its own made the model cut the jacket off at the bottom
+  // edge. The whole person first, large second.
+  'Show the whole person exactly as the photograph frames them: never cut off the top of the head, ' +
+  'the bottom of the body or the hands. Within that whole figure, draw them as large as fits on the sheet.';
 
 const LEVELS: Record<string, string> = {
   simple:
     `${BASE} Draw it very simply, the way a colouring book for a three year old is drawn: ` +
-    'thick bold outlines, only the main shapes, large open areas to colour, ' +
-    'faces reduced to a few simple lines, background almost empty.',
+    'thick bold outlines, only the main shapes, large open areas to colour, background almost empty. ' +
+    'A face is just a few lines: two plain eye outlines with a dot inside, one short line for the ' +
+    'nose, one curved line for the mouth, and nothing else.',
   normal:
     `${BASE} Draw it the way a classic children's colouring book is drawn: medium weight ` +
     'outlines, the main shapes plus the details that make the picture readable, ' +
-    'simple hair strands, a light suggestion of the background.',
+    'hair as a few flowing strands rather than single hairs, a light suggestion of the background. ' +
+    'The face still stays simple: plain features, empty skin, no strokes on the cheeks.',
   detailed:
     `${BASE} Draw it the way a colouring book for adults is drawn: fine outlines, plenty of ` +
     'detail in hair, clothing folds, plants and background, many small areas to colour, ' +
-    'while every line stays a clean contour rather than shading.',
+    'while every line stays a clean contour rather than shading. Even here the face keeps plain ' +
+    'features and empty skin: the extra detail belongs to clothes, hair and background.',
 };
 
 interface Failure {
