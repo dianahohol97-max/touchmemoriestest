@@ -34,7 +34,7 @@ import {
 import {
   buildCoverEditorProps, handleCoverChange, resolveCoverColor,
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
-  formatDecorationVariant,
+  formatDecorationVariant, collectUsedPhotoIds,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice, maxPageCountFor } from '@/lib/editor/pricing';
 import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
@@ -1964,7 +1964,28 @@ export default function BookLayoutEditor() {
   }, [designerOrderId]);
 
   const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
-  const usedIds = React.useMemo(() => new Set(pages.flatMap(p => p.slots.map(sl => sl.photoId).filter(Boolean))), [pages]);
+  /**
+   * Ids of every photo currently placed anywhere on the book.
+   *
+   * "Placed" means a template slot OR a free-form slot. Both count: from the
+   * customer's point of view a photo dropped into a free slot is just as
+   * placed as one in a template slot.
+   *
+   * There used to be two answers to this question. This memo covered only
+   * pages/slots, while the mobile photo tray computed its own version inline
+   * that also looked at freeSlots — so a photo placed only in a free slot was
+   * "used" on mobile and "unused" on desktop. On desktop that meant no green
+   * placed-badge, and the «unused photos» counter beside the layout
+   * recommendations counted it as still needing a home. Unified here on the
+   * broader (correct) definition, which is the one mobile already used.
+   *
+   * It is also the reason the tray felt heavy. The inline version ran
+   * `pages.some(...slots.some(...))` per photo, and it ran four separate times
+   * per render — for a 60-page book with 200 photos that is roughly 190k
+   * comparisons on every keystroke, drag frame and zoom tick. Building the Set
+   * once is O(slots), and every lookup after it is O(1).
+   */
+  const usedIds = React.useMemo(() => collectUsedPhotoIds(pages, freeSlots), [pages, freeSlots]);
   const _slug = (config?.productSlug || '').toLowerCase();
   // Graduation photobooks have a minimum order of 5 copies (class sets are
   // produced in batches — a single graduation book is never sold).
@@ -2751,10 +2772,8 @@ export default function BookLayoutEditor() {
     if (photos.length === 0) return;
     pushHistory();
 
-    // Collect all unused photos
-    const usedIds = new Set<string>();
-    pages.forEach(p => p.slots.forEach(s => { if (s.photoId) usedIds.add(s.photoId); }));
-    Object.values(freeSlots).forEach((arr: any[]) => arr.forEach((fs: any) => { if (fs.photoId) usedIds.add(fs.photoId); }));
+    // Collect all unused photos. Uses the shared usedIds memo — this used to
+    // rebuild the identical Set locally, shadowing it.
     const unused = photos.filter(ph => !usedIds.has(ph.id));
 
     if (unused.length === 0) {
@@ -9805,8 +9824,7 @@ export default function BookLayoutEditor() {
             {/* Photo row */}
             <div style={{ display:'flex', gap:6, overflowX:'auto', overflowY:'hidden', WebkitOverflowScrolling:'touch' as any, scrollbarWidth:'none' }}>
             {photos.filter(p => {
-              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
-              return !used;
+              return !usedIds.has(p.id);
             }).slice(0, 20).map(ph => {
               const isTapped = tapSelectedPhotoId === ph.id;
               const isSel = selectedPhotoIds.has(ph.id);
@@ -9829,8 +9847,7 @@ export default function BookLayoutEditor() {
               );
             })}
             {photos.filter(p => {
-              const used = pages.some(pg => pg.slots.some(s => s.photoId === p.id)) || Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
-              return !used;
+              return !usedIds.has(p.id);
             }).length === 0 && (
               <div style={{ color:'#94a3b8', fontSize:11, padding:'4px 8px', display:'flex', alignItems:'center', gap:6 }}>
                 <span></span> Всі фото розміщено
@@ -9854,9 +9871,7 @@ export default function BookLayoutEditor() {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 12px', borderBottom:'1px solid #f1f5f9', flexShrink:0 }}>
               <span style={{ fontSize:11, fontWeight:700, color:'#1e2d7d' }}>
                 Фото ({photos.length}) · використано {photos.filter(p => {
-                  const inSlots = pages.some(pg => pg.slots.some(s => s.photoId === p.id));
-                  const inFree = Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === p.id));
-                  return inSlots || inFree;
+                  return usedIds.has(p.id);
                 }).length}
               </span>
               <label style={{ display:'flex', alignItems:'center', gap:4, cursor:'pointer' }}>
@@ -9896,8 +9911,7 @@ export default function BookLayoutEditor() {
                 </div>
               )}
               {photos.map((ph, i) => {
-                const used = pages.some(pg => pg.slots.some(s => s.photoId === ph.id)) ||
-                  Object.values(freeSlots).some((arr: any[]) => arr.some((fs: any) => fs.photoId === ph.id));
+                const used = usedIds.has(ph.id);
                 const ratio = ph.width / ph.height;
                 // Desktop thumbnails were tiny (68px) — bumped to 96px for visibility.
                 // Mobile stays at 80px because vertical space is at a premium there.

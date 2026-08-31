@@ -323,3 +323,39 @@ export function initPages(config: BookConfig): Page[] {
 
   return ps;
 }
+
+/**
+ * Every photo id currently placed on the book.
+ *
+ * "Placed" means a template slot OR a free-form slot. Both count: to the
+ * customer a photo dropped into a free slot is every bit as placed as one in
+ * a template slot, and the UI uses this to decide whether to show the green
+ * placed-badge, whether the photo can still be dragged out of the tray, and
+ * how many photos are reported as still needing a home.
+ *
+ * This lives here, as one function, because the editor used to answer the
+ * question two different ways: a memo that looked only at pages/slots (used by
+ * the desktop tray) and an inline expression that also looked at free slots
+ * (used by the mobile tray). A photo placed only in a free slot therefore read
+ * as used on mobile and unused on desktop.
+ *
+ * `freeSlots` is keyed by page index; the value may be missing or null for a
+ * page that has none, so both are tolerated.
+ */
+export function collectUsedPhotoIds(
+    pages: Array<{ slots: Array<{ photoId?: string | null }> }>,
+    freeSlots: Record<number, Array<{ photoId?: string | null }> | null | undefined> = {},
+): Set<string> {
+    const ids = new Set<string>();
+    for (const page of pages || []) {
+        for (const slot of page?.slots || []) {
+            if (slot?.photoId) ids.add(slot.photoId);
+        }
+    }
+    for (const arr of Object.values(freeSlots || {})) {
+        for (const fs of arr || []) {
+            if (fs?.photoId) ids.add(fs.photoId);
+        }
+    }
+    return ids;
+}
