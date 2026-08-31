@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { accrueOrderCommission } from '@/lib/sales/commission';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 /**
  * The PREMIUM commission bucket — earns travelbook_rate (default 5%); every
@@ -54,7 +55,7 @@ export async function processAgencyCommission(
   const { data: agency } = await admin
     .from('agency_partners')
     .select('id, travelbook_rate, other_rate, total_earned, status')
-    .ilike('referral_code', code)
+    .ilike('referral_code', likeEscape(code))
     .maybeSingle();
   if (!agency || agency.status !== 'active') return 0;
 

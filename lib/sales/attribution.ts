@@ -101,7 +101,7 @@ export async function attachManagerToPartner(
     const { data: photographer } = await admin
       .from('photographers')
       .select('id, sales_manager_id')
-      .ilike('email', opts.email)
+      .ilike('email', likeEscape(opts.email))
       .maybeSingle();
     if (photographer && !photographer.sales_manager_id) {
       await admin.from('photographers')

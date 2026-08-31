@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
     // Dedupe by email if provided
     if (email) {
-        const { data: dup } = await admin.from('leads').select('id').ilike('email', email).maybeSingle();
+        const { data: dup } = await admin.from('leads').select('id').ilike('email', likeEscape(email)).maybeSingle();
         if (dup) return NextResponse.json({ error: 'Лід з таким email вже існує', lead_id: dup.id }, { status: 409 });
     }
 

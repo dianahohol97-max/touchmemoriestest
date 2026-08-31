@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { findLeadAttribution } from '@/lib/sales/attribution';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     const { data: existingPh } = await admin
       .from('photographers')
       .select('id')
-      .ilike('email', email)
+      .ilike('email', likeEscape(email))
       .maybeSingle();
     if (existingPh) {
       return NextResponse.json({

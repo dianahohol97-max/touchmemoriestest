@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -9,17 +8,17 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-    const guard = await requireStaff();
-    if (!guard.ok) return guard.response;
+  // Editing a promo code is a money-affecting change, so this is requireAdmin,
+  // not requireStaff. It used to run requireStaff and then re-implement the
+  // admin check inline with an UNESCAPED `.ilike('email', user.email)` — the
+  // exact wildcard hole likeEscape exists to close (a staff member registered
+  // as `_iana@…` matches `diana@…`), and it also skipped the staff is_active
+  // check. The canonical guard does both correctly.
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
-  const cookieClient = await createClient();
-  const { data: { user } } = await cookieClient.auth.getUser();
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const admin = getAdminClient();
-  const { data: adminRow } = await admin.from('admin_users').select('id').ilike('email', user.email).maybeSingle();
-  if (!adminRow) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
   const allowed = ['code','type','value','min_order_amount','applies_to','applicable_product_ids','applicable_category_ids','max_uses','is_single_use_per_customer','valid_from','valid_until','is_active','notes'];

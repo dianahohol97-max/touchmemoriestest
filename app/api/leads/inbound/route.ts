@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
         const { data: lead } = await admin
             .from('leads')
             .select('id, status')
-            .ilike('email', fromEmail)
+            .ilike('email', likeEscape(fromEmail))
             .maybeSingle();
         if (!lead) { unmatched++; continue; }
 

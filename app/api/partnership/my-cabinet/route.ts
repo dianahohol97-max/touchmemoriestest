@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function GET() {
   const { data: partners } = await admin
     .from('agency_partners')
     .select('cabinet_token, agency_name, status')
-    .ilike('email', email)
+    .ilike('email', likeEscape(email))
     .order('created_at', { ascending: false })
     .limit(1);
   const partner = partners?.[0];

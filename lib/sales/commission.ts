@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 /**
  * Sales-manager commissions.
@@ -68,7 +69,7 @@ export async function accrueOrderCommission(
   const { data: partner } = await admin
     .from('agency_partners')
     .select('id, sales_manager_id, status, agency_name')
-    .ilike('referral_code', code)
+    .ilike('referral_code', likeEscape(code))
     .maybeSingle();
   if (!partner?.sales_manager_id || partner.status !== 'active') return { amount: 0 };
 

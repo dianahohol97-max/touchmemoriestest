@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,7 +54,7 @@ export async function GET(req: Request) {
         const [byId, byEmail] = await Promise.all([
             admin.from('orders').select('*').eq('customer_id', customerId),
             email
-                ? admin.from('orders').select('*').ilike('customer_email', email)
+                ? admin.from('orders').select('*').ilike('customer_email', likeEscape(email))
                 : Promise.resolve({ data: [] as any[], error: null }),
         ]);
         if (byId.error) return NextResponse.json({ error: byId.error.message }, { status: 500 });

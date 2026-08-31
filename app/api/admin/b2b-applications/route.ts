@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { getRoleConfig } from '@/lib/b2b/config';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,7 @@ export async function PATCH(request: Request) {
     if (app.customer_id) {
         await admin.from('customers').update(custPatch).eq('id', app.customer_id);
     } else if (app.email) {
-        await admin.from('customers').update(custPatch).ilike('email', app.email);
+        await admin.from('customers').update(custPatch).ilike('email', likeEscape(app.email));
     }
 
     // Approved photographers also get a gallery cabinet + public landing

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 /**
  * Auth guards for API routes.
@@ -24,21 +25,11 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 type Guard = { ok: true; userId: string } | { ok: false; response: NextResponse };
 
-/**
- * Escape LIKE/ILIKE wildcards in a value that must be matched EXACTLY.
- *
- * The admin/staff checks below match the caller's own email against the
- * privileged tables with `.ilike('email', email)`. ILIKE treats `%` and `_`
- * as wildcards, and the caller controls their email — so registering an
- * address like `_iana@gmail.com` (matches `diana@…`) or `%@gmail.com` would
- * make the pattern match a privileged row the attacker does not own. Escaping
- * the metacharacters turns the match back into a literal, case-insensitive
- * equality. A normal address (no % _ \) is unchanged, so real logins are
- * unaffected.
- */
-export function likeEscape(value: string): string {
-    return value.replace(/[\\%_]/g, '\\$&');
-}
+// likeEscape now lives in lib/supabase/like-escape.ts so that plain data
+// modules can use it without importing next/server. Re-exported here because
+// the guards are its most important caller and several routes import it from
+// this module.
+export { likeEscape } from '@/lib/supabase/like-escape';
 
 async function getSession() {
     const supabase = await createClient();
