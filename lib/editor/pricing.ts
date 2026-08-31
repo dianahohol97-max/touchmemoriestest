@@ -33,18 +33,34 @@ export interface PriceTable {
 // ro 'Pânză'/'Imitație de piele'/'Tipărită' must resolve too; previously
 // only uk/en matched and other locales fell to the printed default.
 export function canonicalCoverType(coverType: string): string {
-    const ct = (coverType || '').toLowerCase().trim();
-    if (ct.includes('велюр') || ct.includes('velour') || ct.includes('velur') || ct.includes('welur')) return 'Велюр';
-    if (ct.includes('тканин') || ct.includes('fabric') || ct.includes('tkanin') || ct.includes('stoff') || ct.includes('pânz') || ct.includes('panz')) return 'Тканина';
-    if (ct.includes('шкір') || ct.includes('leather') || ct.includes('faux') || ct.includes('skór') || ct.includes('skor') || ct.includes('leder') || ct.includes('piele')) return 'Шкірзамінник';
-    if (ct.includes('випуск') || ct.includes('gradu')) return 'Випускна';
-    if (ct.includes('друков') || ct.includes('print') || ct.includes('drukowan') || ct.includes('gedruckt') || ct.includes('tipărit') || ct.includes('tiparit')) return 'Друкована';
+    const matched = matchCoverType(coverType);
+    if (matched) return matched;
     // Default: assume printed if we cannot identify. This matches the old
     // behaviour for unknown labels but is logged so we can spot drift.
     if (typeof window !== 'undefined') {
         console.warn('[pricing] unknown cover type, defaulting to Друкована:', coverType);
     }
     return 'Друкована';
+}
+
+/**
+ * Strict variant of canonicalCoverType: returns null instead of guessing.
+ *
+ * The display path WANTS the 'Друкована' default — showing a price is better
+ * than showing nothing. A price CHECK must not share that default: 'Друкована'
+ * is the cheapest cover at most page counts, so silently defaulting to it
+ * would let an unrecognised label buy a velour book at printed-cover prices.
+ * Server-side validation calls this and declines to price what it cannot
+ * positively identify (see lib/pricing/configured-book-price.ts).
+ */
+export function matchCoverType(coverType: string): string | null {
+    const ct = (coverType || '').toLowerCase().trim();
+    if (ct.includes('велюр') || ct.includes('velour') || ct.includes('velur') || ct.includes('welur')) return 'Велюр';
+    if (ct.includes('тканин') || ct.includes('fabric') || ct.includes('tkanin') || ct.includes('stoff') || ct.includes('pânz') || ct.includes('panz')) return 'Тканина';
+    if (ct.includes('шкір') || ct.includes('leather') || ct.includes('faux') || ct.includes('skór') || ct.includes('skor') || ct.includes('leder') || ct.includes('piele')) return 'Шкірзамінник';
+    if (ct.includes('випуск') || ct.includes('gradu')) return 'Випускна';
+    if (ct.includes('друков') || ct.includes('print') || ct.includes('drukowan') || ct.includes('gedruckt') || ct.includes('tipărit') || ct.includes('tiparit')) return 'Друкована';
+    return null;
 }
 
 // Convert "20×20" / "20x20" / "20х20" (кирилична х) to canonical "20×20"

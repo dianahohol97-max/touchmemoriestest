@@ -12,6 +12,8 @@ import { duplicateDiscountForCart } from '@/lib/payment/duplicate-discount';
 import { checkCertificateForPayment, reserveCertificateForOrder, releaseCertificateReservation } from '@/lib/certificates/redeemCertificate';
 import { buildCoverColorIndex, matchCoverColor, readCoverSelection, COVER_COLOR_CODE_KEY } from '@/lib/cover-colors';
 import { sizeKey } from '@/lib/automation/keycrm-catalogue';
+import { getPhotobookPriceTable } from '@/lib/pricing/photobook-price-table';
+import { priceConfiguredBook } from '@/lib/pricing/configured-book-price';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -335,6 +337,11 @@ export async function POST(request: NextRequest) {
   // Integer-rounding tolerance only (per-item B2B rounding, split-payment halves).
   // NOT a discount allowance — the discount ceiling below is the exact rule amount.
   const PRICE_EPS = 5;
+  // Category whose products are priced from the photobook_prices matrix.
+  const PHOTOBOOK_CATEGORY = 'photobooks';
+  // Tolerance for a cart priced from a stale copy of that matrix (the client
+  // caches it for up to 24h). Absorbs real price drift, not a tampered total.
+  const CONFIGURED_PRICE_DRIFT = 0.15;
   {
     const slugs = Array.from(new Set(body.items.map(i => i.slug).filter(Boolean))) as string[];
     if (slugs.length > 0) {
@@ -360,10 +367,65 @@ export async function POST(request: NextRequest) {
           if (cat) catBySlug.set(p.slug, cat);
         });
 
+        // A configured photobook is worth far more than its `products.price`
+        // row: that row is the SMALLEST configuration (photobook-printed is
+        // 600 ₴) while a real book reaches 4 005 ₴. Recompute those lines from
+        // photobook_prices — the same table the editor prices against — so the
+        // floor reflects what the customer actually configured. Lines we cannot
+        // positively identify return null and keep the base-price floor.
+        //
+        // Scoped to the `photobooks` category, because that is exactly the set
+        // of products priced from this matrix. Other products reuse the same
+        // «Розмір книги» option label but are priced from products.price plus
+        // their own extras — a wishbook at 30×20/32pp costs 1 209 ₴ while the
+        // photobook matrix says 2 540 ₴ for that geometry, so pricing it here
+        // would reject a perfectly good order.
+        // Gated on the CATEGORY, not on the options being present: gating on
+        // the options would let a tampered payload delete them to skip the
+        // recompute and drop straight back onto the 600 ₴ products.price floor.
+        const hasPhotobookLine = body.items.some(
+          i => catBySlug.get(i.slug || '') === PHOTOBOOK_CATEGORY,
+        );
+        const priceTable = hasPhotobookLine ? await getPhotobookPriceTable(priceAdmin) : null;
+
+        // Same reason: a photobook line we cannot price is a bad payload, not a
+        // cheap book. Every photobook order in the history (11 of 11) carries
+        // «Розмір книги», and a book cannot be produced without size, pages and
+        // cover anyway — so refuse rather than fall through to the base floor.
+        // Skipped when the matrix itself failed to load, so Supabase being
+        // briefly unreachable never blocks checkout.
+        if (priceTable) {
+          const unpriced = body.items.find(
+            i => catBySlug.get(i.slug || '') === PHOTOBOOK_CATEGORY
+              && !priceConfiguredBook(priceTable, i.options),
+          );
+          if (unpriced) {
+            console.warn(`orders/submit: photobook line '${unpriced.slug}' has no recognisable configuration`, unpriced.options);
+            return NextResponse.json(
+              { error: 'configuration_missing', detail: 'This photobook line is missing its size, page count or cover.' },
+              { status: 422 },
+            );
+          }
+        }
+
         const baseFloor = body.items.reduce((sum, item) => {
-          const base = priceBySlug.get(item.slug || '') || 0;
           const qty = Number(item.quantity) || 1;
           const cat = catBySlug.get(item.slug || '');
+          const rowPrice = priceBySlug.get(item.slug || '') || 0;
+
+          const configured = cat === PHOTOBOOK_CATEGORY
+            ? priceConfiguredBook(priceTable, item.options)
+            : null;
+          // The storefront caches this matrix in localStorage for up to 24h
+          // (lib/editor/usePrices.ts), so a legitimate cart can be priced from
+          // a slightly stale table — one real order sat 3.5% under the current
+          // matrix. CONFIGURED_PRICE_DRIFT absorbs that; it is nowhere near
+          // the ~85% gap this check exists to catch. max() keeps the new floor
+          // from ever landing below the base-price floor it replaces.
+          const base = configured
+            ? Math.max(rowPrice, configured.unitPrice * (1 - CONFIGURED_PRICE_DRIFT))
+            : rowPrice;
+
           // Standard floor allows the 20% promo buffer; for verified B2B
           // categories also subtract their discount so the floor matches what
           // the partner legitimately pays.
