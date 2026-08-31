@@ -33,9 +33,26 @@ interface SendEmailParams {
      * senders reserve the whole batch up front). Prevents double counting.
      */
     quotaReserved?: boolean;
+    /**
+     * Файли, які їдуть разом із листом. Brevo приймає або base64 у `content`,
+     * або `url`, з якого сам їх забирає. Ми користуємось першим варіантом:
+     * посилання на наше сховище підписані й недовговічні, тож Brevo міг би не
+     * встигнути їх прочитати.
+     *
+     * Ліміт Brevo — 10 МБ на весь лист разом. Виклик відповідає за те, щоб не
+     * перевищити його; тут ми тільки передаємо далі.
+     */
+    attachments?: BrevoAttachment[];
 }
 
-export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe, kind = 'transactional', quotaReserved = false }: SendEmailParams) {
+export interface BrevoAttachment {
+    /** Імʼя файлу, яке побачить одержувач. */
+    name: string;
+    /** Вміст у base64 (без префікса data:). */
+    content: string;
+}
+
+export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe, kind = 'transactional', quotaReserved = false, attachments }: SendEmailParams) {
     const apiKey = getBrevoApiKey();
     if (!apiKey) throw new Error('BREVO_API_KEY не налаштовано');
 
@@ -75,6 +92,9 @@ export async function sendBrevoEmail({ to, toName, subject, html, fromName, from
             subject,
             htmlContent,
             ...(headers ? { headers } : {}),
+            ...(attachments && attachments.length
+                ? { attachment: attachments.map(a => ({ name: a.name, content: a.content })) }
+                : {}),
         }),
     });
 

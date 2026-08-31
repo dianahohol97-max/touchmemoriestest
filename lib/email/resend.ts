@@ -43,10 +43,28 @@ export function getResendClient() {
                         const m = String(opts.from).match(/^(.*?)<(.+)>$/);
                         if (m && m[1].trim()) fromName = m[1].trim().replace(/^"|"$/g, '');
                     }
+                    // Вкладення. Раніше `attachments` стояв у типі, але далі не
+                    // передавався нікуди — виклик міг їх передати, отримати
+                    // «надіслано» і не дізнатися, що лист пішов без файлів.
+                    // Приймаємо і форму Resend ({ filename, content }), і нашу
+                    // ({ name, content }); content — base64 або Buffer.
+                    const attachments = Array.isArray(opts.attachments)
+                        ? opts.attachments
+                            .map((a: any) => {
+                                const name = String(a?.filename || a?.name || '').trim();
+                                if (!name || !a?.content) return null;
+                                const content = typeof a.content === 'string'
+                                    ? a.content.replace(/^data:[^;]*;base64,/, '')
+                                    : Buffer.from(a.content).toString('base64');
+                                return { name, content };
+                            })
+                            .filter(Boolean) as { name: string; content: string }[]
+                        : undefined;
+
                     const recipients = Array.isArray(opts.to) ? opts.to : [opts.to];
                     let last: any = null;
                     for (const r of recipients) {
-                        last = await sendBrevoEmail({ to: r, subject: opts.subject, html: html || '', fromEmail: BREVO_FROM_EMAIL, fromName });
+                        last = await sendBrevoEmail({ to: r, subject: opts.subject, html: html || '', fromEmail: BREVO_FROM_EMAIL, fromName, attachments });
                     }
                     return { data: last, error: null };
                 } catch (error: any) {

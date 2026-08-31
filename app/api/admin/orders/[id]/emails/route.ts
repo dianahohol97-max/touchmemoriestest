@@ -69,20 +69,59 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ items });
 }
 
+// Що взагалі можна надіслати клієнту: макет на погодження (PDF або
+// зображення) і нічого виконуваного.
+const ALLOWED_ATTACHMENT_CT = new Set([
+  'application/pdf',
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
+]);
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;   // на один файл
+// Brevo відмовляє на листі понад 10 МБ разом із вкладеннями. Тримаємось нижче
+// із запасом на base64 (він додає близько третини) і на сам текст листа: усе,
+// що не влізло, їде посиланням, а не втрачається.
+const MAX_INLINE_TOTAL_BYTES = 6 * 1024 * 1024;
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30; // місяць на погодження макета
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const guard = await requireStaff();
   if (!guard.ok) return guard.response;
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'order id required' }, { status: 400 });
 
-  const body = await req.json().catch(() => null);
-  const subject = String(body?.subject || '').trim();
-  const text = String(body?.body || '').trim();
+  // Лист із файлами приходить як multipart, без файлів — як JSON. Приймаємо
+  // обидва, щоб старі виклики продовжували працювати без змін.
+  let subject = '';
+  let text = '';
+  let files: File[] = [];
+  const contentType = req.headers.get('content-type') || '';
+  if (contentType.includes('multipart/form-data')) {
+    const form = await req.formData().catch(() => null);
+    if (!form) return NextResponse.json({ error: 'expected multipart/form-data' }, { status: 400 });
+    subject = String(form.get('subject') || '').trim();
+    text = String(form.get('body') || '').trim();
+    files = form.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
+  } else {
+    const body = await req.json().catch(() => null);
+    subject = String(body?.subject || '').trim();
+    text = String(body?.body || '').trim();
+  }
+
   if (!subject || !text) {
     return NextResponse.json({ error: 'subject and body required' }, { status: 400 });
   }
   if (subject.length > 300 || text.length > 20000) {
     return NextResponse.json({ error: 'subject or body too long' }, { status: 400 });
+  }
+  if (files.length > 10) {
+    return NextResponse.json({ error: 'не більше 10 файлів за раз' }, { status: 400 });
+  }
+  for (const f of files) {
+    if (!ALLOWED_ATTACHMENT_CT.has((f.type || '').toLowerCase())) {
+      return NextResponse.json({ error: `${f.name}: можна надсилати лише PDF та зображення` }, { status: 400 });
+    }
+    if (f.size > MAX_ATTACHMENT_BYTES) {
+      return NextResponse.json({ error: `${f.name}: файл більший за 25 МБ` }, { status: 413 });
+    }
   }
 
   const admin = getAdminClient();
@@ -96,6 +135,65 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'у замовлення немає email клієнта' }, { status: 400 });
   }
 
+  // Файли спершу лягають у сховище, і аж потім їдуть листом. Порядок саме
+  // такий, бо посилання переживе поштову скриньку: клієнтка зможе відкрити
+  // макет із телефона, переслати чоловікові, повернутися до нього через
+  // тиждень — і нам не доведеться шукати, що саме ми надсилали.
+  const uploaded: { name: string; url: string; size: number; path: string }[] = [];
+  const inline: { name: string; content: string }[] = [];
+  let inlineBytes = 0;
+
+  for (const f of files) {
+    const buf = Buffer.from(await f.arrayBuffer());
+    if (buf.length === 0) {
+      return NextResponse.json({ error: `${f.name}: файл порожній` }, { status: 400 });
+    }
+    const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file';
+    const path = `admin-letters/${order.id}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await admin.storage
+      .from('order-files')
+      .upload(path, buf, { contentType: f.type || 'application/octet-stream', upsert: false });
+    if (upErr) {
+      console.error('[order-emails] attachment upload failed', { orderId: id, path, error: upErr.message });
+      return NextResponse.json({ error: `Не вдалося зберегти ${f.name}: ${upErr.message}` }, { status: 502 });
+    }
+    const { data: signed } = await admin.storage
+      .from('order-files')
+      .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+    uploaded.push({ name: f.name, url: signed?.signedUrl || '', size: buf.length, path });
+
+    // Вкладенням — лише те, що поміститься в лист. Решта лишається
+    // посиланням: краще великий макет, який доїхав, ніж лист, який Brevo
+    // відхилив цілком через розмір.
+    if (inlineBytes + buf.length <= MAX_INLINE_TOTAL_BYTES) {
+      inline.push({ name: f.name, content: buf.toString('base64') });
+      inlineBytes += buf.length;
+    }
+  }
+
+  const linkOnly = uploaded.filter(u => !inline.some(i => i.name === u.name));
+  const fmtSize = (n: number) => n >= 1024 * 1024
+    ? `${(n / (1024 * 1024)).toFixed(1)} МБ`
+    : `${Math.max(1, Math.round(n / 1024))} КБ`;
+
+  const filesBlock = uploaded.length
+    ? `<div style="margin-top: 22px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+         <div style="font-size: 14px; font-weight: 700; color: #1e2d7d; margin-bottom: 10px;">
+           ${uploaded.length === 1 ? 'Файл до листа' : 'Файли до листа'}
+         </div>
+         ${uploaded.map(u => `
+           <div style="margin-bottom: 8px; font-size: 14px;">
+             <a href="${escapeHtml(u.url)}" style="color: #1e2d7d; font-weight: 600;">${escapeHtml(u.name)}</a>
+             <span style="color: #94a3b8; font-size: 12px;"> — ${fmtSize(u.size)}</span>
+           </div>`).join('')}
+         <div style="font-size: 12px; color: #64748b; margin-top: 10px;">
+           ${linkOnly.length
+             ? 'Великі файли не вкладаються в лист, тож відкривайте їх за посиланням вище. Воно працює місяць.'
+             : 'Файли також додані вкладенням до цього листа, а посилання діють місяць.'}
+         </div>
+       </div>`
+    : '';
+
   // Plain letter in the site's tone: greeting with the customer's name, the
   // staff text with line breaks preserved, order number in the footer.
   const safeText = escapeHtml(text).replace(/\n/g, '<br/>');
@@ -104,6 +202,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     <div style="font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.6; color: #1f2937; max-width: 640px;">
       ${safeName ? `<p>Вітаємо, ${safeName}!</p>` : ''}
       <p>${safeText}</p>
+      ${filesBlock}
       <p style="margin-top: 28px; color: #6b7280; font-size: 13px;">
         Це лист щодо вашого замовлення ${escapeHtml(String(order.order_number || ''))} у touch.memories.
         Просто відповідайте на нього — ми читаємо відповіді.
@@ -115,16 +214,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     to: order.customer_email,
     subject,
     html,
+    ...(inline.length ? { attachments: inline } : {}),
   });
 
   // Log the attempt either way — a failed send with its error is exactly the
   // kind of thing the history must show instead of silently losing.
+  // В email_logs немає окремої колонки під вкладення, а заводити її заради
+  // переліку імен зайве — дописуємо їх у кінець збереженого тексту, щоб
+  // історія в адмінці показувала, який саме макет пішов клієнту і коли.
+  const loggedBody = uploaded.length
+    ? `${text}\n\n— Файли: ${uploaded.map(u => `${u.name} (${fmtSize(u.size)})`).join(', ')}`
+    : text;
+
   const { error: logErr } = await admin.from('email_logs').insert({
     order_id: order.id,
     customer_email: order.customer_email,
     template: 'manual',
     subject,
-    body: text,
+    body: loggedBody,
     status: sendErr ? 'failed' : 'sent',
     error: sendErr ? String((sendErr as any)?.message || sendErr) : null,
     sent_at: new Date().toISOString(),
@@ -134,5 +241,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (sendErr) {
     return NextResponse.json({ error: `Не вдалося надіслати: ${String((sendErr as any)?.message || sendErr)}` }, { status: 502 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, attached: inline.length, linked: linkOnly.length });
 }

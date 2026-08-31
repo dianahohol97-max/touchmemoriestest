@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useRef } from 'react';
 import { isPrintSetCategory } from '@/lib/print/print-set-categories';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
@@ -51,7 +51,7 @@ import {
     Upload,
     RefreshCw,
     Palette
-, Image as ImageIcon } from 'lucide-react';
+, Image as ImageIcon, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS_OPTS = [
@@ -142,6 +142,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   }, [order?.id]);
 
   // «Листування» card: send a letter to the customer straight from the order.
+  //
+  // Лист може везти файли — насамперед макет на погодження, заради якого це
+  // й додано: без вкладень погоджувати макет з адмінки було неможливо, і
+  // доводилось виходити в пошту або месенджер.
   const sendOrderEmail = async () => {
     if (!order?.id || emailSending) return;
     if (!emailSubject.trim() || !emailBody.trim()) {
@@ -150,16 +154,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
     setEmailSending(true);
     try {
-      const r = await fetch(`/api/admin/orders/${order.id}/emails`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: emailSubject.trim(), body: emailBody.trim() }),
-      });
+      // Без файлів шлемо JSON, як і раніше; з файлами — multipart. Сервер
+      // приймає обидва.
+      let r: Response;
+      if (emailFiles.length > 0) {
+        const fd = new FormData();
+        fd.append('subject', emailSubject.trim());
+        fd.append('body', emailBody.trim());
+        emailFiles.forEach(f => fd.append('files', f, f.name));
+        r = await fetch(`/api/admin/orders/${order.id}/emails`, { method: 'POST', body: fd });
+      } else {
+        r = await fetch(`/api/admin/orders/${order.id}/emails`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject: emailSubject.trim(), body: emailBody.trim() }),
+        });
+      }
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast.error(j?.error || 'Не вдалося надіслати лист'); return; }
-      toast.success('Лист надіслано клієнту');
+      toast.success(
+        Number(j?.linked) > 0
+          ? `Лист надіслано. ${j.linked} файл(ів) пішли посиланням — завеликі для вкладення.`
+          : 'Лист надіслано клієнту',
+      );
       setEmailSubject('');
       setEmailBody('');
+      setEmailFiles([]);
       try {
         const hr = await fetch(`/api/admin/orders/${order.id}/emails`);
         if (hr.ok) { const { items } = await hr.json(); if (Array.isArray(items)) setEmailHistory(items); }
@@ -237,6 +257,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [emailSending, setEmailSending] = useState(false);
+    // Файли до листа — макет на погодження, зразок обкладинки тощо.
+    const [emailFiles, setEmailFiles] = useState<File[]>([]);
+    const emailFileInputRef = useRef<HTMLInputElement>(null);
     const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
     // Customer's saved constructor layout(s) for this order — shown even when
     // nothing has been rendered yet, so a linked design is never invisible.
@@ -2867,13 +2890,58 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     rows={4}
                                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, resize: 'vertical', outline: 'none' }}
                                 />
-                                <button
-                                    onClick={sendOrderEmail}
-                                    disabled={emailSending}
-                                    style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: emailSending ? '#93c5fd' : '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
-                                    {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-                                    {emailSending ? 'Надсилаємо…' : 'Надіслати лист'}
-                                </button>
+                                {emailFiles.length > 0 && (
+                                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {emailFiles.map((f, i) => (
+                                            <div key={`${f.name}-${i}`}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}>
+                                                <Paperclip size={13} color="#64748b" />
+                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1e293b' }}>{f.name}</span>
+                                                <span style={{ color: '#94a3b8', fontSize: 11, flexShrink: 0 }}>
+                                                    {f.size >= 1024 * 1024 ? `${(f.size / (1024 * 1024)).toFixed(1)} МБ` : `${Math.max(1, Math.round(f.size / 1024))} КБ`}
+                                                </span>
+                                                <button
+                                                    onClick={() => setEmailFiles(prev => prev.filter((_, k) => k !== i))}
+                                                    title="Прибрати файл"
+                                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontSize: 15, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                                            </div>
+                                        ))}
+                                        {emailFiles.reduce((n, f) => n + f.size, 0) > 6 * 1024 * 1024 && (
+                                            <div style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 6, padding: '6px 8px' }}>
+                                                Разом більше 6 МБ. Те, що не вміститься вкладенням, клієнт отримає посиланням — воно працює місяць.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                <input
+                                    ref={emailFileInputRef}
+                                    type="file"
+                                    multiple
+                                    accept="application/pdf,image/*"
+                                    onChange={e => {
+                                        const picked = Array.from(e.target.files || []);
+                                        setEmailFiles(prev => [...prev, ...picked].slice(0, 10));
+                                        if (emailFileInputRef.current) emailFileInputRef.current.value = '';
+                                    }}
+                                    style={{ display: 'none' }}
+                                />
+                                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={sendOrderEmail}
+                                        disabled={emailSending}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: emailSending ? '#93c5fd' : '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
+                                        {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                                        {emailSending ? 'Надсилаємо…' : 'Надіслати лист'}
+                                    </button>
+                                    <button
+                                        onClick={() => emailFileInputRef.current?.click()}
+                                        disabled={emailSending}
+                                        title="PDF або зображення, до 10 файлів"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#1e2d7d', border: '1px solid #c7d2fe', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
+                                        <Paperclip size={14} />
+                                        {emailFiles.length > 0 ? `Файли (${emailFiles.length})` : 'Прикріпити макет'}
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div style={{ marginBottom: 14, padding: '10px 12px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
