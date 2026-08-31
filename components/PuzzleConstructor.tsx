@@ -135,18 +135,67 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
     if (config.mode === 'text' && !config.text.trim()) { toast.error(t('puzzle.textPlaceholder')); return; }
     if (config.mode === 'qr' && !config.qrValue.trim()) { toast.error(t('puzzle.qrPlaceholder')); return; }
     const cartItemId = `puzzle-${Date.now()}`;
+
+    // Мініатюра, а не оригінал. `config.photoUrl` — це повнорозмірний data:
+    // URL із FileReader: фото на 5 МБ перетворюється у ~6,7 МБ base64, і саме
+    // цей рядок ішов у localStorage разом із кошиком. Одного такого пазла
+    // вистачало, щоб упертися в квоту сховища — і тоді кошик не зберігався
+    // взагалі, разом з усіма іншими позиціями.
+    //
+    // makeCartThumbnail повертає data: URL без змін («вже самодостатній»),
+    // тож саме його передати недостатньо — спершу проганяємо через blob:,
+    // як це вже робить конструктор мультяшного портрета.
+    let cartImage = '';
+    if (config.photoUrl) {
+      try {
+        const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+        const previewBlob = await (await fetch(config.photoUrl)).blob();
+        const blobUrl = URL.createObjectURL(previewBlob);
+        cartImage = await makeCartThumbnail(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+      } catch { /* лишається порожнім — у кошику буде заглушка */ }
+    }
+
+    // Текстова частина пазла — це і є замовлення для тексту, «фото + текст» і
+    // QR. Раніше в позицію їхали лише формат, кількість деталей і тип, тож
+    // текстовий пазл приїжджав у виробництво без жодного слова: ні напису, ні
+    // шрифту, ні кольорів, ні адреси для QR. Тепер усе, що впливає на друк,
+    // лежить в options (їх видно на картці замовлення в адмінці).
+    const modeLabel = config.mode === 'photo' ? 'Фото'
+      : config.mode === 'text' ? 'Текст'
+      : config.mode === 'photo-text' ? 'Фото + текст'
+      : 'QR-код';
+    const hasText = config.mode !== 'photo' && !!config.text.trim();
+    const textOptions: Record<string, string> = {
+      ...(hasText ? {
+        [config.mode === 'qr' ? 'Підпис під QR' : 'Текст на пазлі']: config.text.trim(),
+        'Шрифт': config.fontFamily,
+        'Розмір тексту': `${Math.round(config.fontScale * 100)}%`,
+        'Колір тексту': config.textColor,
+      } : {}),
+      ...((config.mode === 'text' || config.mode === 'qr') ? { 'Колір фону': config.bgColor } : {}),
+      ...(config.mode === 'qr' ? { 'Дані QR-коду': config.qrValue.trim() } : {}),
+    };
+
     addItem({
       id: cartItemId,
       name: 'Фотопазл',
       price: totalPrice,
       qty: 1,
-      image: config.photoUrl || '',
+      image: cartImage,
       options: {
         'Формат': format.label,
         'Деталей': `${config.pieceCount}`,
-        'Тип': config.mode === 'photo' ? 'Фото' : config.mode === 'text' ? 'Текст' : config.mode === 'photo-text' ? 'Фото + текст' : 'QR-код',
+        'Тип': modeLabel,
+        ...textOptions,
       },
-      personalization_note: `${format.label} · ${config.pieceCount} деталей`,
+      personalization_note: [
+        `${format.label} · ${config.pieceCount} деталей · ${modeLabel}`,
+        ...Object.entries(textOptions).map(([k, v]) => `${k}: ${v}`),
+      ].join('\n'),
+      // Повна конфігурація лишається в замовленні як є — на випадок, коли
+      // дизайнеру треба відтворити макет точно, а не з переліку опцій.
+      metadata: { puzzle: { ...config, photoUrl: undefined } },
     });
 
     // Upload the photo (if any) to Storage so admin sees it in

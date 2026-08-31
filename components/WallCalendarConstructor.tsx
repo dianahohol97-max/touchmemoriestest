@@ -537,13 +537,42 @@ export default function WallCalendarConstructor({ initialSize='A4' }: { initialS
         const cartItemId = `wall-cal-${Date.now()}`;
         const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
         const cartImage = await makeCartThumbnail(photos[0]?.preview);
+        // Обведені дати досі не потрапляли в замовлення — вони лежали тільки
+        // в pages_data проєкту, тобто у гостя зникали зовсім, а виробництво
+        // не мало переліку днів, які треба обвести на друкованому календарі.
+        // Обкладинковий напис так само був лише в cover_data.
+        const markSummary = Object.entries(markedDates)
+            .filter(([, arr]) => arr.length > 0)
+            .sort((a, b) => parseInt(a[0].slice(1), 10) - parseInt(b[0].slice(1), 10))
+            .map(([key, arr]) => {
+                const monthIdx = parseInt(key.slice(1), 10) - 1;
+                const days = [...arr].sort((a, b) => a.day - b.day)
+                    .map(m => `${m.day} (${m.shape === 'heart' ? 'сердечко' : 'кружечок'}, ${m.color})`)
+                    .join(', ');
+                return `${MONTHS_UK[monthIdx] || key}: ${days}`;
+            });
+        const totalMarked = Object.values(markedDates).reduce((n, arr) => n + arr.length, 0);
+        const coverText = coverConfig.printedTextBlocks?.map(b => b.text).filter(Boolean).join(' / ') || '';
+
         const cartPayload = {
             id: cartItemId,
             product_id: product?.id||'wall-calendar-2026',
             name:`Настінний фотокалендар 2027 · ${SIZE_DIMS[size].label}`,
             price: basePrice, qty:1,
             image: cartImage,
-            options:{'Розмір':SIZE_DIMS[size].label},
+            options:{
+                'Розмір':SIZE_DIMS[size].label,
+                ...(coverText ? { 'Напис на обкладинці': coverText } : {}),
+                ...(markSummary.length ? {
+                    'Обведення дат': `${totalMarked} дат`,
+                    'Які дати обвести': markSummary.join(' · '),
+                } : {}),
+            },
+            personalization_note: [
+                `Настінний календар 2027, ${SIZE_DIMS[size].label}`,
+                ...(coverText ? [`Обкладинка: ${coverText}`] : []),
+                ...(markSummary.length ? [`Обведення дат (${totalMarked}):`, ...markSummary] : []),
+            ].join('\n'),
             slug:'wall-calendar-2026',
         };
         addItem(cartPayload);

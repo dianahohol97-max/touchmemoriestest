@@ -91,7 +91,12 @@ export default function CanvasPrintConstructor() {
             id: cartItemId,
             product_id: product?.id || 'druk-na-polotni',
             name: `Друк на полотні ${selectedSize.label}`,
-            price: selectedSize.price * qty,
+            // ЦІНА ЗА ОДНУ ШТУКУ, не за всю кількість. Кошик рахує підсумок як
+            // price × qty, тож множення тут давало квадрат: дві картини 40×50
+            // виходили не 1710 ₴, а 3420 ₴. Сам конструктор показував
+            // правильні 1710 ₴ (рядок нижче в кроці «Замовлення»), тому
+            // розбіжність спливала аж у кошику.
+            price: selectedSize.price,
             qty,
             image: cartImage,
             options: { 'Розмір': selectedSize.label },

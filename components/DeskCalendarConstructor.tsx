@@ -260,13 +260,60 @@ export default function DeskCalendarConstructor(){
 
   const handleOrder = async () => {
     const cartItemId = `desk-cal-${Date.now()}`;
+
+    // Мініатюра для кошика. Раніше сюди йшов blob: URL першого фото, а такий
+    // URL живе тільки у вкладці, що його створила: кошик лежить у
+    // localStorage, тож після перезавантаження на місці календаря був
+    // порожній прямокутник. Обкладинка йде першою, якщо вона є.
+    const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+    const thumbSrc = cover.photos.find(p => !!p) || cover.bgPhoto
+      || monthPhotos.flat().find(p => p.url !== null)?.url || '';
+    const cartImage = await makeCartThumbnail(thumbSrc);
+
+    // Обведені дати клієнтка оплачує (по 10 ₴ за дату), але досі жодна з них
+    // не потрапляла в замовлення: вони лежали тільки в pages_data проєкту,
+    // тобто у гостя зникали зовсім, а у виробництва не було переліку днів,
+    // які треба обвести. Те саме з комплектацією — мольберт міняє ціну на
+    // 50 ₴, а на картці замовлення про нього не було ні слова.
+    const markSummary = Object.entries(marks as Record<string, MarkedDate[]>)
+      .filter(([, arr]) => arr.length > 0)
+      .sort((a, b) => parseInt(a[0].slice(1), 10) - parseInt(b[0].slice(1), 10))
+      .map(([key, arr]) => {
+        const monthIdx = parseInt(key.slice(1), 10) - 1;
+        const days = [...arr].sort((a, b) => a.day - b.day)
+          .map(m => `${m.day} (${m.shape === 'heart' ? 'сердечко' : 'кружечок'}, ${m.color})`)
+          .join(', ');
+        return `${loc.months[monthIdx] || key}: ${days}`;
+      });
+
+    // Обкладинка — окрема сторінка календаря, яку клієнтка складає сама.
+    // Її текст ніде не зберігався, тож друкувати його було нізвідки.
+    const coverSummary = [
+      cover.titleText.trim() ? `Заголовок: ${cover.titleText.trim()}` : '',
+      cover.subtitleText.trim() ? `Підзаголовок: ${cover.subtitleText.trim()}` : '',
+      `Шрифт: ${cover.titleFont}`,
+      `Розкладка фото: ${(COLLAGES.find(c => c.id === cover.collageId) || COLLAGES[0]).name}`,
+    ].filter(Boolean);
+
     const cartPayload = {
       id: cartItemId,
       name:`Настільний календар ${year}`,
       price:dynamicPrice, qty:1,
-      image:monthPhotos.flat().find(p=>p.url!==null)?.url||'',
-      options:{ 'Дизайн':design.name, 'Мова':lang, 'Рік':String(year) },
-      personalization_note:`Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
+      image: cartImage,
+      options:{
+        'Дизайн':design.name, 'Мова':lang, 'Рік':String(year),
+        'Комплектація': hasStand ? 'З дерев’яним мольбертом' : 'Без мольберта',
+        ...(markSummary.length ? {
+          'Обведення дат': `${totalMarkedDates} дат`,
+          'Які дати обвести': markSummary.join(' · '),
+        } : {}),
+      },
+      personalization_note:[
+        `Дизайн: ${design.name}, Мова: ${lang}, Рік: ${year}`,
+        `Комплектація: ${hasStand ? 'з дерев’яним мольбертом' : 'без мольберта'}`,
+        `Обкладинка — ${coverSummary.join('; ')}`,
+        ...(markSummary.length ? [`Обведення дат (${totalMarkedDates}):`, ...markSummary] : []),
+      ].join('\n'),
     };
     addItem(cartPayload);
 
@@ -289,28 +336,47 @@ export default function DeskCalendarConstructor(){
       exportedFiles.length = 0;
       let pageIdx = 0;
       let attempted = 0;
+
+      // Один шлях завантаження для всіх фото календаря — і місяців, і
+      // обкладинки. Раніше цикл ходив тільки по monthPhotos, тому обкладинку
+      // (колаж і фонове фото) не завантажувало взагалі: вона лишалася blob:
+      // URL-ом у стані вкладки, у pages_data не потрапляла й помирала разом
+      // із вкладкою. Клієнтка складала обкладинку, а до друку не доїжджало
+      // нічого — навіть сліду, що вона там була.
+      const pushUpload = async (url: string, fileBase: string) => {
+        pageIdx++;
+        attempted++;
+        try {
+          const blob = await (await fetch(url)).blob();
+          const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
+          const safeExt = ext === 'jpg' ? 'jpeg' : ext;
+          const path = `${userKey}/${cartItemId}/${fileBase}.${safeExt}`;
+          const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
+          if (uploadError) { console.error('desk-cal upload FAILED:', uploadError); return; }
+          exportedFiles.push({
+            path, fileName: `${fileBase}.${safeExt}`,
+            bucket: 'order-files', fileCategory: 'photo-upload',
+            productType: 'desk-calendar', fileType: 'upload',
+            size: blob.size, mimeType: blob.type || 'image/jpeg',
+            pageNumber: pageIdx,
+          });
+        } catch (e) {
+          console.error('desk-cal blob fetch FAILED:', e);
+        }
+      };
+
+      // Обкладинка йде першою — саме в такому порядку календар і друкується.
+      if (cover.bgPhoto) await pushUpload(cover.bgPhoto, 'cover-bg');
+      for (let i = 0; i < cover.photos.length; i++) {
+        const url = cover.photos[i];
+        if (url) await pushUpload(url, `cover-s${i + 1}`);
+      }
+
       for (let m = 0; m < monthPhotos.length; m++) {
         for (let s = 0; s < monthPhotos[m].length; s++) {
           const url = monthPhotos[m][s]?.url;
           if (!url) continue;
-          pageIdx++;
-          attempted++;
-          try {
-            const blob = await (await fetch(url)).blob();
-            const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
-            const path = `${userKey}/${cartItemId}/m${String(m + 1).padStart(2, '0')}-s${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`;
-            const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
-            if (uploadError) { console.error('desk-cal upload FAILED:', uploadError); continue; }
-            exportedFiles.push({
-              path, fileName: `month_${m + 1}_slot_${s + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,
-              bucket: 'order-files', fileCategory: 'photo-upload',
-              productType: 'desk-calendar', fileType: 'upload',
-              size: blob.size, mimeType: blob.type || 'image/jpeg',
-              pageNumber: pageIdx,
-            });
-          } catch (e) {
-            console.error('desk-cal blob fetch FAILED:', e);
-          }
+          await pushUpload(url, `m${String(m + 1).padStart(2, '0')}-s${s + 1}`);
         }
       }
       if (exportedFiles.length > 0) {
@@ -346,7 +412,11 @@ export default function DeskCalendarConstructor(){
           format: String(year),
           status: 'draft',
           name: `Настільний календар ${year}`,
-          pages_data: [{ year, lang, designName: design.name, monthCollageIds, monthPhotos, marks }],
+          // `cover` теж зберігаємо: без нього «Мої дизайни» відкривали
+          // календар із порожньою обкладинкою, бо весь її стан (текст,
+          // шрифт, кольори, розкладка) жив лише у вкладці.
+          pages_data: [{ year, lang, designName: design.name, monthCollageIds, monthPhotos, marks, hasStand, cover }],
+          cover_data: cover,
           cart_payload: cartPayload,
           // Durable storage paths, not blob: previews (blob dies with the tab).
           uploaded_photos: exportedFiles.length > 0

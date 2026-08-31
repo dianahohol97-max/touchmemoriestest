@@ -848,12 +848,23 @@ export default function PosterConstructor() {
         console.warn('poster print render failed:', e);
       }
 
+      // Мініатюра для кошика мусить бути самодостатньою. Постер тримає фото
+      // як blob: URL (URL.createObjectURL), а такий URL живий лише у вкладці,
+      // яка його створила: кошик зберігається у localStorage, тож після
+      // перезавантаження, на іншому пристрої чи просто пізніше на місці
+      // постера залишався порожній прямокутник. Той самий «синій квадрат»,
+      // заради якого й зроблено makeCartThumbnail. Ця ж мініатюра їде в
+      // cart_payload проєкту, тож «Замовити» з «Моїх дизайнів» більше не
+      // відтворює мертве посилання.
+      const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
+      const cartImage = await makeCartThumbnail(config.photos[0]?.photoUrl);
+
       const cartPayload = {
         id: `poster-${Date.now()}`,
         name: `Постер ${sizeObj.label}`,
         price: sizeObj.price + (hasAiPortrait ? AI_PORTRAIT_PRICE : 0),
         qty: 1,
-        image: config.photos[0]?.photoUrl || '',
+        image: cartImage,
         options: {
           'Розмір': sizeObj.label,
           'Макет': layout.name,
