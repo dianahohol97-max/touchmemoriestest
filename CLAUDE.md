@@ -81,7 +81,9 @@ The photo product editor is the most complex component and the place where bugs 
 | `lib/editor/utils.ts` | Shared helpers (size normalisation, focal crop, etc.) | ~200 lines |
 | `components/FreeSlotLayer.tsx` | Free-form slots + DPI quality check | ~660 lines |
 
-**Two parallel toolbar implementations.** The slot-edit toolbar exists twice — once for spread layouts (around line 4400 in BookLayoutEditor.tsx) and once for page layouts (around line 4880). They drift apart easily; whenever you change one, **also change the other**.
+**The slot photo toolbar is now ONE component.** It used to exist twice — once for spread layouts and once for page layouts — with a standing instruction here to remember to change both. They drifted anyway (the page copy grew edge-clamping and a divider the spread copy never got; the spread copy kept a comment the page copy lost). It now lives in `components/editor/SlotPhotoToolbar.tsx` and both modes render it. Change it there.
+
+Two differences are still deliberately per-call-site, and both are noted in that file: the spread call site passes no `shiftX`, so its bar is not edge-clamped yet, and the «Слот» tooltip text differs between the modes pending confirmation of whether shape editing is offered in both.
 
 **Photo edit pipeline (read this before touching upload code):**
 1. Original file kept on disk for print upload

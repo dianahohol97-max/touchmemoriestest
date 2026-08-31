@@ -44,6 +44,7 @@ import { buildTrimGuides } from '@/lib/print/trim-guides';
 import type { SizeGeometry } from '@/lib/print/geometry';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
+import { SlotPhotoToolbar } from '@/components/editor/SlotPhotoToolbar';
 import { applySnap } from '@/lib/editor/snap';
 import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
@@ -8478,68 +8479,19 @@ export default function BookLayoutEditor() {
                                     ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) }
                                     : { top: -44 };
                                   return (
-                                  <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:'translateX(-50%)',display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
-                                    <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
-                                      <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
-                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
-                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
-                                        e.stopPropagation();
-                                        const slotW = Number(slotStyle.width)||100;
-                                        const slotH = Number(slotStyle.height)||100;
-                                        setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>{
-                                          if (si!==i) return sl;
-                                          const newRot = ((sl.rotation||0)-90+360)%360;
-                                          // Auto-zoom so the image still covers the slot after a 90/270° turn.
-                                          // Without this, a 4:3 photo rotated 90° leaves vertical bars; the user
-                                          // ends up with their photo "flying out" of the slot frame.
-                                          const isQuarter = newRot===90 || newRot===270;
-                                          const baseZoom = isQuarter ? Math.max(slotW/slotH, slotH/slotW) : 1;
-                                          return {...sl, rotation:newRot, zoom: baseZoom};
-                                        })}));
-                                      }} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути -90°">↶</button>
-                                      <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
-                                      <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
-                                        e.stopPropagation();
-                                        const slotW = Number(slotStyle.width)||100;
-                                        const slotH = Number(slotStyle.height)||100;
-                                        setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>{
-                                          if (si!==i) return sl;
-                                          const newRot = ((sl.rotation||0)+90)%360;
-                                          const isQuarter = newRot===90 || newRot===270;
-                                          const baseZoom = isQuarter ? Math.max(slotW/slotH, slotH/slotW) : 1;
-                                          return {...sl, rotation:newRot, zoom: baseZoom};
-                                        })}));
-                                      }} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
-                                      <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                      <button
-                                        onClick={e=>e.stopPropagation()}
-                                        onPointerDown={e=>{e.stopPropagation();clearSlot(spreadPageIdx,i);setPhotoEditSlot(null);}}
-                                        title="Видалити фото зі слота"
-                                        style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                        <Trash2 size={11}/>
-                                        <span style={{fontSize:9,fontWeight:700}}>Видалити</span>
-                                      </button>
-                                      <button
-                                        onClick={e=>e.stopPropagation()}
-                                        onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}}
-                                        title="Змінити форму або розмір слота"
-                                        style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                        <Crop size={11}/>
-                                        <span style={{fontSize:9,fontWeight:700}}>Слот</span>
-                                      </button>
-                                      <button
-                                        onClick={e=>e.stopPropagation()}
-                                        onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:(sl.fit==='contain'?{...sl,fit:'cover'}:{...sl,fit:'contain',zoom:1,cropX:50,cropY:50}))}));}}
-                                        title="Показати фото повністю, без обрізки під форму слота"
-                                        style={{background:(slot!.fit==='contain'?'rgba(34,197,94,0.9)':'rgba(255,255,255,0.15)'),border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                        <span style={{fontSize:9,fontWeight:700}}>{slot!.fit==='contain'?'Повністю':'Без обрізки'}</span>
-                                      </button>
-                                    </div>
-                                  </div>
+                                  <SlotPhotoToolbar
+                                    slot={slot!}
+                                    slotBox={{ width: Number(slotStyle.width) || 100, height: Number(slotStyle.height) || 100 }}
+                                    posStyle={posStyle}
+                                    isMobile={isMobile}
+                                    slotEditTitle="Змінити форму або розмір слота"
+                                    updateSlot={(fn, opts) => {
+                                      if (opts?.history !== false) pushHistoryCoalesced();
+                                      setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl as any) as any) }));
+                                    }}
+                                    onDelete={() => { clearSlot(spreadPageIdx, i); setPhotoEditSlot(null); }}
+                                    onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
+                                  />
                                   );
                                 })()}
                                 {/* Shape selector — visible only in slot edit mode (when user clicked "Слот" button) */}
@@ -9276,67 +9228,20 @@ export default function BookLayoutEditor() {
                                     const HALF = isMobile ? 90 : 130;
                                     const shiftX = Math.round(Math.max(HALF, Math.min(pageW - HALF, slotCenter)) - slotCenter);
                                     return (
-                                    <div data-export-ignore="true" onMouseDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} style={{position:'absolute',...posStyle,left:'50%',transform:`translateX(calc(-50% + ${shiftX}px))`,display:'flex',flexDirection:'column',alignItems:'center',gap:2,background:'rgba(0,0,0,0.82)',borderRadius:12,padding:'4px 6px',zIndex:60,whiteSpace: isMobile?'normal':'nowrap',maxWidth: isMobile?'calc(100vw - 16px)':undefined}}>
-                                      {/* Row 1: zoom + rotate + delete */}
-                                      <div style={{display:'flex',alignItems:'center',gap:2,flexWrap: isMobile?'wrap':'nowrap',justifyContent:'center'}}>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.max(0.1,(sl.zoom||1)-0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>−</button>
-                                        <span style={{color:'#fff',fontSize:9,fontWeight:700,minWidth:30,textAlign:'center'}}>{Math.round((slot!.zoom||1)*100)}%</span>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:Math.min(4,(sl.zoom||1)+0.1)})}));}} style={{background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',cursor:'pointer',fontSize:16,padding:'2px 7px',borderRadius:6,touchAction:'manipulation',fontWeight:700,minWidth:28,textAlign:'center'}}>+</button>
-                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button title="Скинути все: масштаб, кадр, поворот" onClick={e=>e.stopPropagation()} onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:1,cropX:50,cropY:50,rotation:0})}));}} style={{background:'none',border:'none',color:'rgba(255,255,255,0.85)',cursor:'pointer',padding:'2px 6px',touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}><RotateCcw size={11}/><span style={{fontSize:9,fontWeight:600}}>Скинути</span></button>
-                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
-                                          e.stopPropagation();
-                                          const slotW = Number(s.width)||100;
-                                          const slotH = Number(s.height)||100;
-                                          setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>{
-                                            if (si!==i) return sl;
-                                            const newRot = ((sl.rotation||0)-90+360)%360;
-                                            const isQuarter = newRot===90 || newRot===270;
-                                            const baseZoom = isQuarter ? Math.max(slotW/slotH, slotH/slotW) : 1;
-                                            return {...sl, rotation:newRot, zoom: baseZoom};
-                                          })}));
-                                        }} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути -90°">↶</button>
-                                        <span style={{color:'rgba(255,255,255,0.7)',fontSize:8,fontWeight:600,minWidth:18,textAlign:'center'}}>{slot!.rotation||0}°</span>
-                                        <button onClick={e=>e.stopPropagation()} onPointerDown={e=>{
-                                          e.stopPropagation();
-                                          const slotW = Number(s.width)||100;
-                                          const slotH = Number(s.height)||100;
-                                          setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>{
-                                            if (si!==i) return sl;
-                                            const newRot = ((sl.rotation||0)+90)%360;
-                                            const isQuarter = newRot===90 || newRot===270;
-                                            const baseZoom = isQuarter ? Math.max(slotW/slotH, slotH/slotW) : 1;
-                                            return {...sl, rotation:newRot, zoom: baseZoom};
-                                          })}));
-                                        }} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,padding:'2px 3px',touchAction:'manipulation'}} title="Повернути +90°">↷</button>
-                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button
-                                          onClick={e=>e.stopPropagation()}
-                                          onPointerDown={e=>{e.stopPropagation();clearSlot(pageIdx,i);setPhotoEditSlot(null);}}
-                                          title="Видалити фото зі слота"
-                                          style={{background:'rgba(239,68,68,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                          <Trash2 size={11}/>
-                                          <span style={{fontSize:9,fontWeight:700}}>Видалити</span>
-                                        </button>
-                                        <div style={{width:1,height:14,background:'rgba(255,255,255,0.25)',margin:'0 3px'}}/>
-                                        <button
-                                          onClick={e=>e.stopPropagation()}
-                                          onPointerDown={e=>{e.stopPropagation();setEditSlotKey(editSlotKey===key?null:key);setPhotoEditSlot(null);}}
-                                          title="Змінити розмір слота — тягни кути"
-                                          style={{background:'rgba(59,130,246,0.85)',border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                          <Crop size={11}/>
-                                          <span style={{fontSize:9,fontWeight:700}}>Слот</span>
-                                        </button>
-                                        <button
-                                          onClick={e=>e.stopPropagation()}
-                                          onPointerDown={e=>{e.stopPropagation();pushHistoryCoalesced();setPages(prev=>prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:(sl.fit==='contain'?{...sl,fit:'cover'}:{...sl,fit:'contain',zoom:1,cropX:50,cropY:50}))}));}}
-                                          title="Показати фото повністю, без обрізки під форму слота"
-                                          style={{background:(slot!.fit==='contain'?'rgba(34,197,94,0.9)':'rgba(255,255,255,0.15)'),border:'none',color:'#fff',cursor:'pointer',padding:'4px 8px',borderRadius:8,touchAction:'manipulation',display:'flex',alignItems:'center',gap:3}}>
-                                          <span style={{fontSize:9,fontWeight:700}}>{slot!.fit==='contain'?'Повністю':'Без обрізки'}</span>
-                                        </button>
-                                      </div>
-                                    </div>
+                                    <SlotPhotoToolbar
+                                      slot={slot!}
+                                      slotBox={{ width: Number(s.width) || 100, height: Number(s.height) || 100 }}
+                                      posStyle={posStyle}
+                                      shiftX={shiftX}
+                                      isMobile={isMobile}
+                                      slotEditTitle="Змінити розмір слота — тягни кути"
+                                      updateSlot={(fn, opts) => {
+                                        if (opts?.history !== false) pushHistoryCoalesced();
+                                        setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl as any) as any) }));
+                                      }}
+                                      onDelete={() => { clearSlot(pageIdx, i); setPhotoEditSlot(null); }}
+                                      onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
+                                    />
                                   );
                                   })()}
                                 </div>
