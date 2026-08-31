@@ -1,78 +1,17 @@
-import type { LayoutDef } from './types';
 
 //  Layout definitions 
 
-export const LAYOUTS: LayoutDef[] = [
-  // 1 фото
-  { id: 'p-full',         label: 'На всю сторінку',  slots: 1, group: '1 фото' },
-  { id: 'p-center',       label: 'По центру',         slots: 1, group: '1 фото' },
-  { id: 'p-top',          label: 'Зверху',            slots: 1, group: '1 фото' },
-  { id: 'p-bottom',       label: 'Знизу',             slots: 1, group: '1 фото' },
-  { id: 'p-left',         label: 'Ліворуч',           slots: 1, group: '1 фото' },
-  { id: 'p-right',        label: 'Праворуч',          slots: 1, group: '1 фото' },
-  // 2 фото
-  { id: 'p-2-v',          label: '2 вертикально',     slots: 2, group: '2 фото' },
-  { id: 'p-2-h',          label: '2 горизонтально',   slots: 2, group: '2 фото' },
-  { id: 'p-2-big-top',    label: 'Велике зверху',     slots: 2, group: '2 фото' },
-  { id: 'p-2-big-bottom', label: 'Велике знизу',      slots: 2, group: '2 фото' },
-  { id: 'p-2-big-left',   label: 'Велике ліворуч',    slots: 2, group: '2 фото' },
-  { id: 'p-2-big-right',  label: 'Велике праворуч',   slots: 2, group: '2 фото' },
-  { id: 'p-2-diag',       label: 'Діагональ',         slots: 2, group: '2 фото' },
-  // 3 фото
-  { id: 'p-3-row',        label: '3 в рядок',         slots: 3, group: '3 фото' },
-  { id: 'p-3-col',        label: '3 в стовпець',      slots: 3, group: '3 фото' },
-  { id: 'p-3-top2',       label: '2 зверху + 1',      slots: 3, group: '3 фото' },
-  { id: 'p-3-bot2',       label: '1 + 2 знизу',       slots: 3, group: '3 фото' },
-  { id: 'p-3-left2',      label: '2 ліво + 1',        slots: 3, group: '3 фото' },
-  { id: 'p-3-right2',     label: '1 + 2 право',       slots: 3, group: '3 фото' },
-  { id: 'p-3-hero-top',   label: 'Велике + 2 знизу',  slots: 3, group: '3 фото' },
-  { id: 'p-3-hero-left',  label: 'Велике + 2 право',  slots: 3, group: '3 фото' },
-  // Вертикальні слоти на сторінку (1/2/3)
-  { id: 'p-vert-1',       label: '1 вертикальне',     slots: 1, group: '1 фото' },
-  { id: 'p-vert-2',       label: '2 вертикальні',     slots: 2, group: '2 фото' },
-  { id: 'p-vert-3',       label: '3 вертикальні',     slots: 3, group: '3 фото' },
-  // 4 фото
-  { id: 'p-4-grid',       label: '4 рівно',           slots: 4, group: '4 фото' },
-  { id: 'p-4-hero-top',   label: 'Велике + 3 знизу',  slots: 4, group: '4 фото' },
-  { id: 'p-4-hero-left',  label: 'Велике + 3 право',  slots: 4, group: '4 фото' },
-  { id: 'p-4-strip-h',    label: '4 горизонт смуга',  slots: 4, group: '4 фото' },
-  { id: 'p-4-strip-v',    label: '4 вертик смуга',    slots: 4, group: '4 фото' },
-  { id: 'p-4-l-shape',    label: 'Г-подібний',        slots: 4, group: '4 фото' },
-  // 5 фото
-  { id: 'p-5-hero',       label: 'Велике + 4',        slots: 5, group: '5 фото' },
-  { id: 'p-5-grid',       label: '5 сітка',           slots: 5, group: '5 фото' },
-  { id: 'p-5-strip',      label: '1 + 4 смуга',       slots: 5, group: '5 фото' },
-  { id: 'p-5-col-hero',   label: 'Велике + 4 ряд',    slots: 5, group: '5 фото' },
-  { id: 'p-5-2-3',        label: '2 зверху + 3 знизу', slots: 5, group: '5 фото' },
-  { id: 'p-5-3-2',        label: '3 зверху + 2 знизу', slots: 5, group: '5 фото' },
-  { id: 'p-5-cross',      label: 'Хрест',             slots: 5, group: '5 фото' },
-  { id: 'p-5-l-hero',     label: 'Велике ліво + 4',   slots: 5, group: '5 фото' },
-  { id: 'p-5-r-hero',     label: 'Велике право + 4',  slots: 5, group: '5 фото' },
-  // 6 фото
-  { id: 'p-6-grid',       label: '6 рівно (2×3)',     slots: 6, group: '6 фото' },
-  { id: 'p-6-3x2',        label: '6 рівно (3×2)',     slots: 6, group: '6 фото' },
-  { id: 'p-6-hero',       label: 'Велике + 5',        slots: 6, group: '6 фото' },
-  { id: 'p-6-2col',       label: '2 колонки по 3',    slots: 6, group: '6 фото' },
-  { id: 'p-6-hero-bot',   label: 'Велике знизу + 5',  slots: 6, group: '6 фото' },
-  { id: 'p-6-strip-h',    label: '6 горизонт смуга',  slots: 6, group: '6 фото' },
-  // 7-9 фото
-  { id: 'p-7-grid',       label: '7 сітка',           slots: 7, group: '7–9 фото' },
-  { id: 'p-7-hero',       label: 'Велике + 6',        slots: 7, group: '7–9 фото' },
-  { id: 'p-8-grid',       label: '8 сітка',           slots: 8, group: '7–9 фото' },
-  { id: 'p-8-2x4',        label: '2×4',               slots: 8, group: '7–9 фото' },
-  { id: 'p-9-grid',       label: '9 рівно (3×3)',     slots: 9, group: '7–9 фото' },
-  { id: 'p-9-hero',       label: 'Велике + 8',        slots: 9, group: '7–9 фото' },
-  // Великі сітки (10–16)
-  { id: 'p-10-grid',      label: '10 (2×5)',          slots: 10, group: '10+ фото' },
-  { id: 'p-12-grid',      label: '12 сітка (4×3)',    slots: 12, group: '10+ фото' },
-  { id: 'p-12-3x4',       label: '12 сітка (3×4)',    slots: 12, group: '10+ фото' },
-  { id: 'p-15-grid',      label: '15 сітка (5×3)',    slots: 15, group: '10+ фото' },
-  { id: 'p-16-grid',      label: '16 сітка (4×4)',    slots: 16, group: '10+ фото' },
-  // Текст
-  { id: 'p-text',         label: 'Тільки текст',      slots: 0, group: 'Текст' },
-  { id: 'p-text-top',     label: 'Фото + текст знизу', slots: 1, group: 'Текст' },
-  { id: 'p-text-bottom',  label: 'Текст + фото знизу', slots: 1, group: 'Текст' },
-];
+// NOTE: a stale `LAYOUTS: LayoutDef[]` export lived here and was removed on
+// 2026-08-31. It had no consumers — the editor uses its own LAYOUTS in
+// components/BookLayoutEditor.tsx — and it had drifted: ten of its ids
+// (p-5-col-hero, p-5-l-hero, p-5-r-hero, p-6-2col, p-6-hero-bot, p-10-grid,
+// p-12-grid, p-12-3x4, p-15-grid, p-16-grid) exist in no LayoutType union and
+// have no geometry in slot-defs.ts, so they could never have rendered. It was
+// invisible because LayoutType in ./types was typed `string`.
+//
+// Moving the editor's real LAYOUTS here (so the list lives beside the fonts
+// and colours it belongs with) is the natural follow-up; it is left out of
+// this change to keep the type consolidation reviewable.
 
 //  Page proportions 
 

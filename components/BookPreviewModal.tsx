@@ -11,6 +11,7 @@ import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
+import type { SlotData, TextBlock } from '@/lib/editor/types';
 
 /**
  * Renders a printed-cover caption the same way the editor's FitText does:
@@ -42,22 +43,10 @@ function PreviewCoverText({ tb, maxWidthPx, scale = 1 }: { tb: { text: string; f
 
 //  Interfaces 
 
-interface SlotData {
-  photoId: string | null;
-  cropX: number; cropY: number; zoom: number; fit?: 'cover' | 'contain';
-  rotation?: number;
-  shape?: 'rect' | 'rounded' | 'circle' | 'heart';
-  customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean;
-}
+// SlotData and TextBlock are imported from lib/editor/types — they used to
+// be re-declared here, a third copy of the same shapes.
 
-interface TextBlock {
-  id: string; text: string; x: number; y: number;
-  fontSize: number; fontFamily: string; color: string;
-  bold: boolean; italic: boolean;
-  zOrder?: number;
-  /** Box width as % of the container, set by the editor's side handles. */
-  w?: number;
-}
+
 
 interface PageData {
   id: number; label: string; layout: string;

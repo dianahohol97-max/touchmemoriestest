@@ -86,7 +86,7 @@ The photobook/travel book editor is the most complex part of the codebase. **80%
 - **`components/BookPreviewModal.tsx`** — preview of the finished book. Renders backgrounds, photo slots, frames (PNG+SVG), shapes, stickers, QR overlays, and the kalka page. Multi-slot layout rendering is still pending — it currently uses single-slot getSlotDefs only.
 
 ### Supporting files in `lib/editor/`
-- **`types.ts`** — `PhotoData`, `BookConfig`, `CoverState`, `CoverDecoType`, `LayoutType` etc.
+- **`types.ts`** — `PhotoData`, `BookConfig`, `CoverState`, `CoverDecoType`, `LayoutType`, `SlotData`, `TextBlock`, `Page`. **This is now genuinely the source of truth** and the editor imports from it. Until 2026-08-31 it only claimed to be: nothing imported it, and every one of these shapes was ALSO declared privately inside `BookLayoutEditor.tsx` (and two of them a third time in `BookPreviewModal.tsx`). The copies here had drifted far behind — `PhotoData` 5 fields against the real 13, `SlotData` 5 against 11, `LayoutType` a bare `string` against a ~200-member union — so anyone who followed this doc was coding against shapes that had not been accurate for a long time. Change a shape here; do not re-declare it in a component.
 - **`constants.ts`** — 98 fonts (`FONT_GROUPS`, `FONT_DATA` with `cyr` flag), `GOOGLE_FONTS_URL`, decoration variants (acryl, photovstavka, flex, metal, gravira), leatherette/fabric/velour colours
 - **`page-templates.ts`** — 64 spread layouts (`PAGE_TEMPLATES`)
 - **`cover-templates.ts`** — 30+ cover presets, filterable by `tags` (`photobook` / `magazine` / `journal` / `travelbook` / `wishbook`)

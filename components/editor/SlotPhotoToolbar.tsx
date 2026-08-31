@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { Crop, RotateCcw, Trash2 } from 'lucide-react';
+import type { SlotData } from '@/lib/editor/types';
 
 /**
  * The floating toolbar над вибраним слотом з фото: масштаб, поворот,
@@ -42,14 +43,16 @@ import { Crop, RotateCcw, Trash2 } from 'lucide-react';
  * make the refactor impossible to review. Hence the `history` option below.
  */
 
-/** Only the fields this toolbar reads, so it fits either SlotData shape. */
-export interface ToolbarSlot {
-    zoom?: number;
-    cropX?: number;
-    cropY?: number;
-    rotation?: number;
-    fit?: 'cover' | 'contain';
-}
+/**
+ * Only the fields this toolbar reads. Derived from the canonical SlotData so
+ * it cannot drift from it, but kept narrow so a leaf component does not
+ * depend on slot geometry it never touches.
+ *
+ * (This started life as a hand-written structural type, because when the
+ * toolbar was extracted the shared SlotData in lib/editor/types.ts was a
+ * stale 5-field version that did not describe the real slot.)
+ */
+export type ToolbarSlot = Partial<Pick<SlotData, 'zoom' | 'cropX' | 'cropY' | 'rotation' | 'fit'>>;
 
 export interface SlotPhotoToolbarProps<S extends ToolbarSlot> {
     slot: S;
