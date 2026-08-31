@@ -32,7 +32,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
     const { data: order } = await admin
         .from('orders')
-        .select('id, order_number, payment_status, monobank_invoice_id, promo_code, items, customer_id, total, certificate_code, certificate_redeemed, certificate_applied')
+        .select('id, order_number, payment_status, monobank_invoice_id, promo_code, items, customer_id, total, payment_type, prepaid_amount, certificate_code, certificate_redeemed, certificate_applied')
         .eq('id', id)
         .maybeSingle();
     if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
@@ -58,6 +58,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     let bankStatus: string | null = null;
+    let bankAmount: unknown = null;
+    let bankCcy: unknown = null;
     let lastErr = '';
     for (const token of Array.from(new Set(tokens))) {
         try {
@@ -68,6 +70,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
             if (r.ok) {
                 const j = await r.json();
                 bankStatus = j?.status || null;
+                bankAmount = j?.amount;
+                bankCcy = j?.ccy;
                 if (bankStatus) break;
             } else {
                 lastErr = `HTTP ${r.status}`;
@@ -82,7 +86,48 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ status: bankStatus, message: `Статус у банку: ${bankStatus}. Оплату не підтверджено.` });
     }
 
-    // Bank confirmed → idempotent transition pending → paid.
+    // The webhook verifies that the amount the bank charged matches what this
+    // order is supposed to cost, and refuses the transition on a mismatch. This
+    // route reached the same `payment_status: 'paid'` on the bank's STATUS
+    // alone, so the manual reconciliation path was a way around the automatic
+    // path's check — if that check ever fires for real, a staff member clicking
+    // «Перевірити оплату» would have marked the order paid anyway.
+    //
+    // Same rules as the webhook: the amount must be usable and must match
+    // (±1 kopeck for rounding); for a split order the invoice is for
+    // prepaid_amount, not the full total; and the currency is checked only when
+    // the bank actually sends it, since that field is Monobank's payload shape
+    // and not ours.
+    {
+        const paidKopecks = Number(bankAmount);
+        const isSplit = (order as any).payment_type === 'split' && Number((order as any).prepaid_amount) > 0;
+        const expectedUah = isSplit ? Number((order as any).prepaid_amount) : Number((order as any).total);
+
+        if (!Number.isFinite(paidKopecks) || !Number.isFinite(expectedUah) || expectedUah <= 0) {
+            console.error('[check-payment] unusable amount', { id, bankAmount, expectedUah });
+            return NextResponse.json({
+                status: 'amount_unknown',
+                message: 'Банк підтвердив оплату, але суму звірити не вдалося. Позначте вручну, якщо все правильно.',
+            });
+        }
+        if (bankCcy !== undefined && bankCcy !== null && Number(bankCcy) !== 980) {
+            console.error('[check-payment] unexpected currency', { id, bankCcy });
+            return NextResponse.json({
+                status: 'currency_mismatch',
+                message: `Банк повернув валюту ${String(bankCcy)}, а не гривню. Оплату не підтверджено.`,
+            });
+        }
+        const expectedKopecks = Math.round(expectedUah * 100);
+        if (Math.abs(paidKopecks - expectedKopecks) > 1) {
+            console.error('[check-payment] amount mismatch', { id, paidKopecks, expectedKopecks });
+            return NextResponse.json({
+                status: 'amount_mismatch',
+                message: `Банк підтвердив ${(paidKopecks / 100).toFixed(2)} ₴, а замовлення на ${expectedUah.toFixed(2)} ₴. Оплату не підтверджено.`,
+            });
+        }
+    }
+
+    // Bank confirmed and the amount agrees → idempotent transition pending → paid.
     const { data: updated, error } = await admin
         .from('orders')
         .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
