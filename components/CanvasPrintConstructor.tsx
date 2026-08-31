@@ -122,10 +122,14 @@ export default function CanvasPrintConstructor() {
                     mimeType: up.type || 'image/jpeg',
                 }));
             } else {
-                console.warn('canvas-print upload failed:', uploadError);
+                throw new Error(uploadError.message || 'upload failed');
             }
         } catch (e) {
-            console.warn('canvas-print storage step skipped:', e);
+            // Це єдине фото картини — без нього друкувати нічого. Той самий
+            // гучний варіант, що вже стоїть у решті конструкторів.
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося завантажити фото на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('canvas-print photo save FAILED:', e);
         }
 
         toast.success(t('canvasprint.added_to_cart'));

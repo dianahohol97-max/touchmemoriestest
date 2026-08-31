@@ -172,9 +172,15 @@ export default function PuzzleConstructor({ productSlug }: { productSlug?: strin
             productType: 'puzzle', fileType: 'upload',
             size: blob.size, mimeType: blob.type || 'image/jpeg',
           }));
+        } else {
+          throw new Error(uploadError.message || 'upload failed');
         }
       } catch (e) {
-        console.warn('puzzle storage step skipped:', e);
+        // Це фото — і є пазл. Без нього замовлення нічим друкувати, тож
+        // мовчати не можна: помічаємо позицію для оформлення і кажемо вголос.
+        try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+        toast.error('Не вдалося завантажити фото пазла на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+        console.error('puzzle photo save FAILED:', e);
       }
     }
 

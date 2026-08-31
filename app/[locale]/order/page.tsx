@@ -9,6 +9,7 @@ import { Upload, X, FileImage, ChevronRight, ChevronLeft, Check, MessageCircle, 
 import { compressImageFile } from '@/lib/compress-upload-image'
 import { uploadImageToStorage } from '@/lib/storage-upload'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from 'sonner'
 import FlowHeader from '@/components/ui/FlowHeader'
 
 interface UploadedFile {
@@ -875,6 +876,24 @@ function OrderForm() {
         throw new Error(`Не вдалося завантажити фото${lastUploadError?.message ? `: ${lastUploadError.message}` : ''}`)
       }
 
+      // Частина фото не доїхала.
+      //
+      // Досі перевірявся тільки випадок «не доїхало ЖОДНОГО», а часткова
+      // втрата проходила мовчки: TM-001245 приїхало з сімома фото з двадцяти
+      // двох, клієнтка побачила «Замовлення прийнято» і не мала приводу
+      // повторити. Лічильник невдалих спроб рахувався й раніше — його просто
+      // ніде не було видно, ні їй, ні нам. Замовлення все одно створюємо
+      // (клієнтка щойно заповнила довгу форму, і кидати її на цьому кроці
+      // гірше), але тепер вона це бачить, а на замовленні лишається число.
+      const lostPhotos = total - uploaded.filter(u => !u.cover).length
+      if (lostPhotos > 0) {
+        toast.error(
+          `${lostPhotos} з ${total} фото не завантажились. Замовлення оформимо, але ми звʼяжемось і попросимо надіслати ці фото ще раз. `
+          + 'Можна також перевірити звʼязок і оформити заново — уже завантажені фото повторно не надсилатимуться.',
+          { duration: 14000 },
+        )
+      }
+
       // Optional dedicated cover photo
       let coverPath: string | null = null
       if (formData.coverPhoto?.file) {
@@ -945,6 +964,11 @@ function OrderForm() {
             delivery: formData.delivery,
             city: formData.city,
             address: formData.address,
+            // Скільки фото обрала клієнтка і скільки реально доїхало. Різниця
+            // між цими числами — це те, чого в замовленні бракує; без неї
+            // недоукомплектована заявка виглядає в адмінці як повна.
+            photos_submitted: total,
+            photos_attached: uploaded.filter(u => !u.cover).length,
           },
           total: estPrice,
           subtotal: estPrice,

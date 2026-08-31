@@ -227,9 +227,15 @@ const { addItem } = useCartStore();
                     productType: 'birth-stats', fileType: 'export',
                     size: blob.size, mimeType: 'application/json',
                 }));
+            } else {
+                throw new Error(uploadError.message || 'upload failed');
             }
         } catch (e) {
-            console.warn('birthstats config save skipped:', e);
+            // Цей JSON і є виробничий файл — з нього дизайнер робить постер.
+            // Той самий гучний варіант, що вже стоїть у зодіаку, монограмі й мапах.
+            try { sessionStorage.setItem(`export_failed_${cartItemId}`, '1'); } catch { /* quota */ }
+            toast.error('Не вдалося зберегти налаштування постера на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення деталей — або спробуйте додати в кошик ще раз.', { duration: 10000 });
+            console.error('birthstats config save FAILED:', e);
         }
 
         toast.success(t('birthstats.birthstats_added'));

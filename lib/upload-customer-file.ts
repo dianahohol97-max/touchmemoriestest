@@ -36,6 +36,11 @@ export async function uploadCustomerFile(
     fd.append('file', fileBlob, fileName);
     fd.append('path', path);
     fd.append('bucket', bucket);
+    // Скільки байтів ми відправляємо. Сервер звіряє з дочитаним і відмовляє
+    // на розбіжності, тож обрізане тіло не лягає у сховище під виглядом
+    // файлу (TM-001245). Без цього рядка вісім конструкторів, що ходять
+    // через цей помічник, мали лише захист від повністю порожнього тіла.
+    fd.append('size', String(fileBlob.size));
 
     const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
     if (!resp.ok) {

@@ -906,15 +906,21 @@ export default function PosterConstructor() {
         );
         const { data: { user } } = await sb.auth.getUser();
         const userKey = user?.id || 'anon';
+        // Скільки оригіналів мали доїхати і скільки доїхало. Раніше кожен збій
+        // просто пропускався через `continue`: постер із шести фото міг
+        // приїхати з двома, і про це ніхто не дізнавався до виробництва.
+        let attemptedPhotos = 0;
+        let failedPhotos = 0;
         for (let i = 0; i < config.photos.length; i++) {
           const p = config.photos[i];
           if (!p.photoUrl) continue;
+          attemptedPhotos++;
           try {
             const blob = await (await fetch(p.photoUrl)).blob();
             const ext = (blob.type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/g, '');
             const path = `${userKey}/${cartPayload.id}/${String(i + 1).padStart(3, '0')}.${ext === 'jpg' ? 'jpeg' : ext}`;
             const { error: uploadError } = await uploadCustomerFile(path, blob, { contentType: blob.type || 'image/jpeg' });
-            if (uploadError) { console.warn('poster upload failed:', uploadError); continue; }
+            if (uploadError) { failedPhotos++; console.error('poster upload FAILED:', path, uploadError); continue; }
             exportedFiles.push({
               path, fileName: `poster_slot_${i + 1}.${ext === 'jpg' ? 'jpeg' : ext}`,
               bucket: 'order-files', fileCategory: 'photo-upload',
@@ -923,8 +929,16 @@ export default function PosterConstructor() {
               pageNumber: i + 1,
             });
           } catch (e) {
-            console.warn('poster blob fetch failed:', e);
+            failedPhotos++;
+            console.error('poster blob fetch FAILED:', e);
           }
+        }
+        if (failedPhotos > 0) {
+          try { sessionStorage.setItem(`export_failed_${cartPayload.id}`, '1'); } catch { /* quota */ }
+          toast.error(
+            `${failedPhotos} з ${attemptedPhotos} фото не завантажились на сервер. Замовлення можна оформити, але ми звʼяжемось для уточнення — або спробуйте додати в кошик ще раз.`,
+            { duration: 12000 },
+          );
         }
         if (exportedFiles.length > 0) {
           sessionStorage.setItem(`export_${cartPayload.id}`, JSON.stringify(exportedFiles));
