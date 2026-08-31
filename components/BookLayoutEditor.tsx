@@ -1963,7 +1963,29 @@ export default function BookLayoutEditor() {
     return () => { cancelled = true; };
   }, [designerOrderId]);
 
-  const getPhoto = (id: string | null) => id ? photos.find(p => p.id === id) ?? null : null;
+  /**
+   * Photo lookup by id, O(1).
+   *
+   * This was `photos.find(...)` — a linear scan — and it is called from inside
+   * slot render loops (the spread and page canvases) and from the page
+   * navigator, which walks every page's every slot. That made photo lookup
+   * cost pages × slots × photos on each render: for a 60-page book with 200
+   * photos, roughly 48k comparisons, repeated on every keystroke, drag frame
+   * and zoom tick.
+   *
+   * Same fix as usedIds above: build the index once per photos change, then
+   * every lookup is a Map hit. Behaviour is unchanged — still null for a null
+   * id and null for an id that no longer resolves.
+   */
+  const photoById = React.useMemo(() => {
+    const index = new Map<string, PhotoData>();
+    for (const photo of photos) index.set(photo.id, photo);
+    return index;
+  }, [photos]);
+  const getPhoto = React.useCallback(
+    (id: string | null): PhotoData | null => (id ? photoById.get(id) ?? null : null),
+    [photoById],
+  );
   /**
    * Ids of every photo currently placed anywhere on the book.
    *
@@ -2608,7 +2630,7 @@ export default function BookLayoutEditor() {
   // Get smart crop position for a photo (uses detected focal point if available)
   const getFocalCrop = React.useCallback((photoId: string | null) => {
     if (!photoId) return { cropX: 50, cropY: 50 };
-    const photo = photos.find(p => p.id === photoId);
+    const photo = getPhoto(photoId);
     if (photo?.focalX !== undefined && photo?.focalY !== undefined) {
       return { cropX: photo.focalX, cropY: photo.focalY };
     }
@@ -2732,7 +2754,7 @@ export default function BookLayoutEditor() {
 
   //  Remove background via remove.bg API 
   const removePhotoBg = async (photoId: string) => {
-    const photo = photos.find(p => p.id === photoId);
+    const photo = getPhoto(photoId);
     if (!photo) return;
     // Toggle off if already removed
     if (photo.noBgUrl) {
@@ -8175,7 +8197,7 @@ export default function BookLayoutEditor() {
                         } else {
                           // No exact layout — just add as free slot
                           pushHistory();
-                          const ph3 = photos.find(p => p.id === photoId);
+                          const ph3 = getPhoto(photoId);
                           const ratio3 = ph3 ? ph3.width / ph3.height : 1;
                           const fh3 = Math.min(cH * 0.35, 120);
                           const fw3 = Math.round(fh3 * ratio3);
@@ -8317,7 +8339,7 @@ export default function BookLayoutEditor() {
                             <>
                               {/* DRAG-OVER REPLACE PREVIEW */}
                               {isOver && dragPhotoId && (() => {
-                                const incoming = photos.find(p => p.id === dragPhotoId);
+                                const incoming = getPhoto(dragPhotoId);
                                 return incoming ? (
                                   <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none' }}>
                                     <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
@@ -8373,11 +8395,22 @@ export default function BookLayoutEditor() {
                                   const posStyle = below
                                     ? { top: Math.min(slotHPx + 8, Math.max(8, cH - 44)) }
                                     : { top: -44 };
+                                  // Keep the bar inside the canvas for a slot near the left or
+                                  // right edge. The page-mode toolbar has always done this; the
+                                  // spread copy never got it, so there the bar could hang off
+                                  // the spread. Same formula, measured against the full spread
+                                  // width (cW) rather than a single page.
+                                  const slotLeftPx = Number(slotStyle.left) || 0;
+                                  const slotWPx = Number(slotStyle.width) || 100;
+                                  const slotCenter = slotLeftPx + slotWPx / 2;
+                                  const HALF = isMobile ? 90 : 130;
+                                  const shiftX = Math.round(Math.max(HALF, Math.min(cW - HALF, slotCenter)) - slotCenter);
                                   return (
                                   <SlotPhotoToolbar
                                     slot={slot!}
-                                    slotBox={{ width: Number(slotStyle.width) || 100, height: Number(slotStyle.height) || 100 }}
+                                    slotBox={{ width: slotWPx, height: Number(slotStyle.height) || 100 }}
                                     posStyle={posStyle}
+                                    shiftX={shiftX}
                                     isMobile={isMobile}
                                     slotEditTitle="Змінити форму або розмір слота"
                                     updateSlot={(fn, opts) => {
@@ -8952,7 +8985,7 @@ export default function BookLayoutEditor() {
                             const rect2 = (e.currentTarget as HTMLElement).getBoundingClientRect();
                             const fx = Math.max(10, Math.min(pageW - 80, e.clientX - rect2.left - 40));
                             const fy = Math.max(10, Math.min(cH - 80, e.clientY - rect2.top - 40));
-                            const ph2 = photos.find(p => p.id === photoId);
+                            const ph2 = getPhoto(photoId);
                             const ratio2 = ph2 ? ph2.width / ph2.height : 1;
                             const fh = Math.min(cH * 0.35, 120);
                             const fw = Math.round(fh * ratio2);
@@ -8966,7 +8999,7 @@ export default function BookLayoutEditor() {
                         const rect = e.currentTarget.getBoundingClientRect();
                         const dropX = Math.max(10, Math.min(pageW - 120, e.clientX - rect.left - 55));
                         const dropY = Math.max(10, Math.min(cH - 120, e.clientY - rect.top - 55));
-                        const photo = photos.find(p => p.id === photoId);
+                        const photo = getPhoto(photoId);
                         const ratio = photo ? photo.width / photo.height : 1;
                         const slotH = Math.min(cH * 0.45, 160);
                         const slotW = Math.round(slotH * ratio);
@@ -9084,7 +9117,7 @@ export default function BookLayoutEditor() {
                               <>
                                 {/* DRAG-OVER REPLACE PREVIEW — shows incoming photo at 50% opacity */}
                                 {isOver && dragPhotoId && (() => {
-                                  const incoming = photos.find(p => p.id === dragPhotoId);
+                                  const incoming = getPhoto(dragPhotoId);
                                   return incoming ? (
                                     <div style={{ position:'absolute', inset:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.35)', pointerEvents:'none', transition:'opacity 0.15s' }}>
                                       <img src={incoming.preview} style={{ width:'80%', height:'80%', objectFit:'cover', borderRadius:4, opacity:0.85, boxShadow:'0 4px 20px rgba(0,0,0,0.4)' }} draggable={false}/>
@@ -9167,7 +9200,7 @@ export default function BookLayoutEditor() {
                               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none',position:'relative',overflow:'hidden'}}>
                                 {/* DRAG-OVER PREVIEW — show incoming photo in empty slot */}
                                 {isOver && dragPhotoId && (() => {
-                                  const incoming = photos.find(p => p.id === dragPhotoId);
+                                  const incoming = getPhoto(dragPhotoId);
                                   return incoming ? (
                                     <img src={incoming.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.5, borderRadius:4, transition:'opacity 0.15s' }} draggable={false}/>
                                   ) : null;
