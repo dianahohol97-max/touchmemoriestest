@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
     Plus,
@@ -14,7 +13,6 @@ import {
     TrendingUp,
     Activity,
     DollarSign,
-    Clock,
     ShoppingBag,
     Users,
     X,
@@ -48,7 +46,6 @@ interface Staff {
 interface StaffStats {
     ordersThisMonth: number;
     revenueThisMonth: number;
-    avgResponseTime: number; // in hours
 }
 
 interface Role {
@@ -63,12 +60,12 @@ const COLORS = [
 ];
 
 export default function TeamPage() {
-    const supabase = createClient();
 
     const [staff, setStaff] = useState<Staff[]>([]);
     const [staffStats, setStaffStats] = useState<Record<string, StaffStats>>({});
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -91,15 +88,21 @@ export default function TeamPage() {
 
     const fetchData = async () => {
         setLoading(true);
+        setLoadError(null);
         try {
-            // Fetch staff
-            const { data: staffData, error: staffError } = await supabase
-                .from('staff')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (staffError) throw staffError;
-            setStaff(staffData || []);
+            // Список команди читається через серверний роут, а не напряму з
+            // браузера. Прямий запит ішов анонімним клієнтом у таблицю staff,
+            // закриту RLS, і без валідної сесії PostgREST повертає порожній
+            // список БЕЗ помилки. Сторінка через це впевнено малювала «Ще
+            // немає співробітників» на команді з чотирнадцяти людей. GET
+            // /api/admin/staff уже існував, працює під requireAdmin через
+            // сервісний ключ і просто не використовувався — усі записи з цієї
+            // ж сторінки давно ходять саме туди.
+            const staffRes = await fetch('/api/admin/staff');
+            if (!staffRes.ok) throw new Error(`staff ${staffRes.status}`);
+            const staffData = await staffRes.json();
+            if (!Array.isArray(staffData)) throw new Error('staff payload');
+            setStaff(staffData);
 
             // Fetch roles
             const rolesRes = await fetch('/api/admin/roles');
@@ -108,61 +111,34 @@ export default function TeamPage() {
                 setRoles(rolesData);
             }
 
-            // Fetch stats for each staff member
-            if (staffData) {
-                await fetchStaffStats(staffData);
-            }
+            await fetchStaffStats();
         } catch (error) {
             console.error('Error fetching data:', error);
+            // Порожній список і збій завантаження — різні речі, і плутати їх
+            // не можна: саме через це помилку читали як «команди немає».
+            setLoadError('Не вдалося завантажити команду. Оновіть сторінку або увійдіть в адмінку заново.');
             toast.error('Помилка завантаження даних');
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchStaffStats = async (staffList: Staff[]) => {
-        const now = new Date();
-        const monthStart = startOfMonth(now).toISOString();
-        const monthEnd = endOfMonth(now).toISOString();
-
-        const stats: Record<string, StaffStats> = {};
-
-        for (const member of staffList) {
-            try {
-                // Fetch orders assigned to this staff member this month
-                const { data: orders } = await supabase
-                    .from('orders')
-                    .select('id, total, created_at, assigned_manager_id, assigned_designer_id')
-                    .gte('created_at', monthStart)
-                    .lte('created_at', monthEnd)
-                    .or(`assigned_manager_id.eq.${member.id},assigned_designer_id.eq.${member.id}`);
-
-                const ordersCount = orders?.length || 0;
-                const revenue = orders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
-
-                // Calculate avg response time (simplified - time between order creation and first status update)
-                let totalResponseTime = 0;
-                if (orders && orders.length > 0) {
-                    // This is a simplified calculation - in real scenario, you'd track actual response times
-                    totalResponseTime = orders.length * 2; // Mock: 2 hours average
-                }
-
-                stats[member.id] = {
-                    ordersThisMonth: ordersCount,
-                    revenueThisMonth: revenue,
-                    avgResponseTime: ordersCount > 0 ? totalResponseTime / ordersCount : 0
-                };
-            } catch (error) {
-                console.error(`Error fetching stats for ${member.name}:`, error);
-                stats[member.id] = {
-                    ordersThisMonth: 0,
-                    revenueThisMonth: 0,
-                    avgResponseTime: 0
-                };
-            }
+    const fetchStaffStats = async () => {
+        // Раніше це був цикл із окремим запитом до orders на кожного
+        // співробітника, з браузера. Він фільтрував по assigned_manager_id та
+        // assigned_designer_id — колонок із такими іменами в orders немає,
+        // справжні звуться manager_id і designer_id, — а catch довкола
+        // перетворював падіння на нулі, які виглядали як чесна відповідь.
+        // Тепер один серверний запит під requireAdmin рахує весь місяць.
+        try {
+            const res = await fetch('/api/admin/staff/stats');
+            if (!res.ok) throw new Error(`stats ${res.status}`);
+            const { stats } = await res.json();
+            setStaffStats(stats || {});
+        } catch (error) {
+            console.error('Error fetching staff stats:', error);
+            setStaffStats({});
         }
-
-        setStaffStats(stats);
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -374,6 +350,17 @@ export default function TeamPage() {
                 <div style={{ padding: '100px', textAlign: 'center' }}>
                     <Activity className="animate-spin" size={40} color="#94a3b8" style={{ margin: '0 auto' }} />
                 </div>
+            ) : loadError ? (
+                /* Збій завантаження більше не виглядає як порожня команда.
+                   Саме ця підміна й ввела в оману: сторінка писала «Ще немає
+                   співробітників» на команді з чотирнадцяти людей. */
+                <div style={{ padding: '80px 40px', textAlign: 'center', color: '#b91c1c' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 10 }}>{loadError}</div>
+                    <button onClick={fetchData}
+                        style={{ padding: '9px 18px', background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                        Спробувати ще раз
+                    </button>
+                </div>
             ) : staff.length === 0 ? (
                 <div style={{ padding: '100px', textAlign: 'center', color: '#64748b' }}>
                     Ще немає співробітників
@@ -383,8 +370,7 @@ export default function TeamPage() {
                     {staff.map((member) => {
                         const stats = staffStats[member.id] || {
                             ordersThisMonth: 0,
-                            revenueThisMonth: 0,
-                            avgResponseTime: 0
+                            revenueThisMonth: 0
                         };
                         const roleBadge = getRoleBadgeColor(getRoleLabel(member));
 
@@ -499,13 +485,6 @@ export default function TeamPage() {
                                                     : stats.revenueThisMonth}{' '}
                                                 ₴
                                             </div>
-                                        </div>
-                                        <div>
-                                            <div style={miniStatLabel}>
-                                                <Clock size={12} />
-                                                Відгук
-                                            </div>
-                                            <div style={miniStatValue}>{stats.avgResponseTime.toFixed(1)}h</div>
                                         </div>
                                     </div>
                                 </div>
