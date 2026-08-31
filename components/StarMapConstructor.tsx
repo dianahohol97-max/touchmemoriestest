@@ -87,7 +87,7 @@ function makePreviewDataUrl(canvas: HTMLCanvasElement | null): string {
 export default function StarMapConstructor() {
     const t = useT();
     const router = useRouter();
-    const { addItem } = useCartStore();
+    const { addItem, replaceItem } = useCartStore();
     const [currentStep, setCurrentStep] = useState(1);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -106,10 +106,22 @@ export default function StarMapConstructor() {
         : urlSize.includes('30') ? '30×40 см'
         : 'A4 (21×29.7 см)';
 
+    // Яку саме позицію кошика ми зараз редагуємо. Кнопка «Редагувати» в кошику
+    // кладе її id у starmapEditItemId, але конструктор досі лише зчитував із
+    // нього конфіг і одразу забував: на додаванні створювався НОВИЙ
+    // `starmap_${Date.now()}`, тож відредагована мапа лягала в кошик другою
+    // позицією поруч зі старою, і клієнтка платила за неї двічі. Книжковий
+    // редактор давно робить це правильно через replaceItem — тепер і мапа.
+    const editingCartItemIdRef = useRef<string | null>(
+        typeof window !== 'undefined' ? (() => {
+            try { return sessionStorage.getItem('starmapEditItemId'); } catch { return null; }
+        })() : null,
+    );
+
     // Restore config if user clicked "Редагувати" from the cart
     const [config, setConfig] = useState<StarMapConfig>(() => {
         if (typeof window !== 'undefined') {
-            const editId = sessionStorage.getItem('starmapEditItemId');
+            const editId = editingCartItemIdRef.current;
             if (editId) {
                 try {
                     const saved = sessionStorage.getItem(`starmapConfig_${editId}`);
@@ -117,7 +129,10 @@ export default function StarMapConstructor() {
                         sessionStorage.removeItem('starmapEditItemId');
                         return JSON.parse(saved) as StarMapConfig;
                     }
-                } catch { /* ignore */ }
+                    // Конфіг не знайшовся — редагувати нічого, працюємо як
+                    // зі звичайним новим постером.
+                    editingCartItemIdRef.current = null;
+                } catch { editingCartItemIdRef.current = null; }
             }
         }
         return {
@@ -231,7 +246,10 @@ export default function StarMapConstructor() {
         // Find the canvas inside the preview area
         const canvas = previewAreaRef.current?.querySelector('canvas') as HTMLCanvasElement | null;
 
-        const cartItemId = `starmap_${Date.now()}`;
+        // Редагування зберігає id позиції, тож оновлений постер заміщає стару
+        // позицію, а не додається другою. Нова мапа, як і раніше, дістає свіжий id.
+        const editingCartItemId = editingCartItemIdRef.current;
+        const cartItemId = editingCartItemId || `starmap_${Date.now()}`;
 
         // Export canvas if available. The preview canvas is now rendered at
         // ~300 DPI (PRINT_SCALE in StarMapPreview), so we export it directly as
@@ -302,7 +320,15 @@ export default function StarMapConstructor() {
             sessionStorage.setItem(`starmapConfig_${cartItemId}`, JSON.stringify(config));
         } catch { /* quota exceeded — edit button simply won't appear */ }
 
-        addItem(cartPayload);
+        if (editingCartItemId) {
+            // replaceItem заміщає позицію на місці й не збільшує кількість, а
+            // якщо клієнтка встигла видалити її з кошика — просто додає в кінець.
+            // Обидва результати кращі за дублікат.
+            replaceItem(cartPayload);
+            editingCartItemIdRef.current = null;
+        } else {
+            addItem(cartPayload);
+        }
 
         // Persist as a project so it shows up in "Мої дизайни" like the other
         // products do. Star map previously only went to the cart and never
