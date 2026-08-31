@@ -47,7 +47,9 @@ export function canonicalCoverType(coverType: string): string {
     return 'Друкована';
 }
 
-// Convert "20×20" / "20x20" / "20*20" to canonical "20×20" matching DB.
+// Convert "20×20" / "20x20" / "20х20" (кирилична х) to canonical "20×20"
+// matching DB. Зірочка НЕ підтримується — normalizeSizeKey зводить лише × та
+// кириличну х, і саме ці дві форми реально приходять із картки товару.
 function canonicalSize(sizeValue: string): string {
     const key = normalizeSizeKey(sizeValue); // returns "20x20" form
     // DB stores sizes with × (unicode multiplication sign), not x.
@@ -108,6 +110,34 @@ export function findPriceRow(
     const nearest = nearestPageCount(counts, pageCount);
     if (nearest === null) return null;
     return idx.get(`${cover}|${size}|${nearest}`) ?? null;
+}
+
+/**
+ * Найбільша кількість сторінок, яка взагалі має ціну для цієї обкладинки й
+ * розміру. Вище неї прайс просто закінчується.
+ *
+ * Це справжня межа продукту, і вона НЕ однакова: більшість фотокниг ідуть до
+ * 50 сторінок, а «Випускна» — лише до 30. Тому редактор мусить питати таблицю,
+ * а не тримати зашите число, яке роз'їдеться з прайсом при першій же зміні.
+ *
+ * Навіщо це взагалі потрібно: findPriceRow при промаху бере НАЙБЛИЖЧУ наявну
+ * кількість. Тобто книга на 54 сторінки тихо оцінюється як 50-сторінкова, і
+ * зайві розвороти виходять безкоштовними — рівно це сталося в TM-001254
+ * (20×30, друкована обкладинка, 54 сторінки, 2390 + 300 за кальку = 2690 ₴,
+ * тобто ціна п'ятдесяти сторінок).
+ *
+ * Повертає null, якщо таблиця ще не завантажилась або пари немає — виклик має
+ * трактувати це як «межа невідома» і не блокувати роботу.
+ */
+export function maxPageCountFor(
+    table: PriceTable | null,
+    coverType: string,
+    sizeValue: string,
+): number | null {
+    if (!table || !table.rows || table.rows.length === 0) return null;
+    const counts = pageCountsFor(table, canonicalCoverType(coverType), canonicalSize(sizeValue));
+    if (counts.length === 0) return null;
+    return counts[counts.length - 1];
 }
 
 // Returns base price only (no kalka surcharge applied). Used by the product

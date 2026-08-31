@@ -36,7 +36,7 @@ import {
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
   formatDecorationVariant,
 } from '@/lib/editor/utils';
-import { calculateDynamicPrice } from '@/lib/editor/pricing';
+import { calculateDynamicPrice, maxPageCountFor } from '@/lib/editor/pricing';
 import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { engravingAllowedOn } from '@/lib/products/decoration-rules';
@@ -2428,7 +2428,23 @@ export default function BookLayoutEditor() {
     // price lookup falls back to the TOP tier for anything above it. So pages
     // beyond the maximum were not just unsupported — they were FREE: TM-001113
     // reached 82 photo pages billed as 80. Refuse instead.
-    const maxContentPages = isTravel ? 80 : isMagazine ? (isHardCoverJournal ? 80 : 100) : Infinity;
+    //
+    // У фотокниг межа стояла Infinity, тобто її не було зовсім, — і та сама
+    // безкоштовність працювала й тут. TM-001254: 20×30, друкована обкладинка,
+    // 54 сторінки, оплачено 2690 ₴, тоді як 2390 + 300 за кальку — це рівно
+    // ціна 50 сторінок, останнього рядка прайсу. findPriceRow при промаху
+    // бере НАЙБЛИЖЧУ наявну кількість, тож два зайві розвороти клієнтка
+    // отримала задарма, а виробництво — книгу, якої немає в прайсі.
+    //
+    // Число не зашиваємо: справжня межа лежить у photobook_prices і залежить
+    // від обкладинки (більшість книг до 50, «Випускна» — до 30). Питаємо
+    // таблицю, яку редактор і так уже завантажив для розрахунку ціни.
+    const photobookMax = maxPageCountFor(priceTable, config?.selectedCoverType || '', config?.selectedSize || '');
+    const maxContentPages = isTravel ? 80
+      : isMagazine ? (isHardCoverJournal ? 80 : 100)
+      // Прайс ще не доїхав — не блокуємо роботу, ціна в цьому разі й так
+      // рахується за fallbackPrice з картки товару.
+      : (photobookMax ?? Infinity);
     if (billableContentPages + pagesPerStep > maxContentPages) {
       toast.error(`Максимум для цього продукту — ${maxContentPages} сторінок. Більше додати не можна.`);
       return;
@@ -4178,6 +4194,25 @@ export default function BookLayoutEditor() {
     // how many spreads the cover editor shows — the inner pages aren't designed
     // here, only the cover. Other books use the actual content page count.
     const contentPages = isWishbook ? 32 : billableContentPages;
+
+    // Запобіжник для книг, зібраних ДО того, як зʼявилася межа в addSpread:
+    // чернетки й збережені дизайни на 52+ сторінки вже існують, і без цієї
+    // перевірки вони так само пішли б у кошик за ціною 50 сторінок (див.
+    // TM-001254). Ціни для такої книги просто немає, тож приймати замовлення
+    // не можна — але й кидати клієнтку ні з чим теж: кажемо рівно, скільки
+    // розворотів прибрати.
+    if (!isWishbook && !isTravel && !isMagazine) {
+      const priceMax = maxPageCountFor(priceTable, config?.selectedCoverType || '', config?.selectedSize || '');
+      if (priceMax !== null && contentPages > priceMax) {
+        const extraSpreads = Math.ceil((contentPages - priceMax) / 2);
+        toast.error(
+          `У книзі ${contentPages} сторінок, а максимум для цього розміру й обкладинки — ${priceMax}. ` +
+          `Приберіть ${extraSpreads} ${extraSpreads === 1 ? 'розворот' : extraSpreads < 5 ? 'розвороти' : 'розворотів'} і додайте книгу в кошик ще раз.`,
+          { duration: 12000 },
+        );
+        return;
+      }
+    }
 
     // Build a small, PERSISTENT thumbnail for the cart. The previous code put
     // the first photo's blob: URL straight into the cart item — but blob: URLs
