@@ -67,6 +67,16 @@ export async function POST(request: Request) {
         status: 'new',
     }).select('id').maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+        // 23505 = unique violation. The check above already catches the normal
+        // duplicate, so reaching here means another writer inserted the same
+        // email between that SELECT and this INSERT — the race the
+        // leads_email_lower_key index exists to close. Answer it the same way
+        // as the check does rather than surfacing a raw Postgres error as a 500.
+        if ((error as { code?: string }).code === '23505') {
+            return NextResponse.json({ error: 'Лід з таким email вже існує' }, { status: 409 });
+        }
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ ok: true, lead_id: data?.id });
 }

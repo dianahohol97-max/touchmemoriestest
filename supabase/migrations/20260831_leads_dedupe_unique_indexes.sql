@@ -1,3 +1,10 @@
+-- APPLIED to project yivfsicvaoewxrtkrfxr on 2026-08-31.
+-- Verified after applying: both indexes present with the definitions below, and
+-- probed live — a case-differing duplicate email and a repeated
+-- google_place_id are both rejected with 23505 (the probe ran inside a
+-- transaction that was rolled back, so it left no rows).
+-- To reverse: drop index leads_google_place_id_key, leads_email_lower_key;
+--
 -- Make the leads dedupe rule a constraint instead of a convention.
 --
 -- /api/leads/ingest deduped in application code: for each of up to 200 leads
