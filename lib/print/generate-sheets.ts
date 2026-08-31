@@ -12,6 +12,46 @@ const SHEET_CATEGORY = 'print_sheet';
 const BUCKET = 'order-files';
 const JPEG_QUALITY = 92;
 
+/**
+ * Лінії різу по межах комірок.
+ *
+ * Збірний аркуш — це білий прямокутник, на який щільно, без проміжків,
+ * покладені картки. Полароїдна картка сама здебільшого біла: у неї широка
+ * рамка, і в ній живе напис. На білому аркуші ця рамка невидима, тож око
+ * бачить не картку з написом, а фотографії й текст, що висить між ними —
+ * до того ж ближче до сусідньої фотографії, ніж до своєї власної
+ * (TM-001247: напис картки 3 стоїть за 1 мм від фото картки 4 і за 13 мм
+ * від свого). Макет при цьому правильний, нечитабельне саме зображення.
+ *
+ * Лінія проходить рівно по лінії різу, тобто по місцю, якого на готовій
+ * картці не залишиться. Сіра, а не чорна: якщо ніж піде на пів міліметра
+ * вбік, слід на краю картки не кидатиметься в очі.
+ */
+const GUIDE_COLOR = 0xc8c8c8ff;
+const GUIDE_PX = 2;
+
+function drawCutGuides(sheet: Jimp, cols: number, rows: number, cellW: number, cellH: number): void {
+  const w = sheet.bitmap.width, h = sheet.bitmap.height;
+  const vLine = (x: number) => {
+    for (let dx = 0; dx < GUIDE_PX; dx++) {
+      const px = Math.min(w - 1, Math.max(0, x + dx));
+      for (let y = 0; y < h; y++) sheet.setPixelColor(GUIDE_COLOR, px, y);
+    }
+  };
+  const hLine = (y: number) => {
+    for (let dy = 0; dy < GUIDE_PX; dy++) {
+      const py = Math.min(h - 1, Math.max(0, y + dy));
+      for (let x = 0; x < w; x++) sheet.setPixelColor(GUIDE_COLOR, x, py);
+    }
+  };
+  // Внутрішні межі плюс зовнішній контур — щоб було видно і де різати
+  // всередині, і де закінчується остання картка.
+  for (let c = 1; c < cols; c++) vLine(c * cellW - Math.floor(GUIDE_PX / 2));
+  for (let r = 1; r < rows; r++) hLine(r * cellH - Math.floor(GUIDE_PX / 2));
+  vLine(0); vLine(w - GUIDE_PX);
+  hLine(0); hLine(h - GUIDE_PX);
+}
+
 const blankSheet = (w: number, h: number): Promise<Jimp> =>
   new Promise((resolve, reject) => {
     // jimp 0.22 blank-image constructor (callback form)
@@ -101,6 +141,8 @@ export async function generateOrderPrintSheets(orderId: string, opts: { force?: 
         img.cover(cellW, cellH);
         sheet.composite(img, c * cellW, r * cellH);
       });
+      // Після карток, щоб лінія лежала поверх, а не під ними.
+      drawCutGuides(sheet, cols, rows, cellW, cellH);
       const out = await sheet.quality(JPEG_QUALITY).getBufferAsync(Jimp.MIME_JPEG);
       sheetIndex++;
       const fileName = `${category}-${size.id}-${String(sheetIndex).padStart(2, '0')}.jpg`;
