@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 // Code generation moved to lib/agency/create-partner so the photographer
 // cabinet (which enrols into the same program) can't drift from this flow.
 import { genAgencyCode } from '@/lib/agency/create-partner';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 // GET — list all agency partners with their commission totals + pending payout
 export async function GET() {
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
     const { data: clash } = await admin
       .from('agency_partners')
       .select('id')
-      .ilike('referral_code', candidate)
+      .ilike('referral_code', likeEscape(candidate))
       .maybeSingle();
     if (!clash) { code = candidate; break; }
   }

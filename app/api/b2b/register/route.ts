@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { getRoleConfig, type B2bRole } from '@/lib/b2b/config';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
                     b2b_status: 'pending',
                     b2b_portfolio_url: portfolioUrl,
                 })
-                .ilike('email', email)
+                .ilike('email', likeEscape(email))
                 .select('id')
                 .maybeSingle();
             customerId = cust?.id ?? null;

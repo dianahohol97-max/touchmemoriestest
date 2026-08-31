@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 /**
  * Shared partner-creation for the referral program.
@@ -78,7 +79,7 @@ export async function createAgencyPartner(admin: SupabaseClient, input: CreatePa
     const { data: clash } = await admin
       .from('agency_partners')
       .select('id')
-      .ilike('referral_code', candidate)
+      .ilike('referral_code', likeEscape(candidate))
       .maybeSingle();
     if (!clash) { code = candidate; break; }
   }

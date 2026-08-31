@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { generateOrderPrintSheets } from '@/lib/print/generate-sheets';
 
@@ -15,17 +15,6 @@ export const maxDuration = 60;
  * once the export files are linked (idempotent — skips if already built), and
  * by staff from the admin order page with { force: true } to rebuild.
  */
-async function requireStaff(): Promise<boolean> {
-  const cookieClient = await createClient();
-  const { data: { user } } = await cookieClient.auth.getUser();
-  if (!user?.email) return false;
-  const admin = getAdminClient();
-  const [{ data: adminRow }, { data: staffRow }] = await Promise.all([
-    admin.from('admin_users').select('id').ilike('email', user.email).maybeSingle(),
-    admin.from('staff').select('id').ilike('email', user.email).maybeSingle(),
-  ]);
-  return Boolean(adminRow || staffRow);
-}
 
 /**
  * GET /api/orders/[id]/print-sheets — staff-only. Lists the generated
@@ -33,7 +22,8 @@ async function requireStaff(): Promise<boolean> {
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!(await requireStaff())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const guard = await requireStaff();
+  if (!guard.ok) return guard.response;
   const admin = getAdminClient();
   const { data: files } = await admin
     .from('order_files')
@@ -62,8 +52,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Rebuilding (force) is staff-only; the automatic first build is not, since
   // it only composes the order's own already-uploaded files and is idempotent.
-  if (force && !(await requireStaff())) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (force) {
+    const guard = await requireStaff();
+    if (!guard.ok) return guard.response;
   }
 
   try {

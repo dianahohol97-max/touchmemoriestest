@@ -4,6 +4,7 @@ import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import { createAgencyPartner } from '@/lib/agency/create-partner';
 import { findLeadAttribution, attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
   const { data: existing } = await admin
     .from('agency_partners')
     .select('id, cabinet_token, referral_code, status')
-    .ilike('email', photographer.email || '')
+    .ilike('email', likeEscape(photographer.email || ''))
     .maybeSingle();
   if (existing) {
     await admin.from('photographers').update({ partner_id: existing.id }).eq('id', photographer.id);

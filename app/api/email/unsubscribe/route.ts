@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     const query = supabase.from('subscribers').select('id, email, is_active');
     const { data: subscriber } = token
         ? await query.eq('unsubscribe_token', token).maybeSingle()
-        : await query.ilike('email', email).maybeSingle();
+        : await query.ilike('email', likeEscape(email)).maybeSingle();
 
     // Not on the subscriber list. This is the normal case for the ~5.3k people
     // imported from KeyCRM: they receive win-back mail through

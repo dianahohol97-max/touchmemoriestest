@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
         // or admin — that would hand them the panel on first login. Staff
         // logins are provisioned separately through the admin/staff flow.
         // Email is matched literally (LIKE wildcards escaped).
-        const emailPattern = email.replace(/[\\%_]/g, '\\$&');
+        const emailPattern = likeEscape(email);
         const [{ data: adminMatch }, { data: staffMatch }] = await Promise.all([
             supabase.from('admin_users').select('id').ilike('email', emailPattern).maybeSingle(),
             supabase.from('staff').select('id').ilike('email', emailPattern).maybeSingle(),

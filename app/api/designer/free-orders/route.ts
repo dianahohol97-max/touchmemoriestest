@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export async function GET() {
     // Auth: only authenticated staff (any role) should see the free-order
@@ -21,7 +22,7 @@ export async function GET() {
         const { data: adminRow } = await admin
             .from('admin_users')
             .select('id')
-            .ilike('email', user.email)
+            .ilike('email', likeEscape(user.email))
             .maybeSingle();
         if (adminRow) allowed = true;
     }
@@ -30,7 +31,7 @@ export async function GET() {
         const { data: staffRow } = await admin
             .from('staff')
             .select('id')
-            .ilike('email', user.email)
+            .ilike('email', likeEscape(user.email))
             .maybeSingle();
         if (staffRow) allowed = true;
     }
