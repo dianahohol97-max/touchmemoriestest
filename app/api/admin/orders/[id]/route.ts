@@ -2,7 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { requireStaff, requireAdmin } from '@/lib/auth/guards';
 import { processAgencyCommission } from '@/lib/agency/commission';
-import { processReferralReward } from '@/lib/referral/referral';
+import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 
 // Column allowlist for PATCH. Previously the raw request body went straight
 // into .update(body) under a requireStaff guard, so ANY active staff member
@@ -170,50 +170,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Bonus refund on cancellation. Bonuses are debited at SUBMIT — before any
     // payment — so an order that was never paid and got cancelled permanently
-    // ate the customer's bonuses: no code anywhere returned them. Refund
-    // used_bonus on the first transition to cancelled, idempotently: the
-    // bonus_transactions ledger is the guard, so re-cancelling (or a retried
-    // request) can never credit twice.
+    // ate the customer's bonuses. The refund itself now lives in
+    // refundOrderBonus (lib/referral/referral.ts) because the unpaid-orders
+    // cron cancels orders too and needs exactly the same behaviour; keeping one
+    // copy is what stops the two paths drifting apart. It is idempotent, so
+    // re-cancelling or a retried request can never credit twice.
     if (becameCancelled) {
         try {
-            const usedBonus = Number((data as any)?.used_bonus) || 0;
-            const custId = (data as any)?.customer_id || null;
-            if (usedBonus > 0 && custId) {
-                const { data: already } = await supabase
-                    .from('bonus_transactions')
-                    .select('id')
-                    .eq('order_id', id)
-                    .eq('kind', 'order_cancel_refund')
-                    .limit(1);
-                if (!already || already.length === 0) {
-                    // Same compare-and-swap pattern as the debit in orders/submit,
-                    // so a concurrent balance change can't be overwritten.
-                    for (let attempt = 0; attempt < 3; attempt++) {
-                        const { data: fresh } = await supabase
-                            .from('customers')
-                            .select('bonus_balance')
-                            .eq('id', custId)
-                            .maybeSingle();
-                        const live = Number(fresh?.bonus_balance || 0);
-                        const { data: updated } = await supabase
-                            .from('customers')
-                            .update({ bonus_balance: live + usedBonus })
-                            .eq('id', custId)
-                            .eq('bonus_balance', live)
-                            .select('id');
-                        if (updated && updated.length > 0) {
-                            await supabase.from('bonus_transactions').insert({
-                                customer_id: custId,
-                                amount: usedBonus,
-                                kind: 'order_cancel_refund',
-                                order_id: id,
-                                note: `Повернення бонусів за скасоване замовлення ${(data as any)?.order_number || id}`,
-                            });
-                            break;
-                        }
-                    }
-                }
-            }
+            await refundOrderBonus(supabase, {
+                orderId: id,
+                customerId: (data as any)?.customer_id || null,
+                usedBonus: Number((data as any)?.used_bonus) || 0,
+                orderNumber: (data as any)?.order_number || null,
+            });
         } catch (e) { console.error('[order-patch] bonus refund failed (order still updated):', e); }
     }
 

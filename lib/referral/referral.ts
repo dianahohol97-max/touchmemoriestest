@@ -55,9 +55,11 @@ export async function ensureReferralCode(admin: SupabaseClient, customerId: stri
  *
  * Idempotent and safe to call once per paid transition:
  *  - finds the buyer's pending referral (someone referred them)
- *  - checks this is their FIRST paid order and total >= REFERRAL_MIN_ORDER
+ *  - checks the friend was a NEW customer when the referral was created and
+ *    that this order is worth >= REFERRAL_MIN_ORDER before credits
  *  - credits REFERRAL_REWARD to the referrer's bonus_balance
- *  - marks the referral 'rewarded' and writes a bonus_transactions row
+ *  - credits REFERRAL_FRIEND_REWARD to the friend on the same order
+ *  - marks the referral 'rewarded' and writes bonus_transactions rows
  *
  * All writes use the service-role client. Returns true if a reward was granted.
  */
@@ -67,26 +69,61 @@ export async function processReferralReward(
 ): Promise<boolean> {
     const { orderId, customerId, orderTotal } = opts;
     if (!customerId) return false;
-    if (!Number.isFinite(orderTotal) || orderTotal < REFERRAL_MIN_ORDER) return false;
 
     // Is there a pending referral where this customer is the referred friend?
     const { data: referral } = await admin
         .from('referrals')
-        .select('id, referrer_id, status')
+        .select('id, referrer_id, status, created_at')
         .eq('referred_id', customerId)
         .eq('status', 'pending')
         .maybeSingle();
     if (!referral) return false;
 
-    // Ensure this is the friend's FIRST paid order (count prior paid orders).
-    const { count: paidCount } = await admin
+    // Qualify on what the order is WORTH, not on what was charged. `total` is
+    // already net of the gift certificate and any bonuses spent, so a 1200 ₴
+    // order paid partly with a 300 ₴ certificate landed as total=900 and
+    // silently missed the threshold even though the friend really did buy for
+    // 1200 ₴. Read the credits back off the order and add them in. Callers all
+    // pass order.total, kept as the fallback if the row can't be read.
+    const { data: orderRow } = await admin
+        .from('orders')
+        .select('total, certificate_applied, used_bonus')
+        .eq('id', orderId)
+        .maybeSingle();
+    const grossOrderValue = orderRow
+        ? Number(orderRow.total || 0)
+          + Number(orderRow.certificate_applied || 0)
+          + Number(orderRow.used_bonus || 0)
+        : Number(orderTotal);
+    if (!Number.isFinite(grossOrderValue) || grossOrderValue < REFERRAL_MIN_ORDER) return false;
+
+    // The friend must have been a NEW customer at the moment they were
+    // referred — count only orders they had already paid for BEFORE the
+    // referral was created.
+    //
+    // This used to count every other paid order, i.e. it demanded that the
+    // qualifying order be the friend's very first one ever. That created a
+    // dead end: a friend whose first purchase came to 800 ₴ could never earn
+    // the referral afterwards, because from their second order onwards the
+    // count was non-zero and the referral stayed 'pending' forever — nobody
+    // got anything, and nothing anywhere explained why. Anchoring the count to
+    // the referral's creation time keeps the anti-abuse property that mattered
+    // (an existing buyer cannot be retro-referred by a friend's link and cash
+    // in on their next order) while letting a genuine new friend qualify on
+    // whichever of their orders first reaches the threshold.
+    let priorPaidQuery = admin
         .from('orders')
         .select('id', { count: 'exact', head: true })
         .eq('customer_id', customerId)
         .eq('payment_status', 'paid')
         .neq('id', orderId);
-    if ((paidCount ?? 0) > 0) {
-        // Friend already had a paid order before — first-order condition not met.
+    // created_at is defaulted, but if a row somehow has none we cannot date the
+    // referral — fall back to the strict "no other paid order at all" rule
+    // rather than skipping the check and handing out a reward we can't justify.
+    if (referral.created_at) priorPaidQuery = priorPaidQuery.lt('created_at', referral.created_at);
+    const { count: priorPaidCount } = await priorPaidQuery;
+    if ((priorPaidCount ?? 0) > 0) {
+        // Already a paying customer before the invite — not a new friend.
         return false;
     }
 
@@ -147,4 +184,65 @@ export async function processReferralReward(
     });
 
     return true;
+}
+
+/**
+ * Return the bonuses a cancelled order had spent.
+ *
+ * Bonuses are debited at SUBMIT, before any payment, so every path that
+ * cancels an order has to hand them back or the customer simply loses them.
+ * Two paths do the cancelling — an admin flipping the status, and the
+ * unpaid-orders cron — and the cron used to do nothing about bonuses at all,
+ * which is the one that would have hurt most: a customer redeems bonuses,
+ * never pays, the order auto-cancels a day later and the balance is gone with
+ * no record and no way for them to notice.
+ *
+ * Idempotent: the `order_cancel_refund` row in bonus_transactions is the guard,
+ * so re-cancelling or a retried cron run can never credit twice. The balance
+ * update uses the same compare-and-swap pattern as the debit in orders/submit,
+ * so a concurrent write is never clobbered.
+ *
+ * Returns the amount actually refunded (0 when there was nothing to give back).
+ */
+export async function refundOrderBonus(
+    admin: SupabaseClient,
+    opts: { orderId: string; customerId: string | null; usedBonus: number; orderNumber?: string | null },
+): Promise<number> {
+    const { orderId, customerId, orderNumber } = opts;
+    const usedBonus = Number(opts.usedBonus) || 0;
+    if (!customerId || usedBonus <= 0) return 0;
+
+    const { data: already } = await admin
+        .from('bonus_transactions')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('kind', 'order_cancel_refund')
+        .limit(1);
+    if (already && already.length > 0) return 0;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: fresh } = await admin
+            .from('customers')
+            .select('bonus_balance')
+            .eq('id', customerId)
+            .maybeSingle();
+        const live = Number(fresh?.bonus_balance || 0);
+        const { data: updated } = await admin
+            .from('customers')
+            .update({ bonus_balance: live + usedBonus })
+            .eq('id', customerId)
+            .eq('bonus_balance', live)
+            .select('id');
+        if (updated && updated.length > 0) {
+            await admin.from('bonus_transactions').insert({
+                customer_id: customerId,
+                amount: usedBonus,
+                kind: 'order_cancel_refund',
+                order_id: orderId,
+                note: `Повернення бонусів за скасоване замовлення ${orderNumber || orderId}`,
+            });
+            return usedBonus;
+        }
+    }
+    return 0;
 }

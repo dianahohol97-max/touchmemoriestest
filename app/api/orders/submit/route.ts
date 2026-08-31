@@ -781,6 +781,13 @@ export async function POST(request: NextRequest) {
       certificate_code: certCode,
       certificate_applied: certApplied,
       certificate_redeemed: false,
+      // How much of `total` was paid with bonuses. This column was never
+      // written, while the cancellation refund in admin/orders/[id] reads it
+      // to decide how much to give back — so it always read 0 and a cancelled
+      // order silently ate the customer's bonuses for good. It is also the
+      // only record of why the total is lower than subtotal − certificate, so
+      // the admin order card can now show the bonus line.
+      used_bonus: bonusDebited,
       ship_region: shipRegion,
       payment_region: paymentRegion,
       price_multiplier: priceMultiplier,

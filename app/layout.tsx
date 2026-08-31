@@ -16,6 +16,7 @@ import { serializeJsonLd } from '@/lib/seo/jsonld';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { OAuthCallbackHandler } from '@/components/providers/OAuthCallbackHandler';
 import ReferralCapture from '@/components/ReferralCapture';
+import ReferralInviteBanner from '@/components/ReferralInviteBanner';
 import InAppBrowserBanner from '@/components/InAppBrowserBanner';
 import { SITE_INFO } from '@/lib/seoContent';
 import { getBaseUrl } from '@/lib/seo/locales';
@@ -168,6 +169,7 @@ export default function RootLayout({
               <CookieBanner />
               <Suspense fallback={null}>
                 <ReferralCapture />
+                <ReferralInviteBanner />
                 <InAppBrowserBanner />
               </Suspense>
             </I18nProvider>

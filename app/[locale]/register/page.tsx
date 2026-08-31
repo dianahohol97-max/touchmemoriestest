@@ -8,6 +8,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { readPendingReferralCode } from '@/lib/referral/pending-code';
 
 export default function Register() {
     const [firstName, setFirstName] = useState('');
@@ -45,6 +46,14 @@ export default function Register() {
         setIsLoading(true);
 
         try {
+            // Carry any referral code the visitor arrived with into auth
+            // user_metadata. ReferralCapture also links the referral from
+            // localStorage, but that copy is per-browser: a friend who clicks
+            // the invite on desktop and confirms the email on their phone has
+            // no localStorage there, and /api/referral/capture falls back to
+            // this metadata to still create the link.
+            const pendingReferralCode = readPendingReferralCode();
+
             const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
@@ -54,7 +63,8 @@ export default function Register() {
                         last_name: lastName,
                         full_name: `${firstName} ${lastName}`,
                         birthday: birthday,
-                        email_subscribed: subscribe
+                        email_subscribed: subscribe,
+                        ...(pendingReferralCode ? { referral_code: pendingReferralCode } : {})
                     }
                 }
             });
