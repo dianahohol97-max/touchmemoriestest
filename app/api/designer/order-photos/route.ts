@@ -108,19 +108,33 @@ export async function GET(req: NextRequest) {
     // лежать в одній таблиці з однаковими іменами «01.jpg», «cover.jpg», тож без
     // цієї прив'язки картка показує їх однією купою, у якій неможливо
     // розібратися, який аркуш до якої книги.
-    const books: Array<{ id: string; pages: number | null; label: string }> = [];
+    const books: Array<{ id: string; pages: number | null; label: string; isPrintSet: boolean; slug: string | null }> = [];
     try {
         const { data: projRows } = await admin
             .from('projects')
-            .select('id, total_pages, format, created_at')
+            .select('id, total_pages, format, created_at, product_type, cart_payload')
             .eq('order_id', orderId)
             .order('created_at', { ascending: true });
         (projRows || []).forEach((p: any, i: number) => {
             const pages = typeof p.total_pages === 'number' ? p.total_pages : null;
+            // Конструктор фотодруку теж зберігає сесію в projects, з
+            // product_type='photo-print'. Такий «виріб» НЕ має макета: його
+            // результат — готові відбитки у pp_<ts>, які не лежать під id
+            // проєкту, тож bookOf() не привʼязує до нього жодного файлу.
+            // Картка через це малювала полароїд і 9x13 як два вироби з
+            // червоним «Макета немає взагалі — не віддавайте в друк»
+            // (TM-001252), хоча всі 70 відбитків були на місці, і ще й
+            // підписувала їх «20 стор.» — сесія зберегла проміжну кількість,
+            // до товару з 50 фото вона не має стосунку. Прапорець дозволяє
+            // адмінці не показувати їх серед макетів.
+            const slug = typeof p?.cart_payload?.slug === 'string' ? p.cart_payload.slug : null;
+            const isPrintSet = String(p.product_type || '').toLowerCase() === 'photo-print';
             books.push({
                 id: String(p.id),
                 pages,
                 label: `Виріб ${i + 1}${p.format ? ` · ${p.format}` : ''}${pages ? ` · ${pages} стор.` : ''}`,
+                isPrintSet,
+                slug,
             });
         });
     } catch { /* без списку книг картка просто не групуватиме */ }
@@ -132,6 +146,19 @@ export async function GET(req: NextRequest) {
         }
         return null;
     };
+
+    /**
+     * Партія фотодруку, до якої належить файл.
+     *
+     * PhotoPrintConstructor складає всі відбитки ОДНОГО товару в кошику у теку
+     * pp_<timestamp> (exportFolderRef, один на сесію конструктора), тож цей
+     * сегмент шляху — єдине, що надійно розділяє два різні фотодруки в одному
+     * замовленні. Без нього картка показувала 20 полароїдів і 50 фото 9x13
+     * однією купою з 70 мініатюр, і виробництво не могло зрозуміти, де чиї
+     * (TM-001252).
+     */
+    const printBatchOf = (path: string): string | null =>
+        String(path || '').split('/').find(seg => /^pp_\d+$/.test(seg)) || null;
 
     const { data: files, error } = await admin
         .from('order_files')
@@ -169,6 +196,7 @@ export async function GET(req: NextRequest) {
         mime_type: string | null;
         product_id?: string | null;
         bookId?: string | null;
+        printBatch?: string | null;
     }> = [];
 
     const ONE_DAY = 60 * 60 * 24;
@@ -191,6 +219,7 @@ export async function GET(req: NextRequest) {
                 mime_type: f.mime_type,
                 product_id: null,
                 bookId: bookOf(f.file_path),
+                printBatch: printBatchOf(f.file_path),
             });
         });
     }

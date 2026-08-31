@@ -275,7 +275,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [designCoverName, setDesignCoverName] = useState<string | null>(null);
     // Вироби замовлення. У замовленні може бути кілька окремих книг, і файли
     // всіх лежать одним списком з однаковими іменами — див. TM-001234.
-    const [books, setBooks] = useState<Array<{ id: string; pages: number | null; label: string }>>([]);
+    const [books, setBooks] = useState<Array<{ id: string; pages: number | null; label: string; isPrintSet?: boolean; slug?: string | null }>>([]);
     const [verifying, setVerifying] = useState(false);
     const [verifyReport, setVerifyReport] = useState<any | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
@@ -2452,6 +2452,82 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             const isPrintSetFile = (f: any) => isPrintSetCategory(f.category);
                             const exportBook = exportFiles.filter((f: any) => !isPrintSetFile(f));
                             const exportPrints = exportFiles.filter(isPrintSetFile);
+                            // Сесії конструктора фотодруку теж лежать у projects,
+                            // але макета не мають і мати не можуть — їх результат
+                            // це готові відбитки нижче. Показувати їх серед
+                            // виробів означало малювати червоне «Макета немає
+                            // взагалі — не віддавайте в друк» на замовленні, де
+                            // все насправді готове (TM-001252).
+                            const layoutBooks = books.filter(b => !b.isPrintSet);
+
+                            /* ФОТОДРУК ПО ТОВАРАХ.
+                               TM-001252 — 20 полароїдів «Міні 8.6×5.4» і 50 фото
+                               9x13 в одному замовленні. Обидва набори падали в
+                               одну секцію «Фотодрук — готові відбитки (70)» і в
+                               один ZIP, тож виробництво бачило 70 однакових
+                               мініатюр і не могло дістати саме ті 50, що йдуть
+                               на 9x13. Розділяємо по партії конструктора
+                               (pp_<ts>, одна на товар у кошику), а якщо шляху
+                               немає — хоча б по file_category. */
+                            const printGroups = (() => {
+                                const groups = new Map<string, any[]>();
+                                for (const f of exportPrints) {
+                                    const key = f.printBatch || `cat:${String(f.category || 'print').toLowerCase()}`;
+                                    const bucket = groups.get(key);
+                                    if (bucket) bucket.push(f);
+                                    else groups.set(key, [f]);
+                                }
+                                // Позиції замовлення, які взагалі є фотодруком —
+                                // з них беремо людський підпис і очікувану
+                                // кількість фото.
+                                const printItems = (Array.isArray(order?.items) ? order.items : []).filter((it: any) => {
+                                    const slug = String(it?.slug || '').toLowerCase();
+                                    return slug.startsWith('photoprint') || slug === 'polaroid-print' || slug === 'photomagnets';
+                                });
+                                /** Сімʼя товару, до якої належить категорія файлу. */
+                                const familyOfCategory = (cat: string) => {
+                                    const c = cat.toLowerCase();
+                                    if (c === 'polaroid-print') return 'polaroid';
+                                    if (c === 'photomagnets') return 'magnets';
+                                    return 'photoprint';
+                                };
+                                const familyOfSlug = (slug: string) => {
+                                    const sl = slug.toLowerCase();
+                                    if (sl === 'polaroid-print') return 'polaroid';
+                                    if (sl === 'photomagnets') return 'magnets';
+                                    return 'photoprint';
+                                };
+                                const taken = new Set<number>();
+                                return Array.from(groups.entries()).map(([key, list], idx) => {
+                                    const category = String(list[0]?.category || '').toLowerCase();
+                                    const family = familyOfCategory(category);
+                                    const candidates = printItems
+                                        .map((it: any, i: number) => ({ it, i }))
+                                        .filter(({ it, i }: any) => !taken.has(i) && familyOfSlug(String(it?.slug || '')) === family);
+                                    // Кілька товарів однієї сімʼї (два різні
+                                    // розміри фотодруку) розводимо за очікуваною
+                                    // кількістю фото; якщо й це не розрізняє —
+                                    // підпис лишається без розміру, аби не
+                                    // приписати виробництву чужий формат.
+                                    const expectedOf = (it: any) => {
+                                        const raw = it?.options?.['Кількість фото'];
+                                        const n = Number(raw);
+                                        return Number.isFinite(n) && n > 0 ? n : null;
+                                    };
+                                    let picked = candidates.length === 1
+                                        ? candidates[0]
+                                        : candidates.find(({ it }: any) => expectedOf(it) === list.length) || null;
+                                    if (picked) taken.add(picked.i);
+                                    const item = picked?.it || null;
+                                    const expected = item ? expectedOf(item) : null;
+                                    const size = item?.options?.['Розмір'] || null;
+                                    const finish = item?.options?.['Покриття'] || null;
+                                    const title = item
+                                        ? [item.product_name, size, finish].filter(Boolean).join(' · ')
+                                        : `Фотодрук ${idx + 1}${category ? ` · ${category}` : ''}`;
+                                    return { key, list, title, expected };
+                                });
+                            })();
                             const covers = uploadedFiles.filter((f: any) => !f.isExport && f.isCover);
                             const isOriginal = (f: any) => (f.category || '').toLowerCase() === 'original';
                             const originals = uploadedFiles.filter((f: any) => !f.isExport && !f.isCover && isOriginal(f));
@@ -2696,9 +2772,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     {/* Умова навмисно тільки по кількості виробів: якщо жоден не
                                         відрендерився, секції з кнопкою «Перегенерувати» потрібні
                                         найбільше — а по exportBook їх би не показало взагалі. */}
-                                    {books.length > 1 && (
+                                    {layoutBooks.length > 1 && (
                                         <div style={{ marginBottom: 12 }}>
-                                            {books.map((bk, i) => {
+                                            {layoutBooks.map((bk, i) => {
                                                 const mine = exportBook.filter((f: any) => f.bookId === bk.id);
                                                 const pageFiles = mine.filter((f: any) => (f.category || '') === 'book-page' || /^\d+\.jpe?g$/i.test(f.name || ''));
                                                 const hasCover = mine.some((f: any) => f.isCover);
@@ -2753,7 +2829,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     )}
 
-                                    {books.length <= 1 && exportBook.length > 0 && (
+                                    {layoutBooks.length <= 1 && exportBook.length > 0 && (
                                         <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -2775,21 +2851,43 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                     )}
 
-                                    {exportPrints.length > 0 && (
-                                        <div style={{ marginBottom: 12, padding: 10, background: '#fefce8', border: '1px solid #fde68a', borderRadius: 8 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                                    <Printer size={13} /> Фотодрук — готові відбитки ({exportPrints.length})
+                                    {printGroups.map((g, gi) => {
+                                        const mismatch = g.expected !== null && g.expected !== g.list.length;
+                                        return (
+                                            <div key={g.key} style={{ marginBottom: 12, padding: 10, background: mismatch ? '#fef2f2' : '#fefce8', border: `1px solid ${mismatch ? '#fecaca' : '#fde68a'}`, borderRadius: 8 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: mismatch ? '#b91c1c' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                        <Printer size={13} /> {g.title} — {g.list.length} фото
+                                                    </div>
+                                                    <button onClick={() => downloadAllAsZip(g.list, `фотодрук-${gi + 1}`)} disabled={downloadingZip}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#fcd34d' : '#d97706', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                        {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                        Завантажити ці {g.list.length} (ZIP)
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => downloadAllAsZip(exportPrints, 'фотодрук')} disabled={downloadingZip}
-                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#fcd34d' : '#d97706', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
-                                                    {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
-                                                    Фотодрук (ZIP)
-                                                </button>
+                                                {mismatch && (
+                                                    <div style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600, marginBottom: 6 }}>
+                                                        Клієнт оплатив {g.expected} фото, а файлів {g.list.length}. Звірте перед друком.
+                                                    </div>
+                                                )}
+                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
+                                                    {g.list.map((f: any) => thumb(f, true))}
+                                                </div>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
-                                                {exportPrints.map((f: any) => thumb(f, true))}
-                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Загальний ZIP лишається — інколи треба забрати
+                                        весь фотодрук замовлення однією дією. Показуємо
+                                        його лише коли наборів справді кілька, щоб не
+                                        дублювати кнопку над однією ж секцією. */}
+                                    {printGroups.length > 1 && (
+                                        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                                            <button onClick={() => downloadAllAsZip(exportPrints, 'фотодрук')} disabled={downloadingZip}
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#b45309', border: '1.5px solid #d97706', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                                                Весь фотодрук разом ({exportPrints.length}) — ZIP
+                                            </button>
                                         </div>
                                     )}
 
