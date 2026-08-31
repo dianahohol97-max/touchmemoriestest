@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveUploadLink, countLinkUpload } from '@/lib/orders/upload-links';
 import { sendWorkChatAlert } from '@/lib/chatbot/telegram-business';
+import { fileExtension } from '@/lib/upload/file-type';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,6 +19,9 @@ export const maxDuration = 60;
 const BUCKET = 'order-files';
 const MAX_BYTES = 60 * 1024 * 1024;
 const ALLOWED = /^(image\/(jpeg|png|webp|heic|heif|avif|gif)|application\/pdf|video\/(mp4|quicktime))$/i;
+// The same set by extension, used when the client declares no Content-Type
+// (iPhone HEIC uploads sometimes arrive that way) so the check still decides.
+const ALLOWED_EXT = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'avif', 'gif', 'pdf', 'mp4', 'mov'];
 
 /** What the page shows before anything is uploaded. */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -54,7 +58,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     if (file.size > MAX_BYTES) return NextResponse.json({ error: 'too-big' }, { status: 413 });
 
     const type = String(file.type || '').toLowerCase();
-    if (type && !ALLOWED.test(type)) return NextResponse.json({ error: 'bad-type' }, { status: 415 });
+    // An absent Content-Type used to skip this entirely; fall back to the
+    // extension so every upload is decided one way or the other.
+    const extOk = ALLOWED_EXT.includes(fileExtension(file.name));
+    if (type ? !ALLOWED.test(type) : !extOk) {
+        return NextResponse.json({ error: 'bad-type' }, { status: 415 });
+    }
 
     // The original name is kept for the workshop but never used as a path: a
     // customer's file name can contain anything at all.

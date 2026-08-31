@@ -62,7 +62,13 @@ export async function POST(req: Request) {
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: `Файл завеликий (макс ${Math.round(MAX_BYTES / 1048576)} МБ)` }, { status: 400 });
   }
-  if (!ALLOWED_EXT.includes(ext) || (file.type && !MIME_RE.test(file.type))) {
+  // Both halves must pass. The extension check was already unconditional (it
+  // is what keeps .svg/.html out of these PUBLIC buckets), but the MIME half
+  // was skipped whenever the client declared no type — so a declared type that
+  // disagrees with a permitted extension could slip through. Now an absent
+  // type falls back to the extension and a present one must match.
+  const declaredType = String(file.type || '').toLowerCase();
+  if (!ALLOWED_EXT.includes(ext) || (declaredType && !MIME_RE.test(declaredType))) {
     return NextResponse.json({ error: 'Недозволений тип файлу' }, { status: 400 });
   }
 

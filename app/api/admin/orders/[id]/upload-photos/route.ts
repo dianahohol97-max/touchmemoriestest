@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { isAllowedUpload, IMAGE_OR_PDF_RULE } from '@/lib/upload/file-type';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,7 +31,6 @@ export const maxDuration = 60;
  */
 const MAX_FILES = 60;
 const MAX_BYTES = 25 * 1024 * 1024;
-const ALLOWED = /^image\/(jpeg|png|webp|heic|heif)$|^application\/pdf$/i;
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const guard = await requireStaff();
@@ -77,8 +77,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             problems.push(`${file.name}: більший за 25 МБ`);
             continue;
         }
-        if (file.type && !ALLOWED.test(file.type)) {
-            problems.push(`${file.name}: непідтримуваний тип (${file.type})`);
+        // isAllowedUpload falls back to the extension when the client sends
+        // no Content-Type, instead of skipping the check as `file.type &&` did.
+        if (!isAllowedUpload(file.name, file.type, IMAGE_OR_PDF_RULE)) {
+            problems.push(`${file.name}: непідтримуваний тип (${file.type || 'без типу'})`);
             continue;
         }
 

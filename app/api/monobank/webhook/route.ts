@@ -250,17 +250,50 @@ export async function POST(req: Request) {
         }
 
         // Amount verification (only meaningful on 'success' / 'hold').
-        if ((status === 'success' || status === 'hold') && typeof amount === 'number') {
+        //
+        // This used to be gated on `typeof amount === 'number'`, which made the
+        // whole check optional: an amount arriving as a string, or missing,
+        // skipped it entirely and the order was marked paid with nothing
+        // verified. That matters precisely because this layer exists for the
+        // one case where the payload is not trustworthy — the comment above
+        // calls it out as the hijacked-keypair defence — and that is exactly
+        // when its type is not guaranteed either. Unverifiable now means
+        // reject, not proceed.
+        if (status === 'success' || status === 'hold') {
+            const paidKopecks = Number(amount);
+            if (!Number.isFinite(paidKopecks)) {
+                console.error('Monobank webhook: unusable amount', { reference, invoiceId, amount });
+                return NextResponse.json({ error: 'Bad amount' }, { status: 400 });
+            }
+
+            // 980 = UAH (ISO 4217). create-invoice hardcodes ccy: 980, so every
+            // invoice we issue is in hryvnia and a different currency would be
+            // comparing a number against the wrong unit. Checked only when the
+            // field is actually present: this is Monobank's payload shape, not
+            // ours, and refusing a legitimate payment because they stopped
+            // sending an optional field would be a worse failure than the one
+            // being prevented. The amount check above is unconditional either way.
+            if (ccy !== undefined && ccy !== null && Number(ccy) !== 980) {
+                console.error('Monobank webhook: unexpected currency', { reference, invoiceId, ccy });
+                return NextResponse.json({ error: 'Unexpected currency' }, { status: 400 });
+            }
+
             // Split/prepaid orders are invoiced for prepaid_amount (≈50%), not
             // the full total — compare against whatever was actually charged.
             const isSplit = existingOrder.payment_type === 'split' && Number(existingOrder.prepaid_amount) > 0;
             const expectedUah = isSplit ? Number(existingOrder.prepaid_amount) : Number(existingOrder.total);
+            if (!Number.isFinite(expectedUah) || expectedUah <= 0) {
+                console.error('Monobank webhook: order has no usable expected amount', {
+                    reference, total: existingOrder.total, prepaid: existingOrder.prepaid_amount,
+                });
+                return NextResponse.json({ error: 'Order amount unavailable' }, { status: 400 });
+            }
             const expectedKopecks = Math.round(expectedUah * 100);
-            if (Math.abs(amount - expectedKopecks) > 1) {
+            if (Math.abs(paidKopecks - expectedKopecks) > 1) {
                 // Off-by-one tolerance for rounding, but anything bigger is suspicious.
                 console.error('Monobank webhook: amount mismatch', {
                     reference,
-                    invoice_amount: amount,
+                    invoice_amount: paidKopecks,
                     order_total_kopecks: expectedKopecks,
                 });
                 return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
