@@ -32,7 +32,14 @@ const BASE =
   'numbers, letters and logos on them exactly as they appear, including balloon shapes, prints ' +
   'on clothes and writing on things. Do not invent furniture, doors, windows, plants or ' +
   'decorations that are not in the photo, and do not replace the room or the place with another one. ' +
-  'Keep the whole frame: do not crop, do not zoom in and do not change the proportions of the picture.';
+  // Left to itself the model draws lashes as thick black spikes and fills the
+  // eyelid, which reads as eye makeup on a child.
+  'Draw eyes as clean simple outlines: an almond shape, a round iris with a small pupil inside, ' +
+  'and one thin line for each eyebrow. No thick black eyelashes, no filled dark eyelids, ' +
+  'no eyeliner or makeup, no shading inside the eye. ' +
+  // A page where the child occupies a third of the sheet wastes the print.
+  'Place the person large in the frame so they fill most of the page. If you leave the background ' +
+  'out, enlarge the person to fill the sheet instead of leaving wide empty margins around them.';
 
 const LEVELS: Record<string, string> = {
   simple:
