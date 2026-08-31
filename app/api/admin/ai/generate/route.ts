@@ -68,16 +68,38 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
 
+        // claude-3-5-sonnet-20241022 was retired by Anthropic and now 404s —
+        // lib/chatbot/anthropic.ts carries that note because the same id
+        // silently killed the whole chatbot. This call site was never updated,
+        // so the blog editor's «згенерувати» button has been failing on every
+        // click ever since.
+        //
+        // `temperature` is deliberately gone with it: sampling parameters are
+        // rejected with a 400 on the current models, so swapping only the model
+        // string would have traded a 404 for a 400.
         const message = await anthropic.messages.create({
-            model: 'claude-3-5-sonnet-20241022',
-            max_tokens: 1000,
-            temperature: 0.7,
+            model: 'claude-opus-5',
+            max_tokens: 4000,
             system: systemPrompt,
             messages: [{ role: 'user', content: userMessage }]
         });
 
-        // @ts-ignore
-        let text = message.content[0].text;
+        // content is a union of block types; the first block is not guaranteed
+        // to be text. The old `// @ts-ignore` on message.content[0].text hid
+        // exactly that — it reads `undefined` for any non-text block and then
+        // fails further down on .match().
+        const text = message.content
+            .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
+            .map(b => b.text)
+            .join('')
+            .trim();
+
+        if (!text) {
+            console.error('admin/ai/generate: model returned no text block', {
+                stop_reason: message.stop_reason,
+            });
+            return NextResponse.json({ error: 'AI повернув порожню відповідь. Спробуйте ще раз.' }, { status: 502 });
+        }
 
         if (action === 'generate_meta') {
             try {

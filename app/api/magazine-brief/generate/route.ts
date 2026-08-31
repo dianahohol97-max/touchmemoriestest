@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import Anthropic from '@anthropic-ai/sdk';
 
 const supabase = getAdminClient();
+
+/**
+ * Constructed on demand, not at module scope: a bare `new Anthropic()` runs at
+ * import time and would take the whole route down when the key is absent,
+ * rather than failing the one request that needs it.
+ */
+let _anthropic: Anthropic | null = null;
+function anthropicClient(): Anthropic {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not configured — cannot generate magazine pages');
+  }
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return _anthropic;
+}
+
 
 const TOPIC_PROMPTS: Record<string, string> = {
   'intro': 'передмова — хто ця людина, яка вона є насправді',
@@ -107,18 +123,32 @@ export async function POST(request: NextRequest) {
       const topic = topics[i];
       const prompt = buildPrompt(brief, topic, i, topics.length);
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }],
-        }),
+      // This was a raw fetch to api.anthropic.com that sent NO x-api-key and
+      // no anthropic-version header, so every call answered 401 — and
+      // `data.content?.[0]?.text || '{}'` turned that 401 into an empty object,
+      // which parsed into a page with a title and no text. The generator could
+      // not have produced a single real page. (magazine_briefs is empty, so
+      // nobody has run it; this is a hole closed before use, not a repair.)
+      //
+      // Now on the SDK the rest of the codebase uses, so the key and version
+      // header come from one place instead of being hand-written per call site.
+      const message = await anthropicClient().messages.create({
+        model: 'claude-opus-5',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      const data = await response.json();
-      const rawText = data.content?.[0]?.text || '{}';
+      const rawText = message.content
+        .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
+        .map(b => b.text)
+        .join('')
+        .trim();
+
+      // Fail loudly rather than banking an empty page: a silent '{}' here is
+      // what made the original breakage invisible.
+      if (!rawText) {
+        throw new Error(`magazine-brief: empty response for topic "${topic}" (stop_reason: ${message.stop_reason})`);
+      }
 
       let parsed: any = { title: topic.toUpperCase(), text: rawText };
       try {
