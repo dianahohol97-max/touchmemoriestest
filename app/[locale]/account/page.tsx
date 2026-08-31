@@ -143,7 +143,17 @@ export default function AccountPage() {
         // the editor instead, which recomputes the price fresh.
         const price = Number((d.cart_payload as any).price);
         if (!Number.isFinite(price) || price <= 0) return null;
-        return { ...d.cart_payload, id: `${d.cart_payload.id || d.id}_${Date.now()}` };
+        // Новий id обовʼязковий: без нього повторне замовлення того самого
+        // дизайну злиплося б із наявною позицією кошика (addItem збільшує
+        // кількість при збігу id). Але суфікс розриває ОБИДВА механізми
+        // привʼязки на оформленні — і export_{id} у sessionStorage, і пошук
+        // проєкту за cart_payload->>id, — тож замовлення приходило без файлів
+        // для друку і без привʼязаного дизайну, мовчки.
+        //
+        // Тому кладемо id проєкту в metadata: оформлення передає його далі, і
+        // /api/projects/link-order знаходить дизайн за ним, а не за id позиції.
+        const meta = { ...((d.cart_payload as any).metadata || {}), source_project_id: d.id };
+        return { ...d.cart_payload, id: `${d.cart_payload.id || d.id}_${Date.now()}`, metadata: meta };
     };
 
     const orderSingleDesign = (d: Design) => {

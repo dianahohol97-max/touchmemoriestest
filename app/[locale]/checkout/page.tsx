@@ -499,7 +499,7 @@ export default function CheckoutPage() {
      * array of them (the book editor uploads every original photo). Both shapes
      * are normalised to a flat list here.
      */
-    const linkPendingExports = async (orderId: string, cartItemIds: string[]) => {
+    const linkPendingExports = async (orderId: string, cartItemIds: string[], sourceProjectIds: string[] = []) => {
         const records: OrderFileRecord[] = [];
 
         const toRecord = (data: any): OrderFileRecord | null => {
@@ -612,12 +612,30 @@ export default function CheckoutPage() {
         // cart_payload.id but have no order_id yet. Stamp order_id onto them so
         // the Monobank webhook can find the design and trigger the print render.
         // Book editors already set order_id themselves, so this is a no-op there.
+        //
+        // sourceProjectIds — це замовлення зі збереженого дизайну («Мої дизайни»
+        // → «Замовити»). Такі позиції дістають новий id, тож за cart_payload->>id
+        // їх знайти неможливо; акаунт кладе id проєкту в metadata, і сервер
+        // шукає за ним.
         try {
-            await fetch('/api/projects/link-order', {
+            const res = await fetch('/api/projects/link-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, cartItemIds }),
+                body: JSON.stringify({ orderId, cartItemIds, sourceProjectIds }),
             });
+            const j = await res.json().catch(() => ({}));
+            // Дизайн привʼязали, але придатних для друку файлів у ньому не
+            // виявилось (наприклад зоряна мапа зберігає лише прев'ю на 600px).
+            // Менеджер має дізнатися про це до друку, а не під час.
+            if (Number(j?.withoutFiles) > 0) {
+                try {
+                    await fetch(`/api/orders/${orderId}/flag-export-failed`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ count: Number(j.withoutFiles) }),
+                    });
+                } catch { /* попередження best-effort */ }
+            }
         } catch (err) {
             console.error('Failed to link projects to order:', err);
         }
@@ -698,6 +716,12 @@ export default function CheckoutPage() {
         // Capture cart item ids now — clearCart() later wipes the store, but the
         // sessionStorage export_{id} keys must still be resolvable by id.
         const cartItemIds = items.map((it: any) => it.id);
+        // Позиції, які прийшли зі збереженого дизайну — акаунт поклав туди id
+        // проєкту, бо за id позиції знайти його вже неможливо (див. коментар
+        // у designToCartItem).
+        const sourceProjectIds: string[] = items
+            .map((it: any) => it?.metadata?.source_project_id)
+            .filter((x: any): x is string => typeof x === 'string' && x.length > 0);
         try {
             const needsDesigner = items.some((item: any) =>
                 item.with_designer ||
@@ -803,7 +827,7 @@ export default function CheckoutPage() {
 
             // Attach the constructor exports (photobook/poster/star-map/etc. files)
             // to the order before we clear the cart in either branch below.
-            await linkPendingExports(orderId, cartItemIds);
+            await linkPendingExports(orderId, cartItemIds, sourceProjectIds);
 
             // Fire-and-forget: auto-build print-ready imposition sheets for any
             // custom-size prints / magnets in this order. Idempotent and fully
