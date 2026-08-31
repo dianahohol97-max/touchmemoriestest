@@ -132,6 +132,10 @@ export async function uploadImageToStorage(
       fd.append('file', prepared, path.split('/').pop() || 'photo.jpg');
       fd.append('path', path);
       fd.append('bucket', bucket);
+      // Скільки байтів ми відправляємо. Сервер звіряє з тим, що дочитав, і
+      // відмовляє на розбіжності — обрізане тіло більше не лягає у сховище
+      // під виглядом фотографії (TM-001245).
+      fd.append('size', String(prepared.size));
       const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
       if (!resp.ok) {
         const j = await resp.json().catch(() => ({}));

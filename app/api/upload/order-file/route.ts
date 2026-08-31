@@ -83,6 +83,18 @@ export async function POST(request: NextRequest) {
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: 'file too large' }, { status: 413 });
   }
+  // Порожнє тіло — це збій передачі, а не файл.
+  //
+  // TM-001245: двадцять два фото пішли з інстаграмного вебвʼю на айфоні по
+  // чотири паралельно; пʼятнадцять доїхали з порожнім тілом. formData() усе
+  // одно віддав File, тільки нульового розміру, ми клали його у сховище і
+  // відповідали ok — клієнтський лог записував «success», повтор не
+  // спрацьовував, замовлення створювалося, а в адмінці було нуль фото.
+  // Порожній файл ніколи не є правильним результатом, тож відмова тут — це
+  // єдине, що перетворює тиху втрату на звичайну помилку з повтором.
+  if (file.size === 0) {
+    return NextResponse.json({ error: 'empty file' }, { status: 400 });
+  }
 
   let contentType = (file.type || '').toLowerCase();
   if (contentType === 'image/jpg') contentType = 'image/jpeg';
@@ -112,6 +124,21 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    // Обрізане тіло. `file.size` — це заявлена довжина частини, а buffer —
+    // те, що справді дочиталося; коли зʼєднання рветься посеред передачі,
+    // вони розходяться, і у сховище лягає биття замість фотографії. Клієнт
+    // надсилає ще й власний розмір, тож звіряємо з обома: розбіжність — це
+    // помилка з повтором, а не файл.
+    const claimed = Number(form.get('size'));
+    const expected = Number.isFinite(claimed) && claimed > 0 ? claimed : file.size;
+    if (buffer.length === 0 || buffer.length !== expected) {
+      console.warn('[upload/order-file] truncated body', { bucket, path, expected, got: buffer.length });
+      return NextResponse.json(
+        { error: `truncated upload: expected ${expected} bytes, got ${buffer.length}` },
+        { status: 400 },
+      );
+    }
+
     const { error } = await admin.storage
       .from(bucket)
       .upload(path, buffer, { upsert: true, contentType, cacheControl: '31536000' });
