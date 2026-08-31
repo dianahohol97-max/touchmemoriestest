@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { requireStaff, requireAdmin } from '@/lib/auth/guards';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
+import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 
 // Column allowlist for PATCH. Previously the raw request body went straight
 // into .update(body) under a requireStaff guard, so ANY active staff member
@@ -146,11 +147,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Paid-transition side effects. Every other way an order becomes paid —
     // the Monobank webhook, «Позначити оплаченим», check-payment, admin
-    // create — runs these two; editing payment_status through this generic
+    // create — runs these; editing payment_status through this generic
     // endpoint was the one path that did not. An admin flipping the field in
     // the order editor therefore silently cost the agency its commission and
-    // the referrer their bonus. Both processors are idempotent, so a repeat
-    // transition is harmless.
+    // the referrer their bonus. All three processors are idempotent, so a
+    // repeat transition is harmless.
     if (becamePaid) {
         try {
             await processAgencyCommission(supabase, {
@@ -166,6 +167,26 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 orderTotal: Number((data as any)?.total) || 0,
             });
         } catch (e) { console.error('[order-patch] referral reward failed (order still updated):', e); }
+
+        // Certificate redemption. mark-paid and check-payment both do this and
+        // both explain why: a certificate is only RESERVED at checkout, and if
+        // it is never flipped to redeemed it becomes spendable again once the
+        // 24h reservation expires — the same certificate spent twice. This
+        // path was the one that skipped it, so an admin marking a
+        // certificate-paid order through the order editor would have handed
+        // the value back. No order has used a certificate yet, so this closes
+        // the hole before it can fire rather than fixing observed damage.
+        // Idempotent via certificate_redeemed + the atomic redeemed check.
+        if ((data as any)?.certificate_code && !(data as any)?.certificate_redeemed) {
+            try {
+                await redeemOrderCertificate(supabase, {
+                    orderId: id,
+                    code: (data as any).certificate_code,
+                    applied: Number((data as any).certificate_applied) || 0,
+                    customerId: (data as any)?.customer_id || null,
+                });
+            } catch (e) { console.error('[order-patch] certificate redemption failed (order still updated):', e); }
+        }
     }
 
     // Bonus refund on cancellation. Bonuses are debited at SUBMIT — before any
