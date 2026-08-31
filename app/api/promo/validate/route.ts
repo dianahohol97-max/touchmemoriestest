@@ -1,7 +1,26 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { likeEscape } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
+
+// Per-IP rate limit, same shape as /api/orders/track. Prefix scanning a code
+// space is only practical if guesses are free; 20/min leaves normal checkout
+// (a manual entry plus the ?promo= auto-apply) far below the ceiling.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+
+function overRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+    if (!entry || now >= entry.resetAt) {
+        rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+        return false;
+    }
+    entry.count++;
+    return entry.count > RATE_LIMIT;
+}
 
 /**
  * Validate a promo (or referral) code before checkout.
@@ -19,11 +38,37 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
     const supabase = getAdminClient();
     try {
+        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+        if (overRateLimit(ip)) {
+            return NextResponse.json(
+                { valid: false, message: 'Забагато запитів. Спробуйте пізніше.' },
+                { status: 429 },
+            );
+        }
+
         const { code, customer_id, cart_total, items, email: rawEmail } = await request.json();
         const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : null;
 
         if (!code) {
             return NextResponse.json({ valid: false, message: 'Промокод не передано' }, { status: 400 });
+        }
+
+        // A promo code is compared for EQUALITY, so it must never reach the
+        // database as a LIKE pattern. `.ilike('code', code)` let the caller
+        // describe a SET of codes instead of naming one: ILIKE reads `_` as
+        // "any one character" and `%` as "any run", so a request for
+        // «_______» matched every 7-character code — and because exactly one
+        // active code was 7 characters, `.single()` returned it, valid, with
+        // its plaintext value in the response. Eight-character codes fell to a
+        // prefix scan («А_______», «Б_______», …), with `.single()`'s
+        // "multiple rows" error acting as the oracle telling the caller to
+        // narrow. Real codes are alphanumeric (Latin or Cyrillic — partner
+        // codes are generated from agency names, e.g. ПОДОTABB), so anything
+        // carrying a wildcard is rejected outright, and the lookup below
+        // escapes what remains.
+        const rawCode = String(code).trim();
+        if (!/^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ-]{3,32}$/u.test(rawCode)) {
+            return NextResponse.json({ valid: false, message: 'Промокод не знайдено' }, { status: 404 });
         }
 
         // Sanitise the two values that get interpolated into a PostgREST `.or()`
@@ -38,13 +83,19 @@ export async function POST(request: Request) {
         }
 
         // 1. Fetch Promo Code
-        const { data: promo, error: promoErr } = await supabase
+        // likeEscape turns the remaining metacharacters into literals, so the
+        // match is a plain case-insensitive equality (codes are stored
+        // uppercase; keeping ILIKE preserves the existing case-insensitive
+        // behaviour for anything entered in lower case). maybeSingle, not
+        // single: an ambiguous match must answer "not found" like any other
+        // miss rather than erroring differently and leaking that fact.
+        const { data: promo } = await supabase
             .from('promo_codes')
             .select('*')
-            .ilike('code', code)
-            .single();
+            .ilike('code', likeEscape(rawCode))
+            .maybeSingle();
 
-        if (promoErr || !promo) {
+        if (!promo) {
             // NOTE: the legacy referral_codes fallback (flat -10% on the whole
             // cart, no commission, no usage limits) was removed on Diana's
             // request — the table was empty and unused, but any row added to it
@@ -88,11 +139,14 @@ export async function POST(request: Request) {
                     message: 'Цей промокод персональний. Вкажіть email, на який він був надісланий.',
                 }, { status: 400 });
             }
+            // Both values are escaped: an unescaped email of «%» would match
+            // ANY subscriber row and defeat the binding this check exists to
+            // enforce, handing a personal code to whoever asked for it.
             const { data: subRows } = await supabase
                 .from('subscribers')
                 .select('id')
-                .ilike('email', email)
-                .ilike('promo_code', promo.code)
+                .ilike('email', likeEscape(email))
+                .ilike('promo_code', likeEscape(String(promo.code ?? '')))
                 .limit(1);
             if (!subRows || subRows.length === 0) {
                 return NextResponse.json({
@@ -202,7 +256,9 @@ export async function POST(request: Request) {
             discount_amount,
             message: `Знижка -${discount_amount} грн застосована`,
             promo_id: promo.id,
-            code: promo.code,
+            // `code` is deliberately NOT returned: the caller already knows the
+            // code it sent, and echoing the stored value turned a lucky match
+            // into a disclosure of the real code.
         });
 
     } catch (err: any) {
