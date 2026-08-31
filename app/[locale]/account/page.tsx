@@ -406,6 +406,16 @@ export default function AccountPage() {
         init();
     }, []);
 
+    // Deep-link support for ?tab=… so the footer link and the invite banner can
+    // drop a visitor straight onto «Запросити друга» instead of the orders tab.
+    // Lives here, with the other effects and ABOVE the `if (isLoading) return`
+    // guard, for the same hook-ordering reason spelled out below.
+    useEffect(() => {
+        const requested = new URLSearchParams(window.location.search).get('tab');
+        const allowed: Tab[] = ['orders', 'designs', 'wishlist', 'profile', 'referral'];
+        if (requested && (allowed as string[]).includes(requested)) setTab(requested as Tab);
+    }, []);
+
     // Load referral data lazily when the tab is first opened.
     // MUST stay above the `if (isLoading) return` guard below — placing a hook
     // after a conditional return changes the hook count between renders and
@@ -1096,10 +1106,10 @@ export default function AccountPage() {
                                         <div style={{ background: 'linear-gradient(135deg,#263A99,#1a2a73)', borderRadius: 14, padding: 28, color: 'white' }}>
                                             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 10 }}>Як це працює</div>
                                             <p style={{ fontSize: 14, lineHeight: 1.7, opacity: 0.92, margin: 0 }}>
-                                                Поділіться своїм посиланням із друзями. Коли друг зареєструється та зробить перше оплачене замовлення від {referral.minOrder} ₴ — ви отримаєте <strong>{referral.reward} ₴</strong>, і друг теж отримає <strong>{referral.friendReward ?? 50} ₴</strong> на бонусний рахунок. Бонусами можна оплатити до 50% наступних замовлень.
+                                                Поділіться своїм посиланням із друзями. Коли друг зареєструється за вашим посиланням і зробить оплачене замовлення від {referral.minOrder} ₴ — ви отримаєте <strong>{referral.reward} ₴</strong>, і друг теж отримає <strong>{referral.friendReward ?? 50} ₴</strong> на бонусний рахунок. Сума замовлення рахується до вирахування сертифіката та бонусів, а самими бонусами можна оплатити до 50% наступних замовлень.
                                             </p>
                                             <p style={{ fontSize: 12.5, lineHeight: 1.65, opacity: 0.75, margin: '12px 0 0' }}>
-                                                Важлива умова: бонус нараховується лише тоді, коли друг перейшов за вашим посиланням і зареєстрував акаунт до оформлення замовлення. Покупка без реєстрації, як гість, до програми не зараховується, і заднім числом додати її ми не зможемо.
+                                                Важлива умова: бонус нараховується лише тоді, коли друг перейшов за вашим посиланням і зареєстрував акаунт до оформлення замовлення. Покупка без реєстрації, як гість, до програми не зараховується, і заднім числом додати її ми не зможемо. Якщо перше замовлення друга виявиться меншим за {referral.minOrder} ₴, запрошення не згорає — бонус нарахується на першому ж його замовленні, яке дотягне до цієї суми.
                                             </p>
                                         </div>
 

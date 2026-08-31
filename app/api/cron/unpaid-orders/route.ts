@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import OrderCancelledEmail from '@/emails/OrderCancelledEmail';
 import PaymentReminderEmail from '@/emails/PaymentReminderEmail';
+import { refundOrderBonus } from '@/lib/referral/referral';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
 
     const { data: cancelCandidates } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, customer_email, total')
+        .select('id, order_number, customer_name, customer_email, total, customer_id, used_bonus')
         .eq('payment_status', 'pending')
         .eq('order_status', 'new')
         .lt('created_at', cancelBefore.toISOString())
@@ -138,6 +139,23 @@ export async function GET(request: Request) {
                 action: 'status_changed',
                 notes: `Замовлення автоматично скасовано через несплату протягом ${CANCEL_AFTER_HOURS} годин`,
             });
+
+            // Give back any bonuses this order had spent. They are debited at
+            // SUBMIT, before payment, so without this an unpaid order that the
+            // cron cancels a day later silently destroyed the customer's
+            // balance — the worst version of the bug, because it needs no
+            // admin action to happen and nobody is watching when it does.
+            // Idempotent, so a retried cron run cannot credit twice.
+            try {
+                await refundOrderBonus(supabase, {
+                    orderId: order.id,
+                    customerId: (order as any).customer_id || null,
+                    usedBonus: Number((order as any).used_bonus) || 0,
+                    orderNumber: order.order_number,
+                });
+            } catch (e) {
+                console.error(`[unpaid-orders] bonus refund failed for ${order.order_number} (order still cancelled):`, e);
+            }
 
             // Send cancellation email
             if (hasBrevo && order.customer_email) {

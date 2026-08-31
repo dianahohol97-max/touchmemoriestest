@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, User, ArrowRight } from 'lucide-react';
+import { readPendingReferralCode } from '@/lib/referral/pending-code';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -44,9 +45,19 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
                 onClose();
 
             } else if (mode === 'register') {
+                // Carry the referral code the visitor arrived with into auth
+                // user_metadata, same as the /register page — see
+                // lib/referral/pending-code.ts for why localStorage alone is
+                // not enough (cross-device email confirmation).
+                const pendingReferralCode = readPendingReferralCode();
                 const { error } = await supabase.auth.signUp({
                     email, password,
-                    options: { data: { first_name: firstName } }
+                    options: {
+                        data: {
+                            first_name: firstName,
+                            ...(pendingReferralCode ? { referral_code: pendingReferralCode } : {})
+                        }
+                    }
                 });
                 if (error) { setError(translateError(error.message)); return; }
                 setSuccess('Лист підтвердження надіслано на вашу пошту. Перевірте вхідні та spam.');
