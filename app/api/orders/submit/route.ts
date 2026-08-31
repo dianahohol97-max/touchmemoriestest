@@ -40,6 +40,10 @@ interface OrderItem {
   total_price: number;
   options?: Record<string, unknown>;
   slug?: string; // needed for payment_mode lookup
+  /** Вільний текст персоналізації з конструктора — заголовок і присвята на
+   *  постері, підписи під полароїдами, текст диплома. Рендериться в адмінці
+   *  на сторінці файлів замовлення. */
+  personalization_note?: string;
   metadata?: Record<string, unknown>; // structured per-item data (e.g. gift cert)
 }
 

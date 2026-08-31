@@ -518,6 +518,16 @@ export default function CheckoutPage() {
             };
         };
 
+        // Ключі НЕ стираємо тут. Раніше removeItem стояв просто в цьому циклі,
+        // тобто дескриптори зникали ще до того, як вставка в order_files
+        // відбулася. Якщо вставка потім падала (обрив мережі, помилка бази),
+        // ми мали найгірше з можливого: файли лежать у сховищі, але до
+        // замовлення не приліплені, у менеджера в адмінці порожньо, повторити
+        // нічим — описи вже стерті, — і про це ніхто не дізнається, бо провал
+        // ішов у console.error. Симптом один в один як у TM-001245.
+        //
+        // Тепер стираємо тільки після підтвердженої вставки (нижче).
+        const consumedItemIds: string[] = [];
         for (const itemId of cartItemIds) {
             const raw = sessionStorage.getItem(`export_${itemId}`);
             if (!raw) continue;
@@ -528,7 +538,7 @@ export default function CheckoutPage() {
                     const r = toRecord(entry);
                     if (r) records.push(r);
                 }
-                sessionStorage.removeItem(`export_${itemId}`);
+                consumedItemIds.push(itemId);
             } catch { /* skip malformed entries */ }
         }
 
@@ -554,10 +564,46 @@ export default function CheckoutPage() {
         }
 
         if (records.length > 0) {
+            let linked = false;
             try {
                 await createOrderFileRecords(records);
+                linked = true;
             } catch (err) {
-                console.error('Failed to link exports to order:', err);
+                console.error('Failed to link exports to order (bulk):', err);
+                // Пакетна вставка атомарна: один зіпсований опис валить усі
+                // інші. Пробуємо ще раз по одному, щоб урятувати максимум —
+                // краще замовлення з девʼятьма файлами з десяти, ніж із нулем.
+                let ok = 0;
+                for (const r of records) {
+                    try { await createOrderFileRecords([r]); ok++; }
+                    catch (e) { console.error('order_files row FAILED:', r.file_path, e); }
+                }
+                linked = ok === records.length;
+                if (ok > 0 && !linked) {
+                    console.error(`order_files: приліплено ${ok} з ${records.length}`);
+                }
+            }
+
+            if (linked) {
+                // Тільки тепер описи більше не потрібні.
+                consumedItemIds.forEach(id => {
+                    try { sessionStorage.removeItem(`export_${id}`); } catch { /* ignore */ }
+                });
+            } else {
+                // Файли в сховищі є, але до замовлення не приліплені. Ключі
+                // лишаємо — щоб повторна спроба оформлення мала з чим працювати,
+                // — і кричимо на замовленні тим самим попередженням, що й при
+                // збої експорту. Мовчати тут не можна: в адмінці буде порожньо,
+                // а замовлення виглядатиме звичайним.
+                try {
+                    await fetch(`/api/orders/${orderId}/flag-export-failed`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ count: consumedItemIds.length || 1 }),
+                    });
+                } catch (err) {
+                    console.error('Failed to flag unlinked-exports order:', err);
+                }
             }
         }
 
@@ -688,6 +734,22 @@ export default function CheckoutPage() {
                         slug: it.slug,
                         options: it.options || {},
                         price_breakdown: it.price_breakdown || undefined,
+                        // Персоналізація позиції — те, що клієнтка написала або
+                        // налаштувала в конструкторі: заголовок і присвята на
+                        // зоряній мапі, підписи під полароїдами, текст диплома,
+                        // напис на обкладинці книги, перелік фотослотів весільної
+                        // газети.
+                        //
+                        // Це поле писали ВСІ конструктори і його читає адмінка
+                        // (/admin/orders/[id]/files рендерить it.personalization_note),
+                        // але сюди його ніхто не клав — і воно не доїжджало до
+                        // замовлення взагалі. За останні 120 днів: 820 замовлень,
+                        // з них із персоналізацією — нуль. Тобто блок в адмінці
+                        // був мертвий від початку, а менеджер бачив лише опції.
+                        //
+                        // Сервер кладе items у JSONB як є, без білого списку полів,
+                        // тож достатньо перестати губити його тут.
+                        ...(it.personalization_note ? { personalization_note: String(it.personalization_note) } : {}),
                         // Preserve structured per-item data (e.g. gift-certificate
                         // recipient name / email / message / face amount) so the
                         // payment webhook can auto-issue the certificate.
