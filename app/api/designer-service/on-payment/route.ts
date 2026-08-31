@@ -9,6 +9,25 @@ import { sendTelegramMessage } from '@/lib/automation/telegram-notifications';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Internal call only. This route is triggered server-to-server by the
+    // Monobank webhook and by manual order creation; nothing in the browser
+    // calls it. Until now it had no auth at all, so anyone holding a paid
+    // designer order's UUID could POST it repeatedly — and every call re-sends
+    // the brief-link email to that customer and pings the designer's Telegram.
+    // Unlike flag-export-failed, which returns early once it has already
+    // flagged an order, this one has no such stop: it resends on every call.
+    // Unbounded outbound mail to a third party is a way to burn the sending
+    // domain's reputation, so it needs a caller check.
+    //
+    // Same x-cron-secret convention the other internal POSTs use
+    // (email/transactional, automation/*). Fails closed when CRON_SECRET is
+    // unset, matching cron/backup-db — every cron in this app already depends
+    // on that variable being present.
+    const cronSecret = request.headers.get('x-cron-secret');
+    if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { orderId } = await request.json();
 
     if (!orderId) {

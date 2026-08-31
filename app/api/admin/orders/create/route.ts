@@ -149,7 +149,10 @@ export async function POST(request: Request) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
             fetch(`${siteUrl}/api/designer-service/on-payment`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-cron-secret': process.env.CRON_SECRET || '',
+                },
                 body: JSON.stringify({ orderId: order.id }),
             }).catch(err => {
                 console.error('[Manual Order] designer-service/on-payment trigger failed:', err);
