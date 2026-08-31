@@ -1436,19 +1436,19 @@ export default function BookLayoutEditor() {
           // the saved design. The layout was stored with 54 photos and zero
           // usable files. Inheriting the path here means a draft-persisted
           // photo is never re-uploaded and never lost.
-          setPhotos(valid.map((p: any) => (p.path && !p.storagePath ? { ...p, storagePath: p.path } : p)));
+          setPhotos(valid.map((p: PhotoData) => (p.path && !p.storagePath ? { ...p, storagePath: p.path } : p)));
           // Ghosts WITH a storagePath (draft-persisted photos): rehydrate their
           // previews from the server via signed URLs — the customer gets the
           // full book back with zero re-uploading. This is the fix for the
           // "blank book after refresh with many photos" failure (TM-001036):
           // previews don't fit sessionStorage, but the bytes are in storage.
-          const ghostsWithPath = withoutPreview.filter((p: any) => p.path);
+          const ghostsWithPath = withoutPreview.filter((p: PhotoData) => p.path);
           if (ghostsWithPath.length > 0) {
             (async () => {
               try {
                 const { createClient: mkSb } = await import('@/lib/supabase/client');
                 const sbg = mkSb();
-                const paths = ghostsWithPath.map((p: any) => p.path as string);
+                const paths = ghostsWithPath.map((p: PhotoData) => p.path as string);
                 const { data: signed } = await sbg.storage
                   .from('photobook-uploads')
                   .createSignedUrls(paths, 60 * 60 * 24 * 7);
@@ -1456,7 +1456,7 @@ export default function BookLayoutEditor() {
                   const urlByPath: Record<string, string> = {};
                   signed.forEach((s, i) => { if (s?.signedUrl) urlByPath[paths[i]] = s.signedUrl; });
                   setPhotos(prev => prev.map(p => {
-                    const path = (p as any).path || (p as any).storagePath;
+                    const path = p.path || p.storagePath;
                     return (!p.preview && path && urlByPath[path])
                       ? { ...p, preview: urlByPath[path], storagePath: path } as any
                       : p;
@@ -1471,16 +1471,16 @@ export default function BookLayoutEditor() {
           // refresh path too (it previously only worked when reopening from
           // the account page — re-uploads just appended and the book stayed
           // blank, which is how a blank photobook got printed).
-          const ghostsNeedingReupload = withoutPreview.filter((p: any) => !p.path);
+          const ghostsNeedingReupload = withoutPreview.filter((p: PhotoData) => !p.path);
           if (ghostsNeedingReupload.length > 0) {
             try {
               const _slug0 = (config?.productSlug || '').toLowerCase().trim();
               const draftKey0 = _slug0 ? `bookEditorDraft_${_slug0}` : 'bookEditorDraft';
               const draftRaw2 = sessionStorage.getItem(draftKey0);              const d2 = draftRaw2 ? JSON.parse(draftRaw2) : null;
               if (d2?.pages) {
-                const ghostIds = new Set(ghostsNeedingReupload.map((p: any) => p.id));
+                const ghostIds = new Set(ghostsNeedingReupload.map((p: PhotoData) => p.id));
                 const nameById: Record<string, string> = {};
-                ghostsNeedingReupload.forEach((p: any) => { nameById[p.id] = p.name; });
+                ghostsNeedingReupload.forEach((p: PhotoData) => { nameById[p.id] = p.name; });
                 const map = reopenPlacementRef.current;
                 (d2.pages as any[]).forEach((pg: any, pi: number) => {
                   (pg.slots || []).forEach((s: any, si: number) => {
@@ -1493,8 +1493,8 @@ export default function BookLayoutEditor() {
                   });
                 });
                 if (d2.freeSlots) {
-                  Object.entries(d2.freeSlots as Record<string, any[]>).forEach(([pi, arr]) => {
-                    (arr || []).forEach((fs: any, idx: number) => {
+                  Object.entries(d2.freeSlots as Record<string, FreeSlot[]>).forEach(([pi, arr]) => {
+                    (arr || []).forEach((fs: FreeSlot, idx: number) => {
                       if (fs?.photoId && ghostIds.has(fs.photoId)) {
                         const nm = nameById[fs.photoId];
                         if (!nm) return;
@@ -1669,8 +1669,8 @@ export default function BookLayoutEditor() {
       const previewsFit = approxPreviewBytes < 3_500_000;
       try {
         const data = previewsFit
-          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: (p as any).storagePath || undefined }))
-          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: (p as any).storagePath || undefined }));
+          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: p.storagePath || undefined }))
+          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: p.storagePath || undefined }));
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
         // sessionStorage quota exceeded. We can't fit full-size data URLs in
@@ -1687,7 +1687,7 @@ export default function BookLayoutEditor() {
         // setting src — and (b) would have softened photos visibly even if
         // it had run. We dropped both behaviours.)
         try {
-          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, path: (p as any).storagePath || undefined }));
+          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, path: p.storagePath || undefined }));
           sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
         } catch { /* give up — user will need to re-upload after a hard refresh */ }
       }
@@ -3635,14 +3635,14 @@ export default function BookLayoutEditor() {
       // connection and the main thread. Three at a time keeps the editor
       // responsive while the backlog drains.
       const uploadOne = async (p: PhotoData) => {
-        const existingPath = (p as any).storagePath as string | undefined;
+        const existingPath = p.storagePath as string | undefined;
         if (existingPath) {
           return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath };
         }
         if ((photoUploadAttemptsRef.current[p.id] || 0) >= 3) {
           return { id: p.id, name: p.name, width: p.width, height: p.height };
         }
-        let body: Blob | File | undefined = (p as any).originalFile as File | undefined;
+        let body: Blob | File | undefined = p.originalFile as File | undefined;
         // Same body sources as the order-time upload loop: blob (live session),
         // data (small previews) and https (draft-restored signed URLs whose
         // storage path was lost). Reading only blob: left restored photos
@@ -3662,7 +3662,7 @@ export default function BookLayoutEditor() {
             console.warn('[persistDraft] photo upload failed', p.id, upErr.message);
             return { id: p.id, name: p.name, width: p.width, height: p.height };
           }
-          (p as any).storagePath = path;
+          p.storagePath = path;
           return { id: p.id, name: p.name, width: p.width, height: p.height, path };
         } catch (e) {
           photoUploadAttemptsRef.current[p.id] = (photoUploadAttemptsRef.current[p.id] || 0) + 1;
@@ -4030,13 +4030,13 @@ export default function BookLayoutEditor() {
       // Live progress for the long part. The old overlay was wired only to the
       // permanently-disabled html2canvas branch, so this multi-minute upload
       // ran with zero feedback — the editor looked frozen.
-      const toUpload = photos.filter(p => !(p as any).storagePath);
+      const toUpload = photos.filter(p => !p.storagePath);
       if (toUpload.length > 0) {
         setUploadState({ active: true, done: 0, total: toUpload.length, failed: 0, orderId: uploadOrderId });
       }
       for (const ph of photos) {
-        if ((ph as any).storagePath) continue; // already uploaded this session
-        let body: Blob | File | undefined = (ph as any).originalFile as File | undefined;
+        if (ph.storagePath) continue; // already uploaded this session
+        let body: Blob | File | undefined = ph.originalFile as File | undefined;
         if (!body && ph.preview) {
           if (ph.preview.startsWith('blob:') || ph.preview.startsWith('data:') || ph.preview.startsWith('https://')) {
             try { const r = await fetch(ph.preview); if (r.ok) body = await r.blob(); } catch { /* skip */ }
@@ -4052,7 +4052,7 @@ export default function BookLayoutEditor() {
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
           if (!upErr) {
-            (ph as any).storagePath = path;
+            ph.storagePath = path;
             setUploadState(prev => prev ? { ...prev, done: prev.done + 1 } : prev);
           } else {
             setUploadState(prev => prev ? { ...prev, failed: prev.failed + 1 } : prev);
@@ -4069,7 +4069,7 @@ export default function BookLayoutEditor() {
     try {
       const { createClient: createSbForSign } = await import('@/lib/supabase/client');
       const sbSign = createSbForSign();
-      const paths = photos.map(p => (p as any).storagePath).filter(Boolean) as string[];
+      const paths = photos.map(p => p.storagePath).filter(Boolean) as string[];
       if (paths.length > 0) {
         const { data: signed } = await sbSign.storage
           .from('photobook-uploads')
@@ -4077,7 +4077,7 @@ export default function BookLayoutEditor() {
         if (signed) {
           let k = 0;
           for (const p of photos) {
-            if ((p as any).storagePath) {
+            if (p.storagePath) {
               const s = signed[k++];
               if (s?.signedUrl) signedPreviewById[p.id] = s.signedUrl;
             }
@@ -4278,7 +4278,7 @@ export default function BookLayoutEditor() {
         // Free-positioned text blocks on the back cover (printed covers
         // only). Joined with " · " into one option value so production
         // sees the exact text(s) the customer placed.
-        const backTexts = (coverState as any).backCoverTexts || [];
+        const backTexts = coverState.backCoverTexts || [];
         if (backTexts.length > 0) {
           const joined = backTexts.map((t: any) => t.text).filter(Boolean).join(' · ');
           if (joined) opts[t('constructor.add_back_cover_text')] = joined;
@@ -4382,7 +4382,7 @@ export default function BookLayoutEditor() {
         focalY: p.focalY,
         hasFace: p.hasFace,
         preview: signedPreviewById[p.id] || (p.preview?.startsWith('data:') ? p.preview : ''),
-        storagePath: (p as any).storagePath || undefined,
+        storagePath: p.storagePath || undefined,
       })));
       const snap = {
         config,
@@ -5050,13 +5050,13 @@ export default function BookLayoutEditor() {
         // Belt-and-braces: accept `path` too (draft-restored photos carry it),
         // so a photo that is already in storage is never re-uploaded — and
         // never silently dropped when the re-upload can't find bytes.
-        const existingPath = ((ph as any).storagePath || (ph as any).path) as string | undefined;
+        const existingPath = (ph.storagePath || ph.path) as string | undefined;
         if (existingPath) {
           uploadedPhotosMeta[i].path = existingPath;
           continue;
         }
         let body: Blob | undefined;
-        const origFile = (ph as any).originalFile as File | undefined;
+        const origFile = ph.originalFile as File | undefined;
         if (origFile) {
           body = origFile;
         } else if (ph.preview?.startsWith('blob:')) {
@@ -5070,7 +5070,7 @@ export default function BookLayoutEditor() {
           const { error: upErr } = await sb.storage
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-          if (!upErr) { uploadedPhotosMeta[i].path = path; (ph as any).storagePath = path; }
+          if (!upErr) { uploadedPhotosMeta[i].path = path; ph.storagePath = path; }
           else console.warn('[design-snapshot] photo upload error', ph.id, upErr.message);
         } catch (e) { console.warn('[design-snapshot] photo upload failed', ph.id, e); }
       }
@@ -5411,7 +5411,7 @@ export default function BookLayoutEditor() {
   // та вставка, доплачуються лише додаткові. На друкованих обкладинках фото
   // друкується прямо в дизайні і лишається безкоштовним.
   const PHOTO_INSERT_PRICE = 180;
-  const coverPhotoCount = (((coverState as any).coverPhotos) || []).length;
+  const coverPhotoCount = ((coverState.coverPhotos) || []).length;
   const chargeableCoverPhotos = Math.max(0, coverPhotoCount - (coverState.decoType === 'photovstavka' ? 1 : 0));
   const coverPhotoExtra = (!isPrinted && chargeableCoverPhotos > 0) ? PHOTO_INSERT_PRICE * chargeableCoverPhotos : 0;
   // Редактор написів м'якої обкладинки для вкладки «Текст». Спільні контроли
@@ -6246,8 +6246,8 @@ export default function BookLayoutEditor() {
                       </p>
 
                       {/* Opt-in toggle for back cover photo */}
-                      {!(coverState as any).backCoverEnabled ? (
-                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                      {!coverState.backCoverEnabled ? (
+                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                           style={{ width:'100%', padding:'8px 10px', border:'1px dashed #c7d2fe', borderRadius:8,
                             background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5',
                             display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
@@ -6282,7 +6282,7 @@ export default function BookLayoutEditor() {
                               </button>
                             </>
                           )}
-                          <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null, backCoverSlot: undefined } as any))}
+                          <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null, backCoverSlot: undefined }))}
                             style={{ width:'100%', padding:'7px', fontSize:11, fontWeight:700, color:'#ef4444', background:'#fff7f7', border:'1px solid #fecaca', borderRadius:6, cursor:'pointer' }}>
                             × Прибрати фото з задньої обкладинки
                           </button>
@@ -6547,12 +6547,12 @@ export default function BookLayoutEditor() {
                   // фото» — воно не кадрується і не відповідає продукту).
                   const _coverSlug = String((config as any)?.productSlug || '').toLowerCase();
                   if (/wish|pobazhan|guest/.test(_coverSlug)) return null;
-                  const insertLimitReached = !isPrinted && (((coverState as any).coverPhotos)||[]).length >= 1;
+                  const insertLimitReached = !isPrinted && ((coverState.coverPhotos)||[]).length >= 1;
                   return (
                 <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                   <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Фото на обкладинці</div>
                   {!insertLimitReached && (
-                  <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(((prev as any).coverPhotos)||[]), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}) as any)}
+                  <button onClick={() => setCoverState(prev => ({...prev, coverPhotos:[...(prev.coverPhotos || []), {id:'cph-'+Date.now(), photoId:(photos[0]?.id ?? null), x:30, y:32, w:40, h:36, cropX:50, cropY:50, zoom:1, rotation:0, shape:'rect'}]}))}
                     style={{ width:'100%', padding:'7px', border:'1px dashed #1e2d7d', borderRadius:8, background:'#f0f3ff', cursor:'pointer', fontWeight:700, fontSize:12, color:'#1e2d7d', marginBottom:6, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                     <span>+ Додати фото</span>
                     {/* На мʼяких матеріалах фото — це фотовставка, платна операція. */}
@@ -7387,7 +7387,7 @@ export default function BookLayoutEditor() {
                             stays plain by design. */}
                         <button onClick={() => {
                           pushHistory();
-                          setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
+                          setCoverState(p => ({...p, backCoverTexts: [...((p.backCoverTexts) || []), {
                             id: 'btxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                             fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                           }]} as any));
@@ -7403,12 +7403,12 @@ export default function BookLayoutEditor() {
                             not be restyled. Edits each printed/back-cover block. */}
                         {(() => {
                           const ptl = coverState.printedTextBlocks ?? [];
-                          const btl = (((coverState as any).backCoverTexts) ?? []) as Array<{ id:string; text:string; fontSize:number; fontFamily:string; color:string; bold:boolean }>;
+                          const btl = ((coverState.backCoverTexts) ?? []) as Array<{ id:string; text:string; fontSize:number; fontFamily:string; color:string; bold:boolean }>;
                           if (ptl.length === 0 && btl.length === 0) return null;
                           const editFront = (id:string, patch:Record<string,unknown>) => setCoverState(p => ({ ...p, printedTextBlocks: (p.printedTextBlocks||[]).map(t => t.id===id ? { ...t, ...patch } : t) }));
                           const delFront = (id:string) => setCoverState(p => ({ ...p, printedTextBlocks: (p.printedTextBlocks||[]).filter(t => t.id!==id) }));
-                          const editBack = (id:string, patch:Record<string,unknown>) => setCoverState(p => ({ ...(p as any), backCoverTexts: (((p as any).backCoverTexts)||[]).map((t:any) => t.id===id ? { ...t, ...patch } : t) } as any));
-                          const delBack = (id:string) => setCoverState(p => ({ ...(p as any), backCoverTexts: (((p as any).backCoverTexts)||[]).filter((t:any) => t.id!==id) } as any));
+                          const editBack = (id:string, patch:Record<string,unknown>) => setCoverState(p => ({ ...p, backCoverTexts: ((p.backCoverTexts)||[]).map((t:any) => t.id===id ? { ...t, ...patch } : t) }));
+                          const delBack = (id:string) => setCoverState(p => ({ ...p, backCoverTexts: ((p.backCoverTexts)||[]).filter((t:any) => t.id!==id) }));
                           const row = (tb:{ id:string; text:string; fontSize:number; fontFamily:string; color:string; bold:boolean }, where:string) => {
                             const edit = where==='front' ? editFront : editBack;
                             const del = where==='front' ? delFront : delBack;
@@ -7724,7 +7724,7 @@ export default function BookLayoutEditor() {
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
                       {/* Back cover photo slot — hidden by default, shown only when user opted in */}
-                      {isPrinted && !isWishbook && (coverState as any).backCoverEnabled && (
+                      {isPrinted && !isWishbook && coverState.backCoverEnabled && (
                         <div
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
@@ -7816,7 +7816,7 @@ export default function BookLayoutEditor() {
                         </div>
                       )}
                       {/* Resize handles for back cover slot */}
-                      {isPrinted && (coverState as any).backCoverEnabled && (['nw','ne','se','sw'] as const).map(dir => {
+                      {isPrinted && coverState.backCoverEnabled && (['nw','ne','se','sw'] as const).map(dir => {
                         const lp = (dir==='ne'||dir==='se') ? bSlotPx.x+bSlotPx.w : bSlotPx.x;
                         const tp = (dir==='se'||dir==='sw') ? bSlotPx.y+bSlotPx.h : bSlotPx.y;
                         return (
@@ -7835,9 +7835,9 @@ export default function BookLayoutEditor() {
                           Without this the back cover looks like dead space and users (Diana
                           specifically) can't tell it's editable. The sidebar has the same
                           opt-in button but it's not discoverable from canvas. */}
-                      {isPrinted && !isWishbook && !(coverState as any).backCoverEnabled && (
+                      {isPrinted && !isWishbook && !coverState.backCoverEnabled && (
                         <button
-                          onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                          onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                           style={{ position:'absolute', inset:0, margin:'auto', width:'70%', maxWidth:280, height:'auto', padding:'14px 18px',
                             border:'2px dashed rgba(99,102,241,0.6)', borderRadius:12,
                             background:'rgba(255,255,255,0.65)', cursor:'pointer',
@@ -7857,7 +7857,7 @@ export default function BookLayoutEditor() {
                           not move it, and found out where it landed when the
                           book arrived. Same drag / edit behaviour and the same
                           cover scale as the front-cover blocks. */}
-                      {(((coverState as any).backCoverTexts) || []).map((bt: any) => {
+                      {((coverState.backCoverTexts) || []).map((bt: any) => {
                         const editBt = (patch: Record<string, unknown>) => setCoverState((p: any) => ({
                           ...p,
                           backCoverTexts: (p.backCoverTexts || []).map((t: any) => t.id === bt.id ? { ...t, ...patch } : t),
@@ -8382,7 +8382,7 @@ export default function BookLayoutEditor() {
                                     slotEditTitle="Змінити форму або розмір слота"
                                     updateSlot={(fn, opts) => {
                                       if (opts?.history !== false) pushHistoryCoalesced();
-                                      setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl as any) as any) }));
+                                      setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl)) }));
                                     }}
                                     onDelete={() => { clearSlot(spreadPageIdx, i); setPhotoEditSlot(null); }}
                                     onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
@@ -9132,7 +9132,7 @@ export default function BookLayoutEditor() {
                                       slotEditTitle="Змінити розмір слота — тягни кути"
                                       updateSlot={(fn, opts) => {
                                         if (opts?.history !== false) pushHistoryCoalesced();
-                                        setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl as any) as any) }));
+                                        setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : fn(sl)) }));
                                       }}
                                       onDelete={() => { clearSlot(pageIdx, i); setPhotoEditSlot(null); }}
                                       onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
@@ -10827,7 +10827,7 @@ export default function BookLayoutEditor() {
                           </button>
                           <button onClick={() => {
                             pushHistory();
-                            setCoverState(p => ({...(p as any), backCoverTexts: [...(((p as any).backCoverTexts) || []), {
+                            setCoverState(p => ({...p, backCoverTexts: [...((p.backCoverTexts) || []), {
                               id: 'btxt-' + Date.now(), text: t('constructor.your_text'), x: 50, y: 50,
                               fontSize: tFontSize, fontFamily: tFontFamily, color: tColor, bold: tBold,
                             }]} as any));
@@ -11152,8 +11152,8 @@ export default function BookLayoutEditor() {
                       <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                         style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                     </div>
-                    {!(coverState as any).backCoverEnabled ? (
-                      <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true } as any))}
+                    {!coverState.backCoverEnabled ? (
+                      <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                         style={{ width:'100%', padding:'8px', border:'1px dashed #c7d2fe', borderRadius:8,
                           background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5' }}>
                         + Додати фото на задню обкладинку
@@ -11169,7 +11169,7 @@ export default function BookLayoutEditor() {
                         {!coverState.backCoverPhotoId && (
                           <div style={{ fontSize:10, color:'#94a3b8', marginBottom:6 }}>Перетягніть фото прямо на задню обкладинку</div>
                         )}
-                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null } as any))}
+                        <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: false, backCoverPhotoId: null }))}
                           style={{ width:'100%', padding:'5px', fontSize:10, color:'#94a3b8', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:6, cursor:'pointer' }}>
                           Прибрати фото із задньої
                         </button>

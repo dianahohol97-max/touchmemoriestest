@@ -20,11 +20,36 @@
 // pass. The photo tray, film strip and page-navigator thumbnails render it
 // instead of the full editor preview (up to 5000px) — decoding dozens of
 // full-size bitmaps for 60px tiles was a constant source of scroll/paint jank.
-export interface PhotoData { id: string; preview: string; thumb?: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string; }
+export interface PhotoData { id: string; preview: string; thumb?: string; width: number; height: number; name: string; focalX?: number; focalY?: number; hasFace?: boolean; noBgUrl?: string; noBgLoading?: boolean; originalFile?: File; storagePath?: string;
+  /**
+   * Legacy alias for storagePath. Saved projects persist the storage key as
+   * `path` (see the metadata written on save), so a photo restored from a
+   * saved design can arrive carrying `path` and no `storagePath`. Read sites
+   * fall back across both; declared here so that fallback does not need a
+   * cast to express itself.
+   */
+  path?: string;
+}
 
 export interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; selectedUrgency?: string | null; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
 
 export type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
+
+/**
+ * A free-positioned photo placed on the cover.
+ *
+ * The shape was declared inline on CoverConfig in CoverEditor.tsx while
+ * CoverState reached the same objects through `as any`. Named here so both
+ * sides describe one thing.
+ */
+export interface CoverPhoto {
+  id: string;
+  photoId: string | null;
+  x: number; y: number; w: number; h: number;
+  cropX?: number; cropY?: number;
+  zoom?: number; rotation?: number;
+  shape?: 'rect' | 'rounded' | 'circle';
+}
 
 export interface CoverState {
   decoType: CoverDecoType;
@@ -69,6 +94,14 @@ export interface CoverState {
   // printedTextBlocks. Optional; presence of items means the back cover
   // has been customised with text. Renders only when isPrinted.
   backCoverTexts?: { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean }[];
+  /**
+   * Whether the customer has turned the back cover on. Read all over the
+   * printed-cover UI and written by the enable/disable buttons, but it was
+   * never declared — every one of those sites went through `as any`.
+   */
+  backCoverEnabled?: boolean;
+  /** Free-positioned photos on the front cover. Same story as above. */
+  coverPhotos?: CoverPhoto[];
 }
 
 export interface ExtraText {
