@@ -14,7 +14,11 @@ import { requireAuth } from '@/lib/auth/guards';
 
 export const maxDuration = 60;
 
-const MODEL = 'qwen/qwen-image-edit-plus';
+const MODEL = 'openai/gpt-image-1.5';
+// Kept here on purpose: qwen/qwen-image-edit-plus drew usable pages for about
+// three cents a run and is one line away if the model above proves too dear.
+// Its weakness was the face — dark lashes that read as make-up, and little
+// strokes all over the skin.
 
 // Shared spine of the instruction. Every level names the same forbidden
 // things — grey, shading, filled black — because those are what the model
@@ -82,6 +86,19 @@ function buildInput(props: Record<string, any>, dataUrl: string, prompt: string)
   }
   const promptKey = ['prompt', 'instruction', 'text'].find(k => keys.includes(k));
   if (promptKey) input[promptKey] = prompt;
+
+  // Per-image models bill by quality tier, and left alone they take the dearest
+  // one. A colouring page is flat black on white, so the middle tier is plenty
+  // and costs a fraction of the top. Only set what the model actually declares.
+  const quality = props.quality;
+  if (quality && Array.isArray(quality.enum)) {
+    const wanted = ['medium', 'standard', 'low'].find(v => quality.enum.indexOf(v) >= 0);
+    if (wanted) input.quality = wanted;
+  }
+  const format = props.output_format;
+  if (format && Array.isArray(format.enum) && format.enum.indexOf('png') >= 0) {
+    input.output_format = 'png';
+  }
   return input;
 }
 
@@ -276,6 +293,6 @@ export async function POST(request: Request) {
 //     extracting one.
 //   paappraiser/retro-coloring-book — a community model that kept exceeding the
 //     serverless time budget on a cold start.
-//   openai/gpt-image-1.5 — dearest of the three and never needed once the
-//     editor above produced usable pages.
+//   openai/gpt-image-1.5 — now the model in use: the editor above kept drawing
+//     lashes and skin texture no matter how the instruction was worded.
 //   carolineec/informativedrawings — does not exist under that name at all.
