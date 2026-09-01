@@ -38,6 +38,27 @@ import { getAdminClient } from '@/lib/supabase/admin';
  * за цим числом ставить на замовлення гучне попередження.
  */
 
+/**
+ * Категорія та тип, під якими файли дизайну лягають у order_files.
+ *
+ * Для фотодруку це не косметика. Адмінська картка відбирає готові відбитки за
+ * file_category через isPrintSetCategory, а генератор зведених аркушів бере
+ * рівно ті самі три категорії. Категорія 'photo-upload', яку цей роут ставив
+ * усьому підряд, у той перелік не входить: відновлені файли полароїда впали б
+ * не в ту секцію картки і не потрапили б у розкадровку взагалі. Тому для
+ * друк-наборів ставимо ту саму категорію й тип, що й конструктор під час
+ * звичайного оформлення, а решта дизайнів лишається як була.
+ */
+function fileKindFor(productType: unknown, slug: unknown): { category: string; type: string } {
+  if (String(productType || '').toLowerCase() !== 'photo-print') {
+    return { category: 'photo-upload', type: 'upload' };
+  }
+  const sl = String(slug || '').toLowerCase();
+  if (sl === 'polaroid-print') return { category: 'polaroid-print', type: 'export' };
+  if (sl === 'photomagnets') return { category: 'photomagnets', type: 'export' };
+  return { category: 'photo-print', type: 'export' };
+}
+
 /** Дістає з uploaded_photos лише записи з придатним шляхом у сховищі. */
 function storagePathsOf(uploaded: unknown): { path: string; bucket: string }[] {
   if (!Array.isArray(uploaded)) return [];
@@ -53,6 +74,51 @@ function storagePathsOf(uploaded: unknown): { path: string; bucket: string }[] {
     out.push({ path, bucket });
   }
   return out;
+}
+
+/**
+ * Кладе файли дизайну в order_files замовлення. Повертає false, коли класти
+ * нема чого або вставка не вдалася — виклик рахує це у withoutFiles.
+ *
+ * Ідемпотентна: повторний виклик link-order (друга спроба оформлення) не
+ * задублює вже приліплені шляхи.
+ */
+async function attachDesignFiles(
+  admin: ReturnType<typeof getAdminClient>,
+  orderId: string,
+  proj: { id: string; product_type?: unknown; uploaded_photos?: unknown; cart_payload?: any },
+): Promise<boolean> {
+  const paths = storagePathsOf(proj.uploaded_photos);
+  if (paths.length === 0) return false;
+
+  const { data: existing } = await admin
+    .from('order_files')
+    .select('file_path')
+    .eq('order_id', orderId);
+  const already = new Set((existing || []).map((r: any) => r.file_path));
+
+  const kind = fileKindFor(proj.product_type, proj.cart_payload?.slug);
+  const rows = paths
+    .filter(p => !already.has(p.path))
+    .map((p, i) => ({
+      order_id: orderId,
+      file_path: p.path,
+      file_name: p.path.split('/').pop() || `design_${i + 1}`,
+      file_type: kind.type,
+      file_category: kind.category,
+      product_type: kind.type === 'export' ? 'photoprint' : (proj.product_type || 'design'),
+      bucket_name: p.bucket,
+      page_number: i + 1,
+    }));
+
+  if (rows.length === 0) return true;
+
+  const { error } = await admin.from('order_files').insert(rows);
+  if (error) {
+    console.error('[link-order] order_files insert failed', { orderId, projectId: proj.id, error: error.message });
+    return false;
+  }
+  return true;
 }
 
 export async function POST(request: NextRequest) {
@@ -74,12 +140,33 @@ export async function POST(request: NextRequest) {
       .update({ order_id: orderId })
       .eq('cart_payload->>id', itemId)
       .is('order_id', null)
-      .select('id');
+      .select('id, product_type, uploaded_photos, cart_payload');
     if (error) {
       console.error('[link-order] update failed', { orderId, itemId, error: error.message });
       continue;
     }
     linked += data?.length || 0;
+
+    // ФАЙЛИ ПОТРІБНІ Й ТУТ, не лише в гілці збережених дизайнів нижче.
+    // TM-001255: клієнтка склала полароїд 28 серпня, позиція пролежала в
+    // кошику до 31-го й була оформлена вже в іншій сесії. Проєкт до замовлення
+    // привʼязався саме цією гілкою, а order_files не створив ніхто: sessionStorage
+    // з export_{id} за три дні зник, а source_project_id у позиції не було, бо
+    // замовляли з кошика, а не з «Моїх дизайнів». Замовлення прийшло оплачене й
+    // абсолютно порожнє, хоча всі 20 відбитків лежали у сховищі та були прописані
+    // в uploaded_photos проєкту. Тепер файли чіпляються з будь-якого шляху
+    // привʼязки; функція ідемпотентна, тож звичайне оформлення, де конструктор
+    // уже все зареєстрував, нічого не задублює.
+    // Навмисно НЕ рахуємо тут withoutFiles. Ця гілка — страховка, а не
+    // основний шлях: у звичайному оформленні файли реєструє сам конструктор зі
+    // свого sessionStorage і має власне повідомлення про збій. Багато проєктів
+    // тут узагалі не мають і не повинні мати шляхів у сховищі — настінний
+    // календар зберігається ще на етапі «додати в кошик», задовго до будь-якого
+    // завантаження. Рахувати їх як «дизайн без файлів» означало б чіпляти гучне
+    // попередження про несправний експорт на кожне таке замовлення.
+    for (const proj of data || []) {
+      await attachDesignFiles(admin, orderId, proj as any);
+    }
   }
 
   // Замовлення зі збережених дизайнів.
@@ -145,40 +232,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Файли для друку з дизайну — до нового замовлення.
-    const paths = storagePathsOf(proj.uploaded_photos);
-    if (paths.length === 0) {
-      withoutFiles++;
-      continue;
-    }
-
-    // Не дублюємо, якщо цей самий шлях уже приліплений до замовлення
-    // (повторний виклик link-order при повторній спробі оформлення).
-    const { data: existing } = await admin
-      .from('order_files')
-      .select('file_path')
-      .eq('order_id', orderId);
-    const already = new Set((existing || []).map((r: any) => r.file_path));
-
-    const rows = paths
-      .filter(p => !already.has(p.path))
-      .map((p, i) => ({
-        order_id: orderId,
-        file_path: p.path,
-        file_name: p.path.split('/').pop() || `design_${i + 1}`,
-        file_type: 'upload',
-        file_category: 'photo-upload',
-        product_type: proj.product_type || 'design',
-        bucket_name: p.bucket,
-        page_number: i + 1,
-      }));
-
-    if (rows.length > 0) {
-      const { error: filesErr } = await admin.from('order_files').insert(rows);
-      if (filesErr) {
-        console.error('[link-order] order_files insert failed', { orderId, designRowId, error: filesErr.message });
-        withoutFiles++;
-      }
-    }
+    if (!(await attachDesignFiles(admin, orderId, proj))) withoutFiles++;
   }
 
   return NextResponse.json({ ok: true, linked, cloned, withoutFiles });
