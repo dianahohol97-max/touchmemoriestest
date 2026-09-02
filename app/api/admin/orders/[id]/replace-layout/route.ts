@@ -108,17 +108,52 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ error: stampErr.message }, { status: 500 });
     }
 
+    // Знімаємо з замовлення файли ПОПЕРЕДНЬОГО рендеру.
+    //
+    // Без цього на замовленні накопичуються повні набори від кожної заміни:
+    // на TM-001257 дизайнерка пройшла цикл двічі й виробництво побачило 66
+    // рядків — три однакові версії журналу без жодної позначки, яка з них
+    // актуальна. Для друкарні це гірше, ніж відсутні файли: надрукувати можуть
+    // будь-яку.
+    //
+    // Саме прибирання застарілого (pruneStaleExports) сюди не дістає свідомо:
+    // воно обмежене проєктами, які рендерились у цьому запуску, бо інакше
+    // рендер одного виробу зносив макети інших книг замовлення (TM-001234).
+    // Відчеплений проєкт у жоден майбутній запуск уже не потрапить, тож його
+    // файли не прибере ніхто ніколи — прибираємо тут.
+    //
+    // Видаляємо ЛИШЕ рядки в order_files, самі обʼєкти у сховищі лишаються.
+    // Це навмисно: якщо новий рендер впаде, файли на місці й реєстрацію можна
+    // повернути. А показувати старий рендер до приходу нового не можна — він
+    // уже не відповідає тому макету, що піде у друк.
+    const staleIds: string[] = [];
+    if (replaced.length > 0) {
+        const { data: exportRows } = await admin
+            .from('order_files')
+            .select('id, file_path')
+            .eq('order_id', id)
+            .eq('file_type', 'export');
+        for (const row of exportRows || []) {
+            const path = String((row as any).file_path || '');
+            if (replaced.some(p => path.includes(p.id))) staleIds.push((row as any).id);
+        }
+        if (staleIds.length > 0) {
+            const { error: delErr } = await admin.from('order_files').delete().in('id', staleIds);
+            if (delErr) console.error('[replace-layout] stale export cleanup failed', delErr.message);
+        }
+    }
+
     try {
         await admin.from('order_history').insert({
             order_id: id,
             action: 'layout_replaced',
             notes: replaced.length
-                ? `Макет замінено виправленим від дизайнера. Було: ${replaced.map(p => p.id).join(', ')}. Стало: ${draft.id}.`
+                ? `Макет замінено виправленим від дизайнера. Було: ${replaced.map(p => p.id).join(', ')}. Стало: ${draft.id}. Знято файлів попереднього рендеру: ${staleIds.length}.`
                 : `На замовлення поставлено макет дизайнера: ${draft.id}.`,
         });
     } catch (e) {
         console.error('[replace-layout] order_history insert failed', e);
     }
 
-    return NextResponse.json({ ok: true, projectId: draft.id, unlinked: replaced.length });
+    return NextResponse.json({ ok: true, projectId: draft.id, unlinked: replaced.length, staleRemoved: staleIds.length });
 }
