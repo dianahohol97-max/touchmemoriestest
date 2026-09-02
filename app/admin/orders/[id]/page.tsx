@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use, useRef } from 'react';
+import { useState, useEffect, use, useRef, useCallback } from 'react';
 import { isPrintSetCategory } from '@/lib/print/print-set-categories';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
@@ -140,6 +140,20 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     })();
     return () => { cancelled = true; };
   }, [order?.id]);
+
+  // Чернетки дизайнера, які можна поставити на це замовлення замість макета
+  // клієнта. Список оновлюється після копіювання і після заміни.
+  const loadLayoutDrafts = useCallback(async () => {
+    if (!order?.id) return;
+    try {
+      const r = await fetch(`/api/admin/orders/${order.id}/replace-layout`);
+      if (!r.ok) return;
+      const { drafts } = await r.json();
+      if (Array.isArray(drafts)) setLayoutDrafts(drafts);
+    } catch { /* список не критичний */ }
+  }, [order?.id]);
+
+  useEffect(() => { loadLayoutDrafts(); }, [loadLayoutDrafts]);
 
   // «Листування» card: send a letter to the customer straight from the order.
   //
@@ -308,6 +322,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [rebuildingPoster, setRebuildingPoster] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
+    // Чернетки дизайнера, придатні як заміна макета цього замовлення.
+    const [layoutDrafts, setLayoutDrafts] = useState<any[]>([]);
+    const [replacingLayout, setReplacingLayout] = useState<string | null>(null);
     const [sendingPayLink, setSendingPayLink] = useState(false);
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
@@ -2626,7 +2643,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 try {
                                                     const r = await fetch(`/api/admin/orders/${id}/clone-project-to-me`, { method: 'POST' });
                                                     const j = await r.json();
-                                                    if (r.ok) toast.success(j.message || 'Скопійовано у ваші чернетки');
+                                                    if (r.ok) { toast.success(j.message || 'Скопійовано у ваші чернетки'); loadLayoutDrafts(); }
                                                     else toast.info(j.error || 'Макет не знайдено');
                                                 } catch { toast.error('Не вдалося скопіювати'); }
                                                 setCloningProject(false);
@@ -2637,6 +2654,60 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {cloningProject ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
                                             Макет → мої чернетки
                                         </button>
+                                        {/* ЗАМИКАЄ ЦИКЛ РЕДАГУВАННЯ.
+                                            Копія в чернетках редагується вільно (вона вже
+                                            належить дизайнеру), але до цього не існувало
+                                            способу віддати виправлення у друк: перегенерація
+                                            бере макет, привʼязаний до замовлення, тобто
+                                            оригінал клієнта. Доводилось вивантажувати файли
+                                            з конструктора руками. Тепер — одна кнопка. */}
+                                        {layoutDrafts.length > 0 && (
+                                            <div style={{ flexBasis: '100%', marginTop: 8, padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                                    Ваші виправлені макети
+                                                </div>
+                                                {layoutDrafts.map((d: any) => (
+                                                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                                                        <span style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: '#0c4a6e' }}>
+                                                            {d.name || d.id}
+                                                            {d.format ? <span style={{ color: '#64748b' }}> · {d.format}</span> : null}
+                                                        </span>
+                                                        <a href={`/uk/editor/${d.id}`} target="_blank" rel="noopener noreferrer"
+                                                            style={{ padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                                                            Відкрити в редакторі
+                                                        </a>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm('Поставити цей макет на замовлення замість макета клієнта? Оригінал клієнта залишиться в його акаунті, заміна запишеться в історію замовлення.')) return;
+                                                                setReplacingLayout(d.id);
+                                                                try {
+                                                                    const r = await fetch(`/api/admin/orders/${id}/replace-layout`, {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ projectId: d.id }),
+                                                                    });
+                                                                    const j = await r.json();
+                                                                    if (!r.ok) { toast.error(j?.error || 'Не вдалося замінити макет'); return; }
+                                                                    // Одразу женемо рендер — інакше в друк пішов би старий файл.
+                                                                    await fetch(`/api/admin/orders/${id}/rerender?project=${d.id}`, { method: 'POST' }).catch(() => {});
+                                                                    toast.success('Макет замінено, рендер запущено. Файли зʼявляться за 1–2 хвилини.');
+                                                                    loadLayoutDrafts();
+                                                                    fetchOrder();
+                                                                } catch { toast.error('Не вдалося замінити макет'); }
+                                                                finally { setReplacingLayout(null); }
+                                                            }}
+                                                            disabled={replacingLayout === d.id}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: replacingLayout === d.id ? 'default' : 'pointer' }}>
+                                                            {replacingLayout === d.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                                                            Поставити на замовлення
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                                    Відкрийте макет у редакторі, посуньте текст усередину синього пунктиру і поверніться сюди — кнопка поставить виправлений варіант у друк і сама запустить перегенерацію.
+                                                </div>
+                                            </div>
+                                        )}
                                         <button
                                             onClick={async () => {
                                                 setAttachingOriginals(true);
