@@ -9013,6 +9013,51 @@ export default function BookLayoutEditor() {
                       {/* Background layer — MUST be first so it's below slots */}
                       <BackgroundLayer bg={getCurBg(pageIdx)} canvasW={pageW} canvasH={cH}/>
 
+                      {/* ЛІНІЯ ОБРІЗУ В ПОСТОРІНКОВОМУ РЕЖИМІ.
+                          Досі вона малювалась ТІЛЬКИ у режимі розвороту, а
+                          журнали й тревелбуки редагуються посторінково — тобто
+                          саме ті товари, які ріжуться ще й по корінцю, не мали
+                          межі взагалі. Клієнт не бачив жодного сигналу, що
+                          заганяє підпис під ніж, і ловив це аж дизайнер у
+                          print-view (TM-001257: заголовки на зрізі на чотирьох
+                          розворотах і на обкладинці).
+
+                          Числа ті самі, що й у розвороті: bleed уже порахований
+                          вище з геометрії друкарні (photobook_sizes через
+                          /api/print/geometry) — те саме джерело, яким
+                          користуються рендер-сервіс і адмінські напрямні.
+                          Перерахунок тут лише один: bleed заданий у частках
+                          ШИРИНИ РОЗВОРОТУ, а контейнер тут — одна сторінка,
+                          тобто половина, тому горизонтальні відступи множаться
+                          на два. Зовнішній край сторінки бере зовнішній відступ,
+                          внутрішній — припуск на корінець (bleed.spine), бо там
+                          проходить окремий ніж.
+
+                          Оверлей лише редакторський: data-html2canvas-ignore
+                          тримає його поза захопленням, тож у файли друку він
+                          потрапити не може. */}
+                      {currentIdx !== 0 && (() => {
+                        const gutterFrac = (bleed.spine ?? (side === 0 ? bleed.right : bleed.left)) * 2;
+                        const leftFrac = side === 0 ? bleed.left * 2 : gutterFrac;
+                        const rightFrac = side === 0 ? gutterFrac : bleed.right * 2;
+                        return (
+                          <>
+                            <svg data-html2canvas-ignore="true"
+                              style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:15 }}
+                              viewBox={`0 0 ${pageW} ${cH}`} preserveAspectRatio="none">
+                              <rect x={pageW*leftFrac} y={cH*bleed.top}
+                                    width={pageW*(1 - leftFrac - rightFrac)}
+                                    height={cH*(1 - bleed.top - bleed.bottom)}
+                                    fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
+                            </svg>
+                            <div data-html2canvas-ignore="true"
+                              style={{ position:'absolute', top:4, [side === 0 ? 'left' : 'right']: 4, zIndex:16, pointerEvents:'none', background:'rgba(239,68,68,0.6)', color:'#fff', fontSize:8, fontWeight:700, padding:'1px 5px', borderRadius:4, letterSpacing:0.2, opacity:0.75 } as React.CSSProperties}>
+                              {t('constructor.crop_zone_short')}
+                            </div>
+                          </>
+                        );
+                      })()}
+
                       {/* Empty page hint — shown when no slots (template was deleted) */}
                       {pageDefs.length === 0 && !textTool && currentIdx !== 0 && (
                         <div style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, zIndex:2 }}>
