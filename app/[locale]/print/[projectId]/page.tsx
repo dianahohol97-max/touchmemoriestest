@@ -119,6 +119,38 @@ export default function PrintPage() {
     return () => { cancelled = true; };
   }, [projectId, token]);
 
+  /**
+   * Чи домалювалися вже всі фото сторінки.
+   *
+   * Оголошено ТУТ, разом з рештою хуків і до першого раннього return: нижче в
+   * компоненті їх пʼять, і хук, поставлений після них, змінював би свою
+   * присутність між рендерами — це рівно та помилка, через яку колись зовсім
+   * перестав відкриватися кабінет.
+   *
+   * Скан замість onLoad на кожній картинці: розвороти зʼявляються в DOM
+   * поступово, тож рахуємо їх періодично, поки не залишиться жодної
+   * незавантаженої. Стеля у 20 секунд гарантує, що завіса не замкне людину
+   * назавжди, якщо якийсь файл не відкриється взагалі.
+   */
+  const [imagesReady, setImagesReady] = useState(false);
+  useEffect(() => {
+    if (imagesReady) return;
+    const started = Date.now();
+    const check = () => {
+      const imgs = Array.from(document.querySelectorAll('[data-print-root] img')) as HTMLImageElement[];
+      const waited = Date.now() - started;
+      // Порожній список означає одне з двох: розвороти ще не змонтувались або
+      // в макеті справді немає фото (буває на суто текстовому журналі). Коротка
+      // пауза розводить ці випадки, інакше текстовий макет висів би під завісою
+      // до самої стелі.
+      const allDone = imgs.every(i => i.complete) && (imgs.length > 0 || waited > 1500);
+      if (allDone || waited > 20000) setImagesReady(true);
+    };
+    const id = setInterval(check, 250);
+    check();
+    return () => clearInterval(id);
+  }, [imagesReady, project]);
+
   if (error) {
     return (
       <div style={{ padding: 40, fontFamily: 'sans-serif', color: '#64748b' }}>
@@ -334,6 +366,27 @@ export default function PrintPage() {
 
   return (
     <div data-print-root style={{ background: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 24 }}>
+      {/* ЗАВІСА НА ЧАС ЗАВАНТАЖЕННЯ — ТІЛЬКИ ДЛЯ ЛЮДИНИ.
+          Фото промальовуються згори вниз, і в перші секунди сторінка виглядає
+          так, ніби знімок займає лише верхню третину, а знизу біла смуга.
+          Перевірити макет у цей момент неможливо, а на швидкому перегляді
+          легко прийняти правильний макет за зламаний — або навпаки.
+
+          Умова та сама, що й у ліній обрізу: щойно задана друкарська ширина
+          ?w (так ходить рендер-сервіс), завіси немає взагалі. Знімок мусить
+          лишитися рівно таким, яким був, і закрити його власною плашкою — це
+          останнє, що можна зробити з файлом, який іде у друк. */}
+      {!printPageW && !imagesReady && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#fff', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14, fontFamily:'sans-serif' }}>
+          <div style={{ width:34, height:34, borderRadius:'50%', border:'3px solid #e2e8f0', borderTopColor:'#263a99', animation:'tmspin 0.8s linear infinite' }}/>
+          <div style={{ fontSize:14, fontWeight:700, color:'#1e2d7d' }}>Готуємо макет до перегляду…</div>
+          <div style={{ fontSize:12.5, color:'#64748b', maxWidth:420, textAlign:'center', lineHeight:1.5 }}>
+            Фото завантажуються у повній якості. Показуємо сторінки лише після того,
+            як усе промалюється — інакше макет виглядав би зламаним, хоча він цілий.
+          </div>
+          <style>{`@keyframes tmspin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
       {/* The print surface must contain only the book. The cookie banner hides
           itself on /print (see CookieBanner). This also hides newsletter popups
           and toasts as a safety net so nothing floats into the screenshot. */}
