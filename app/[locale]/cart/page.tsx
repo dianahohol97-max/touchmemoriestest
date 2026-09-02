@@ -134,9 +134,26 @@ export default function CartPage() {
     // Some items (built in the constructor) are added without an image. Fall back
     // to the product's catalog image so the cart always shows an illustration.
     const [catalogImages, setCatalogImages] = useState<Record<string, string>>({});
+    // Адреси зображень, які НЕ ЗАВАНТАЖИЛИСЬ.
+    //
+    // Запасний шлях був привʼязаний до умови «зображення немає», і саме тому не
+    // рятував: у позиції з конструктора мініатюра зазвичай Є, просто мертва —
+    // makeCartThumbnail міг повернути зіпсоване значення, а при помилці
+    // завантаження картинка просто ховалась (display:none), лишаючи порожній
+    // сірий прямокутник. Клієнт перед оплатою не бачив, що саме купує, а для
+    // товару, який він щойно збирав власноруч, це прямий удар по конверсії.
+    //
+    // Ключем узято саму адресу, а не позицію: так само відсіюється і каталожне
+    // фото, якщо вже й воно не відкривається, і тоді чесно показуємо іконку
+    // замість зламаної картинки.
+    const [brokenSrcs, setBrokenSrcs] = useState<Set<string>>(new Set());
+    const markSrcBroken = (src: string) => {
+        if (!src) return;
+        setBrokenSrcs((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
+    };
     useEffect(() => {
         const missing = Array.from(new Set(
-            items.filter((i) => !i.image && i.product_id).map((i) => i.product_id as string)
+            items.filter((i) => (!i.image || brokenSrcs.has(i.image)) && i.product_id).map((i) => i.product_id as string)
         ));
         if (missing.length === 0) return;
         const supabase = createClient();
@@ -153,7 +170,7 @@ export default function CartPage() {
             }
             if (Object.keys(map).length) setCatalogImages((prev) => ({ ...prev, ...map }));
         })();
-    }, [items]);
+    }, [items, brokenSrcs]);
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc' }}>
@@ -197,10 +214,16 @@ export default function CartPage() {
                                                 style={{ width: 20, height: 20, accentColor: '#263a99', cursor: 'pointer', flexShrink: 0 }} />
                                             <div style={{ width: '80px', height: '80px', borderRadius: "3px", overflow: 'hidden', position: 'relative', background: '#f1f5f9' }}>
                                                 {(() => {
-                                                    const imgSrc = item.image || (item.product_id ? catalogImages[item.product_id] : '') || '';
+                                                    // Власна мініатюра позиції — лише поки вона жива. Щойно
+                                                    // завантаження впало, беремо каталожне фото товару, а не
+                                                    // ховаємо картинку в порожнечу.
+                                                    const rawCatalog = item.product_id ? (catalogImages[item.product_id] || '') : '';
+                                                    const ownSrc = item.image && !brokenSrcs.has(item.image) ? item.image : '';
+                                                    const catalogSrc = rawCatalog && !brokenSrcs.has(rawCatalog) ? rawCatalog : '';
+                                                    const imgSrc = ownSrc || catalogSrc;
                                                     return imgSrc
-                                                        ? <Image src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }}
-                                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                        ? <Image key={imgSrc} src={imgSrc} alt={item.name} fill style={{ objectFit: 'cover' }}
+                                                            onError={() => markSrcBroken(imgSrc)} />
                                                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}><ImageIcon size={24} /></div>;
                                                 })()}
                                             </div>
