@@ -56,6 +56,7 @@ import {
   nextZOrder, zIndexFor,
 } from '@/lib/editor/zOrder';
 import { fitFontScale, textOverflowsAtMinScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
+import { plateBoxStyle, plateTextShadow, type TextPlate } from '@/lib/editor/text-plate';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -7578,6 +7579,39 @@ export default function BookLayoutEditor() {
                     <button onClick={() => { const v = !tBold; setTBold(v); if (selectedTextId) updateTxtForPage(selectedTextId, { bold: v }, selectedTextPageIdx); }} style={{ flex: 1, padding: '6px', border: tBold ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tBold ? '#f0f3ff' : '#fff', cursor: 'pointer', fontWeight: 900, fontSize: 14, color: tBold ? '#1e2d7d' : '#374151' }}>B</button>
                     <button onClick={() => { const v = !tItalic; setTItalic(v); if (selectedTextId) updateTxtForPage(selectedTextId, { italic: v }, selectedTextPageIdx); }} style={{ flex: 1, padding: '6px', border: tItalic ? '2px solid #1e2d7d' : '1px solid #e2e8f0', borderRadius: 6, background: tItalic ? '#f0f3ff' : '#fff', cursor: 'pointer', fontStyle: 'italic', fontSize: 14, color: tItalic ? '#1e2d7d' : '#374151' }}>I</button>
                   </div>
+                  {/* ПІДКЛАДКА ДЛЯ ЧИТАБЕЛЬНОСТІ.
+                      Білий підпис на світлому фото і темний на темному — найчастіша
+                      проблема готового макета, і клієнт не мав інструмента, крім ручного
+                      підбору кольору. Одна дія вирішує обидва випадки. Стилі спільні з
+                      рендерером друку (lib/editor/text-plate.ts), тож у файлі буде рівно
+                      те, що видно тут. */}
+                  {selectedTextId && (() => {
+                    const selBlock = (pages[selectedTextPageIdx]?.textBlocks || []).find(b => b.id === selectedTextId);
+                    const curPlate = selBlock?.plate;
+                    const opts: { v: TextPlate | undefined; label: string; title: string }[] = [
+                      { v: undefined, label: 'Без', title: 'Без підкладки — як було' },
+                      { v: 'light', label: 'Світла', title: 'Світла підкладка під темний текст' },
+                      { v: 'dark', label: 'Темна', title: 'Темна підкладка під світлий текст' },
+                      { v: 'shadow', label: 'Тінь', title: 'Мʼяка тінь під літерами, без підкладки' },
+                    ];
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Читабельність на фото</label>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {opts.map(o => (
+                            <button key={o.label} title={o.title}
+                              onClick={() => updateTxtForPage(selectedTextId!, { plate: o.v }, selectedTextPageIdx)}
+                              style={{ flex: 1, padding: '5px', borderRadius: 6, cursor: 'pointer', fontSize: 11,
+                                border: curPlate === o.v ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                background: curPlate === o.v ? '#f0f3ff' : '#fff',
+                                color: curPlate === o.v ? '#1e2d7d' : '#374151', fontWeight: 700 }}>
+                              {o.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 {selectedTextId && (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -8655,7 +8689,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), ...plateBoxStyle((tb as any).plate), background: (tb as any).plate ? plateBoxStyle((tb as any).plate).background : (isSel ? 'rgba(59,130,246,0.05)' : 'transparent'), ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
                             {txtOverflows && (
                               <div data-html2canvas-ignore="true"
                                 title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
@@ -8669,7 +8703,7 @@ export default function BookLayoutEditor() {
                                not, so at 70% zoom a paragraph covered ~43% more of the page than
                                it will in print — the customer was never looking at what she would
                                get, and at no zoom was she told which view was true. */
-                            style={{ fontSize: txtBasePx * txtScale, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', lineHeight: TEXT_LINE_HEIGHT, outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', userSelect: isEd ? 'text' : 'none' }}>
+                            style={{ fontSize: txtBasePx * txtScale, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', lineHeight: TEXT_LINE_HEIGHT, outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', textShadow: plateTextShadow((tb as any).plate), userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
                           {isSel && !isEd && (
@@ -9394,7 +9428,7 @@ export default function BookLayoutEditor() {
                                  so raw '2px 4px' put the wrap point a few px away
                                  from where the print wraps, and a word could sit
                                  on a different line in the editor than on paper. */
-                              padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',...textBoxWidthStyle(tb.w),minWidth:30,touchAction:'none'}}>
+                              padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,...plateBoxStyle((tb as any).plate),background:(tb as any).plate?plateBoxStyle((tb as any).plate).background:(isSel?'rgba(255,255,255,0.1)':'transparent'),...textBoxWidthStyle(tb.w),minWidth:30,touchAction:'none'}}>
                             {txtOverflows && (
                               <div data-html2canvas-ignore="true"
                                 title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
@@ -9422,7 +9456,7 @@ export default function BookLayoutEditor() {
                 rows={2}
               />
                             ):(
-                              <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:'0 1px 2px rgba(0,0,0,0.2)'}}>{tb.text}</span>
+                              <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:plateTextShadow((tb as any).plate)}}>{tb.text}</span>
                             )}
                             {isSel && !isEd && (['l','r'] as const).map(side => (
                               <div key={side} data-export-ignore="true" data-html2canvas-ignore="true"
@@ -11080,6 +11114,39 @@ export default function BookLayoutEditor() {
                       <button onClick={() => { const v=!tItalic; setTItalic(v); if (selectedTextId) updateTxtForPage(selectedTextId, { italic: v }, selectedTextPageIdx); }}
                         style={{ flex:1, padding:'8px', border:tItalic?'2px solid #1e2d7d':'1px solid #e2e8f0', borderRadius:8, background:tItalic?'#f0f3ff':'#fff', cursor:'pointer', fontStyle:'italic', fontSize:16, color:tItalic?'#1e2d7d':'#374151' }}>I</button>
                     </div>
+                    {/* ПІДКЛАДКА ДЛЯ ЧИТАБЕЛЬНОСТІ.
+                        Білий підпис на світлому фото і темний на темному — найчастіша
+                        проблема готового макета, і клієнт не мав інструмента, крім ручного
+                        підбору кольору. Одна дія вирішує обидва випадки. Стилі спільні з
+                        рендерером друку (lib/editor/text-plate.ts), тож у файлі буде рівно
+                        те, що видно тут. */}
+                    {selectedTextId && (() => {
+                      const selBlock = (pages[selectedTextPageIdx]?.textBlocks || []).find(b => b.id === selectedTextId);
+                      const curPlate = selBlock?.plate;
+                      const opts: { v: TextPlate | undefined; label: string; title: string }[] = [
+                        { v: undefined, label: 'Без', title: 'Без підкладки — як було' },
+                        { v: 'light', label: 'Світла', title: 'Світла підкладка під темний текст' },
+                        { v: 'dark', label: 'Темна', title: 'Темна підкладка під світлий текст' },
+                        { v: 'shadow', label: 'Тінь', title: 'Мʼяка тінь під літерами, без підкладки' },
+                      ];
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <label style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Читабельність на фото</label>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {opts.map(o => (
+                              <button key={o.label} title={o.title}
+                                onClick={() => updateTxtForPage(selectedTextId!, { plate: o.v }, selectedTextPageIdx)}
+                                style={{ flex: 1, padding: '7px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
+                                  border: curPlate === o.v ? '2px solid #1e2d7d' : '1px solid #e2e8f0',
+                                  background: curPlate === o.v ? '#f0f3ff' : '#fff',
+                                  color: curPlate === o.v ? '#1e2d7d' : '#374151', fontWeight: 700 }}>
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Existing text blocks list */}

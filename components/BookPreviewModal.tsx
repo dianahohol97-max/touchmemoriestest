@@ -10,6 +10,7 @@ import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
+import { plateBoxStyle, plateTextShadow } from '@/lib/editor/text-plate';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
 import type { SlotData, TextBlock } from '@/lib/editor/types';
 
@@ -425,12 +426,15 @@ export function BookPreviewModal({
             /* Mirrors the editor's text box padding, scaled the same way. It eats
                into the 90% max width, so leaving it out here made lines wrap at a
                different point than the customer saw. */
-            padding: `${4 * pageTextScale(cH)}px ${padX}px` }}>
+            padding: `${4 * pageTextScale(cH)}px ${padX}px`,
+            /* Підкладка під текст — той самий модуль, що й у редакторі, щоб
+               файл друку не розійшовся з тим, що бачив клієнт. */
+            ...plateBoxStyle((tb as any).plate) }}>
             <span style={{
               fontSize: basePx * scale, fontFamily: tb.fontFamily, color: tb.color,
               fontWeight: tb.bold ? 700 : 400, fontStyle: tb.italic ? 'italic' : 'normal',
               lineHeight: TEXT_LINE_HEIGHT,
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'block', textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              whiteSpace: 'pre-wrap', wordBreak: 'break-word', display: 'block', textShadow: plateTextShadow((tb as any).plate),
             }}>{tb.text}</span>
           </div>
             );

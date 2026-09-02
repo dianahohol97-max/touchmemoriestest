@@ -1,3 +1,4 @@
+import type { TextPlate } from './text-plate';
 /**
  * Canonical editor types.
  *
@@ -217,7 +218,7 @@ export type LayoutType =
 
 export interface SlotData { photoId: string | null; cropX: number; cropY: number; zoom: number; rotation?: number; shape?: 'rect' | 'rounded' | 'circle' | 'heart'; customX?: number; customY?: number; customW?: number; customH?: number; customPct?: boolean; fit?: 'cover' | 'contain'; }
 
-export interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; /** Box width as % of its container. Unset = hug the content (the original behaviour). */ w?: number; }
+export interface TextBlock { id: string; text: string; x: number; y: number; fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean; zOrder?: number; /** Box width as % of its container. Unset = hug the content (the original behaviour). */ w?: number; /** Підкладка або тінь для читабельності поверх фото. Unset = нічого не малювати, тож старі макети не змінюються. Див. lib/editor/text-plate.ts. */ plate?: TextPlate; }
 
 export interface Page { id: number; label: string; layout: LayoutType; slots: SlotData[]; textBlocks: TextBlock[]; }
 
