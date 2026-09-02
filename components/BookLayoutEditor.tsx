@@ -56,6 +56,7 @@ import {
   nextZOrder, zIndexFor,
 } from '@/lib/editor/zOrder';
 import { fitFontScale, textOverflowsAtMinScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
+import { projectPalette } from '@/lib/editor/project-palette';
 import { plateBoxStyle, plateTextShadow, type TextPlate } from '@/lib/editor/text-plate';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
@@ -2567,6 +2568,31 @@ export default function BookLayoutEditor() {
     if (isSpreadMode) return (currentIdx - 1) * 2 + 1; // always left page in spread mode
     return (currentIdx - 1) * 2 + 1 + activeSide;
   };
+
+  // ПАЛІТРА МАКЕТА ДЛЯ ПАНЕЛІ ТЕКСТУ.
+  // Вісім фіксованих кольорів не мали жодного стосунку до обраного шаблону,
+  // тож клієнт додавав підпис і одним кліком ламав єдність журналу; піпетка
+  // рятувала лише того, хто знає HEX кольору, якого ніде не видно. Тепер перед
+  // фіксованим набором стоять кольори, що вже працюють у цьому макеті.
+  // Рахуємо з фактичного стану, а не з id шаблону: клієнт застосовує шаблон і
+  // ще годину його редагує. Не мемоїзуємо — це кілька сотень ітерацій із
+  // виходом на шостому свотчі, дешевше за useMemo із таким списком залежностей.
+  // -2 на обкладинці: жодна сторінка не «поточна», тож обидві гілки нижче
+  // просто не знаходять індексів і весь текст книги йде в otherTexts.
+  const paletteAnchor = currentIdx === 0 ? -2 : (currentIdx - 1) * 2 + 1;
+  const paletteBg = pageBgs[selectedTextId ? selectedTextPageIdx : getActivePageIdx()] || DEFAULT_BG;
+  const templatePalette = projectPalette({
+    // Обидві сторінки розвороту, бо клієнт бачить їх поруч і підпис має пасувати
+    // до сусідньої так само, як до своєї.
+    pageTexts: [...(pages[paletteAnchor]?.textBlocks || []), ...(pages[paletteAnchor + 1]?.textBlocks || [])],
+    coverBgColor: coverState.printedBgColor,
+    coverTexts: [...(coverState.printedTextBlocks || []), ...(coverState.backCoverTexts || [])],
+    // Фон-картинку як колір тексту брати нема з чого, лишаємо null.
+    pageBgColor: paletteBg.type === 'color' ? paletteBg.color : null,
+    otherTexts: pages.flatMap((pg, i) =>
+      i === paletteAnchor || i === paletteAnchor + 1 ? [] : (pg.textBlocks || [])),
+    exclude: COLORS,
+  });
   // Minimum spreads = minPageCount / 2 (from product config, e.g. 20×20 = 6/2 = 3)
   const minPageCount = config?.minPageCount ?? 6;
   const minSpreads = Math.max(1, Math.floor(minPageCount / 2));
@@ -7568,6 +7594,21 @@ export default function BookLayoutEditor() {
                   </div>
                   <input type="range" min={8} max={120} value={tFontSize} onChange={e => { const v = +e.target.value; setTFontSize(v); if (selectedTextId) updateTxtForPage(selectedTextId, { fontSize: v }, selectedTextPageIdx); }} style={{ width: '100%', accentColor: selectedTextId ? '#1e2d7d' : '#94a3b8' }} />
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Колір</div>
+                  {/* КОЛЬОРИ З МАКЕТА — див. templatePalette вище. Стоять окремим
+                      рядом над фіксованими, щоб клієнт брав рідний колір шаблону
+                      першим рухом, а не підбирав його піпеткою навмання. */}
+                  {templatePalette.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>З вашого макета</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                        {templatePalette.map(c => (
+                          <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }}
+                            style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #cbd5e1', cursor: 'pointer', flexShrink: 0 }}
+                            title={`${c} — колір із вашого макета`} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {COLORS.map(c => <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }} style={{ width: 24, height: 24, borderRadius: '50%', background: c, border: tColor === c ? '3px solid #1e2d7d' : '2px solid #e2e8f0', cursor: 'pointer', flexShrink:0 }} title={c}/>)}
                     <label style={{ width:24, height:24, borderRadius:'50%', border:'2px dashed #94a3b8', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', flexShrink:0, background: !COLORS.includes(tColor) ? tColor : '#f8fafc' }} title="Обрати інший колір">
@@ -11095,6 +11136,19 @@ export default function BookLayoutEditor() {
                       style={{ width:'100%' }} />
 
                     <div style={{ fontSize:11, fontWeight:700, color:'#64748b' }}>Колір</div>
+                    {/* КОЛЬОРИ З МАКЕТА — див. templatePalette вище. */}
+                    {templatePalette.length > 0 && (
+                      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                        <div style={{ fontSize:10, color:'#94a3b8', fontWeight:600 }}>З вашого макета</div>
+                        <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                          {templatePalette.map(c => (
+                            <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }}
+                              style={{ width:30, height:30, borderRadius:'50%', background:c, border:tColor===c?'3px solid #1e2d7d':'2px solid #cbd5e1', cursor:'pointer', flexShrink:0 }}
+                              title={`${c} — колір із вашого макета`} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
                       {COLORS.map(c => (
                         <button key={c} onClick={() => { setTColor(c); if (selectedTextId) updateTxtForPage(selectedTextId, { color: c }, selectedTextPageIdx); }}
