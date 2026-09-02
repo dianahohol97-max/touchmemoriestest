@@ -529,9 +529,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         } catch { /* picker just stays empty on failure */ }
     };
 
+    // Список для випадайок «Відповідальні». Раніше йшов у staff напряму з
+    // браузера, а RLS на staff пускає лише тих, чий email є в admin_users —
+    // десять із чотирнадцяти активних співробітників отримували нуль рядків
+    // без помилки й бачили порожні випадайки. Тепер це серверний роут під
+    // requireStaff. Див. app/api/admin/staff/assignable/route.ts.
     const fetchStaff = async () => {
-        const { data } = await supabase.from('staff').select('*').eq('is_active', true);
-        if (data) setStaff(data);
+        try {
+            const res = await fetch('/api/admin/staff/assignable');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const data = await res.json();
+            if (Array.isArray(data)) setStaff(data);
+        } catch (e: any) {
+            console.error('[order] staff list failed', e?.message || e);
+            toast.error('Не вдалося завантажити список співробітників');
+        }
     };
 
     const fetchPrintProfiles = async () => {
@@ -698,23 +710,27 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const handleAssign = async (role: 'manager_id' | 'designer_id', staffId: string) => {
         setUpdatingAssignment(true);
         try {
+            // Призначення йде через серверний роут під requireStaff, а не
+            // прямим update у orders з браузера: RLS на orders пускає лише
+            // admin_users або вже призначеного дизайнера, тож у менеджера
+            // update не міняв жодного рядка — і мовчки, бо Supabase на нуль
+            // рядків помилки не дає. Тост казав «Відповідального призначено»,
+            // а в базі не було нічого.
+            //
+            // У тілі — рівно одне поле, те, яке щойно змінили: роут пише лише
+            // передане, інакше призначення менеджера затерло б дизайнера.
+            // with_designer для кабінету дизайнера виставляє сам роут.
             const patch: Record<string, any> = { [role]: staffId || null };
-            // Keep the two paths in sync: the designer cabinet only lists orders
-            // where with_designer = true AND designer_id = me. So when a manager
-            // assigns a designer here, also mark the order as a designer order —
-            // otherwise the assigned designer would never see it in their
-            // cabinet. (We don't clear with_designer when un-assigning, since the
-            // order may have been a designer order from the start.)
-            if (role === 'designer_id' && staffId) {
-                patch.with_designer = true;
+            const res = await fetch(`/api/admin/orders/${id}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patch),
+            });
+            if (!res.ok) {
+                const j = await res.json().catch(() => ({}));
+                throw new Error(j.error || `API ${res.status}`);
             }
-            const { error } = await supabase
-                .from('orders')
-                .update(patch)
-                .eq('id', id);
-
-            if (error) throw error;
-            toast.success('Відповідального призначено');
+            toast.success(staffId ? 'Відповідального призначено' : 'Призначення знято');
             fetchOrder();
         } catch (e: any) {
             toast.error(e.message);

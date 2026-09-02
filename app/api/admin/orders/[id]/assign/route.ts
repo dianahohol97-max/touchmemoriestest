@@ -21,11 +21,15 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
         // We will do sequenced promises instead for this MVP.
 
         // 1. Update the order table
-        const orderPatch: Record<string, any> = {
-            manager_id: manager_id || null,
-            designer_id: designer_id || null,
-            assigned_at
-        };
+        //
+        // ЧІПАЄМО ЛИШЕ ТІ ПОЛЯ, ЩО ПРИЙШЛИ В ТІЛІ.
+        // Раніше роут писав обидва завжди, тож виклик із самим manager_id
+        // затирав дизайнера в null. Картка призначає по одному відповідальному
+        // за раз — призначення менеджера знімало б щойно поставленого дизайнера
+        // і навпаки. Явний null у тілі так і лишається зняттям призначення.
+        const orderPatch: Record<string, any> = { assigned_at };
+        if ('manager_id' in body) orderPatch.manager_id = manager_id || null;
+        if ('designer_id' in body) orderPatch.designer_id = designer_id || null;
         // Keep the assignment in sync with the designer cabinet, which only
         // shows orders where with_designer = true AND designer_id = me. When a
         // designer is assigned here, mark the order as a designer order so it
@@ -45,8 +49,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
         // Fetch staff details to put inside history context
         let actionMsg: string[] = [];
-        if (manager_id !== undefined) actionMsg.push(`Призначено Менеджера`);
-        if (designer_id !== undefined) actionMsg.push(`Призначено Дизайнера`);
+        if ('manager_id' in body) actionMsg.push(manager_id ? 'Призначено Менеджера' : 'Знято Менеджера');
+        if ('designer_id' in body) actionMsg.push(designer_id ? 'Призначено Дизайнера' : 'Знято Дизайнера');
 
         // 2. Insert into history
         if (actionMsg.length > 0) {
@@ -55,7 +59,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
                 .insert([{
                     order_id: params.id,
                     action: actionMsg.join(' та '),
-                    details: { manager_id, designer_id },
+                    details: orderPatch,
                 }]);
 
             if (historyError) throw historyError;
