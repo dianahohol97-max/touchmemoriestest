@@ -322,6 +322,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [rebuildingPoster, setRebuildingPoster] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
     const [cloningProject, setCloningProject] = useState(false);
+    // Дві найрідкісніші дії блоку «Файли» — під «Ще». Див. коментар біля груп.
+    const [showRareFileActions, setShowRareFileActions] = useState(false);
     // Чернетки дизайнера, придатні як заміна макета цього замовлення.
     const [layoutDrafts, setLayoutDrafts] = useState<any[]>([]);
     const [replacingLayout, setReplacingLayout] = useState<string | null>(null);
@@ -2588,9 +2590,57 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             );
                             return (
                                 <div style={{ marginBottom: '12px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 8 }}>
                                         <label style={{ ...smallLabelStyle, margin: 0 }}>Файли замовлення ({uploadedFiles.length})</label>
-                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                                        {/* ГРУПИ ЗА СЦЕНАРІЄМ, А НЕ ОДИН РЯД ІЗ ВОСЬМИ КНОПОК.
+                                            Блок «Файли» ріс кнопку за кнопкою під конкретні аварії, і в підсумку
+                                            менеджер бачив вісім однакових пігулок без жодної підказки, з чого
+                                            почати: «Перевірити макети» стояло поруч із «Прибрати виліт», хоча
+                                            перше роблять на кожному замовленні, а друге — на одному з двадцяти.
+                                            Пункт десятий у звіті дизайнера по TM-001257. Порядок груп повторює
+                                            реальний хід роботи: спершу перевірити, потім віддати в друк, і лише
+                                            якщо щось не так — виправляти. Рідкісні дії сховані під «Ще», щоб не
+                                            відбирати увагу; жодну кнопку не прибрано і жодна не змінила поведінки. */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }} title={'Звірити готові файли з макетом клієнта перед друком'}>1 · Перевірити</div>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button onClick={verifyPrint} disabled={verifying}
+                                            title="Відкриває кожен готовий файл і звіряє з макетом клієнта: кількість сторінок, порожні аркуші, розмір, чи всі поставлені фото мають файли"
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0f766e', border: '1.5px solid #0f766e', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: verifying ? 'default' : 'pointer' }}>
+                                            {verifying ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                            {verifying ? 'Перевіряю…' : 'Перевірити макети'}
+                                        </button>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }} title={'Забрати готові файли для друкарні'}>2 · Віддати в друк</div>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                            {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                                            {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
+                                        </button>
+                                        {/* Оригінали окремо від макету (Diana, 2026-08-25).
+                                            «Завантажити всі» кладе в один архів і макет, і фото,
+                                            а в друкарню й дизайнеру потрібне різне. Беремо все,
+                                            що НЕ експорт: і category='original', і 'designer-order',
+                                            і файли без категорії з folder-scan — інакше кнопка
+                                            працювала б лише на тих замовленнях, де категорія
+                                            проставилась саме як 'original'. */}
+                                        {uploadedFiles.some((f: any) => !f.isExport) && (
+                                            <button onClick={() => downloadAllAsZip(uploadedFiles.filter((f: any) => !f.isExport), 'оригінали')} disabled={downloadingZip}
+                                                title="Тільки фото клієнта в повному розмірі, без файлів макета"
+                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#2563eb', border: '1.5px solid #2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
+                                                {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                                                Оригінали фото (ZIP)
+                                            </button>
+                                        )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }} title={'Потрібно, лише якщо з файлами щось не так'}>3 · Виправити</div>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                         {/* Manager upload (Diana, 2026-08-12): when the customer's own
                                             upload dies mid-checkout they re-send the photos in a chat, and
                                             somebody has to get them into the order. These land in the same
@@ -2654,60 +2704,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {cloningProject ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />}
                                             Макет → мої чернетки
                                         </button>
-                                        {/* ЗАМИКАЄ ЦИКЛ РЕДАГУВАННЯ.
-                                            Копія в чернетках редагується вільно (вона вже
-                                            належить дизайнеру), але до цього не існувало
-                                            способу віддати виправлення у друк: перегенерація
-                                            бере макет, привʼязаний до замовлення, тобто
-                                            оригінал клієнта. Доводилось вивантажувати файли
-                                            з конструктора руками. Тепер — одна кнопка. */}
-                                        {layoutDrafts.length > 0 && (
-                                            <div style={{ flexBasis: '100%', marginTop: 8, padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8 }}>
-                                                <div style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                                                    Ваші виправлені макети
-                                                </div>
-                                                {layoutDrafts.map((d: any) => (
-                                                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-                                                        <span style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: '#0c4a6e' }}>
-                                                            {d.name || d.id}
-                                                            {d.format ? <span style={{ color: '#64748b' }}> · {d.format}</span> : null}
-                                                        </span>
-                                                        <a href={`/uk/editor/${d.id}`} target="_blank" rel="noopener noreferrer"
-                                                            style={{ padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
-                                                            Відкрити в редакторі
-                                                        </a>
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!confirm('Поставити цей макет на замовлення замість макета клієнта? Оригінал клієнта залишиться в його акаунті, заміна запишеться в історію замовлення.')) return;
-                                                                setReplacingLayout(d.id);
-                                                                try {
-                                                                    const r = await fetch(`/api/admin/orders/${id}/replace-layout`, {
-                                                                        method: 'POST',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ projectId: d.id }),
-                                                                    });
-                                                                    const j = await r.json();
-                                                                    if (!r.ok) { toast.error(j?.error || 'Не вдалося замінити макет'); return; }
-                                                                    // Одразу женемо рендер — інакше в друк пішов би старий файл.
-                                                                    await fetch(`/api/admin/orders/${id}/rerender?project=${d.id}`, { method: 'POST' }).catch(() => {});
-                                                                    toast.success('Макет замінено, рендер запущено. Файли зʼявляться за 1–2 хвилини.');
-                                                                    loadLayoutDrafts();
-                                                                    fetchOrder();
-                                                                } catch { toast.error('Не вдалося замінити макет'); }
-                                                                finally { setReplacingLayout(null); }
-                                                            }}
-                                                            disabled={replacingLayout === d.id}
-                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: replacingLayout === d.id ? 'default' : 'pointer' }}>
-                                                            {replacingLayout === d.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                                                            Поставити на замовлення
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                                                    Відкрийте макет у редакторі, посуньте текст усередину синього пунктиру і поверніться сюди — кнопка поставить виправлений варіант у друк і сама запустить перегенерацію.
-                                                </div>
-                                            </div>
-                                        )}
                                         <button
                                             onClick={async () => {
                                                 setAttachingOriginals(true);
@@ -2745,6 +2741,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ще</div>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                <button onClick={() => setShowRareFileActions(v => !v)}
+                                                    title="Рідкісні дії: обрізка вильоту для тревелбуків і журналів, збирання постера з дизайну"
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#64748b', border: '1.5px dashed #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                    {showRareFileActions ? 'Згорнути' : 'Ще дії'}
+                                                </button>
+                                                {showRareFileActions && (<>
                                         <button
                                             onClick={async () => {
                                                 // Тільки для посторінкових виробів (тревелбук, журнал). Для
@@ -2801,33 +2808,64 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rebuildingPoster ? 'Збираю постер…' : 'Зібрати постер з дизайну'}
                                         </button>
                                         )}
-                                        {/* Оригінали окремо від макету (Diana, 2026-08-25).
-                                            «Завантажити всі» кладе в один архів і макет, і фото,
-                                            а в друкарню й дизайнеру потрібне різне. Беремо все,
-                                            що НЕ експорт: і category='original', і 'designer-order',
-                                            і файли без категорії з folder-scan — інакше кнопка
-                                            працювала б лише на тих замовленнях, де категорія
-                                            проставилась саме як 'original'. */}
-                                        {uploadedFiles.some((f: any) => !f.isExport) && (
-                                            <button onClick={() => downloadAllAsZip(uploadedFiles.filter((f: any) => !f.isExport), 'оригінали')} disabled={downloadingZip}
-                                                title="Тільки фото клієнта в повному розмірі, без файлів макета"
-                                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#2563eb', border: '1.5px solid #2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
-                                                {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                                                Оригінали фото (ZIP)
-                                            </button>
-                                        )}
-                                        <button onClick={verifyPrint} disabled={verifying}
-                                            title="Відкриває кожен готовий файл і звіряє з макетом клієнта: кількість сторінок, порожні аркуші, розмір, чи всі поставлені фото мають файли"
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0f766e', border: '1.5px solid #0f766e', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: verifying ? 'default' : 'pointer' }}>
-                                            {verifying ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
-                                            {verifying ? 'Перевіряю…' : 'Перевірити макети'}
-                                        </button>
-                                        <button onClick={() => downloadAllAsZip()} disabled={downloadingZip}
-                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: downloadingZip ? '#c4b5fd' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
-                                            {downloadingZip ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                                            {downloadingZip ? 'Збираю ZIP…' : 'Завантажити всі (ZIP)'}
-                                        </button>
+                                                </>)}
+                                            </div>
                                         </div>
+                                        </div>
+                                        {/* ЗАМИКАЄ ЦИКЛ РЕДАГУВАННЯ.
+                                            Копія в чернетках редагується вільно (вона вже
+                                            належить дизайнеру), але до цього не існувало
+                                            способу віддати виправлення у друк: перегенерація
+                                            бере макет, привʼязаний до замовлення, тобто
+                                            оригінал клієнта. Доводилось вивантажувати файли
+                                            з конструктора руками. Тепер — одна кнопка. */}
+                                        {layoutDrafts.length > 0 && (
+                                            <div style={{ padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8 }}>
+                                                <div style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                                    Ваші виправлені макети
+                                                </div>
+                                                {layoutDrafts.map((d: any) => (
+                                                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+                                                        <span style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: '#0c4a6e' }}>
+                                                            {d.name || d.id}
+                                                            {d.format ? <span style={{ color: '#64748b' }}> · {d.format}</span> : null}
+                                                        </span>
+                                                        <a href={`/uk/editor/${d.id}`} target="_blank" rel="noopener noreferrer"
+                                                            style={{ padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                                                            Відкрити в редакторі
+                                                        </a>
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!confirm('Поставити цей макет на замовлення замість макета клієнта? Оригінал клієнта залишиться в його акаунті, заміна запишеться в історію замовлення.')) return;
+                                                                setReplacingLayout(d.id);
+                                                                try {
+                                                                    const r = await fetch(`/api/admin/orders/${id}/replace-layout`, {
+                                                                        method: 'POST',
+                                                                        headers: { 'Content-Type': 'application/json' },
+                                                                        body: JSON.stringify({ projectId: d.id }),
+                                                                    });
+                                                                    const j = await r.json();
+                                                                    if (!r.ok) { toast.error(j?.error || 'Не вдалося замінити макет'); return; }
+                                                                    // Одразу женемо рендер — інакше в друк пішов би старий файл.
+                                                                    await fetch(`/api/admin/orders/${id}/rerender?project=${d.id}`, { method: 'POST' }).catch(() => {});
+                                                                    toast.success('Макет замінено, рендер запущено. Файли зʼявляться за 1–2 хвилини.');
+                                                                    loadLayoutDrafts();
+                                                                    fetchOrder();
+                                                                } catch { toast.error('Не вдалося замінити макет'); }
+                                                                finally { setReplacingLayout(null); }
+                                                            }}
+                                                            disabled={replacingLayout === d.id}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: replacingLayout === d.id ? 'default' : 'pointer' }}>
+                                                            {replacingLayout === d.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                                                            Поставити на замовлення
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                                    Відкрийте макет у редакторі, посуньте текст усередину синього пунктиру і поверніться сюди — кнопка поставить виправлений варіант у друк і сама запустить перегенерацію.
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {verifyReport && (
