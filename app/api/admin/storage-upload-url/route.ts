@@ -28,10 +28,10 @@
  */
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireAdmin, requireStaff } from '@/lib/auth/guards';
 
 /** Buckets this route may hand out upload tokens for, and where inside them. */
-const TARGETS: Record<string, { bucket: string; folder: string; extensions: string[] }> = {
+const TARGETS: Record<string, { bucket: string; folder: string; extensions: string[]; guard?: 'admin' | 'staff' }> = {
   'product-image': {
     bucket: 'products',
     folder: 'products',
@@ -65,12 +65,19 @@ const TARGETS: Record<string, { bucket: string; folder: string; extensions: stri
     bucket: 'order-files',
     folder: 'admin-letters',
     extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'],
+    // Листи клієнту пише персонал, а не лише власник: /api/admin/orders/[id]/emails
+    // стоїть під requireStaff. Тримати тут admin-перевірку означало 403 Forbidden
+    // менеджеру просто за спробу прикріпити файл — саме це й сталося з макетом
+    // 14244.pdf одразу після переходу на пряме завантаження.
+    guard: 'staff',
   },
 };
 
 export async function POST(request: Request) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
+  // Мінімальний поріг — персонал. Він же і достатній для тих цілей, що це
+  // прямо дозволяють; решта нижче додатково вимагає адміна.
+  const staffGuard = await requireStaff();
+  if (!staffGuard.ok) return staffGuard.response;
 
   let body: { target?: string; fileName?: string };
   try {
@@ -82,6 +89,13 @@ export async function POST(request: Request) {
   const target = TARGETS[String(body.target || '')];
   if (!target) {
     return NextResponse.json({ error: 'Unknown upload target' }, { status: 400 });
+  }
+
+  // Завантаження, що змінюють вітрину (фото й відео товарів), лишаються за
+  // адміном, як і були.
+  if ((target.guard || 'admin') === 'admin') {
+    const adminGuard = await requireAdmin();
+    if (!adminGuard.ok) return adminGuard.response;
   }
 
   const ext = String(body.fileName || '').split('.').pop()?.toLowerCase() || '';

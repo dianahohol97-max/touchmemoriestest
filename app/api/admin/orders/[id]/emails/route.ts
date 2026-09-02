@@ -201,21 +201,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: `${a.name}: файл не знайдено у сховищі` }, { status: 404 });
     }
 
-    let size = 0;
+    // Розмір беремо з метаданих сховища ДО завантаження. Інакше файл на 65 МБ
+    // спершу цілком заїхав би в памʼять функції лише для того, щоб зʼясувати,
+    // що вкладенням він не поміщається — а саме такі макети сюди й носять.
+    const folder = a.path.slice(0, a.path.lastIndexOf('/'));
+    const base = a.path.slice(a.path.lastIndexOf('/') + 1);
+    const { data: listed } = await admin.storage.from('order-files').list(folder, { search: base, limit: 1 });
+    const size = Number(listed?.[0]?.metadata?.size) || 0;
+
     let buf: Buffer | null = null;
-    if (inlineBytes < MAX_INLINE_TOTAL_BYTES) {
+    if (size > 0 && inlineBytes + size <= MAX_INLINE_TOTAL_BYTES) {
       const { data: blob } = await admin.storage.from('order-files').download(a.path);
-      if (blob) {
-        buf = Buffer.from(await blob.arrayBuffer());
-        size = buf.length;
-      }
-    }
-    if (!size) {
-      // Не читали або не прочитали — розмір беремо з метаданих сховища.
-      const folder = a.path.slice(0, a.path.lastIndexOf('/'));
-      const base = a.path.slice(a.path.lastIndexOf('/') + 1);
-      const { data: listed } = await admin.storage.from('order-files').list(folder, { search: base, limit: 1 });
-      size = Number(listed?.[0]?.metadata?.size) || 0;
+      if (blob) buf = Buffer.from(await blob.arrayBuffer());
     }
 
     uploaded.push({ name: a.name, url: signed.signedUrl, size, path: a.path });
