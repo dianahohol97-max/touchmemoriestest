@@ -55,6 +55,17 @@ const TARGETS: Record<string, { bucket: string; folder: string; extensions: stri
     folder: 'products/videos',
     extensions: ['mp4', 'mov', 'avi', 'webm'],
   },
+  // Вкладення до листа клієнту з картки замовлення. Причина та сама, що
+  // описана вище: макет на погодження — це PDF на десятки мегабайтів, а він
+  // ішов multipart-запитом у /api/admin/orders/[id]/emails і не доїжджав.
+  // Лист просто не надсилався (Тома, TM-14236: PDF на 35.6 МБ, «лист не
+  // надіслало»), причому без зрозумілого повідомлення, бо запит помирав ще до
+  // обробника і відповіді у форматі JSON не було взагалі.
+  'order-letter-attachment': {
+    bucket: 'order-files',
+    folder: 'admin-letters',
+    extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'],
+  },
 };
 
 export async function POST(request: Request) {

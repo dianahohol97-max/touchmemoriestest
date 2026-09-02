@@ -154,22 +154,44 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
     setEmailSending(true);
     try {
-      // Без файлів шлемо JSON, як і раніше; з файлами — multipart. Сервер
-      // приймає обидва.
-      let r: Response;
-      if (emailFiles.length > 0) {
-        const fd = new FormData();
-        fd.append('subject', emailSubject.trim());
-        fd.append('body', emailBody.trim());
-        emailFiles.forEach(f => fd.append('files', f, f.name));
-        r = await fetch(`/api/admin/orders/${order.id}/emails`, { method: 'POST', body: fd });
-      } else {
-        r = await fetch(`/api/admin/orders/${order.id}/emails`, {
+      // Файли йдуть у сховище НАПРЯМУ з браузера, а листу передаються самими
+      // шляхами. Раніше вони їхали multipart-запитом у цей же роут, а Vercel
+      // ріже тіло запиту на кількох мегабайтах: макет журналу на 35.6 МБ не
+      // доїжджав узагалі, і Тома бачила «Не вдалося надіслати лист» без жодного
+      // пояснення — запит помирав ще до обробника, тож і тексту помилки не
+      // було звідки взяти. Той самий обхід уже застосований для фото товарів,
+      // див. /api/admin/storage-upload-url.
+      const attachments: { path: string; name: string }[] = [];
+      for (const f of emailFiles) {
+        const signRes = await fetch('/api/admin/storage-upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subject: emailSubject.trim(), body: emailBody.trim() }),
+          body: JSON.stringify({ target: 'order-letter-attachment', fileName: f.name }),
         });
+        const signJson = await signRes.json().catch(() => ({}));
+        if (!signRes.ok) {
+          toast.error(`${f.name}: ${signJson?.error || 'не вдалося підготувати завантаження'}`);
+          return;
+        }
+        const { error: upErr } = await supabase.storage
+          .from(signJson.bucket)
+          .uploadToSignedUrl(signJson.path, signJson.token, f, { contentType: f.type || undefined });
+        if (upErr) {
+          toast.error(`${f.name}: не вдалося завантажити файл`);
+          return;
+        }
+        attachments.push({ path: signJson.path, name: f.name });
       }
+
+      const r = await fetch(`/api/admin/orders/${order.id}/emails`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: emailSubject.trim(),
+          body: emailBody.trim(),
+          ...(attachments.length ? { attachments } : {}),
+        }),
+      });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { toast.error(j?.error || 'Не вдалося надіслати лист'); return; }
       toast.success(

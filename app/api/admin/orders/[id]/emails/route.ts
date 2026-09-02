@@ -93,6 +93,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let subject = '';
   let text = '';
   let files: File[] = [];
+  // Файли, які браузер уже поклав у сховище сам і передав лише шляхами.
+  let preUploaded: { path: string; name: string }[] = [];
   const contentType = req.headers.get('content-type') || '';
   if (contentType.includes('multipart/form-data')) {
     const form = await req.formData().catch(() => null);
@@ -104,6 +106,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json().catch(() => null);
     subject = String(body?.subject || '').trim();
     text = String(body?.body || '').trim();
+    if (Array.isArray(body?.attachments)) {
+      preUploaded = body.attachments
+        .filter((a: any) => a && typeof a.path === 'string')
+        .map((a: any) => ({ path: String(a.path), name: String(a.name || '').trim() || 'file' }))
+        .slice(0, 10);
+    }
+  }
+
+  // Шлях приходить від клієнта, тож звужуємо його до теки, яку видає
+  // /api/admin/storage-upload-url. Інакше staff-запит міг би націлити лист на
+  // будь-який обʼєкт у бакеті замовлень і надіслати його клієнту.
+  for (const a of preUploaded) {
+    if (!/^admin-letters\/[A-Za-z0-9._-]+$/.test(a.path)) {
+      return NextResponse.json({ error: `${a.name}: недопустимий шлях вкладення` }, { status: 400 });
+    }
   }
 
   if (!subject || !text) {
@@ -112,7 +129,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (subject.length > 300 || text.length > 20000) {
     return NextResponse.json({ error: 'subject or body too long' }, { status: 400 });
   }
-  if (files.length > 10) {
+  if (files.length + preUploaded.length > 10) {
     return NextResponse.json({ error: 'не більше 10 файлів за раз' }, { status: 400 });
   }
   for (const f of files) {
@@ -167,6 +184,44 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // відхилив цілком через розмір.
     if (inlineBytes + buf.length <= MAX_INLINE_TOTAL_BYTES) {
       inline.push({ name: f.name, content: buf.toString('base64') });
+      inlineBytes += buf.length;
+    }
+  }
+
+  // Файли, завантажені браузером напряму у сховище. Вони не проходили через
+  // цей запит, тому обмеження Vercel на розмір тіла їх не стосується — саме
+  // тому макет на 35 МБ тепер доїжджає. Байти читаємо зі сховища лише щоб
+  // вирішити, чи поміщається файл вкладенням; завеликі лишаються посиланням і
+  // не завантажуються сюди взагалі.
+  for (const a of preUploaded) {
+    const { data: signed } = await admin.storage
+      .from('order-files')
+      .createSignedUrl(a.path, SIGNED_URL_TTL_SECONDS);
+    if (!signed?.signedUrl) {
+      return NextResponse.json({ error: `${a.name}: файл не знайдено у сховищі` }, { status: 404 });
+    }
+
+    let size = 0;
+    let buf: Buffer | null = null;
+    if (inlineBytes < MAX_INLINE_TOTAL_BYTES) {
+      const { data: blob } = await admin.storage.from('order-files').download(a.path);
+      if (blob) {
+        buf = Buffer.from(await blob.arrayBuffer());
+        size = buf.length;
+      }
+    }
+    if (!size) {
+      // Не читали або не прочитали — розмір беремо з метаданих сховища.
+      const folder = a.path.slice(0, a.path.lastIndexOf('/'));
+      const base = a.path.slice(a.path.lastIndexOf('/') + 1);
+      const { data: listed } = await admin.storage.from('order-files').list(folder, { search: base, limit: 1 });
+      size = Number(listed?.[0]?.metadata?.size) || 0;
+    }
+
+    uploaded.push({ name: a.name, url: signed.signedUrl, size, path: a.path });
+
+    if (buf && inlineBytes + buf.length <= MAX_INLINE_TOTAL_BYTES) {
+      inline.push({ name: a.name, content: buf.toString('base64') });
       inlineBytes += buf.length;
     }
   }
