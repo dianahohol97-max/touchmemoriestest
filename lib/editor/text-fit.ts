@@ -182,3 +182,27 @@ export function fitFontScale(input: FitInput): number {
   }
   return Math.max(MIN_SCALE, Math.min(1, lo));
 }
+
+/**
+ * Чи не вміщається текст навіть після максимального дозволеного зменшення.
+ *
+ * fitFontScale свідомо не опускається нижче MIN_SCALE: дрібніший кегль у друці
+ * перестає бути дизайном клієнта і стає нечитабельним. Але коли й цього замало,
+ * блок просто виходить за відведену йому висоту — його ріже overflow сторінки
+ * або він налазить на сусідній. Досі це відбувалося МОВЧКИ: на TM-001257 після
+ * звуження блока фраза «Одна історія, дві долі, безліч моментів» показувалась
+ * як «Одна історія, дві долі, безліч», і помітити зникле слово можна було лише
+ * придивившись.
+ *
+ * Функція навмисно повторює розрахунок fitFontScale замість того, щоб він сам
+ * повертав ознаку: обидва рендерери викликають fitFontScale у гарячому шляху і
+ * покладаються на те, що він повертає просто число.
+ */
+export function textOverflowsAtMinScale(input: FitInput): boolean {
+  const { text, fontPx, fontFamily, bold, italic, maxWidthPx, availableHeightPx } = input;
+  if (!text || fontPx <= 0 || availableHeightPx <= 0 || maxWidthPx <= 0) return false;
+  const heightAtMin =
+    countLines(text, fontPx * MIN_SCALE, fontFamily, !!bold, !!italic, maxWidthPx)
+    * fontPx * MIN_SCALE * LINE_HEIGHT;
+  return heightAtMin > availableHeightPx;
+}

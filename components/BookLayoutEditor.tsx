@@ -55,7 +55,7 @@ import {
   bringForward, sendBackward, bringToFront, sendToBack,
   nextZOrder, zIndexFor,
 } from '@/lib/editor/zOrder';
-import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
+import { fitFontScale, textOverflowsAtMinScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -8591,7 +8591,7 @@ export default function BookLayoutEditor() {
                       const txtAnchorsY = (spreadPage?.textBlocks || []).map((b: any) => b.y);
                       const txtBasePx = tb.fontSize * pageTextScale(cH);
                       const txtPadX = 8 * pageTextScale(cH);
-                      const txtScale = isEd ? 1 : fitFontScale({
+                      const txtFit = {
                         text: tb.text,
                         fontPx: txtBasePx,
                         fontFamily: tb.fontFamily,
@@ -8605,7 +8605,11 @@ export default function BookLayoutEditor() {
                         // spread width, so both sides measure 90% of the same box.
                         maxWidthPx: textBoxMaxWidthPx(cW, txtPadX, tb.w),
                         availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
-                      });
+                      };
+                      const txtScale = isEd ? 1 : fitFontScale(txtFit);
+                      // Навіть найменший дозволений кегль не вміщається — далі
+                      // блок просто ріжеться краєм сторінки, і робив це мовчки.
+                      const txtOverflows = !isEd && textOverflowsAtMinScale(txtFit);
                       return (
                         <div key={tb.id}
                           onPointerDown={e => {
@@ -8625,7 +8629,14 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: isSel ? '2px solid #3b82f6' : '1px solid transparent', background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), background: isSel ? 'rgba(59,130,246,0.05)' : 'transparent', ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
+                            {txtOverflows && (
+                              <div data-html2canvas-ignore="true"
+                                title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
+                                style={{ position:'absolute', top:-9, right:-6, zIndex:30, pointerEvents:'none', background:'#dc2626', color:'#fff', fontSize:8, fontWeight:800, lineHeight:1.4, padding:'1px 5px', borderRadius:4, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(0,0,0,0.25)' }}>
+                                Текст не вміщається
+                              </div>
+                            )}
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             /* Scaled by the SAME cH/700 factor the print page uses.
                                Raw px here meant the canvas shrank with zoom while the text did
@@ -9325,7 +9336,7 @@ export default function BookLayoutEditor() {
                         const txtAnchorsY = (page?.textBlocks || []).map((b: any) => b.y);
                         const txtBasePx = tb.fontSize * pageTextScale(cH);
                         const txtPadX = 8 * pageTextScale(cH);
-                        const txtScale = isEd ? 1 : fitFontScale({
+                        const txtFit = {
                           text: tb.text,
                           fontPx: txtBasePx,
                           fontFamily: tb.fontFamily,
@@ -9333,7 +9344,9 @@ export default function BookLayoutEditor() {
                           italic: tb.italic,
                           maxWidthPx: textBoxMaxWidthPx(pageW, txtPadX, tb.w),
                           availableHeightPx: (availableHeightPct(tb.y, txtAnchorsY) / 100) * cH,
-                        });
+                        };
+                        const txtScale = isEd ? 1 : fitFontScale(txtFit);
+                        const txtOverflows = !isEd && textOverflowsAtMinScale(txtFit);
                         return (
                           <div key={tb.id}
                             onPointerDown={e => {
@@ -9349,13 +9362,20 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:isSel?'2px solid #3b82f6':'none',borderRadius:3,
+                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:txtOverflows?'2px solid #dc2626':(isSel?'2px solid #3b82f6':'none'),borderRadius:3,
                               /* Scaled 4/8 like the spread branch and the print
                                  page — this padding eats into the 90% max width,
                                  so raw '2px 4px' put the wrap point a few px away
                                  from where the print wraps, and a word could sit
                                  on a different line in the editor than on paper. */
                               padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`,background:isSel?'rgba(255,255,255,0.1)':'transparent',...textBoxWidthStyle(tb.w),minWidth:30,touchAction:'none'}}>
+                            {txtOverflows && (
+                              <div data-html2canvas-ignore="true"
+                                title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
+                                style={{ position:'absolute', top:-9, right:-6, zIndex:30, pointerEvents:'none', background:'#dc2626', color:'#fff', fontSize:8, fontWeight:800, lineHeight:1.4, padding:'1px 5px', borderRadius:4, whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(0,0,0,0.25)' }}>
+                                Текст не вміщається
+                              </div>
+                            )}
                             {isSel && !isEd && (
                               <ZOrderToolbar
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
