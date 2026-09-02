@@ -4034,6 +4034,32 @@ export default function BookLayoutEditor() {
       }
     }
 
+    // ПОРОЖНЯ ЗАДНЯ ОБКЛАДИНКА — попередження, а не заборона.
+    //
+    // На TM-001257 задня обкладинка пішла у друк суцільною бордовою заливкою,
+    // без жодного елемента, і замовлення при цьому було позначене як «макет
+    // для друку готовий». Це найпомітніший дефект готового виробу: клієнт
+    // тримає в руках журнал із порожньою спинкою.
+    //
+    // Заливка сама по собі НЕ помилка — колір задньої обкладинки клієнт
+    // обирає свідомо, і порожня спинка це нормальний дизайн. Тому тут не
+    // заборона, а перепитування: якщо людина справді так задумала, вона
+    // натискає «Залишити порожньою» і йде далі. Мовчки пропускати не можна,
+    // бо в дев'яти випадках з десяти це просто недороблена сторінка.
+    if (!isWishbook && coverState.backCoverEnabled) {
+      const hasBackPhoto = !!coverState.backCoverPhotoId;
+      const hasBackText = (coverState.backCoverTexts || []).some(b => (b.text || '').trim().length > 0);
+      if (!hasBackPhoto && !hasBackText) {
+        const proceed = window.confirm(
+          'Задня обкладинка порожня — на ній лише кольорова заливка, без фото і без тексту.\n\n'
+          + 'Саме такою вона й надрукується. Якщо ви так задумали, продовжуйте. '
+          + 'Якщо ні — закрийте це вікно, відкрийте обкладинку і додайте фото або підпис.\n\n'
+          + 'Залишити задню обкладинку порожньою?'
+        );
+        if (!proceed) return;
+      }
+    }
+
     // Upload every photo's original to Storage FIRST, before we build any
     // snapshot. This is the fix for "photos disappear after adding to cart":
     // previously the cart-edit snapshot and the design snapshot were built
