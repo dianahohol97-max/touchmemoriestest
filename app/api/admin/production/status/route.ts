@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireAnySection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { PRODUCTION_STATUSES } from '../route';
 
@@ -17,15 +17,19 @@ export const dynamic = 'force-dynamic';
  * зелений тост «Статус оновлено», а в базі не мінялося нічого — до першого
  * оновлення сторінки, після якого все поверталось назад.
  *
- * Тут статус пишеться сервісним клієнтом під requireStaff, з рядком в
+ * Тут статус пишеться сервісним клієнтом, з рядком в
  * order_history і зі списанням складу на переході в «Готово до відпр.» —
  * раніше списання теж не спрацьовувало, бо стояло в гілці «update пройшов».
+ *
+ * Право потрібне на orders: edit АБО production: edit — менеджер і
+ * виробництво підходять до цієї дії з різних боків, і жоден окремий розділ як
+ * умова не покрив би обох.
  *
  * fromStatus — необовʼязкова умова: масова дія «відмітити як надруковано»
  * має чіпати лише те, що досі у друці, навіть якщо список устиг застаріти.
  */
 export async function POST(req: NextRequest) {
-    const guard = await requireStaff();
+    const guard = await requireAnySection([['orders', 'edit'], ['production', 'edit']]);
     if (!guard.ok) return guard.response;
 
     const body = await req.json().catch(() => null);

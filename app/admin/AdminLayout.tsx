@@ -133,7 +133,10 @@ const menuItems = [
 
     // Налаштування
     { name: 'Команда', href: '/admin/team', icon: <Users size={20} />, section: 'settings', group: 'settings' },
-    { name: 'Ролі та права', href: '/admin/roles', icon: <Shield size={20} />, section: 'settings', group: 'settings' },
+    // Веде на редактор із десятьма розділами й чотирма рівнями. Раніше стояла
+    // адреса /admin/roles — легасі-сторінка з шістьма галочками, яка вміла
+    // виставити лише частину рівнів і на кожному збереженні занижувала решту.
+    { name: 'Ролі та права', href: '/admin/settings/team/roles', icon: <Shield size={20} />, section: 'settings', group: 'settings' },
     { name: 'Фіскалізація', href: '/admin/settings/fiscalization', icon: <Printer size={20} />, section: 'settings', group: 'settings' },
     { name: 'Нова Пошта', href: '/admin/settings/delivery/nova-poshta', icon: <Truck size={20} />, section: 'settings', group: 'settings' },
     { name: 'Міжнародна доставка', href: '/admin/settings/delivery/international', icon: <Globe size={20} />, section: 'settings', group: 'settings' },

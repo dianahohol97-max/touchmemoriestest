@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('orders', 'edit');
     if (!guard.ok) return guard.response;
 
     const params = await props.params;

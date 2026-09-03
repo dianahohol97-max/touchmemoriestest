@@ -16,8 +16,8 @@ import {
     Users
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-type PermissionLevel = 'none' | 'view' | 'edit' | 'full';
+import { ADMIN_SECTIONS, PERMISSION_LEVELS } from '@/lib/auth/admin-sections';
+import type { PermissionLevel } from '@/lib/auth/permissions';
 
 type Role = {
     id: string;
@@ -26,27 +26,21 @@ type Role = {
     permissions: Record<string, PermissionLevel>;
     is_system: boolean;
     member_count?: number;
+    members?: { id: string; name: string }[];
 };
 
-const PERMISSION_SECTIONS = [
-    { id: 'catalog', label: ' Каталог', sub: 'Товари, Категорії, Популярні' },
-    { id: 'orders', label: ' Замовлення', sub: 'Перегляд, Створення, Редагування' },
-    { id: 'customers', label: ' Клієнти', sub: 'Перегляд та редагування' },
-    { id: 'production', label: ' Виробництво', sub: 'Склад та виробництво' },
-    { id: 'finance', label: ' Фінанси', sub: 'Витрати, Зарплати, Рахунки' },
-    { id: 'marketing', label: ' Маркетинг', sub: 'Розсилки, Промокоди' },
-    { id: 'content', label: ' Контент', sub: 'Блог, Шаблони, Дизайн' },
-    { id: 'settings', label: ' Налаштування', sub: 'Команда, Інтеграції' },
-    { id: 'ai', label: ' AI', sub: 'Chat Inbox, AI Налаштування' },
-    { id: 'analytics', label: ' Аналітика', sub: 'Dashboard, Звіти' },
-];
+// Перелік розділів і рівнів спільний із меню адмінки та серверними guard-ами
+// (lib/auth/admin-sections.ts). Доти він жив трьома окремими копіями, і саме
+// тому легасі-сторінка ролей уміла редагувати лише шість розділів із десяти.
+const PERMISSION_SECTIONS = ADMIN_SECTIONS.map(s => ({ id: s.key, label: s.label, sub: s.hint }));
 
-const ACCESS_LEVELS: { id: PermissionLevel; label: string; color: string }[] = [
-    { id: 'none', label: 'Немає доступу', color: '#f1f5f9' },
-    { id: 'view', label: 'Перегляд', color: '#dcfce7' },
-    { id: 'edit', label: 'Редагування', color: '#fef9c3' },
-    { id: 'full', label: 'Повний доступ', color: '#dbeafe' },
-];
+const LEVEL_COLORS: Record<PermissionLevel, string> = {
+    none: '#f1f5f9',
+    view: '#dcfce7',
+    edit: '#fef9c3',
+    full: '#dbeafe',
+};
+const ACCESS_LEVELS = PERMISSION_LEVELS.map(l => ({ id: l.value, label: l.label, color: LEVEL_COLORS[l.value] }));
 
 export default function RolesManagementPage() {
     const [roles, setRoles] = useState<Role[]>([]);
@@ -68,9 +62,10 @@ export default function RolesManagementPage() {
             if (!res.ok) throw new Error('Помилка завантаження ролей');
             const data = await res.json();
 
-            // Fetch member counts (optional, for now could be 0 or mocked)
-            const rolesWithMeta = data.map((r: Role) => ({ ...r, member_count: 0 }));
-            setRoles(rolesWithMeta);
+            // member_count і members рахує сам роут. Раніше тут стояв нуль
+            // заглушкою, тож знизити рівень цілій команді можна було не
+            // здогадуючись, що на цій ролі взагалі хтось є.
+            setRoles(Array.isArray(data) ? data : []);
         } catch (error: any) {
             toast.error(error.message);
         } finally {
@@ -181,9 +176,14 @@ export default function RolesManagementPage() {
                                     </div>
                                     <div>
                                         <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99' }}>{role.name}</h3>
+                                        {/* Хто саме сидить на цій ролі. Без імен зміна рівня
+                                            була дією наосліп: не видно, чиї доступи ти щойно
+                                            звузила і хто завтра впреться в «немає прав». */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b' }}>
                                             <Users size={14} />
-                                            {role.member_count || 0} співробітників
+                                            {(role.members && role.members.length > 0)
+                                                ? <span>{role.members.length}: <b style={{ color: '#334155' }}>{role.members.map(m => m.name).join(', ')}</b></span>
+                                                : <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Жодного співробітника не призначено</span>}
                                         </div>
                                     </div>
                                 </div>

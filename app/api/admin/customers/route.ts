@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * звужувати перелік тут означало б тихо зламати колонки.
  */
 export async function GET() {
-    const guard = await requireStaff();
+    const guard = await requireSection('customers', 'view');
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();

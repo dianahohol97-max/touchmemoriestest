@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
  * тимчасовими паролями, і має лишитись під requireAdmin.
  */
 export async function GET() {
-    const guard = await requireStaff();
+    const guard = await requireSection('orders', 'view');
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();

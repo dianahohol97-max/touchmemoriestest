@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireStaff, getSession } from '@/lib/auth/guards';
-import { getAdminClient } from '@/lib/supabase/admin';
-import { likeEscape } from '@/lib/supabase/like-escape';
-import { mergeRolePermissions, type PermissionLevel } from '@/lib/auth/permissions';
+import { resolveStaffPermissions } from '@/lib/auth/staff-permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,49 +36,6 @@ export async function GET() {
     if (!guard.ok) return guard.response;
 
     const { user } = await getSession();
-    const email = user?.email;
-    if (!email) {
-        return NextResponse.json({ isAdmin: true, permissions: {}, role: null });
-    }
-
-    const admin = getAdminClient();
-    const { data: staff } = await admin
-        .from('staff')
-        .select('role, role_id, individual_permissions')
-        .ilike('email', likeEscape(email))
-        .maybeSingle();
-
-    // Немає рядка в staff — значить це людина з admin_users без картки
-    // співробітника. Так було й раніше, і так має лишитись.
-    if (!staff) {
-        return NextResponse.json({ isAdmin: true, permissions: {}, role: null });
-    }
-
-    let isAdmin = staff.role === 'admin' || staff.role === 'owner';
-    let rolePermissions: Record<string, unknown> | null = null;
-
-    if (staff.role_id) {
-        const { data: role } = await admin
-            .from('admin_roles')
-            .select('permissions, slug')
-            .eq('id', staff.role_id)
-            .maybeSingle();
-        if (role) {
-            rolePermissions = (role.permissions || {}) as Record<string, unknown>;
-            if (role.slug === 'owner' || role.slug === 'admin') isAdmin = true;
-        }
-    }
-
-    const merged: Record<string, PermissionLevel> = mergeRolePermissions(
-        rolePermissions,
-        staff.individual_permissions as Record<string, unknown> | null,
-    );
-
-    if (!isAdmin && Object.keys(merged).length === 0) {
-        // Ні ролі, ні індивідуальних прав — не замикаємо людину в порожній
-        // адмінці, лишаємо як було до цього коміту.
-        return NextResponse.json({ isAdmin: true, permissions: {}, role: staff.role || null });
-    }
-
-    return NextResponse.json({ isAdmin, permissions: merged, role: staff.role || null });
+    const resolved = await resolveStaffPermissions(user?.email);
+    return NextResponse.json(resolved);
 }

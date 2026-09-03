@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
  * акуратне «збережено» над текстом, який нікуди не потрапив.
  */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('customers', 'view');
     if (!guard.ok) return guard.response;
 
     const { id } = await params;
@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 /** Нотатки менеджера — єдине поле, яке ця картка редагує. */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('customers', 'edit');
     if (!guard.ok) return guard.response;
 
     const { id } = await params;

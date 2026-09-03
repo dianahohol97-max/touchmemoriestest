@@ -1,17 +1,22 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { requireStaff, requireAdmin } from '@/lib/auth/guards';
+import { requireSection, requireAdmin } from '@/lib/auth/guards';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 
 // Column allowlist for PATCH. Previously the raw request body went straight
-// into .update(body) under a requireStaff guard, so ANY active staff member
-// (designer, marketer, production) could rewrite ANY column — including
+// into .update(body) behind a «просто співробітник» guard, so ANY active staff
+// member (designer, marketer, production) could rewrite ANY column — including
 // payment_status='paid' and total=0. Now: operational fields are staff-
 // editable, financial fields require a real admin, everything else is
 // rejected outright (Monobank/fiscal/system columns are written only by
 // their own server flows, never by hand through this route).
+//
+// Поверх колонок стоїть ще й розділ: читання вимагає orders: view, запис —
+// orders: edit. Меню вже ховає від когось «Замовлення», але приховане меню
+// не захищає нічого, якщо роут відповідає будь-кому зі staff за прямою
+// адресою.
 const STAFF_EDITABLE_FIELDS = new Set([
     'order_status', 'production_status', 'tracking_status',
     'notes', 'client_comment', 'designer_note',
@@ -40,7 +45,7 @@ const ADMIN_ONLY_FIELDS = new Set([
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('orders', 'view');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
@@ -101,7 +106,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('orders', 'edit');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();

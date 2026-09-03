@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +23,7 @@ const ALLOWED_BUCKETS = new Set(['order-files']);
  * того, чи потрапила людина в admin_users.
  */
 export async function GET(req: NextRequest) {
-    const guard = await requireStaff();
+    const guard = await requireSection('orders', 'view');
     if (!guard.ok) return guard.response;
 
     const bucket = req.nextUrl.searchParams.get('bucket') || 'order-files';

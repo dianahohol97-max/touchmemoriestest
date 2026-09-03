@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireAnySection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export const PRODUCTION_STATUSES = ['confirmed', 'in_production', 'shipped', 'de
  * рядків, а не помилку.
  */
 export async function GET() {
-    const guard = await requireStaff();
+    const guard = await requireAnySection([['production', 'view'], ['orders', 'view']]);
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaff, getSession } from '@/lib/auth/guards';
+import { requireSection, getSession } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ const STATUSES = new Set(['ai_handling', 'human_handling', 'resolved']);
  * POST — { action: 'read' | 'status' | 'message' }.
  */
 export async function GET(req: NextRequest) {
-    const guard = await requireStaff();
+    const guard = await requireSection('ai', 'view');
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    const guard = await requireStaff();
+    const guard = await requireSection('ai', 'edit');
     if (!guard.ok) return guard.response;
 
     const body = await req.json().catch(() => null);

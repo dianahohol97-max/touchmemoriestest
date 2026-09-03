@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
+import { ADMIN_SECTION_KEYS } from '@/lib/auth/admin-sections';
+import { ACCESS_ORDER } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +16,34 @@ function pickRoleFields(body: Record<string, any>): Record<string, unknown> {
     return out;
 }
 
+/**
+ * Перевіряє мапу прав перед записом.
+ *
+ * Роль — це те, за чим серверні guard-и вирішують, кого куди пускати, тож у
+ * permissions не має потрапляти нічого, чого ці guard-и не розуміють.
+ * Невідомий розділ мовчки нічого не забороняв би (див. allows() у
+ * lib/auth/permissions.ts), а невідомий рівень зламав би порівняння — і в
+ * обох випадках людина була б упевнена, що доступ налаштувала.
+ *
+ * Повертає текст помилки або null, якщо все гаразд.
+ */
+function validatePermissions(value: unknown): string | null {
+    if (value === undefined) return null;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return 'permissions має бути обʼєктом';
+    }
+    const bad: string[] = [];
+    for (const [section, level] of Object.entries(value as Record<string, unknown>)) {
+        if (!ADMIN_SECTION_KEYS.has(section)) { bad.push(`невідомий розділ «${section}»`); continue; }
+        if (typeof level !== 'string' || !(ACCESS_ORDER as string[]).includes(level)) {
+            bad.push(`невідомий рівень «${String(level)}» у розділі «${section}»`);
+        }
+    }
+    return bad.length > 0 ? bad.join('; ') : null;
+}
+
 export async function GET() {
-    const guard = await requireAdmin();
+    const guard = await requireSection('settings', 'full');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
@@ -27,19 +55,38 @@ export async function GET() {
 
         if (error) throw error;
 
-        return NextResponse.json(data);
+        // Скільки людей сидить на кожній ролі, і хто саме. Редактор ролей
+        // раніше підставляв нуль заглушкою, тож знизити рівень цілій команді
+        // можна було не здогадуючись, що вона взагалі існує.
+        const { data: staff } = await supabase
+            .from('staff')
+            .select('id, name, role_id')
+            .eq('is_active', true);
+
+        const enriched = (data || []).map((role: any) => {
+            const members = (staff || []).filter((s: any) => s.role_id === role.id);
+            return {
+                ...role,
+                member_count: members.length,
+                members: members.map((m: any) => ({ id: m.id, name: m.name })),
+            };
+        });
+
+        return NextResponse.json(enriched);
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
 export async function POST(req: Request) {
-    const guard = await requireAdmin();
+    const guard = await requireSection('settings', 'full');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
     try {
         const body = await req.json();
+        const invalid = validatePermissions(body?.permissions);
+        if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
         const row = pickRoleFields(body);
 
         // Generate slug if not provided
@@ -62,7 +109,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-    const guard = await requireAdmin();
+    const guard = await requireSection('settings', 'full');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();
@@ -73,6 +120,8 @@ export async function PATCH(req: Request) {
         if (!id) {
             return NextResponse.json({ error: 'Missing role ID' }, { status: 400 });
         }
+        const invalid = validatePermissions(body?.permissions);
+        if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
         const { data, error } = await supabase
             .from('admin_roles')
@@ -93,7 +142,7 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-    const guard = await requireAdmin();
+    const guard = await requireSection('settings', 'full');
     if (!guard.ok) return guard.response;
 
     const supabase = getAdminClient();

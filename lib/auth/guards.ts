@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { resolveStaffPermissions } from '@/lib/auth/staff-permissions';
+import { allows, type PermissionLevel } from '@/lib/auth/permissions';
 
 /**
  * Auth guards for API routes.
@@ -135,6 +137,61 @@ export async function requireStaff(): Promise<Guard> {
 
     return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
 }
+/**
+ * Доступ до РОЗДІЛУ адмінки, а не просто «я співробітник».
+ *
+ * requireStaff відповідає лише на питання «чи ця людина взагалі працює в
+ * компанії», і цього замало. Меню вже приховує від менеджера фінанси, а від
+ * дизайнера ще й маркетинг з виробництвом, але приховане меню — це не
+ * захист: роут і далі відповідав будь-кому зі staff, і достатньо було знати
+ * адресу. Тут перевіряється та сама мапа прав, яку читає меню, тож заборона
+ * стає справжньою, а не косметичною.
+ *
+ * Рівні порівнюються за силою: 'view' < 'edit' < 'full'. Розділ, про який
+ * роль не сказала нічого, вважається дозволеним — пояснення чому саме так
+ * лежить у lib/auth/permissions.ts поряд з allows().
+ *
+ * Суперадміни (admin, owner) проходять усюди.
+ */
+export async function requireSection(section: string, level: PermissionLevel = 'view'): Promise<Guard> {
+    return requireAnySection([[section, level]]);
+}
+
+/**
+ * Те саме, але достатньо ОДНОГО з перелічених прав.
+ *
+ * Потрібне там, де одну дію легально роблять різні ролі з різних боків.
+ * Канонічний приклад — дошка виробництва: менеджер має orders: full і
+ * production: view, виробництво навпаки — production: full і orders: view.
+ * Перенесення картки між колонками це і зміна замовлення, і робота
+ * виробництва водночас, тож будь-який один розділ як умова відрізав би одну з
+ * двох ролей від її щоденної роботи. Вимагаємо orders: edit АБО
+ * production: edit.
+ */
+export async function requireAnySection(
+    required: Array<[section: string, level: PermissionLevel]>,
+): Promise<Guard> {
+    const staffGuard = await requireStaff();
+    if (!staffGuard.ok) return staffGuard;
+
+    const { user } = await getSession();
+    const resolved = await resolveStaffPermissions(user?.email);
+    for (const [section, level] of required) {
+        if (allows(resolved.permissions, section, level, resolved.isAdmin)) {
+            return { ok: true, userId: staffGuard.userId };
+        }
+    }
+
+    const names = required.map(([section]) => `«${section}»`).join(' або ');
+    return {
+        ok: false,
+        response: NextResponse.json(
+            { error: `Недостатньо прав на розділ ${names}` },
+            { status: 403 },
+        ),
+    };
+}
+
 export async function requireOwnerOrAdmin(customerId: string | null): Promise<Guard> {
     const { user } = await getSession();
     if (!user) {
