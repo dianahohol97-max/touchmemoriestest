@@ -31,7 +31,15 @@ type Guard = { ok: true; userId: string } | { ok: false; response: NextResponse 
 // this module.
 export { likeEscape } from '@/lib/supabase/like-escape';
 
-async function getSession() {
+/**
+ * Поточний користувач із cookie-звʼязаного клієнта.
+ *
+ * Експортується, бо кільком роутам після guard потрібен ще й email — staff
+ * зіставляється саме за ним, а Guard повертає лише userId. Це той самий
+ * виклик, яким користуються всі guard-и нижче; сервісний клієнт для читання
+ * сесії не годиться, він авторизацію просто оминає.
+ */
+export async function getSession() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     return { supabase, user };
