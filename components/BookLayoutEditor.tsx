@@ -1989,6 +1989,35 @@ export default function BookLayoutEditor() {
     (id: string | null): PhotoData | null => (id ? photoById.get(id) ?? null : null),
     [photoById],
   );
+
+  /**
+   * СЛОТ ІЗ ФОТО, ЯКЕ НЕ ЗАВАНТАЖИЛОСЬ, — ЦЕ НЕ ПОРОЖНІЙ СЛОТ.
+   *
+   * Обидва полотна малювали ці два стани однаково: кружечок із іконкою і
+   * запрошення перетягнути фото. Але вони протилежні за змістом. Порожній слот
+   * чекає на фото, а слот із photoId уже має фото, просто редактор його не
+   * дістав — і в друк воно піде, бо і мініатюра в правій панелі, і рендер
+   * читають інше джерело.
+   *
+   * Саме так виглядав звіт по TM-001257: у редакторі права сторінка розвороту
+   * 17–18 порожня, у мініатюрі того ж розвороту фото з ромашками, у
+   * друкованому макеті воно теж є. Дані макета при цьому цілі — 18 слотів, усі
+   * 18 фото на місці зі шляхами у сховищі, — а лічильник самого редактора
+   * показував «Фото (12)». Тобто сім фото не доїхали у відновленні, і клієнт
+   * бачив сторінки, які вважав порожніми, хоча вони такими не були.
+   *
+   * Тепер такий слот видно і чіпати його не пропонується.
+   */
+  const missingPhotoSlot = React.useCallback((slot: { photoId?: string | null } | null | undefined) => {
+    if (!slot?.photoId) return null;
+    return (
+      <div data-export-ignore="true" style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, padding:6, textAlign:'center', background:'rgba(245,158,11,0.10)', border:'1.5px dashed #f59e0b', borderRadius:4, pointerEvents:'none', zIndex:3 }}>
+        <span style={{ fontSize:16, lineHeight:1 }}>⚠️</span>
+        <span style={{ fontSize:9, fontWeight:800, color:'#b45309', lineHeight:1.25 }}>Фото не завантажилось</span>
+        <span style={{ fontSize:8, color:'#92400e', lineHeight:1.25 }}>Воно є в макеті й піде в друк. Оновіть сторінку, щоб побачити його тут.</span>
+      </div>
+    );
+  }, []);
   /**
    * Ids of every photo currently placed anywhere on the book.
    *
@@ -4028,6 +4057,22 @@ export default function BookLayoutEditor() {
       // порахувалась, замовлення йде як ішло.
       console.warn('[safe-zone] check skipped', e);
     }
+    // НЕВИКОРИСТАНІ ФОТО — просто попередження, без діалогу.
+    // Завантажити більше, ніж поставив, це нормально, тож зупиняти тут нікого
+    // не можна. Але й мовчати не варто: у звіті по TM-001257 одне з
+    // девʼятнадцяти фото лишилось не розставленим, і ніде про це не було ні
+    // слова — ні в редакторі, ні в картці замовлення.
+    try {
+      const unused = photos.filter(p => !usedIds.has(p.id));
+      if (unused.length > 0) {
+        toast(
+          `${unused.length} ${unused.length === 1 ? 'фото залишилось' : 'фото залишились'} не розставленим`
+          + ` на сторінках: ${unused.slice(0, 3).map(p => p.name).join(', ')}${unused.length > 3 ? '…' : ''}.`
+          + ' Якщо так і задумано, нічого робити не треба.',
+          { duration: 9000 },
+        );
+      }
+    } catch { /* лічильник ніколи не блокує оформлення */ }
     setIsAddingToCart(true);
     try {
     await addToCartInner();
@@ -8668,6 +8713,7 @@ export default function BookLayoutEditor() {
                             </>
                           ) : (
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none'}}>
+                              {missingPhotoSlot(slot)}
                               <div style={{position:'absolute',top:4,left:4,width:16,height:16,borderRadius:'50%',background:'rgba(199,210,254,0.8)',color:'#4338ca',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',zIndex:2}}>{i+1}</div>
                               <div style={{width:28,height:28,borderRadius:'50%',background:'rgba(99,102,241,0.08)',display:'flex',alignItems:'center',justifyContent:'center'}}>
                                 <ImageIcon size={14} color='#818cf8'/>
@@ -9436,6 +9482,7 @@ export default function BookLayoutEditor() {
                               </>
                             ) : (
                               <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4,pointerEvents:'none',position:'relative',overflow:'hidden'}}>
+                                {missingPhotoSlot(slot)}
                                 {/* DRAG-OVER PREVIEW — show incoming photo in empty slot */}
                                 {isOver && dragPhotoId && (() => {
                                   const incoming = getPhoto(dragPhotoId);

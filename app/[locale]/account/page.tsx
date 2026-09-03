@@ -224,24 +224,44 @@ export default function AccountPage() {
             // existed, or for any photo whose upload failed.
             const photosWithPaths = photosMeta.filter(p => p?.path);
             let restoredPhotos: any[] = [];
+            // Фото, які не вдалося відновити. Раніше вони мовчки відсіювались
+            // фільтром, і це найдорожча тиша в усьому потоці: createSignedUrls
+            // повертає рядок на КОЖЕН шлях, і для відсутнього файлу в ньому
+            // стоїть помилка й порожній signedUrl. Такий запис випадав, лічильник
+            // у редакторі показував менше фото, ніж є в макеті, а слоти з ними
+            // малювалися як порожні. На TM-001257 у макеті 18 розставлених фото,
+            // усі 18 зі шляхами у сховищі, а редактор показував «Фото (12)» —
+            // і клієнт бачив сторінки, які вважав порожніми.
+            const failedPhotos: string[] = [];
             if (photosWithPaths.length > 0) {
                 try {
                     const paths = photosWithPaths.map(p => p.path as string);
                     const { data: signedUrls, error: signErr } = await supabase
                         .storage.from('photobook-uploads')
                         .createSignedUrls(paths, 60 * 60 * 24 * 7); // 7 days
-                    if (!signErr && signedUrls) {
-                        restoredPhotos = photosWithPaths.map((p, i) => ({
-                            id: p.id,
-                            name: p.name,
-                            width: p.width,
-                            height: p.height,
-                            preview: signedUrls[i]?.signedUrl || '',
-                        })).filter(p => p.preview);
+                    if (signErr) {
+                        console.error('Failed to sign photo URLs:', signErr);
+                        failedPhotos.push(...photosWithPaths.map(p => String(p.name || p.id)));
+                    } else if (signedUrls) {
+                        photosWithPaths.forEach((p, i) => {
+                            const url = signedUrls[i]?.signedUrl || '';
+                            if (url) restoredPhotos.push({ id: p.id, name: p.name, width: p.width, height: p.height, preview: url });
+                            else failedPhotos.push(String(p.name || p.id));
+                        });
                     }
                 } catch (e) {
                     console.error('Failed to restore photos from storage:', e);
+                    failedPhotos.push(...photosWithPaths.map(p => String(p.name || p.id)));
                 }
+            }
+            if (failedPhotos.length > 0) {
+                console.error('[reopen] photos not restored', failedPhotos);
+                toast.error(
+                    `Не вдалося завантажити ${failedPhotos.length} фото з ${photosWithPaths.length}: `
+                    + `${failedPhotos.slice(0, 3).join(', ')}${failedPhotos.length > 3 ? '…' : ''}. `
+                    + 'Сторінки з ними позначені в редакторі — вони не порожні, фото піде в друк.',
+                    { duration: 15000 },
+                );
             }
             // Any photo without a stored path still needs manual re-add — keep
             // it out of restoredPhotos so the placement-by-filename toast covers it.
