@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentSelect, contentInsert, contentUpdate, contentUpdateMany, contentDelete } from '@/lib/admin/content-client';
 import {
     Plus,
     Edit,
@@ -88,12 +89,16 @@ export default function ReviewsAdminPage() {
 
     const importInstagramPost = async (post: any) => {
         const imageUrl = post.thumbnail_url || post.media_url;
-        const { error } = await supabase.from('reviews').insert({
-            image_url: imageUrl, caption: post.caption?.slice(0, 200) || '',
-            author: 'Instagram', category: 'instagram', is_active: true, sort_order: 0
-        });
-        if (error) toast.error('Помилка імпорту');
-        else { toast.success('Пост імпортовано!'); fetchReviews(); }
+        try {
+            await contentInsert('reviews', {
+                image_url: imageUrl, caption: post.caption?.slice(0, 200) || '',
+                author: 'Instagram', category: 'instagram', is_active: true, sort_order: 0,
+            });
+            toast.success('Пост імпортовано!');
+            fetchReviews();
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка імпорту');
+        }
     };
 
     useEffect(() => {
@@ -102,21 +107,23 @@ export default function ReviewsAdminPage() {
             .then(({ data }) => setProducts(data || []));
     }, []);
 
+    // Модерація читає відгуки через сервер, і саме тут це принципово.
+    // Публічна SELECT-політика на reviews показує лише is_active = true разом зі
+    // status = 'approved', тобто з браузера сторінка модерації бачила все, крім
+    // того, що треба модерувати: нові відгуки просто не існували для неї.
+    // Запис туди ж закритий на is_admin(), тож кнопки «Опублікувати» й
+    // «Відхилити» нічого не робили і рапортували успіх.
     async function fetchReviews() {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('reviews')
-            .select('*')
-            .order('sort_order', { ascending: true });
-
-        if (data) {
-            setReviews(data);
-        } else if (error) {
-            console.error('Error fetching reviews:', error);
-            // Show empty state instead of error - table might not exist yet
+        try {
+            setReviews(await contentSelect('reviews'));
+        } catch (e: any) {
+            console.error('Error fetching reviews:', e);
+            toast.error(e?.message || 'Не вдалося завантажити відгуки');
             setReviews([]);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     const openAddModal = () => {
@@ -225,37 +232,20 @@ export default function ReviewsAdminPage() {
             is_active: formData.is_active
         };
 
-        let error;
-
-        if (editingId) {
-            const result = await supabase
-                .from('reviews')
-                .update(payload)
-                .eq('id', editingId);
-            error = result.error;
-        } else {
-            // Get max sort_order
-            const { data: maxData } = await supabase
-                .from('reviews')
-                .select('sort_order')
-                .order('sort_order', { ascending: false })
-                .limit(1)
-                .single();
-
-            const newSortOrder = (maxData?.sort_order || 0) + 1;
-
-            const result = await supabase
-                .from('reviews')
-                .insert([{ ...payload, sort_order: newSortOrder }]);
-            error = result.error;
-        }
-
-        if (!error) {
+        try {
+            if (editingId) {
+                await contentUpdate('reviews', editingId, payload);
+            } else {
+                // Наступний sort_order рахуємо по вже завантаженому списку —
+                // він повний, бо приходить із сервера.
+                const maxSort = reviews.reduce((m, r: any) => Math.max(m, Number(r.sort_order) || 0), 0);
+                await contentInsert('reviews', { ...payload, sort_order: maxSort + 1 });
+            }
             toast.success(editingId ? 'Оновлено' : 'Створено', { id: tid });
             setIsModalOpen(false);
             fetchReviews();
-        } else {
-            toast.error('Помилка збереження', { id: tid });
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка збереження', { id: tid });
         }
     };
 
@@ -263,17 +253,13 @@ export default function ReviewsAdminPage() {
         if (!deleteModal.id) return;
 
         const tid = toast.loading('Видалення...');
-        const { error } = await supabase
-            .from('reviews')
-            .delete()
-            .eq('id', deleteModal.id);
-
-        if (!error) {
+        try {
+            await contentDelete('reviews', deleteModal.id);
             toast.success('Видалено', { id: tid });
             setDeleteModal({ isOpen: false, id: null, author: '' });
             fetchReviews();
-        } else {
-            toast.error('Помилка видалення', { id: tid });
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка видалення', { id: tid });
         }
     };
 
@@ -281,23 +267,23 @@ export default function ReviewsAdminPage() {
         const patch = decision === 'approved'
             ? { status: 'approved', is_active: true }
             : { status: 'rejected', is_active: false };
-        const { error } = await supabase.from('reviews').update(patch).eq('id', id);
-        if (error) { toast.error('Помилка'); return; }
+        try {
+            await contentUpdate('reviews', id, patch);
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка');
+            return;
+        }
         toast.success(decision === 'approved' ? 'Опубліковано' : 'Відхилено');
         fetchReviews();
     };
 
     const toggleActive = async (id: string, currentStatus: boolean) => {
-        const { error } = await supabase
-            .from('reviews')
-            .update({ is_active: !currentStatus })
-            .eq('id', id);
-
-        if (!error) {
+        try {
+            await contentUpdate('reviews', id, { is_active: !currentStatus });
             setReviews(reviews.map(r => r.id === id ? { ...r, is_active: !currentStatus } : r));
             toast.success('Статус оновлено');
-        } else {
-            toast.error('Помилка оновлення');
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка оновлення');
         }
     };
 
@@ -314,17 +300,17 @@ export default function ReviewsAdminPage() {
         // Swap sort_order values
         const tid = toast.loading('Зміна порядку...');
 
-        const { error: error1 } = await supabase
-            .from('reviews')
-            .update({ sort_order: target.sort_order })
-            .eq('id', current.id);
+        let swapFailed: string | null = null;
+        try {
+            await contentUpdateMany('reviews', [
+                { id: current.id, sort_order: target.sort_order },
+                { id: target.id, sort_order: current.sort_order },
+            ]);
+        } catch (e: any) {
+            swapFailed = e?.message || 'Помилка';
+        }
 
-        const { error: error2 } = await supabase
-            .from('reviews')
-            .update({ sort_order: current.sort_order })
-            .eq('id', target.id);
-
-        if (!error1 && !error2) {
+        if (!swapFailed) {
             toast.success('Порядок змінено', { id: tid });
             fetchReviews();
         } else {

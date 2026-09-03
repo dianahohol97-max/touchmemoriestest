@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentInsertMany, contentUpdate, contentUpdateMany } from '@/lib/admin/content-client';
 import { Save, Settings2, Layers, Type, Paintbrush, Image as ImageIcon, Loader2, ArrowUp, ArrowDown, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -84,21 +85,30 @@ function ThemeEditorContent() {
     const handleSave = async () => {
         setSaving(true);
         try {
+            // ЗАПИС ЧЕРЕЗ /api/admin/content.
+            // theme_settings, site_blocks і site_content читаються публічно, а
+            // пишуться лише під is_admin_user(), тобто чотирма людьми з
+            // чотирнадцяти. У решти жоден із цих запитів не чіпав жодного рядка
+            // і жоден не повертав помилки, тож редактор дизайну рапортував
+            // успіх і не змінював на сайті нічого.
+            //
+            // Блоки й контент тепер зберігаються одним викликом на список
+            // замість запиту на кожен рядок.
+
             // 1. Theme
             if (theme.id) {
-                await supabase.from('theme_settings').update(theme).eq('id', theme.id);
+                await contentUpdate('theme_settings', theme.id, theme);
             } else {
-                await supabase.from('theme_settings').insert(theme);
+                await contentInsert('theme_settings', theme);
             }
 
             // 2. Blocks
-            for (const block of blocks) {
-                await supabase.from('site_blocks').update({
-                    is_visible: block.is_visible,
-                    position_order: block.position_order,
-                    style_metadata: block.style_metadata
-                }).eq('id', block.id);
-            }
+            await contentUpdateMany('site_blocks', blocks.map((block: any) => ({
+                id: block.id,
+                is_visible: block.is_visible,
+                position_order: block.position_order,
+                style_metadata: block.style_metadata,
+            })));
 
             // 3. Content - handle new items
             const toUpdate: any[] = [];
@@ -108,12 +118,11 @@ function ThemeEditorContent() {
                 else toInsert.push({ key: item.key, value: String(item.value) });
             }
 
-            for (const item of toUpdate) {
-                await supabase.from('site_content').update({ value: String(item.value) }).eq('id', item.id);
-            }
-            if (toInsert.length > 0) {
-                await supabase.from('site_content').insert(toInsert);
-            }
+            await contentUpdateMany('site_content', toUpdate.map((item: any) => ({
+                id: item.id,
+                value: String(item.value),
+            })));
+            await contentInsertMany('site_content', toInsert);
 
             // 4. Trigger Revalidation
             await fetch('/api/admin/revalidate', {

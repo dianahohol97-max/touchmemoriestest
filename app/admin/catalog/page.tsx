@@ -121,29 +121,64 @@ export default function AdminCatalogPage() {
         }
     };
 
+    // ВСІ ЗМІНИ ЙДУТЬ ЧЕРЕЗ СЕРВЕРНИЙ РОУТ.
+    // Прямий запит із браузера впирався в RLS на products: запис вимагає
+    // is_admin(), а на нуль зачеплених рядків PostgREST помилки не дає. Тумблер
+    // перемикався, спливав зелений тост, і товар повертався у старий стан після
+    // перезавантаження. Це та сама пастка, яку вже описано в
+    // app/api/admin/products/[id]/route.ts для картки товару — список каталогу
+    // просто ніколи не переводили на той роут.
+    const patchProduct = async (id: string, patch: Record<string, any>) => {
+        const res = await fetch(`/api/admin/products/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+        });
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j?.error || `API ${res.status}`);
+        }
+    };
+
     const toggleStatus = async (p: Product) => {
-        const { error } = await supabase.from('products').update({ is_active: !p.is_active }).eq('id', p.id);
-        if (error) { toast.error('Помилка'); return; }
-        setProducts(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x));
-        toast.success(p.is_active ? 'Прихований' : 'Опубліковано');
+        try {
+            await patchProduct(p.id, { is_active: !p.is_active });
+            setProducts(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x));
+            toast.success(p.is_active ? 'Прихований' : 'Опубліковано');
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка');
+        }
     };
 
     const togglePopular = async (p: Product) => {
-        if (!p.is_popular) {
-            const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_popular', true);
-            if (count && count >= 8) { toast.error('Ліміт 8 популярних товарів'); return; }
+        // Ліміт рахуємо по вже завантаженому списку: products читаються публічно,
+        // тож окремий запит по кількість нічого не додавав, а до серверного
+        // роуту зайвий раз не ходимо.
+        if (!p.is_popular && products.filter(x => x.is_popular).length >= 8) {
+            toast.error('Ліміт 8 популярних товарів');
+            return;
         }
-        const { error } = await supabase.from('products').update({ is_popular: !p.is_popular }).eq('id', p.id);
-        if (error) { toast.error('Помилка'); return; }
-        setProducts(prev => prev.map(x => x.id === p.id ? { ...x, is_popular: !x.is_popular } : x));
+        try {
+            await patchProduct(p.id, { is_popular: !p.is_popular });
+            setProducts(prev => prev.map(x => x.id === p.id ? { ...x, is_popular: !x.is_popular } : x));
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка');
+        }
     };
 
     const handleDelete = async (p: Product) => {
         if (!confirm(`Видалити "${p.name}"?`)) return;
-        const { error } = await supabase.from('products').delete().eq('id', p.id);
-        if (error) { toast.error('Помилка видалення'); return; }
-        setProducts(prev => prev.filter(x => x.id !== p.id));
-        toast.success('Товар видалено');
+        try {
+            const res = await fetch(`/api/admin/products/${p.id}`, { method: 'DELETE' });
+            if (!res.ok) {
+                const j = await res.json().catch(() => ({}));
+                throw new Error(j?.error || `API ${res.status}`);
+            }
+            setProducts(prev => prev.filter(x => x.id !== p.id));
+            toast.success('Товар видалено');
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка видалення');
+        }
     };
 
     const toggleCollapse = (catId: string) =>

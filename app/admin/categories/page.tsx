@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentUpdate, contentUpdateMany, contentDelete } from '@/lib/admin/content-client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Activity, Folder, X, Save, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -45,6 +46,9 @@ export default function CategoriesPage() {
 
     useEffect(() => { fetch(); }, []);
 
+    // Читання лишається прямим — на categories є SELECT true. Запис закритий
+    // на is_admin_user() і мовчки не проходив у всіх, крім чотирьох людей у
+    // admin_users, тож усі зміни нижче йдуть через /api/admin/content.
     async function fetch() {
         setLoading(true);
         const { data, error } = await supabase.from('categories').select('*').order('sort_order');
@@ -68,32 +72,37 @@ export default function CategoriesPage() {
         if (!sel) return;
         if (!sel.name.trim() || !sel.slug.trim()) { toast.error('Заповніть назву та slug'); return; }
         setSaving(true);
-        if ((sel as any)._new) {
-            const { data, error } = await supabase.from('categories').insert({
-                name: sel.name, slug: sel.slug, description: sel.description,
-                is_active: sel.is_active, sort_order: sel.sort_order, cover_image: sel.cover_image,
-            }).select().single();
+        const payload = {
+            name: sel.name, slug: sel.slug, description: sel.description,
+            is_active: sel.is_active, sort_order: sel.sort_order, cover_image: sel.cover_image,
+        };
+        try {
+            if ((sel as any)._new) {
+                const created = await contentInsert<Category>('categories', payload);
+                toast.success('Категорію створено');
+                setCategories(prev => [...prev, created].sort((a,b) => a.sort_order - b.sort_order));
+            } else {
+                await contentUpdate('categories', sel.id, payload);
+                toast.success('Збережено');
+                setCategories(prev => prev.map(c => c.id === sel.id ? { ...sel } : c));
+            }
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка збереження');
+            return;
+        } finally {
             setSaving(false);
-            if (error) { toast.error(error.message); return; }
-            toast.success('Категорію створено');
-            setCategories(prev => [...prev, data].sort((a,b) => a.sort_order - b.sort_order));
-        } else {
-            const { error } = await supabase.from('categories').update({
-                name: sel.name, slug: sel.slug, description: sel.description,
-                is_active: sel.is_active, sort_order: sel.sort_order, cover_image: sel.cover_image,
-            }).eq('id', sel.id);
-            setSaving(false);
-            if (error) { toast.error(error.message); return; }
-            toast.success('Збережено');
-            setCategories(prev => prev.map(c => c.id === sel.id ? { ...sel } : c));
         }
         closeModal();
     }
 
     async function del(id: string, name: string) {
         if (!confirm(`Видалити категорію "${name}"?`)) return;
-        const { error } = await supabase.from('categories').delete().eq('id', id);
-        if (error) { toast.error(error.message); return; }
+        try {
+            await contentDelete('categories', id);
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка видалення');
+            return;
+        }
         toast.success('Видалено');
         setCategories(prev => prev.filter(c => c.id !== id));
     }
@@ -106,10 +115,15 @@ export default function CategoriesPage() {
         const a = next[idx], b = next[swapIdx];
         [next[idx], next[swapIdx]] = [{ ...b, sort_order: a.sort_order }, { ...a, sort_order: b.sort_order }];
         setCategories(next);
-        await Promise.all([
-            supabase.from('categories').update({ sort_order: a.sort_order }).eq('id', b.id),
-            supabase.from('categories').update({ sort_order: b.sort_order }).eq('id', a.id),
-        ]);
+        try {
+            await contentUpdateMany('categories', [
+                { id: b.id, sort_order: a.sort_order },
+                { id: a.id, sort_order: b.sort_order },
+            ]);
+        } catch (e: any) {
+            toast.error(e?.message || 'Порядок не збережено');
+            fetch();
+        }
     }
 
     const isNew = (sel as any)?._new;

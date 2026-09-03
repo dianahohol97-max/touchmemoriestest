@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentSelect, contentInsert, contentUpdate, contentDelete } from '@/lib/admin/content-client';
 import { Plus, Edit, Trash2, Eye, EyeOff, ExternalLink, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
@@ -59,15 +60,25 @@ export default function AdminLandingPages() {
 
   useEffect(() => { void load(); }, []);
 
+  // Лендінги читаються через сервер, категорії — ні.
+  // На landing_pages публічна SELECT-політика показує лише is_active = true,
+  // тобто саме сховані сторінки, заради яких сюди й заходять, з браузера були
+  // невидимі. Запис туди ж закритий на is_admin_user() і мовчки не проходив.
+  // categories мають SELECT true, тож їх лишаємо прямим запитом.
   async function load() {
     setLoading(true);
-    const [{ data: lps }, { data: categories }] = await Promise.all([
-      supabase.from('landing_pages').select('*').order('sort_order', { ascending: true }),
-      supabase.from('categories').select('name, slug').eq('is_active', true).order('name'),
-    ]);
-    setRows(lps || []);
-    setCats(categories || []);
-    setLoading(false);
+    try {
+      const [lps, { data: categories }] = await Promise.all([
+        contentSelect('landing_pages'),
+        supabase.from('categories').select('name, slug').eq('is_active', true).order('name'),
+      ]);
+      setRows(lps);
+      setCats(categories || []);
+    } catch (e: any) {
+      toast.error(e?.message || 'Не вдалося завантажити сторінки');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function publicUrl(r: { category_slug: string; occasion: string }) {
@@ -75,16 +86,22 @@ export default function AdminLandingPages() {
   }
 
   async function toggleActive(r: any) {
-    const { error } = await supabase.from('landing_pages').update({ is_active: !r.is_active }).eq('id', r.id);
-    if (error) return toast.error('Не вдалося оновити');
+    try {
+      await contentUpdate('landing_pages', r.id, { is_active: !r.is_active });
+    } catch (e: any) {
+      return toast.error(e?.message || 'Не вдалося оновити');
+    }
     toast.success(!r.is_active ? 'Опубліковано' : 'Сховано');
     void load();
   }
 
   async function remove(r: any) {
     if (!confirm(`Видалити сторінку «${r.h1}»?`)) return;
-    const { error } = await supabase.from('landing_pages').delete().eq('id', r.id);
-    if (error) return toast.error('Не вдалося видалити');
+    try {
+      await contentDelete('landing_pages', r.id);
+    } catch (e: any) {
+      return toast.error(e?.message || 'Не вдалося видалити');
+    }
     toast.success('Видалено');
     void load();
   }
@@ -109,14 +126,16 @@ export default function AdminLandingPages() {
       is_active: editing.is_active,
       updated_at: new Date().toISOString(),
     };
-    const { error } = editing.id
-      ? await supabase.from('landing_pages').update(payload).eq('id', editing.id)
-      : await supabase.from('landing_pages').insert(payload);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message.includes('duplicate') ? 'Така пара категорія+occasion вже існує' : 'Помилка збереження');
+    try {
+      if (editing.id) await contentUpdate('landing_pages', editing.id, payload);
+      else await contentInsert('landing_pages', payload);
+    } catch (e: any) {
+      setSaving(false);
+      const msg = String(e?.message || '');
+      toast.error(msg.includes('duplicate') ? 'Така пара категорія+occasion вже існує' : (msg || 'Помилка збереження'));
       return;
     }
+    setSaving(false);
     toast.success('Збережено');
     setEditing(null);
     void load();

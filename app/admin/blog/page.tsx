@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentUpdate, contentDelete } from '@/lib/admin/content-client';
 import Link from 'next/link';
 import {
     Plus,
@@ -27,6 +28,10 @@ export default function AdminBlogPostsPage() {
         fetchPosts();
     }, [filter]);
 
+    // Читання лишається прямим: blog_posts мають публічну SELECT-політику, і
+    // тут ще й join із blog_categories. А от запис закритий на is_admin_user()
+    // і мовчки не проходив у всіх, крім чотирьох людей у admin_users — тож усі
+    // три дії нижче тепер ідуть через /api/admin/content.
     async function fetchPosts() {
         setLoading(true);
         let query = supabase
@@ -51,15 +56,10 @@ export default function AdminBlogPostsPage() {
 
     const togglePublish = async (post: any) => {
         try {
-            const { error } = await supabase
-                .from('blog_posts')
-                .update({
-                    is_published: !post.is_published,
-                    published_at: !post.is_published ? new Date().toISOString() : null
-                })
-                .eq('id', post.id);
-
-            if (error) throw error;
+            await contentUpdate('blog_posts', post.id, {
+                is_published: !post.is_published,
+                published_at: !post.is_published ? new Date().toISOString() : null,
+            });
             toast.success(post.is_published ? 'Знято з публікації' : 'Опубліковано');
             fetchPosts();
         } catch (error: any) {
@@ -70,7 +70,7 @@ export default function AdminBlogPostsPage() {
     const duplicatePost = async (post: any) => {
         if (!confirm('Дублювати статтю?')) return;
         try {
-            const { error } = await supabase.from('blog_posts').insert([{
+            await contentInsert('blog_posts', {
                 title: `${post.title} (Копія)`,
                 slug: `${post.slug}-copy-${Date.now()}`,
                 category_id: post.category_id,
@@ -80,10 +80,8 @@ export default function AdminBlogPostsPage() {
                 content: post.content,
                 keywords: post.keywords || [],
                 content_images: post.content_images || [],
-                is_published: false
-            }]);
-
-            if (error) throw error;
+                is_published: false,
+            });
             toast.success('Статтю здубльовано');
             fetchPosts();
         } catch (error: any) {
@@ -94,8 +92,7 @@ export default function AdminBlogPostsPage() {
     const deletePost = async (id: string) => {
         if (!confirm('Видалити статтю назавжди?')) return;
         try {
-            const { error } = await supabase.from('blog_posts').delete().eq('id', id);
-            if (error) throw error;
+            await contentDelete('blog_posts', id);
             toast.success('Видалено');
             setPosts(posts.filter(p => p.id !== id));
         } catch (error: any) {

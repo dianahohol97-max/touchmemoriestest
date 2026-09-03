@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { contentSelect, contentInsert, contentUpdate, contentDelete } from '@/lib/admin/content-client';
 import {
     Plus,
     Edit,
@@ -13,7 +13,6 @@ import {
 import { toast } from 'sonner';
 
 export default function BlogCategoriesPage() {
-    const supabase = createClient();
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState<string | null>(null);
@@ -24,15 +23,19 @@ export default function BlogCategoriesPage() {
         fetchCategories();
     }, []);
 
+    // Читання й запис через /api/admin/content: blog_categories закриті
+    // політикою is_admin_user(), тож із браузера запис мовчки не проходив у
+    // всіх, крім чотирьох людей у admin_users, а сторінка все одно казала
+    // «Збережено».
     async function fetchCategories() {
         setLoading(true);
-        const { data } = await supabase
-            .from('blog_categories')
-            .select('*')
-            .order('sort_order', { ascending: true });
-
-        if (data) setCategories(data);
-        setLoading(false);
+        try {
+            setCategories(await contentSelect('blog_categories'));
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося завантажити категорії');
+        } finally {
+            setLoading(false);
+        }
     }
 
     const startAdd = () => {
@@ -56,21 +59,22 @@ export default function BlogCategoriesPage() {
 
         try {
             if (isAdding) {
-                const { error } = await supabase.from('blog_categories').insert([editForm]);
-                if (error) throw error;
+                await contentInsert('blog_categories', {
+                    name: editForm.name,
+                    slug: editForm.slug,
+                    description: editForm.description,
+                    sort_order: editForm.sort_order,
+                    is_active: editForm.is_active,
+                });
                 toast.success('Категорію блогу створено');
             } else {
-                const { error } = await supabase
-                    .from('blog_categories')
-                    .update({
-                        name: editForm.name,
-                        slug: editForm.slug,
-                        description: editForm.description,
-                        sort_order: editForm.sort_order,
-                        is_active: editForm.is_active
-                    })
-                    .eq('id', isEditing);
-                if (error) throw error;
+                await contentUpdate('blog_categories', isEditing as string, {
+                    name: editForm.name,
+                    slug: editForm.slug,
+                    description: editForm.description,
+                    sort_order: editForm.sort_order,
+                    is_active: editForm.is_active,
+                });
                 toast.success('Категорію блогу оновлено');
             }
             fetchCategories();
@@ -86,12 +90,12 @@ export default function BlogCategoriesPage() {
     const deleteCategory = async (id: string) => {
         if (!confirm('Ви впевнені? Це також вплине на статті в цій категорії.')) return;
 
-        const { error } = await supabase.from('blog_categories').delete().eq('id', id);
-        if (!error) {
+        try {
+            await contentDelete('blog_categories', id);
             setCategories(categories.filter(c => c.id !== id));
             toast.success('Видалено');
-        } else {
-            toast.error(error.message);
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка видалення');
         }
     };
 

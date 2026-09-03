@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic';
  * `[id]/images/route.ts`; this route closes it for the product card as a whole.
  *
  * Two guarantees the browser write could not give:
- *   1. The caller is verified server-side (`requireStaff`), so authorisation no
+ *   1. The caller is verified server-side (catalog: edit), so authorisation no
  *      longer depends on a JWT that may have quietly expired.
  *   2. The response carries the row that was actually written — an update that
  *      touches nothing returns 404, so the panel can report a real failure
@@ -57,7 +57,7 @@ function pickEditable(body: any): Record<string, any> {
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const guard = await requireStaff();
+    const guard = await requireSection('catalog', 'edit');
     if (!guard.ok) return guard.response;
 
     const { id } = await params;
@@ -101,4 +101,39 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     return NextResponse.json({ ok: true, product: data });
+}
+
+/**
+ * DELETE /api/admin/products/[id] — прибрати товар із каталогу.
+ *
+ * Список каталогу видаляв товар прямим запитом із браузера і потрапляв рівно в
+ * ту саму пастку, що описана вище для збереження: RLS на products вимагає
+ * is_admin(), а на нуль зачеплених рядків PostgREST помилки не дає. Рядок
+ * зникав зі списку оптимістичним оновленням, спливав тост «Товар видалено», і
+ * товар повертався після першого ж перезавантаження сторінки.
+ *
+ * Вимагає catalog: full — видалення це не те саме, що правка картки.
+ */
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+    const guard = await requireSection('catalog', 'full');
+    if (!guard.ok) return guard.response;
+
+    const { id } = await params;
+    if (!id) return NextResponse.json({ error: 'Не вказано товар' }, { status: 400 });
+
+    const admin = getAdminClient();
+    const { data, error } = await admin
+        .from('products')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+
+    if (error) {
+        console.error('Product delete error:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data) return NextResponse.json({ error: 'Товар не знайдено' }, { status: 404 });
+
+    return NextResponse.json({ ok: true });
 }

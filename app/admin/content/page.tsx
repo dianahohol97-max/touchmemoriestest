@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentUpdate, contentUpdateMany, contentDelete } from '@/lib/admin/content-client';
 import { normalizeImageFile, HeicConversionError } from '@/lib/heic-to-jpeg';
 import { SectionLivePreview } from '@/components/admin/SectionLivePreview';
 import { toast } from 'sonner';
@@ -302,6 +303,11 @@ export default function ContentManagementPage() {
         setUploading(false);
     }
 
+    // Читання лишається прямим — на всіх цих таблицях є SELECT true. А от
+    // запис закритий політикою is_admin_user() і мовчки не проходив у всіх,
+    // крім чотирьох людей у admin_users: сторінка казала «Збережено», сайт не
+    // мінявся, і зрозуміти це можна було тільки з перезавантаження. Тому кожен
+    // запис нижче йде через /api/admin/content.
     async function fetchAllContent() {
         setLoading(true);
         try {
@@ -359,19 +365,14 @@ export default function ContentManagementPage() {
         if (!heroContent) return;
         setSaving(true);
         try {
-            const { error } = await supabase
-                .from('hero_content')
-                .update({
-                    overline_text: heroContent.overline_text,
-                    title_line1: heroContent.title_line1,
-                    title_line2: heroContent.title_line2,
-                    subtitle: heroContent.subtitle,
-                    background_image_url: heroContent.background_image_url,
-                    is_active: heroContent.is_active
-                })
-                .eq('id', heroContent.id);
-
-            if (error) throw error;
+            await contentUpdate('hero_content', heroContent.id, {
+                overline_text: heroContent.overline_text,
+                title_line1: heroContent.title_line1,
+                title_line2: heroContent.title_line2,
+                subtitle: heroContent.subtitle,
+                background_image_url: heroContent.background_image_url,
+                is_active: heroContent.is_active,
+            });
             await revalidateHome();
             toast.success('Hero секцію збережено');
         } catch (error) {
@@ -385,23 +386,18 @@ export default function ContentManagementPage() {
     async function saveHeroButtons() {
         setSaving(true);
         try {
-            for (const button of heroButtons) {
-                const { error } = await supabase
-                    .from('hero_buttons')
-                    .update({
-                        text: button.button_text,
-                        button_text: button.button_text,
-                        url: button.button_url,
-                        button_url: button.button_url,
-                        sort_order: button.display_order,
-                        display_order: button.display_order,
-                        row_number: button.row_number,
-                        is_active: button.is_active
-                    })
-                    .eq('id', button.id);
-
-                if (error) throw error;
-            }
+            // Один виклик на весь список замість запиту на кожну кнопку.
+            await contentUpdateMany('hero_buttons', heroButtons.map(button => ({
+                id: button.id,
+                text: button.button_text,
+                button_text: button.button_text,
+                url: button.button_url,
+                button_url: button.button_url,
+                sort_order: button.display_order,
+                display_order: button.display_order,
+                row_number: button.row_number,
+                is_active: button.is_active,
+            })));
             await revalidateHome();
             toast.success('Кнопки збережено');
         } catch (error) {
@@ -415,19 +411,13 @@ export default function ContentManagementPage() {
     async function saveFeatureCards() {
         setSaving(true);
         try {
-            for (const card of featureCards) {
-                const { error } = await supabase
-                    .from('feature_cards')
-                    .update({
-                        title: card.title,
-                        subtitle: card.description,
-                        sort_order: card.display_order,
-                        is_active: card.is_active
-                    })
-                    .eq('id', card.id);
-
-                if (error) throw error;
-            }
+            await contentUpdateMany('feature_cards', featureCards.map(card => ({
+                id: card.id,
+                title: card.title,
+                subtitle: card.description,
+                sort_order: card.display_order,
+                is_active: card.is_active,
+            })));
             await revalidateHome();
             toast.success('Картки збережено');
         } catch (error) {
@@ -441,23 +431,17 @@ export default function ContentManagementPage() {
     async function addHeroButton() {
         try {
             const maxOrder = Math.max(...heroButtons.map(b => b.display_order), 0);
-            const { data, error } = await supabase
-                .from('hero_buttons')
-                .insert({
-                    text: 'Нова кнопка',
-                    button_text: 'Нова кнопка',
-                    url: '/catalog',
-                    button_url: '/catalog',
-                    variant: 'pill',
-                    sort_order: maxOrder + 1,
-                    display_order: maxOrder + 1,
-                    row_number: 1,
-                    is_active: true
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
+            const data: any = await contentInsert('hero_buttons', {
+                text: 'Нова кнопка',
+                button_text: 'Нова кнопка',
+                url: '/catalog',
+                button_url: '/catalog',
+                variant: 'pill',
+                sort_order: maxOrder + 1,
+                display_order: maxOrder + 1,
+                row_number: 1,
+                is_active: true,
+            });
             if (data) {
                 setHeroButtons([...heroButtons, {
                     id: data.id,
@@ -477,12 +461,7 @@ export default function ContentManagementPage() {
 
     async function deleteHeroButton(id: string) {
         try {
-            const { error } = await supabase
-                .from('hero_buttons')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
+            await contentDelete('hero_buttons', id);
             setHeroButtons(heroButtons.filter(b => b.id !== id));
             toast.success('Кнопку видалено');
         } catch (error) {
@@ -493,12 +472,7 @@ export default function ContentManagementPage() {
 
     async function deleteFeatureCard(id: string) {
         try {
-            const { error } = await supabase
-                .from('feature_cards')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
+            await contentDelete('feature_cards', id);
             setFeatureCards(featureCards.filter(c => c.id !== id));
             toast.success('Картку видалено');
         } catch (error) {
@@ -510,19 +484,13 @@ export default function ContentManagementPage() {
     async function addFeatureCard() {
         try {
             const maxOrder = Math.max(...featureCards.map(c => c.display_order), 0);
-            const { data, error } = await supabase
-                .from('feature_cards')
-                .insert({
-                    title: 'Нова перевага',
-                    subtitle: 'Опис переваги',
-                    icon: '',
-                    sort_order: maxOrder + 1,
-                    is_active: true
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
+            const data: any = await contentInsert('feature_cards', {
+                title: 'Нова перевага',
+                subtitle: 'Опис переваги',
+                icon: '',
+                sort_order: maxOrder + 1,
+                is_active: true,
+            });
             if (data) {
                 setFeatureCards([...featureCards, {
                     id: data.id,
@@ -546,21 +514,16 @@ export default function ContentManagementPage() {
             const section = sectionContent.find(s => s.id === sectionId);
             if (!section) return;
 
-            const { error } = await supabase
-                .from('section_content')
-                .update({
-                    heading: section.heading,
-                    subheading: section.subheading,
-                    body_text: section.body_text,
-                    cta_text: section.cta_text,
-                    cta_url: section.cta_url,
-                    image_url: section.image_url,
-                    is_active: section.is_active,
-                    metadata: section.metadata
-                })
-                .eq('id', sectionId);
-
-            if (error) throw error;
+            await contentUpdate('section_content', sectionId, {
+                heading: section.heading,
+                subheading: section.subheading,
+                body_text: section.body_text,
+                cta_text: section.cta_text,
+                cta_url: section.cta_url,
+                image_url: section.image_url,
+                is_active: section.is_active,
+                metadata: section.metadata,
+            });
             await revalidateHome();
             toast.success('Секцію збережено');
             setEditingSectionId(null);

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
-import { createClient } from '@/lib/supabase/server';
+import { requireSection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -13,21 +12,13 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-    const guard = await requireStaff();
-    if (!guard.ok) return guard.response;
-
-  // Verify the caller is a logged-in admin
-  const cookieClient = await createClient();
-  const { data: { user } } = await cookieClient.auth.getUser();
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const adminClient = getAdminClient();
-  const { data: adminRow } = await adminClient
-    .from('admin_users')
-    .select('id')
-    .eq('email', user.email.toLowerCase())
-    .maybeSingle();
-  if (!adminRow) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Право на каталог, а не членство в admin_users. Тут стояла ще одна перевірка
+  // поверх guard-а: email мусив бути в admin_users, а це четверо з чотирнадцяти
+  // активних співробітників. Роут існував саме для того, щоб обійти RLS, і сам
+  // же відтворював її обмеження — фото товару могли міняти тільки ті самі
+  // четверо, решта отримувала Forbidden без пояснення.
+  const guard = await requireSection('catalog', 'edit');
+  if (!guard.ok) return guard.response;
 
   const { id } = await params;
   const body = await req.json();
@@ -36,6 +27,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'images must be an array' }, { status: 400 });
   }
 
+  const adminClient = getAdminClient();
   const { error } = await adminClient
     .from('products')
     .update({ images })

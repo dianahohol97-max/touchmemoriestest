@@ -210,11 +210,41 @@ export default function ProductsAdminPage() {
         fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
     }
 
+    // ЗАПИС ЙДЕ ЧЕРЕЗ СЕРВЕРНІ РОУТИ.
+    // Прямі запити з браузера впиралися в RLS на products: запис вимагає
+    // is_admin(), а на нуль зачеплених рядків PostgREST помилки не дає, тож
+    // видалення й перестановка фото показували успіх і не робили нічого.
+    // Пастка вже описана в app/api/admin/products/[id]/route.ts — цю сторінку
+    // просто не переводили на роут разом із карткою товару.
+    async function deleteProductById(id: string) {
+        const res = await fetch(`/api/admin/products/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j?.error || `API ${res.status}`);
+        }
+    }
+
+    async function saveImages(id: string, images: string[]) {
+        const res = await fetch(`/api/admin/products/${id}/images`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images }),
+        });
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j?.error || `API ${res.status}`);
+        }
+    }
+
     async function deleteProduct() {
         if (!sel) return;
         if (!confirm(`Видалити товар "${sel.name}"?`)) return;
-        const { error } = await supabase.from('products').delete().eq('id', sel.id);
-        if (error) { toast.error('Помилка: ' + error.message); return; }
+        try {
+            await deleteProductById(sel.id);
+        } catch (e: any) {
+            toast.error('Помилка: ' + (e?.message || e));
+            return;
+        }
         toast.success('Товар видалено');
         setProducts(prev => prev.filter(p => p.id !== sel.id));
         setModal(false); setSel(null);
@@ -344,13 +374,13 @@ export default function ProductsAdminPage() {
         arr.unshift(img);
         upd('images', arr);
         if (sel.id) {
-            const { error } = await supabase.from('products').update({ images: arr }).eq('id', sel.id);
-            if (error) {
-                toast.error(`Не збережено: ${error.message}`);
-            } else {
+            try {
+                await saveImages(sel.id, arr);
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
                 toast.success('Головне фото оновлено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            } catch (e: any) {
+                toast.error(`Не збережено: ${e?.message || e}`);
             }
         }
     }
@@ -363,13 +393,13 @@ export default function ProductsAdminPage() {
         arr.splice(to, 0, img);
         upd('images', arr);
         if (sel.id) {
-            const { error } = await supabase.from('products').update({ images: arr }).eq('id', sel.id);
-            if (error) {
-                toast.error(`Порядок не збережено: ${error.message}`);
-            } else {
+            try {
+                await saveImages(sel.id, arr);
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: arr } : p));
                 toast.success('Порядок фото оновлено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            } catch (e: any) {
+                toast.error(`Порядок не збережено: ${e?.message || e}`);
             }
         }
     }
@@ -379,13 +409,13 @@ export default function ProductsAdminPage() {
         const newImages = sel.images.filter((_, j) => j !== i);
         upd('images', newImages);
         if (sel.id) {
-            const { error } = await supabase.from('products').update({ images: newImages }).eq('id', sel.id);
-            if (error) {
-                toast.error(`Не збережено: ${error.message}`);
-            } else {
+            try {
+                await saveImages(sel.id, newImages);
                 setProducts(prev => prev.map(p => p.id === sel.id ? { ...p, images: newImages } : p));
                 toast.success('Фото видалено');
                 fetch('/api/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: sel.slug }) }).catch(() => {});
+            } catch (e: any) {
+                toast.error(`Не збережено: ${e?.message || e}`);
             }
         }
     }
@@ -567,9 +597,13 @@ export default function ProductsAdminPage() {
                                             <button title="Видалити"
                                                 onClick={async()=>{
                                                     if(!confirm(`Видалити "${p.name}"?`)) return;
-                                                    const{error}=await supabase.from('products').delete().eq('id',p.id);
-                                                    if(!error){setProducts(prev=>prev.filter(x=>x.id!==p.id));toast.success('Видалено');}
-                                                    else toast.error(error.message);
+                                                    try {
+                                                        await deleteProductById(p.id);
+                                                        setProducts(prev=>prev.filter(x=>x.id!==p.id));
+                                                        toast.success('Видалено');
+                                                    } catch (e: any) {
+                                                        toast.error(e?.message || 'Помилка видалення');
+                                                    }
                                                 }}
                                                 style={{ padding:'5px 7px', border:'1px solid #fca5a5', borderRadius:7, background:'#fff', cursor:'pointer', color:'#ef4444', display:'flex', alignItems:'center' }}>
                                                 <Trash2 size={14}/>
