@@ -39,22 +39,22 @@ export default function ProductionKanbanPage() {
         return () => { supabase.removeChannel(subscription); }
     }, []);
 
+    // Дошка читає замовлення з сервера під requireStaff. Прямий запит із
+    // браузера впирався в RLS на orders: політики пускають admin_users або
+    // призначеного дизайнера, тож у менеджера й виробництва дошка була
+    // порожня — чотири колонки без жодної картки й без пояснення.
     const fetchOrders = async () => {
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                manager:staff!orders_manager_id_fkey(id, name, initials, color),
-                designer:staff!orders_designer_id_fkey(id, name, initials, color),
-                order_tag_assignments(order_tags(*))
-            `)
-            .in('order_status', ['confirmed', 'in_production', 'shipped', 'delivered'])
-            .order('created_at', { ascending: false });
-
-        if (!error && data) {
-            setOrders(data);
+        try {
+            const res = await fetch('/api/admin/production');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            setOrders(Array.isArray(j.orders) ? j.orders : []);
+        } catch (e: any) {
+            console.error('[production] load failed', e?.message || e);
+            toast.error('Не вдалося завантажити дошку виробництва');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleStatusMove = async (orderId: string, currentStatus: string, direction: 'next' | 'prev') => {
@@ -67,20 +67,23 @@ export default function ProductionKanbanPage() {
         // Optimistic update
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: newStatus } : o));
 
-        const { error } = await supabase
-            .from('orders')
-            .update({ order_status: newStatus })
-            .eq('id', orderId);
-
-        if (error) {
-            toast.error('Помилка оновлення статусу');
-            fetchOrders(); // Revert
-        } else {
-            // Inventory Automation
-            if (newStatus === 'shipped') {
-                await supabase.rpc('ship_order_stock', { p_order_id: orderId });
-            }
+        // Через сервер: прямий update повертав error=null навіть тоді, коли RLS
+        // не пускала й не мінялося жодного рядка. Картка від'їжджала, тост
+        // казав «Статус оновлено», а після перезавантаження все верталось.
+        // Списання складу теж стоїть на сервері, у тій самій дії.
+        try {
+            const res = await fetch('/api/admin/production/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: [orderId], status: newStatus }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `API ${res.status}`);
+            if (!Array.isArray(j.moved) || j.moved.length === 0) throw new Error('Замовлення не змінило статус');
             toast.success('Статус оновлено');
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка оновлення статусу');
+            fetchOrders(); // Revert
         }
     };
 
@@ -153,21 +156,21 @@ export default function ProductionKanbanPage() {
                 : o
         ));
 
-        const { error } = await supabase
-            .from('orders')
-            .update({ order_status: 'shipped' })
-            .in('id', idsToUpdate)
-            .eq('order_status', 'in_production');
-
-        if (!error) {
-            // Inventory Automation
-            for (const id of idsToUpdate) {
-                await supabase.rpc('ship_order_stock', { p_order_id: id });
-            }
-            toast.success('Відмічено як надруковано');
+        try {
+            const res = await fetch('/api/admin/production/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: idsToUpdate, status: 'shipped', fromStatus: 'in_production' }),
+            });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `API ${res.status}`);
+            const moved = Array.isArray(j.moved) ? j.moved.length : 0;
+            if (moved === 0) throw new Error('Жодне замовлення не змінило статус');
+            toast.success(`Відмічено як надруковано: ${moved}`);
             setSelectedIds(new Set());
-        } else {
-            toast.error('Помилка оновлення');
+            fetchOrders();
+        } catch (e: any) {
+            toast.error(e?.message || 'Помилка оновлення');
             fetchOrders();
         }
     };

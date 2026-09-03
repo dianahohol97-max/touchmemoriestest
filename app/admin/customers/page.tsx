@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
     Search,
     Users,
@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 
 export default function CustomersPage() {
-    const supabase = createClient();
 
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -24,15 +23,22 @@ export default function CustomersPage() {
         fetchCustomers();
     }, []);
 
+    // Через сервер під requireStaff: customers закриті політикою
+    // is_admin_user(), тож прямий запит із браузера повертав менеджеру нуль
+    // рядків, і розділ показував нуль клієнтів та нуль виручки.
     const fetchCustomers = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*')
-            .order('total_spent', { ascending: false });
-
-        if (data) setCustomers(data);
-        setLoading(false);
+        try {
+            const res = await fetch('/api/admin/customers');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            setCustomers(Array.isArray(j.customers) ? j.customers : []);
+        } catch (e: any) {
+            console.error('[customers] load failed', e?.message || e);
+            toast.error('Не вдалося завантажити клієнтів');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const filteredCustomers = customers.filter(c =>

@@ -52,33 +52,46 @@ export default function SocialInboxPage() {
         }
     }, [selectedConvId]);
 
+    // Розмови й повідомлення йдуть через сервер під requireStaff:
+    // social_conversations і social_messages закриті політикою
+    // is_admin_user(), тож для більшості команди інбокс був порожній, хоча
+    // роль менеджера дає ai: full.
     const fetchConversations = async (showLoading = true) => {
         if (showLoading) setLoadingConvs(true);
-        const { data, error } = await supabase
-            .from('social_conversations')
-            .select('*')
-            .order('last_message_at', { ascending: false });
-
-        if (!error && data) setConversations(data);
-        if (showLoading) setLoadingConvs(false);
+        try {
+            const res = await fetch('/api/admin/social-inbox');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            setConversations(Array.isArray(j.conversations) ? j.conversations : []);
+        } catch (e: any) {
+            console.error('[social-inbox] conversations failed', e?.message || e);
+            if (showLoading) toast.error('Не вдалося завантажити розмови');
+        } finally {
+            if (showLoading) setLoadingConvs(false);
+        }
     };
 
     const fetchMessages = async (convId: string) => {
         setLoadingMsgs(true);
-        const { data, error } = await supabase
-            .from('social_messages')
-            .select('*')
-            .eq('conversation_id', convId)
-            .order('sent_at', { ascending: true });
-
-        if (!error && data) {
-            setMessages(data);
+        try {
+            const res = await fetch(`/api/admin/social-inbox?conversationId=${encodeURIComponent(convId)}`);
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            setMessages(Array.isArray(j.messages) ? j.messages : []);
             setTimeout(scrollToBottom, 100);
+        } catch (e: any) {
+            console.error('[social-inbox] messages failed', e?.message || e);
+            toast.error('Не вдалося завантажити переписку');
+        } finally {
+            setLoadingMsgs(false);
         }
-        setLoadingMsgs(false);
 
         // Mark as read
-        await supabase.from('social_conversations').update({ is_read: true }).eq('id', convId);
+        await fetch('/api/admin/social-inbox', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'read', conversationId: convId }),
+        }).catch(() => {});
         fetchConversations(false); // background update to clear unread indicator
     };
 
@@ -89,19 +102,18 @@ export default function SocialInboxPage() {
     const handleStatusChange = async (newStatus: string) => {
         if (!selectedConvId) return;
 
-        // Fetch current user logic (simulated for now, real app uses session)
-        const { data: { user } } = await supabase.auth.getUser();
-
-        const updateData: any = { status: newStatus };
-        if (newStatus === 'human_handling' && user) {
-            updateData.assigned_to = user.id;
-        }
-
-        const { error } = await supabase.from('social_conversations').update(updateData).eq('id', selectedConvId);
-        if (!error) {
+        // Кого призначити на «веде менеджер», вирішує сервер із сесії — тут
+        // це не вгадується і не підставляється з клієнта.
+        try {
+            const res = await fetch('/api/admin/social-inbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'status', conversationId: selectedConvId, status: newStatus }),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
             toast.success(`Статус змінено на: ${newStatus === 'ai_handling' ? 'AI' : newStatus === 'resolved' ? 'Вирішено' : 'Менеджер'}`);
             fetchConversations(false);
-        } else {
+        } catch {
             toast.error('Помилка оновлення статусу');
         }
     };
@@ -120,14 +132,19 @@ export default function SocialInboxPage() {
         // to securely talk to Telegram/Meta API instead of just updating DB.
         // For standard demonstration, we insert to DB, and a background worker/trigger or direct fetch call sends it.
         try {
-            // First save to DB
-            const { error: dbErr } = await supabase.from('social_messages').insert({
-                conversation_id: selectedConvId,
-                sender: 'human_manager',
-                original_text: text
+            // Спершу в базу. Раніше вставка йшла прямо з браузера і для
+            // більшості команди не проходила, а текст усе одно вирушав у
+            // Telegram нижче: клієнт відповідь отримував, а в історії розмови
+            // її не було, і наступний менеджер писав те саме вдруге.
+            const dbRes = await fetch('/api/admin/social-inbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'message', conversationId: selectedConvId, text }),
             });
-
-            if (dbErr) throw dbErr;
+            if (!dbRes.ok) {
+                const j = await dbRes.json().catch(() => ({}));
+                throw new Error(j?.error || `API ${dbRes.status}`);
+            }
 
             // Make sure status is human_handling
             if (conv.status !== 'human_handling') {

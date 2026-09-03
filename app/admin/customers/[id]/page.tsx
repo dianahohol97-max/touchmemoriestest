@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, use, useRef } from 'react';
 import styles from './customer-profile.module.css';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,7 +11,6 @@ import { toast } from 'sonner';
 
 export default function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const supabase = createClient();
     const router = useRouter();
 
     const [customer, setCustomer] = useState<any>(null);
@@ -28,30 +26,28 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
         fetchData();
     }, [id]);
 
+    // Клієнт і його замовлення — з сервера під requireStaff. Обидві таблиці
+    // закриті політикою is_admin_user(), тож менеджеру, якого немає в
+    // admin_users, картка показувала «Клієнт не знайдений» на цілком
+    // існуючому клієнті.
     const fetchData = async () => {
         setLoading(true);
-        // Fetch Customer
-        const { data: custData, error: custErr } = await supabase
-            .from('customers')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (custData) {
-            setCustomer(custData);
-            setNotes(custData.notes || '');
-            notesRef.current = custData.notes || '';
+        try {
+            const res = await fetch(`/api/admin/customers/${id}`);
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            if (j.customer) {
+                setCustomer(j.customer);
+                setNotes(j.customer.notes || '');
+                notesRef.current = j.customer.notes || '';
+            }
+            setOrders(Array.isArray(j.orders) ? j.orders : []);
+        } catch (e: any) {
+            console.error('[customer] load failed', e?.message || e);
+            toast.error('Не вдалося завантажити клієнта');
+        } finally {
+            setLoading(false);
         }
-
-        // Fetch Orders
-        const { data: ordData } = await supabase
-            .from('orders')
-            .select('id, order_number, total, created_at, order_status')
-            .eq('customer_id', id)
-            .order('created_at', { ascending: false });
-
-        if (ordData) setOrders(ordData);
-        setLoading(false);
     };
 
     // Auto-save logic (1-second debounce)
@@ -64,20 +60,24 @@ export default function CustomerProfilePage({ params }: { params: Promise<{ id: 
         return () => clearTimeout(timer);
     }, [notes, customer]);
 
+    // Автозбереження нотаток теж через сервер. Прямий update не міняв жодного
+    // рядка і не давав помилки, тож менеджер бачив спокійне «збережено» над
+    // текстом, який нікуди не потрапив.
     const saveNotes = async (newNotes: string) => {
         setSaving(true);
-        const { error } = await supabase
-            .from('customers')
-            .update({ notes: newNotes })
-            .eq('id', id);
-
-        if (!error) {
+        try {
+            const res = await fetch(`/api/admin/customers/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: newNotes }),
+            });
+            if (!res.ok) throw new Error(`API ${res.status}`);
             notesRef.current = newNotes;
-            // toast.success('Нотатки збережено', { duration: 2000 });
-        } else {
+        } catch {
             toast.error('Помилка збереження нотаток');
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     if (loading) return <div style={{ padding: '100px', display: 'flex', justifyContent: 'center' }}><Loader2 className={styles.animateSpin} size={32} color="#94a3b8" /></div>;

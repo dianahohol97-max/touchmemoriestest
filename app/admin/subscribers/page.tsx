@@ -3,7 +3,6 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Download, Mail, Search, RefreshCw, Send, X, ChevronDown, CheckCircle, Clock, AlertCircle, Users, FileText, History, Heart } from 'lucide-react';
 
@@ -31,7 +30,6 @@ const statusColor = (s: string) => s === 'sent' ? '#16a34a' : s === 'sending' ? 
 const statusLabel = (s: string) => s === 'sent' ? 'Надіслано' : s === 'sending' ? 'Надсилається' : s === 'failed' ? 'Помилка' : 'Чернетка';
 
 export default function SubscribersPage() {
-    const supabase = createClient();
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [filtered, setFiltered] = useState<Subscriber[]>([]);
     const [loading, setLoading] = useState(true);
@@ -60,11 +58,21 @@ export default function SubscribersPage() {
         setFiltered(result);
     }, [subscribers, search, filterActive]);
 
+    // Через сервер під requireStaff: subscribers закриті на is_admin_user(),
+    // тож маркетолог і менеджер бачили порожній список.
     async function fetchSubscribers() {
         setLoading(true);
-        const { data } = await supabase.from('subscribers').select('*').order('subscribed_at', { ascending: false });
-        setSubscribers(data || []);
-        setLoading(false);
+        try {
+            const res = await fetch('/api/admin/subscribers');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const j = await res.json();
+            setSubscribers(Array.isArray(j.subscribers) ? j.subscribers : []);
+        } catch (e: any) {
+            console.error('[subscribers] load failed', e?.message || e);
+            setSubscribers([]);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function fetchCampaigns() {
