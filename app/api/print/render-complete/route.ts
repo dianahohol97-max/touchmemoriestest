@@ -56,7 +56,9 @@ export async function POST(req: NextRequest) {
   await pruneStaleExports(admin, project.order_id, uploaded, [String(project.id)]);
   // Файли макетів, від'єднаних від замовлення — див. коментар до функції.
   // Цей шлях так само буває останнім у сценарії виправлення дизайнером.
-  await pruneExportsOfDetachedProjects(admin, project.order_id);
+  // Тільки коли новий набір справді приїхав: інакше знімемо старі рядки й
+  // лишимо замовлення без жодного файлу.
+  if (uploaded.length > 0) await pruneExportsOfDetachedProjects(admin, project.order_id);
 
   // A successful render supersedes any «РЕНДЕР НЕ ВДАВСЯ» note the timed-out
   // path may have written on the order.

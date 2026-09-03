@@ -152,12 +152,26 @@ export default function FeaturedProductsPage() {
         }
     };
 
+    // Запис через серверний роут. Прямий update у products впирався в RLS
+    // (запис вимагає is_admin()), а на нуль зачеплених рядків PostgREST помилки
+    // не дає — порядок «зберігався» і повертався після перезавантаження. Та
+    // сама пастка, що описана в app/api/admin/products/[id]/route.ts.
+    const patchProduct = async (id: string, patch: Record<string, any>) => {
+        const res = await fetch(`/api/admin/products/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patch),
+        });
+        if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            throw new Error(j?.error || `API ${res.status}`);
+        }
+    };
+
     const updateOrderInDB = async (ordered: Product[]) => {
         try {
             await Promise.all(
-                ordered.map((p, index) =>
-                    supabase.from('products').update({ popular_order: index }).eq('id', p.id)
-                )
+                ordered.map((p, index) => patchProduct(p.id, { popular_order: index }))
             );
             toast.success('Порядок оновлено');
         } catch (error) {
@@ -174,12 +188,7 @@ export default function FeaturedProductsPage() {
 
         try {
             const nextOrder = featured.length;
-            const { error } = await supabase
-                .from('products')
-                .update({ is_popular: true, popular_order: nextOrder })
-                .eq('id', product.id);
-
-            if (error) throw error;
+            await patchProduct(product.id, { is_popular: true, popular_order: nextOrder });
 
             toast.success('Додано');
             setFeatured([...featured, { ...product, popular_order: nextOrder }]);
@@ -192,12 +201,7 @@ export default function FeaturedProductsPage() {
 
     const handleRemove = async (id: string) => {
         try {
-            const { error } = await supabase
-                .from('products')
-                .update({ is_popular: false, popular_order: null })
-                .eq('id', id);
-
-            if (error) throw error;
+            await patchProduct(id, { is_popular: false, popular_order: null });
             toast.success('Видалено');
 
             const newFeatured = featured.filter(f => f.id !== id);

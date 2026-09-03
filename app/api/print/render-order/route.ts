@@ -320,7 +320,10 @@ export async function POST(request: NextRequest) {
   // старий набір на місці. У картці кожна сторінка йшла двічі, у друк пішло б
   // удвічі більше аркушів, половина з них — стара версія. Працює незалежно від
   // того, який шлях привів сюди рендер.
-  await pruneExportsOfDetachedProjects(admin, orderId);
+  // Тільки після УСПІШНОГО рендеру. Якщо цього разу не зібралося нічого, на
+  // замовленні краще лишити старий набір: він застарілий, але це принаймні
+  // файли, а порожня картка не дає виробництву нічого.
+  if (allUploaded.length > 0) await pruneExportsOfDetachedProjects(admin, orderId);
 
   // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
   // флекс also needs the monochrome engraving макет, which Railway does not

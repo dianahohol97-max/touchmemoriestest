@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentUpdate } from '@/lib/admin/content-client';
 import { X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,36 +52,24 @@ export function CategoryFormModal({ category, onClose, onSave }: CategoryFormMod
         setIsLoading(true);
 
         try {
+            // Запис через /api/admin/content: categories закриті на
+            // is_admin_user(), тож прямий update не міняв жодного рядка й не
+            // давав помилки — форма закривалася зі словом «Збережено».
+            // Читання (лічильник для sort_order) лишається прямим, на categories
+            // є SELECT true.
+            const payload = {
+                name: formData.name,
+                slug: formData.slug,
+                description: formData.description,
+                cover_image: formData.cover_image,
+                is_active: formData.is_active,
+            };
             if (category) {
-                // Update
-                const { error } = await supabase
-                    .from('categories')
-                    .update({
-                        name: formData.name,
-                        slug: formData.slug,
-                        description: formData.description,
-                        cover_image: formData.cover_image,
-                        is_active: formData.is_active,
-                    })
-                    .eq('id', category.id);
-                if (error) throw error;
+                await contentUpdate('categories', category.id, payload);
                 toast.success('Категорію збережено');
             } else {
-                // Create
                 const { count } = await supabase.from('categories').select('*', { count: 'exact', head: true });
-                const sort_order = count || 0;
-
-                const { error } = await supabase
-                    .from('categories')
-                    .insert([{
-                        name: formData.name,
-                        slug: formData.slug,
-                        description: formData.description,
-                        cover_image: formData.cover_image,
-                        is_active: formData.is_active,
-                        sort_order
-                    }]);
-                if (error) throw error;
+                await contentInsert('categories', { ...payload, sort_order: count || 0 });
                 toast.success('Категорію створено');
             }
             onSave();

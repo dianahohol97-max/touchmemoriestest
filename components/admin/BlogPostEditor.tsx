@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { contentInsert, contentUpdate } from '@/lib/admin/content-client';
 import MDEditor from '@uiw/react-md-editor';
 import { Loader2, Save, Sparkles, Image as ImageIcon, Eye, ArrowLeft, Trash2, X, Plus, GripVertical, AlignLeft, AlignCenter, AlignRight, FileText, Search } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -222,15 +223,20 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
             const reading_time = Math.max(1, Math.ceil((form.content.split(' ').length) / 200));
             const postData = { ...form, reading_time, content_images: articleMedia };
 
+            // Через /api/admin/content: blog_posts закриті політикою
+            // is_admin_user(), тож прямий запис із браузера не проходив у всіх,
+            // крім чотирьох людей у admin_users — і не давав помилки, бо RLS
+            // повертає нуль зачеплених рядків, а не збій. Редактор казав
+            // «Зміни збережено», стаття лишалася старою, і зрозуміти це можна
+            // було лише з перезавантаження. Дизайнер, якому роль дає контент
+            // повністю, не міг опублікувати жодної статті.
             if (isEditMode) {
-                const { error } = await supabase.from('blog_posts').update(postData).eq('id', initialData.id);
-                if (error) throw error;
+                await contentUpdate('blog_posts', initialData.id, postData);
                 toast.success('Зміни збережено');
             } else {
-                const { data, error } = await supabase.from('blog_posts').insert([postData]).select().single();
-                if (error) throw error;
+                const created: any = await contentInsert('blog_posts', postData);
                 toast.success('Статтю створено');
-                router.push(`/admin/blog/${data.id}/edit`);
+                if (created?.id) router.push(`/admin/blog/${created.id}/edit`);
             }
         } catch (error: any) {
             toast.error(error.message);

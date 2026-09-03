@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentUpdateMany, contentDelete } from '@/lib/admin/content-client';
 import { Plus, GripVertical, Eye, EyeOff, Edit2, Trash2, Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -175,9 +176,7 @@ function CategoriesContent() {
 
             // Supabase doesn't have a simple bulk update, so we update sequentially or using an RPC.
             // Using sequential updates for categories since the array is small (usually <20)
-            await Promise.all(
-                updates.map(u => supabase.from('categories').update({ sort_order: u.sort_order }).eq('id', u.id))
-            );
+            await contentUpdateMany('categories', updates.map(u => ({ id: u.id, sort_order: u.sort_order })));
             toast.success('Порядок збережено');
         } catch (error) {
             toast.error('Помилка збереження порядку');
@@ -203,7 +202,7 @@ function CategoriesContent() {
         }
 
         if (confirm(`Ви впевнені, що хочете видалити категорію "${category.name}"?`)) {
-            const { error } = await supabase.from('categories').delete().eq('id', category.id);
+            const error = await contentDelete('categories', category.id).then(() => null).catch((e: any) => ({ message: e?.message || 'Помилка видалення' }));
             if (error) {
                 toast.error('Помилка видалення');
             } else {

@@ -43,7 +43,10 @@ const EDITABLE_FIELDS = [
     'options', 'is_active', 'is_personalized', 'has_designer_option',
     'stock_quantity', 'track_inventory',
     'tags', 'meta_title', 'meta_description',
-    'is_popular', 'product_type',
+    // popular_order — позиція товару в блоці «Популярні». Її не було в
+    // переліку, тож сторінка «Популярні товари» не могла зберегти ні порядок
+    // перетягуванням, ні додавання товару в блок.
+    'is_popular', 'popular_order', 'product_type',
 ] as const;
 
 function pickEditable(body: any): Record<string, any> {

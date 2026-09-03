@@ -174,18 +174,23 @@ export async function pruneExportsOfDetachedProjects(
     });
     if (!orphans.length) return 0;
 
-    const byBucket = new Map<string, string[]>();
-    for (const f of orphans as any[]) {
-        const b = f.bucket_name || 'photobook-uploads';
-        if (!byBucket.has(b)) byBucket.set(b, []);
-        byBucket.get(b)!.push(f.file_path);
-    }
-    for (const [bucket, paths] of byBucket) {
-        try { await admin.storage.from(bucket).remove(paths); }
-        catch (e: any) { console.error('[register-export] detached sweep: storage cleanup failed', { orderId, bucket, error: e?.message }); }
-    }
+    // ЗНІМАЄМО РЯДКИ, ФАЙЛИ У СХОВИЩІ ЛИШАЄМО.
+    //
+    // Це навмисна відмінність від pruneStaleExports нижче, і вона важлива.
+    // Сусід прибирає файли ВЛАСНОГО макета, який щойно перерендерився: старий
+    // набір за тими самими шляхами вже перезаписаний, тримати його безглуздо.
+    // Тут інша ситуація — це файли ЧУЖОГО, відчепленого макета, найчастіше
+    // оригіналу клієнта, якого замінили виправленням дизайнера. Саме на цей
+    // випадок replace-layout свідомо лишає обʼєкти у сховищі: якщо новий
+    // рендер упаде, файли на місці й реєстрацію можна повернути. Видаляти їх
+    // звідси означало б скасувати той запобіжник і лишити замовлення взагалі
+    // без файлів.
+    //
+    // Дублювання в картці й у ZIP породжують саме рядки в order_files, тож
+    // прибрати рядки достатньо. Обʼєкти у сховищі місця майже не займають і є
+    // єдиною страховкою на випадок невдалого рендеру.
     await admin.from('order_files').delete().in('id', (orphans as any[]).map((f) => f.id));
-    console.log('[register-export] detached sweep removed', { orderId, count: orphans.length });
+    console.log('[register-export] detached sweep unlinked', { orderId, count: orphans.length });
     return orphans.length;
 }
 

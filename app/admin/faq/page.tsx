@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { contentUpdate, contentUpdateMany, contentDelete } from '@/lib/admin/content-client';
 import {
     Plus,
     Search,
@@ -37,27 +38,27 @@ export default function AdminFaqPage() {
         setLoading(false);
     };
 
+    // Читання лишається прямим — на faqs є публічна SELECT-політика. Запис
+    // закритий на is_admin_user() і мовчки не проходив у всіх, крім чотирьох
+    // людей у admin_users: тумблер перемикався, тост казав «Статус оновлено», а
+    // після перезавантаження все верталось.
     const toggleStatus = async (id: string, currentStatus: boolean) => {
-        const { error } = await supabase
-            .from('faqs')
-            .update({ is_active: !currentStatus })
-            .eq('id', id);
-
-        if (!error) {
+        try {
+            await contentUpdate('faqs', id, { is_active: !currentStatus });
             setFaqs(faqs.map(f => f.id === id ? { ...f, is_active: !currentStatus } : f));
             toast.success('Статус оновлено');
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося оновити статус');
         }
     };
 
     const deleteFaq = async (id: string) => {
         if (!confirm('Ви впевнені, що хочете видалити це питання?')) return;
 
-        const { error } = await supabase
-            .from('faqs')
-            .delete()
-            .eq('id', id);
+        let delFailed: string | null = null;
+        try { await contentDelete('faqs', id); } catch (e: any) { delFailed = e?.message || 'Помилка'; }
 
-        if (!error) {
+        if (!delFailed) {
             setFaqs(faqs.filter(f => f.id !== id));
             toast.success('Видалено');
         }
@@ -78,11 +79,13 @@ export default function AdminFaqPage() {
         const updatedFaqs = newFaqs.map((f, i) => ({ ...f, sort_order: i + 1 }));
         setFaqs(updatedFaqs);
 
-        // Update DB
-        const updates = updatedFaqs.map((f, i) =>
-            supabase.from('faqs').update({ sort_order: i + 1 }).eq('id', f.id)
-        );
-        await Promise.all(updates);
+        // Один виклик на весь список замість запиту на кожен рядок.
+        try {
+            await contentUpdateMany('faqs', updatedFaqs.map((f, i) => ({ id: f.id, sort_order: i + 1 })));
+        } catch (e: any) {
+            toast.error(e?.message || 'Порядок не збережено');
+            fetchFaqs();
+        }
     };
 
     const filteredFaqs = faqs.filter(f =>
