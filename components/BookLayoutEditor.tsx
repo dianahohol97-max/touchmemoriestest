@@ -4319,7 +4319,25 @@ export default function BookLayoutEditor() {
     // even just reopening the cart later the image was dead (the blue squares
     // customers reported). makeCartThumbnail renders a ~240px JPEG data URL.
     const { makeCartThumbnail } = await import('@/lib/cart-thumbnail');
-    const rawCover = config.productImage || getPhoto(pages[0]?.slots[0]?.photoId ?? null)?.preview || '';
+    // МІНІАТЮРА ПОЗИЦІЇ КОШИКА — ОБКЛАДИНКА ЦЬОГО МАКЕТА, А НЕ ФОТО З КАТАЛОГУ.
+    //
+    // Порядок був зворотний: спершу config.productImage, тобто стоковий знімок
+    // продукції, і лише потім фото клієнта. Через це в кошику дві однакові
+    // позиції «Глянцевий журнал» виглядали абсолютно однаково, і людина перед
+    // оплатою не бачила, що саме купує — при тому, що макет вона щойно збирала
+    // руками. Каталожне фото лишається запасним варіантом для макета, у якому
+    // на обкладинці ще нічого немає.
+    //
+    // Джерела в порядку близькості до того, що клієнт вважає обкладинкою:
+    // фото на обкладинці, фото у слоті друкованої обкладинки, вільне фото на
+    // обкладинці, перше фото першої сторінки.
+    const coverPhotoId = coverState.photoId
+      ?? coverState.printedPhotoSlots?.[0]?.photoId
+      ?? coverState.coverPhotos?.[0]?.photoId
+      ?? pages[0]?.slots?.[0]?.photoId
+      ?? pages[1]?.slots?.[0]?.photoId
+      ?? null;
+    const rawCover = getPhoto(coverPhotoId)?.preview || config.productImage || '';
     const productImage = await makeCartThumbnail(rawCover);
     const orderId = `pb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -8927,7 +8945,13 @@ export default function BookLayoutEditor() {
                               title="Потягніть, щоб змінити ширину блока"
                               style={{ position:'absolute', top:'50%', ...(side==='l' ? { left:-6 } : { right:-6 }), transform:'translateY(-50%)', width:10, height:28, borderRadius:5, background:'#3b82f6', border:'2px solid #fff', cursor:'ew-resize', zIndex:31, boxShadow:'0 1px 4px rgba(0,0,0,0.35)', touchAction:'none' }}/>
                           ))}
-                          {isSel&&!isEd&&<button data-export-ignore="true" onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                          {/* Видалення тексту — ЗЛІВА. Кнопка видалення фото сидить у правому
+                              верхньому куті слота, і коли текстовий блок стоїть угорі
+                              сторінки, два хрестики лягали майже один на одного: замість
+                              підпису клієнт зносив фотографію. Розводимо їх по різних
+                              кутах, а не додаємо підтвердження — зайве вікно на кожне
+                              видалення фото дратувало б там, де його не просили. */}
+                          {isSel&&!isEd&&<button data-export-ignore="true" title="Видалити текст" onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,spreadPageIdx);}} style={{position:'absolute',top:-8,left:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                         </div>
                       );
                     })}
@@ -9672,7 +9696,8 @@ export default function BookLayoutEditor() {
                                 title="Потягніть, щоб змінити ширину блока"
                                 style={{ position:'absolute', top:'50%', ...(side==='l' ? { left:-6 } : { right:-6 }), transform:'translateY(-50%)', width:10, height:28, borderRadius:5, background:'#3b82f6', border:'2px solid #fff', cursor:'ew-resize', zIndex:31, boxShadow:'0 1px 4px rgba(0,0,0,0.35)', touchAction:'none' }}/>
                             ))}
-                            {isSel&&!isEd&&<button onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,right:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
+                            {/* Зліва, з тієї ж причини — див. коментар у розворотній гілці. */}
+                            {isSel&&!isEd&&<button data-export-ignore="true" title="Видалити текст" onMouseDown={e=>{e.stopPropagation();deleteTxtForPage(tb.id,pageIdx);}} style={{position:'absolute',top:-8,left:-8,width:18,height:18,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',zIndex:30}}>×</button>}
                           </div>
                         );
                       })}
