@@ -175,6 +175,31 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         await Promise.all(Array.from({ length: Math.min(POOL, toCheck.length) }, worker));
 
         const problems: string[] = [];
+        // ПОРОЖНЯ ЗАДНЯ ОБКЛАДИНКА.
+        //
+        // На TM-001257 вона пішла у друк суцільною бордовою заливкою, без
+        // жодного елемента, а замовлення при цьому мало статус «макет для друку
+        // готовий». Це найпомітніший дефект готового виробу: клієнт тримає
+        // журнал із порожньою спинкою.
+        //
+        // У конструкторі попередження вже стоїть, але через нього можна
+        // свідомо пройти, а переекспорт дизайнера конструктора взагалі не
+        // торкається. Тому та сама перевірка потрібна й тут, де рішення
+        // приймає той, хто віддає файли в друк.
+        //
+        // Сама заливка помилкою не є — колір спинки обирають свідомо. Тому це
+        // рядок у звіті перевірки, а не заборона: людина бачить його поруч із
+        // рештою і вирішує сама.
+        const cover = (proj?.cover_data && typeof proj.cover_data === 'object')
+            ? proj.cover_data as Record<string, any> : null;
+        if (cover?.backCoverEnabled) {
+            const backHasPhoto = !!cover.backCoverPhotoId;
+            const backHasText = Array.isArray(cover.backCoverTexts)
+                && cover.backCoverTexts.some((b: any) => String(b?.text || '').trim().length > 0);
+            if (!backHasPhoto && !backHasText) {
+                problems.push('задня обкладинка порожня — лише заливка, без фото і без тексту');
+            }
+        }
         if (!referenced.size) problems.push('у макеті не розставлено жодного фото — це порожня чернетка');
         if (!hasCover) problems.push('немає файлу обкладинки');
         if (pageFiles.length === 0) problems.push('немає жодного файлу сторінок');

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { designThumbPath } from '@/lib/editor/design-thumb';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
@@ -396,7 +397,7 @@ export default function AccountPage() {
             // Fetch the rest in parallel
             const [custRes, editorRes, designerRes] = await Promise.all([
                 supabase.from('customers').select('*').eq('email', email).maybeSingle(),
-                supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
+                supabase.from('projects').select('id,name,product_type,format,status,updated_at,cart_payload,cover_data,uploaded_photos').eq('user_id', uid).order('updated_at', { ascending: false }).limit(20),
                 supabase.from('customer_projects').select('id,title,product_type,status,updated_at,thumbnail_url')
                     .in('customer_id', (await supabase.from('customers').select('id').eq('email', email)).data?.map((c: any) => c.id) || [])
                     .order('updated_at', { ascending: false }).limit(20),
@@ -434,6 +435,38 @@ export default function AccountPage() {
                 status: p.status || 'draft', updated_at: p.updated_at, source: 'editor' as const,
                 cart_payload: p.cart_payload || null,
             }));
+
+            // МІНІАТЮРИ МАКЕТІВ РЕДАКТОРА.
+            // Досі всі картки були однаковим градієнтом з іконкою книжки, і два
+            // «Глянцевих журнали» відрізнялися хіба підписом — для дизайнера з
+            // кількома чернетками одного замовлення це прямий шлях відкрити не
+            // ту. Беремо фото обкладинки макета, а якщо його немає — перше
+            // завантажене фото; обидва вже лежать у сховищі, рендерити нічого
+            // не треба. Одне підписування на весь список, і збій тут нічого не
+            // ламає: картка просто лишається з градієнтом, як була.
+            try {
+                const thumbPaths = new Map<string, string>();
+                for (const p of editorRes.data || []) {
+                    const path = designThumbPath((p as any).cover_data, (p as any).uploaded_photos);
+                    if (path) thumbPaths.set(String(p.id), path);
+                }
+                if (thumbPaths.size > 0) {
+                    const ids = [...thumbPaths.keys()];
+                    const { data: signed } = await supabase.storage
+                        .from('photobook-uploads')
+                        .createSignedUrls(ids.map(id => thumbPaths.get(id)!), 60 * 60 * 6);
+                    if (signed) {
+                        ids.forEach((id, i) => {
+                            const url = signed[i]?.signedUrl;
+                            if (!url) return;
+                            const design = editorDesigns.find(d => d.id === id);
+                            if (design) design.thumbnail_url = url;
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('[account] design thumbnails skipped', e);
+            }
             const designerDesigns: Design[] = (designerRes.data || []).map((p: any) => ({
                 id: p.id, title: p.title, product_type: p.product_type,
                 status: p.status || 'draft', updated_at: p.updated_at,
@@ -982,8 +1015,11 @@ export default function AccountPage() {
                                                             <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 20, background: dSt.bg, color: dSt.color }}>
                                                                 {dSt.label}
                                                             </span>
-                                                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                                                                {new Date(d.updated_at).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}
+                                                            {/* Час, а не лише день. Дизайнер тримає кілька чернеток
+                                                                одного замовлення й редагує їх в один день, тож саме
+                                                                година відрізняє свіжу версію від позавчорашньої. */}
+                                                            <span style={{ fontSize: 11, color: '#94a3b8' }} title={new Date(d.updated_at).toLocaleString('uk-UA')}>
+                                                                {new Date(d.updated_at).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                         </div>
                                                         <div style={{ marginTop: 'auto', display: 'flex', gap: 8 }}>
