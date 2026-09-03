@@ -4044,11 +4044,50 @@ export default function BookLayoutEditor() {
     // приймається, а не проґавлюється.
     try {
       const violations = findSafeZoneViolations(pages as any, bleed as any);
-      if (violations.length > 0) {
+
+      // ТЕКСТ, ЯКИЙ НЕ ВМІЩАЄТЬСЯ І ТОМУ ОБРІЗАЄТЬСЯ.
+      //
+      // Система про це ЗНАЄ: у кутку блока зʼявляється помаранчевий бейдж. Але
+      // бейдж помічають не всі, а зникає при цьому не форматування, а слова —
+      // «Одна історія, дві долі, безліч моментів» друкувалось як «Одна історія,
+      // дві долі, безліч». Автозменшення кегля вже працює й доходить до 55 %
+      // від заданого; нижче опускати не можна, бо на папері це вже нечитабельно.
+      // Тому те, що не влізло навіть так, потрапляє в той самий перелік перед
+      // оформленням — поруч із текстом за лінією обрізу, одним діалогом, а не
+      // двома підряд.
+      const clipped: string[] = [];
+      pages.forEach((pg: any, pi: number) => {
+        const anchors = (pg?.textBlocks || []).map((b: any) => b.y);
+        for (const tb of pg?.textBlocks || []) {
+          const fits = {
+            text: tb.text,
+            fontPx: tb.fontSize * pageTextScale(cH),
+            fontFamily: tb.fontFamily,
+            bold: tb.bold,
+            italic: tb.italic,
+            maxWidthPx: textBoxMaxWidthPx(pageW, 8 * pageTextScale(cH), tb.w),
+            availableHeightPx: (availableHeightPct(tb.y, anchors) / 100) * cH,
+          };
+          if (textOverflowsAtMinScale(fits)) {
+            const flat = String(tb.text || '').replace(/\s+/g, ' ').trim();
+            clipped.push(`Сторінка ${pi + 1}: «${flat.length > 40 ? `${flat.slice(0, 39)}…` : flat}» не вміщається — частину слів зріже.`);
+          }
+        }
+      });
+
+      if (violations.length > 0 || clipped.length > 0) {
+        const parts: string[] = [];
+        if (violations.length > 0) {
+          parts.push('Текст виходить за лінію обрізу — на друці ці рядки може зрізати.\n' + describeViolations(violations));
+        }
+        if (clipped.length > 0) {
+          parts.push('Текст не вміщається у відведене місце — частина слів не надрукується.\n'
+            + clipped.slice(0, 5).join('\n')
+            + (clipped.length > 5 ? `\nЩе таких блоків: ${clipped.length - 5}.` : ''));
+        }
         const ok = confirm(
-          'Текст виходить за лінію обрізу — на друці ці рядки може зрізати.\n\n'
-          + describeViolations(violations)
-          + '\n\nПосуньте блоки всередину синього пунктиру або натисніть OK, щоб залишити як є.',
+          parts.join('\n\n')
+          + '\n\nПоверніться й виправте, або натисніть OK, щоб залишити як є.',
         );
         if (!ok) return;
       }
