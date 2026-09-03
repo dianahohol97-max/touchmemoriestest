@@ -3568,6 +3568,32 @@ export default function BookLayoutEditor() {
     e.stopPropagation();
     txtDragMovedRef.current = false;
     haptic.light();
+    // ПРИЛИПАННЯ ДО БЕЗПЕЧНОЇ ЗОНИ, А НЕ ДО ЛІНІЇ ОБРІЗУ.
+    //
+    // Тут стояли цілі 0, 50 і 100 відсотків. Нуль і сто — це РІВНО ті лінії, по
+    // яких проходить ніж, тобто перетягування саме допомагало клієнту покласти
+    // заголовок на зріз: блок притягувався до краю, ставав рівно й виглядав
+    // акуратно, а на папері верхній рядок зрізало. Саме це й описано у звіті на
+    // шести розворотах TM-001257, і саме це дизайнер потім розсував руками.
+    //
+    // Тепер крайні цілі — межі безпечної зони. Прилипання стало корисним:
+    // найлегше поставити блок туди, де він гарантовано надрукується. Центр
+    // лишається, він ні з чим не конфліктує.
+    //
+    // Жорсткого обмеження не ставимо: підпис під зріз буває задумом, і забрати
+    // таку можливість означало б зламати макет тим, хто робить це свідомо. Той,
+    // хто винесе блок за межу навмисно, побачить це в переліку перед
+    // оформленням.
+    //
+    // Горизонталь рахується від ТОГО САМОГО контейнера, проти якого блок
+    // позиціонується: у розвороті це весь розворот, на сторінці — сторінка.
+    // Відступи з bleed виміряні часткою розвороту, тож на сторінці їх треба
+    // подвоїти, а в розвороті взяти як є. Переплутати означає прилипати не туди.
+    const isSpreadContainer = Math.abs(containerW - cW) < 1;
+    const safeXPct = (isSpreadContainer ? bleed.left : bleed.left * 2) * 100;
+    const safeXPctRight = (isSpreadContainer ? bleed.right : bleed.right * 2) * 100;
+    const safeYTopPct = bleed.top * 100;
+    const safeYBottomPct = bleed.bottom * 100;
     startPointerDrag(e,
       (dx, dy) => {
         if (Math.abs(dx) > 4 || Math.abs(dy) > 4) txtDragMovedRef.current = true;
@@ -3580,9 +3606,10 @@ export default function BookLayoutEditor() {
         let ny = Math.max(0, Math.min(95, ty + (dy / cH) * 100));
         const gx: number[] = [];
         const gy: number[] = [];
-        // Snap targets: 0%, 50%, 100% (edges + center)
-        for (const target of [0, 50, 100]) {
+        for (const target of [safeXPct, 50, 100 - safeXPctRight]) {
           if (Math.abs(nx - target) < SNAP) { nx = target; gx.push(target / 100 * containerW); }
+        }
+        for (const target of [safeYTopPct, 50, 100 - safeYBottomPct]) {
           if (Math.abs(ny - target) < SNAP) { ny = target; gy.push(target / 100 * cH); }
         }
         setTextGuides({ x: gx, y: gy });
@@ -9045,6 +9072,14 @@ export default function BookLayoutEditor() {
                         the print partner, not a generic percentage. Editor-only overlay,
                         does NOT affect saved/exported files. */}
                     <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${spreadW} ${cH}`} preserveAspectRatio="none">
+                      {/* ЗАТЕМНЕННЯ ПОЛЯ ЗА БЕЗПЕЧНОЮ ЗОНОЮ.
+                          Сам пунктир був і раніше, але око читає його як
+                          декоративну рамку, а не як межу. Легка тінь по периметру
+                          робить зону очевидною без жодного тексту: усередині
+                          світло, зовні притемнено, і заголовок на зрізі видно
+                          відразу. Оверлей тільки редакторський — data-html2canvas-ignore
+                          на svg тримає його поза захопленням. */}
+                      <path fillRule="evenodd" fill="rgba(15,23,42,0.13)" d={`M0 0 H${spreadW} V${cH} H0 Z M${spreadW*bleed.left} ${cH*bleed.top} H${spreadW*(1-bleed.right)} V${cH*(1-bleed.bottom)} H${spreadW*bleed.left} Z`}/>
                       {/* With a spine margin the safe area is TWO rectangles —
                           one per page — because the gutter allowance is cut off
                           each page separately (travel books, journals: 10 мм). */}
@@ -9347,6 +9382,8 @@ export default function BookLayoutEditor() {
                             <svg data-html2canvas-ignore="true"
                               style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:15 }}
                               viewBox={`0 0 ${pageW} ${cH}`} preserveAspectRatio="none">
+                              {/* Затемнення поля за безпечною зоною — див. коментар у гілці розвороту. */}
+                              <path fillRule="evenodd" fill="rgba(15,23,42,0.13)" d={`M0 0 H${pageW} V${cH} H0 Z M${pageW*leftFrac} ${cH*bleed.top} H${pageW*(1-rightFrac)} V${cH*(1-bleed.bottom)} H${pageW*leftFrac} Z`}/>
                               <rect x={pageW*leftFrac} y={cH*bleed.top}
                                     width={pageW*(1 - leftFrac - rightFrac)}
                                     height={cH*(1 - bleed.top - bleed.bottom)}
@@ -9909,6 +9946,14 @@ export default function BookLayoutEditor() {
                 {!(hasKalka && currentIdx === 1) && (
                   <>
                     <svg data-html2canvas-ignore="true" style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',zIndex:15}} viewBox={`0 0 ${pageW*2} ${cH}`} preserveAspectRatio="none">
+                      {/* ЗАТЕМНЕННЯ ПОЛЯ ЗА БЕЗПЕЧНОЮ ЗОНОЮ.
+                          Сам пунктир був і раніше, але око читає його як
+                          декоративну рамку, а не як межу. Легка тінь по периметру
+                          робить зону очевидною без жодного тексту: усередині
+                          світло, зовні притемнено, і заголовок на зрізі видно
+                          відразу. Оверлей тільки редакторський — data-html2canvas-ignore
+                          на svg тримає його поза захопленням. */}
+                      <path fillRule="evenodd" fill="rgba(15,23,42,0.13)" d={`M0 0 H${pageW*2} V${cH} H0 Z M${pageW*2*bleed.left} ${cH*bleed.top} H${pageW*2*(1-bleed.right)} V${cH*(1-bleed.bottom)} H${pageW*2*bleed.left} Z`}/>
                       {bleed.spine ? (
                         <>
                           <rect x={pageW*2*bleed.left} y={cH*bleed.top}
