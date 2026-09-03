@@ -2373,6 +2373,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             that field is edited by hand and one careless save
                             wipes the fact. It is written onto the order itself by
                             /api/orders/[id]/update-design and read back here. */}
+                        {/* МАКЕТ ЗАМІНЕНО ДИЗАЙНЕРОМ.
+                            Після заміни блок «Ваші виправлені макети» зникав, і по
+                            картці було не сказати, що в друк іде вже не той макет,
+                            який подав клієнт, ким і коли його підмінили. Запис в
+                            історії був, але історію гортають, а це треба бачити
+                            одразу — поруч із файлами, які саме звідти й узялися. */}
+                        {(() => {
+                            const attrs = (order?.custom_attributes && typeof order.custom_attributes === 'object')
+                                ? order.custom_attributes as Record<string, any> : null;
+                            const at = attrs?.layout_replaced_at;
+                            if (!at) return null;
+                            const times = Number(attrs?.layout_replaced_count || 1);
+                            const by = attrs?.layout_replaced_by;
+                            return (
+                                <div style={{ marginBottom: '12px', padding: '12px', background: '#f0f9ff', border: '1px solid #7dd3fc', borderRadius: '8px' }}>
+                                    <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: 700, marginBottom: '4px' }}>
+                                        Макет замінено виправленим від дизайнера
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: '#0c4a6e' }}>
+                                        {formatDateTime(at)}{by ? ` · ${by}` : ''}{times > 1 ? ` · разів: ${times}` : ''}.
+                                        {' '}У друк піде саме ця версія, а не та, яку подав клієнт. Оригінал клієнта
+                                        залишився в його акаунті — деталі заміни в історії замовлення нижче.
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         {(() => {
                             const attrs = (order?.custom_attributes && typeof order.custom_attributes === 'object')
                                 ? order.custom_attributes as Record<string, any> : null;

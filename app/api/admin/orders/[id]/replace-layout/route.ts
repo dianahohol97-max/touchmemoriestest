@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireStaff, getSession } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -167,16 +167,57 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
     }
 
+    // ХТО замінив макет — і слід, який видно в картці.
+    //
+    // Запис в order_history був, але без імені, а сама картка після заміни не
+    // показувала нічого: блок «Ваші виправлені макети» просто зникав, і по
+    // замовленню було не сказати, що макет клієнта вже не той, який піде в
+    // друк, ким і коли його підмінили. Позначку кладемо в custom_attributes —
+    // тим самим механізмом, яким уже живе банер «Клієнт змінив макет після
+    // оформлення», тож у картці вона переживає будь-яке редагування нотаток.
+    let whoReplaced = '';
+    try {
+        const { user } = await getSession();
+        if (user?.email) {
+            const { data: me } = await admin
+                .from('staff').select('name').ilike('email', user.email).maybeSingle();
+            whoReplaced = String(me?.name || user.email);
+        }
+    } catch { /* імʼя не критичне, запис усе одно робимо */ }
+
     try {
         await admin.from('order_history').insert({
             order_id: id,
             action: 'layout_replaced',
-            notes: replaced.length
+            notes: (replaced.length
                 ? `Макет замінено виправленим від дизайнера. Було: ${replaced.map(p => p.id).join(', ')}. Стало: ${draft.id}. Знято файлів попереднього рендеру: ${staleIds.length}.`
-                : `На замовлення поставлено макет дизайнера: ${draft.id}.`,
+                : `На замовлення поставлено макет дизайнера: ${draft.id}.`)
+                + (whoReplaced ? ` Замінив: ${whoReplaced}.` : ''),
+            details: { replacedProjectIds: replaced.map(p => p.id), newProjectId: draft.id, by: whoReplaced || null },
         });
     } catch (e) {
         console.error('[replace-layout] order_history insert failed', e);
+    }
+
+    try {
+        const { data: cur } = await admin
+            .from('orders').select('custom_attributes').eq('id', id).maybeSingle();
+        const attrs = (cur?.custom_attributes && typeof cur.custom_attributes === 'object')
+            ? cur.custom_attributes as Record<string, any>
+            : {};
+        await admin.from('orders').update({
+            custom_attributes: {
+                ...attrs,
+                layout_replaced_at: new Date().toISOString(),
+                layout_replaced_by: whoReplaced || null,
+                layout_replaced_count: Number(attrs.layout_replaced_count || 0) + 1,
+                // id оригіналу клієнта — щоб повернутися до нього було до чого,
+                // а не тільки в історії текстом.
+                layout_replaced_from: replaced.map(p => p.id),
+            },
+        }).eq('id', id);
+    } catch (e) {
+        console.error('[replace-layout] custom_attributes stamp failed', e);
     }
 
     return NextResponse.json({ ok: true, projectId: draft.id, unlinked: replaced.length, staleRemoved: staleIds.length });
