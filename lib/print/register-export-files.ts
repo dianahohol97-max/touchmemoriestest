@@ -104,6 +104,92 @@ export async function registerExportFiles(
 }
 
 /**
+ * Дістає id макета зі шляху друкованого файлу.
+ *
+ * Рендер кладе файли в `drafts/{userId}/{projectId}/print/{file}.jpg`, тож id
+ * макета — це передостанній сегмент перед `print`. Якщо шлях іншої форми,
+ * повертаємо null: краще не впізнати макет, ніж помилково вирішити, що файл
+ * чужий, і видалити його.
+ */
+export function projectIdFromExportPath(path: string): string | null {
+    const parts = String(path || '').split('/');
+    const printAt = parts.lastIndexOf('print');
+    if (printAt < 1) return null;
+    const candidate = parts[printAt - 1];
+    return /^[0-9a-f-]{36}$/i.test(candidate) ? candidate : null;
+}
+
+/**
+ * Прибирає друковані файли макетів, яких на замовленні вже немає.
+ *
+ * Це інша поломка, ніж та, яку ловить pruneStaleExports нижче, і вона
+ * протилежна за причиною. Там прибирання СВІДОМО обмежене макетами, що саме
+ * відрендерилися, — інакше рендер однієї книги зносить готові файли решти.
+ * Але саме це обмеження й ламало сценарій виправлення дизайнером: дизайнер
+ * копіює макет клієнта у свої чернетки, тобто отримує НОВИЙ id, ставить копію
+ * на замовлення й запускає рендер. Новий набір лягає під новим id, прибирання
+ * бачить у своїй області тільки новий id, а двадцять файлів старого макета
+ * лишаються на замовленні назавжди.
+ *
+ * Наслідок у картці: кожна сторінка двічі поспіль, дві обкладинки, набір
+ * подвоївся. У друк пішло б удвічі більше аркушів, і половина з них — стара
+ * версія з текстом на зрізі, заради виправлення якого все й робилося.
+ *
+ * Тут перевірка не «що зараз відрендерилось», а «які макети взагалі належать
+ * цьому замовленню». Файл, чий id макета не збігається з жодним із них, не
+ * може бути потрібен: цей макет уже не має стосунку до замовлення.
+ *
+ * Обережність. Нічого не робимо, поки не знаємо жодного макета замовлення —
+ * інакше збій читання перетворився б на видалення всього. Файли, з чийого
+ * шляху id не читається, теж не чіпаємо. Обкладинки, згенеровані сервером,
+ * і нерендерні типи виробів захищені так само, як у прибиранні нижче.
+ */
+export async function pruneExportsOfDetachedProjects(
+    admin: SupabaseClient,
+    orderId: string,
+): Promise<number> {
+    const { data: projects, error: projErr } = await admin
+        .from('projects')
+        .select('id')
+        .eq('order_id', orderId);
+    if (projErr) {
+        console.error('[register-export] detached sweep: cannot read projects', { orderId, error: projErr.message });
+        return 0;
+    }
+    const current = new Set((projects || []).map((p: any) => String(p.id)));
+    if (current.size === 0) return 0;
+
+    const { data: files } = await admin
+        .from('order_files')
+        .select('id, file_path, bucket_name, product_type')
+        .eq('order_id', orderId)
+        .eq('file_type', 'export');
+
+    const orphans = (files || []).filter((f: any) => {
+        const path = String(f.file_path || '');
+        if (SERVER_GENERATED_COVER.test(path)) return false;
+        if (!RAILWAY_RENDERABLE.test(String(f.product_type || ''))) return false;
+        const owner = projectIdFromExportPath(path);
+        return !!owner && !current.has(owner);
+    });
+    if (!orphans.length) return 0;
+
+    const byBucket = new Map<string, string[]>();
+    for (const f of orphans as any[]) {
+        const b = f.bucket_name || 'photobook-uploads';
+        if (!byBucket.has(b)) byBucket.set(b, []);
+        byBucket.get(b)!.push(f.file_path);
+    }
+    for (const [bucket, paths] of byBucket) {
+        try { await admin.storage.from(bucket).remove(paths); }
+        catch (e: any) { console.error('[register-export] detached sweep: storage cleanup failed', { orderId, bucket, error: e?.message }); }
+    }
+    await admin.from('order_files').delete().in('id', (orphans as any[]).map((f) => f.id));
+    console.log('[register-export] detached sweep removed', { orderId, count: orphans.length });
+    return orphans.length;
+}
+
+/**
  * Replace mode: once a fresh render exists, remove every OLDER export of a
  * renderable (book/calendar) product for this order that is not part of the
  * new set — from storage AND the DB. Self-composed exports (poster/map/magnet)

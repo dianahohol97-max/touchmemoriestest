@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { registerExportFiles, pruneStaleExports } from '@/lib/print/register-export-files';
+import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
 
 export const dynamic = 'force-dynamic';
@@ -312,6 +312,15 @@ export async function POST(request: NextRequest) {
   // При рендері одного виробу прибирання обмежене його ж файлами — інакше воно
   // зносить готові макети інших книг замовлення (див. коментар у pruneStaleExports).
   await pruneStaleExports(admin, orderId, allUploaded, renderedProjectIds);
+
+  // А тепер те, чого попереднє прибирання не бачить за визначенням: файли
+  // макетів, які до замовлення вже не належать. Дизайнер копіює макет клієнта у
+  // свої чернетки, тобто під новим id, ставить копію на замовлення й запускає
+  // рендер — і прибирання вище, обмежене макетами цього запуску, лишає весь
+  // старий набір на місці. У картці кожна сторінка йшла двічі, у друк пішло б
+  // удвічі більше аркушів, половина з них — стара версія. Працює незалежно від
+  // того, який шлях привів сюди рендер.
+  await pruneExportsOfDetachedProjects(admin, orderId);
 
   // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
   // флекс also needs the monochrome engraving макет, which Railway does not

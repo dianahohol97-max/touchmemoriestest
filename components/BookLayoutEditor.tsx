@@ -3952,10 +3952,25 @@ export default function BookLayoutEditor() {
   // whether the order may still be edited; this only drives the UI.
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [editingOrderNumber, setEditingOrderNumber] = useState<string>('');
+  // РЕЖИМ ВИПРАВЛЕННЯ. Дизайнер відкрив копію макета клієнта, зроблену кнопкою
+  // «Макет → мої чернетки». Тут немає кошика й немає замовлення: збереження
+  // лягає в ту саму чернетку, а на замовлення її ставлять із картки. Без цього
+  // режиму «Зберегти та замовити» додавало виправлення чужого макета в кошик
+  // дизайнера як нову покупку на повну вартість журналу.
+  const [fixOrderId, setFixOrderId] = useState<string | null>(null);
+  const [fixOrderLabel, setFixOrderLabel] = useState<string>('');
+  const [fixProjectId, setFixProjectId] = useState<string | null>(null);
   useEffect(() => {
     try {
       const oid = sessionStorage.getItem('bookEditOrderId');
       if (oid) { setEditingOrderId(oid); setEditingOrderNumber(sessionStorage.getItem('bookEditOrderNumber') || ''); }
+      const fixId = sessionStorage.getItem('bookFixOrderId');
+      const fixProj = sessionStorage.getItem('bookFixProjectId');
+      if (fixId && fixProj) {
+        setFixOrderId(fixId);
+        setFixProjectId(fixProj);
+        setFixOrderLabel(sessionStorage.getItem('bookFixOrderLabel') || '');
+      }
     } catch { /* no sessionStorage */ }
   }, []);
   // The cart line this design last became — lets the success modal offer
@@ -4477,9 +4492,11 @@ export default function BookLayoutEditor() {
     // «Продовжити редагування» can re-target it (a re-save replaces the same
     // line instead of adding a duplicate book).
     setLastCartItemId(cartPayload.id);
-    if (editingOrderId) {
-      // Changing an existing order — the cart must not gain a line for a book
-      // the customer has already paid for.
+    if (fixOrderId || editingOrderId) {
+      // Виправлення чужого замовлення або зміна власного — у кошик нічого не
+      // додається. Гілка виправлення повертається раніше і сюди не доходить;
+      // ця умова лишається другим рубежем, щоб випадкова зміна порядку вище
+      // не повернула зайву позицію в кошик дизайнера.
     } else if (reuseCartItemId) {
       // replaceItem falls back to appending when the id is gone from the cart
       // (customer deleted the line and saved again) — no lost book either way.
@@ -5185,6 +5202,31 @@ export default function BookLayoutEditor() {
         // price) must stop the flow instead of quietly falling through to the
         // cart. Everything above this line — photo upload, snapshot — is the
         // same work either way.
+        // ВИПРАВЛЕННЯ ЧУЖОГО ЗАМОВЛЕННЯ — зберігаємо в ту саму чернетку.
+        // Стоїть перед гілкою editingOrderId і перед кошиком: усе вище
+        // (завантаження фото, знімок дизайну) однаково потрібне, а нижче
+        // починається створення позиції кошика, якої тут бути не повинно.
+        if (fixOrderId && fixProjectId) {
+          const res = await fetch('/api/projects/save-fix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId: fixProjectId, design: designSnapshot, totalPages: contentPages }),
+          });
+          const data = await res.json().catch(() => ({} as any));
+          if (!res.ok || !data.ok) {
+            toast.error(data.error || 'Не вдалося зберегти виправлення.', { duration: 12000 });
+            setIsAddingToCart(false);
+            setUploadState(prev => prev ? { ...prev, active: false } : null);
+            return;
+          }
+          toast.success(
+            `Виправлення збережено. Поверніться в картку замовлення ${data.orderNumber || fixOrderLabel} і натисніть «Поставити на замовлення».`.trim(),
+            { duration: 12000 },
+          );
+          setIsAddingToCart(false);
+          setUploadState(prev => prev ? { ...prev, active: false } : null);
+          return;
+        }
         if (editingOrderId) {
           const res = await fetch(`/api/orders/${editingOrderId}/update-design`, {
             method: 'POST',
@@ -5751,7 +5793,17 @@ export default function BookLayoutEditor() {
                 </button>
               </div>
             ) : (
-              <button onClick={addToCart} disabled={isAddingToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor: isAddingToCart ? 'wait' : 'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>{isAddingToCart ? 'Завантажуємо фото…' : (editingOrderId ? `Зберегти зміни${editingOrderNumber ? ` · ${editingOrderNumber}` : ''}` : 'Зберегти та замовити')}</button>
+              <>
+              {/* Режим виправлення видно постійно, а не лише в підписі кнопки:
+                  дизайнер працює тут годину, і за цей час легко забути, що це
+                  чужий макет, а не власний дизайн. */}
+              {fixOrderId && (
+                <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', background:'#f0f9ff', border:'1px solid #bae6fd', borderRadius:10, fontSize:12, fontWeight:700, color:'#0369a1', maxWidth:420 }}>
+                  Виправлення макета замовлення {fixOrderLabel || ''}. У кошик нічого не додається.
+                </div>
+              )}
+              <button onClick={addToCart} disabled={isAddingToCart} style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 22px', background:'#16a34a', color:'#fff', border:'none', borderRadius:10, fontWeight:800, fontSize:14, cursor: isAddingToCart ? 'wait' : 'pointer', boxShadow:'0 4px 16px rgba(22,163,74,0.35)', opacity: isAddingToCart ? 0.6 : 1 }}>{isAddingToCart ? 'Завантажуємо фото…' : (fixOrderId ? `Зберегти виправлення${fixOrderLabel ? ` · ${fixOrderLabel}` : ''}` : editingOrderId ? `Зберегти зміни${editingOrderNumber ? ` · ${editingOrderNumber}` : ''}` : 'Зберегти та замовити')}</button>
+              </>
             )}
           </div>
         </div>

@@ -267,6 +267,28 @@ export default function AccountPage() {
             // add-to-cart flow stays.
             sessionStorage.removeItem('bookEditOrderId');
             sessionStorage.removeItem('bookEditOrderNumber');
+            // РЕЖИМ ВИПРАВЛЕННЯ ЧУЖОГО ЗАМОВЛЕННЯ.
+            //
+            // Копія, зроблена кнопкою «Макет → мої чернетки», несе позначку
+            // fix_for_order_id. Без неї конструктор бачив звичайну чернетку, і
+            // «Зберегти та замовити» додавало виправлення чужого макета в
+            // кошик дизайнера як нову покупку на повну вартість журналу.
+            // У цьому режимі кошика немає взагалі: збереження лягає в ту саму
+            // чернетку, а на замовлення її ставлять із картки замовлення.
+            sessionStorage.removeItem('bookFixOrderId');
+            sessionStorage.removeItem('bookFixOrderLabel');
+            if ((row as any).fix_for_order_id) {
+                sessionStorage.setItem('bookFixOrderId', String((row as any).fix_for_order_id));
+                // Назва копії має вигляд «TM-001257 — переекспорт», тож номер
+                // беремо з неї: читати orders з акаунта не дає RLS.
+                const label = String(row.name || '').split('—')[0].trim();
+                sessionStorage.setItem('bookFixOrderLabel', label);
+                sessionStorage.setItem('bookFixProjectId', String(row.id));
+                toast.info(
+                    `Ви виправляєте макет замовлення ${label}. Збережене повернеться в картку замовлення, у кошик нічого не додається.`.trim(),
+                    { duration: 9000 },
+                );
+            }
             if (row.order_id) {
                 try {
                     const chk = await fetch(`/api/orders/${row.order_id}/update-design`);

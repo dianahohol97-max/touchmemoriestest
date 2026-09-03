@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { registerExportFiles, pruneStaleExports } from '@/lib/print/register-export-files';
+import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -54,6 +54,9 @@ export async function POST(req: NextRequest) {
   // того самого замовлення — саме так TM-001234 двічі втратило вже готову
   // книгу, поки перерендерювали іншу.
   await pruneStaleExports(admin, project.order_id, uploaded, [String(project.id)]);
+  // Файли макетів, від'єднаних від замовлення — див. коментар до функції.
+  // Цей шлях так само буває останнім у сценарії виправлення дизайнером.
+  await pruneExportsOfDetachedProjects(admin, project.order_id);
 
   // A successful render supersedes any «РЕНДЕР НЕ ВДАВСЯ» note the timed-out
   // path may have written on the order.

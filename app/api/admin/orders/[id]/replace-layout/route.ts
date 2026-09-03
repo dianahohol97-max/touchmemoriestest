@@ -28,17 +28,41 @@ export const dynamic = 'force-dynamic';
  * подав насправді.
  */
 
-/** Чернетки співробітника, названі під це замовлення (див. clone-project-to-me). */
-async function candidatesFor(admin: ReturnType<typeof getAdminClient>, staffUserId: string, orderNumber: string) {
-    const { data } = await admin
-        .from('projects')
-        .select('id, name, product_type, format, total_pages, updated_at, order_id')
-        .eq('user_id', staffUserId)
-        .is('order_id', null)
-        .ilike('name', `${orderNumber}%`)
-        .order('updated_at', { ascending: false })
-        .limit(20);
-    return data || [];
+/**
+ * Чернетки співробітника, придатні як заміна для цього замовлення.
+ *
+ * Основне джерело — позначка fix_for_order_id, яку ставить clone-project-to-me.
+ * Пошук за збігом назви лишається запасним: копії, зроблені до появи колонки,
+ * мають лише назву «TM-XXXXXX — переекспорт», і викидати їх зі списку не можна.
+ * Перейменована чернетка з новим механізмом уже не зникає.
+ */
+async function candidatesFor(
+    admin: ReturnType<typeof getAdminClient>,
+    staffUserId: string,
+    orderId: string,
+    orderNumber: string,
+) {
+    const fields = 'id, name, product_type, format, total_pages, updated_at, order_id';
+    const [marked, named] = await Promise.all([
+        admin.from('projects').select(fields)
+            .eq('user_id', staffUserId).is('order_id', null)
+            .eq('fix_for_order_id', orderId)
+            .order('updated_at', { ascending: false }).limit(20),
+        admin.from('projects').select(fields)
+            .eq('user_id', staffUserId).is('order_id', null)
+            .is('fix_for_order_id', null)
+            .ilike('name', `${orderNumber}%`)
+            .order('updated_at', { ascending: false }).limit(20),
+    ]);
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const row of [...(marked.data || []), ...(named.data || [])]) {
+        const key = String((row as any).id);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(row);
+    }
+    return out.slice(0, 20);
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -51,7 +75,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         .from('orders').select('id, order_number').eq('id', id).maybeSingle();
     if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
 
-    return NextResponse.json({ drafts: await candidatesFor(admin, guard.userId, String(order.order_number || '')) });
+    return NextResponse.json({ drafts: await candidatesFor(admin, guard.userId, order.id, String(order.order_number || '')) });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
