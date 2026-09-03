@@ -43,11 +43,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // How many photo slots actually carry a photo — an empty draft has pages
     // but zero filled slots, which is exactly how a blank book gets printed.
     let filledSlots = 0;
+    const placedPhotoIds = new Set<string>();
     for (const pg of pages) {
       for (const s of (Array.isArray(pg?.slots) ? pg.slots : [])) {
-        if (s?.photoId) filledSlots++;
+        if (s?.photoId) { filledSlots++; placedPhotoIds.add(String(s.photoId)); }
       }
     }
+
+    // Фото, які клієнт завантажив і НЕ поставив на жодну сторінку.
+    //
+    // Рахуємо за id, а не відніманням «завантажено мінус слотів»: одне фото
+    // може стояти у двох слотах, і тоді різниця чисел бреше в обидва боки. На
+    // TM-001257 таких фото було одне з девʼятнадцяти, і ніде про це не було ні
+    // слова — ні в редакторі, ні в картці. Саме воно й породжувало питання «а
+    // куди подівся девʼятнадцятий кадр».
+    const unusedPhotos = photos.filter((u) => u?.id && !placedPhotoIds.has(String(u.id))).length;
 
     // Are the referenced files really in storage? A layout whose photos lost
     // their paths renders blank, so surface that here rather than at the печать.
@@ -94,6 +104,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       totalPages: p.total_pages,
       spreads: Math.max(0, pages.length),
       photos: photos.length,
+      unusedPhotos,
       photosWithPath: withPath.length,
       photosPresentInStorage: presentInStorage,
       filledSlots,

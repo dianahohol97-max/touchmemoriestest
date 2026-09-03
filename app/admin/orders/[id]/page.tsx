@@ -2490,6 +2490,19 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 ? <>{L.format || ''} · готових відбитків у макеті: <b>{L.photos}</b></>
                                                 : <>{L.format || ''} {L.coverType ? `· ${L.coverType}` : ''} · <b>{L.totalPages} стор.</b> · фото на сторінках: <b>{L.filledSlots}</b> · завантажено фото: {L.photos}</>}
                                         </div>
+                                        {/* Невикористані фото. Рахуються за id на сервері, а не
+                                            відніманням чисел: одне фото може стояти у двох слотах,
+                                            і тоді різниця бреше. Це не помилка — завантажити більше,
+                                            ніж поставив, нормально, — але саме звідси беруться
+                                            питання «а куди подівся девʼятнадцятий кадр». */}
+                                        {Number(L.unusedPhotos) > 0 && (
+                                        <div style={{ fontSize: 12, color: '#92400e', marginTop: 4 }}>
+                                            {L.unusedPhotos === 1
+                                                ? 'Одне завантажене фото не потрапило на сторінки.'
+                                                : `Завантажених фото не потрапило на сторінки: ${L.unusedPhotos}.`}
+                                            {' '}Це не помилка, але варто звірити з клієнтом.
+                                        </div>
+                                        )}
                                         {!L.ready && (
                                             <div style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>
                                                 {L.isPrintSet
@@ -2989,8 +3002,33 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     {layoutBooks.length <= 1 && exportBook.length > 0 && (
                                         <div style={{ marginBottom: 12, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                {/* РОЗКЛАД ЧИСЛА, А НЕ ПРОСТО ЧИСЛО.
+                                                    У картці одного замовлення співіснували пʼять різних
+                                                    чисел — «18 стор.», «файлів 39», «макет для друку 20»,
+                                                    «фото 12 · використано 18», а в архіві 16 файлів
+                                                    сторінок. Кожне по-своєму правдиве, разом вони читались
+                                                    як безлад, і зрозуміти, чи все на місці, було неможливо.
+                                                    Насправді 20 = 2 обкладинки + 2 форзаци + 16 сторінок,
+                                                    а «18 сторінок» це 16 нумерованих плюс два форзаци.
+                                                    Достатньо назвати частини, щоб число перестало лякати. */}
+                                                <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                                                     <Printer size={13} /> Макет для друку ({exportBook.length}) · готовий
+                                                    {(() => {
+                                                        const covers = exportBook.filter((f: any) => /cover/i.test(String(f.name || ''))).length;
+                                                        const flyleaves = exportBook.filter((f: any) => /^f\d+\.jpe?g$/i.test(String(f.name || ''))).length;
+                                                        const pages = exportBook.length - covers - flyleaves;
+                                                        const parts = [
+                                                            covers ? `обкладинки ${covers}` : '',
+                                                            flyleaves ? `форзаци ${flyleaves}` : '',
+                                                            pages > 0 ? `сторінки ${pages}` : '',
+                                                        ].filter(Boolean);
+                                                        if (parts.length < 2) return null;
+                                                        return (
+                                                            <span style={{ fontWeight: 600, color: '#15803d', textTransform: 'none', letterSpacing: 0 }}>
+                                                                — {parts.join(' · ')}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 {/* The toolbar's "Завантажити всі" ZIP holds EVERYTHING — print
                                                     files, originals and client photos in one archive. The
