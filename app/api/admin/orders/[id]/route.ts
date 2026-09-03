@@ -62,7 +62,42 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (error || !data) {
         return NextResponse.json({ error: error?.message || 'Not found' }, { status: 404 });
     }
-    return NextResponse.json({ order: data });
+
+    // Історія та лічильник попередніх замовлень їдуть разом із карткою.
+    //
+    // Картка читала обидва прямими запитами з браузера. На order_history є лише
+    // SELECT-політика з is_admin_user(), а orders для менеджера, який не в
+    // admin_users і не призначений дизайнером, теж закриті — тож у більшості
+    // команди панель історії була порожня, а «постійний клієнт» ніколи не
+    // спрацьовував. Мовчки, бо RLS повертає нуль рядків, а не помилку.
+    //
+    // Лічильник заразом перестає бути ін'єкцією у фільтр PostgREST: телефон і
+    // пошта підставлялися в рядок .or() як є, тож кома або дужка в адресі
+    // ламали умову. Тут це два окремі запити з параметрами.
+    const { data: history } = await supabase
+        .from('order_history')
+        .select('*')
+        .eq('order_id', id)
+        .order('created_at', { ascending: false });
+
+    let previousOrdersCount = 0;
+    const phone = (data as any).customer_phone;
+    const email = (data as any).customer_email;
+    if (phone || email) {
+        const seen = new Set<string>();
+        for (const [column, value] of [['customer_phone', phone], ['customer_email', email]] as const) {
+            if (!value) continue;
+            const { data: rows } = await supabase
+                .from('orders')
+                .select('id')
+                .eq(column, value)
+                .neq('id', id);
+            for (const r of rows || []) seen.add((r as any).id);
+        }
+        previousOrdersCount = seen.size;
+    }
+
+    return NextResponse.json({ order: data, history: history || [], previousOrdersCount });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -124,14 +159,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     // Remember whether this PATCH is the order's FIRST transition to paid or to
     // cancelled — both need the pre-update state, so read it before writing.
+    // Той самий знімок потрібен і для історії замовлення нижче, тож читаємо його
+    // ще й тоді, коли міняється статус, оплата або дедлайн.
+    const TRACKED = ['order_status', 'payment_status', 'deadline'] as const;
+    const touched = TRACKED.filter(f => body[f] !== undefined);
+    let before: Record<string, any> | null = null;
     let becamePaid = false;
     let becameCancelled = false;
-    if (body.payment_status === 'paid' || body.order_status === 'cancelled') {
-        const { data: before } = await supabase
+    if (body.payment_status === 'paid' || body.order_status === 'cancelled' || touched.length > 0) {
+        const { data } = await supabase
             .from('orders')
-            .select('payment_status, order_status')
+            .select('payment_status, order_status, deadline')
             .eq('id', id)
             .maybeSingle();
+        before = data as any;
         becamePaid = body.payment_status === 'paid' && !!before && before.payment_status !== 'paid';
         becameCancelled = body.order_status === 'cancelled' && !!before && before.order_status !== 'cancelled';
     }
@@ -144,6 +185,37 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    // ІСТОРІЯ ЗАМОВЛЕННЯ ПИШЕТЬСЯ ТУТ, А НЕ В БРАУЗЕРІ.
+    // Картка після кожного PATCH сама вставляла рядок у order_history прямим
+    // запитом. На order_history є INSERT-політика з умовою is_admin_user(),
+    // тобто «email є в admin_users», а туди входять четверо з чотирнадцяти
+    // активних співробітників. У решти вставка мовчки не проходила: статус
+    // мінявся, а в історії не лишалося нічого, і потім було неможливо сказати,
+    // хто і коли його змінив. Тепер це робить сервер сервісним клієнтом, тож
+    // запис зʼявляється незалежно від того, хто натиснув, і покриває всі шляхи
+    // PATCH, а не лише ті два, де в картці стояла ручна вставка.
+    for (const field of touched) {
+        const oldValue = before ? (before as any)[field] : null;
+        const newValue = (body as any)[field];
+        if (String(oldValue ?? '') === String(newValue ?? '')) continue;
+        const action = field === 'order_status'
+            ? `Зміна статусу: ${oldValue || '—'} → ${newValue || '—'}`
+            : field === 'payment_status'
+            ? `Зміна оплати: ${oldValue || '—'} → ${newValue || '—'}`
+            : 'deadline_changed';
+        const row: Record<string, any> = {
+            order_id: id,
+            action,
+            details: { field, old: oldValue ?? null, new: newValue ?? null },
+        };
+        if (field === 'deadline') {
+            row.notes = `Дедлайн виробництва змінено вручну на ${String(newValue).slice(0, 10)}.`;
+        }
+        const { error: histErr } = await supabase.from('order_history').insert(row);
+        // Історія не має права завалити саме оновлення — воно вже відбулося.
+        if (histErr) console.error('[order-patch] history insert failed', { id, field, error: histErr.message });
+    }
 
     // Paid-transition side effects. Every other way an order becomes paid —
     // the Monobank webhook, «Позначити оплаченим», check-payment, admin

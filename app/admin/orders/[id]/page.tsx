@@ -356,10 +356,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         let cancelled = false;
         (async () => {
             try {
-                const { data } = await supabase.from('settings').select('value').eq('key', 'seller_legal').maybeSingle();
-                if (!cancelled && data?.value) setSellerLegal(data.value as SellerLegal);
-            } catch { /* non-fatal */ }
-            try {
                 const r = await fetch('/api/exchange-rate').then(x => x.json());
                 if (!cancelled && r?.rate) setEurRateFallback(r.rate);
             } catch { /* non-fatal */ }
@@ -502,18 +498,34 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         fetchOrder();
         fetchStaff();
         fetchTags();
-        fetchPrintProfiles();
-        fetchTemplates();
-        fetchIntegrations();
+        fetchReference();
     }, [id]);
 
-    const fetchIntegrations = async () => {
-        const [banksRes, npRes] = await Promise.all([
-            supabase.from('bank_accounts').select('*').eq('is_active', true),
-            supabase.from('np_accounts').select('*').eq('is_active', true)
-        ]);
-        if (banksRes.data) setBankAccounts(banksRes.data);
-        if (npRes.data) setNpAccounts(npRes.data);
+    // Довідники картки одним викликом: реквізити продавця, рахунки, відділення
+    // Нової пошти, шаблони листів, профілі друку.
+    //
+    // Раніше це були чотири прямі запити з браузера, і всі, крім профілів
+    // друку, закриті RLS на is_admin_user(). Для десяти з чотирнадцяти активних
+    // співробітників вони мовчки повертали нуль рядків: без рахунку не
+    // виставиш оплату, без відправника не створиш ТТН, без шаблонів лист
+    // пишеться руками, а комерційний інвойс виходив без реквізитів продавця.
+    // Тепер це серверний роут під requireStaff, який заразом не віддає в
+    // браузер api_key рахунків і Нової пошти — старий select('*') віддавав.
+    // Див. app/api/admin/orders/reference/route.ts.
+    const fetchReference = async () => {
+        try {
+            const res = await fetch('/api/admin/orders/reference');
+            if (!res.ok) throw new Error(`API ${res.status}`);
+            const d = await res.json();
+            setSellerLegal((d.sellerLegal || {}) as SellerLegal);
+            setBankAccounts(Array.isArray(d.bankAccounts) ? d.bankAccounts : []);
+            setNpAccounts(Array.isArray(d.npAccounts) ? d.npAccounts : []);
+            setTemplates(Array.isArray(d.replyTemplates) ? d.replyTemplates : []);
+            setPrintProfiles(Array.isArray(d.printProfiles) ? d.printProfiles : []);
+        } catch (e: any) {
+            console.error('[order] reference data failed', e?.message || e);
+            toast.error('Не вдалося завантажити довідники замовлення');
+        }
     };
 
     const fetchTags = async () => {
@@ -544,16 +556,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             console.error('[order] staff list failed', e?.message || e);
             toast.error('Не вдалося завантажити список співробітників');
         }
-    };
-
-    const fetchPrintProfiles = async () => {
-        const { data } = await supabase.from('print_profiles').select('*');
-        if (data) setPrintProfiles(data);
-    };
-
-    const fetchTemplates = async () => {
-        const { data } = await supabase.from('reply_templates').select('*');
-        if (data) setTemplates(data);
     };
 
     const fetchOrder = async () => {
@@ -610,24 +612,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 description: 'Фотокниги та фотовироби'
             });
 
-            // Fetch previous orders count for this customer
-            if (data.customer_phone || data.customer_email) {
-                const { count } = await supabase
-                    .from('orders')
-                    .select('*', { count: 'exact', head: true })
-                    .or(`customer_phone.eq.${data.customer_phone},customer_email.eq.${data.customer_email}`)
-                    .neq('id', id);
-                setPreviousOrdersCount(count || 0);
-            }
         }
 
-        const { data: historyData } = await supabase
-            .from('order_history')
-            .select('*')
-            .eq('order_id', id)
-            .order('created_at', { ascending: false });
-
-        if (historyData) setHistory(historyData);
+        // Історія та «скільки замовлень уже було» приходять із тієї самої
+        // відповіді. Обидва раніше читалися прямо з браузера й були закриті RLS
+        // для всіх, крім чотирьох людей у admin_users: панель історії стояла
+        // порожня, а постійного клієнта система не впізнавала.
+        setHistory(Array.isArray(json.history) ? json.history : []);
+        setPreviousOrdersCount(Number(json.previousOrdersCount) || 0);
         } catch (err) {
             console.error('fetchOrder error:', err);
         } finally {
@@ -645,12 +637,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             });
             if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити статус');
 
-            await supabase.from('order_history').insert({
-                order_id: id,
-                action: `Зміна статусу: ${order.order_status} → ${newStatus}`,
-                details: { old: order.order_status, new: newStatus }
-            });
-
+            // Рядок в order_history пише сам PATCH: на таблиці INSERT-політика
+            // з is_admin_user(), тож звідси вставка мовчки не проходила ні в
+            // кого, крім чотирьох людей у admin_users.
             toast.dismiss(loadingToast);
             toast.success('Статус оновлено');
             fetchOrder();
@@ -1318,12 +1307,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         body: JSON.stringify({ deadline: `${v}T09:00:00Z`, updated_at: new Date().toISOString() }),
                                     });
                                     if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити дедлайн');
-                                    await supabase.from('order_history').insert({
-                                        order_id: id,
-                                        action: 'deadline_changed',
-                                        notes: `Дедлайн виробництва змінено вручну на ${v}.`,
-                                        details: { old: order.deadline, new: v },
-                                    });
+                                    // Історію пише сам PATCH — див. коментар у updateStatus.
                                     toast.dismiss(loadingToast);
                                     toast.success('Дедлайн оновлено');
                                     fetchOrder();
@@ -3264,7 +3248,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 /object/public/ URL returns 400 and the thumbnail broke
                                 (TM-001037). Sign the path instead. */}
                             {order.text_brief.cover?.photo_path && (
-                                <BriefCoverPhoto photoPath={order.text_brief.cover.photo_path} cover={order.text_brief.cover} smallLabelStyle={smallLabelStyle} supabase={supabase} />
+                                <BriefCoverPhoto photoPath={order.text_brief.cover.photo_path} cover={order.text_brief.cover} smallLabelStyle={smallLabelStyle} />
                             )}
 
                             {/* Cover data without photo */}
@@ -3579,14 +3563,18 @@ const dropdownOptionStyle = { width: '100%', display: 'flex', alignItems: 'cente
 
 // Brief cover photo with a SIGNED url — order-files is a private bucket, so
 // the old hard-coded /object/public/ link 400'd and the thumbnail was broken.
-function BriefCoverPhoto({ photoPath, cover, smallLabelStyle, supabase }: { photoPath: string; cover: any; smallLabelStyle: any; supabase: any }) {
+function BriefCoverPhoto({ photoPath, cover, smallLabelStyle }: { photoPath: string; cover: any; smallLabelStyle: any }) {
     const [url, setUrl] = useState<string>('');
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
-                const { data } = await supabase.storage.from('order-files').createSignedUrl(photoPath, 60 * 60);
-                if (!cancelled && data?.signedUrl) setUrl(data.signedUrl);
+                // Підпис бере сервер: політики order-files дають читання лише
+                // is_admin(), тож із браузера менеджер і дизайнер отримували
+                // порожньо замість фото.
+                const r = await fetch(`/api/admin/storage-signed-url?bucket=order-files&path=${encodeURIComponent(photoPath)}`);
+                const d = await r.json();
+                if (!cancelled && d?.url) setUrl(d.url);
             } catch { /* keep placeholder */ }
         })();
         return () => { cancelled = true; };
