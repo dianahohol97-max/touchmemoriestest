@@ -41,6 +41,7 @@ import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { engravingAllowedOn } from '@/lib/products/decoration-rules';
 import { buildTrimGuides } from '@/lib/print/trim-guides';
+import { findSafeZoneViolations, describeViolations } from '@/lib/editor/safe-zone';
 import type { SizeGeometry } from '@/lib/print/geometry';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
@@ -3998,6 +3999,34 @@ export default function BookLayoutEditor() {
     if (!config) {
       try { toast.error(t('constructor.price_error')); } catch {}
       return;
+    }
+    // ТЕКСТ ЗА ЛІНІЄЮ ОБРІЗУ — останній момент, коли це ще дешево виправити.
+    //
+    // Правила давно намальовані на /print?guides=1, але той екран відкривають
+    // уже після оформлення. Через це клієнт спокійно клав заголовок на зріз,
+    // дизайнер потім посував кожен такий блок вручну на кожному розвороті, а
+    // менеджер писав окремий лист «бачимо, ви розміщували текст близько до
+    // краю, і все гаразд?». На TM-001257 так вийшло шість розворотів плюс
+    // обкладинка.
+    //
+    // Свідомо НЕ жорстке блокування: буває задум, де підпис має йти під зріз,
+    // і забороняти його означало б зупинити оформлення без виходу. Тому
+    // перелік проблемних сторінок і явне підтвердження — тобто рішення
+    // приймається, а не проґавлюється.
+    try {
+      const violations = findSafeZoneViolations(pages as any, bleed as any);
+      if (violations.length > 0) {
+        const ok = confirm(
+          'Текст виходить за лінію обрізу — на друці ці рядки може зрізати.\n\n'
+          + describeViolations(violations)
+          + '\n\nПосуньте блоки всередину синього пунктиру або натисніть OK, щоб залишити як є.',
+        );
+        if (!ok) return;
+      }
+    } catch (e) {
+      // Перевірка ніколи не має заважати оформленню: якщо геометрія не
+      // порахувалась, замовлення йде як ішло.
+      console.warn('[safe-zone] check skipped', e);
     }
     setIsAddingToCart(true);
     try {
