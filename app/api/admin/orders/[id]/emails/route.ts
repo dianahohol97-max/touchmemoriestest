@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let text = '';
   let files: File[] = [];
   // Файли, які браузер уже поклав у сховище сам і передав лише шляхами.
-  let preUploaded: { path: string; name: string }[] = [];
+  let preUploaded: { path: string; name: string; bucket: string }[] = [];
   const contentType = req.headers.get('content-type') || '';
   if (contentType.includes('multipart/form-data')) {
     const form = await req.formData().catch(() => null);
@@ -109,17 +109,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (Array.isArray(body?.attachments)) {
       preUploaded = body.attachments
         .filter((a: any) => a && typeof a.path === 'string')
-        .map((a: any) => ({ path: String(a.path), name: String(a.name || '').trim() || 'file' }))
+        .map((a: any) => ({
+          path: String(a.path),
+          name: String(a.name || '').trim() || 'file',
+          bucket: typeof a.bucket === 'string' && a.bucket ? String(a.bucket) : 'order-files',
+        }))
         .slice(0, 10);
-    }
-  }
-
-  // Шлях приходить від клієнта, тож звужуємо його до теки, яку видає
-  // /api/admin/storage-upload-url. Інакше staff-запит міг би націлити лист на
-  // будь-який обʼєкт у бакеті замовлень і надіслати його клієнту.
-  for (const a of preUploaded) {
-    if (!/^admin-letters\/[A-Za-z0-9._-]+$/.test(a.path)) {
-      return NextResponse.json({ error: `${a.name}: недопустимий шлях вкладення` }, { status: 400 });
     }
   }
 
@@ -150,6 +145,42 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!order) return NextResponse.json({ error: 'order not found' }, { status: 404 });
   if (!order.customer_email) {
     return NextResponse.json({ error: 'у замовлення немає email клієнта' }, { status: 400 });
+  }
+
+  // Шлях приходить від клієнта, тож дозволені рівно два джерела.
+  //
+  // Перше — тека, яку видає /api/admin/storage-upload-url: щойно завантажений
+  // файл листа.
+  //
+  // Друге — файл, який УЖЕ належить цьому замовленню. Це не послаблення, а
+  // перевірка сильніша за регулярку: ми не вгадуємо теку, а звіряємося з
+  // order_files по order_id. Потрібне воно тому, що макет для друку вже лежить
+  // у сховищі, і менеджер його звідти скачував, щоб тут-таки завантажити
+  // назад — 65 МБ через браузер, які й падали з «не вдалося завантажити файл».
+  // Тепер той самий файл чіпляється за посиланням, без жодного завантаження.
+  //
+  // Без цієї перевірки staff-запит міг би націлити лист на будь-який обʼєкт у
+  // бакеті замовлень і надіслати його чужому клієнту.
+  const ownFiles = new Map<string, string>();
+  {
+    const { data: rows } = await admin
+      .from('order_files')
+      .select('file_path, bucket_name')
+      .eq('order_id', order.id);
+    for (const r of rows || []) {
+      ownFiles.set(String((r as any).file_path), String((r as any).bucket_name || 'order-files'));
+    }
+  }
+  for (const a of preUploaded) {
+    if (/^admin-letters\/[A-Za-z0-9._-]+$/.test(a.path)) {
+      a.bucket = 'order-files';
+      continue;
+    }
+    const bucket = ownFiles.get(a.path);
+    if (!bucket) {
+      return NextResponse.json({ error: `${a.name}: недопустимий шлях вкладення` }, { status: 400 });
+    }
+    a.bucket = bucket;
   }
 
   // Файли спершу лягають у сховище, і аж потім їдуть листом. Порядок саме
@@ -195,7 +226,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // не завантажуються сюди взагалі.
   for (const a of preUploaded) {
     const { data: signed } = await admin.storage
-      .from('order-files')
+      .from(a.bucket)
       .createSignedUrl(a.path, SIGNED_URL_TTL_SECONDS);
     if (!signed?.signedUrl) {
       return NextResponse.json({ error: `${a.name}: файл не знайдено у сховищі` }, { status: 404 });
@@ -206,12 +237,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // що вкладенням він не поміщається — а саме такі макети сюди й носять.
     const folder = a.path.slice(0, a.path.lastIndexOf('/'));
     const base = a.path.slice(a.path.lastIndexOf('/') + 1);
-    const { data: listed } = await admin.storage.from('order-files').list(folder, { search: base, limit: 1 });
+    const { data: listed } = await admin.storage.from(a.bucket).list(folder, { search: base, limit: 1 });
     const size = Number(listed?.[0]?.metadata?.size) || 0;
 
     let buf: Buffer | null = null;
     if (size > 0 && inlineBytes + size <= MAX_INLINE_TOTAL_BYTES) {
-      const { data: blob } = await admin.storage.from('order-files').download(a.path);
+      const { data: blob } = await admin.storage.from(a.bucket).download(a.path);
       if (blob) buf = Buffer.from(await blob.arrayBuffer());
     }
 

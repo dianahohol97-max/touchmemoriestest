@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, use, useRef, useCallback } from 'react';
+import { useState, useEffect, use, useRef, useCallback, useMemo } from 'react';
 import { isPrintSetCategory } from '@/lib/print/print-set-categories';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
@@ -155,6 +155,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => { loadLayoutDrafts(); }, [loadLayoutDrafts]);
 
+  /** Розмір вкладення людською мовою. */
+  const fmtAttachmentSize = (bytes: number) =>
+    bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} МБ` : `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+
   // «Листування» card: send a letter to the customer straight from the order.
   //
   // Лист може везти файли — насамперед макет на погодження, заради якого це
@@ -166,6 +170,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       toast.error('Заповніть тему і текст листа');
       return;
     }
+    // Лист везе не більше десяти файлів — стільки ж приймає й обробник, тож
+    // зайве він мовчки відрізав би, і менеджер дізнався б про це вже з листа.
+    if (emailFiles.length + emailPicked.length > 10) {
+      toast.error('До листа можна прикріпити не більше десяти файлів. Приберіть зайві або надішліть двома листами.');
+      return;
+    }
     setEmailSending(true);
     try {
       // Файли йдуть у сховище НАПРЯМУ з браузера, а листу передаються самими
@@ -175,7 +185,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       // пояснення — запит помирав ще до обробника, тож і тексту помилки не
       // було звідки взяти. Той самий обхід уже застосований для фото товарів,
       // див. /api/admin/storage-upload-url.
-      const attachments: { path: string; name: string }[] = [];
+      // Спершу те, що вже лежить на замовленні: жодного байта через браузер.
+      const attachments: { path: string; name: string; bucket?: string }[] =
+        emailPicked.map(p => ({ path: p.path, name: p.name, bucket: p.bucket }));
       for (const f of emailFiles) {
         const signRes = await fetch('/api/admin/storage-upload-url', {
           method: 'POST',
@@ -191,7 +203,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           .from(signJson.bucket)
           .uploadToSignedUrl(signJson.path, signJson.token, f, { contentType: f.type || undefined });
         if (upErr) {
-          toast.error(`${f.name}: не вдалося завантажити файл`);
+          // Текст помилки показуємо як є. Раніше тут стояло глухе «не вдалося
+          // завантажити файл», і на макеті 14244 (1).pdf на 65 МБ це був
+          // тупик: незрозуміло, чи то ліміт сховища, чи мережа, чи термін дії
+          // токена. Причина зазвичай саме в розмірі, тож поруч підказуємо
+          // короткий шлях — той самий файл уже є на замовленні.
+          const why = String((upErr as any)?.message || '').trim();
+          toast.error(
+            `${f.name}: не вдалося завантажити файл${why ? ` — ${why}` : ''}. Якщо цей файл уже є на замовленні, прикріпіть його кнопкою «З файлів замовлення».`,
+          );
           return;
         }
         attachments.push({ path: signJson.path, name: f.name });
@@ -216,6 +236,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       setEmailSubject('');
       setEmailBody('');
       setEmailFiles([]);
+      setEmailPicked([]);
       try {
         const hr = await fetch(`/api/admin/orders/${order.id}/emails`);
         if (hr.ok) { const { items } = await hr.json(); if (Array.isArray(items)) setEmailHistory(items); }
@@ -295,7 +316,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [emailSending, setEmailSending] = useState(false);
     // Файли до листа — макет на погодження, зразок обкладинки тощо.
     const [emailFiles, setEmailFiles] = useState<File[]>([]);
+    // Файли, які вже лежать на цьому замовленні. Вони чіпляються посиланням і
+    // НЕ завантажуються з браузера повторно — див. sendOrderEmail.
+    const [emailPicked, setEmailPicked] = useState<{ path: string; bucket: string; name: string; size: number | null }[]>([]);
+    const [emailPickerOpen, setEmailPickerOpen] = useState(false);
     const emailFileInputRef = useRef<HTMLInputElement>(null);
+    /**
+     * Файли замовлення, які можна прикріпити посиланням.
+     *
+     * Тільки ті, у яких є шлях у сховищі: /api/designer/order-photos віддає
+     * його лише для записів order_files, а лист приймає вкладення саме після
+     * звірки з цією таблицею. Файли, знайдені скануванням теки, і фото з
+     * незбереженого макета шляху не мають — і в списку їх свідомо немає, щоб
+     * не пропонувати кнопку, яка поверне «недопустимий шлях вкладення».
+     */
+    const attachableOrderFiles = useMemo(
+        () => uploadedFiles.filter((f: any) => typeof f?.path === 'string' && f.path),
+        [uploadedFiles],
+    );
+    /** Скільки важать вкладення разом — і завантажені, і взяті з замовлення. */
+    const emailAttachmentBytes = useMemo(
+        () => emailFiles.reduce((n, f) => n + f.size, 0) + emailPicked.reduce((n, f) => n + (f.size || 0), 0),
+        [emailFiles, emailPicked],
+    );
     const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
     // Customer's saved constructor layout(s) for this order — shown even when
     // nothing has been rendered yet, so a linked design is never invisible.
@@ -3183,25 +3226,71 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     rows={4}
                                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, resize: 'vertical', outline: 'none' }}
                                 />
-                                {emailFiles.length > 0 && (
+                                {(emailFiles.length > 0 || emailPicked.length > 0) && (
                                     <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {emailPicked.map((f, i) => (
+                                            <div key={f.path}
+                                                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 12 }}>
+                                                <Paperclip size={13} color="#16a34a" />
+                                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1e293b' }}>{f.name}</span>
+                                                <span style={{ color: '#16a34a', fontSize: 11, flexShrink: 0 }}>вже на замовленні</span>
+                                                {f.size ? (
+                                                    <span style={{ color: '#94a3b8', fontSize: 11, flexShrink: 0 }}>{fmtAttachmentSize(f.size)}</span>
+                                                ) : null}
+                                                <button
+                                                    onClick={() => setEmailPicked(prev => prev.filter((_, k) => k !== i))}
+                                                    title="Прибрати файл"
+                                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontSize: 15, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+                                            </div>
+                                        ))}
                                         {emailFiles.map((f, i) => (
                                             <div key={`${f.name}-${i}`}
                                                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12 }}>
                                                 <Paperclip size={13} color="#64748b" />
                                                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1e293b' }}>{f.name}</span>
-                                                <span style={{ color: '#94a3b8', fontSize: 11, flexShrink: 0 }}>
-                                                    {f.size >= 1024 * 1024 ? `${(f.size / (1024 * 1024)).toFixed(1)} МБ` : `${Math.max(1, Math.round(f.size / 1024))} КБ`}
-                                                </span>
+                                                <span style={{ color: '#94a3b8', fontSize: 11, flexShrink: 0 }}>{fmtAttachmentSize(f.size)}</span>
                                                 <button
                                                     onClick={() => setEmailFiles(prev => prev.filter((_, k) => k !== i))}
                                                     title="Прибрати файл"
                                                     style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#ef4444', fontSize: 15, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
                                             </div>
                                         ))}
-                                        {emailFiles.reduce((n, f) => n + f.size, 0) > 6 * 1024 * 1024 && (
+                                        {emailAttachmentBytes > 6 * 1024 * 1024 && (
                                             <div style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 6, padding: '6px 8px' }}>
                                                 Разом більше 6 МБ. Те, що не вміститься вкладенням, клієнт отримає посиланням — воно працює місяць.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {emailPickerOpen && (
+                                    <div style={{ marginTop: 8, padding: '8px 10px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                                            Ці файли вже лежать у сховищі замовлення, тож завантажувати їх заново не треба. Оберіть те, що надсилаєте клієнту.
+                                        </div>
+                                        {attachableOrderFiles.length === 0 ? (
+                                            <div style={{ fontSize: 12, color: '#94a3b8' }}>
+                                                На замовленні поки немає файлів, які можна прикріпити без завантаження.
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+                                                {attachableOrderFiles.map((f: any) => {
+                                                    const chosen = emailPicked.some(p => p.path === f.path);
+                                                    return (
+                                                        <button
+                                                            key={f.path}
+                                                            onClick={() => setEmailPicked(prev => chosen
+                                                                ? prev.filter(p => p.path !== f.path)
+                                                                : [...prev, { path: f.path, bucket: f.bucket || 'order-files', name: f.name || 'file', size: typeof f.size === 'number' ? f.size : null }].slice(0, 10))}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', background: chosen ? '#eef2ff' : 'transparent', border: `1px solid ${chosen ? '#c7d2fe' : 'transparent'}`, borderRadius: 6, fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>
+                                                            <Paperclip size={12} color={chosen ? '#1e2d7d' : '#94a3b8'} />
+                                                            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1e293b' }}>{f.name}</span>
+                                                            {f.isExport && <span style={{ fontSize: 10, color: '#1e2d7d', flexShrink: 0 }}>макет</span>}
+                                                            {typeof f.size === 'number' && f.size > 0 && (
+                                                                <span style={{ color: '#94a3b8', fontSize: 11, flexShrink: 0 }}>{fmtAttachmentSize(f.size)}</span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>
@@ -3233,6 +3322,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#1e2d7d', border: '1px solid #c7d2fe', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
                                         <Paperclip size={14} />
                                         {emailFiles.length > 0 ? `Файли (${emailFiles.length})` : 'Прикріпити макет'}
+                                    </button>
+                                    <button
+                                        onClick={() => setEmailPickerOpen(o => !o)}
+                                        disabled={emailSending}
+                                        title="Прикріпити файл, який уже лежить на замовленні — без повторного завантаження"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: emailPickerOpen ? '#eef2ff' : '#fff', color: '#1e2d7d', border: '1px solid #c7d2fe', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: emailSending ? 'default' : 'pointer' }}>
+                                        <FileText size={14} />
+                                        {emailPicked.length > 0 ? `З файлів замовлення (${emailPicked.length})` : 'З файлів замовлення'}
                                     </button>
                                 </div>
                             </div>

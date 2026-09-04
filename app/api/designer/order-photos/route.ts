@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
 
     const { data: files, error } = await admin
         .from('order_files')
-        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type')
+        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type, file_size')
         .eq('order_id', orderId)
         .in('file_type', ['upload', 'export'])
         .order('page_number', { ascending: true, nullsFirst: true })
@@ -197,6 +197,23 @@ export async function GET(req: NextRequest) {
         product_id?: string | null;
         bookId?: string | null;
         printBatch?: string | null;
+        /**
+         * Шлях у сховищі — тільки для файлів, зареєстрованих в order_files.
+         *
+         * Потрібен картці замовлення, щоб прикріпити готовий макет до листа
+         * клієнту БЕЗ повторного завантаження. Менеджер до цього скачував
+         * PDF із цієї ж картки і вивантажував його назад через браузер: на
+         * 65 МБ це падало з «не вдалося завантажити файл», хоча файл увесь
+         * цей час лежав у сховищі за два кроки звідси.
+         *
+         * У знайдених скануванням теки файлів і в фото з projects шляху тут
+         * немає свідомо: /api/admin/orders/[id]/emails приймає вкладення лише
+         * після звірки з order_files по order_id, тож пропонувати те, що не
+         * пройде перевірку, означало б показати кнопку, яка не працює.
+         */
+        path?: string | null;
+        bucket?: string | null;
+        size?: number | null;
     }> = [];
 
     const ONE_DAY = 60 * 60 * 24;
@@ -220,6 +237,9 @@ export async function GET(req: NextRequest) {
                 product_id: null,
                 bookId: bookOf(f.file_path),
                 printBatch: printBatchOf(f.file_path),
+                path: f.file_path,
+                bucket,
+                size: typeof (f as any).file_size === 'number' ? (f as any).file_size : null,
             });
         });
     }
