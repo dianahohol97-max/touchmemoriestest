@@ -4,6 +4,7 @@ import { coverTextScale } from './text-scale';
 import { glyphCoverage, fixToPrintableText } from './font-coverage';
 import { engravedInk } from './engraved-ink';
 import { parseDecoVariantMm } from './deco-variant';
+import { isEngravedDeco, stripEmoji } from './engravable-text';
 
 export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
 
@@ -336,8 +337,15 @@ export async function renderWishbookCoverPng(
   const frontW = mono ? W : W / 2;
 
   const bg = mono ? '#FFFFFF' : resolveCoverColor(spec.material, spec.coverColorName);
-  const title = (spec.title || '').trim();
   const decoType = spec.decoType;
+  // Емодзі на гравіювання не йдуть (правило, див. lib/print/engravable-text).
+  // Прибираємо їх і тут, щоб макет обкладинки показував рівно те, що буде на
+  // виробі: інакше на картинці сердечко є, а на металі його немає, і різницю
+  // побачить уже клієнт. Друковані вставки (акрил, фотовставка) кольорові,
+  // там напис лишається як є.
+  const title = isEngravedDeco(decoType)
+    ? stripEmoji(spec.title).text
+    : (spec.title || '').trim();
 
   // Decoration plate footprint (mm → px). The plate is a physical object, so it
   // is measured against the full sheet width in both modes.

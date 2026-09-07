@@ -5,6 +5,8 @@ import { useT } from '@/lib/i18n/context';
 import { ImageIcon, Move } from 'lucide-react';
 import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { parseDecoVariantMm } from '@/lib/print/deco-variant';
+import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
+import { toast } from 'sonner';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
 export type DecoType = 'none' | 'acryl' | 'photovstavka' | 'metal' | 'flex' | 'graviruvannya';
@@ -528,6 +530,26 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const metalHex = metalGrad;
 
   // Text drag
+  /**
+   * Запис напису з поля, яке редагується просто на обкладинці.
+   *
+   * Емодзі на гравіювання не йдуть — правило майстерні (Діана, 2026-09-07).
+   * Поле тут contentEditable, тобто його вміст React не контролює, тож після
+   * прибирання емодзі текст у самому елементі треба переписати руками:
+   * інакше у стані буде вже чистий напис, а на екрані все ще сердечко, і
+   * клієнт вирішить, що воно збережеться.
+   */
+  const commitDecoText = (el: HTMLElement) => {
+    const raw = el.textContent || '';
+    if (!isEngravedDeco(config.decoType)) { onChange({ decoText: raw }); return; }
+    const { text, dropped } = stripEmoji(raw);
+    if (dropped.length > 0) {
+      el.textContent = text;
+      toast.error('Емодзі не гравіюються, тому в напис вони не потрапляють. Літери, цифри й розділові знаки працюють як завжди.', { id: 'deco-emoji' });
+    }
+    onChange({ decoText: text });
+  };
+
   const handleTextMouseDown = (e: React.PointerEvent) => {
     e.stopPropagation(); e.preventDefault();
     haptic.light();
@@ -939,7 +961,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
               boxShadow:'0 3px 14px rgba(0,0,0,0.4),inset 0 1px 1px rgba(255,255,255,0.4)',
               display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
               <span contentEditable suppressContentEditableWarning
-                onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
+                onBlur={e=>commitDecoText(e.currentTarget)}
                 style={{ color:flexColorVal==='gold'?'#3D2800':'#1A1A1A', fontSize:scaleFont(config.textFontSize, Math.max(10,Math.min(boxW/8,22)))+'px',
                   fontFamily:(config.textFontFamily || 'Montserrat')+',sans-serif', fontWeight:700, letterSpacing:'0.05em',
                   outline:'none', cursor:'text', textAlign:'center', padding:'0 6px', maxWidth:'90%', wordBreak:'break-word' }}>
@@ -955,7 +977,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 cursor:'move', userSelect:'none', zIndex:10, padding:'10px 16px',
                 border:'1px dashed rgba(255,255,255,0.3)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
-                onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
+                onBlur={e=>commitDecoText(e.currentTarget)}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
                 onPointerDown={e=>e.stopPropagation()}
                 style={{ color:flexHex, textShadow:'0 0 8px rgba(0,0,0,0.3)', fontSize:fontSize+'px',
@@ -977,7 +999,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 cursor:'move', userSelect:'none', zIndex:10, padding:'10px 16px',
                 border:'1px dashed rgba(255,255,255,0.2)', borderRadius:4, touchAction:'manipulation' }}>
               <span contentEditable suppressContentEditableWarning
-                onBlur={e=>onChange({decoText:e.currentTarget.textContent||''})}
+                onBlur={e=>commitDecoText(e.currentTarget)}
                 onClick={e=>e.stopPropagation()} onMouseDown={e=>e.stopPropagation()}
                 onPointerDown={e=>e.stopPropagation()}
                 style={{ color:darkenHex(bgColor, 50), textShadow:`0 1px 0 ${darkenHex(bgColor,80)},0 -1px 0 rgba(255,255,255,0.1)`,

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, DragEvent } from 'react';
+import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
@@ -18,6 +18,7 @@ import { PageTemplate, PAGE_TEMPLATES } from '@/lib/editor/page-templates';
 import { resolveCustomSlot, getSlotDefs } from '@/lib/editor/slot-defs';
 import { CoverTemplate } from '@/lib/editor/cover-templates';
 import { toast } from 'sonner';
+import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
 import { extendBleed, setJpegDpi300, embedSRGBProfile, renderInsetFiles } from '@/lib/jpeg-print-utils';
@@ -979,6 +980,29 @@ export default function BookLayoutEditor() {
     } catch {}
     return { decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
   });
+  /**
+   * Напис оздоблення. Емодзі на гравіювання не йдуть — це правило майстерні
+   * (Діана, 2026-09-07), а не технічне обмеження.
+   *
+   * Ловимо їх тут, у полі вводу, а не десь у кінці конвеєра: клієнт має
+   * побачити, що сердечко не приймається, поки він ще пише напис, а не
+   * дізнатися про це з готового виробу. Металева пластина, гравіювання і
+   * флекс ріжуться лазером в один колір і одну глибину, тож кольорове емодзі
+   * стало б чорною плямою (TM-001288 замовив «…одне до одного 🤍 11.07.2026
+   * 🤍»). Друковані вставки — акрил і фотовставка — кольорові, там напис
+   * лишається як є.
+   */
+  const setDecoText = useCallback((raw: string) => {
+    setCoverState(prev => {
+      if (!isEngravedDeco(prev.decoType)) return { ...prev, decoText: raw };
+      const { text, dropped } = stripEmoji(raw);
+      if (dropped.length > 0) {
+        toast.error('Емодзі не гравіюються, тому в напис вони не потрапляють. Літери, цифри й розділові знаки працюють як завжди.', { id: 'deco-emoji' });
+      }
+      return { ...prev, decoText: text };
+    });
+  }, []);
+
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [selectedFreeSlotId, setSelectedFreeSlotId] = useState<string | null>(null);
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
@@ -6685,7 +6709,7 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
-                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                      <input value={coverState.decoText||''} onChange={e=>setDecoText(e.target.value)} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:5 }}>Колір флексу</div>
@@ -6710,7 +6734,7 @@ export default function BookLayoutEditor() {
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
-                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                      <input value={coverState.decoText||''} onChange={e=>setDecoText(e.target.value)} placeholder="Введіть текст на обкладинці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт</div>
@@ -6729,7 +6753,7 @@ export default function BookLayoutEditor() {
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Текст напису</div>
-                      <input value={coverState.decoText||''} onChange={e=>setCoverState(prev=>({...prev,decoText:e.target.value}))} placeholder="Введіть текст на вставці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
+                      <input value={coverState.decoText||''} onChange={e=>setDecoText(e.target.value)} placeholder="Введіть текст на вставці" style={{ width:'100%', padding:'8px 10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box' }}/>
                     </div>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>Шрифт напису</div>
@@ -11189,7 +11213,7 @@ export default function BookLayoutEditor() {
                       </div>
                       <div>
                         <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Текст на обкладинці</div>
-                        <input value={coverState.decoText||''} onChange={e=>setCoverState(p=>({...p,decoText:e.target.value}))}
+                        <input value={coverState.decoText||''} onChange={e=>setDecoText(e.target.value)}
                           placeholder="Ваш напис"
                           style={{ width:'100%', padding:'10px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:13, boxSizing:'border-box' }}/>
                       </div>

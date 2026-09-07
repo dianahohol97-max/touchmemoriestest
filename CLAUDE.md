@@ -117,6 +117,8 @@ One difference is still deliberately per-call-site and is noted in that file: th
 
 10. **Polaroid has no finish option, and that is deliberate** (Diana, 2026-08-19). Every sibling in the print family — `photoprint-standard`, `photoprint-nonstandard`, `photomagnets` — carries a «Покриття» option with Глянцеве/Матове. `polaroid-print` carries only «Формат», so polaroid orders arrive with no finish recorded and the admin card shows nothing for it. Asked whether to add the option, Diana said no. **Polaroid is matte by default** — that is the standing answer for production, not something to ask the customer. Don't "fix" the missing option.
 
+11. **Емодзі на гравіювання не йдуть — це правило** (Diana, 2026-09-07). Лазер ріже один колір і одну глибину, тож кольорове емодзі стає чорною плямою, а відсутній гліф — порожнім квадратом. Правило діє для трьох типів оздоблення, які фізично гравіюються: `metal`, `graviruvannya`, `flex`. Друковані вставки (`acryl`, `photovstavka`) кольорові — там напис лишається як є. Реалізація в `lib/print/engravable-text.ts`, і вона стоїть у трьох місцях одразу: у полях вводу конструктора (клієнт бачить відмову, поки пише), у файлі для лазера і в рендері обкладинки. Прибираються символи з властивістю `Emoji_Presentation` плюс послідовності з селектором варіації; знаки ♡ ♥ ★ ☀ ✓ — це типографіка, вони лишаються, заради них у `font-coverage` окремо докладено шрифти. Не «спрощуй» це до `\p{Extended_Pictographic}`: воно забере й сердечка з роздільників.
+
 ---
 
 ## Git workflow

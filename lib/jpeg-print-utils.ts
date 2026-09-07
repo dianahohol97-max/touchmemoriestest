@@ -21,6 +21,7 @@
 
 import { decoFileName, parseDecoVariantMm } from '@/lib/print/deco-variant';
 import { fitTextBlock } from '@/lib/print/text-wrap';
+import { stripEmoji } from '@/lib/print/engravable-text';
 
 /**
  * Returns a new Blob that is byte-for-byte the same JPEG except the
@@ -542,6 +543,14 @@ function renderTextInsetCanvas(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
+  // Емодзі під лазер не йдуть — правило майстерні, див.
+  // lib/print/engravable-text. Ця функція малює ВИКЛЮЧНО файли для
+  // гравіювання (метал, гравіювання, флекс), тож правило застосовується тут
+  // для всіх трьох одразу. Це остання застава: конструктор не дає ввести
+  // емодзі, але макети, збережені до появи правила, теж не повинні поїхати
+  // на верстат із чорною плямою замість сердечка.
+  const engravable = stripEmoji(text).text;
+
   // Кегль І перенесення підбираються разом.
   //
   // Раніше текст лишався одним рядком, а якщо не влазив у ширину — просто
@@ -555,7 +564,7 @@ function renderTextInsetCanvas(
     ctx.font = `bold ${px}px ${fontFamily}, Playfair Display, Georgia, serif`;
   };
   const { fontPx, lines } = fitTextBlock({
-    text: text || '',
+    text: engravable,
     maxWidth: targetWidth,
     maxHeight: H * 0.86,
     startFontPx: Math.round(H * fontSizePctOfCanvas / 100),
