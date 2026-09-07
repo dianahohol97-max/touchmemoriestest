@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useB2b } from '@/lib/b2b/useB2b';
 import { toast } from 'sonner';
 import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
+import { coverScaleForRotation, fitBoxForRotation } from '@/lib/print/photo-rotation';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
 
@@ -350,7 +351,10 @@ function PhotoPreview({
     // when the element is already positioned via CSS transform.
     const frameAR = aW / aH;
     const imgAR = (photo.width && photo.height) ? (photo.width / photo.height) : frameAR;
-    const coverFactor = imgAR > frameAR ? (imgAR / frameAR) : (frameAR / imgAR);
+    // Поворот міняє осі місцями, тож покриття рахується по повернутій рамці.
+    // Без цього повернуте фото не накривало вікно ні тут, ні в друці — і те,
+    // що на екрані виглядало білим полем, у JPEG виходило чорним (14217).
+    const coverFactor = coverScaleForRotation(aW, aH, imgAR, photo.rotation);
     const effScale = Math.max(1, (photo.zoom || 1)) * coverFactor;
 
     return (
@@ -440,7 +444,9 @@ function PhotoPreview({
   // visible and nothing force-cropped, so the customer can finally reframe.
   const frameAR = canvasW / canvasH;
   const imgAR = (photo.width && photo.height) ? (photo.width / photo.height) : frameAR;
-  const coverFactor = imgAR > frameAR ? (imgAR / frameAR) : (frameAR / imgAR);
+  // Та сама поправка на поворот, що й у полароїда: покриття рахується по
+  // рамці з поміняними осями, інакше повернуте фото не накриває кадр.
+  const coverFactor = coverScaleForRotation(canvasW, canvasH, imgAR, photo.rotation);
   const effScale = (photo.zoom || 1) * coverFactor;
   const belowCover = (photo.zoom || 1) < 0.999;
 
@@ -940,12 +946,20 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               const z = photo.zoom || 1;
               const naturalW = img.naturalWidth;
               const naturalH = img.naturalHeight;
+              // Прямокутник, який фото має заповнити, у ВЛАСНИХ осях фото.
+              // Поворот на 90° міняє осі місцями, і саме цього тут бракувало:
+              // кадр різався під неповернуту рамку, а малювався у повернутій
+              // системі координат, тож лягав упоперек вузькою смугою. Поля
+              // зверху й знизу лишалися незайманими, а незаймане полотно в
+              // JPEG стає чорним — 14217, «усі перевернуті фото з чорною
+              // рамкою».
+              const fit = fitBoxForRotation(targetW, targetH, photo.rotation);
               // Aspect-fit the source into the target while zooming.
               // The CSS `objectFit:cover` semantics: scale image so its
               // shorter side fills the box, longer side overflows, then
               // position by cropX/cropY.
               const sourceRatio = naturalW / naturalH;
-              const targetRatio = targetW / targetH;
+              const targetRatio = fit.w / fit.h;
               // Visible source rectangle inside the natural image
               let srcW: number, srcH: number;
               if (sourceRatio > targetRatio) {
@@ -965,6 +979,13 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               canvas.height = targetH;
               const ctx = canvas.getContext('2d');
               if (!ctx) { resolve(null); return; }
+              // Біле полотно ПЕРЕД будь-яким малюванням. Це не про поворот:
+              // при zoom < 1 вікно джерела більше за саме фото, drawImage
+              // домальовує решту прозорим — і ці поля так само виходили з
+              // друку чорними, хоча в конструкторі були білі. Заливка
+              // гарантує, що будь-яке неторкнуте місце лишиться білим.
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, targetW, targetH);
               ctx.imageSmoothingEnabled = true;
               ctx.imageSmoothingQuality = 'high';
               const rot = photo.rotation || 0;
@@ -972,7 +993,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
                 ctx.translate(targetW / 2, targetH / 2);
                 ctx.rotate((rot * Math.PI) / 180);
                 ctx.drawImage(img, cx, cy, srcW, srcH,
-                              -targetW / 2, -targetH / 2, targetW, targetH);
+                              -fit.w / 2, -fit.h / 2, fit.w, fit.h);
               } else {
                 ctx.drawImage(img, cx, cy, srcW, srcH, 0, 0, targetW, targetH);
               }
@@ -1064,7 +1085,10 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               const z = photo.zoom || 1;
               const naturalW = img.naturalWidth, naturalH = img.naturalHeight;
               const sourceRatio = naturalW / naturalH;
-              const targetRatio = aW / aH;
+              // Те саме, що в renderStandard: під поворот осі вікна фото
+              // міняються місцями.
+              const fit = fitBoxForRotation(aW, aH, photo.rotation);
+              const targetRatio = fit.w / fit.h;
               let srcW: number, srcH: number;
               if (sourceRatio > targetRatio) {
                 srcH = naturalH / z;
@@ -1085,7 +1109,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
               if (rot !== 0) {
                 ctx.translate(bS + aW / 2, bT + aH / 2);
                 ctx.rotate((rot * Math.PI) / 180);
-                ctx.drawImage(img, cx, cy, srcW, srcH, -aW / 2, -aH / 2, aW, aH);
+                ctx.drawImage(img, cx, cy, srcW, srcH, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
               } else {
                 ctx.drawImage(img, cx, cy, srcW, srcH, bS, bT, aW, aH);
               }
