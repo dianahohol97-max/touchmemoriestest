@@ -66,7 +66,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     })),
   ].sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')));
 
-  return NextResponse.json({ items });
+  // Адреса, з якої підуть листи. Не секрет — її бачить кожен одержувач, — але
+  // персонал її не бачив ніде, і це коштувало часу: Таня шукала надісланий
+  // лист у touch.memories3@gmail.com і, звісно, не знайшла (07.09.2026). Листи
+  // йдуть через Brevo з hello@touchmemories.com.ua, тож копії в жодній
+  // поштовій скриньці немає взагалі — надіслане видно тільки в історії нижче.
+  return NextResponse.json({
+    items,
+    from: {
+      email: process.env.BREVO_FROM_EMAIL || 'hello@touchmemories.com.ua',
+      name: process.env.RESEND_FROM_NAME || process.env.BREVO_FROM_NAME || 'TouchMemories',
+    },
+  });
 }
 
 // Що взагалі можна надіслати клієнту: макет на погодження (PDF або

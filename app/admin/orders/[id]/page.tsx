@@ -12,6 +12,7 @@ import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
 import { matchCoverColor, readCoverSelection, formatCoverColor, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
+import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
     User,
@@ -134,8 +135,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       try {
         const r = await fetch(`/api/admin/orders/${order.id}/emails`);
         if (!r.ok) return;
-        const { items } = await r.json();
+        const { items, from } = await r.json();
         if (!cancelled && Array.isArray(items)) setEmailHistory(items);
+        if (!cancelled && from?.email) setEmailFrom(from);
       } catch { /* non-blocking */ }
     })();
     return () => { cancelled = true; };
@@ -246,6 +248,84 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  /**
+   * Готовий макет одним PDF.
+   *
+   * Друкарня просила саме це: сторінки їхали россипом JPEG, і на кожному
+   * замовленні хтось прогонив їх через Canva, щоб зібрати один файл, — навіть
+   * коли сам макет був бездоганний. Тут вони збираються з тих самих
+   * підписаних посилань, з яких уже збирається ZIP, по одній сторінці на
+   * аркуш і без перекодування: JPEG лягає в PDF як є.
+   *
+   * Послідовно, а не паралельно. Сторінка розвороту при 300 DPI важить кілька
+   * мегабайтів, і на журналі в сорок сторінок паралельне завантаження тримало
+   * б у памʼяті все одразу — ту саму помилку вже виправляли в ZIP вище.
+   */
+  const downloadLayoutPdf = async (subset: any[], label: string) => {
+    const files = sortPagesForPdf((subset || []).filter((f: any) => f?.url));
+    if (!files.length || buildingPdf) return;
+    setBuildingPdf(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      let doc: any = null;
+      let added = 0;
+      const skipped: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const f: any = files[i];
+        try {
+          const resp = await fetch(f.url);
+          if (!resp.ok) { skipped.push(f.name || `файл ${i + 1}`); continue; }
+          const blob = await resp.blob();
+          const dataUrl: string = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onload = () => resolve(String(fr.result || ''));
+            fr.onerror = () => reject(new Error('read failed'));
+            fr.readAsDataURL(blob);
+          });
+          const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+            const img = new window.Image();
+            img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+            img.onerror = () => reject(new Error('decode failed'));
+            img.src = dataUrl;
+          });
+          const page = pageSizeMm(dims.w, dims.h);
+          if (!doc) {
+            doc = new jsPDF({ unit: 'mm', format: [page.w, page.h], orientation: page.orientation, compress: false });
+          } else {
+            doc.addPage([page.w, page.h], page.orientation);
+          }
+          // 'NONE' — не перестискати. Сторінки вже відрендерені у 300 DPI з
+          // потрібною якістю, і повторне стискання лише зіпсувало б їх.
+          doc.addImage(dataUrl, 'JPEG', 0, 0, page.w, page.h, undefined, 'NONE');
+          added++;
+          if (files.length > 8) {
+            toast.info(`Збираю PDF… ${added} з ${files.length}`, { id: 'pdf-progress' });
+          }
+        } catch {
+          skipped.push(f.name || `файл ${i + 1}`);
+        }
+      }
+
+      if (!doc || added === 0) { toast.error('Не вдалося зібрати PDF — жодна сторінка не завантажилась'); return; }
+      doc.save(`${order?.order_number || 'order'}_${label}.pdf`);
+      if (skipped.length) {
+        // Неповний PDF гірший за жодного: у друк може піти макет без
+        // сторінки, і помітять це вже на папері. Тому пропущене називаємо
+        // поіменно, а не ховаємо за «готово».
+        toast.error(`PDF зібрано на ${added} з ${files.length} сторінок. Не вдалося: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? ` та ще ${skipped.length - 5}` : ''}. Перевірте перед друком.`, { duration: 12000 });
+      } else {
+        toast.success(`PDF готовий: ${added} сторінок`);
+      }
+    } catch (e: any) {
+      console.error('layout pdf failed', e);
+      toast.error(`Не вдалося зібрати PDF: ${e?.message || 'невідома помилка'}`);
+    } finally {
+      setBuildingPdf(false);
+      toast.dismiss('pdf-progress');
+    }
+  };
+
   // Download every uploaded photo at once as a single ZIP (built client-side
   // from the signed URLs). Cover is prefixed so it sorts first / is obvious.
   const downloadAllAsZip = async (subset?: any[], zipLabel?: string) => {
@@ -311,6 +391,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     // Per-order email correspondence («Листування» card).
     const [emailHistory, setEmailHistory] = useState<any[]>([]);
+    /** Адреса, з якої йдуть листи — щоб її не доводилося шукати навмання. */
+    const [emailFrom, setEmailFrom] = useState<{ email: string; name?: string } | null>(null);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [emailSending, setEmailSending] = useState(false);
@@ -358,6 +440,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [verifying, setVerifying] = useState(false);
     const [verifyReport, setVerifyReport] = useState<any | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
+    const [buildingPdf, setBuildingPdf] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [rerendering, setRerendering] = useState(false);
@@ -3012,6 +3095,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                                     Макет виробу {i + 1} (ZIP)
                                                                 </button>
                                                             )}
+                                                            {mine.length > 0 && (
+                                                                <button onClick={() => downloadLayoutPdf(mine, `виріб-${i + 1}`)} disabled={buildingPdf}
+                                                                    title="Усі сторінки цього виробу одним PDF, по сторінці на аркуш"
+                                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: buildingPdf ? 'default' : 'pointer' }}>
+                                                                    {buildingPdf ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                                                                    PDF
+                                                                </button>
+                                                            )}
                                                         </div>
                                                         {incomplete && (
                                                             <div style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600, marginBottom: 6 }}>
@@ -3081,6 +3172,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: downloadingZip ? '#86efac' : '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: downloadingZip ? 'default' : 'pointer' }}>
                                                     {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                                                     Тільки макет (ZIP)
+                                                </button>
+                                                <button onClick={() => downloadLayoutPdf(exportBook, 'макет')} disabled={buildingPdf}
+                                                    title="Увесь макет одним PDF, по сторінці на аркуш — щоб не збирати його вручну"
+                                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: buildingPdf ? 'default' : 'pointer' }}>
+                                                    {buildingPdf ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                                                    Макет у PDF
                                                 </button>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: '8px' }}>
@@ -3211,7 +3308,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {order?.customer_email ? (
                             <div style={{ marginBottom: 14, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                                 <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
-                                    Лист піде на <b>{order.customer_email}</b> від імені магазину. Відповідь клієнта прийде на пошту магазину.
+                                    Лист піде на <b>{order.customer_email}</b>
+                                    {emailFrom?.email ? <> з адреси <b>{emailFrom.email}</b></> : ' від імені магазину'}, і відповідь клієнта прийде туди ж.
+                                    {' '}Листи йдуть через сервіс розсилки, тому в Gmail копії надісланого немає — перевіряйте відправлене в історії нижче.
                                 </div>
                                 <input
                                     value={emailSubject}
