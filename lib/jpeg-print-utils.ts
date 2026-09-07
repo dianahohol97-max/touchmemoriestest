@@ -19,6 +19,9 @@
  * the trim line from showing white if the trimmer drifts by 1-2 mm.
  */
 
+import { decoFileName, parseDecoVariantMm } from '@/lib/print/deco-variant';
+import { fitTextBlock } from '@/lib/print/text-wrap';
+
 /**
  * Returns a new Blob that is byte-for-byte the same JPEG except the
  * DPI fields in the JFIF APP0 marker read 300×300 instead of 96×96.
@@ -347,14 +350,21 @@ export async function embedSRGBProfile(blob: Blob): Promise<Blob> {
  * the regular cover.jpg. Each decoration type has its own physical size and
  * colour requirements:
  *
- *   • Acrylic insert  100×100 mm  →  akryl_100x100.jpg  (colour, customer photo)
- *   • Acrylic round   Ø145 mm     →  akryl_145.jpg      (colour, customer photo)
- *   • Photo insert    100×100 mm  →  photo_100x100.jpg  (colour, customer photo)
- *   • Metal plate     60×60 mm    →  metal_60x60.jpg    (BLACK text on WHITE)
- *   • Engraving       front cover →  gravirovka.jpg     (BLACK text on WHITE,
- *                                                       sized to front face)
- *   • Flex            front cover →  flex.jpg           (BLACK text on WHITE,
- *                                                       sized to front face)
+ *   • Acrylic insert  variant size →  akryl_<w>x<h>.jpg  (colour, customer photo)
+ *   • Acrylic round   Ø diameter   →  akryl_d<d>.jpg     (colour, customer photo)
+ *   • Photo insert    variant size →  photo_<w>x<h>.jpg  (colour, customer photo)
+ *   • Metal plate     variant size →  metal_<w>x<h>.jpg  (BLACK text on WHITE)
+ *   • Engraving       front cover  →  gravirovka.jpg     (BLACK text on WHITE,
+ *                                                        sized to front face)
+ *   • Flex            front cover  →  flex.jpg           (BLACK text on WHITE,
+ *                                                        sized to front face)
+ *
+ * The plate sizes are NOT constants: each decoration type sells several
+ * variants (metal 60×60, 90×50, 250×70; acryl 100×100, Ø145, 290×100,
+ * 215×290; photo insert 100×100, 197×197) and the chosen one is parsed out of
+ * decoVariant — see lib/print/deco-variant. Until 2026-09-07 the sizes here
+ * were hardcoded to one variant each, so a customer who picked any other one
+ * had a file of the wrong physical size sent to the workshop.
  *
  * Metal, engraving and flex are lasered onto opaque material so the printer
  * only needs the artwork in black on white — anything else gets ignored by
@@ -532,19 +542,29 @@ function renderTextInsetCanvas(
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // Pick a font size so the longest line fits within 80% of the canvas
-  // width, capping at fontSizePctOfCanvas% of canvas height.
-  const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length === 0) return canvas;
-
-  let fontPx = Math.round(H * fontSizePctOfCanvas / 100);
+  // Кегль І перенесення підбираються разом.
+  //
+  // Раніше текст лишався одним рядком, а якщо не влазив у ширину — просто
+  // зменшувався шрифт. На пластині 90 мм підпис «Із тисячі доріг — одна
+  // привела нас одне до одного» через це перетворювався на волосину заввишки
+  // з міліметр, яку після гравіювання не прочитати, хоча по висоті пластини
+  // лишалося вільним більше половини (TM-001288). Тепер довгий напис
+  // переноситься по словах і займає ту висоту, яка в нього є.
   const targetWidth = W * 0.8;
-  ctx.font = `bold ${fontPx}px ${fontFamily}, Playfair Display, Georgia, serif`;
-  const widest = Math.max(...lines.map(l => ctx.measureText(l).width));
-  if (widest > targetWidth) {
-    fontPx = Math.floor(fontPx * (targetWidth / widest));
-    ctx.font = `bold ${fontPx}px ${fontFamily}, Playfair Display, Georgia, serif`;
-  }
+  const setFont = (px: number) => {
+    ctx.font = `bold ${px}px ${fontFamily}, Playfair Display, Georgia, serif`;
+  };
+  const { fontPx, lines } = fitTextBlock({
+    text: text || '',
+    maxWidth: targetWidth,
+    maxHeight: H * 0.86,
+    startFontPx: Math.round(H * fontSizePctOfCanvas / 100),
+    // Нижче цього гравіювання все одно нечитабельне: 1.5 мм при 300 DPI.
+    minFontPx: Math.max(6, _mm(1.5)),
+    measureAt: (line, px) => { setFont(px); return ctx.measureText(line).width; },
+  });
+  if (lines.length === 0) return canvas;
+  setFont(fontPx);
 
   const cx = W * (textX / 100);
   const cy = H * (textY / 100);
@@ -588,62 +608,60 @@ export async function renderInsetFiles(
   if (input.decoType === 'acryl') {
     const img = await resolvePhoto();
     if (!img) return out; // nothing to render without a photo
-    if (input.decoVariant === 'acryl_d145') {
-      out.push({
-        fileName: 'akryl_145.jpg',
-        canvas: renderPhotoInsetCanvas(
-          img, 145, 145,
-          input.photoCropX ?? 50,
-          input.photoCropY ?? 50,
-          input.photoZoom ?? 1,
-          input.photoRotation ?? 0,
-          true, // circular clip
-        ),
-      });
-    } else {
-      // Default to 100×100 mm square
-      out.push({
-        fileName: 'akryl_100x100.jpg',
-        canvas: renderPhotoInsetCanvas(
-          img, 100, 100,
-          input.photoCropX ?? 50,
-          input.photoCropY ?? 50,
-          input.photoZoom ?? 1,
-          input.photoRotation ?? 0,
-          false,
-        ),
-      });
-    }
-    return out;
-  }
-
-  // === Photo insert =============================================
-  // decoVariant: 'foto_100x100' (single variant for now)
-  if (input.decoType === 'photovstavka') {
-    const img = await resolvePhoto();
-    if (!img) return out;
+    // Розмір береться з обраного варіанта, а не з двох зашитих випадків.
+    // Каталог пропонує ще 290×100 і 215×290, і обидва їхали в майстерню
+    // квадратом 100×100 — див. коментар нижче біля металу.
+    const dims = parseDecoVariantMm(input.decoVariant, { w: 100, h: 100, round: false });
     out.push({
-      fileName: 'photo_100x100.jpg',
+      fileName: decoFileName('akryl', dims),
       canvas: renderPhotoInsetCanvas(
-        img, 100, 100,
+        img, dims.w, dims.h,
         input.photoCropX ?? 50,
         input.photoCropY ?? 50,
         input.photoZoom ?? 1,
         input.photoRotation ?? 0,
-        false,
+        dims.round,
+      ),
+    });
+    return out;
+  }
+
+  // === Photo insert =============================================
+  // Варіанти: «100×100 мм» і, для 30×30, «197×197 мм».
+  if (input.decoType === 'photovstavka') {
+    const img = await resolvePhoto();
+    if (!img) return out;
+    const dims = parseDecoVariantMm(input.decoVariant, { w: 100, h: 100, round: false });
+    out.push({
+      fileName: decoFileName('photo', dims),
+      canvas: renderPhotoInsetCanvas(
+        img, dims.w, dims.h,
+        input.photoCropX ?? 50,
+        input.photoCropY ?? 50,
+        input.photoZoom ?? 1,
+        input.photoRotation ?? 0,
+        dims.round,
       ),
     });
     return out;
   }
 
   // === Metal plate ==============================================
-  // Fixed 60×60 mm laser-engraving plate; black text on white.
+  // Пластина під лазер: чорний текст на білому, у РОЗМІР обраної вставки.
+  //
+  // Тут стояв жорсткий квадрат 60×60 і таке саме імʼя файлу — для будь-якого
+  // варіанта. Каталог при цьому продає 60×60, 90×50 і 250×70, тобто від
+  // квадрата до смуги 3.6:1. Замовлення TM-001288 купило 90×50, а в
+  // майстерню поїхав квадрат 60×60 з написом, розкладеним під квадрат: інша
+  // пластина, інші пропорції, інше положення тексту. За збереженими макетами
+  // таких замовлень близько дванадцяти з двадцяти девʼяти.
   if (input.decoType === 'metal') {
+    const dims = parseDecoVariantMm(input.decoVariant, { w: 60, h: 60, round: false });
     out.push({
-      fileName: 'metal_60x60.jpg',
+      fileName: decoFileName('metal', dims),
       canvas: renderTextInsetCanvas(
         input.decoText || '',
-        60, 60,
+        dims.w, dims.h,
         input.textFontFamily || 'Montserrat',
         18, // bigger font on a small plate so it reads well after engraving
         input.textX ?? 50,

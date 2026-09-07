@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useT } from '@/lib/i18n/context';
 import { ImageIcon, Move } from 'lucide-react';
 import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
+import { parseDecoVariantMm } from '@/lib/print/deco-variant';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
 export type DecoType = 'none' | 'acryl' | 'photovstavka' | 'metal' | 'flex' | 'graviruvannya';
@@ -73,14 +74,16 @@ export const METAL_COLORS = [
   { label:'Срібний', value:'silver', color:'#C0C0C0' },
 ]; // Note: no black metal
 
+/**
+ * Розміри вставки у міліметрах.
+ *
+ * Розбір спільний із рендером обкладинки і з генератором файлів для лазера —
+ * див. lib/print/deco-variant. Локальна версія не знала кириличної «х» і не
+ * терпіла пробілів навколо роздільника, тож на частині підписів мовчки
+ * віддавала запасні 100×100, і прев'ю показувало не той розмір, який замовили.
+ */
 function parseVariantDims(variant: string): { w: number; h: number; round: boolean } {
-  if (variant.startsWith('Ø')) {
-    const d = parseFloat(variant.replace('Ø','').replace(/\s*мм.*/,''));
-    return { w: d, h: d, round: true };
-  }
-  const m = variant.match(/(\d+)[×x](\d+)/);
-  if (m) return { w: parseInt(m[1]), h: parseInt(m[2]), round: false };
-  return { w: 100, h: 100, round: false };
+  return parseDecoVariantMm(variant, { w: 100, h: 100, round: false });
 }
 
 function darkenHex(hex: string, amount=45): string {

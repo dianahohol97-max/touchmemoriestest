@@ -3,6 +3,7 @@ import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geome
 import { coverTextScale } from './text-scale';
 import { glyphCoverage, fixToPrintableText } from './font-coverage';
 import { engravedInk } from './engraved-ink';
+import { parseDecoVariantMm } from './deco-variant';
 
 export { isSoftCoverMaterial, canRenderMonoCover, findMonoCoverItem } from './cover-eligibility';
 
@@ -176,10 +177,17 @@ export function colorNameFromVariant(variant: string): string {
 // Parse "90×50 срібний" / "100×100 мм" → { w: 90, h: 50 } (millimetres).
 // Falls back to a sane plate size. Exported for the insert-photo generator,
 // which needs the physical insert dimensions from the same variant label.
+/**
+ * Розміри пластини у міліметрах.
+ *
+ * Розбір тепер спільний із конструктором обкладинки і з генератором файлів
+ * для лазера — див. lib/print/deco-variant. Локальна регулярка не знала про
+ * круглі вставки й на «Ø145 мм» мовчки віддавала 90×50, тобто малювала
+ * прямокутник там, де замовлено коло.
+ */
 export function parseVariantDims(variant: string): { w: number; h: number } {
-  const m = (variant || '').match(/(\d+)\s*[х×x]\s*(\d+)/i);
-  if (m) return { w: parseInt(m[1], 10), h: parseInt(m[2], 10) };
-  return { w: 90, h: 50 };
+  const d = parseDecoVariantMm(variant, { w: 90, h: 50, round: false });
+  return { w: d.w, h: d.h };
 }
 
 function decoMetalColor(decoColorName: string): { fill: string; text: string } {
