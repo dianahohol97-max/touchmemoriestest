@@ -444,6 +444,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [verifyReport, setVerifyReport] = useState<any | null>(null);
     const [downloadingZip, setDownloadingZip] = useState(false);
     const [buildingPdf, setBuildingPdf] = useState(false);
+    const [fixingEdges, setFixingEdges] = useState(false);
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [rerendering, setRerendering] = useState(false);
@@ -2965,6 +2966,50 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#0891b2', border: '1.5px solid #0891b2', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: strippingBleed ? 'default' : 'pointer' }}>
                                             {strippingBleed ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
                                             {strippingBleed ? 'Обрізаю…' : 'Прибрати виліт (тревелбук / журнал)'}
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                // Смужку робить сам сервіс рендеру, тож перегенерація її не
+                                                // прибирає — кожен новий файл виходить такий самий. Тут ми не
+                                                // ріжемо (розмір аркуша друкарня перевіряє), а домальовуємо
+                                                // виліт продовженням малюнка.
+                                                if (!confirm('Заповнити білу смужку по краю продовженням малюнка?\n\nРозмір аркуша не змінюється — друкарня приймає його як є. Змінюються тільки білі пікселі по самому краю, всередині готового розміру нічого не чіпається. Файли без смужки пропускаються.')) return;
+                                                setFixingEdges(true);
+                                                try {
+                                                    let offset = 0, fixed = 0, failed = 0, total = 0, guardCount = 0;
+                                                    const problems: string[] = [];
+                                                    for (;;) {
+                                                        if (++guardCount > 200) { toast.error('Забагато партій — зупиняюсь'); break; }
+                                                        const r = await fetch(`/api/admin/orders/${id}/fix-white-edges?offset=${offset}&limit=3`, { method: 'POST' });
+                                                        const j = await r.json().catch(() => null);
+                                                        if (!r.ok || !j) {
+                                                            toast.error(j?.error || `Обірвалось на файлі ${offset + 1} (HTTP ${r.status})`);
+                                                            break;
+                                                        }
+                                                        fixed += j.fixed || 0; failed += j.failed || 0;
+                                                        total = j.total || total;
+                                                        for (const it of (j.report || [])) {
+                                                            if (it.status === 'error') problems.push(`${it.file}: ${it.reason}`);
+                                                        }
+                                                        offset = j.nextOffset ?? (offset + 3);
+                                                        if (j.done) {
+                                                            toast.success(fixed > 0
+                                                                ? `Смужку прибрано на ${fixed} файлах, помилок ${failed}. Перевірте макет перед друком.`
+                                                                : 'Білої смужки не знайдено — файли лишились без змін.');
+                                                            break;
+                                                        }
+                                                        toast.info(`Опрацьовую… ${Math.min(offset, total)} з ${total}`, { id: 'white-edge-progress' });
+                                                    }
+                                                    if (problems.length) console.warn('[fix-white-edges]', problems);
+                                                    fetchOrder();
+                                                } catch (e: any) { toast.error(`Не вдалося прибрати смужку: ${e?.message || e}`); }
+                                                setFixingEdges(false);
+                                            }}
+                                            disabled={fixingEdges}
+                                            title="Заповнює білу смужку по краю аркуша продовженням малюнка. Розмір файлу не змінюється, всередині готового розміру нічого не чіпається."
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#fff', color: '#7c3aed', border: '1.5px solid #7c3aed', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: fixingEdges ? 'default' : 'pointer' }}>
+                                            {fixingEdges ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                                            {fixingEdges ? 'Прибираю смужку…' : 'Прибрати білу смужку по краю'}
                                         </button>
                                         {(order.items || []).some((it: any) => /постер|poster/i.test(`${it?.name || ''} ${it?.product_name || ''} ${it?.slug || ''}`)) && (
                                         <button
