@@ -35,6 +35,14 @@ export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fo
 const SERVER_GENERATED_COVER = /(^|\/)(cover(_bw)?|insert_photo)\.jpg$/i;
 
 export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[]) {
+  // Найбільший номер серед плоских сторінок партії (01.jpg … 12.jpg). Потрібен,
+  // щоб задній форзац отримав СВІЙ номер, а не заглушку — див. нижче.
+  const lastFlatPage = uploaded.reduce((max, p) => {
+    const m = (p.split('/').pop() || '').match(/^(\d+)\.jpe?g$/i);
+    const n = m ? parseInt(m[1], 10) : 0;
+    return n > max ? n : max;
+  }, 0);
+
   return uploaded.map((path) => {
     const fileName = path.split('/').pop() || path;
     const isCover = /(^|\/)00_cover(_front|_back)?\.jpg$/i.test(path) || /cover/i.test(fileName);
@@ -54,7 +62,13 @@ export function exportRowsFromPaths(orderId: string, productType: string | null,
     if (pageNumber === null) {
       if (/^cover\.jpe?g$/i.test(fileName)) pageNumber = 1;
       else if (/^f1\.jpe?g$/i.test(fileName)) pageNumber = 2;
-      else if (/^f2\.jpe?g$/i.test(fileName)) pageNumber = 999;
+      // Задній форзац іде після останньої сторінки. Раніше тут стояло 999 —
+      // заглушка, яка ставила його в кінець і на тому зупинялась. Сортування
+      // від неї не страждало, але в базі й у вивантаженнях замовлення на
+      // дванадцять сторінок мало файл із номером 999, і читалося це як збій
+      // збереження макета, а не як «останній аркуш» (Аліна, TM-001244).
+      // Тепер номер справжній: cover 1, f1 2, сторінки 3…N+2, f2 N+3.
+      else if (/^f2\.jpe?g$/i.test(fileName)) pageNumber = lastFlatPage > 0 ? lastFlatPage + 3 : 999;
       else {
         const flat = fileName.match(/^(\d+)\.jpe?g$/i);
         if (flat) pageNumber = parseInt(flat[1], 10) + 2;

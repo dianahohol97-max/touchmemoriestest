@@ -3309,8 +3309,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <div style={{ marginBottom: 14, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                                 <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
                                     Лист піде на <b>{order.customer_email}</b>
-                                    {emailFrom?.email ? <> з адреси <b>{emailFrom.email}</b></> : ' від імені магазину'}, і відповідь клієнта прийде туди ж.
-                                    {' '}Листи йдуть через сервіс розсилки, тому в Gmail копії надісланого немає — перевіряйте відправлене в історії нижче.
+                                    {emailFrom?.email ? <> з адреси <b>{emailFrom.email}</b></> : ' від імені магазину'}.
+                                    {' '}Листи йдуть через сервіс розсилки, тому в Gmail копії надісланого немає — усе, що ви звідси надіслали, видно в історії нижче.
+                                </div>
+                                <div style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+                                    Відповідь клієнта сюди НЕ потрапляє. Вона приходить у поштову скриньку
+                                    {emailFrom?.email ? <> <b>{emailFrom.email}</b></> : ' магазину'}, і читати її треба там. Історія нижче показує лише те, що ми надіслали.
                                 </div>
                                 <input
                                     value={emailSubject}
