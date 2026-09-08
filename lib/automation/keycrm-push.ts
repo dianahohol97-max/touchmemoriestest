@@ -3,6 +3,7 @@ import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrm
 import { fetchConfirmedMap, mapKey, sizeKey, itemSlug } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, shouldPushToCrm } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
+import { splitLineByBreakdown } from '@/lib/automation/keycrm-line-split';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { isTestOrder } from '@/lib/automation/test-orders';
 
@@ -191,6 +192,10 @@ const DELIVERY_LABELS: Record<string, string> = {
     ukrposhta: 'Укрпошта',
     pickup: 'Самовивіз',
     courier: "Кур'єр",
+    // Не «інше», а прямим текстом: спосіб доставки ще не узгоджений із
+    // клієнтом. Раніше такі замовлення приходили в CRM як «Самовивіз», і
+    // менеджер не мав підстав переспитати.
+    other: 'Не обрано — узгодити з клієнтом',
 };
 
 /**
@@ -305,6 +310,40 @@ function formatSpecification(item: any): string {
     );
 
     return truncate(lines.join('\n'), LINE_COMMENT_LIMIT);
+}
+
+/**
+ * Позиція сайту → один або кілька рядків CRM.
+ *
+ * Журнал приїжджав однією позицією на всю суму, а база, терміновість і пакет
+ * тексту жили лише в коментарі. Тепер, коли розбивка сходиться до ціни точно,
+ * кожна складова стає власним рядком — див. keycrm-line-split, там же і
+ * запобіжник на випадок, коли сума не сходиться.
+ *
+ * Специфікація і властивості лишаються на БАЗОВОМУ рядку: це той самий товар,
+ * який мапиться в номенклатуру, і саме на ньому виробництво шукає колір
+ * обкладинки й кількість сторінок. Сервісні рядки несуть лише свій підпис із
+ * розбивки, щоб не дублювати весь брифінг тричі.
+ */
+function mapProductLines(item: any, productMap: ProductMap = {}) {
+    const split = splitLineByBreakdown(item);
+    const base = mapProduct(item, productMap);
+    if (!split) return [base];
+
+    const quantity = Number(item?.quantity) || 1;
+    return split.map(line => {
+        if (line.kind === 'base') {
+            return { ...base, price: line.amount };
+        }
+        return {
+            sku: line.sku || `${itemSlug(item) || 'service'}-${line.kind}`,
+            name: line.name,
+            price: line.amount,
+            quantity,
+            unit_type: 'шт',
+            comment: line.sourceLabel,
+        };
+    });
 }
 
 function mapProduct(item: any, productMap: ProductMap = {}) {
@@ -450,7 +489,7 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
                 ? { delivery_service_id: optionalNumber('KEYCRM_DELIVERY_SERVICE_ID') }
                 : {}),
         },
-        products: items.map((item: any) => mapProduct(item, productMap)),
+        products: items.flatMap((item: any) => mapProductLines(item, productMap)),
     };
 
     // Tags blocked a real order for a whole night: KeyCRM validates each one

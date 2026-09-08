@@ -1,4 +1,5 @@
 'use client'
+import { blocksPickup, DELIVERY_NOT_CHOSEN, PICKUP_BLOCKED_REASON } from '@/lib/orders/pickup-rules'
 import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
 
 export const dynamic = 'force-dynamic'
@@ -277,7 +278,7 @@ function CommentStep({ value, onChange, showOwnText, ownText, onOwnTextChange, s
   )
 }
 
-function DeliveryStep({ delivery, city, address, onChange }: { delivery: string, city: string, address: string, onChange: (f: string, v: string) => void }) {
+function DeliveryStep({ delivery, city, address, onChange, pickupBlocked }: { delivery: string, city: string, address: string, onChange: (f: string, v: string) => void, pickupBlocked?: boolean }) {
   // NP autocomplete state (mirrors the pattern already working in /cart).
   // Local to this step; the chosen city/address still bubble up via onChange,
   // so the parent state shape is unchanged.
@@ -366,7 +367,12 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
       <div className="space-y-3 mb-6">
         {[
           { val: 'nova_poshta', label: 'Нова Пошта', desc: 'Доставка по всій Україні' },
-          { val: 'pickup', label: 'Самовивіз', desc: 'Тернопіль, вул. Омеляна Польового 4а' },
+          // Терміновий глянцевий журнал самовивозом не віддається — правило
+          // майстерні, див. lib/orders/pickup-rules. Варіант саме ПРИБИРАЄМО,
+          // а не показуємо заблокованим: неактивна кнопка без пояснення
+          // виглядає як поламаний сайт, а причина написана окремим рядком
+          // нижче.
+          ...(pickupBlocked ? [] : [{ val: 'pickup', label: 'Самовивіз', desc: 'Тернопіль, вул. Омеляна Польового 4а' }]),
         ].map(opt => (
           <label key={opt.val} onClick={() => onChange('delivery', opt.val)} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${delivery === opt.val ? 'border-[#1e2d7d] bg-[#dbeafe]' : 'border-gray-200 bg-white hover:border-[#1e2d7d]/40'}`}>
             <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${delivery === opt.val ? 'border-[#1e2d7d]' : 'border-gray-300'}`}>
@@ -379,6 +385,11 @@ function DeliveryStep({ delivery, city, address, onChange }: { delivery: string,
           </label>
         ))}
       </div>
+      {pickupBlocked && (
+        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {PICKUP_BLOCKED_REASON}
+        </div>
+      )}
       {delivery === 'nova_poshta' && (
         <div className="space-y-4">
           <div ref={cityRowRef} style={{ position: 'relative' }}>
@@ -761,6 +772,18 @@ function OrderForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [savedConfig, setSavedConfig] = useState<any>(null)
+  /**
+   * Чи можна цьому замовленню обрати самовивіз.
+   *
+   * Правило одне на весь сайт і живе в lib/orders/pickup-rules; тут ми лише
+   * складаємо позицію в тому вигляді, у якому вона потрапить у замовлення:
+   * артикул, назва і обрані опції з конструктора.
+   */
+  const pickupBlocked = blocksPickup({
+    slug: savedConfig?.slug,
+    product_name: savedConfig?.productName,
+    options: savedConfig?.config || {},
+  })
   const [orderId, setOrderId] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
   // Live upload progress. 40+ phone photos are ~100 MB over LTE; the button
@@ -932,8 +955,11 @@ function OrderForm() {
           // (api/orders/submit). The designer flow inserts client-side, so it
           // order_number is assigned by the DB sequence default (TM-NNNNNN) and
           // read back via .select('id, order_number'). delivery_method is still
-          // required (NOT NULL); the team confirms delivery afterwards.
-          delivery_method: formData.delivery || 'pickup',
+          // required (NOT NULL). Порожній вибір записуємо як «ще не обрано», а
+          // не як самовивіз: саме такий фальшивий типовий варіант зробив усі
+          // замовлення журналу самовивозом, включно з терміновими, яким він
+          // заборонений.
+          delivery_method: formData.delivery || DELIVERY_NOT_CHOSEN,
           customer_name: [formData.name, formData.lastName].filter(Boolean).join(' '),
           customer_first_name: formData.name,
           customer_last_name: formData.lastName,
@@ -1275,7 +1301,7 @@ function OrderForm() {
               />
             );
           })()}
-          {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} />}
+          {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} pickupBlocked={pickupBlocked} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} email={formData.email} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
           {submitting && progress && progress.total > 0 && (

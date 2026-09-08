@@ -1,4 +1,5 @@
 'use client';
+import { DELIVERY_NOT_CHOSEN } from '@/lib/orders/pickup-rules';
 import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
 
 // Magazine "we write the text" flow. Customer landed here from the
@@ -392,8 +393,16 @@ function MagazineTextBriefContent() {
           customer_telegram: telegram || null,
           with_designer: true,
           // order_number comes from the DB sequence default (TM-NNNNNN), read back
-          // via .select. delivery_method is still NOT NULL; team confirms later.
-          delivery_method: 'pickup',
+          // via .select.
+          //
+          // Доставку ця форма не питає взагалі, а колонка не приймає порожнього
+          // значення. Досі сюди писався 'pickup' із наміром «команда узгодить
+          // пізніше» — і не узгоджував ніхто: у базі ВСІ замовлення цього
+          // товару стояли як самовивіз, включно з терміновими, яким самовивіз
+          // заборонено (див. lib/orders/pickup-rules). Пишемо чесне «ще не
+          // обрано»: воно вже є в обмеженні таблиці, і на ньому стоїть
+          // більшість замовлень.
+          delivery_method: DELIVERY_NOT_CHOSEN,
           items: [{
             product_slug: productSlug,
             product_name: productName,
