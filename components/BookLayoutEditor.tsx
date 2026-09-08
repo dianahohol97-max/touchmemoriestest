@@ -35,7 +35,7 @@ import {
 import {
   buildCoverEditorProps, handleCoverChange, resolveCoverColor,
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
-  formatDecorationVariant, collectUsedPhotoIds,
+  formatDecorationVariant, collectUsedPhotoIds, kalkaTopUpCount,
 } from '@/lib/editor/utils';
 import { calculateDynamicPrice, maxPageCountFor } from '@/lib/editor/pricing';
 import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
@@ -1616,7 +1616,48 @@ export default function BookLayoutEditor() {
                 photoId: s.photoId && validIds.has(s.photoId) ? s.photoId : null,
               })),
             }));
-            setPages(cleanPages);
+            // Калька, увімкнена ПІСЛЯ побудови чернетки.
+            //
+            // Калька забирає перший розворот під форзац і саму кальку, тому
+            // редактор будує на дві сторінки більше — інакше клієнт отримає
+            // на дві менше, ніж оплатив. Але будуються вони при ініціалізації,
+            // а чернетку, збережену до вмикання кальки, перевірка вище не
+            // бракує: різниця всього дві сторінки, а допуск там чотири. Через
+            // це TM-001262 приїхав із 50 сторінками замість 52, перший
+            // розворот з'їв дві оплачені, і перша сторінка пішла в друк
+            // порожньою білою.
+            //
+            // Дописуємо в КІНЕЦЬ, а не перебудовуємо макет: усе, що клієнт уже
+            // розклав, лишається на своїх місцях. Перебудова полагодила б
+            // рахунок ціною чужої роботи, що набагато гірший обмін.
+            let restoredPages = cleanPages;
+            try {
+              const cfgForKalka = currentConfig ? JSON.parse(currentConfig) : null;
+              const hasKalkaNow = !!cfgForKalka?.enableKalka
+                && String(cfgForKalka?.productSlug || '').toLowerCase().includes('photobook');
+              const missing = kalkaTopUpCount(draftContent, expectedTotal, hasKalkaNow);
+              if (missing > 0) {
+                restoredPages = [
+                  ...cleanPages,
+                  ...Array.from({ length: missing }, (_, k) => ({
+                    id: cleanPages.length + k,
+                    label: `${cleanPages.length + k}`,
+                    layout: 'sp-full' as LayoutType,
+                    slots: makeSlots(1),
+                    textBlocks: [],
+                  })),
+                ];
+                // Сказати вголос обов'язково: перший розворот змінив зміст, і
+                // те, що клієнт міг там розкласти, тепер лежить на кальці.
+                setTimeout(() => {
+                  try {
+                    toast(`Ви додали кальку, тому перший розворот тепер зайнятий форзацом і калькою. Ми дописали ${missing} сторінку(и) в кінець, щоб ви отримали всі ${expectedTotal} оплачених — перевірте початок макета.`, { duration: 10000, icon: '⚠️' });
+                  } catch {}
+                }, 900);
+              }
+            } catch { /* без цього макет просто лишається як був */ }
+
+            setPages(restoredPages);
             if (d.freeSlots) setFreeSlots(d.freeSlots);
             if (d.pageStickers) setPageStickers(d.pageStickers);
             if (d.pageShapes) setPageShapes(d.pageShapes);

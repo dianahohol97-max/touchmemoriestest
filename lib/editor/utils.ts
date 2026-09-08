@@ -204,10 +204,59 @@ export function getActivePageIdx(currentIdx: number, activeSide: 0 | 1): number 
   return currentIdx === 0 ? 0 : (currentIdx - 1) * 2 + 1 + activeSide;
 }
 
+/**
+ * Скільки фізичних сторінок з'їдає калька.
+ *
+ * Калька займає перший розворот цілком: ліворуч порожній форзац, праворуч сама
+ * калька. Щоб клієнт отримав усі оплачені сторінки, редактор будує на дві
+ * більше — саме цю двійку й означає це число.
+ */
+export const KALKA_PAGE_RESERVE = 2;
+
+/**
+ * Індекси сторінок, зайнятих калькою.
+ *
+ * Раніше тут стояло kalkaPageIdx = 1, тоді як редактор і прев'ю однаково
+ * вважають калькою сторінку 2, а першу — порожнім форзацом. Помічник ніде не
+ * був підключений, тож розбіжність нічого не ламала, але виглядала
+ * авторитетно: той, хто підключив би його, отримав би зсув на одну сторінку і
+ * позначив калькою не ту. Тепер визначення одне.
+ */
 export function getKalkaIndices(hasKalka: boolean, totalPages: number) {
-  const kalkaPageIdx = hasKalka ? 1 : -1;
-  const kalkaEndPageIdxStart = hasKalka ? totalPages - 2 : -1;
-  return { kalkaPageIdx, kalkaEndPageIdxStart };
+  return {
+    /** Ліва сторінка першого розвороту — порожній форзац перед калькою. */
+    kalkaForzatsIdx: hasKalka ? 1 : -1,
+    /** Права сторінка першого розвороту — сама калька. */
+    kalkaPageIdx: hasKalka ? 2 : -1,
+    kalkaEndPageIdxStart: hasKalka ? totalPages - KALKA_PAGE_RESERVE : -1,
+  };
+}
+
+/**
+ * Скільки сторінок бракує чернетці, збереженій до вмикання кальки.
+ *
+ * Клієнт може увімкнути кальку вже після того, як чернетка макета побудована.
+ * Тоді перший розворот стає форзацом і калькою, а двох сторінок у кінці, які
+ * мали б це компенсувати, немає — бо будувалися вони при ініціалізації. TM-001262
+ * приїхав саме таким: 50 сторінок замість 52, перший розворот з'їв дві
+ * оплачені, і перша сторінка пішла в друк порожньою білою.
+ *
+ * Перевірка «чернетка не застара» цього не ловила: різниця всього дві
+ * сторінки, а допуск там чотири.
+ *
+ * Повертає скільки сторінок дописати В КІНЕЦЬ. Нуль означає, що чернетка вже
+ * повна або кальки немає. Від'ємних не буває: чернетка, довша за очікувану, —
+ * це свідомо додані клієнтом сторінки, і забирати їх не можна.
+ */
+export function kalkaTopUpCount(
+  draftContentPages: number,
+  orderedPages: number,
+  hasKalka: boolean,
+): number {
+  if (!hasKalka) return 0;
+  if (!Number.isFinite(draftContentPages) || !Number.isFinite(orderedPages)) return 0;
+  const expected = orderedPages + KALKA_PAGE_RESERVE;
+  return Math.max(0, Math.min(KALKA_PAGE_RESERVE, expected - draftContentPages));
 }
 
 export function getEndpaperIndices(hasEndpaper: boolean, totalPages: number) {

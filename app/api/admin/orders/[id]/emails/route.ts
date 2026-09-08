@@ -5,6 +5,18 @@ import { getResendClient } from '@/lib/email/resend';
 import { escapeHtml } from '@/lib/email/escape';
 
 export const dynamic = 'force-dynamic';
+/**
+ * Лист із вкладенням качає файл зі сховища, кодує його в base64 і аж тоді
+ * віддає Brevo — усе в межах одного виклику функції. На типовому за замовчуванням
+ * ліміті в десять секунд цього не встигало статися, і функцію вбивало
+ * посеред роботи: рядок в email_logs не встигав записатися, у браузер
+ * прилітала помилка шлюзу замість нашого JSON, і виглядало це як «лист із
+ * PDF просто не відправляє», без жодного сліду ні в історії, ні в логах.
+ * Саме тому в журналі листів немає жодного failed — до запису справа не
+ * доходила. Сусідні маршрути, що так само ходять у сховище (upload-photos,
+ * attach-originals), давно стоять на 60.
+ */
+export const maxDuration = 60;
 
 /**
  * Per-order email correspondence (Diana, 2026-08-07).
@@ -87,10 +99,21 @@ const ALLOWED_ATTACHMENT_CT = new Set([
   'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
 ]);
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;   // на один файл
-// Brevo відмовляє на листі понад 10 МБ разом із вкладеннями. Тримаємось нижче
-// із запасом на base64 (він додає близько третини) і на сам текст листа: усе,
-// що не влізло, їде посиланням, а не втрачається.
-const MAX_INLINE_TOTAL_BYTES = 6 * 1024 * 1024;
+/**
+ * Скільки вкладень поміщається в сам лист.
+ *
+ * Brevo відмовляє на листі понад 10 МБ. Рахувати цей бюджет у сирих байтах
+ * було помилкою: у листі файл їде в base64, а він додає рівно третину, тож
+ * дозволені 6 МБ сирих перетворювались на 8 МБ у запиті, і на текст листа та
+ * службові поля лишалося менше двох мегабайтів. Тому бюджет тепер ведеться в
+ * ЗАКОДОВАНИХ байтах і з реальним запасом.
+ *
+ * Усе, що не влізло, їде посиланням і не губиться — краще великий макет, який
+ * доїхав, ніж лист, відхилений цілком через розмір.
+ */
+const MAX_INLINE_ENCODED_BYTES = 7 * 1024 * 1024;
+/** base64 роздуває дані рівно на третину. */
+const encodedSize = (rawBytes: number) => Math.ceil(rawBytes / 3) * 4;
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 30; // місяць на погодження макета
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -158,6 +181,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'у замовлення немає email клієнта' }, { status: 400 });
   }
 
+  /**
+   * Відмова, яка лишає слід.
+   *
+   * Досі рядок в email_logs писався лише навколо самої відправки, тож усе, що
+   * ламалося раніше — недопустимий шлях, файл, якого немає у сховищі, — не
+   * лишало жодного сліду ні в історії листування, ні в базі. Через це в
+   * журналі листів немає ЖОДНОГО failed, хоча дівчата третій день пишуть, що
+   * лист із PDF не йде. Тепер кожна така відмова видно в тій самій історії,
+   * де персонал її й шукає.
+   */
+  const fail = async (message: string, status: number) => {
+    await admin.from('email_logs').insert({
+      order_id: order.id,
+      customer_email: order.customer_email,
+      template: 'manual',
+      subject,
+      body: text,
+      status: 'failed',
+      error: message,
+      sent_at: new Date().toISOString(),
+    });
+    return NextResponse.json({ error: message }, { status });
+  };
+
   // Шлях приходить від клієнта, тож дозволені рівно два джерела.
   //
   // Перше — тека, яку видає /api/admin/storage-upload-url: щойно завантажений
@@ -189,7 +236,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const bucket = ownFiles.get(a.path);
     if (!bucket) {
-      return NextResponse.json({ error: `${a.name}: недопустимий шлях вкладення` }, { status: 400 });
+      return await fail(`${a.name}: недопустимий шлях вкладення`, 400);
     }
     a.bucket = bucket;
   }
@@ -205,7 +252,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   for (const f of files) {
     const buf = Buffer.from(await f.arrayBuffer());
     if (buf.length === 0) {
-      return NextResponse.json({ error: `${f.name}: файл порожній` }, { status: 400 });
+      return await fail(`${f.name}: файл порожній`, 400);
     }
     const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'file';
     const path = `admin-letters/${order.id}/${Date.now()}_${safeName}`;
@@ -214,7 +261,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .upload(path, buf, { contentType: f.type || 'application/octet-stream', upsert: false });
     if (upErr) {
       console.error('[order-emails] attachment upload failed', { orderId: id, path, error: upErr.message });
-      return NextResponse.json({ error: `Не вдалося зберегти ${f.name}: ${upErr.message}` }, { status: 502 });
+      return await fail(`Не вдалося зберегти ${f.name}: ${upErr.message}`, 502);
     }
     const { data: signed } = await admin.storage
       .from('order-files')
@@ -224,9 +271,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Вкладенням — лише те, що поміститься в лист. Решта лишається
     // посиланням: краще великий макет, який доїхав, ніж лист, який Brevo
     // відхилив цілком через розмір.
-    if (inlineBytes + buf.length <= MAX_INLINE_TOTAL_BYTES) {
+    if (inlineBytes + encodedSize(buf.length) <= MAX_INLINE_ENCODED_BYTES) {
       inline.push({ name: f.name, content: buf.toString('base64') });
-      inlineBytes += buf.length;
+      inlineBytes += encodedSize(buf.length);
     }
   }
 
@@ -240,7 +287,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .from(a.bucket)
       .createSignedUrl(a.path, SIGNED_URL_TTL_SECONDS);
     if (!signed?.signedUrl) {
-      return NextResponse.json({ error: `${a.name}: файл не знайдено у сховищі` }, { status: 404 });
+      return await fail(`${a.name}: файл не знайдено у сховищі`, 404);
     }
 
     // Розмір беремо з метаданих сховища ДО завантаження. Інакше файл на 65 МБ
@@ -252,16 +299,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const size = Number(listed?.[0]?.metadata?.size) || 0;
 
     let buf: Buffer | null = null;
-    if (size > 0 && inlineBytes + size <= MAX_INLINE_TOTAL_BYTES) {
+    if (size > 0 && inlineBytes + encodedSize(size) <= MAX_INLINE_ENCODED_BYTES) {
       const { data: blob } = await admin.storage.from(a.bucket).download(a.path);
       if (blob) buf = Buffer.from(await blob.arrayBuffer());
     }
 
     uploaded.push({ name: a.name, url: signed.signedUrl, size, path: a.path });
 
-    if (buf && inlineBytes + buf.length <= MAX_INLINE_TOTAL_BYTES) {
+    if (buf && inlineBytes + encodedSize(buf.length) <= MAX_INLINE_ENCODED_BYTES) {
       inline.push({ name: a.name, content: buf.toString('base64') });
-      inlineBytes += buf.length;
+      inlineBytes += encodedSize(buf.length);
     }
   }
 
