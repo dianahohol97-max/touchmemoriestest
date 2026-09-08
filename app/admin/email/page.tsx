@@ -150,7 +150,7 @@ export default function EmailAdminPage() {
         const payload = {
             name:editing.name, subject:editing.subject, body_html:editing.body_html,
             from_name:editing.from_name||'Touch.Memories',
-            from_email:editing.from_email||'hello@touchmemories.ua',
+            from_email:editing.from_email||'hello@touchmemories.com.ua',
             segment:editing.segment||'all', status:'draft' as const,
             updated_at:new Date().toISOString(),
         };
@@ -215,7 +215,7 @@ export default function EmailAdminPage() {
                         </div>
                         <div style={{display:'flex',gap:6}}>
                             <Btn onClick={loadAll} outline color='#6b7280' sm><RefreshCw size={12}/></Btn>
-                            {tab==='campaigns' && <Btn onClick={()=>{setEditing({name:'',subject:'',body_html:DEFAULT_HTML,from_name:'Touch.Memories',from_email:'hello@touchmemories.ua',segment:'all'});setIsNew(true);}}><Plus size={13}/> Нова</Btn>}
+                            {tab==='campaigns' && <Btn onClick={()=>{setEditing({name:'',subject:'',body_html:DEFAULT_HTML,from_name:'Touch.Memories',from_email:'hello@touchmemories.com.ua',segment:'all'});setIsNew(true);}}><Plus size={13}/> Нова</Btn>}
                             {tab==='templates' && <Btn onClick={()=>{setEditTpl({name:'',subject:'',body:DEFAULT_HTML});setIsNewTpl(true);}}><Plus size={13}/> Шаблон</Btn>}
                         </div>
                     </div>

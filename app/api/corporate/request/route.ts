@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { buildProposal, type BriefLine, type PriceTier } from '@/lib/corporate/quote';
 
 export const dynamic = 'force-dynamic';
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
                                 <td style="padding:14px 10px;text-align:right;font-weight:900;font-size:18px;color:#1e2d7d">${proposal.total} грн</td>
                               </tr></tfoot>
                             </table>
-                            <p style="font-size:13px;line-height:1.7;color:#94a3b8;margin:20px 0 0">Це попередній розрахунок на основі вказаних параметрів. Фінальна ціна підтверджується після узгодження макету. Звʼяжіться з нами для оформлення: hello@touchmemories.com.ua</p>
+                            <p style="font-size:13px;line-height:1.7;color:#94a3b8;margin:20px 0 0">Це попередній розрахунок на основі вказаних параметрів. Фінальна ціна підтверджується після узгодження макету. Звʼяжіться з нами для оформлення: ${SHOP_CONTACT_EMAIL}</p>
                             <p style="font-size:13px;color:#475569;margin:18px 0 0">ФОП Гоголь Діана Іванівна · Touch.Memories</p>
                           </div>
                         </div>`,

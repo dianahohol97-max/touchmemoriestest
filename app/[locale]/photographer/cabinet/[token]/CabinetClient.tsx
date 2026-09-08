@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { LANDING_THEMES } from '@/lib/photographers/themes';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 
@@ -1466,7 +1467,7 @@ function LandingSection({ token, profile, onChanged, flash }: {
       ) : (
         <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
           Платна опція: ваш лендинг на власному домені (напр. <i>photo-olena.com</i>).
-          Напишіть нам на <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#1e2d7d' }}>hello@touchmemories.com.ua</a> — підключимо.
+          Напишіть нам на <a href={`mailto:${SHOP_CONTACT_EMAIL}`} style={{ color: '#1e2d7d' }}>{SHOP_CONTACT_EMAIL}</a> — підключимо.
         </p>
       )}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 
 interface CabinetData {
   loggedIn: boolean;
@@ -142,7 +143,7 @@ function DiscountStatus({ status, percent }: { status: string | null; percent: n
       <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '16px 18px', marginBottom: 16 }}>
         <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 16, marginBottom: 4 }}>Заявку не підтверджено</div>
         <div style={{ fontSize: 14, color: '#b91c1c', lineHeight: 1.6 }}>
-          На жаль, цього разу ми не змогли підтвердити заявку. Якщо це помилка — напишіть нам на <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#991b1b', fontWeight: 700 }}>hello@touchmemories.com.ua</a>, і ми розберемося.
+          На жаль, цього разу ми не змогли підтвердити заявку. Якщо це помилка — напишіть нам на <a href={`mailto:${SHOP_CONTACT_EMAIL}`} style={{ color: '#991b1b', fontWeight: 700 }}>{SHOP_CONTACT_EMAIL}</a>, і ми розберемося.
         </div>
       </div>
     );

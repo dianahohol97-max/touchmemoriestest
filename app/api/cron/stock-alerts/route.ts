@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 
@@ -42,9 +43,12 @@ export async function GET(request: Request) {
                     alert_type: 'out_of_stock'
                 });
 
-                // Send Email to Admin
+                // Лист складу йде на РОБОЧУ скриньку. Раніше тут стояла
+                // технічна адреса домену, за якою немає скриньки взагалі, тож
+                // жодне попередження про залишки нікому не доходило — система
+                // сповіщень працювала в порожнечу з моменту написання.
                 await sendEmail({
-                    to: 'hello@touchmemories.com.ua',
+                    to: SHOP_CONTACT_EMAIL,
                     subject: ` Товар закінчився: ${product.name}`,
                     html: `
                         <h2> Увага: Товар повністю закінчився</h2>
@@ -76,7 +80,7 @@ export async function GET(request: Request) {
 
                     // Send Email to Admin
                     await sendEmail({
-                        to: 'hello@touchmemories.com.ua',
+                        to: SHOP_CONTACT_EMAIL,
                         subject: ` Низький залишок: ${product.name}`,
                         html: `
                             <h2> Мало товару на складі</h2>

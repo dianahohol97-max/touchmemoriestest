@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { getRoleConfig } from '@/lib/b2b/config';
 import { likeEscape } from '@/lib/supabase/like-escape';
 
@@ -164,7 +165,7 @@ export async function PATCH(request: Request) {
                       <div style="background:#263A99;padding:24px 28px;text-align:center"><span style="color:#fff;font-size:20px;font-weight:900;letter-spacing:.1em">TOUCH.MEMORIES</span></div>
                       <div style="padding:32px 28px;background:#fff;border:1px solid #e2e8f0">
                         <h2 style="color:#1e2d7d;font-size:20px;margin:0 0 12px">Дякуємо за інтерес</h2>
-                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">На жаль, наразі ми не можемо підтвердити вашу заявку. Якщо вважаєте, що сталася помилка, або хочете надати додаткову інформацію — напишіть нам на hello@touchmemories.com.ua.</p>
+                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">На жаль, наразі ми не можемо підтвердити вашу заявку. Якщо вважаєте, що сталася помилка, або хочете надати додаткову інформацію — напишіть нам на ${SHOP_CONTACT_EMAIL}.</p>
                       </div>
                     </div>`,
                 fromName: 'Touch.Memories',
