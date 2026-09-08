@@ -135,9 +135,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       try {
         const r = await fetch(`/api/admin/orders/${order.id}/emails`);
         if (!r.ok) return;
-        const { items, from } = await r.json();
+        const { items, from, replyTo } = await r.json();
         if (!cancelled && Array.isArray(items)) setEmailHistory(items);
         if (!cancelled && from?.email) setEmailFrom(from);
+        if (!cancelled) setEmailReplyTo(replyTo?.email || null);
       } catch { /* non-blocking */ }
     })();
     return () => { cancelled = true; };
@@ -393,6 +394,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [emailHistory, setEmailHistory] = useState<any[]>([]);
     /** Адреса, з якої йдуть листи — щоб її не доводилося шукати навмання. */
     const [emailFrom, setEmailFrom] = useState<{ email: string; name?: string } | null>(null);
+    /** Скринька для відповідей, або null — якщо її ще не налаштовано. */
+    const [emailReplyTo, setEmailReplyTo] = useState<string | null>(null);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
     const [emailSending, setEmailSending] = useState(false);
@@ -3312,10 +3315,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     {emailFrom?.email ? <> з адреси <b>{emailFrom.email}</b></> : ' від імені магазину'}.
                                     {' '}Листи йдуть через сервіс розсилки, тому в Gmail копії надісланого немає — усе, що ви звідси надіслали, видно в історії нижче.
                                 </div>
-                                <div style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
-                                    Відповідь клієнта сюди НЕ потрапляє. Вона приходить у поштову скриньку
-                                    {emailFrom?.email ? <> <b>{emailFrom.email}</b></> : ' магазину'}, і читати її треба там. Історія нижче показує лише те, що ми надіслали.
-                                </div>
+                                {emailReplyTo ? (
+                                    <div style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+                                        Відповідь клієнта сюди НЕ потрапляє. Вона приходить у скриньку <b>{emailReplyTo}</b>, і читати її треба там. Історія нижче показує лише те, що ми надіслали.
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: 12, color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+                                        Скриньку для відповідей ще не налаштовано, тому відповідь клієнта не дійде ні сюди, ні кудись іще: вона піде на технічну адресу домену, за якою немає скриньки. Поки так, просіть клієнта писати вам у месенджер, а не відповідати на лист.
+                                    </div>
+                                )}
                                 <input
                                     value={emailSubject}
                                     onChange={e => setEmailSubject(e.target.value)}

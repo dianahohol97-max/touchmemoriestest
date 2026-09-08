@@ -181,7 +181,7 @@ export default async function EmailPreviewsPage() {
             <h1 style={{ fontSize: 28, fontWeight: 900, color: '#263A99', marginBottom: 6 }}>Шаблони листів (автоматичні)</h1>
             <p style={{ color: '#64748b', fontSize: 14, marginBottom: 8, lineHeight: 1.5 }}>
                 Це листи, які система надсилає автоматично. Вони задані в коді й показані тут із прикладовими даними.
-                Усі йдуть через Brevo від <strong>touch.memories3@gmail.com</strong>.
+                Усі йдуть через Brevo від технічної адреси домену, а відповіді клієнтів приходять на <strong>touch.memories3@gmail.com</strong>.
             </p>
             <p style={{ color: '#94a3b8', fontSize: 13, marginBottom: 24, lineHeight: 1.5 }}>
                 Нагадування про незавершений дизайн у конструкторі (24 год / 10 / 55 / 59 днів) надсилає крон

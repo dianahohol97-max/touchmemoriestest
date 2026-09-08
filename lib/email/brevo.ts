@@ -43,6 +43,45 @@ interface SendEmailParams {
      * перевищити його; тут ми тільки передаємо далі.
      */
     attachments?: BrevoAttachment[];
+    /**
+     * Куди піде відповідь одержувача.
+     *
+     * Без цього відповідь іде на адресу відправника. Для нас це було пасткою:
+     * листи йдуть з hello@touchmemories.com.ua, а такої скриньки не існує
+     * (Діана, 08.09.2026). Домен у Brevo підтверджений, тож відправка працює,
+     * і зовні все виглядає справним — але кожен клієнт, який натиснув
+     * «Відповісти», писав у порожнечу, і жодна з тих відповідей до нас не
+     * доходила.
+     *
+     * Адреса береться з BREVO_REPLY_TO. Поки змінна не задана, заголовок не
+     * ставиться взагалі — краще стара поведінка, ніж навмання обрана чужа
+     * скринька.
+     */
+    replyTo?: { email: string; name?: string } | null;
+}
+
+/**
+ * Скринька для відповідей, спільна для всіх листів сайту.
+ *
+ * За замовчуванням — touch.memories3@gmail.com. Це не здогад: саме ця адреса
+ * стоїть на публічній сторінці контактів, і саме на неї вже приходять усі
+ * форми сайту (звернення, корпоративні запити, реєстрація B2B, партнерство).
+ * Тобто скринька існує і її читають, на відміну від hello@touchmemories.com.ua,
+ * з якої листи ЙДУТЬ.
+ *
+ * BREVO_REPLY_TO перекриває це значення, якщо відповіді треба завернути кудись
+ * інде.
+ */
+const DEFAULT_REPLY_TO = 'touch.memories3@gmail.com';
+
+export function getReplyTo(): { email: string; name?: string } | null {
+    const raw = (process.env.BREVO_REPLY_TO ?? '').trim();
+    // Порожня змінна означає «як за замовчуванням», а не «без відповіді»:
+    // лишити клієнта без адреси для відповіді — це те, від чого ми тікаємо.
+    const email = raw || DEFAULT_REPLY_TO;
+    if (!email.includes('@')) return null;
+    const name = (process.env.BREVO_REPLY_TO_NAME || process.env.BREVO_FROM_NAME || '').trim();
+    return name ? { email, name } : { email };
 }
 
 export interface BrevoAttachment {
@@ -52,7 +91,7 @@ export interface BrevoAttachment {
     content: string;
 }
 
-export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe, kind = 'transactional', quotaReserved = false, attachments }: SendEmailParams) {
+export async function sendBrevoEmail({ to, toName, subject, html, fromName, fromEmail, unsubscribe, kind = 'transactional', quotaReserved = false, attachments, replyTo }: SendEmailParams) {
     const apiKey = getBrevoApiKey();
     if (!apiKey) throw new Error('BREVO_API_KEY не налаштовано');
 
@@ -92,6 +131,9 @@ export async function sendBrevoEmail({ to, toName, subject, html, fromName, from
             subject,
             htmlContent,
             ...(headers ? { headers } : {}),
+            ...((replyTo === undefined ? getReplyTo() : replyTo)
+                ? { replyTo: (replyTo === undefined ? getReplyTo() : replyTo) as { email: string; name?: string } }
+                : {}),
             ...(attachments && attachments.length
                 ? { attachment: attachments.map(a => ({ name: a.name, content: a.content })) }
                 : {}),

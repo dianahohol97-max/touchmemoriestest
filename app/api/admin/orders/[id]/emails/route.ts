@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
 import { getResendClient } from '@/lib/email/resend';
+import { getReplyTo } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 
 export const dynamic = 'force-dynamic';
@@ -78,17 +79,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     })),
   ].sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')));
 
-  // Адреса, з якої підуть листи. Не секрет — її бачить кожен одержувач, — але
-  // персонал її не бачив ніде, і це коштувало часу: Таня шукала надісланий
-  // лист у touch.memories3@gmail.com і, звісно, не знайшла (07.09.2026). Листи
-  // йдуть через Brevo з hello@touchmemories.com.ua, тож копії в жодній
-  // поштовій скриньці немає взагалі — надіслане видно тільки в історії нижче.
+  // Адреса, з якої підуть листи, і адреса, куди прийде відповідь. Обидві не
+  // секрет — їх бачить кожен одержувач, — але персонал не бачив жодної, і це
+  // коштувало часу: Таня шукала надісланий лист у touch.memories3@gmail.com і,
+  // звісно, не знайшла (07.09.2026). Листи йдуть через Brevo, тож копії в
+  // жодній поштовій скриньці немає взагалі — надіслане видно тільки в історії.
+  //
+  // replyTo окремо від from навмисно: адреса відправника — це технічна адреса
+  // домену, і скриньки за нею може не бути взагалі, як з'ясувалося з
+  // hello@touchmemories.com.ua (Діана, 08.09.2026). Поки BREVO_REPLY_TO не
+  // задана, тут буде null, і картка про це чесно попередить, замість називати
+  // менеджеру скриньку, у яку той нічого не отримає.
   return NextResponse.json({
     items,
     from: {
       email: process.env.BREVO_FROM_EMAIL || 'hello@touchmemories.com.ua',
       name: process.env.RESEND_FROM_NAME || process.env.BREVO_FROM_NAME || 'TouchMemories',
     },
+    replyTo: getReplyTo(),
   });
 }
 
