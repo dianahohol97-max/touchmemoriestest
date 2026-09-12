@@ -38,9 +38,18 @@ export async function POST(request: Request) {
         if (!subscribers || subscribers.length === 0)
             return NextResponse.json({ error: 'Немає активних підписників' }, { status: 400 });
 
+        // Колонка зветься total_recipients. Тут довго стояло recipients_count,
+        // якої в таблиці ніколи не було, тож кожне натискання «Надіслати» на
+        // сторінці підписників падало ще на створенні кампанії й поверталося як
+        // «Помилка збереження кампанії». Серпнева розсилка по базі KeyCRM
+        // заводилася руками в SQL, тому нікого це не зачепило аж до вересня.
         const { data: campaign, error: campErr } = await supabase
             .from('email_campaigns')
-            .insert({ subject, body_html, segment, status: 'sending', recipients_count: subscribers.length })
+            // name — NOT NULL і без значення за замовчуванням, а сторінка
+            // підписників поля назви не має взагалі: там є тільки тема, текст і
+            // сегмент. Тож назвою кампанії стає сама тема — рівно те, за чим
+            // Diana впізнає її в історії.
+            .insert({ name: subject.trim(), subject, body_html, segment, status: 'sending', total_recipients: subscribers.length })
             .select('id').single();
         if (campErr || !campaign)
             return NextResponse.json({ error: 'Помилка збереження кампанії' }, { status: 500 });
@@ -56,6 +65,13 @@ export async function POST(request: Request) {
                 email: String(s.email).toLowerCase(),
                 name: s.name || null,
             }));
+            // onConflict мусить називати КОЛОНКИ. Унікальність черги колись
+            // трималася на індексі по виразу (campaign_id, lower(email)), а
+            // такого ON CONFLICT Postgres не приймає взагалі — запит падав з
+            // 42P10. Тепер адресу зводить до нижнього регістру тригер у базі,
+            // а індекс стоїть по звичайних колонках (міграція
+            // 20260912_campaign_queue_upsertable_unique). Не повертайте сюди
+            // індекс по виразу, не переписавши цей рядок.
             const { error: qErr } = await supabase
                 .from('email_campaign_queue')
                 .upsert(slice, { onConflict: 'campaign_id,email', ignoreDuplicates: true });
@@ -87,7 +103,7 @@ export async function GET() {
     const supabase = getAdminClient();
     const { data } = await supabase
         .from('email_campaigns')
-        .select('id, subject, segment, status, sent_count, failed_count, recipients_count, created_at, sent_at')
+        .select('id, subject, segment, status, sent_count, failed_count, total_recipients, created_at, sent_at')
         .order('created_at', { ascending: false }).limit(20);
 
     const campaigns = data || [];
