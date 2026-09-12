@@ -9,30 +9,65 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /**
- * The daily batch of the CRM-base mailing — armed one day at a time.
+ * The daily batch of the CRM-base mailing.
  *
- * Diana picks the hour and the day; neither is baked in. The first batch went
- * at 16:45, the second was moved to 16:00 («налаштуй розсилку завтра на 4
- * вечора»), and «тільки завтра, далі вирішимо» rules out a plain daily cron —
- * one left running unattended would keep mailing customers on days nobody
- * asked for.
+ * Diana picks the hour; it is not baked in. The first batch went at 16:45, the
+ * second was moved to 16:00 («налаштуй розсилку завтра на 4 вечора»).
  *
- * So the cron fires every day at the configured hour and does NOTHING unless the date it
- * wakes up on is the date armed in settings('campaign_send_date'). Sending
- * disarms it. Continuing the campaign is then one deliberate act — write
- * tomorrow's date into that row — rather than something that happens because a
- * schedule was never turned off.
+ * There are two ways to arm it, and neither is a plain unattended daily cron —
+ * one of those, left running, would keep mailing customers on days nobody asked
+ * for.
  *
- * BATCH_SIZE is Diana's fifty. It is a ceiling on this run, not a target: the
- * shared marketing budget still applies, and order confirmations always come
- * first.
+ * ONE DAY — settings('campaign_send_date') holds a single date. The cron sends
+ * only if it wakes up on that date, and sending deletes the row. This is the
+ * original mode, from «тільки завтра, далі вирішимо».
+ *
+ * A STANDING PLAN — settings('campaign_daily_plan') holds { size, from,
+ * through }, and the cron sends `size` letters every day inside that window.
+ * Added 2026-09-12 for «заплануй відправку решти листів по 100 в день»: the
+ * remaining base is ~5.1k names, and arming fifty-two separate days by hand was
+ * never going to happen. The plan still cannot run forever — `through` is a
+ * hard end date, and the plan deletes itself the moment the base is exhausted,
+ * so the campaign stops on its own rather than because someone remembered.
+ *
+ * BATCH_SIZE is Diana's original fifty and stays the size of a one-day arm; a
+ * plan carries its own. Either way it is a ceiling on the run, not a target:
+ * the shared marketing budget still applies, and order confirmations always
+ * come first.
  */
 
 const BATCH_SIZE = 50;
 /** Стеля для ручного `?size=` — вище за неї впирається денний бюджет. */
 const MAX_BATCH_SIZE = 200;
 const ARMED_KEY = 'campaign_send_date';
+const PLAN_KEY = 'campaign_daily_plan';
+/** Скільки листів на день, якщо план є, але розмір у ньому не вказано. */
+const DEFAULT_PLAN_SIZE = 100;
 const REPORT_TO = 'gogolka16@gmail.com';
+
+interface DailyPlan {
+    size: number;
+    from?: string;
+    through?: string;
+}
+
+/**
+ * Читає план із settings, не довіряючи тому, що там лежить.
+ *
+ * Рядок правиться руками в базі, тож зіпсований розмір («100 листів» замість
+ * 100) не має означати ані нуль листів, ані двадцять тисяч: беремо типове
+ * значення і тиснемо стелею партії.
+ */
+function readPlan(value: any): DailyPlan | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const size = Number(value.size);
+    const day = (v: any) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
+    return {
+        size: Number.isFinite(size) && size > 0 ? Math.min(Math.floor(size), MAX_BATCH_SIZE) : DEFAULT_PLAN_SIZE,
+        from: day(value.from),
+        through: day(value.through),
+    };
+}
 
 /** Today's date in Kyiv, as YYYY-MM-DD. */
 function kyivDate(): string {
@@ -53,27 +88,44 @@ export async function GET(request: Request) {
     // саме тому воно приймається тільки в токен-запуску. Денний бюджет усе одно
     // головніший: якщо на маркетинг лишилося менше, піде скільки лишилося.
     const askedSize = parseInt(new URL(request.url).searchParams.get('size') || '', 10);
-    const batchSize = viaToken && Number.isFinite(askedSize) && askedSize > 0
-        ? Math.min(askedSize, MAX_BATCH_SIZE)
-        : BATCH_SIZE;
 
-    const { data: armedRow } = await admin
-        .from('settings').select('value').eq('key', ARMED_KEY).maybeSingle();
+    const [{ data: armedRow }, { data: planRow }] = await Promise.all([
+        admin.from('settings').select('value').eq('key', ARMED_KEY).maybeSingle(),
+        admin.from('settings').select('value').eq('key', PLAN_KEY).maybeSingle(),
+    ]);
     const armedFor = typeof armedRow?.value === 'string'
         ? armedRow.value
         : (armedRow?.value as any)?.date;
 
+    const plan = readPlan(planRow?.value);
+    // Дати порівнюються як рядки YYYY-MM-DD, і саме тому вони в такому форматі:
+    // лексикографічний порядок тут збігається з календарним, а Date не треба.
+    const planActive = !!plan
+        && (!plan.from || plan.from <= today)
+        && (!plan.through || today <= plan.through);
+
     // A token run is a deliberate «send it now» and skips the date gate; the
     // scheduled run never does.
-    if (!viaToken && armedFor !== today) {
+    if (!viaToken && armedFor !== today && !planActive) {
+        const planNote = plan
+            ? plan.from && plan.from > today
+                ? ` План почнеться ${plan.from}.`
+                : ` План діяв до ${plan.through}.`
+            : '';
         return NextResponse.json({
             ok: true,
             skipped: true,
-            reason: armedFor
+            reason: (armedFor
                 ? `Розсилку заряджено на ${armedFor}, сьогодні ${today} — нічого не надсилаю.`
-                : 'Розсилку не заряджено на жоден день — нічого не надсилаю.',
+                : 'Розсилку не заряджено на жоден день — нічого не надсилаю.') + planNote,
         });
     }
+
+    // Розмір партії. Явне `?size=` головніше за все, далі — щоденний план, і
+    // лише потім початкові пʼятдесят одноденного заряду.
+    const batchSize = viaToken && Number.isFinite(askedSize) && askedSize > 0
+        ? Math.min(askedSize, MAX_BATCH_SIZE)
+        : planActive ? plan!.size : BATCH_SIZE;
 
     // Rows wait as 'scheduled', not 'pending', and that is what keeps them from
     // leaving early. The general queue drain at 19:00 Kyiv takes everything
@@ -127,8 +179,30 @@ export async function GET(request: Request) {
         .select('id', { count: 'exact', head: true })
         .eq('status', 'scheduled');
 
-    // Disarm: one batch means one batch. The next one has to be asked for.
+    // Disarm the one-day arm: one batch means one batch. The next one has to be
+    // asked for.
     await admin.from('settings').delete().eq('key', ARMED_KEY);
+
+    // Щоденний план, на відміну від заряду на один день, переживає відправку —
+    // інакше «по 100 в день» довелося б заряджати вручну пʼятдесят два рази.
+    // Але він і не вічний: щойно база закінчилася або минула кінцева дата,
+    // рядок видаляється. Кампанія зупиняється сама, а не тому, що хтось
+    // згадав її вимкнути.
+    let planNote = '';
+    if (plan && planActive) {
+        const exhausted = !scheduledLeft && !result.remaining;
+        const expired = !!plan.through && today >= plan.through;
+        if (exhausted || expired) {
+            await admin.from('settings').delete().eq('key', PLAN_KEY);
+            planNote = exhausted
+                ? 'Базу пройдено до кінця — щоденний план виконано і знято.'
+                : `Сьогодні останній день плану (${plan.through}) — далі розсилка мовчить.`;
+        } else {
+            const daysLeft = Math.ceil((scheduledLeft || 0) / Math.max(1, plan.size));
+            planNote = `Щоденний план: ${plan.size} листів на день до ${plan.through || 'скасування'}.`
+                + ` За такої швидкості лишилося приблизно ${daysLeft} днів.`;
+        }
+    }
 
     // Відкриття й переходи по ВСІХ надісланих раніше листах. Свіжа партія ще
     // нічого не встигла показати, тож сенс має тільки накопичена картина —
@@ -160,7 +234,7 @@ export async function GET(request: Request) {
         '',
         engagement,
         '',
-        'Наступної партії не буде, доки ви не скажете — розсилка знову роззброєна.',
+        planNote || 'Наступної партії не буде, доки ви не скажете — розсилка знову роззброєна.',
     ].filter(Boolean).join('\n');
 
     try {
@@ -176,5 +250,5 @@ export async function GET(request: Request) {
         console.error('[campaign-daily-batch] report email failed:', e);
     }
 
-    return NextResponse.json({ ok: true, armedFor, ...result });
+    return NextResponse.json({ ok: true, armedFor, plan: planActive ? plan : null, batchSize, scheduledLeft, ...result });
 }

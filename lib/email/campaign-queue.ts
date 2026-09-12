@@ -154,11 +154,15 @@ export async function drainCampaignQueue(maxToSend?: number): Promise<DrainResul
 
     // Close out campaigns whose queue is now empty, and refresh their counters.
     for (const id of campaignIds) {
+        // «Лишилося» — це і pending, і scheduled. Рахувати самі pending було б
+        // неправильно: партія на 100 листів забирає з черги рівно сотню, і
+        // кампанія з пʼятьма тисячами заготовлених адрес щовечора ставала б
+        // «надіслано», щоб наступного дня знову стати «надсилається».
         const { count: left } = await supabase
             .from('email_campaign_queue')
             .select('id', { count: 'exact', head: true })
             .eq('campaign_id', id)
-            .eq('status', 'pending');
+            .in('status', ['pending', 'scheduled']);
         const { count: sentTotal } = await supabase
             .from('email_campaign_queue')
             .select('id', { count: 'exact', head: true })
