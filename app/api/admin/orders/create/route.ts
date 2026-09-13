@@ -78,6 +78,15 @@ export async function POST(request: Request) {
             order_status: 'pending',
             payment_status: payment?.status || 'pending',
             bank_account_id: payment?.bank_account_id || null,
+            // Реально внесена сума. Форма вже передає її — нею нижче
+            // поповнюється баланс рахунку, — але в самому замовленні вона не
+            // зберігалася ніде, і статус 'partial' з форми не мав числа за
+            // собою: картка знала, що оплачено частково, і не знала, скільки.
+            // Коли суму не вказали, «оплачено» означає повну суму, а все інше
+            // означає нуль.
+            paid_amount: Number(payment?.paid_amount) > 0
+                ? Number(payment.paid_amount)
+                : (payment?.status === 'paid' ? Number(totals.total) || 0 : 0),
             paid_at: (payment?.status === 'paid' || payment?.status === 'partial') ? new Date().toISOString() : null,
             fiscal_status: 'pending',
             notes: orderNotes.trim(),

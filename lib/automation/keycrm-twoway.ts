@@ -133,6 +133,11 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         // somebody moves the card afterwards.
         if (mappedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
             patch.cod_received_at = new Date().toISOString();
+            // Гроші, що дійшли, мають лягти і в paid_amount — інакше бейдж
+            // оплати назавжди лишив би таке замовлення «передоплаченим», хоча
+            // кур'єр уже розрахувався. Додається до наявної суми, а не
+            // перезаписує її: передоплата вже там.
+            patch.paid_amount = money(Number(order.paid_amount || 0) + money(order.cod_amount));
             changes.push(`післяплату ${money(order.cod_amount)} грн позначено отриманою`);
         }
     }
@@ -446,7 +451,7 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
+        .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, paid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
         .gte('created_at', since)
         .not('custom_attributes', 'is', null)
         .order('created_at', { ascending: false })

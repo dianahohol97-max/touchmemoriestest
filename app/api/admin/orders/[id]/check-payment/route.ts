@@ -134,9 +134,24 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     // Bank confirmed and the amount agrees → idempotent transition pending → paid.
+    //
+    // paid_amount ставиться тим самим числом, яке щойно звірено з банком: для
+    // 50/50 це передоплата, для решти повна сума. Без цього ручна звірка
+    // лишала б замовлення з нулем у paid_amount, і бейдж показував би
+    // «Не оплачено» одразу після того, як співробітник підтвердив оплату.
+    const splitInvoice = (order as any).payment_type === 'split'
+        && Number((order as any).prepaid_amount) > 0;
+    const chargedUah = splitInvoice
+        ? Number((order as any).prepaid_amount)
+        : Number((order as any).total);
+
     const { data: updated, error } = await admin
         .from('orders')
-        .update({ payment_status: 'paid', updated_at: new Date().toISOString() })
+        .update({
+            payment_status: 'paid',
+            ...(Number.isFinite(chargedUah) ? { paid_amount: chargedUah } : {}),
+            updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .neq('payment_status', 'paid')
         .select('id')

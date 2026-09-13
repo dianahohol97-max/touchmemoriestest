@@ -228,6 +228,11 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
         order_status: statusFromCrm(crm),
         ttn: crm.ttn || null,
         prepaid_amount: received,
+        // Та сама сума окремо в paid_amount, бо prepaid_amount на сайтових
+        // замовленнях означає план, а не квитанцію, і бейдж оплати не може
+        // розрізняти їх за колонкою, яка значить різне. Тут це справді гроші
+        // в касі — CRM віддає payments_total.
+        paid_amount: received,
         notes: crm.manager_comment || null,
         client_comment: crm.buyer_comment || null,
         created_at: crm.created_at || new Date().toISOString(),

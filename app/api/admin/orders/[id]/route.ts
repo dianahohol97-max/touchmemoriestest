@@ -35,7 +35,7 @@ const ADMIN_ONLY_FIELDS = new Set([
     'payment_status', 'paid_at', 'payment_type',
     'total', 'subtotal', 'delivery_cost',
     'discount_amount', 'discount_type', 'discount_value',
-    'prepaid_amount', 'cod_amount', 'pickup_unpaid_balance',
+    'prepaid_amount', 'paid_amount', 'cod_amount', 'pickup_unpaid_balance',
     'used_bonus', 'promo_code',
     'certificate_code', 'certificate_applied', 'certificate_redeemed',
     'designer_service_fee', 'customer_id',

@@ -300,13 +300,32 @@ export async function POST(req: Request) {
             }
         }
 
+        // Скільки грошей цей платіж реально приніс.
+        //
+        // Рахується тут, а не в базі: правило «split платить prepaid_amount,
+        // решта повну суму» вже живе в цьому маршруті — саме за ним перевірено
+        // суму вище, — і другий його примірник у SQL неминуче розійшовся б із
+        // цим. У функцію їде готове число.
+        //
+        // null означає «не чіпай paid_amount»: на 'processing' і 'hold' гроші
+        // ще не наші, а вже зараховану оплату таке повідомлення не має
+        // обнуляти. 'reversed' — єдиний випадок, коли сума повертається до
+        // нуля, бо гроші фізично пішли назад клієнту.
+        const splitInvoice = existingOrder.payment_type === 'split'
+            && Number(existingOrder.prepaid_amount) > 0;
+        const chargedUah = splitInvoice
+            ? Number(existingOrder.prepaid_amount)
+            : Number(existingOrder.total);
+
         // Map Monobank status to payment status
         let paymentStatus = 'pending';
         let notes = '';
+        let paidAmount: number | null = null;
 
         switch (status) {
             case 'success':
                 paymentStatus = 'paid';
+                paidAmount = Number.isFinite(chargedUah) ? chargedUah : null;
                 notes = `Оплата успішна через Monobank. Invoice: ${invoiceId}, RRN: ${rrn}, Код: ${approvalCode}`;
                 break;
             case 'processing':
@@ -323,6 +342,7 @@ export async function POST(req: Request) {
                 break;
             case 'reversed':
                 paymentStatus = 'refunded';
+                paidAmount = 0;
                 notes = `Оплата повернена (reversed). Invoice: ${invoiceId}`;
                 break;
             default:
@@ -346,6 +366,7 @@ export async function POST(req: Request) {
                 p_approval_code: approvalCode || null,
                 p_rrn: rrn || null,
                 p_set_paid_at: status === 'success' && existingOrder.payment_status !== 'paid',
+                p_paid_amount: paidAmount,
             });
         const updateResult = updatedId ? [{ id: updatedId }] : [];
 
