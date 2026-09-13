@@ -54,6 +54,7 @@ import {
     Palette
 , Image as ImageIcon, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolvePaymentBadge } from '@/lib/orders/payment-state';
 
 const STATUS_OPTS = [
     { id: 'new', label: 'Нове', color: '#263A99', bg: '#eff6ff' },
@@ -1353,6 +1354,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     if (!order) return <div style={{ padding: '100px', textAlign: 'center' }}>Замовлення не знайдено</div>;
 
     const currentStatus = STATUS_OPTS.find(s => s.id === order.order_status) || STATUS_OPTS[0];
+    // Стан оплати рахується тим самим правилом, що й у списку замовлень, щоб
+    // одне замовлення не мало двох різних відповідей на одне питання.
+    const payBadge = resolvePaymentBadge(order);
     const isIntl = order.ship_region === 'INTL' || order.delivery_method === 'international';
     const addr = (order.delivery_address || {}) as any;
 
@@ -2046,17 +2050,37 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 <h3 style={cardTitleStyle}><CreditCard size={20} /> Оплата</h3>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     {order.fiscal_url && <a href={order.fiscal_url} target="_blank" style={{ color: '#10b981' }} title="Чек"><Receipt size={18} /></a>}
+                                    {/* Той самий значок, що й у списку замовлень, з того самого
+                                        правила. Раніше тут стояло сире payment_status великими
+                                        латинськими літерами, і воно не відрізняло передоплату від
+                                        повної оплати: на замовленні 50/50 'paid' означає, що зайшла
+                                        передоплата, а не що замовлення оплачене. */}
                                     <span style={{
                                         padding: '4px 10px',
                                         borderRadius: "3px",
                                         fontSize: '11px',
                                         fontWeight: 800,
-                                        backgroundColor: order.payment_status === 'paid' ? '#f0fdf4' : order.payment_status === 'failed' ? '#fef2f2' : '#fffbeb',
-                                        color: order.payment_status === 'paid' ? '#10b981' : order.payment_status === 'failed' ? '#ef4444' : '#f59e0b'
+                                        backgroundColor: payBadge.bg,
+                                        color: payBadge.fg,
                                     }}>
-                                        {order.payment_status === 'paid' ? 'PAID' : order.payment_status === 'failed' ? 'FAILED' : order.payment_status === 'pending' ? 'PENDING' : order.payment_status?.toUpperCase()}
+                                        {payBadge.label}
                                     </span>
                                 </div>
+                            </div>
+
+                            {/* Скільки грошей реально отримано. Показується завжди, а не
+                                тільки коли заповнено payment_type: більшість замовлень його не
+                                мають, і саме для них картка досі не називала жодної суми
+                                надходжень — лише вартість замовлення. */}
+                            <div style={{
+                                marginBottom: 16, padding: '10px 12px', borderRadius: 4,
+                                background: '#f8fafc', border: '1px solid #e2e8f0',
+                                fontSize: 13, lineHeight: 1.6,
+                            }}>
+                                <div>Отримано: <b style={{ color: payBadge.fg }}>{payBadge.paid.toLocaleString('uk-UA')} ₴</b> з {payBadge.total.toLocaleString('uk-UA')} ₴</div>
+                                {payBadge.outstanding > 0 && payBadge.state !== 'cancelled' && (
+                                    <div style={{ color: '#b45309' }}>Залишок: <b>{payBadge.outstanding.toLocaleString('uk-UA')} ₴</b></div>
+                                )}
                             </div>
 
                             {/* Payment type summary (full vs split) */}

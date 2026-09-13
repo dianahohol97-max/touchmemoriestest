@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { Search, Download, User, Plus, MessageSquare, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { resolvePaymentBadge } from '@/lib/orders/payment-state';
 
 /**
  * Список замовлень (редизайн — Diana, 2026-08-06: «вкладка замовлення дуже не
@@ -502,22 +503,19 @@ export default function OrdersPage() {
                                         </span>
                                     )}
                                     <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        {/* For mirrored CRM orders prepaid_amount is money actually
-                                            received (the mirror writes the CRM's payments total), so a
-                                            partial payment shows as «Передоплата». Site orders keep the
-                                            two-state badge: their prepaid_amount is the PLANNED split,
-                                            not a receipt. */}
+                                        {/* Стан оплати рахується з paid_amount — реально отриманих
+                                            грошей, — одним правилом на весь адмін. Раніше тут стояв
+                                            двостанний значок із єдиним винятком для дзеркалених із CRM,
+                                            бо для сайтових замовлень часткову оплату не було звідки
+                                            взяти: prepaid_amount там означає план, а не квитанцію. */}
                                         {(() => {
-                                            const isPaid = order.payment_status === 'paid';
-                                            const prepaid = Number(order.prepaid_amount || 0);
-                                            const isPartial = !isPaid && order.source === 'keycrm' && prepaid > 0;
+                                            const pay = resolvePaymentBadge(order);
                                             return (
-                                                <span style={{
-                                                    ...chip,
-                                                    background: isPaid ? '#f0fdf4' : isPartial ? '#eff6ff' : '#fffbeb',
-                                                    color: isPaid ? '#16a34a' : isPartial ? '#1d4ed8' : '#b45309',
-                                                }}>
-                                                    {isPaid ? 'Оплачено' : isPartial ? `Передоплата ${prepaid.toLocaleString('uk-UA')} ₴` : 'Очікує оплати'}
+                                                <span
+                                                    style={{ ...chip, background: pay.bg, color: pay.fg }}
+                                                    title={pay.state === 'partial' ? `Залишок ${pay.outstanding.toLocaleString('uk-UA')} ₴` : undefined}
+                                                >
+                                                    {pay.label}
                                                 </span>
                                             );
                                         })()}
