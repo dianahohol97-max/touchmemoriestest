@@ -357,6 +357,28 @@ export async function POST(req: Request) {
         // that cache. The function keeps the same race-safety: it only updates
         // when the (invoice_id, status) tuple isn't already applied, and returns
         // the order id only if THIS call won the race (else NULL).
+
+        // Чи саме цей запит переводить замовлення в оплачене.
+        //
+        // Правило записане ОДИН раз навмисно. Доти воно стояло вісьмома
+        // копіями виразу existingOrder.payment_status !== 'paid', і саме через
+        // це клієнти діставали два листи про оплату: знімок замовлення
+        // читається один раз, ще до UPDATE, тому всі вісім копій у межах
+        // одного запиту дають однакову відповідь. Два незалежні блоки
+        // відправки обидва вважали себе єдиними.
+        //
+        // Перечитати payment_status після UPDATE було б гірше: одразу після
+        // нього статус уже 'paid', тож хибними стали б УСІ вісім умов разом із
+        // списанням залишків, фіскалізацією, призначенням дизайнера і
+        // погашенням сертифіката. Тому умова прив'язана до результату UPDATE,
+        // а не до перечитаного стану.
+        //
+        // Гонку закриває сам UPDATE нижче: RPC повертає id лише тому виклику,
+        // який її виграв, а решта виходить із idempotent: true. Тож усе, що
+        // стоїть після тієї перевірки, має право вважати цей прапорець
+        // остаточним.
+        const isFirstPaidTransition = status === 'success' && existingOrder.payment_status !== 'paid';
+
         const { data: updatedId, error: updateError } = await supabase
             .rpc('apply_monobank_payment', {
                 p_order_id: reference,
@@ -365,7 +387,7 @@ export async function POST(req: Request) {
                 p_invoice_status: status,
                 p_approval_code: approvalCode || null,
                 p_rrn: rrn || null,
-                p_set_paid_at: status === 'success' && existingOrder.payment_status !== 'paid',
+                p_set_paid_at: isFirstPaidTransition,
                 p_paid_amount: paidAmount,
             });
         const updateResult = updatedId ? [{ id: updatedId }] : [];
@@ -403,7 +425,7 @@ export async function POST(req: Request) {
             // the payment_status guard avoids re-deducting if a prior 'success'
             // was already applied. Awaited inside try/catch so a stock error
             // can never break payment confirmation.
-            if (existingOrder.payment_status !== 'paid') {
+            if (isFirstPaidTransition) {
                 try { await deductInventory(supabase, existingOrder.items); }
                 catch (e) { console.error('deductInventory failed (payment still confirmed):', e); }
 
@@ -524,7 +546,7 @@ export async function POST(req: Request) {
             // must never make Monobank retry the payment webhook. The route is
             // idempotent — it recomputes deadline and priority from paid_at, so a
             // duplicate call lands on the same values.
-            if (existingOrder.payment_status !== 'paid') {
+            if (isFirstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/automation/process-payment`, {
                     method: 'POST',
@@ -541,31 +563,26 @@ export async function POST(req: Request) {
                 });
             }
 
-            // Payment-received email (full payment or split prepayment).
-            // Fire-and-forget on the first transition to paid so a Brevo
-            // hiccup never makes Monobank retry the payment webhook. Goes
-            // through the transactional route, which renders OrderPaidEmail
-            // and picks the variant from the order's payment_type.
-            if (existingOrder.payment_status !== 'paid') {
-                const baseUrl = getRuntimeBaseUrl();
-                fetch(`${baseUrl}/api/email/transactional`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-cron-secret': process.env.CRON_SECRET || '',
-                    },
-                    body: JSON.stringify({ action: 'paid', orderId: reference }),
-                }).catch(err => {
-                    console.error('payment-received email trigger failed:', err);
-                });
-            }
+            // Лист про отриману оплату надсилає блок вище, поряд зі списанням
+            // залишків. Тут стояла ДРУГА, повністю рівнозначна відправка з тим
+            // самим тілом запиту, і саме вона давала клієнтам другий лист через
+            // дві секунди після першого. Розрив дорівнював тривалості верхнього
+            // виклику, бо той чекає на відповідь, а цей не чекав.
+            //
+            // Лишився верхній: він чекає на відповідь і має таймаут, тоді як
+            // незавершений fetch не переживає заморозки лямбди на Vercel — про
+            // це сказано в коментарі до нього і в create-invoice.
+            //
+            // Прапорець skip_customer_email у виклику автоматизації вище від
+            // цього не залежить: він глушить третього відправника незалежно від
+            // того, котрий із блоків надсилає лист.
 
             // Fiscalisation (Checkbox). On the first transition to paid, fire a
             // receipt from the cash register of the ФОП that received the money
             // (resolved by payment_region inside /api/fiscalize). Fire-and-forget
             // + idempotent (skips if fiscal_id already set), so Checkbox latency
             // or errors never make Monobank retry the payment webhook.
-            if (existingOrder.payment_status !== 'paid') {
+            if (isFirstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/fiscalize`, {
                     method: 'POST',
@@ -586,7 +603,7 @@ export async function POST(req: Request) {
             // service upserts files), and a safe no-op for orders with no
             // constructor project. A render hiccup must never make Monobank
             // retry the payment webhook, so it's awaited only inside catch.
-            if (existingOrder.payment_status !== 'paid') {
+            if (isFirstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/print/render-order`, {
                     method: 'POST',
@@ -613,7 +630,7 @@ export async function POST(req: Request) {
             // payment webhook. The downstream route is idempotent (it
             // checks for an existing brief before insert), so retries are
             // safe if we ever do wire one up.
-            if (existingOrder.with_designer && existingOrder.payment_status !== 'paid') {
+            if (existingOrder.with_designer && isFirstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/designer-service/on-payment`, {
                     method: 'POST',
@@ -637,7 +654,7 @@ export async function POST(req: Request) {
             const hasCertificate = orderItems.some(
                 (it) => it?.metadata?.certificateType || it?.options?.['Номер']
             );
-            if (hasCertificate && existingOrder.payment_status !== 'paid') {
+            if (hasCertificate && isFirstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/certificates/on-payment`, {
                     method: 'POST',

@@ -6,6 +6,7 @@ import OrderShippedEmail from '@/components/email/OrderShippedEmail';
 import OrderPaidEmail from '@/components/email/OrderPaidEmail';
 import { getAutomationConfig } from '@/lib/email/automation-config';
 import { logOutgoingEmail, readSendOutcome, htmlToTextSnapshot, readActor } from '@/lib/email/log-outgoing';
+import { isResendGuarded, resendGuardSince } from '@/lib/email/resend-guard';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
@@ -68,6 +69,46 @@ export async function POST(req: Request) {
 
         if (!order.customer_email) {
             return NextResponse.json({ error: 'Customer has no email' }, { status: 400 });
+        }
+
+        // Той самий лист про те саме замовлення двічі не йде.
+        //
+        // Захист стоїть тут, а не в тих, хто смикає маршрут, бо відправників
+        // дії 'paid' четверо: два блоки вебхука монобанку (один із них цим же
+        // комітом прибрано), кнопка «Позначити оплаченим» і кнопка «Перевірити
+        // оплату». Латати кожного окремо означає лишити відкритим п'ятого,
+        // якого хтось додасть потім. Правило має бути в одному місці.
+        //
+        // Перевірка перед рендером, а не після: інакше на кожен придушений
+        // лист марно будувався б цілий HTML.
+        //
+        // Мовчазне придушення відповідає УСПІХОМ навмисно. Той, хто викликав,
+        // просив «клієнт має знати про оплату» — клієнт про неї вже знає, тож
+        // мета досягнута. Помилка тут змусила б send-payment-link і
+        // create-invoice написати в журнал рядок про невдачу, і менеджер
+        // побачив би в картці червоне там, де все гаразд.
+        if (isResendGuarded(action)) {
+            const since = resendGuardSince();
+            const { data: alreadySent } = await supabase
+                .from('email_logs')
+                .select('id, sent_at')
+                .eq('order_id', order.id)
+                .eq('template', `order_${action}`)
+                .eq('status', 'sent')
+                .gte('sent_at', since)
+                .limit(1)
+                .maybeSingle();
+
+            if (alreadySent) {
+                console.log('transactional: duplicate suppressed', {
+                    orderId: order.id, action, firstSentAt: alreadySent.sent_at,
+                });
+                return NextResponse.json({
+                    success: true,
+                    deduplicated: true,
+                    message: `Лист «${action}» для цього замовлення вже надіслано о ${alreadySent.sent_at}`,
+                });
+            }
         }
 
         let subject = '';

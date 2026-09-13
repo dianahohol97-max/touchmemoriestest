@@ -10,6 +10,7 @@ import {
     Tailwind,
 } from '@react-email/components';
 import * as React from 'react';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { BodyParagraphs } from './BodyParagraphs';
 
 
@@ -85,7 +86,7 @@ export default function WinBackEmail({
 
                             <Text className="text-[13px] leading-[22px] text-[#94a3b8] m-0">
                                 Якщо більше не хочете отримувати такі листи — просто дайте нам знати у
-                                відповідь на цей лист або напишіть на hello@touchmemories.com.ua.
+                                відповідь на цей лист або напишіть на {SHOP_CONTACT_EMAIL}.
                             </Text>
                         </Section>
                     </Container>
