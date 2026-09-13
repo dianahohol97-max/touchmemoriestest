@@ -8,6 +8,7 @@ import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { Search, Download, User, Plus, MessageSquare, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolvePaymentBadge } from '@/lib/orders/payment-state';
+import { formatLastContact } from '@/lib/orders/attention';
 
 /**
  * Список замовлень (редизайн — Diana, 2026-08-06: «вкладка замовлення дуже не
@@ -28,6 +29,9 @@ import { resolvePaymentBadge } from '@/lib/orders/payment-state';
  * експорт, «Мої замовлення».
  */
 
+/** Ідентифікатор вкладки «Потребує уваги». Не є значенням order_status. */
+const ATTENTION_TAB = 'attention';
+
 const STATUS_TABS = [
     { id: 'all', label: 'Всі', color: '#64748b' },
     { id: 'new', label: 'Нові', color: '#263A99' },
@@ -36,6 +40,10 @@ const STATUS_TABS = [
     { id: 'shipped', label: 'Відправлені', color: '#a855f7' },
     { id: 'delivered', label: 'Виконані', color: '#22c55e' },
     { id: 'cancelled', label: 'Скасовані', color: '#ef4444' },
+    // Не статус замовлення, а окремий відбір: рахується на СЕРВЕРІ, бо зависле
+    // замовлення давно випало зі сторінки на 200 найновіших рядків, якою
+    // живляться решта фільтрів.
+    { id: ATTENTION_TAB, label: 'Потребує уваги', color: '#b45309' },
 ];
 
 const DELIVERY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -129,10 +137,17 @@ export default function OrdersPage() {
     // Пошук і дати — із затримкою, щоб не бити в базу на кожній літері.
     // Цей же ефект робить перше завантаження списку.
     useEffect(() => {
-        filtersRef.current = { search: searchQuery, start: dateRange.start, end: dateRange.end };
+        filtersRef.current = {
+            search: searchQuery,
+            start: dateRange.start,
+            end: dateRange.end,
+            // Вкладка «Потребує уваги» міняє САМ запит, а не лише показ, тож
+            // вона в тому ж ефекті, що й пошук із датами.
+            attention: activeTab === ATTENTION_TAB,
+        };
         const t = setTimeout(() => { fetchOrders(); }, firstLoad.current ? 0 : 350);
         return () => clearTimeout(t);
-    }, [searchQuery, dateRange.start, dateRange.end]);
+    }, [searchQuery, dateRange.start, dateRange.end, activeTab]);
 
     const fetchStaff = async () => {
         const res = await fetch('/api/admin/staff');
@@ -160,7 +175,7 @@ export default function OrdersPage() {
      * Ref, а не стан: підписка на realtime створюється один раз і викликає
      * fetchOrders() без аргументів, тож поточні фільтри вона має звідки взяти.
      */
-    const filtersRef = useRef({ search: '', start: '', end: '' });
+    const filtersRef = useRef({ search: '', start: '', end: '', attention: false });
     const firstLoad = useRef(true);
 
     const fetchOrders = async () => {
@@ -174,6 +189,11 @@ export default function OrdersPage() {
             if (q.length >= 2) params.set('search', q);
             if (f.start) params.set('from', f.start);
             if (f.end) params.set('to', f.end);
+            if (f.attention) {
+                params.set('attention', '1');
+                // Найдавніший контакт зверху — сенс фільтра саме в порядку.
+                params.set('sort', 'last_contact_asc');
+            }
             const res = await fetch(`/api/admin/orders${params.toString() ? `?${params}` : ''}`);
             if (res.status === 401 || res.status === 403) {
                 setAuthError(true);
@@ -250,7 +270,10 @@ export default function OrdersPage() {
     };
 
     const filteredOrders = useMemo(() => orders.filter(order => {
-        const matchesStatus = activeTab === 'all' || order.order_status === activeTab || (activeTab === 'new' && order.order_status === 'pending');
+        // На вкладці «Потребує уваги» відбір уже зробила база, і «attention» не
+        // є значенням order_status — повторна перевірка тут відкинула б усе.
+        const matchesStatus = activeTab === 'all' || activeTab === ATTENTION_TAB
+            || order.order_status === activeTab || (activeTab === 'new' && order.order_status === 'pending');
         const query = searchQuery.toLowerCase();
         const matchesSearch = !query ||
             order.order_number?.toLowerCase().includes(query) ||
@@ -548,6 +571,26 @@ export default function OrdersPage() {
                                             {order.notes || 'Коментар'}
                                         </span>
                                     </button>
+
+                                    {/* Останній контакт із клієнтом. Рахується з email_logs через
+                                        вигляд order_last_contact — колонки в orders немає навмисно.
+                                        Тире означає «не писали жодного разу», а не «давно»: це різні
+                                        речі, і менеджер має бачити, яка саме перед ним. */}
+                                    {(() => {
+                                        const contact = formatLastContact(order.last_contact_at);
+                                        const never = !order.last_contact_at;
+                                        return (
+                                            <span
+                                                title={never ? 'Клієнту ще не писали жодного листа' : 'Останній лист клієнту'}
+                                                style={{
+                                                    fontSize: 12, whiteSpace: 'nowrap',
+                                                    color: never ? '#b45309' : '#64748b',
+                                                    fontWeight: never ? 700 : 500,
+                                                }}>
+                                                ✉ {contact}
+                                            </span>
+                                        );
+                                    })()}
 
                                     <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                                         <select

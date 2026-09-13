@@ -1,6 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
-import { requireSection, requireAdmin } from '@/lib/auth/guards';
+import { requireSection, requireAdmin, resolveActingStaff } from '@/lib/auth/guards';
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
@@ -200,6 +200,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // хто і коли його змінив. Тепер це робить сервер сервісним клієнтом, тож
     // запис зʼявляється незалежно від того, хто натиснув, і покриває всі шляхи
     // PATCH, а не лише ті два, де в картці стояла ручна вставка.
+    // Хто саме змінив. До 13.09.2026 added_by був порожній у ВСІХ 655 рядках
+    // про зміну статусу чи оплати — тобто на питання «хто скасував замовлення»
+    // історія не відповідала жодного разу. Резолвиться один раз на запит, поза
+    // циклом: одна дія одного співробітника.
+    //
+    // Порожньо означає дію крона: у нього немає сесії, і вигадувати йому
+    // людину не треба.
+    const actor = await resolveActingStaff();
+
     for (const field of touched) {
         const oldValue = before ? (before as any)[field] : null;
         const newValue = (body as any)[field];
@@ -212,7 +221,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const row: Record<string, any> = {
             order_id: id,
             action,
-            details: { field, old: oldValue ?? null, new: newValue ?? null },
+            added_by: actor.id,
+            details: { field, old: oldValue ?? null, new: newValue ?? null, by: actor.name || null },
         };
         if (field === 'deadline') {
             row.notes = `Дедлайн виробництва змінено вручну на ${String(newValue).slice(0, 10)}.`;

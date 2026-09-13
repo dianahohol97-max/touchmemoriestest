@@ -19,6 +19,12 @@ import { normaliseMessageId } from '@/lib/email/delivery-events';
  * віддає { success, data, error }, а getResendClient().emails.send() віддає
  * { data, error }. Розбирає їх readSendOutcome, щоб кожен виклик не робив це
  * по-своєму — саме на такому «по-своєму» і загубився provider_message_id.
+ *
+ * ПОБІЧНА ДІЯ, про яку треба знати: logOutgoingEmail не лише пише журнал, а
+ * ще й призначає відповідального за замовлення, коли той порожній. Назва
+ * функції від цього вужча за її зміст, і це свідомий компроміс — саме тут
+ * сходяться всі пʼять шляхів відправки, тож одне місце дає призначення з
+ * будь-якої кнопки. Подробиці й причина — у коментарі до самої функції.
  */
 
 /**
@@ -186,11 +192,27 @@ export interface OutgoingEmailEntry {
 }
 
 /**
- * Пише рядок журналу. Ніколи не кидає.
+ * Пише рядок журналу і, за потреби, закріплює замовлення за автором листа.
+ * Ніколи не кидає.
  *
  * Лист уже або пішов, або ні, і провалений запис у журнал не має права
  * перетворити доставлений лист на помилку в інтерфейсі. Тому помилка вставки
- * лише логується в консоль.
+ * лише логується в консоль. Те саме стосується призначення.
+ *
+ * ПРО ПРИЗНАЧЕННЯ. orders.manager_id існує давно, разом із випадайками в
+ * списку і в картці, і на 13.09.2026 був заповнений у НУЛЯ замовлень із 1092.
+ * Добровільна дія вже існувала і не спрацювала, тож відповідальним стає той,
+ * хто першим написав клієнту: це єдиний момент, коли людина точно взялася за
+ * замовлення. Ручна випадайка лишається — вона тепер для ПЕРЕДАЧІ іншому, а не
+ * для першого призначення.
+ *
+ * Заповнене поле не перезаписується ніколи, і умова стоїть у WHERE самого
+ * UPDATE, а не в читанні перед записом: так її не обійти навіть у гонці двох
+ * одночасних листів.
+ *
+ * Невдала відправка теж призначає (Diana, 13.09.2026). Людина взялася за
+ * замовлення незалежно від того, чи Brevo відмовив, а замовлення без
+ * відповідального — це рівно те, від чого лікуємося.
  */
 export async function logOutgoingEmail(entry: OutgoingEmailEntry): Promise<void> {
     try {
@@ -214,6 +236,20 @@ export async function logOutgoingEmail(entry: OutgoingEmailEntry): Promise<void>
         });
         if (error) {
             console.error('[email-log] insert failed', { orderId: entry.orderId, template: entry.template, error: error.message });
+        }
+
+        // Закріпити замовлення за тим, хто написав, якщо воно ще нічиє.
+        if (entry.orderId && entry.actor?.id) {
+            const { error: assignErr } = await admin
+                .from('orders')
+                .update({ manager_id: entry.actor.id, updated_at: new Date().toISOString() })
+                .eq('id', entry.orderId)
+                .is('manager_id', null);
+            if (assignErr) {
+                console.error('[email-log] manager auto-assign failed (mail unaffected)', {
+                    orderId: entry.orderId, error: assignErr.message,
+                });
+            }
         }
     } catch (e) {
         console.error('[email-log] insert threw (email itself unaffected):', e);
