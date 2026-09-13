@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { keycrmRequest, fetchKeycrmOrderById, type KeycrmOrder } from '@/lib/automation/keycrm';
+import { NOT_PROVIDED, buildCancellationHistoryRow } from '@/lib/orders/cancellation';
 
 /**
  * Keep an order that already exists in both systems in step, in both
@@ -398,6 +399,24 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
 
         if (error) {
             result.problems.push(`Не вдалося оновити замовлення на сайті: ${error.message}`);
+        } else if (patch.order_status === 'cancelled' && order.order_status !== 'cancelled') {
+            // Скасування зі стадії CRM — четвертий шлях, яким замовлення стає
+            // скасованим, і єдиний, що сьогодні не спрацьовує: таблиця
+            // keycrm_status_map порожня, тож зіставлення стадії зі 'cancelled'
+            // не існує. Причина пишеться однаково з рештою саме тому: щойно
+            // хтось заповнить мапу, скасування не зʼявиться мовчки.
+            //
+            // Стан not_provided, бо CRM причини не передає — те саме, що й у
+            // дзеркалі. Назва стадії йде текстом: вона каже, з чого зроблено
+            // висновок, і не видає себе за причину.
+            const { error: reasonError } = await supabase.from('order_history').insert(
+                buildCancellationHistoryRow(order.id, {
+                    state: NOT_PROVIDED,
+                    note: `Стадію в KeyCRM змінено на «${crm.status_label || 'без назви'}», і сайт позначив замовлення скасованим. Причини CRM не передає.`,
+                    source: 'keycrm',
+                }),
+            );
+            if (reasonError) result.problems.push(`Причину скасування не записано: ${reasonError.message}`);
         } else if (patch.ttn) {
             // The customer-facing record of the same event, so support can see
             // when the number appeared without opening the CRM.

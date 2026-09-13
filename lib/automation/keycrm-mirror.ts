@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchRecentKeycrmOrders, fetchKeycrmOrderById, type KeycrmOrder } from '@/lib/automation/keycrm';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
+import { NOT_PROVIDED, buildCancellationHistoryRow } from '@/lib/orders/cancellation';
 
 /**
  * Mirror KeyCRM-native orders into the website database, read-only.
@@ -41,6 +42,13 @@ export type MirrorReport = {
     skipped_site_source: number;
     /** Hand-typed CRM orders tied back to their TM- site rows via the comment's number. */
     adopted: number;
+    /** Скільки замовлень отримали відповідального зі збігу імені менеджера CRM. */
+    manager_assigned: number;
+    /**
+     * Імена менеджерів із CRM, яких у staff немає, і скільки замовлень за
+     * кожним. Не здогадка, а список для Діани: кого завести в довідник.
+     */
+    manager_unmatched: Record<string, number>;
     problems: string[];
     samples: Array<{ order_number: string; buyer: string; total: number; action: string }>;
 };
@@ -264,6 +272,133 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
 }
 
 /**
+ * Довідник співробітників за імʼям, зведеним до одного вигляду.
+ *
+ * CRM не знає наших ідентифікаторів і віддає рівно рядок — «Вероніка Пиріжок».
+ * Звести його зі staff можна лише за імʼям, тож регістр і зайві пробіли
+ * прибираються, а решта звіряється точно. Нечітке зіставлення тут заборонене
+ * навмисно: «Марія М» у CRM схожа на «Марія Машталір» у довіднику рівно
+ * настільки, щоб вгадати неправильно, а помилкове призначення гірше за
+ * порожнє поле — воно виглядає як факт.
+ *
+ * Однакові імена в двох людей роблять збіг неоднозначним, і тоді не
+ * призначається ніхто: два «Марія» в довіднику — привід уточнити довідник, а
+ * не кидати монетку.
+ */
+function normaliseStaffName(value: unknown): string {
+    return String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+async function loadStaffByName(supabase: any): Promise<Map<string, string>> {
+    const { data, error } = await supabase.from('staff').select('id, name, is_active');
+    if (error) {
+        console.error('[keycrm-mirror] staff read failed, менеджерів не призначаємо:', error.message);
+        return new Map();
+    }
+
+    const byName = new Map<string, string>();
+    const ambiguous = new Set<string>();
+    for (const row of data || []) {
+        // Вимкнені співробітники не беруть участь: manager_id відповідає на
+        // питання «хто веде замовлення зараз», а людина, якої вже немає в
+        // команді, вести його не може. Таке імʼя піде в незбіги, і це правильно
+        // видно — воно означає, що замовлення нічиє.
+        if (row?.is_active === false) continue;
+        const key = normaliseStaffName(row?.name);
+        if (!key) continue;
+        if (byName.has(key)) { ambiguous.add(key); continue; }
+        byName.set(key, row.id);
+    }
+    for (const key of ambiguous) {
+        byName.delete(key);
+        console.warn('[keycrm-mirror] у staff двоє з однаковим імʼям, призначення пропущено:', key);
+    }
+    return byName;
+}
+
+/**
+ * Те, що дзеркало робить ПОНАД копіювання колонок: причина скасування і
+ * відповідальний.
+ *
+ * Обидва — заповнення порожнього, а не перенесення стану. Дзеркало лишається
+ * односпрямованим і не починає керувати замовленням: причину воно пише один
+ * раз на перехід, а відповідального ставить лише туди, де його немає.
+ */
+async function applyMirrorSideEffects(supabase: any, params: {
+    orderId: string;
+    crm: KeycrmOrder;
+    /** Статус до запису. null означає, що рядок щойно створено. */
+    previousStatus: string | null;
+    newStatus: string;
+    staffByName: Map<string, string>;
+    /** Відповідальний до запису. Заповнений означає, що чіпати нічого. */
+    previousManagerId?: string | null;
+    report?: MirrorReport;
+}): Promise<void> {
+    const { orderId, crm, previousStatus, newStatus, staffByName, previousManagerId, report } = params;
+
+    // ── Причина скасування ───────────────────────────────────────────────────
+    // Пишеться на переході в «Скасовано» і на першій появі вже скасованого
+    // замовлення — тобто рівно один раз, а не на кожну синхронізацію.
+    //
+    // Стан not_provided, і це не заглушка. У CRM усе скасування живе під однією
+    // стадією з англійським ключем `canceled`, без жодного тексту причини
+    // (перевірено 13.09.2026 на всій вибірці стадій акаунта). Коментар
+    // менеджера з картки CRM цитується окремо і підписаний як коментар, бо він
+    // причиною бути не зобовʼязаний — у половини скасованих замовлень він
+    // узагалі про інше.
+    if (newStatus === 'cancelled' && previousStatus !== 'cancelled') {
+        const comment = String(crm.manager_comment || '').trim();
+        const note = comment
+            ? `Замовлення скасоване в KeyCRM, причини CRM не передає. Коментар менеджера в картці CRM: «${comment.slice(0, 300)}»`
+            : 'Замовлення скасоване в KeyCRM, причини CRM не передає.';
+
+        const { error } = await supabase.from('order_history').insert(
+            buildCancellationHistoryRow(orderId, { state: NOT_PROVIDED, note, source: 'keycrm' }),
+        );
+        if (error) {
+            console.error('[keycrm-mirror] cancellation history insert failed', { orderId, error: error.message });
+            report?.problems.push(`CRM-${crm.id}: причину скасування не записано: ${error.message}`);
+        }
+    }
+
+    // ── Відповідальний ───────────────────────────────────────────────────────
+    // Умова «тільки якщо порожньо» стоїть у WHERE самого UPDATE, як і в
+    // logOutgoingEmail: так її не обійти навіть тоді, коли синхронізація і лист
+    // трапляються одночасно. Призначене руками дзеркало не чіпає ніколи — у
+    // CRM відповідальний міг лишитися старий, а на сайті його вже передали.
+    //
+    // Перевірка нижче економить запит на кожній наступній синхронізації вже
+    // призначеного замовлення, і тільки. Захистом лишається умова в WHERE: вона
+    // спрацює і тоді, коли тут було порожньо, а призначення встигло статися між
+    // читанням і записом.
+    if (previousManagerId) return;
+
+    const crmManager = String(crm.manager_name || '').trim();
+    if (!crmManager) return;
+
+    const staffId = staffByName.get(normaliseStaffName(crmManager));
+    if (!staffId) {
+        if (report) report.manager_unmatched[crmManager] = (report.manager_unmatched[crmManager] || 0) + 1;
+        else console.warn('[keycrm-mirror] менеджера з CRM немає у staff, поле лишається порожнім:', crmManager);
+        return;
+    }
+
+    const { data: assigned, error: assignError } = await supabase
+        .from('orders')
+        .update({ manager_id: staffId })
+        .eq('id', orderId)
+        .is('manager_id', null)
+        .select('id');
+
+    if (assignError) {
+        console.error('[keycrm-mirror] manager assign failed (mirror unaffected)', { orderId, error: assignError.message });
+        return;
+    }
+    if (report && assigned?.length) report.manager_assigned++;
+}
+
+/**
  * Pull recent CRM orders and mirror the ones that originated there.
  *
  * Orders the site itself pushed are skipped by their external reference: they
@@ -328,16 +463,31 @@ export async function mirrorSingleKeycrmOrder(crmId: string | number): Promise<b
     const number = `${MIRROR_NUMBER_PREFIX}${crm.id}`;
     const { data: existing } = await supabase
         .from('orders')
-        .select('id, order_number, deadline, custom_attributes')
+        // order_status їде разом із рештою, бо на ньому тримається запис
+        // причини скасування: рядок пишеться на переході, а не на кожен синк.
+        .select('id, order_number, order_status, manager_id, deadline, custom_attributes')
         .eq('order_number', number)
         .maybeSingle();
 
     const row = toOrderRow(crm, existing || undefined);
-    const { error } = existing
-        ? await supabase.from('orders').update(row).eq('id', existing.id)
-        : await supabase.from('orders').insert(row);
+    const { data: written, error } = existing
+        ? await supabase.from('orders').update(row).eq('id', existing.id).select('id').maybeSingle()
+        : await supabase.from('orders').insert(row).select('id').maybeSingle();
 
-    return !error;
+    if (error) return false;
+
+    if (written?.id) {
+        await applyMirrorSideEffects(supabase, {
+            orderId: written.id,
+            crm,
+            previousStatus: existing ? (existing as any).order_status || null : null,
+            newStatus: row.order_status,
+            previousManagerId: (existing as any)?.manager_id || null,
+            staffByName: await loadStaffByName(supabase),
+        });
+    }
+
+    return true;
 }
 
 export async function mirrorKeycrmOrders(params: {
@@ -356,6 +506,8 @@ export async function mirrorKeycrmOrders(params: {
         skipped_own: 0,
         skipped_site_source: 0,
         adopted: 0,
+        manager_assigned: 0,
+        manager_unmatched: {},
         problems: [],
         samples: [],
     };
@@ -474,7 +626,7 @@ export async function mirrorKeycrmOrders(params: {
         // deadline and custom_attributes ride along so the refresh can merge
         // instead of clobbering site-owned state (tightened deadlines, Софія's
         // chat_task recommendation).
-        .select('id, order_number, deadline, custom_attributes')
+        .select('id, order_number, order_status, manager_id, deadline, custom_attributes')
         .in('order_number', numbers);
 
     if (existingError) {
@@ -483,6 +635,10 @@ export async function mirrorKeycrmOrders(params: {
     }
 
     const existingByNumber = new Map((existing || []).map((r: any) => [r.order_number, r]));
+
+    // Один запит на весь прохід: замовлень у вікні сотні, а співробітників
+    // чотирнадцять.
+    const staffByName = await loadStaffByName(supabase);
 
     for (const crmOrder of candidates) {
         const number = `${MIRROR_NUMBER_PREFIX}${crmOrder.id}`;
@@ -505,9 +661,9 @@ export async function mirrorKeycrmOrders(params: {
             continue;
         }
 
-        const { error } = existingId
-            ? await supabase.from('orders').update(row).eq('id', existingId)
-            : await supabase.from('orders').insert(row);
+        const { data: written, error } = existingId
+            ? await supabase.from('orders').update(row).eq('id', existingId).select('id').maybeSingle()
+            : await supabase.from('orders').insert(row).select('id').maybeSingle();
 
         if (error) {
             report.problems.push(`${number}: ${error.message}`);
@@ -515,6 +671,25 @@ export async function mirrorKeycrmOrders(params: {
         }
 
         if (existingId) report.updated++; else report.created++;
+
+        if (written?.id) {
+            await applyMirrorSideEffects(supabase, {
+                orderId: written.id,
+                crm: crmOrder,
+                previousStatus: existingId ? (existingRow as any)?.order_status || null : null,
+                newStatus: row.order_status,
+                previousManagerId: (existingRow as any)?.manager_id || null,
+                staffByName,
+                report,
+            });
+        }
+    }
+
+    // Незбіги окремим рядком у логах, а не лише в тілі відповіді: крон ніхто не
+    // читає очима, а саме тут видно, кого треба завести в довідник.
+    const unmatched = Object.entries(report.manager_unmatched);
+    if (unmatched.length) {
+        console.warn('[keycrm-mirror] менеджерів CRM немає у staff:', unmatched.map(([n, c]) => `${n} (${c})`).join(', '));
     }
 
     return report;

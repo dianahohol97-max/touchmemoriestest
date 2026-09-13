@@ -5,6 +5,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import OrderCancelledEmail from '@/emails/OrderCancelledEmail';
 import PaymentReminderEmail from '@/emails/PaymentReminderEmail';
 import { refundOrderBonus } from '@/lib/referral/referral';
+import { buildCancellationHistoryRow } from '@/lib/orders/cancellation';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,11 +135,19 @@ export async function GET(request: Request) {
                 continue;
             }
 
-            await supabase.from('order_history').insert({
-                order_id: order.id,
-                action: 'status_changed',
-                notes: `Замовлення автоматично скасовано через несплату протягом ${CANCEL_AFTER_HOURS} годин`,
-            });
+            // Причина скасування в тому самому форматі, що й у адмінці: та сама
+            // дія order_cancelled і той самий код причини, тож картка показує
+            // її зверху однаково, ким би замовлення не було скасоване. Автор
+            // порожній свідомо — за кроном людини немає, і підставляти сюди
+            // когось означало б звинуватити невинного.
+            const { error: reasonError } = await supabase.from('order_history').insert(
+                buildCancellationHistoryRow(order.id, {
+                    state: 'not_paid',
+                    note: `Замовлення автоматично скасовано через несплату протягом ${CANCEL_AFTER_HOURS} годин.`,
+                    source: 'cron',
+                }),
+            );
+            if (reasonError) console.error(`[unpaid-orders] history insert failed for ${order.order_number}:`, reasonError.message);
 
             // Give back any bonuses this order had spent. They are debited at
             // SUBMIT, before payment, so without this an unpaid order that the

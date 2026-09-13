@@ -56,6 +56,14 @@ import {
 import { toast } from 'sonner';
 import { resolvePaymentBadge } from '@/lib/orders/payment-state';
 import { describeMailRow } from '@/lib/email/delivery-events';
+import {
+    CANCELLATION_REASONS,
+    NOTE_MAX_LENGTH,
+    cancellationAuthorLabel,
+    readCancellation,
+    validateCancellation,
+    type CancellationReasonCode,
+} from '@/lib/orders/cancellation';
 
 const STATUS_OPTS = [
     { id: 'new', label: 'Нове', color: '#263A99', bg: '#eff6ff' },
@@ -463,6 +471,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [history, setHistory] = useState<any[]>([]);
     const [previousOrdersCount, setPreviousOrdersCount] = useState(0);
 
+    // Скасування питає причину і без неї не йде далі. Модалка, а не окреме
+    // поле десь у картці: причину треба взяти саме в ту мить, коли людина
+    // приймає рішення, бо потім її вже ніхто не допише.
+    const [cancelReason, setCancelReason] = useState<CancellationReasonCode | ''>('');
+    const [cancelNote, setCancelNote] = useState('');
+    const [cancelling, setCancelling] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+
     // Tags
     const [availableTags, setAvailableTags] = useState<any[]>([]);
     const [showTagDropdown, setShowTagDropdown] = useState(false);
@@ -759,13 +775,28 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         }
     };
 
-    const updateStatus = async (newStatus: string) => {
-        const loadingToast = toast.loading('Оновлення статусу...');
+    /** Повертає true, якщо статус справді змінився. Кидати не можна: випадайка статусу викликає це без await. */
+    const updateStatus = async (newStatus: string, cancellation?: { reason: string; note: string }): Promise<boolean> => {
+        // Перехід у «Скасовано» спершу питає причину. Сервер відмовить і без
+        // цього — перевірка стоїть у PATCH, — але людині краще показати
+        // питання, ніж помилку.
+        if (newStatus === 'cancelled' && order?.order_status !== 'cancelled' && !cancellation) {
+            setCancelReason('');
+            setCancelNote('');
+            setShowCancelModal(true);
+            return false;
+        }
+
+        const loadingToast = toast.loading(newStatus === 'cancelled' ? 'Скасування замовлення...' : 'Оновлення статусу...');
         try {
             const resp = await fetch(`/api/admin/orders/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_status: newStatus, updated_at: new Date().toISOString() }),
+                body: JSON.stringify({
+                    order_status: newStatus,
+                    updated_at: new Date().toISOString(),
+                    ...(cancellation ? { cancellation_reason: cancellation.reason, cancellation_note: cancellation.note } : {}),
+                }),
             });
             if (!resp.ok) throw new Error((await resp.json().catch(() => ({})))?.error || 'Не вдалося оновити статус');
 
@@ -773,11 +804,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             // з is_admin_user(), тож звідси вставка мовчки не проходила ні в
             // кого, крім чотирьох людей у admin_users.
             toast.dismiss(loadingToast);
-            toast.success('Статус оновлено');
+            toast.success(newStatus === 'cancelled' ? 'Замовлення скасовано, причину записано' : 'Статус оновлено');
             fetchOrder();
+            return true;
         } catch (e: any) {
             toast.dismiss(loadingToast);
             toast.error(e.message || 'Помилка');
+            return false;
+        }
+    };
+
+    const confirmCancellation = async () => {
+        // Те саме правило, що й на сервері, і з того самого модуля: вільний
+        // текст обовʼязковий лише для «іншої причини». Дві копії умови розійшлися
+        // б за перший же реліз.
+        const check = validateCancellation({ reason: cancelReason, note: cancelNote });
+        if (!check.ok) { toast.error(check.error); return; }
+
+        setCancelling(true);
+        try {
+            // Модалка закривається лише на успіх: на помилці мережі набраний
+            // текст має лишитися на екрані, а не зникнути разом із вікном.
+            if (await updateStatus('cancelled', { reason: check.reason, note: check.note || '' })) {
+                setShowCancelModal(false);
+            }
+        } finally {
+            setCancelling(false);
         }
     };
 
@@ -1481,6 +1533,42 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                     </button>
                 </div>
             </div>
+
+            {/* Причина скасування — зверху картки, а не в історії.
+                Читається з уже завантаженої історії замовлення: нової колонки
+                заради цього не заводили, бо історія і так приїжджає з карткою
+                цілком. Порожньої причини тут не буває — або її записали, або
+                блок прямо каже, що її немає, і чому. */}
+            {order.order_status === 'cancelled' && (() => {
+                const cancellation = readCancellation(history);
+                return (
+                    <div style={{
+                        display: 'flex', gap: 12, alignItems: 'flex-start',
+                        background: '#fef2f2', border: '1px solid #fecaca', borderLeft: '4px solid #ef4444',
+                        borderRadius: 10, padding: '14px 16px', marginBottom: 20,
+                    }}>
+                        <AlertCircle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#991b1b', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                                Причина скасування
+                            </div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: '#7f1d1d', marginTop: 4 }}>
+                                {cancellation.label}
+                            </div>
+                            {cancellation.note && (
+                                <div style={{ fontSize: 14, color: '#7f1d1d', marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                                    {cancellation.note}
+                                </div>
+                            )}
+                            <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 8 }}>
+                                {cancellation.missing
+                                    ? 'Замовлення скасували до того, як причину почали питати, тож записати її вже нема з чого.'
+                                    : `${cancellationAuthorLabel(cancellation)}${cancellation.at ? ` • ${formatDateTime(cancellation.at)}` : ''}`}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Content Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
@@ -3722,6 +3810,80 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/* Reply Modal */}
+            {/* Причина скасування. Запитується до запису, бо після скасування
+                її вже не допише ніхто: замовлення закрите, менеджер пішов далі,
+                а через півроку відповіді на «чому» немає. */}
+            {showCancelModal && (
+                <div style={overlayStyle} onClick={() => !cancelling && setShowCancelModal(false)}>
+                    <div style={{ ...cardStyle, width: '560px', maxWidth: '92vw' }} onClick={e => e.stopPropagation()}>
+                        <div style={cardHeaderStyle}>
+                            <h3 style={cardTitleStyle}><AlertCircle size={20} /> Скасувати замовлення</h3>
+                            <button onClick={() => setShowCancelModal(false)} disabled={cancelling} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        <p style={{ fontSize: 14, color: '#475569', margin: '0 0 16px' }}>
+                            Причина лишиться в історії замовлення і буде видна зверху картки, тож через місяці буде зрозуміло, чому замовлення не відбулося.
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                            {CANCELLATION_REASONS.map(reason => (
+                                <label
+                                    key={reason.code}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                                        padding: '10px 12px', borderRadius: 8, fontSize: 14, fontWeight: 700,
+                                        border: `1px solid ${cancelReason === reason.code ? '#ef4444' : '#e2e8f0'}`,
+                                        background: cancelReason === reason.code ? '#fef2f2' : '#fff',
+                                        color: cancelReason === reason.code ? '#991b1b' : '#334155',
+                                    }}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="cancellation-reason"
+                                        value={reason.code}
+                                        checked={cancelReason === reason.code}
+                                        onChange={() => setCancelReason(reason.code)}
+                                        style={{ accentColor: '#ef4444' }}
+                                    />
+                                    {reason.label}
+                                </label>
+                            ))}
+                        </div>
+                        <label style={smallLabelStyle}>
+                            {cancelReason === 'other' ? 'Опишіть причину (обовʼязково)' : 'Деталі, якщо є'}
+                        </label>
+                        <textarea
+                            value={cancelNote}
+                            onChange={e => setCancelNote(e.target.value.slice(0, NOTE_MAX_LENGTH))}
+                            placeholder="Наприклад: клієнтка не відповідає з 2 вересня, писали двічі."
+                            style={{ ...notesInputStyle, width: '100%', height: '90px', marginBottom: 8 }}
+                        />
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+                            {cancelNote.length} з {NOTE_MAX_LENGTH} символів
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={cancelling}
+                                style={{ flex: 1, padding: '13px', background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '3px', fontWeight: 800, cursor: 'pointer' }}
+                            >
+                                Не скасовувати
+                            </button>
+                            <button
+                                onClick={confirmCancellation}
+                                disabled={cancelling || !cancelReason}
+                                style={{
+                                    flex: 1, padding: '13px', background: cancelReason ? '#dc2626' : '#fca5a5', color: 'white',
+                                    border: 'none', borderRadius: '3px', fontWeight: 800,
+                                    cursor: cancelling || !cancelReason ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                }}
+                            >
+                                {cancelling ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />} Скасувати замовлення
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showReplyModal && (
 <div style={overlayStyle} onClick={() => setShowReplyModal(false)}>
                     <div style={{ ...cardStyle, width: '600px' }} onClick={e => e.stopPropagation()}>

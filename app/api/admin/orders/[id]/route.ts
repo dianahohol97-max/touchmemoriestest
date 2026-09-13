@@ -4,6 +4,7 @@ import { requireSection, requireAdmin, resolveActingStaff } from '@/lib/auth/gua
 import { processAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
+import { buildCancellationHistoryRow, validateCancellation } from '@/lib/orders/cancellation';
 
 // Column allowlist for PATCH. Previously the raw request body went straight
 // into .update(body) behind a «просто співробітник» guard, so ANY active staff
@@ -117,6 +118,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
 
+    // Причина скасування їде в тілі поруч зі статусом, але колонками НЕ є —
+    // вона живе в історії замовлення. Тому знімається з тіла тут, до перевірки
+    // за списком дозволених колонок, інакше запит відхилявся б як «поле не
+    // редагується через цей ендпоінт».
+    const cancellationInput = {
+        reason: (body as any).cancellation_reason,
+        note: (body as any).cancellation_note,
+    };
+    delete (body as any).cancellation_reason;
+    delete (body as any).cancellation_note;
+
     // Keep order assignment in sync with the designer cabinet: it only lists
     // orders where with_designer = true AND designer_id = me. So whenever a
     // designer is set (here this covers a designer claiming a free order, or a
@@ -182,6 +194,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         becameCancelled = body.order_status === 'cancelled' && !!before && before.order_status !== 'cancelled';
     }
 
+    // Причина скасування обовʼязкова, і перевіряється ДО запису: замовлення,
+    // яке вже стало скасованим, причину заднім числом не отримає, а просити
+    // менеджера дописати її наступним запитом означає не отримати її ніколи.
+    //
+    // Вимога стосується рівно переходу В «Скасовано». Повторне збереження вже
+    // скасованого замовлення (правка ТТН, приміром) причини не питає — інакше
+    // скасована картка стала б нередагованою.
+    //
+    // Автоматичні шляхи сюди не заходять: крон несплачених і дзеркало CRM
+    // пишуть у базу самі, і в них свої причини — 'not_paid' і 'not_provided'
+    // відповідно.
+    let cancellation: ReturnType<typeof validateCancellation> | null = null;
+    if (becameCancelled) {
+        cancellation = validateCancellation(cancellationInput);
+        if (!cancellation.ok) {
+            return NextResponse.json({ error: cancellation.error }, { status: 400 });
+        }
+    }
+
     const { data, error } = await supabase
         .from('orders')
         .update(body)
@@ -230,6 +261,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const { error: histErr } = await supabase.from('order_history').insert(row);
         // Історія не має права завалити саме оновлення — воно вже відбулося.
         if (histErr) console.error('[order-patch] history insert failed', { id, field, error: histErr.message });
+    }
+
+    // Причина скасування окремим рядком, а не текстом усередині запису про
+    // зміну статусу. Рядок «Зміна статусу: new → cancelled» лишається як був —
+    // він машинний і його читають інші місця, — а причина має власну дію
+    // order_cancelled, бо саме за нею картка знаходить її серед сотні записів і
+    // показує зверху, не змушуючи гортати історію.
+    if (cancellation?.ok) {
+        const { error: reasonErr } = await supabase.from('order_history').insert(
+            buildCancellationHistoryRow(id, {
+                state: cancellation.reason,
+                note: cancellation.note,
+                source: 'admin',
+                actor,
+            }),
+        );
+        if (reasonErr) console.error('[order-patch] cancellation reason insert failed', { id, error: reasonErr.message });
     }
 
     // Paid-transition side effects. Every other way an order becomes paid —
