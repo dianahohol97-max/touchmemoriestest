@@ -22,6 +22,7 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | Variable | Description | Where to get |
 |---|---|---|
 | `BREVO_API_KEY` | Brevo (Sendinblue) API key | Brevo → Settings → API Keys |
+| `BREVO_WEBHOOK_SECRET` | Shared secret for the delivery-status webhook. Generate a long random string yourself, put it here, and set the SAME value as the `x-webhook-secret` header on the Brevo webhook pointing at `POST /api/webhooks/brevo`. Brevo does not sign its webhooks, so this header is the only thing standing between the endpoint and the open internet — without the variable the route answers 503 and accepts nothing. Header only, never a URL parameter: URLs land in proxy logs. | You invent it; set the header in Brevo → Transactional → Settings → Webhook (or via the API `createWebhook` / `updateWebhook`) |
 
 ## 🟡 NOVA POSHTA (delivery tracking)
 

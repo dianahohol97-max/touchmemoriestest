@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const admin = getAdminClient();
   const [emailsRes, notifsRes] = await Promise.all([
     admin.from('email_logs')
-      .select('id, customer_email, template, subject, body, status, error, sent_at, sent_by, sent_by_name')
+      .select('id, customer_email, template, subject, body, status, error, failure_kind, sent_at, sent_by, sent_by_name, delivery_status, delivery_detail, delivered_at')
       .eq('order_id', id)
       .order('sent_at', { ascending: false })
       .limit(100),
@@ -66,10 +66,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       body: e.body || null,
       status: e.status,
       error: e.error || null,
+      // Чому не пішло. Квота — єдина причина, яка минає сама, тож картка має
+      // право сказати про неї окремо.
+      failure_kind: e.failure_kind || null,
       sent_at: e.sent_at,
       // Імʼя береться зі знімка, а не з живого staff: журнал має лишитися
       // читабельним і після того, як співробітника видалять.
       sent_by_name: e.sent_by_name || null,
+      // Доля листа ПІСЛЯ передачі Brevo. Порожньо означає «події ще не було»,
+      // а не «не дійшов» — різниця між «надіслано» і «доставлено».
+      delivery_status: e.delivery_status || null,
+      delivery_detail: e.delivery_detail || null,
+      delivered_at: e.delivered_at || null,
     })),
     ...((notifsRes.data || []) as any[]).map((n) => ({
       id: `n-${n.id}`,
@@ -80,8 +88,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       body: null,
       status: 'sent',
       error: null,
+      failure_kind: null,
       sent_at: n.sent_at,
       sent_by_name: null,
+      delivery_status: null,
+      delivery_detail: null,
+      delivered_at: null,
     })),
   ].sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')));
 

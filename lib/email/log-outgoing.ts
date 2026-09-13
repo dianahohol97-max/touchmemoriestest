@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
+import { normaliseMessageId } from '@/lib/email/delivery-events';
 
 /**
  * Журнал вихідних листів клієнту — одна функція на всі шляхи відправки.
@@ -20,10 +21,24 @@ import { getAdminClient } from '@/lib/supabase/admin';
  * по-своєму — саме на такому «по-своєму» і загубився provider_message_id.
  */
 
+/**
+ * Чому передати не вдалося.
+ *
+ *  quota    — ліміт вичерпано: або наш денний бюджет, або тариф Brevo. Текст у
+ *             error каже, чий саме. Це єдина причина, яка минає сама опівночі,
+ *             тож змішувати її з рештою означало б ховати від менеджера
+ *             єдиний випадок, коли треба просто почекати або підняти тариф.
+ *  provider — Brevo відмовив з іншої причини.
+ *  config   — немає ключа або налаштування.
+ *  precheck — відмова ще до звернення до провайдера: немає email, поганий файл.
+ */
+export type FailureKind = 'quota' | 'provider' | 'config' | 'precheck';
+
 export interface SendOutcome {
     sent: boolean;
     providerMessageId: string | null;
     error: string | null;
+    failureKind: FailureKind | null;
 }
 
 /** Витягує текст помилки з чого завгодно, що повернув транспорт. */
@@ -37,6 +52,32 @@ function readError(value: unknown): string {
     } catch {
         return String(value);
     }
+}
+
+/**
+ * Класифікує відмову за самим обʼєктом помилки, а не за текстом.
+ *
+ * Наш власний ліміт розпізнається надійно: sendBrevoEmail кидає
+ * EmailQuotaError з code === 'EMAIL_QUOTA_EXCEEDED', і обидві транспортні
+ * обгортки повертають сам обʼєкт, тож код доступний.
+ *
+ * З лімітом тарифу Brevo складніше. Яким саме кодом він відповідає, з коду не
+ * встановити, тож розпізнаємо 402 (класичний «потрібна оплата») і явні згадки
+ * кредитів чи ліміту в тексті. Усе неоднозначне лишається 'provider': видати
+ * чужу відмову за квоту гірше, ніж не розпізнати квоту.
+ */
+function classifyFailure(error: unknown): FailureKind {
+    const e = error as any;
+    if (e?.code === 'EMAIL_QUOTA_EXCEEDED') return 'quota';
+
+    const status = Number(e?.status);
+    if (status === 402) return 'quota';
+
+    const text = `${e?.message ?? e ?? ''} ${e?.brevoCode ?? ''}`.toLowerCase();
+    if (/not configured|не налаштован|api[_ ]?key/.test(text)) return 'config';
+    if (/credit|quota|limit exceeded|daily limit|ліміт/.test(text)) return 'quota';
+
+    return 'provider';
 }
 
 /** Brevo віддає { messageId } — це і є ідентифікатор листа в провайдера. */
@@ -53,7 +94,7 @@ function readMessageId(data: unknown): string | null {
  */
 export function readSendOutcome(res: unknown): SendOutcome {
     if (res === null || res === undefined) {
-        return { sent: false, providerMessageId: null, error: 'Провайдер не відповів' };
+        return { sent: false, providerMessageId: null, error: 'Провайдер не відповів', failureKind: 'provider' };
     }
 
     const r = res as any;
@@ -61,23 +102,23 @@ export function readSendOutcome(res: unknown): SendOutcome {
     // sendEmail(): { success, data?, error? }
     if (typeof r.success === 'boolean') {
         return r.success
-            ? { sent: true, providerMessageId: readMessageId(r.data), error: null }
-            : { sent: false, providerMessageId: null, error: readError(r.error) };
+            ? { sent: true, providerMessageId: readMessageId(r.data), error: null, failureKind: null }
+            : { sent: false, providerMessageId: null, error: readError(r.error), failureKind: classifyFailure(r.error) };
     }
 
     // getResendClient().emails.send(): { data, error }
     if ('error' in r || 'data' in r) {
         return r.error
-            ? { sent: false, providerMessageId: null, error: readError(r.error) }
-            : { sent: true, providerMessageId: readMessageId(r.data), error: null };
+            ? { sent: false, providerMessageId: null, error: readError(r.error), failureKind: classifyFailure(r.error) }
+            : { sent: true, providerMessageId: readMessageId(r.data), error: null, failureKind: null };
     }
 
-    return { sent: false, providerMessageId: null, error: 'Незрозуміла відповідь провайдера' };
+    return { sent: false, providerMessageId: null, error: 'Незрозуміла відповідь провайдера', failureKind: 'provider' };
 }
 
 /** Відмова, яка сталася ДО звернення до провайдера (немає email, поганий файл). */
-export function failedOutcome(message: string): SendOutcome {
-    return { sent: false, providerMessageId: null, error: message };
+export function failedOutcome(message: string, kind: FailureKind = 'precheck'): SendOutcome {
+    return { sent: false, providerMessageId: null, error: message, failureKind: kind };
 }
 
 /**
@@ -160,9 +201,13 @@ export async function logOutgoingEmail(entry: OutgoingEmailEntry): Promise<void>
             template: entry.template,
             subject: entry.subject,
             body: entry.body,
-            provider_message_id: entry.outcome.providerMessageId,
+            // Нормалізований, щоб зійтися з message-id із вебхука Brevo:
+            // формати відрізняються кутовими дужками й регістром, а незбіг тут
+            // не помітний нічим — події приходять, рядок не оновлюється.
+            provider_message_id: normaliseMessageId(entry.outcome.providerMessageId),
             status: entry.outcome.sent ? 'sent' : 'failed',
             error: entry.outcome.error,
+            failure_kind: entry.outcome.failureKind,
             sent_by: entry.actor?.id || null,
             sent_by_name: entry.actor?.name || null,
             sent_at: new Date().toISOString(),

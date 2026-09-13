@@ -141,8 +141,18 @@ export async function sendBrevoEmail({ to, toName, subject, html, fromName, from
     });
 
     if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `Brevo error ${res.status}`);
+        const err = await res.json().catch(() => ({}) as any);
+        // Статус і код Brevo їдуть разом із помилкою, а не губляться в тексті.
+        // Без них журнал не може відрізнити вичерпаний ліміт тарифу від
+        // будь-якої іншої відмови, і менеджер бачить «не вдалося» без натяку
+        // на те, чи це мине само опівночі.
+        const e = new Error(err?.message || `Brevo error ${res.status}`) as Error & {
+            status?: number;
+            brevoCode?: string;
+        };
+        e.status = res.status;
+        if (err?.code) e.brevoCode = String(err.code);
+        throw e;
     }
     return await res.json();
 }

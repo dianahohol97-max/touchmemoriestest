@@ -55,6 +55,7 @@ import {
 , Image as ImageIcon, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { resolvePaymentBadge } from '@/lib/orders/payment-state';
+import { describeMailRow } from '@/lib/email/delivery-events';
 
 const STATUS_OPTS = [
     { id: 'new', label: 'Нове', color: '#263A99', bg: '#eff6ff' },
@@ -3537,10 +3538,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         {emailHistory.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Історія ({emailHistory.length})</div>
-                                {emailHistory.map((m: any) => (
+                                {emailHistory.map((m: any) => {
+                                    // «Надіслано» і «доставлено» — різні речі, і рядок тепер їх
+                                    // розрізняє. Правило чисте й лежить у lib/email/delivery-events,
+                                    // щоб його можна було перевірити тестом без React.
+                                    const mail = describeMailRow(m);
+                                    return (
                                     <div key={m.id}
                                         onClick={() => m.body && setExpandedEmailId(expandedEmailId === m.id ? null : m.id)}
-                                        style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8, background: m.status === 'failed' ? '#fef2f2' : '#fff', cursor: m.body ? 'pointer' : 'default' }}>
+                                        style={{ padding: '8px 10px', border: `1px solid ${mail.tone === 'bad' ? '#fecaca' : mail.tone === 'warn' ? '#fde68a' : '#e2e8f0'}`, borderRadius: 8, background: mail.rowBg, cursor: m.body ? 'pointer' : 'default' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
                                             <span style={{ fontSize: 12, fontWeight: 700, color: m.kind === 'manual' ? '#1e2d7d' : '#64748b' }}>
                                                 {m.subject || m.label}
@@ -3549,7 +3555,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 {m.sent_at ? new Date(m.sent_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                                             </span>
                                         </div>
-                                        <div style={{ fontSize: 11, color: m.status === 'failed' ? '#dc2626' : '#94a3b8', marginTop: 2 }}>
+                                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
                                             {m.kind === 'manual' ? 'Лист від магазину' : m.label}
                                             {/* Хто натиснув. Порожнє поле означає автоматичну
                                                 відправку — вебхук або крон, — і тоді підписувати
@@ -3557,13 +3563,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 тож воно лишиться на місці й після того, як
                                                 співробітника видалять. */}
                                             {m.sent_by_name ? ` · надіслав(ла) ${m.sent_by_name}` : ''}
-                                            {m.status === 'failed' ? ` · НЕ ДОСТАВЛЕНО${m.error ? `: ${m.error}` : ''}` : ''}
+                                        </div>
+                                        <div style={{
+                                            marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 5,
+                                            padding: mail.tone === 'neutral' ? 0 : '2px 8px', borderRadius: 999,
+                                            background: mail.bg, color: mail.fg,
+                                            fontSize: 11, fontWeight: mail.tone === 'neutral' ? 500 : 700,
+                                        }}>
+                                            {mail.label}
+                                            {m.delivered_at && mail.tone === 'good'
+                                                ? ` · ${new Date(m.delivered_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+                                                : ''}
                                         </div>
                                         {expandedEmailId === m.id && m.body && (
                                             <div style={{ marginTop: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: 6, fontSize: 12, color: '#374151', whiteSpace: 'pre-wrap' }}>{m.body}</div>
                                         )}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div style={{ fontSize: 12, color: '#94a3b8' }}>Листів по цьому замовленню ще не було.</div>
