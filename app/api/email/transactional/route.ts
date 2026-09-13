@@ -5,6 +5,7 @@ import OrderPlacedEmail from '@/components/email/OrderPlacedEmail';
 import OrderShippedEmail from '@/components/email/OrderShippedEmail';
 import OrderPaidEmail from '@/components/email/OrderPaidEmail';
 import { getAutomationConfig } from '@/lib/email/automation-config';
+import { logOutgoingEmail, readSendOutcome, htmlToTextSnapshot, readActor } from '@/lib/email/log-outgoing';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
@@ -152,30 +153,42 @@ export async function POST(req: Request) {
             subject,
             html: htmlContent
         });
+        const outcome = readSendOutcome(result);
 
-        // Log into email_logs either way — the per-order «Листування» card in
-        // the admin reads this table, and the payment confirmation was the one
-        // automatic email that never got logged anywhere.
-        try {
-            await supabase.from('email_logs').insert({
-                order_id: order.id,
-                customer_email: order.customer_email,
-                template: `order_${action}`,
-                subject,
-                status: result.success ? 'sent' : 'failed',
-                error: result.success ? null : String((result as any).error?.message || (result as any).error || 'send failed'),
-                sent_at: new Date().toISOString(),
-            });
-        } catch (e) {
-            console.error('transactional email log failed (email still handled):', e);
+        // Рядок журналу пишеться в обох випадках — картка «Листування» читає
+        // саме цю таблицю. Тепер через спільну функцію, тож сюди нарешті
+        // потрапляють і знімок тексту, і provider_message_id, і автор; раніше
+        // ця вставка не писала жодного з трьох.
+        //
+        // Автор приходить у тілі запиту, а не з сесії. Маршрут смикають
+        // сервер-до-сервера (кнопка «Надіслати посилання клієнту» і
+        // create-invoice) з cron-секретом, тож куки сюди не доїжджають і
+        // resolveActingStaff тут завжди повернув би порожньо. Приймати автора
+        // від такого виклику безпечно рівно настільки, наскільки безпечний сам
+        // секрет: хто ним володіє, і так може надіслати будь-що.
+        await logOutgoingEmail({
+            orderId: order.id,
+            to: order.customer_email,
+            template: `order_${action}`,
+            subject,
+            body: htmlToTextSnapshot(htmlContent),
+            actor: readActor(body?.sentBy),
+            outcome,
+        });
+
+        if (!outcome.sent) {
+            // Причина від Brevo, а не глухе «Failed to send email». Саме цей
+            // рядок бачить менеджер у картці замовлення, і «не вдалося» без
+            // причини не давало йому жодного наступного кроку.
+            console.error('Email sending failed in transactional route:', outcome.error);
+            return NextResponse.json({ error: outcome.error, success: false }, { status: 502 });
         }
 
-        if (!result.success) {
-            console.error('Email sending failed in transactional route:', result.error);
-            return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
-        }
-
-        return NextResponse.json({ success: true, message: `Transactional email '${action}' sent to ${order.customer_email}` });
+        return NextResponse.json({
+            success: true,
+            providerMessageId: outcome.providerMessageId,
+            message: `Transactional email '${action}' sent to ${order.customer_email}`,
+        });
 
     } catch (err: any) {
         console.error('Transactional email error:', err);

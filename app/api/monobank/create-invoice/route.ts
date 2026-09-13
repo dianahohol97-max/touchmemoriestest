@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 import { deliveryToPaymentRegion } from '@/lib/payment/pricing-region';
+import { resolveActingStaff } from '@/lib/auth/guards';
+import { logOutgoingEmail, failedOutcome } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -184,24 +186,63 @@ export async function POST(req: Request) {
         // прийнято" WITH a pay button. Safety net for lost redirects
         // (Instagram webview, closed tabs): TM-001043's customer finished
         // checkout, the redirect never landed, and the site had no visible
-        // way for a guest to pay. Fire-and-forget; mail can never break
-        // invoice creation. Re-created invoices (retries) don't re-send.
+        // way for a guest to pay. Re-created invoices (retries) don't re-send.
+        //
+        // Тут стояло `.catch(() => {})`, і це був єдиний у картці замовлення
+        // шлях, який справді мовчав: відмова провайдера зникала беззвучно, а
+        // менеджер бачив тільки «Посилання створено та скопійовано» і був
+        // певен, що клієнт отримав лист. Причому це ПЕРШИЙ лист, який клієнт
+        // узагалі бачить.
+        //
+        // Тепер результат доходить і до відповіді роуту, і до журналу. Лист
+        // усе одно не має права завалити створення рахунку — гроші важливіші
+        // за лист, — тож поразка лишається поразкою тільки листа.
+        let emailSent: boolean | null = null;
+        let emailError: string | null = null;
         try {
             const firstInvoice = !(order as any).monobank_invoice_id;
             if (firstInvoice && order.customer_email) {
                 const base = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
+                // Автор потрібен тому, що цей самий роут смикає і менеджер
+                // зеленою кнопкою в картці, і клієнт із чекауту. У першому
+                // випадку в журналі має стояти людина, у другому — ніхто.
+                const actor = await resolveActingStaff();
                 // AWAITED: fire-and-forget dies on Vercel — the lambda freezes
                 // right after the response is returned, so the request was
                 // never actually sent (email_logs stayed empty for two days
                 // of invoices). ~300ms of latency buys a real email.
-                await fetch(`${base}/api/email/transactional`, {
+                const res = await fetch(`${base}/api/email/transactional`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
-                    body: JSON.stringify({ action: 'placed', orderId }),
+                    body: JSON.stringify({ action: 'placed', orderId, sentBy: actor }),
                     signal: AbortSignal.timeout(8000),
-                }).catch(() => {});
+                });
+                const detail = await res.json().catch(() => ({} as any));
+                emailSent = res.ok && detail?.success !== false;
+                if (!emailSent) {
+                    emailError = String(detail?.error || `Транзакційний маршрут відповів ${res.status}`);
+                }
+                // Рядок журналу пише сам транзакційний маршрут — і на успіх, і
+                // на відмову. Дублювати його тут не можна, інакше кожна
+                // відмова лягла б у журнал двічі.
             }
-        } catch { /* never block payment */ }
+        } catch (e: any) {
+            // Сюди потрапляє тільки те, до чого транзакційний маршрут не
+            // дійшов узагалі: таймаут, обірвана мережа. Рядка журналу в такому
+            // разі не написав ніхто, тож пишемо його звідси — інакше відмова
+            // знову лишиться невидимою, як і була.
+            emailSent = false;
+            emailError = String(e?.message || e || 'Лист не надіслано');
+            await logOutgoingEmail({
+                orderId,
+                to: String(order.customer_email || ''),
+                template: 'order_placed',
+                subject: `Замовлення №${order.order_number} прийнято`,
+                body: 'Лист із посиланням на оплату. Текст будується в /api/email/transactional і до відправки не дійшов.',
+                actor: await resolveActingStaff(),
+                outcome: failedOutcome(emailError),
+            });
+        }
 
         await supabase.from('order_history').insert({
             order_id: orderId,
@@ -212,7 +253,7 @@ export async function POST(req: Request) {
             added_by: null
         });
 
-        return NextResponse.json({ success: true, invoiceId, pageUrl, amount: chargeAmount, isSplit });
+        return NextResponse.json({ success: true, invoiceId, pageUrl, amount: chargeAmount, isSplit, emailSent, emailError });
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

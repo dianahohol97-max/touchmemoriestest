@@ -4,6 +4,8 @@ import { requireStaff } from '@/lib/auth/guards';
 import { getResendClient } from '@/lib/email/resend';
 import { getReplyTo } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
+import { resolveActingStaff } from '@/lib/auth/guards';
+import { logOutgoingEmail, readSendOutcome, failedOutcome } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 /**
@@ -43,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const admin = getAdminClient();
   const [emailsRes, notifsRes] = await Promise.all([
     admin.from('email_logs')
-      .select('id, customer_email, template, subject, body, status, error, sent_at')
+      .select('id, customer_email, template, subject, body, status, error, sent_at, sent_by, sent_by_name')
       .eq('order_id', id)
       .order('sent_at', { ascending: false })
       .limit(100),
@@ -65,6 +67,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       status: e.status,
       error: e.error || null,
       sent_at: e.sent_at,
+      // Імʼя береться зі знімка, а не з живого staff: журнал має лишитися
+      // читабельним і після того, як співробітника видалять.
+      sent_by_name: e.sent_by_name || null,
     })),
     ...((notifsRes.data || []) as any[]).map((n) => ({
       id: `n-${n.id}`,
@@ -76,6 +81,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       status: 'sent',
       error: null,
       sent_at: n.sent_at,
+      sent_by_name: null,
     })),
   ].sort((a, b) => String(b.sent_at || '').localeCompare(String(a.sent_at || '')));
 
@@ -129,6 +135,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!guard.ok) return guard.response;
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'order id required' }, { status: 400 });
+
+  // Хто натиснув «Надіслати лист». Резолвиться один раз на запит, бо потрібен
+  // і на успішному шляху, і в кожній ранній відмові через fail().
+  const actor = await resolveActingStaff();
 
   // Лист із файлами приходить як multipart, без файлів — як JSON. Приймаємо
   // обидва, щоб старі виклики продовжували працювати без змін.
@@ -200,15 +210,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
    * де персонал її й шукає.
    */
   const fail = async (message: string, status: number) => {
-    await admin.from('email_logs').insert({
-      order_id: order.id,
-      customer_email: order.customer_email,
+    await logOutgoingEmail({
+      orderId: order.id,
+      to: order.customer_email,
       template: 'manual',
       subject,
       body: text,
-      status: 'failed',
-      error: message,
-      sent_at: new Date().toISOString(),
+      actor,
+      outcome: failedOutcome(message),
     });
     return NextResponse.json({ error: message }, { status });
   };
@@ -359,12 +368,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     </div>`;
 
   const resend = getResendClient();
-  const { error: sendErr } = await resend.emails.send({
+  // Результат зберігається цілком, а не тільки його error: у data лежить
+  // messageId від Brevo, і саме він досі не потрапляв у журнал жодного разу.
+  const sendResult = await resend.emails.send({
     to: order.customer_email,
     subject,
     html,
     ...(inline.length ? { attachments: inline } : {}),
   });
+  const sendErr = sendResult.error;
 
   // Log the attempt either way — a failed send with its error is exactly the
   // kind of thing the history must show instead of silently losing.
@@ -375,17 +387,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     ? `${text}\n\n— Файли: ${uploaded.map(u => `${u.name} (${fmtSize(u.size)})`).join(', ')}`
     : text;
 
-  const { error: logErr } = await admin.from('email_logs').insert({
-    order_id: order.id,
-    customer_email: order.customer_email,
+  await logOutgoingEmail({
+    orderId: order.id,
+    to: order.customer_email,
     template: 'manual',
     subject,
     body: loggedBody,
-    status: sendErr ? 'failed' : 'sent',
-    error: sendErr ? String((sendErr as any)?.message || sendErr) : null,
-    sent_at: new Date().toISOString(),
+    actor,
+    outcome: readSendOutcome(sendResult),
   });
-  if (logErr) console.error('[order-emails] log insert failed', { orderId: id, error: logErr.message });
 
   if (sendErr) {
     return NextResponse.json({ error: `Не вдалося надіслати: ${String((sendErr as any)?.message || sendErr)}` }, { status: 502 });

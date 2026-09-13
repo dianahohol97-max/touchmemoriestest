@@ -47,6 +47,44 @@ export async function getSession() {
     return { supabase, user };
 }
 
+/**
+ * Хто саме натиснув кнопку — у вигляді, придатному для журналу.
+ *
+ * Guard-и віддають user.id із Supabase Auth, а в staff такої колонки немає
+ * взагалі: зіставлення йде за email, і requireStaff уже робить рівно цей
+ * лукап, просто нікому його не віддає. Журнал вихідних листів потребує і id
+ * (звʼязок зі staff), і імʼя (щоб запис пережив видалення співробітника), тож
+ * лукап винесено сюди, а не переписано вп'яте по роутах.
+ *
+ * Ніколи не кидає і ніколи не блокує дію. Лист важливіший за підпис під ним:
+ * коли сесії немає (виклик кроном, вебхуком або сервером до себе) або staff не
+ * знайшовся, повертаються порожні значення, і це читається як «надіслала
+ * система».
+ *
+ * Коли людина є в admin_users, але не в staff, id буде порожній, а імʼям стане
+ * її email — краще адреса, ніж порожнє місце.
+ */
+export async function resolveActingStaff(): Promise<{ id: string | null; name: string | null }> {
+    try {
+        const { user } = await getSession();
+        const email = user?.email;
+        if (!email) return { id: null, name: null };
+
+        const admin = getAdminClient();
+        const { data } = await admin
+            .from('staff')
+            .select('id, name')
+            .ilike('email', likeEscape(email))
+            .maybeSingle();
+
+        if (data) return { id: String((data as any).id), name: String((data as any).name || email) };
+        return { id: null, name: email };
+    } catch (e) {
+        console.error('[guards] resolveActingStaff failed:', e);
+        return { id: null, name: null };
+    }
+}
+
 export async function requireAuth(): Promise<Guard> {
     const { user } = await getSession();
     if (!user) {

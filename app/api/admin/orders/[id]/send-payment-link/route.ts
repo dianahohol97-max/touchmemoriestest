@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { resolveActingStaff } from '@/lib/auth/guards';
+import { logOutgoingEmail, failedOutcome } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,16 +42,46 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: 'Немає рахунку Monobank — створіть його спочатку' }, { status: 400 });
     }
 
+    // Хто натиснув. Резолвиться ТУТ, бо саме сюди доїжджають куки менеджера:
+    // наступний крок — сервер-до-сервера з cron-секретом, і там сесії вже не
+    // буде. Автор їде в тілі, щоб рядок журналу підписав транзакційний
+    // маршрут, який його й пише.
+    const actor = await resolveActingStaff();
+
     const base = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
-    const res = await fetch(`${base}/api/email/transactional`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
-        body: JSON.stringify({ action: 'placed', orderId: id }),
-        signal: AbortSignal.timeout(15000),
-    });
+    let res: Response;
+    try {
+        res = await fetch(`${base}/api/email/transactional`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-cron-secret': process.env.CRON_SECRET || '' },
+            body: JSON.stringify({ action: 'placed', orderId: id, sentBy: actor }),
+            signal: AbortSignal.timeout(15000),
+        });
+    } catch (e: any) {
+        // Транзакційний маршрут не відповів узагалі — таймаут або обірвана
+        // мережа. Рядка журналу не написав ніхто, тож пишемо звідси: інакше
+        // менеджер отримає помилку, а в історії листування не буде нічого.
+        const reason = String(e?.message || e || 'Лист не надіслано');
+        await logOutgoingEmail({
+            orderId: id,
+            to: order.customer_email,
+            template: 'order_placed',
+            subject: `Замовлення №${order.order_number} — посилання на оплату`,
+            body: 'Лист із кнопкою «Оплатити замовлення». Текст будується в /api/email/transactional і до відправки не дійшов.',
+            actor,
+            outcome: failedOutcome(reason),
+        });
+        return NextResponse.json({ error: `Не вдалося надіслати лист: ${reason}` }, { status: 502 });
+    }
+
     const detail = await res.json().catch(() => ({} as any));
-    if (!res.ok) {
-        return NextResponse.json({ error: detail?.error || 'Не вдалося надіслати лист' }, { status: 500 });
+    if (!res.ok || detail?.success === false) {
+        // Причина від Brevo проходить наскрізь. Раніше сюди доходило глухе
+        // «Failed to send email», і менеджер не мав що з цим робити.
+        return NextResponse.json(
+            { error: detail?.error || 'Не вдалося надіслати лист' },
+            { status: res.status === 200 ? 502 : res.status },
+        );
     }
 
     return NextResponse.json({

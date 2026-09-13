@@ -1258,6 +1258,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 setPaymentLink(data.pageUrl);
                 navigator.clipboard.writeText(data.pageUrl);
                 toast.success('Посилання на оплату створено та скопійовано!');
+                // Разом із першим рахунком клієнту йде лист «замовлення
+                // прийнято», і досі його доля була невидима: помилку там
+                // ковтав `.catch(() => {})`, тож менеджер бачив лише зелений
+                // тост і був певен, що клієнт усе отримав. Тепер результат
+                // приходить у відповіді й показується як є.
+                if (data.emailSent === false) {
+                    toast.error(`Посилання створено, але лист клієнту НЕ пішов: ${data.emailError || 'причина невідома'}`, { duration: 10000 });
+                } else if (data.emailSent === true) {
+                    toast.success('Клієнту надіслано лист із посиланням на оплату');
+                }
                 await fetchOrder(); // Refresh to show updated payment info
             } else {
                 toast.error(data.error || 'Помилка створення посилання');
@@ -3541,6 +3551,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                         </div>
                                         <div style={{ fontSize: 11, color: m.status === 'failed' ? '#dc2626' : '#94a3b8', marginTop: 2 }}>
                                             {m.kind === 'manual' ? 'Лист від магазину' : m.label}
+                                            {/* Хто натиснув. Порожнє поле означає автоматичну
+                                                відправку — вебхук або крон, — і тоді підписувати
+                                                нікого не треба. Імʼя береться зі знімка в журналі,
+                                                тож воно лишиться на місці й після того, як
+                                                співробітника видалять. */}
+                                            {m.sent_by_name ? ` · надіслав(ла) ${m.sent_by_name}` : ''}
                                             {m.status === 'failed' ? ` · НЕ ДОСТАВЛЕНО${m.error ? `: ${m.error}` : ''}` : ''}
                                         </div>
                                         {expandedEmailId === m.id && m.body && (

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
-import { requireStaff } from '@/lib/auth/guards';
+import { requireStaff, resolveActingStaff } from '@/lib/auth/guards';
+import { logOutgoingEmail, readSendOutcome } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,43 +54,30 @@ export async function POST(
             html: `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">${cleanBody.replace(/\n/g, '<br/>')}</div>`,
         });
 
-        // Лист має лишити слід у «Листуванні з клієнтом». Досі не лишав: картка
-        // читає email_logs, а цей шлях туди не писав нічого, тож менеджер
-        // відповідав клієнту і через хвилину не міг довести ні що відповів, ні
-        // що саме написав. Сусідній маршрут /api/admin/orders/[id]/emails
-        // логує з першого дня — розходилися саме ці два.
-        //
-        // template='manual' навмисно той самий, що й там: картка за ним
-        // показує тіло листа і підписує його «Лист від магазину».
-        try {
-            await supabase.from('email_logs').insert({
-                order_id: orderId,
-                customer_email: order.customer_email,
-                template: 'manual',
-                subject: cleanSubject,
-                body: cleanBody,
-                status: result?.success === false ? 'failed' : 'sent',
-                error: result?.success === false
-                    ? String((result as any)?.error?.message || (result as any)?.error || 'send failed').slice(0, 300)
-                    : null,
-                sent_at: new Date().toISOString(),
-            });
-        } catch (e) {
-            // Журнал не має права завалити відправку — лист уже пішов.
-            console.error('[order-send-email] log insert failed (email still sent):', e);
+        // Лист має лишити слід у «Листуванні з клієнтом». Картка читає
+        // email_logs, і template='manual' навмисно той самий, що й у сусіднього
+        // маршруту /api/admin/orders/[id]/emails: за ним картка показує тіло
+        // листа і підписує його «Лист від магазину».
+        const outcome = readSendOutcome(result);
+        await logOutgoingEmail({
+            orderId,
+            to: order.customer_email,
+            template: 'manual',
+            subject: cleanSubject,
+            body: cleanBody,
+            actor: await resolveActingStaff(),
+            outcome,
+        });
+
+        // Невдача не видає себе за успіх. sendEmail не кидає виняток — він
+        // повертає { success: false }, а маршрут це колись ігнорував і завжди
+        // відповідав «Email sent successfully».
+        if (!outcome.sent) {
+            console.error('[order-send-email] send failed:', outcome.error);
+            return NextResponse.json({ error: outcome.error }, { status: 502 });
         }
 
-        // Невдача більше не видає себе за успіх. sendEmail не кидає виняток —
-        // він повертає { success: false }, а маршрут це ігнорував і завжди
-        // відповідав «Email sent successfully». Менеджер бачив тост «Лист
-        // надіслано» і йшов далі, хоча Brevo відмовив.
-        if (result?.success === false) {
-            const reason = String((result as any)?.error?.message || (result as any)?.error || 'Не вдалося надіслати лист');
-            console.error('[order-send-email] send failed:', reason);
-            return NextResponse.json({ error: reason }, { status: 502 });
-        }
-
-        return NextResponse.json({ success: true, message: 'Email sent successfully' });
+        return NextResponse.json({ success: true, providerMessageId: outcome.providerMessageId, message: 'Email sent successfully' });
     } catch (error: any) {
         console.error('Email send error:', error);
         return NextResponse.json(
