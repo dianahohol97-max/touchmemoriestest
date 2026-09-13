@@ -40,7 +40,11 @@ interface Order {
     payment_status: string;
     created_at: string;
     paid_at?: string;
-    assigned_manager_id?: string;
+    // Колонка зветься manager_id. Під назвою assigned_manager_id її не існує
+    // ніде в схемі, тож фільтр за менеджером нижче не знаходив жодного
+    // замовлення — рівно та сама помилка, що вже описана вище про
+    // payment_method, і з тієї ж партії.
+    manager_id?: string;
     delivery_method?: string;
 }
 
@@ -236,7 +240,7 @@ export default function PaymentsPage() {
             !filters.dateTo || new Date(order.created_at) <= new Date(filters.dateTo);
 
         const managerMatch =
-            !filters.managerId || order.assigned_manager_id === filters.managerId;
+            !filters.managerId || order.manager_id === filters.managerId;
 
         return (
             searchMatch &&

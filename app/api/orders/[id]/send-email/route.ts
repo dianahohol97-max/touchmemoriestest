@@ -47,11 +47,47 @@ export async function POST(
         const cleanSubject = String(subject ?? '').trim()
             || `Ваше замовлення ${order.order_number} — Touch.Memories`;
 
-        await sendEmail({
+        const result = await sendEmail({
             to: order.customer_email,
             subject: cleanSubject,
             html: `<div style="font-family: sans-serif; color: #333; line-height: 1.6;">${cleanBody.replace(/\n/g, '<br/>')}</div>`,
         });
+
+        // Лист має лишити слід у «Листуванні з клієнтом». Досі не лишав: картка
+        // читає email_logs, а цей шлях туди не писав нічого, тож менеджер
+        // відповідав клієнту і через хвилину не міг довести ні що відповів, ні
+        // що саме написав. Сусідній маршрут /api/admin/orders/[id]/emails
+        // логує з першого дня — розходилися саме ці два.
+        //
+        // template='manual' навмисно той самий, що й там: картка за ним
+        // показує тіло листа і підписує його «Лист від магазину».
+        try {
+            await supabase.from('email_logs').insert({
+                order_id: orderId,
+                customer_email: order.customer_email,
+                template: 'manual',
+                subject: cleanSubject,
+                body: cleanBody,
+                status: result?.success === false ? 'failed' : 'sent',
+                error: result?.success === false
+                    ? String((result as any)?.error?.message || (result as any)?.error || 'send failed').slice(0, 300)
+                    : null,
+                sent_at: new Date().toISOString(),
+            });
+        } catch (e) {
+            // Журнал не має права завалити відправку — лист уже пішов.
+            console.error('[order-send-email] log insert failed (email still sent):', e);
+        }
+
+        // Невдача більше не видає себе за успіх. sendEmail не кидає виняток —
+        // він повертає { success: false }, а маршрут це ігнорував і завжди
+        // відповідав «Email sent successfully». Менеджер бачив тост «Лист
+        // надіслано» і йшов далі, хоча Brevo відмовив.
+        if (result?.success === false) {
+            const reason = String((result as any)?.error?.message || (result as any)?.error || 'Не вдалося надіслати лист');
+            console.error('[order-send-email] send failed:', reason);
+            return NextResponse.json({ error: reason }, { status: 502 });
+        }
 
         return NextResponse.json({ success: true, message: 'Email sent successfully' });
     } catch (error: any) {
