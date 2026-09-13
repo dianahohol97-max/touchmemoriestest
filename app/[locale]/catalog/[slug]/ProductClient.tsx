@@ -8,6 +8,7 @@ import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { useB2b } from '@/lib/b2b/useB2b';
 import { calcTravelBookTotal } from '@/lib/products';
 import { computeFinalPrice } from '@/lib/pricing/final-price';
+import { cleanItemOptions } from '@/lib/orders/item-options';
 import { useState, useEffect } from 'react';
 import styles from './product-page.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -630,7 +631,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     });
 
     const handleAddToCart = () => {
-        const itemOptions: Record<string, string> = {};
+        let itemOptions: Record<string, string> = {};
 
         // Block if a personalised inscription is switched on but left empty.
         if (Array.isArray(product.options) &&
@@ -709,6 +710,14 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                 }
             });
         }
+
+        // Оздоблення описують два покоління полів одразу: старий селект
+        // «Оздоблення» з products.options і нові пігулки «Тип оздоблення».
+        // Плюс у позиції осідають варіанти всіх оздоблень, які клієнт
+        // перебирав дорогою. Позиція має описувати те, що купили, а не шлях
+        // до вибору — прибираємо суперечність ДО того, як вона стане
+        // замовленням (TM-001296). Правило в lib/orders/item-options.
+        itemOptions = cleanItemOptions(itemOptions) as typeof itemOptions;
 
         // Generate unique ID based on product ID and selected options
         const optionsKey = Object.entries(itemOptions)
@@ -806,14 +815,17 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
             return;
         }
 
-        const optionsSummary = Object.entries(itemOptions).map(([k, v]) => `${k}: ${v}`).join(', ');
+        // Сертифікат на товар описує той самий товар, тому й опис у нього
+        // той самий — без суперечливих залишків (lib/orders/item-options).
+        const certOptions = cleanItemOptions(itemOptions);
+        const optionsSummary = Object.entries(certOptions).map(([k, v]) => `${k}: ${v}`).join(', ');
         try {
             sessionStorage.setItem('productCert', JSON.stringify({
                 productId: product.id,
                 slug: product.slug,
                 productName: product.name,
                 price: finalPrice,
-                options: itemOptions,
+                options: certOptions,
                 optionsSummary,
             }));
         } catch { /* sessionStorage unavailable — page falls back to money mode */ }
@@ -1779,7 +1791,10 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                         sessionStorage.setItem('designerOrderConfig', JSON.stringify({
                                                             slug: product.slug || resolvedParams.slug,
                                                             productName: product.name || '',
-                                                            config: customProductOptions,
+                                                            // Те саме прибирання суперечливих опцій, що й у
+                                                            // кошику: у замовлення з дизайнером конфігурація
+                                                            // їде як є, тож чистимо її тут (TM-001296).
+                                                            config: cleanItemOptions(customProductOptions),
                                                             // The price the customer is looking at right now (base +
                                                             // page/lamination/urgency surcharges, or photobook matrix).
                                                             // Carried into the designer order so it lands with the SAME

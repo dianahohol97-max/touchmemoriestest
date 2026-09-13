@@ -12,6 +12,7 @@ import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
 import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequirement, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
+import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
@@ -1601,6 +1602,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // actually ordered. The index is only a fallback for orders
                                 // placed before codes were stamped at submit.
                                 const _coverCode = _coverSel.code || _coverMatch?.code || '';
+                                // Опис позиції без суперечностей — одне правило на адмінку,
+                                // чекаут і кошик (lib/orders/item-options).
+                                const _cleanOpts = cleanItemOptions(_rawOpts);
+                                const _deco = resolveDecoration(_rawOpts);
                                 // Обкладинка з м'якого матеріалу без кольору — це позиція, яку
                                 // неможливо виробити. Раніше така позиція просто мовчала:
                                 // блок кольору малюється лише тоді, коли колір Є, тож
@@ -1619,18 +1624,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             if (/сторінок|сторінки|page/i.test(k) && !/колір|color/i.test(k)) out[k] = '32 сторінки';
                                         }
                                     }
-                                    // Decoration sub-variants (acrylic size / photo-insert size) only make
-                                    // sense for their matching decoration. When "Оздоблення" is
-                                    // "Без оздоблення" (or another type), these carry stale default values
-                                    // — that's the "Без оздоблення + Варіант акрилу + Варіант фотовставки"
-                                    // contradiction. Hide the lines that don't match the chosen decoration.
-                                    const decoKey = Object.keys(out).find(k => /оздоблен/i.test(k));
-                                    const deco = decoKey ? String(out[decoKey]) : '';
-                                    const isAcrylic = /акрил/i.test(deco);
-                                    const isPhotoInsert = /фото|вставк/i.test(deco);
+                                    // Оздоблення описує себе двома поколіннями ключів одразу:
+                                    // старий селект пише «Оздоблення» і окремі «Варіант акрилу» /
+                                    // «Варіант фотовставки», нові пігулки — «Тип оздоблення» і
+                                    // «Варіант оздоблення». Разом вони давали рядок «Без оздоблення
+                                    // • Металева вставка • 90×50 золотий» (TM-001296). Правило
+                                    // розбору одне на всі екрани — див. lib/orders/item-options.
+                                    // Рішення ухвалюємо по ЗЛИТИХ опціях: «Оздоблення» і «Тип
+                                    // оздоблення» нерідко лежать у різних торбах (options проти
+                                    // selected_options), і кожна окремо не знає, що обрали.
                                     for (const k of Object.keys(out)) {
-                                        if (/варіант\s*акрил/i.test(k) && !isAcrylic) delete out[k];
-                                        if (/варіант\s*фото/i.test(k) && !isPhotoInsert) delete out[k];
+                                        if (!(k in _cleanOpts) || String(out[k] ?? '').trim() === '') delete out[k];
                                     }
                                     // Show the colour the way the workshop needs it —
                                     // «Велюр В-13 · Темно-зелений» — and drop the separate
@@ -1652,7 +1656,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // and the workshop see roughly how "Щасливі моменти" will look
                                 // (font, colour, size, on the chosen cover colour) instead of
                                 // reading five separate parameter lines.
-                                const allOpts = { ..._opts, ..._selOpts };
+                                // Напис читаємо з СИРИХ опцій: очищення ховає «Колір напису»
+                                // там, де флексу немає, а прев'ю має показувати те, що записав
+                                // клієнт, яким би оздоблення не було.
+                                const allOpts = _rawOpts;
                                 const findOpt = (re: RegExp) => {
                                     const k = Object.keys(allOpts).find(key => re.test(key));
                                     return k ? String(allOpts[k]) : '';
@@ -1709,17 +1716,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 <div style={{ fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
                                                     {/* selected_options — human readable */}
                                                     {_selOpts && Object.keys(_selOpts).length > 0
-                                                        ? Object.entries(_selOpts).map(([k, v]) => `${k}: ${v}`).join(' • ')
+                                                        ? describeItemOptions(_selOpts).map(o => `${o.label}: ${o.value}`).join(' • ')
                                                         : item.format
                                                         ? item.format
-                                                        : Object.entries(_opts || {})
-                                                            .filter(([k]) => !['Tier'].includes(k))
-                                                            .map(([k, v]) => `${k}: ${v}`).join(' • ')
+                                                        : describeItemOptions(_opts)
+                                                            .filter(o => o.key !== 'Tier')
+                                                            .map(o => `${o.label}: ${o.value}`).join(' • ')
                                                     }
                                                 </div>
                                                 {_coverColorMissing && (
                                                     <div style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
                                                         ⚠️ Колір обкладинки ({_coverNeed?.coverType.toLowerCase()}) не вказано — уточніть у клієнта до запуску у виробництво.
+                                                    </div>
+                                                )}
+                                                {/* Два ключі назвали різні оздоблення. Обрати за менеджера
+                                                    не можна — на верстат поїде не та вставка, — тож кажемо
+                                                    про суперечність уголос. */}
+                                                {_deco.conflict && (
+                                                    <div style={{ fontSize: 12, marginTop: 4, color: '#b45309' }}>
+                                                        ⚠️ Позиція називає два різні оздоблення — уточніть у клієнта, яке з них замовили.
                                                     </div>
                                                 )}
                                                 {/* Готова обкладинка з нашого каталогу — називаємо її,

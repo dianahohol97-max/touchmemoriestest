@@ -12,6 +12,8 @@ import { uploadImageToStorage } from '@/lib/storage-upload'
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs'
 import { toast } from 'sonner'
 import FlowHeader from '@/components/ui/FlowHeader'
+import { describeItemOptions, resolveDecoration } from '@/lib/orders/item-options'
+import { parseDecoVariantMm, type DecoVariantDims } from '@/lib/print/deco-variant'
 
 interface UploadedFile {
   id: string
@@ -623,6 +625,29 @@ function SuccessScreen({ orderNumber }: { orderNumber?: string | null }) {
 //                                              Оздоблення = Акрил / Фотовставка
 //   • Everything else (and direct /order
 //     visits with no product) ............... no cover block
+/**
+ * Фізичний розмір вставки, під який клієнт готує обкладинку.
+ *
+ * TM-001296 замовив металеву пластину 90×50 і надіслав квадратний макет: у
+ * блоці обкладинки ніде не було сказано, якої форми та вставка. Розмір
+ * рахуємо з того самого підпису варіанта, що їде в друк (lib/print/deco-variant),
+ * тож клієнт бачить рівно ті пропорції, які потім вигравіює майстерня.
+ */
+function getDecoPlate(savedConfig: any): { label: string; dims: DecoVariantDims } | null {
+  const cfg = (savedConfig?.config || {}) as Record<string, any>;
+  const deco = resolveDecoration(cfg);
+  // Пластина — це окрема фізична деталь: метал, акрил, фотовставка. Флекс і
+  // гравірування лягають на саму обкладинку, там пропорцій вставки немає.
+  const FALLBACKS: Record<string, DecoVariantDims> = {
+    metal: { w: 90, h: 50, round: false },
+    acryl: { w: 100, h: 100, round: false },
+    photovstavka: { w: 100, h: 100, round: false },
+  };
+  const fallback = FALLBACKS[deco.kind];
+  if (!fallback) return null;
+  return { label: deco.label, dims: parseDecoVariantMm(deco.variant, fallback) };
+}
+
 function getCoverCapability(savedConfig: any): { show: boolean; allowInscription: boolean; exampleUpload?: boolean; generatedCover?: boolean } {
   const slug = String(savedConfig?.slug || '').toLowerCase();
   if (!slug) return { show: false, allowInscription: false };
@@ -679,13 +704,14 @@ function getCoverCapability(savedConfig: any): { show: boolean; allowInscription
   return { show: false, allowInscription: false };
 }
 
-function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, exampleUpload, generatedCover }: {
+function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, exampleUpload, generatedCover, plate }: {
   allowInscription: boolean,
   inscription: string,
   coverPhoto: UploadedFile | null,
   onChange: (field: string, value: any) => void,
   exampleUpload?: boolean,
   generatedCover?: boolean,
+  plate?: { label: string; dims: DecoVariantDims } | null,
 }) {
   // The photo upload is an optional reference (not the actual cover) for both
   // the example-design flow and the Travel Book generated-cover flow.
@@ -721,6 +747,32 @@ function CoverBlock({ allowInscription, inscription, coverPhoto, onChange, examp
           ? 'Напишіть текст, який має бути на обкладинці, і за бажанням додайте приклад дизайну, який вам подобається — дизайнер орієнтуватиметься на нього.'
           : `Завантажте окреме фото для обкладинки${allowInscription ? ' і коротко опишіть, що має бути на ній зображено або написано' : ''}. Якщо не завантажите — дизайнер підбере найкраще фото із завантажених.`}
       </p>
+
+      {/* Форма вставки словами і в масштабі. Без цього клієнт не знає, що
+          пластина витягнута, і надсилає квадратний макет — так сталося з
+          TM-001296, де на 90×50 приїхав квадрат. */}
+      {plate && (() => {
+        const { w, h, round } = plate.dims;
+        const box = 64;
+        const frameW = round ? box : Math.round(box * Math.min(1, w / Math.max(w, h)));
+        const frameH = round ? box : Math.round(box * Math.min(1, h / Math.max(w, h)));
+        const sizeText = round ? `Ø${w} мм` : `${w}×${h} мм`;
+        const shapeText = round ? 'кругла' : w > h * 1.2 ? 'витягнута горизонтально' : h > w * 1.2 ? 'витягнута вертикально' : 'квадратна';
+        return (
+          <div className="flex items-center gap-4 mb-4 rounded-xl border border-[#1e2d7d]/20 bg-[#f0f3ff] px-4 py-3">
+            <div
+              className="flex-shrink-0 bg-white border-2 border-[#1e2d7d]/40"
+              style={{ width: frameW, height: frameH, borderRadius: round ? '50%' : 4 }}
+            />
+            <p className="text-xs text-[#1e2d7d] leading-relaxed">
+              Оздоблення обкладинки — {plate.label.toLowerCase()}, і його фізичний розмір становить {sizeText}.
+              Форма вставки {shapeText}, тому напис та приклад дизайну варто добирати саме під ці пропорції.
+              Якщо надішлете макет іншої форми, дизайнер підганятиме його під вставку, і частина зображення
+              залишиться поза нею.
+            </p>
+          </div>
+        );
+      })()}
 
       <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => pickCover(e.target.files)} />
 
@@ -1127,128 +1179,18 @@ function OrderForm() {
               {savedConfig.config && (() => {
                 const cfg = savedConfig.config as Record<string, any>;
 
-                // Friendly labels for the option keys themselves.
-                const keyLabels: Record<string, string> = {
-                  size: 'Розмір',
-                  pages: 'Кількість сторінок',
-                  coverType: 'Тип обкладинки',
-                  tracingPaper: 'Калька',
-                  lamination: 'Ламінація',
-                };
-
-                // Value-level mapping for the raw codes that come from the
-                // product.options JSON (acryl_100x100, foto_100x100, etc.)
-                // and from the selector itself (none, standard, own, with…).
-                // Without this, the summary card shows ugly slugs instead of
-                // human-readable labels. Falls back to the value as-is if it
-                // isn't recognised — covers labels that already arrive
-                // pre-formatted (e.g. "20×20 см", "16 сторінок").
-                const valueLabels: Record<string, string> = {
-                  'standard': 'Стандартний',
-                  'round': 'Круглий',
-                  'acryl': 'Акрил',
-                  'photovstavka': 'Фотовставка',
-                  'metal': 'Металева вставка',
-                  'flex': 'Флекс',
-                  'graviruvannya': 'Гравірування',
-                  'acryl_100x100': 'Акрил 100×100 мм',
-                  'acryl_d145': 'Акрил Ø145 мм',
-                  'foto_100x100': 'Фотовставка 100×100 мм',
-                  'glossy': 'Глянцева',
-                  'matte': 'Матова',
-                  'urgent': 'Термінова',
-                };
-
-                // Per-field overrides for ambiguous codes ('none' / 'with' /
-                // 'own' / 'we' mean different things on different fields).
-                // Resolved before the global valueLabels above.
-                const fieldValueLabels: Record<string, Record<string, string>> = {
-                  'Калька перед першою сторінкою': { 'none': 'Без кальки', 'with': 'З калькою' },
-                  'tracingPaper':                  { 'none': 'Без кальки', 'with': 'З калькою' },
-                  'Тип оздоблення':                { 'none': 'Без оздоблення' },
-                  'Оздоблення':                    { 'none': 'Без оздоблення' },
-                  'Верстка тексту':                { 'none': 'Без тексту (тільки фото)', 'own': 'Власний текст', 'we': 'Текст пише команда' },
-                  'Ламінація сторінок':            { 'none': 'Без ламінації', 'with': 'З ламінацією' },
-                  'Ламінація обкладинки':          { 'none': 'Без ламінації' },
-                  'Ламінація':                     { 'none': 'Без ламінації' },
-                  'Тип ламінації':                 { 'none': 'Без ламінації' },
-                  'Друк на форзаці':               { 'none': 'Без друку', 'with': 'З друком' },
-                  'Терміновість':                  { 'none': 'Стандартна', 'standard': 'Стандартна', 'urgent': 'Термінова (до 5 робочих днів)' },
-                  'Колір напису':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
-                  'Колір флексу':                  { 'white': 'Білий', 'black': 'Чорний', 'silver': 'Срібло', 'gold': 'Золото' },
-                  'Комплектація':                  { 'no_stand': 'Без мольберта', 'with_stand': "З дерев'яним мольбертом" },
-                };
-
-                const labelFor = (key: string, value: string): string => {
-                  const perField = fieldValueLabels[key];
-                  if (perField && perField[value]) return perField[value];
-                  if (valueLabels[value]) return valueLabels[value];
-                  return value;
-                };
-
-                // The product options dump can contain contradictory / stray
-                // fields: a "Тип оздоблення=Фотовставка" alongside an unused
-                // "Оздоблення=Без оздоблення", variant sub-options for EVERY
-                // decoration (Варіант акрилу + Варіант фотовставки) when only
-                // one was chosen, a "Колір напису" that only matters for flex,
-                // and empty fields. Build a clean, non-contradictory summary.
-                const decoRaw = String(cfg['Тип оздоблення'] || cfg['Оздоблення'] || '').toLowerCase();
-                const noDecoration = !decoRaw || decoRaw === 'none' || decoRaw.includes('без оздоблення');
-                const subOptionKeys = ['Варіант акрилу', 'Варіант фотовставки', 'Варіант металевої вставки', 'Варіант тиснення', 'Варіант гравірування'];
-                // The single sub-option key that belongs to the chosen decoration.
-                const variantKeyFor = (d: string): string | null => {
-                  if (d.includes('акрил') || d.includes('acryl')) return 'Варіант акрилу';
-                  if (d.includes('фотовставк') || d.includes('foto') || d.includes('photo')) return 'Варіант фотовставки';
-                  if (d.includes('метал')) return 'Варіант металевої вставки';
-                  if (d.includes('тиснен')) return 'Варіант тиснення';
-                  if (d.includes('гравір') || d.includes('graviru')) return 'Варіант гравірування';
-                  return null;
-                };
-                const chosenVariantKey = noDecoration ? null : variantKeyFor(decoRaw);
-                const isFlex = !noDecoration && (decoRaw.includes('флекс') || decoRaw.includes('flex') || decoRaw.includes('друк кольор'));
-                // Redundant decoration group: when one of «Оздоблення» /
-                // «Тип оздоблення» carries the real decoration, drop the other
-                // one if it's just "Без оздоблення".
-                const ozdNone = (() => { const r = String(cfg['Оздоблення'] ?? '').toLowerCase(); return !r || r === 'none' || r.includes('без оздоблення'); })();
-                const typNone = (() => { const r = String(cfg['Тип оздоблення'] ?? '').toLowerCase(); return !r || r === 'none' || r.includes('без оздоблення'); })();
-
-                const entries = Object.entries(cfg).filter(([key, value]) => {
-                  if (String(value ?? '').trim() === '') return false;       // hide empty fields
-                  if (subOptionKeys.includes(key)) {                          // only the chosen decoration's variant
-                    if (noDecoration) return false;
-                    return key === chosenVariantKey;
-                  }
-                  if (key === 'Колір напису' || key === 'Колір флексу') return isFlex; // inscription colour: flex only
-                  if (key === 'Оздоблення' && ozdNone && !typNone) return false;       // drop redundant "Без оздоблення"
-                  if (key === 'Тип оздоблення' && typNone && !ozdNone) return false;
-                  // Journals carry the cover finish as «Ламінація обкладинки».
-                  // A stray «Тип обкладинки» with the same glossy/matte value
-                  // (from an older session) is a duplicate — hide it.
-                  if (key === 'Тип обкладинки' && (cfg['Ламінація обкладинки'] || cfg['Тип ламінації'])) return false;
-                  // The same finish can also arrive under the constructor's
-                  // camelCase `coverType` key, which an older session left in
-                  // customProductOptions (its value becomes «Глянцева»/«Матова»).
-                  // Drop it only when it IS a glossy/matte finish — a real
-                  // material coverType (Велюр/Тканина/Друкована…) must stay.
-                  if (key === 'coverType' && (cfg['Ламінація обкладинки'] || cfg['Тип ламінації'])) {
-                    const cv = String(value ?? '').toLowerCase();
-                    if (cv.includes('глянц') || cv.includes('матов')) return false;
-                  }
-                  return true;
-                });
-
-                return entries.map(([key, value]) => {
-                  const v = String(value ?? '');
-                  const displayValue = labelFor(key, v);
-                  return (
-                    <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
-                        {keyLabels[key] || key}
-                      </p>
-                      <p className="text-sm font-medium text-gray-800">{displayValue}</p>
-                    </div>
-                  );
-                });
+                // Конфігурація приходить сирою: у ній сусідять два покоління
+                // ключів оздоблення і варіанти всіх оздоблень, які клієнт
+                // перебирав дорогою. Правило прибирання одне на чекаут, кошик
+                // і адмінку — lib/orders/item-options.
+                return describeItemOptions(cfg).map(({ key, label, value }) => (
+                  <div key={key} className="bg-[#f0f2f8] rounded-lg p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                      {label}
+                    </p>
+                    <p className="text-sm font-medium text-gray-800">{value}</p>
+                  </div>
+                ));
               })()}
             </div>
           </div>
@@ -1298,6 +1240,7 @@ function OrderForm() {
                 onChange={update}
                 exampleUpload={cap.exampleUpload}
                 generatedCover={cap.generatedCover}
+                plate={getDecoPlate(savedConfig)}
               />
             );
           })()}
