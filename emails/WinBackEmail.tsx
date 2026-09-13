@@ -11,7 +11,6 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BodyParagraphs } from './BodyParagraphs';
-import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 
 
 interface WinBackEmailProps {
@@ -84,10 +83,6 @@ export default function WinBackEmail({
                                 </Button>
                             </Section>
 
-                            <Text className="text-[13px] leading-[22px] text-[#94a3b8] m-0">
-                                Якщо більше не хочете отримувати такі листи — просто дайте нам знати у
-                                відповідь на цей лист або напишіть на {SHOP_CONTACT_EMAIL}.
-                            </Text>
                         </Section>
                     </Container>
                 </Body>
