@@ -1,5 +1,6 @@
 import { Html, Head, Body, Container, Section, Text, Button, Preview, Tailwind } from '@react-email/components';
 import * as React from 'react';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 
 interface ReviewRequestEmailProps {
   firstName?: string;
@@ -53,8 +54,8 @@ export default function ReviewRequestEmail({
 
               <Text className="text-[13px] leading-[22px] text-[#94a3b8] m-0">
                 Посилання персональне та дійсне 30 днів. Якщо у вас є питання — напишіть нам на{' '}
-                <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#263A99' }}>
-                  hello@touchmemories.com.ua
+                <a href={`mailto:${SHOP_CONTACT_EMAIL}`} style={{ color: '#263A99' }}>
+                  {SHOP_CONTACT_EMAIL}
                 </a>
               </Text>
             </Section>

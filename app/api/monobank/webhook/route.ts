@@ -365,7 +365,11 @@ export async function POST(req: Request) {
                 p_invoice_status: status,
                 p_approval_code: approvalCode || null,
                 p_rrn: rrn || null,
-                p_set_paid_at: status === 'success' && existingOrder.payment_status !== 'paid',
+                // paid_at більше не ставиться тут. Його пише заявка нижче, і
+                // тільки вона: саме на ній тримається рішення «це перший
+                // перехід в оплачено», тож поле має бути записане рівно один
+                // раз і рівно тим викликом, який це рішення виграв.
+                p_set_paid_at: false,
                 p_paid_amount: paidAmount,
             });
         const updateResult = updatedId ? [{ id: updatedId }] : [];
@@ -398,12 +402,44 @@ export async function POST(req: Request) {
         // 2. Update order status to 'confirmed'
         // 3. Trigger fulfillment process
         if (status === 'success') {
+            // ЗАЯВКА НА ПЕРШИЙ ПЕРЕХІД В «ОПЛАЧЕНО».
+            //
+            // Усі побічні дії нижче мусять статися рівно один раз на
+            // замовлення, і досі кожна з них питала про це existingOrder —
+            // знімок, прочитаний на початку запиту, ДО оновлення. Знімок
+            // застаріває: між читанням і записом адміністратор устигає
+            // натиснути «Позначити оплаченим», а другий вебхук того самого
+            // інвойсу з іншим статусом проходить свою перевірку тупла і бачить
+            // ту саму несвіжу відповідь. Обидва виклики вирішували «це перший
+            // перехід» і обидва слали лист.
+            //
+            // Тепер рішення висить на результаті самого UPDATE. Умова
+            // paid_at IS NULL стоїть у WHERE, тож перехід може виграти лише
+            // один виклик, хай скільки їх прийде одночасно; решта отримує нуль
+            // рядків і мовчки нічого не робить. Саме тому вище p_set_paid_at
+            // = false: поле має належати цій заявці і більше нікому.
+            const { data: claimedPaid, error: claimError } = await supabase
+                .from('orders')
+                .update({ paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+                .eq('id', reference)
+                .is('paid_at', null)
+                .select('id');
+
+            if (claimError) {
+                // Заявка не пройшла — краще не робити нічого, ніж зробити
+                // двічі. Monobank повторить вебхук, і наступна спроба або
+                // виграє перехід, або чесно побачить, що його вже виграли.
+                console.error('paid-transition claim failed (payment still recorded):', claimError);
+            }
+
+            const firstPaidTransition = !claimError && (claimedPaid?.length ?? 0) > 0;
+
             // Decrement stock once, at the paid transition. The atomic UPDATE
             // above guarantees we only reach here once per (invoice, status);
-            // the payment_status guard avoids re-deducting if a prior 'success'
+            // the claim guard avoids re-deducting if a prior 'success'
             // was already applied. Awaited inside try/catch so a stock error
             // can never break payment confirmation.
-            if (existingOrder.payment_status !== 'paid') {
+            if (firstPaidTransition) {
                 try { await deductInventory(supabase, existingOrder.items); }
                 catch (e) { console.error('deductInventory failed (payment still confirmed):', e); }
 
@@ -524,7 +560,7 @@ export async function POST(req: Request) {
             // must never make Monobank retry the payment webhook. The route is
             // idempotent — it recomputes deadline and priority from paid_at, so a
             // duplicate call lands on the same values.
-            if (existingOrder.payment_status !== 'paid') {
+            if (firstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/automation/process-payment`, {
                     method: 'POST',
@@ -541,31 +577,18 @@ export async function POST(req: Request) {
                 });
             }
 
-            // Payment-received email (full payment or split prepayment).
-            // Fire-and-forget on the first transition to paid so a Brevo
-            // hiccup never makes Monobank retry the payment webhook. Goes
-            // through the transactional route, which renders OrderPaidEmail
-            // and picks the variant from the order's payment_type.
-            if (existingOrder.payment_status !== 'paid') {
-                const baseUrl = getRuntimeBaseUrl();
-                fetch(`${baseUrl}/api/email/transactional`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-cron-secret': process.env.CRON_SECRET || '',
-                    },
-                    body: JSON.stringify({ action: 'paid', orderId: reference }),
-                }).catch(err => {
-                    console.error('payment-received email trigger failed:', err);
-                });
-            }
+            // Лист «оплату отримано» тут НЕ надсилається. Він уже пішов вище,
+            // одразу після списання складу, і другий виклик того самого
+            // маршруту з тією самою дією давав клієнтові два однакові листи
+            // про одну оплату. Лишився один виклик — той, що чекає на
+            // відповідь; цей, необроблений і без await, прибрано.
 
             // Fiscalisation (Checkbox). On the first transition to paid, fire a
             // receipt from the cash register of the ФОП that received the money
             // (resolved by payment_region inside /api/fiscalize). Fire-and-forget
             // + idempotent (skips if fiscal_id already set), so Checkbox latency
             // or errors never make Monobank retry the payment webhook.
-            if (existingOrder.payment_status !== 'paid') {
+            if (firstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/fiscalize`, {
                     method: 'POST',
@@ -586,7 +609,7 @@ export async function POST(req: Request) {
             // service upserts files), and a safe no-op for orders with no
             // constructor project. A render hiccup must never make Monobank
             // retry the payment webhook, so it's awaited only inside catch.
-            if (existingOrder.payment_status !== 'paid') {
+            if (firstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/print/render-order`, {
                     method: 'POST',
@@ -613,7 +636,7 @@ export async function POST(req: Request) {
             // payment webhook. The downstream route is idempotent (it
             // checks for an existing brief before insert), so retries are
             // safe if we ever do wire one up.
-            if (existingOrder.with_designer && existingOrder.payment_status !== 'paid') {
+            if (existingOrder.with_designer && firstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/designer-service/on-payment`, {
                     method: 'POST',
@@ -637,7 +660,7 @@ export async function POST(req: Request) {
             const hasCertificate = orderItems.some(
                 (it) => it?.metadata?.certificateType || it?.options?.['Номер']
             );
-            if (hasCertificate && existingOrder.payment_status !== 'paid') {
+            if (hasCertificate && firstPaidTransition) {
                 const baseUrl = getRuntimeBaseUrl();
                 fetch(`${baseUrl}/api/certificates/on-payment`, {
                     method: 'POST',

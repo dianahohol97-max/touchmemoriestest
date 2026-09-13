@@ -177,6 +177,78 @@ export function readActor(value: unknown): { id: string | null; name: string | n
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Скільки годин той самий лист вважається вже надісланим.
+ *
+ * Доба — це вікно однієї події. Повтори, від яких лікуємося, приходять
+ * секундами й хвилинами: Monobank повторює вебхук, поки не отримає 200,
+ * адміністратор двічі тисне «Позначити оплаченим», а два шляхи оплати
+ * спрацьовують на одне й те саме зарахування. Усе це вкладається в добу з
+ * величезним запасом.
+ *
+ * Довше робити не можна: подія, яка справді повторилася через тиждень (нова
+ * відправка після повернення, наприклад), мусить дійти до клієнта. Константа
+ * тут одна на весь маршрут, щоб поріг не розповзся числами по коду.
+ */
+export const DUPLICATE_WINDOW_HOURS = 24;
+
+/**
+ * Чи діє на цю дію захист від повторів.
+ *
+ * 'paid' і 'shipped' описують ПОДІЮ, яка стається з замовленням один раз:
+ * гроші зайшли, посилка поїхала. Другий такий лист — завжди помилка.
+ *
+ * 'placed' свідомо поза правилом (Diana, 13.09.2026). Той самий лист стоїть за
+ * кнопкою «Надіслати посилання клієнту», і менеджер тисне її навмисно, коли
+ * клієнт каже, що нічого не отримав або загубив посилання на оплату. Захист
+ * тут перетворив би робочу кнопку на кнопку, яка мовчки нічого не робить.
+ */
+export function isDuplicateGuardedAction(action: string): boolean {
+    return action === 'paid' || action === 'shipped';
+}
+
+/** Початок вікна, у якому шукаємо попередній успішний лист. */
+export function duplicateWindowStart(now: Date = new Date(), hours: number = DUPLICATE_WINDOW_HOURS): string {
+    return new Date(now.getTime() - hours * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Чи йшов уже цей самий лист за цим замовленням, і успішно.
+ *
+ * Успішно — тобто status = 'sent'. Провалена відправка не блокує нічого: лист
+ * не дійшов, і повторити його треба обовʼязково. Так само не блокує помилка
+ * читання самого журналу: мовчання про отриману оплату гірше за другий лист,
+ * тож при збої ми надсилаємо.
+ */
+export async function findRecentSuccessfulSend(params: {
+    orderId: string;
+    template: string;
+    withinHours?: number;
+}): Promise<{ id: string; sent_at: string | null } | null> {
+    try {
+        const admin = getAdminClient();
+        const { data, error } = await admin
+            .from('email_logs')
+            .select('id, sent_at')
+            .eq('order_id', params.orderId)
+            .eq('template', params.template)
+            .eq('status', 'sent')
+            .gte('sent_at', duplicateWindowStart(new Date(), params.withinHours ?? DUPLICATE_WINDOW_HOURS))
+            .order('sent_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error('[email-log] duplicate check failed, sending anyway', { orderId: params.orderId, template: params.template, error: error.message });
+            return null;
+        }
+        return (data as any) || null;
+    } catch (e) {
+        console.error('[email-log] duplicate check threw, sending anyway:', e);
+        return null;
+    }
+}
+
 export interface OutgoingEmailEntry {
     orderId: string | null;
     /** Кому пішов лист. */

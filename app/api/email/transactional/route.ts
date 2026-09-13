@@ -5,7 +5,7 @@ import OrderPlacedEmail from '@/components/email/OrderPlacedEmail';
 import OrderShippedEmail from '@/components/email/OrderShippedEmail';
 import OrderPaidEmail from '@/components/email/OrderPaidEmail';
 import { getAutomationConfig } from '@/lib/email/automation-config';
-import { logOutgoingEmail, readSendOutcome, htmlToTextSnapshot, readActor } from '@/lib/email/log-outgoing';
+import { logOutgoingEmail, readSendOutcome, htmlToTextSnapshot, readActor, isDuplicateGuardedAction, findRecentSuccessfulSend, DUPLICATE_WINDOW_HOURS } from '@/lib/email/log-outgoing';
 
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
@@ -68,6 +68,36 @@ export async function POST(req: Request) {
 
         if (!order.customer_email) {
             return NextResponse.json({ error: 'Customer has no email' }, { status: 400 });
+        }
+
+        // ЗАХИСТ ВІД ПОВТОРІВ — тут, а не латками по маршрутах-викликачах.
+        //
+        // Одну оплату підтверджують чотири різні шляхи: вебхук Monobank,
+        // check-payment, ручне «Позначити оплаченим» і створення замовлення в
+        // адмінці. Кожен із них колись отримував власну перевірку, і кожна
+        // бачила лише свій шлях — саме тому клієнтові приходило два однакові
+        // листи про одну й ту саму оплату. Спільне в них рівно одне: усі вони
+        // приходять СЮДИ. Отже, і правило має бути одне і стояти тут.
+        //
+        // Перевіряється факт, а не намір: у журналі вже є успішно надісланий
+        // лист із тією самою дією за цим замовленням. Провалена спроба не
+        // блокує — її треба повторити.
+        //
+        // Відповідь навмисно успішна, а не помилка: викликач зробив усе
+        // правильно, лист у клієнта вже є, і падіння тут змусило б Monobank
+        // повторювати вебхук по колу.
+        if (isDuplicateGuardedAction(action)) {
+            const already = await findRecentSuccessfulSend({ orderId: order.id, template: `order_${action}` });
+            if (already) {
+                console.log('[transactional] duplicate suppressed', { orderId: order.id, action, firstSentAt: already.sent_at });
+                return NextResponse.json({
+                    success: true,
+                    skipped: true,
+                    duplicate: true,
+                    firstSentAt: already.sent_at,
+                    message: `Лист '${action}' за цим замовленням уже надіслано за останні ${DUPLICATE_WINDOW_HOURS} годин.`,
+                });
+            }
         }
 
         let subject = '';

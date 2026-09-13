@@ -2,6 +2,7 @@ import {
     Html, Head, Body, Container, Section, Text, Button, Preview, Tailwind,
 } from '@react-email/components';
 import * as React from 'react';
+import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 
 interface OrderCancelledEmailProps {
     customerName?: string;
@@ -65,7 +66,7 @@ export default function OrderCancelledEmail({
                                 Якщо у вас виникли питання — пишіть нам в{' '}
                                 <a href="https://instagram.com/touch.memories" style={{ color: '#263A99' }}>Instagram</a>
                                 {' '}або на{' '}
-                                <a href="mailto:hello@touchmemories.com.ua" style={{ color: '#263A99' }}>hello@touchmemories.com.ua</a>
+                                <a href={`mailto:${SHOP_CONTACT_EMAIL}`} style={{ color: '#263A99' }}>{SHOP_CONTACT_EMAIL}</a>
                             </Text>
                         </Section>
 
