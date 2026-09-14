@@ -145,10 +145,27 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         ? Number((order as any).prepaid_amount)
         : Number((order as any).total);
 
+    // monobank_invoice_status пишеться разом зі статусом оплати, і це не
+    // косметика. Колонка стала ЗАХИСНОЮ після 20260914_monobank_stage_order:
+    // apply_monobank_payment порівнює ранг події з тим, що в ній збережено, і
+    // окреме суворе правило «після success назад тільки reversed» читає саме
+    // її. Поки тут лишалося застаріле 'processing' (ранг 20), запізніла подія
+    // 'failure' (ранг 35) проходила умову «не менший ранг» і перевела б щойно
+    // підтверджену оплату у 'failed'. Тобто ручна звірка роззброювала захист
+    // рівно на тих замовленнях, які вона щойно полагодила.
+    //
+    // Справжній статус у нас уже є: bankStatus прийшов від Monobank, і вище
+    // стоїть ранній вихід на всьому, що не 'success'.
+    //
+    // paid_at свідомо НЕ чіпаємо (Diana, 14.09.2026). На ньому тримається
+    // заявка вебхука на перший перехід в оплачено, і якби ми його проставили,
+    // запізнілий вебхук програв би заявку і не списав би склад — а склад тут
+    // не списується саме тому, що це робить вебхук.
     const { data: updated, error } = await admin
         .from('orders')
         .update({
             payment_status: 'paid',
+            monobank_invoice_status: bankStatus,
             ...(Number.isFinite(chargedUah) ? { paid_amount: chargedUah } : {}),
             updated_at: new Date().toISOString(),
         })

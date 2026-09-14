@@ -419,6 +419,8 @@ These are the recurring "why is this still broken" issues. Update this list when
     - `app/[locale]/review/[token]/{page,ReviewPageClient}.tsx` — switched to use `/api/review/[token]/[action]` server route + admin client for the page query, so token-based public review still works after RLS lockdown.
     - `npm audit fix` ran: 3 vulnerabilities remain unfixed and are accepted risks: `xlsx` (no upstream fix; we generate xlsx, never parse untrusted input), `request` + `form-data` (transitive via `node-telegram-bot-api` → no maintained alternative; runs server-side over HTTPS to Telegram API).
 
+12. **Dashboard and analytics still report `total`, not money received** (open, 2026-09-14 — deliberately NOT part of the four-consumer fix in `1513a701`). `/api/admin/dashboard` computes `todayRevenue` as the sum of `total` over every order created today regardless of payment, and `awaitingPaymentSum` as the sum of `total` where `payment_status = 'pending'` — the full order value, not the outstanding balance. `/api/admin/analytics` reads `total` for revenue, the period-over-period change, the 30-day chart and the COGS match. So both pages answer «how much was ordered», while the payments page, client `total_spent`, the expenses P&L and photographer totals now answer «how much came in», and the two sets of numbers disagree on every partially-paid order. Moving them over means `receivedAmount()` in the routes AND the `get_daily_revenue` SQL function, which is a second copy of the rule living in the database — change one without the other and the 30-day chart silently keeps the old answer.
+
 ---
 
 ## How to update this doc
