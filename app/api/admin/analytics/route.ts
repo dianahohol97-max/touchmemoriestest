@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { startOfDay, endOfDay, subDays, format, isAfter, isBefore } from 'date-fns';
 import { requireAdmin } from '@/lib/auth/guards';
+import { countedRevenue } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,17 +36,19 @@ export async function GET(req: Request) {
         // 1. Fetch Orders for Current and Previous Period
         const { data: currentOrders } = await supabase
             .from('orders')
-            .select('total, created_at, order_status, items')
+            .select('total, paid_amount, order_status, payment_status, created_at, items')
             .gte('created_at', startDate.toISOString());
 
         const { data: prevOrders } = await supabase
             .from('orders')
-            .select('total, items')
+            .select('total, paid_amount, order_status, payment_status, items')
             .gte('created_at', prevStartDate.toISOString())
             .lt('created_at', startDate.toISOString());
 
-        const currentRevenue = currentOrders?.reduce((sum: number, o: any) => sum + Number(o.total), 0) || 0;
-        const prevRevenue = prevOrders?.reduce((sum: number, o: any) => sum + Number(o.total), 0) || 0;
+        // Гроші, що надійшли, а не сума рахунків; скасовані дають нуль.
+        // Правило спільне — lib/orders/payment-state.ts.
+        const currentRevenue = currentOrders?.reduce((sum: number, o: any) => sum + countedRevenue(o), 0) || 0;
+        const prevRevenue = prevOrders?.reduce((sum: number, o: any) => sum + countedRevenue(o), 0) || 0;
         const revenueChange = prevRevenue === 0 ? 100 : ((currentRevenue - prevRevenue) / prevRevenue) * 100;
 
         const currentOrderCount = currentOrders?.length || 0;
@@ -98,10 +101,14 @@ export async function GET(req: Request) {
             .gte('subscribed_at', startDate.toISOString());
 
         // 5. Chart Data: Revenue over 30 days
-        const { data: dailyRevenue } = await supabase.rpc('get_daily_revenue', { days_count: 30 });
-        // NOTE: If RPC doesn't exist, we'll process it manually from orders
-
-        // Manual aggregation for now if RPC is not there
+        //
+        // Тут стояв виклик supabase.rpc('get_daily_revenue') із припискою «якщо
+        // функції немає, порахуємо вручну». Функції немає і не було ніколи:
+        // жодна міграція її не створює, у pg_proc її немає в жодній схемі, а
+        // виклик і запасний шлях написані одним комітом ще 13.03.2026. Тобто
+        // це був не залишок від видаленої функції, а намір, який так і не
+        // здійснили — і кожне відкриття сторінки ходило в базу по помилку,
+        // результат якої одразу викидали. Прибрано; рахуємо тут, як і рахували.
         const last30Days = Array.from({ length: 30 }, (_, i) => {
             const date = subDays(now, 29 - i);
             return format(date, 'yyyy-MM-dd');
@@ -111,7 +118,7 @@ export async function GET(req: Request) {
             const dayOrders = currentOrders?.filter((o: any) => o.created_at && o.created_at.startsWith(dateStr)) || [];
             return {
                 date: format(new Date(dateStr), 'dd.MM'),
-                revenue: dayOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0)
+                revenue: dayOrders.reduce((sum: number, o: any) => sum + countedRevenue(o), 0)
             };
         });
 

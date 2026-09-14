@@ -37,6 +37,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { countedRevenue } from '@/lib/orders/payment-state';
 
 const COLORS = ['#263A99', '#14b8a6', '#f59e0b', '#ef4444', '#a855f7', '#22c55e', '#6366f1'];
 
@@ -132,8 +133,20 @@ export default function AnalyticsPage() {
                 .lt('created_at', prevEndDate.toISOString());
 
             // KPI Calculations
-            const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
-            const prevRevenue = prevOrders?.reduce((sum, o) => sum + Number(o.total || 0), 0) || 0;
+            //
+            // Виручка — це гроші, що НАДІЙШЛИ (paid_amount), а не сума
+            // виставлених рахунків. Різниця стабільна і велика: за тридцять
+            // днів до 14.09.2026 сума замовлень 935 370 ₴, надійшло
+            // 744 136 ₴. Більша частина розриву — передоплати 50% на
+            // замовленнях із KeyCRM, де друга половина ще не в касі.
+            // Скасовані дають нуль: за липень–вересень їх у «виручці»
+            // набралося 80 184 ₴ доходу, якого не було.
+            //
+            // Правило одне на всю звітність — lib/orders/payment-state.ts.
+            // Сторінка платежів, total_spent клієнта, P&L і суми фотографів
+            // рахують ним же; своя копія тут означала б п'яту версію правди.
+            const revenue = orders.reduce((sum, o) => sum + countedRevenue(o), 0);
+            const prevRevenue = prevOrders?.reduce((sum, o) => sum + countedRevenue(o), 0) || 0;
             const revenueChange = prevRevenue === 0 ? 100 : ((revenue - prevRevenue) / prevRevenue) * 100;
 
             const ordersCount = orders.length;
@@ -193,7 +206,7 @@ export default function AnalyticsPage() {
             orders.forEach(order => {
                 const dateStr = format(new Date(order.created_at), 'yyyy-MM-dd');
                 if (dailyData.hasOwnProperty(dateStr)) {
-                    dailyData[dateStr] += Number(order.total || 0);
+                    dailyData[dateStr] += countedRevenue(order);
                 }
             });
 
@@ -310,7 +323,8 @@ export default function AnalyticsPage() {
                             total: 0
                         };
                     }
-                    clientStats[customerId].total += Number(o.total || 0);
+                    // Скільки людина ЗАПЛАТИЛА, а не на скільки замовила.
+                    clientStats[customerId].total += countedRevenue(o);
                 }
             });
 

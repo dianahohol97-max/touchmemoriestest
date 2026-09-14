@@ -124,6 +124,28 @@ export function receivedAmount(order: PaymentStateInput): number {
 }
 
 /**
+ * Виручка за замовлення для звітності: дашборд, аналітика, графіки.
+ *
+ * Відрізняється від receivedAmount рівно на одну умову — скасоване замовлення
+ * дає нуль. Гроші за ним або не надходили, або вже повернуті, і лишати їх у
+ * виручці означає показувати дохід, якого немає. На 14.09.2026 у тридцяти
+ * денному вікні таких замовлень сім на 8 388 ₴, а за липень–вересень
+ * скасованого в «виручці» набралося 80 184 ₴.
+ *
+ * Окрема функція, а не умова на місці виклику, бо місць виклику кілька, і
+ * саме так уже розійшлися чотири копії правила «скільки надійшло».
+ */
+export function countedRevenue(order: PaymentStateInput): number {
+    if (order?.order_status === 'cancelled' || order?.payment_status === 'cancelled') return 0;
+    return receivedAmount(order);
+}
+
+/** Чи враховувати замовлення в лічильниках звітності. Скасовані — ні. */
+export function countsTowardsRevenue(order: PaymentStateInput): boolean {
+    return order?.order_status !== 'cancelled' && order?.payment_status !== 'cancelled';
+}
+
+/**
  * Скільки за замовлення ще не отримано.
  *
  * Рахується від отриманих грошей, а не від статусу: на частково оплаченому
