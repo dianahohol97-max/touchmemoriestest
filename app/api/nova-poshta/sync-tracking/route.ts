@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { isDomesticNovaPoshta } from '@/lib/shipping/carrier';
 
 const NOVA_POSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
@@ -75,6 +75,33 @@ async function fetchTrackingBatch(apiKey: string, ttns: string[]): Promise<Map<s
     return byTtn;
 }
 
+/**
+ * Ключ Нової Пошти лежить в адмінці (Доставка → Нова Пошта, таблиця
+ * np_accounts), а не у змінних оточення. Саме звідти його беруть проксі
+ * кабінету, доставка в чекауті й створення накладної — усі троє з тим самим
+ * порядком і тим самим запасним варіантом.
+ *
+ * Крон читав ТІЛЬКИ process.env.NOVA_POSHTA_API_KEY, якої на Vercel немає,
+ * тож щодня падав із 500 при повністю налаштованому ключі в базі. Тепер
+ * ключ шукається в одному місці з рештою маршрутів, а змінна оточення
+ * лишається запасним варіантом для середовищ без бази.
+ */
+async function resolveNpApiKey(supabase: SupabaseClient): Promise<string | undefined> {
+    try {
+        const { data } = await supabase
+            .from('np_accounts')
+            .select('api_key')
+            .eq('is_active', true)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+        return data?.api_key || process.env.NOVA_POSHTA_API_KEY;
+    } catch {
+        return process.env.NOVA_POSHTA_API_KEY;
+    }
+}
+
 // Опитування пачками плюс запис у базу по кожному замовленню — це хвилини, а
 // не секунди, тож функції потрібен свій ліміт часу.
 export const maxDuration = 300;
@@ -91,14 +118,15 @@ export async function GET(req: NextRequest) {
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-        const apiKey = process.env.NOVA_POSHTA_API_KEY;
+        const apiKey = await resolveNpApiKey(supabase);
         if (!apiKey) {
             // Мовчазне падіння коштувало нам усього трекінгу. Крон щодня
             // повертав 500 і не лишав у логах жодного рядка, тому ніхто не
             // бачив, що статуси посилок не оновлюються з самого початку:
             // станом на 14.09.2026 у базі 836 замовлень із ТТН і в жодного
-            // немає tracking_status. Тепер причина написана в лозі прямо.
-            console.error('[NP] NOVA_POSHTA_API_KEY is not set — tracking sync cannot run');
+            // немає tracking_status. Тепер причина написана в лозі прямо, і
+            // в ній названі обидва місця, де ключ може бути.
+            console.error('[NP] No Nova Poshta API key — neither an active np_accounts row nor NOVA_POSHTA_API_KEY');
             return NextResponse.json({ error: 'Nova Poshta API key not configured' }, { status: 500 });
         }
 

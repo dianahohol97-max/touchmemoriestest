@@ -1230,8 +1230,52 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   );
 }
 
-export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Record<string, string | number>): boolean {
+/**
+ * Опція, якої бракує, і як її заповнюють: вибором зі списку чи текстом.
+ * Спосіб потрібен самій підказці — «оберіть формат» і «впишіть напис на
+ * обкладинці» це різні дієслова.
+ */
+export type MissingOption = { name: string; kind: 'choice' | 'text' };
+
+/**
+ * Перелік незаповнених обов'язкових опцій — саме перелік, а не «так чи ні».
+ *
+ * Плашка над кнопкою раніше казала «Оберіть всі обов'язкові опції перед
+ * замовленням» і не називала жодної. На фотокнизі їх шість, а підказка про
+ * колір обкладинки — дрібний сірий рядок у підписі сітки зразків, тож клієнт
+ * бачив сіру кнопку й мусив сам шукати, що пропустив. Перевірка і підказка
+ * тепер беруть той самий список.
+ */
+export function missingRequiredOptions(slug: string, selectedOptions: Record<string, string | number>): MissingOption[] {
   const productType = detectProductType(slug);
+  const missing: MissingOption[] = [];
+  const isEmpty = (v: any) => v === undefined || v === null || String(v).trim() === '';
+
+  if (productType) {
+    const options = PRODUCT_OPTIONS[productType];
+    // Graduation books don't have калька (it's hidden in the render) — exclude
+    // it from the required check too, otherwise the gate would block ordering
+    // forever for випускні. Skip is by slug, not by productType, so the
+    // graduation rule lives in exactly one place (the slug check above).
+    const slugLower = slug.toLowerCase();
+    const isGraduationSlug = slugLower.includes('graduation') || slugLower.includes('vypusk');
+    const requiredOptions = options.filter(opt => {
+      if (!opt.required || opt.type === 'text') return false;
+      if (isGraduationSlug && opt.name === 'Калька перед першою сторінкою') return false;
+      return true;
+    });
+    for (const opt of requiredOptions) {
+      if (isEmpty(selectedOptions[opt.name])) missing.push({ name: opt.name, kind: 'choice' });
+    }
+  }
+
+  // Колір м'якої обкладинки живе не в PRODUCT_OPTIONS, а в сітці зразків із
+  // cover_colors, тож жодна перевірка обов'язкових опцій його не бачила. Без
+  // кольору замовлення не виробиш, тому воно й не має оформлюватись.
+  const coverColor = coverColorRequirement(slug, selectedOptions);
+  if (coverColor && isEmpty(selectedOptions[coverColor.key])) {
+    missing.push({ name: coverColor.key, kind: 'choice' });
+  }
 
   // Generic: if any selected option value signals a custom cover inscription
   // (custom-text / напис / індивідуальн / engrav), the inscription text must
@@ -1242,42 +1286,15 @@ export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Recor
     return s.includes('custom-text') || s.includes('custom_text') ||
            s.includes('напис') || s.includes('індивідуальн') || s.includes('engrav');
   });
-  if (hasInscriptionSelected) {
-    const txt = selectedOptions['Напис на обкладинці'];
-    if (txt === undefined || txt === null || String(txt).trim() === '') {
-      return false;
-    }
+  if (hasInscriptionSelected && isEmpty(selectedOptions['Напис на обкладинці'])) {
+    missing.push({ name: 'Напис на обкладинці', kind: 'text' });
   }
 
-  // Колір м'якої обкладинки живе не в PRODUCT_OPTIONS, а в сітці зразків із
-  // cover_colors, тож жодна перевірка обов'язкових опцій його не бачила. Без
-  // кольору замовлення не виробиш, тому воно й не має оформлюватись.
-  const coverColor = coverColorRequirement(slug, selectedOptions);
-  if (coverColor && String(selectedOptions[coverColor.key] ?? '').trim() === '') {
-    return false;
-  }
+  return missing;
+}
 
-  if (!productType) {
-    return true;
-  }
-
-  const options = PRODUCT_OPTIONS[productType];
-  // Graduation books don't have калька (it's hidden in the render) — exclude
-  // it from the required check too, otherwise the gate would block ordering
-  // forever for випускні. Skip is by slug, not by productType, so the
-  // graduation rule lives in exactly one place (the slug check above).
-  const slugLower = slug.toLowerCase();
-  const isGraduationSlug = slugLower.includes('graduation') || slugLower.includes('vypusk');
-  const requiredOptions = options.filter(opt => {
-    if (!opt.required || opt.type === 'text') return false;
-    if (isGraduationSlug && opt.name === 'Калька перед першою сторінкою') return false;
-    return true;
-  });
-
-  return requiredOptions.every(opt => {
-    const value = selectedOptions[opt.name];
-    return value !== undefined && value !== null && value !== '';
-  });
+export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Record<string, string | number>): boolean {
+  return missingRequiredOptions(slug, selectedOptions).length === 0;
 }
 
 export function getCalculatedPrice(slug: string, selectedOptions: Record<string, string | number>): number | null {

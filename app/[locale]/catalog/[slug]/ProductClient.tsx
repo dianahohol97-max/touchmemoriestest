@@ -26,7 +26,7 @@ import { useCartStore } from '@/store/cart-store';
 import { trackViewItem, trackAddToCart } from '@/components/providers/AnalyticsProvider';
 import { toast } from 'sonner';
 import { PhotobookOptions } from '@/components/ui/PhotobookOptions';
-import { ProductOptionsSelector, areAllRequiredOptionsFilled, detectProductType, getCalculatedPrice } from '@/components/ui/ProductOptionsSelector';
+import { ProductOptionsSelector, areAllRequiredOptionsFilled, missingRequiredOptions, detectProductType, getCalculatedPrice } from '@/components/ui/ProductOptionsSelector';
 import InscriptionDesigner, { INSCRIPTION_KEYS } from '@/components/ui/InscriptionDesigner';
 import VelourSwatchPicker from '@/components/ui/VelourSwatchPicker';
 import WishlistButton from '@/components/WishlistButton';
@@ -219,6 +219,28 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
     // product page and the catalog cards never disagree.
     const showPrice = (uah: number | null | undefined) => formatDisplayPrice(uah, locale, displayCurrency);
     const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
+    // Плашка над кнопкою називає пропущене поіменно. Раніше вона казала
+    // «Оберіть всі обов'язкові опції перед замовленням» і мовчала про те, ЯКІ
+    // саме: на фотокнизі їх шість, а єдина підказка про колір обкладинки —
+    // дрібний сірий рядок у підписі сітки зразків. Клієнт бачив сіру кнопку і
+    // мусив сам шукати, чого бракує.
+    const missingOptionsHint = (opts: Record<string, any>) => {
+        const missing = missingRequiredOptions(product?.slug || '', opts);
+        if (missing.length === 0) return '';
+        // Німецька пише іменники з великої, решта мов — ні, тож рядок на
+        // кшталт «Оберіть Колір шкірзамінника» правильний лише там.
+        const names = missing.map(m => {
+            const label = optLabel(m.name);
+            return locale === 'de' ? label : label.charAt(0).toLowerCase() + label.slice(1);
+        });
+        if (names.length === 1) {
+            const key = missing[0].kind === 'text' ? 'product_page.fill_required_one' : 'product_page.select_required_one';
+            return t(key).replace('{option}', names[0]);
+        }
+        const last = names[names.length - 1];
+        const listed = `${names.slice(0, -1).join(', ')} ${t('product_page.and_word')} ${last}`;
+        return t('product_page.select_required_many').replace('{options}', listed);
+    };
     const optValueLabel = (label: string) => {
         // First try full-string translation
         const kFull = t('option_value_labels.' + label);
@@ -1401,7 +1423,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                     </div>
                                 ) : !optsOk ? (
                                     <div style={{ padding: '16px', backgroundColor: '#dbeafe', border: '1px solid rgba(30, 45, 125, 0.2)', borderRadius: '8px', fontSize: '14px', color: '#1e2d7d', textAlign: 'center' }}>
-                                        {t('product_page.select_required_options')}
+                                        {missingOptionsHint(customProductOptions)}
                                     </div>
                                 ) : null}
                                 <button
@@ -1465,7 +1487,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        {t('product_page.select_required_options')}
+                                        {missingOptionsHint(customProductOptions)}
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
@@ -1810,7 +1832,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        {t('product_page.select_required_options')}
+                                        {missingOptionsHint(customProductOptions)}
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', gap: '12px' }} className={styles.flexResponsive}>
@@ -1914,7 +1936,7 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                         color: '#1e2d7d',
                                         textAlign: 'center'
                                     }}>
-                                        {t('product_page.select_required_options')}
+                                        {missingOptionsHint(customProductOptions)}
                                     </div>
                                 )}
                                 <button
