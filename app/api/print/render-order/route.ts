@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { repeatSourceOf } from '@/lib/orders/repeat-order';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
@@ -31,7 +32,8 @@ export const maxDuration = 300;
 // save/upload code, so a bug in ANY current or future constructor is caught
 // here as long as its product name matches a class below. Unknown products are
 // not flagged (no false alarms), known ones fail LOUD.
-const MARKER = 'бракує файлів для друку';
+const MARKER = 'Нема файлів для друку';
+const REPEAT_MARKER = 'Повтор замовлення';
 const LEGACY_MARKER = 'дизайн не збережено';
 const RX = {
   // no customer artwork needed at all
@@ -54,7 +56,11 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
     const items = Array.isArray((ord as any)?.items) ? (ord as any).items : [];
     if (!items.length) return;
     const notes: string = (ord as any)?.notes || '';
-    if (notes.includes(MARKER) || notes.includes(LEGACY_MARKER)) return; // already flagged
+    // Позначку шукаємо за фразою, яка СПРАВДІ є в тексті попередження. Раніше
+    // MARKER («бракує файлів для друку») не збігався з текстом, який ця сама
+    // функція пише («Нема файлів для друку»), тож повторний запуск (а бекап-крон
+    // ганяє аудит регулярно) дописував ту саму фразу ще раз.
+    if (notes.includes(LEGACY_MARKER)) return; // старе формулювання — не чіпаємо
 
     const [{ data: files }, { count: projCount }] = await Promise.all([
       admin.from('order_files').select('file_type, product_type, file_category').eq('order_id', orderId),
@@ -87,9 +93,19 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
     }
 
     const missing: string[] = [];
+    // Повтор минулого замовлення файлів не має і мати не може: макет і фото
+    // лежать у тому замовленні, з якого його повторили. Такі позиції теж
+    // позначаємо, але іншим текстом — «нема файлів» тут неправда, а менеджеру
+    // потрібен номер, з якого їх брати (lib/orders/repeat-order).
+    const repeatedFrom: string[] = [];
     for (const it of items) {
       const label = `${it?.slug || ''} ${it?.name || it?.product_name || ''}`.trim();
       if (!label || RX.exclude.test(label)) continue;
+      const repeat = repeatSourceOf(it);
+      if (repeat?.orderNumber) {
+        if (!repeatedFrom.includes(repeat.orderNumber)) repeatedFrom.push(repeat.orderNumber);
+        continue;
+      }
       if (RX.book.test(label)) {
         if (!hasProject && !hasBookExport) missing.push(label);
       } else if (RX.self.test(label)) {
@@ -99,18 +115,24 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
       }
       // unknown product classes: no requirement, no false alarm
     }
-    if (!missing.length) return;
+    if (!missing.length && !repeatedFrom.length) return;
 
     // Short on purpose: this note is copied into the CRM manager comment and
     // rendered in a narrow list column (Diana, 2026-08-11: «в CRM прилітають
     // дуже великі коментарі, супер некомфортно»). The warning must read at a
     // glance — the instruction «не відправляти в друк» is implied by «нема
     // файлів» and does not need three clauses to say so.
-    const warn = `⚠️ Нема файлів для друку: ${missing.join(', ')}. Не в друк — звʼяжіться з клієнтом.`;
+    const parts: string[] = [];
+    if (missing.length) parts.push(`⚠️ ${MARKER}: ${missing.join(', ')}. Не в друк — звʼяжіться з клієнтом.`);
+    if (repeatedFrom.length) parts.push(`↻ ${REPEAT_MARKER} ${repeatedFrom.join(', ')} — макет і фото беремо звідти.`);
+    // Те, що вже написано в примітці, не дописуємо вдруге.
+    const fresh = parts.filter(p => !notes.includes(p.slice(2)));
+    if (!fresh.length) return;
+    const warn = fresh.join('\n');
     await admin.from('orders')
       .update({ notes: notes.trim() ? `${warn}\n\n${notes.trim()}` : warn })
       .eq('id', orderId);
-    console.warn('[render-order] flagged missing print artifacts', { orderId, missing });
+    console.warn('[render-order] flagged print artifacts', { orderId, missing, repeatedFrom });
   } catch (e) {
     console.error('[render-order] artifact audit failed', { orderId, e });
   }
