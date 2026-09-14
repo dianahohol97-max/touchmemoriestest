@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getWatchdogChatId, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
-import { computeUnansweredDialogs, waitingLabel, type WaitingDialog } from '@/lib/chatbot/unanswered';
+import { computeUnansweredDialogs, waitingLabel, type UnansweredReport, type WaitingDialog } from '@/lib/chatbot/unanswered';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -38,7 +38,32 @@ export async function GET(req: Request) {
     }
     const preview = new URL(req.url).searchParams.get('preview') === '1';
 
-    let report;
+    // Освіження привʼязки «розмова ↔ замовлення» перед самою перевіркою.
+    //
+    // Це не має стосунку до сторожа і стоїть тут із простої причини: це єдиний
+    // частий крон, який уже займається переписками. Софія відповідає про
+    // замовлення, читаючи social_conversations.order_id, тож без регулярного
+    // проходу вона перестала б бачити кожну нову розмову вже наступного дня.
+    //
+    // Помилка тут нічого не зупиняє: сторож — про несписані діалоги, а не про
+    // привʼязку, і мовчання про клієнта, що чекає, коштує дорожче за застарілий
+    // звʼязок. Іменна фаза вимкнена (другий аргумент false) — вона лишається
+    // ручною. У режимі ?preview=1 не виконується: прев'ю має лишатися
+    // показом без жодного запису.
+    try {
+        const { error } = preview ? { error: null } : await getAdminClient().rpc('link_social_conversations', {
+            p_apply: true,
+            p_name_phase: false,
+        });
+        if (error) console.error('[social-unanswered] link refresh failed:', error.message);
+    } catch (e: any) {
+        console.error('[social-unanswered] link refresh threw:', e?.message || e);
+    }
+
+    // Тип тут явний навмисно. Раніше стояло просто `let report;`, і через
+    // неанотоване оголошення весь звіт ставав any — компілятор не бачив у цьому
+    // файлі взагалі нічого, включно з друком поля, якого в типі вже немає.
+    let report: UnansweredReport;
     try {
         report = await computeUnansweredDialogs();
     } catch (e: any) {
@@ -82,14 +107,14 @@ export async function GET(req: Request) {
     if (needsHuman.length) {
         lines.push('', `❗ Чекають на людину (${needsHuman.length}):`);
         for (const i of needsHuman.slice(0, MAX_LISTED)) {
-            lines.push(`• ${i.name} (${i.platform}), ${waitingLabel(i.hours)}: «${i.text}»`);
+            lines.push(`• ${i.name} (${i.platform}), ${waitingLabel(i.hours)}`);
         }
         if (needsHuman.length > MAX_LISTED) lines.push(`…і ще ${needsHuman.length - MAX_LISTED} діалогів у цьому списку.`);
     }
     if (unanswered.length) {
         lines.push('', `⏳ Без відповіді довше ${thresholdHours} год (${unanswered.length}):`);
         for (const i of unanswered.slice(0, MAX_LISTED)) {
-            lines.push(`• ${i.name} (${i.platform}), чекає ${waitingLabel(i.hours)}: «${i.text}»`);
+            lines.push(`• ${i.name} (${i.platform}), чекає ${waitingLabel(i.hours)}`);
         }
         if (unanswered.length > MAX_LISTED) lines.push(`…і ще ${unanswered.length - MAX_LISTED} діалогів без відповіді.`);
     }

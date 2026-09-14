@@ -437,14 +437,14 @@ async function buildUnanswered(): Promise<string> {
         if (report.needsHuman.length) {
             lines.push(`❗ Чекають на людину (${report.needsHuman.length}):`);
             for (const i of report.needsHuman.slice(0, MAX_LISTED)) {
-                lines.push(`• ${i.name} (${i.platform}), ${waitingLabel(i.hours)}: «${i.text}»`);
+                lines.push(`• ${i.name} (${i.platform}), ${waitingLabel(i.hours)}`);
             }
             lines.push('');
         }
         if (report.unanswered.length) {
             lines.push(`⏳ Без відповіді довше ${report.thresholdHours} год (${report.unanswered.length}):`);
             for (const i of report.unanswered.slice(0, MAX_LISTED)) {
-                lines.push(`• ${i.name} (${i.platform}), чекає ${waitingLabel(i.hours)}: «${i.text}»`);
+                lines.push(`• ${i.name} (${i.platform}), чекає ${waitingLabel(i.hours)}`);
             }
         }
         return lines.join('\n');

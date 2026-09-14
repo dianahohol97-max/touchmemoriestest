@@ -10,187 +10,101 @@ import { getAdminClient } from '@/lib/supabase/admin';
  * into the order — the velour colour, the cover, the Nova Poshta branch,
  * who receives the parcel.
  *
- * Софія already stores those dialogs (Telegram Business + Instagram land in
- * social_conversations / social_messages), so the material is there. What is
- * missing is the link from an ORDER to the RIGHT dialog, and that link is
- * inherently approximate: a CRM order carries «Шитікова Олена» and a phone,
- * while a Telegram chat carries «Олена» and a username. So:
+ * ЯК ЦЕ ПРАЦЮЄ ТЕПЕР (2026-09-14) І ЧОМУ ІНАКШЕ, НІЖ РАНІШЕ.
  *
- *  · matching is by phone first (exact, when the dialog ever carried one),
- *    then by name overlap — and never on a single common first name alone;
- *  · every answer built from a dialog says WHOSE dialog and WHEN it was
- *    said, so a wrong match is visible to the person reading it rather than
- *    quietly believed.
+ * Діалог береться за ЗБЕРЕЖЕНОЮ привʼязкою: social_conversations.order_id,
+ * проставлений матчером public.link_social_conversations. До цього кожне
+ * питання запускало пошук наосліп — по тексту всіх повідомлень шукався
+ * телефон, а як не знаходився, то довге слово з імені клієнта. Саме іменний
+ * крок і виявився небезпечним: у чаті звучить не тільки імʼя самого клієнта, а
+ * й імʼя того, кому книга в подарунок, і того, на кого накладна. Перевірка на
+ * бойових даних 14.09.2026 дала двадцять два збіги за іменем, з яких добра
+ * половина була чужою перепискою, а найгірший випадок — діалог фотографа на
+ * три тисячі повідомлень, що підійшов одразу до двадцяти різних замовлень.
+ *
+ * Тому:
+ *   • читається рівно той діалог, чия належність доведена номером замовлення
+ *     або телефоном (link_confidence 'order' чи 'phone');
+ *   • діалоги, звʼязані лише за іменем, не читаються ВЗАГАЛІ — навіть якщо
+ *     колись хтось запише їх у базу з p_name_phase = true;
+ *   • коли привʼязки немає, функція каже про це прямо, і Софія має відповісти
+ *     «переписки не знайдено», а не добудовувати відповідь з повітря.
+ *
+ * Привʼязку оновлює кожен запуск /api/cron/social-unanswered (кожні пів
+ * години), тож новий діалог стає видимим у межах цього вікна.
  */
 
-const MAX_MESSAGES = 40;
+/** Скільки останніх повідомлень діалогу бачить модель. */
+const MAX_MESSAGES = 15;
 
-/** Digits only, last 9 — «+380 (67) 123-45-67» and «0671234567» are one number. */
-function phoneKey(value: string | null | undefined): string {
-    const digits = String(value || '').replace(/\D/g, '');
-    return digits.length >= 9 ? digits.slice(-9) : '';
-}
-
-function nameTokens(value: string | null | undefined): string[] {
-    return String(value || '')
-        .toLowerCase()
-        .replace(/[^\p{L}\s]/gu, ' ')
-        .split(/\s+/)
-        .filter(w => w.length >= 4);
-}
+/**
+ * Відсутність переписки — це теж ФАКТ, і його треба назвати вголос.
+ *
+ * Порожній рядок тут був гіршим за будь-який текст: у фактах про замовлення
+ * зʼявлялася діра, а модель діри заповнює вигадкою. Рівно так Софія свого часу
+ * зібрала неіснуючу пошту клієнтки з її імені, і лікувалося це тим самим —
+ * явним рядком «клієнт НЕ лишив email».
+ */
+export const NO_DIALOG_LINE =
+    'Переписка з клієнтом: до цього замовлення переписки в месенджері не привʼязано. '
+    + 'Це означає, що діалогу з доведеною належністю саме цьому замовленню в нас немає — '
+    + 'відповідай тільки з фактів про замовлення і прямо скажи, що переписки не знайдено.';
 
 export type ClientDialogMatch = {
     conversationId: string;
     who: string;
     platform: string;
-    confidence: 'order' | 'phone' | 'name';
+    /** Чим доведено привʼязку. Іменних збігів тут не буває за побудовою. */
+    confidence: 'order' | 'phone';
 };
 
 /**
- * Conversations whose MESSAGES contain a string — the order number, the phone,
- * the customer's surname. This is what makes the link work at all: a Telegram
- * dialog is titled «Надійка» or «vladixx», never «Біленька Валентина», so the
- * title almost never matches a CRM name. What does match is the text the
- * client typed — their full name and phone for the waybill, the order number
- * when they ask about it.
+ * Складання тексту, який поїде в модель. Винесено окремо і без звернень до
+ * бази навмисно: це єдине місце, де вирішується, що саме побачить модель, коли
+ * діалогу немає, і саме його перевіряє tests/client-dialog-context.test.ts.
  */
-async function conversationsMentioning(term: string, limit = 5): Promise<string[]> {
-    if (!term || term.length < 4) return [];
-    const supabase = getAdminClient();
-    // Escape the LIKE wildcards so a name with «%» cannot widen the search.
-    const safe = term.replace(/[%_]/g, ' ').trim();
-    if (safe.length < 4) return [];
+export function buildDialogContext(match: ClientDialogMatch | null, transcript: string): string {
+    if (!match || !transcript) return NO_DIALOG_LINE;
 
-    const { data } = await supabase
-        .from('social_messages')
-        .select('conversation_id')
-        .ilike('original_text', `%${safe}%`)
-        .order('sent_at', { ascending: false })
-        .limit(limit * 6);
-
-    const seen: string[] = [];
-    for (const row of data || []) {
-        const id = String((row as any).conversation_id || '');
-        if (id && !seen.includes(id)) seen.push(id);
-        if (seen.length >= limit) break;
-    }
-    return seen;
+    const caveat = match.confidence === 'order'
+        ? ' (у діалозі названо номер замовлення)'
+        : ' (звірено за номером телефону)';
+    return `Переписка з клієнтом «${match.who}» у ${match.platform}${caveat}:\n${transcript}`;
 }
 
 /**
- * Find the dialog that belongs to an order's customer. Returns null rather
- * than a guess when nothing matches convincingly.
+ * Діалог, привʼязаний до замовлення. Повертає null, а не здогад.
+ *
+ * Коли до одного замовлення привʼязано кілька розмов (та сама людина писала з
+ * двох акаунтів, або її номер звучав у чужому діалозі), береться та, де писали
+ * востаннє. Інші не читаються: дві переписки в одній відповіді переплутати
+ * легше, ніж прочитати.
  */
-export async function findClientDialog(order: {
-    order_number?: string | null;
-    customer_name?: string | null;
-    customer_phone?: string | null;
-    delivery_address?: string | null;
-}): Promise<ClientDialogMatch | null> {
+export async function findClientDialog(order: { id?: string | null }): Promise<ClientDialogMatch | null> {
+    const orderId = String(order?.id || '').trim();
+    if (!orderId) return null;
+
     const supabase = getAdminClient();
-
-    const { data: conversations } = await supabase
+    const { data, error } = await supabase
         .from('social_conversations')
-        .select('id, platform, external_username, external_user_id, last_message_at')
+        .select('id, platform, external_username, link_confidence')
+        .eq('order_id', orderId)
+        .in('link_confidence', ['order', 'phone'])
         .order('last_message_at', { ascending: false })
-        .limit(500);
-    if (!conversations?.length) return null;
+        .limit(1);
 
-    const byId = new Map(conversations.map((c: any) => [c.id, c]));
-    const describe = (id: string, confidence: ClientDialogMatch['confidence']): ClientDialogMatch | null => {
-        const conv: any = byId.get(id);
-        if (!conv) return null;
-        return {
-            conversationId: conv.id,
-            who: conv.external_username || 'клієнт',
-            platform: conv.platform,
-            confidence,
-        };
-    };
-
-    const wantedPhone = phoneKey(order.customer_phone);
-    // The delivery block is the richest source of matchable words: the
-    // recipient as the client typed it, the city, the branch. Diana,
-    // 2026-08-12: «ми не вказуємо номер замовлення в чаті в телеграмі — можеш
-    // зʼєднувати по даних для відправки і номер телефону».
-    const deliveryTokens = nameTokens(order.delivery_address);
-    const wantedName = [...new Set([...nameTokens(order.customer_name), ...deliveryTokens])];
-    const cityToken = deliveryTokens.find(t => t.length >= 4) || '';
-
-    // 1. The order number, on the rare chance the client quoted it. Clients
-    //    normally do not, so this is first only because it is unambiguous.
-    const bare = String(order.order_number || '').replace(/\D/g, '');
-    if (bare.length >= 4) {
-        for (const id of await conversationsMentioning(bare, 2)) {
-            const match = describe(id, 'order');
-            if (match) return match;
-        }
+    if (error) {
+        console.error('[client-chat-lookup] conversation lookup failed:', error.message);
+        return null;
     }
-
-    // 2. The phone. Clients type it for the waybill, in every possible format,
-    //    so the search uses the last nine digits — «0677546059» and
-    //    «677546059» both hit, and the local «067…» spelling too.
-    if (wantedPhone) {
-        for (const term of [wantedPhone, `0${wantedPhone.slice(-9)}`]) {
-            for (const id of await conversationsMentioning(term, 2)) {
-                const match = describe(id, 'phone');
-                if (match) return match;
-            }
-        }
-        // Rare, but decisive when it happens: the dialog is titled by a phone.
-        const byTitle = conversations.find((c: any) => phoneKey(c.external_username) === wantedPhone);
-        if (byTitle) return describe(byTitle.id, 'phone');
-    }
-
-    if (!wantedName.length) return null;
-
-    // 3. The name as the client typed it for delivery — «Біленька Валентина»
-    //    in the dialog text, while the dialog itself is titled «Валя». Only a
-    //    long token counts, and only when exactly one dialog carries it: two
-    //    Оксани would be a guess, and a guess here answers about the wrong
-    //    customer's order.
-    for (const token of [...wantedName].sort((a, b) => b.length - a.length)) {
-        if (token.length < 5) continue;
-        const found = await conversationsMentioning(token, 4);
-        if (!found.length) continue;
-
-        if (found.length === 1) {
-            const match = describe(found[0], 'name');
-            if (match) return match;
-        }
-
-        // Several dialogs carry the name — «Олена» is not rare. The city or
-        // the branch from the delivery block decides between them: the client
-        // typed both in the same conversation when giving their waybill data.
-        if (cityToken && cityToken !== token) {
-            const withCity = await conversationsMentioning(cityToken, 20);
-            const both = found.filter(id => withCity.includes(id));
-            if (both.length === 1) {
-                const match = describe(both[0], 'name');
-                if (match) return match;
-            }
-        }
-    }
-
-    // 4. Last resort: the dialog's TITLE shares a long word with the CRM name.
-    // Short tokens are dropped above precisely so «Оля» does not match every
-    // Olga in the inbox; a single shared LONG token (a surname, or a rare
-    // first name) is the weakest link this will accept.
-    let best: { conv: any; score: number } | null = null;
-    for (const conv of conversations) {
-        const tokens = nameTokens(conv.external_username);
-        if (!tokens.length) continue;
-        const shared = tokens.filter(t => wantedName.includes(t)).length;
-        if (!shared) continue;
-        if (!best || shared > best.score) best = { conv, score: shared };
-    }
-    if (!best) return null;
+    const conv: any = (data || [])[0];
+    if (!conv) return null;
 
     return {
-        conversationId: best.conv.id,
-        who: best.conv.external_username || 'клієнт',
-        platform: best.conv.platform,
-        confidence: 'name',
+        conversationId: String(conv.id),
+        who: conv.external_username || 'клієнт',
+        platform: conv.platform,
+        confidence: conv.link_confidence === 'order' ? 'order' : 'phone',
     };
 }
 
@@ -217,30 +131,18 @@ export async function fetchDialogTranscript(conversationId: string, limit = MAX_
 
 /**
  * Everything the client dialog can contribute to a question about an order:
- * the transcript plus a line naming its owner, ready to append to the facts.
- * Empty string when no dialog matches — the caller then answers from the
- * order alone, as before.
+ * the transcript plus a line naming its owner. Ніколи не повертає порожнє —
+ * коли діалогу немає, повертає NO_DIALOG_LINE, і відсутність переписки
+ * доходить до моделі як факт.
  */
-export async function clientDialogContext(order: {
-    order_number?: string | null;
-    customer_name?: string | null;
-    customer_phone?: string | null;
-    delivery_address?: string | null;
-}): Promise<string> {
+export async function clientDialogContext(order: { id?: string | null }): Promise<string> {
     try {
         const match = await findClientDialog(order);
-        if (!match) return '';
+        if (!match) return NO_DIALOG_LINE;
         const transcript = await fetchDialogTranscript(match.conversationId);
-        if (!transcript) return '';
-
-        const caveat = match.confidence === 'name'
-            ? ' (звірено за імʼям — якщо клієнт не той, скажи про це)'
-            : match.confidence === 'order'
-                ? ' (у діалозі згадано номер замовлення)'
-                : ' (звірено за номером телефону)';
-        return `Переписка з клієнтом «${match.who}» у ${match.platform}${caveat}:\n${transcript}`;
+        return buildDialogContext(match, transcript);
     } catch (e) {
         console.error('[client-chat-lookup] failed:', e);
-        return '';
+        return NO_DIALOG_LINE;
     }
 }

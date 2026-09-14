@@ -13,12 +13,28 @@ import { getAdminClient } from '@/lib/supabase/admin';
 const LOOKBACK_DAYS = 14;
 const HOUR_MS = 60 * 60 * 1000;
 
+/**
+ * Навмисно БЕЗ тексту повідомлення.
+ *
+ * Поле `text` тут було, і обидва споживачі друкували з нього сто двадцять
+ * символів того, що написав клієнт, просто в робочий чат: «Ім'я (Telegram),
+ * 5 год: «…»». Тобто переписка з клієнтом розходилася ширше за адмінку —
+ * її бачив кожен, хто є в групі, без жодного права на розділ «ai».
+ *
+ * Поле прибране з ТИПУ, а не з чотирьох рядків друку, саме тому, що рядки
+ * друку легко дописати назад не подумавши. Тепер повернути цитату в чат без
+ * правки цього типу неможливо, і компілятор покаже кожне таке місце.
+ *
+ * Сам текст останнього повідомлення нікуди не дівся і далі читається всередині
+ * computeUnansweredDialogs — на ньому тримається розбір «це питання чи
+ * подяка». Назовні виходить лише те, чого достатньо, щоб відкрити діалог:
+ * хто, де і скільки чекає (Diana, 14.09.2026).
+ */
 export type WaitingDialog = {
     id: string;
     name: string;
     platform: string;
     hours: number;
-    text: string;
 };
 
 export type UnansweredReport = {
@@ -176,7 +192,6 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
             name: conv.external_username || 'Без імені',
             platform: platformLabel(conv.platform),
             hours,
-            text: (last.original_text || '').slice(0, 120),
         };
         if (conv.status === 'needs_human') {
             needsHuman.push(item);

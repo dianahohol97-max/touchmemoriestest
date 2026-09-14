@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { clientDialogContext } from '@/lib/chatbot/client-chat-lookup';
+import { clientDialogContext, NO_DIALOG_LINE } from '@/lib/chatbot/client-chat-lookup';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES, fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
@@ -1486,7 +1486,13 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
     // The client's own dialog is read BEFORE the facts are assembled, because
     // the colour usually lives there and nowhere else (Diana, 2026-08-13:
     // «кожен колір має свій номер, зазвичай в чаті будуть номери»).
+    //
+    // З 14.09.2026 береться діалог, ПРИВʼЯЗАНИЙ до цього замовлення, а не
+    // знайдений пошуком по імені. Коли привʼязки немає, повертається не порожній
+    // рядок, а речення про те, що переписки не знайдено: діра у фактах — це
+    // рівно те місце, де модель починає вигадувати.
     const clientDialog = await clientDialogContext(order as any);
+    const hasDialog = clientDialog !== NO_DIALOG_LINE;
 
     const velourCode = findVelourCode(
         cardExtras.comments.join('\n'),
@@ -1569,6 +1575,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         } else if (/велюр|колір|оздоблен|обкладинк|комплект|товар|що всередині/.test(q)) {
             if (velourCode) pick.push(`Колір велюру: ${velourCode}.`);
             if (!velourCode && spokenColour) pick.push(`Коду кольору немає. У переписці звучить «${spokenColour}» — варто перевірити в чаті з клієнтом.`);
+            // Відповідь без ШІ теж має називати відсутність переписки вголос,
+            // інакше «в чаті нічого немає» і «чату ми не бачили» злипаються в
+            // одне мовчання.
+            if (!velourCode && !spokenColour && !hasDialog) pick.push('Переписки з клієнтом до цього замовлення не привʼязано — у чаті дивитися нема чого.');
             if (itemsSummary) pick.push(`Товари: ${itemsSummary}.`);
             if (!velourCode && cardExtras.custom_fields.length) pick.push(`Поля картки: ${cardExtras.custom_fields.join('; ')}.`);
             if (!velourCode && cardExtras.comments.length) pick.push(`З коментарів CRM: ${cardExtras.comments.slice(-3).map(c => c.slice(0, 120)).join(' | ')}`);
@@ -1618,6 +1628,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 // the question, not for adding orders nobody asked about.
                 'Пиши ТІЛЬКИ про те замовлення, про яке спитали. Не згадуй інші замовлення з чату, навіть якщо їх обговорювали поруч.',
                 'Спершу шукай відповідь у фактах про замовлення. Якщо там її немає — подивись у переписці з клієнтом, і тоді ОБОВʼЯЗКОВО зазнач, що це з переписки, і назви дату.',
+                // Діра у фактах — це місце, де модель добудовує правдоподібне.
+                // Тому відсутність переписки подається явним реченням, а не
+                // порожнечею, і на нього є пряме правило.
+                'Якщо в даних написано, що переписки до цього замовлення не привʼязано, то це і є остаточна відповідь про чат: скажи, що переписки з цим клієнтом не знайдено. НІЧОГО не додавай «з чату»: не переказуй інші діалоги, не вигадуй цитат і не описуй, що клієнт міг би написати. Порада «перевір чат вручну» доречна, вигадана цитата — ні.',
                 // Live: «мені не вистачає доступу до телеграм-переписки з
                 // клієнтом» — she has it, the dialogs are stored; that
                 // particular dialog just was not matched to the order.
