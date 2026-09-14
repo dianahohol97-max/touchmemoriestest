@@ -11,6 +11,10 @@ export function NewsletterPopup() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  // Згода на розсилку. Обовʼязкова, як у формі футера: 357 із 366 підписників
+  // прийшли саме звідси, і до 14.09.2026 попап не питав нічого й не лишав по
+  // собі жодного сліду згоди.
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -42,6 +46,14 @@ export function NewsletterPopup() {
       const data = await res.json();
       if (res.ok) {
         setSuccess(true);
+        // Той самий виклик, що й у футері: запис у журнал згод із поштою,
+        // часом, IP і User-Agent. Вогонь-і-забудь — підписка вже відбулася, і
+        // збій журналу не має відбирати в людини промокод.
+        fetch('/api/consent/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'marketing_accepted', email, categories: { marketing: true } }),
+        }).catch(() => {});
         setTimeout(handleClose, 3000);
       } else {
         setError(data.message || data.error || 'Сталася помилка');
@@ -205,28 +217,46 @@ export function NewsletterPopup() {
                       onFocus={e => e.currentTarget.style.borderColor = '#263A99'}
                       onBlur={e => e.currentTarget.style.borderColor = '#e0e2ea'}
                     />
+                    <label style={{
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'flex-start',
+                      fontSize: '0.78rem',
+                      lineHeight: 1.35,
+                      color: '#6b7280',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={agreeMarketing}
+                        onChange={e => setAgreeMarketing(e.target.checked)}
+                        style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
+                      />
+                      <span>Я погоджуюся з обробкою моїх даних для отримання маркетингових розсилок</span>
+                    </label>
                     {error && (
                       <p style={{ color: '#ef4444', fontSize: '0.83rem', margin: 0 }}>{error}</p>
                     )}
                     <button
                       type="submit"
-                      disabled={loading || !email}
+                      disabled={loading || !email || !agreeMarketing}
                       style={{
                         width: '100%',
-                        background: loading || !email ? '#a0aec0' : '#1e2d7d',
+                        background: loading || !email || !agreeMarketing ? '#a0aec0' : '#1e2d7d',
                         color: '#ffffff',
                         fontWeight: 700,
                         padding: '13px 16px',
                         borderRadius: '10px',
                         border: 'none',
-                        cursor: loading || !email ? 'not-allowed' : 'pointer',
+                        cursor: loading || !email || !agreeMarketing ? 'not-allowed' : 'pointer',
                         fontSize: '0.95rem',
                         fontFamily: 'var(--font-montserrat, inherit)',
                         transition: 'background 0.2s, transform 0.15s',
                         boxShadow: '0 4px 16px rgba(38,58,153,0.25)',
                       }}
-                      onMouseEnter={e => { if (!loading && email) e.currentTarget.style.background = '#263A99'; }}
-                      onMouseLeave={e => { if (!loading && email) e.currentTarget.style.background = '#1e2d7d'; }}
+                      onMouseEnter={e => { if (!loading && email && agreeMarketing) e.currentTarget.style.background = '#263A99'; }}
+                      onMouseLeave={e => { if (!loading && email && agreeMarketing) e.currentTarget.style.background = '#1e2d7d'; }}
                     >
                       {loading ? 'Відправка...' : 'Отримати промокод'}
                     </button>

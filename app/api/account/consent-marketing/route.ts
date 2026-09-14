@@ -19,16 +19,35 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
   const ua = req.headers.get('user-agent') || null;
 
-  await admin.from('consent_log').insert({
-    customer_id: user.id,
+  // consent_type і source мусять збігатися з CHECK-обмеженнями таблиці:
+  // дозволені лише назви категорій ('marketing') і чотири джерела
+  // ('web' / 'mobile' / 'api' / 'admin'). Раніше сюди йшли 'marketing_accepted'
+  // і 'account_privacy', тож кожна вставка відхилялася, помилку ніхто не читав,
+  // а відповідь була успішна — за весь час у журналі не зʼявилося жодного
+  // рядка. Сам факт «згоду дали чи забрали» тепер несе granted, а не назва
+  // типу; звідки саме прийшла дія, видно з customer_id і часу.
+  //
+  // customer_id має FK на customers(id), тож перевіряємо, що рядок клієнта
+  // існує: неіснуючий id відхилив би вставку так само тихо, як раніше.
+  const { data: known } = await admin.from('customers').select('id').eq('id', user.id).maybeSingle();
+
+  const { error } = await admin.from('consent_log').insert({
+    customer_id: known ? user.id : null,
     email: user.email,
-    consent_type: granted ? 'marketing_accepted' : 'marketing_withdrawn',
+    consent_type: 'marketing',
     granted,
-    policy_version: 1,
+    policy_version: '1.0',
     ip_address: ip,
     user_agent: ua,
-    source: 'account_privacy',
+    source: 'web',
   });
+
+  // Журнал згод — це доказ, тож мовчати про його відмову не можна: сторінка
+  // «Мої дані» показує клієнтові саме цю історію.
+  if (error) {
+    console.error('[consent-marketing] consent_log insert failed', { error: error.message });
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

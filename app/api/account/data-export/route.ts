@@ -17,20 +17,12 @@ export async function POST(req: NextRequest) {
     admin.from('consent_log').select('*').or(`customer_id.eq.${user.id},email.eq.${user.email}`).order('created_at', { ascending: false }),
   ]);
 
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
-  const ua = req.headers.get('user-agent') || null;
-
-  await admin.from('consent_log').insert({
-    customer_id: user.id,
-    email: user.email,
-    consent_type: 'data_export_requested',
-    granted: true,
-    policy_version: 1,
-    ip_address: ip,
-    user_agent: ua,
-    source: 'account_privacy',
-  });
-
+  // Факт вивантаження даних більше НЕ пишеться в consent_log (Diana,
+  // 14.09.2026). Це подія аудиту, а не згода: людина нічого не дозволяла і
+  // нічого не забирала, вона скористалася своїм правом. Рядок із
+  // consent_type = 'data_export_requested' усе одно відхилявся CHECK-ом
+  // таблиці, тож за весь час не записався жодного разу — прибрано, а не
+  // полагоджено. Де фіксувати такі події, якщо знадобиться, — окреме рішення.
   const exportData = {
     exported_at: new Date().toISOString(),
     profile: customerRes.data || { email: user.email },
