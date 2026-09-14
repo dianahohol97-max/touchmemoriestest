@@ -753,6 +753,17 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // the sweep entirely.
         .gte('created_at', since)
         .not('order_status', 'in', '("cancelled","refunded")')
+        // Ці три умови мусять стояти ТУТ, а не у фільтрах нижче (готча 13 у
+        // CLAUDE.md). Сторінка — шістдесят рядків від найновішого, а у вікні
+        // чотирнадцяти днів їх 272, і майже всі вже мають картку в CRM. Тому
+        // відсів після ліміту означав, що замовлення, яке не перенеслося
+        // одразу, вже наступного дня опинялося за межами сторінки назавжди:
+        // 14.09.2026 так загубилися TM-001287 (1250 ₴) і TM-001290 (1533 ₴) —
+        // обидва неоплачені, тож менеджерка їх навіть не бачила, щоб нагадати
+        // клієнту. Ті самі умови лишилися і в JS нижче, але вже як страховка.
+        .neq('source', MIRROR_SOURCE)
+        .is('custom_attributes->keycrm->>order_id', null)
+        .gt('total', 0)
         .order('created_at', { ascending: false })
         .limit(params.limit * 4);
 

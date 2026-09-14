@@ -280,6 +280,18 @@ export async function findOrdersNeedingStock(params: { windowDays: number; limit
         .select('id, order_number, source, customer_name, items, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, created_at')
         .gte('created_at', since)
         .not('order_status', 'in', '("cancelled","refunded")')
+        // Готча 13: відсів мусить стояти до ліміту. Сторінка тут 160 рядків, а
+        // у тридцятиденному вікні їх 607, тож умова «дзеркалене або вже
+        // справжнє» у JS відкидала рядки вже ПІСЛЯ обрізання, і все, що нижче
+        // сто шістдесятого місця, до списання не доходило ніколи.
+        //
+        // Наслідків це сьогодні не має, і це варто знати: списувати поки
+        // нічого. Жоден із 79 товарів не має track_inventory, бо всі вони
+        // робляться під замовлення, тож кожна позиція відсівається як «склад не
+        // ведеться», і в inventory_movements немає жодного руху типу sale за
+        // весь час. Виправлення тут — гігієна на майбутнє, а не порятунок
+        // втраченого (перевірено 14.09.2026).
+        .or('source.eq.keycrm,payment_status.eq.paid,order_status.eq.confirmed')
         .order('created_at', { ascending: false })
         .limit(params.limit * 4);
 
