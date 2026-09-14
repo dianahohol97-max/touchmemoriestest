@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { classifyIncomingPayment, formatUah } from '@/lib/payment/misapplied-payment';
 import crypto from 'crypto';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
 import { processReferralReward } from '@/lib/referral/referral';
@@ -288,15 +289,84 @@ export async function POST(req: Request) {
                 });
                 return NextResponse.json({ error: 'Order amount unavailable' }, { status: 400 });
             }
-            const expectedKopecks = Math.round(expectedUah * 100);
-            if (Math.abs(paidKopecks - expectedKopecks) > 1) {
-                // Off-by-one tolerance for rounding, but anything bigger is suspicious.
-                console.error('Monobank webhook: amount mismatch', {
-                    reference,
-                    invoice_amount: paidKopecks,
-                    order_total_kopecks: expectedKopecks,
+            // Розбіжність суми БІЛЬШЕ не відмова.
+            //
+            // Раніше тут стояло 400, і це коштувало б нам грошей клієнта:
+            // банк списав, ми відмовилися записати, Monobank повторив вебхук,
+            // отримав те саме 400 — і в базі не лишилося нічого. Щоб це
+            // сталося, не потрібна жодна нова функція: досить, щоб суму
+            // замовлення змінили після виставлення рахунку, а посилання на
+            // оплату живе добу.
+            //
+            // Тепер такі гроші записуються як отримані, замовлення лишається
+            // НЕоплаченим (бо сума не закриває його), а в історії й у примітці
+            // зʼявляється гучний рядок. Правило «збіглося чи ні» живе в
+            // lib/payment/misapplied-payment і покрите тестами.
+            const verdict = classifyIncomingPayment({
+                invoiceId: String(invoiceId || ''),
+                currentInvoiceId: existingOrder.monobank_invoice_id,
+                paidKopecks,
+                expectedUah,
+            });
+
+            if (verdict.kind === 'misapplied') {
+                console.warn('[monobank] misapplied payment', {
+                    reference, invoiceId, reason: verdict.reason,
+                    paid: verdict.paidUah, expected: verdict.expectedUah,
                 });
-                return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+
+                // Один платіж — один запис. Monobank повторює вебхук, і без
+                // цієї перевірки повтор додав би ті самі гроші вдруге.
+                const { data: already } = await supabase
+                    .from('order_history')
+                    .select('id')
+                    .eq('order_id', reference)
+                    .eq('action', 'payment_misapplied')
+                    .contains('details', { invoice_id: String(invoiceId), invoice_status: String(status) })
+                    .limit(1);
+
+                if (!already || already.length === 0) {
+                    await supabase.from('order_history').insert({
+                        order_id: reference,
+                        action: 'payment_misapplied',
+                        notes: verdict.note,
+                        details: {
+                            invoice_id: String(invoiceId),
+                            invoice_status: String(status),
+                            paid_uah: verdict.paidUah,
+                            expected_uah: verdict.expectedUah,
+                            diff_uah: verdict.diffUah,
+                            reason: verdict.reason,
+                        },
+                        added_by: null,
+                    });
+
+                    // Гроші зараховуємо лише тоді, коли вони справді наші:
+                    // на 'hold' сума ще тільки заблокована.
+                    const patch: Record<string, any> = { updated_at: new Date().toISOString() };
+                    if (status === 'success') {
+                        patch.paid_amount = Math.round(
+                            ((Number(existingOrder.paid_amount) || 0) + verdict.paidUah) * 100,
+                        ) / 100;
+                    }
+                    // Примітка на самій картці: історію гортають, а примітку
+                    // видно одразу, і вона ж їде в коментар менеджера в CRM.
+                    const prevNotes = String(existingOrder.notes || '').trim();
+                    if (!prevNotes.includes('Оплата за старим посиланням') && !prevNotes.includes('Оплата не збігається')) {
+                        patch.notes = prevNotes ? `${verdict.note}\n\n${prevNotes}` : verdict.note;
+                    }
+                    await supabase.from('orders').update(patch).eq('id', reference);
+                }
+
+                // 200, а не 400: платіж прийнято до відома, і повторювати його
+                // Monobank більше не потрібно.
+                return NextResponse.json({
+                    success: true,
+                    misapplied: true,
+                    reason: verdict.reason,
+                    paid: formatUah(verdict.paidUah),
+                    expected: formatUah(verdict.expectedUah),
+                });
             }
         }
 
