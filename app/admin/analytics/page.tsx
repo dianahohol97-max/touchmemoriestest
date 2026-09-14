@@ -48,6 +48,35 @@ const SOURCE_ICONS: Record<string, any> = {
     TikTok: <Video size={16} />
 };
 
+
+/**
+ * Усі рядки запиту, а не перша тисяча.
+ *
+ * PostgREST віддає щонайбільше тисячу рядків і не каже про це нічим: відповідь
+ * просто коротша, ніж правда. На цій сторінці межа вже перейдена — 14.09.2026
+ * довільний період у 50 днів дає 1 046 замовлень, — і саме довгими періодами
+ * дивляться на квартал. Тобто квартальний звіт мовчки недоливав.
+ *
+ * Сортування обовʼязкове: без ORDER BY база не зобовʼязана віддавати сторінки
+ * в сталому порядку, і рядки почали б повторюватися й зникати між сторінками.
+ */
+async function fetchAllRows<T>(
+    build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>,
+): Promise<T[]> {
+    const PAGE = 1000;
+    const rows: T[] = [];
+    for (let from = 0; ; from += PAGE) {
+        const { data, error } = await build(from, from + PAGE - 1);
+        // Помилку НЕ ковтаємо. Порожній масив тут означав би сторінку з
+        // нулями замість чисел — рівно та тиха неправда, проти якої вся ця
+        // функція й написана. Кидаємо; виклик угорі має try/catch.
+        if (error) throw new Error(error.message || 'не вдалося прочитати сторінку даних');
+        rows.push(...((data || []) as T[]));
+        if (!data || data.length < PAGE) break;
+    }
+    return rows;
+}
+
 export default function AnalyticsPage() {
     const supabase = createClient();
 
@@ -97,15 +126,13 @@ export default function AnalyticsPage() {
                 startDate = startOfDay(subDays(now, 30));
             }
 
-            // Fetch orders for current period
+            // Замовлення за період, сторінками.
             //
-            // Без .range(), і поки що це безпечно: вибірку обмежує вікно дат, а
-            // замовлень за останні 30 днів 619 при межі PostgREST у 1000
-            // (заміряно 14.09.2026). Запас невеликий і тане найшвидше з усіх
-            // місць: щойно місячний потік перевалить за тисячу, найдовші
-            // періоди почнуть мовчки недоливати. Тоді потрібен цикл із
-            // .range(), як у /api/admin/clients.
-            const { data: orders } = await supabase
+            // Раніше тут не було .range(), і межа PostgREST уже різала: період
+            // у 50 днів повертав рівно тисячу з 1 046 наявних (заміряно
+            // 14.09.2026). Квартальний звіт через це показував менші числа, не
+            // повідомляючи про це нічим.
+            const orders = await fetchAllRows<any>((from, to) => supabase
                 .from('orders')
                 .select(`
                     *,
@@ -114,23 +141,22 @@ export default function AnalyticsPage() {
                     items
                 `)
                 .gte('created_at', startDate.toISOString())
-                .lte('created_at', endDate.toISOString());
-
-            if (!orders) {
-                setLoading(false);
-                return;
-            }
+                .lte('created_at', endDate.toISOString())
+                .order('created_at', { ascending: false })
+                .range(from, to));
 
             // Calculate previous period for comparison
             const periodDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
             const prevStartDate = subDays(startDate, periodDays);
             const prevEndDate = startDate;
 
-            const { data: prevOrders } = await supabase
+            const prevOrders = await fetchAllRows<any>((from, to) => supabase
                 .from('orders')
                 .select('*, items')
                 .gte('created_at', prevStartDate.toISOString())
-                .lt('created_at', prevEndDate.toISOString());
+                .lt('created_at', prevEndDate.toISOString())
+                .order('created_at', { ascending: false })
+                .range(from, to));
 
             // KPI Calculations
             //
@@ -163,10 +189,18 @@ export default function AnalyticsPage() {
             const idsInPeriod = Array.from(new Set(orders.map(identity).filter(Boolean)));
             const idsInPrev = Array.from(new Set((prevOrders || []).map(identity).filter(Boolean)));
             // Everyone who ordered before the PREVIOUS period started.
-            const { data: historicOrders } = await supabase
+            // Уся історія до попереднього періоду, сторінками.
+            //
+            // На 14.09.2026 це лише 37 рядків, бо магазин молодий, але число
+            // росте з кожним місяцем і одного дня мовчки перевалить за тисячу.
+            // Наслідок був би непомітним і неприємним: давні клієнти, які не
+            // влізли у вибірку, почали б рахуватися новими.
+            const historicOrders = await fetchAllRows<any>((from, to) => supabase
                 .from('orders')
                 .select('customer_phone, customer_email')
-                .lt('created_at', prevStartDate.toISOString());
+                .lt('created_at', prevStartDate.toISOString())
+                .order('created_at', { ascending: false })
+                .range(from, to));
             const historicIds = new Set((historicOrders || []).map(identity).filter(Boolean));
             const prevNewClientsCount = idsInPrev.filter(id => !historicIds.has(id)).length;
             // For the current period, "seen before" = historic + previous period.

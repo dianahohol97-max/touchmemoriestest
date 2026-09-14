@@ -32,22 +32,44 @@ export async function GET(req: NextRequest) {
     const conversationId = req.nextUrl.searchParams.get('conversationId');
 
     if (conversationId) {
-        const { data, error } = await admin
-            .from('social_messages')
-            .select('*')
-            .eq('conversation_id', conversationId)
-            .order('sent_at', { ascending: true });
-        if (error) {
-            console.error('[social-inbox] messages read failed', error.message);
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        // Сторінками, бо один діалог уже не вміщається в межу PostgREST: на
+        // 14.09.2026 найдовший має 3 021 повідомлення при межі в 1000, тобто
+        // менеджер бачив із нього третину і не мав про це жодного натяку.
+        const PAGE = 1000;
+        const messages: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+            const { data, error } = await admin
+                .from('social_messages')
+                .select('*')
+                .eq('conversation_id', conversationId)
+                .order('sent_at', { ascending: true })
+                .range(from, from + PAGE - 1);
+            if (error) {
+                console.error('[social-inbox] messages read failed', error.message);
+                return NextResponse.json({ error: error.message }, { status: 500 });
+            }
+            messages.push(...(data || []));
+            if (!data || data.length < PAGE) break;
         }
-        return NextResponse.json({ messages: data || [] });
+        return NextResponse.json({ messages });
     }
 
-    const { data, error } = await admin
-        .from('social_conversations')
-        .select('*')
-        .order('last_message_at', { ascending: false });
+    // Теж сторінками: діалогів 840 при межі в 1000 (заміряно 14.09.2026), і
+    // цього запасу лишилося на місяці, а не на роки.
+    const PAGE_CONV = 1000;
+    const conversations: any[] = [];
+    let error: any = null;
+    for (let from = 0; ; from += PAGE_CONV) {
+        const page = await admin
+            .from('social_conversations')
+            .select('*')
+            .order('last_message_at', { ascending: false })
+            .range(from, from + PAGE_CONV - 1);
+        if (page.error) { error = page.error; break; }
+        conversations.push(...(page.data || []));
+        if (!page.data || page.data.length < PAGE_CONV) break;
+    }
+    const data = error ? null : conversations;
     if (error) {
         console.error('[social-inbox] conversations read failed', error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
