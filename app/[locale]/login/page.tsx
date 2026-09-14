@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { oauthCallbackUrl } from '@/lib/auth/oauth-callback-url'
 
 // Inner component uses useSearchParams(), which forces client-side rendering.
 // Next.js requires any component reading useSearchParams() to sit inside a
@@ -28,16 +29,29 @@ function LoginForm() {
   )
 
   const handleGoogleLogin = async () => {
-    // Return to the current localized page on the CANONICAL domain. Avoids two
-    // bugs: (1) window.location.origin can be an ephemeral Vercel preview URL
-    // that 404s after the next deploy; (2) "/auth/callback" has no locale, but
-    // the callback route only exists under [locale]. The global
-    // OAuthCallbackHandler picks up the ?code= here and routes to /account.
+    // Back through the SERVER callback route, on the CANONICAL domain.
+    //
+    // It used to return to the current page, and the client-side
+    // OAuthCallbackHandler exchanged the ?code= there. That worked for signing
+    // in and hid a hole: everything the server route does after the exchange —
+    // linking guest orders to the new account, filling a missing name from the
+    // signup metadata — never ran for a single Google sign-in, and Google is
+    // 927 of 1279 accounts. Measured 14.09.2026: the route had no requests at
+    // all in the runtime log while /uk/login had thirty-three.
+    //
+    // The canonical origin stays: window.location.origin can be an ephemeral
+    // Vercel preview URL that 404s after the next deploy. The locale stays
+    // too — the route only exists under [locale].
+    //
+    // OAuthCallbackHandler is deliberately left mounted. If Supabase ever
+    // returns the code to a plain page instead (an address missing from the
+    // Redirect URLs list falls back to the Site URL), it still exchanges it
+    // and the person still gets in.
     const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${canonicalOrigin}${window.location.pathname}`
+        redirectTo: oauthCallbackUrl(canonicalOrigin, window.location.pathname, nextUrl)
       }
     })
     if (error) {

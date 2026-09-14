@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { readPendingReferralCode } from '@/lib/referral/pending-code';
+import { oauthCallbackUrl } from '@/lib/auth/oauth-callback-url';
 
 export default function Register() {
     const [firstName, setFirstName] = useState('');
@@ -58,6 +59,21 @@ export default function Register() {
                 email,
                 password,
                 options: {
+                    // The confirmation link goes through the SERVER callback
+                    // route. Without this the link lands wherever the Supabase
+                    // Site URL points, the browser exchanges the code
+                    // client-side, and everything the route does after the
+                    // exchange is skipped. That is the half that matters most
+                    // here: Google hands over full_name by itself, so the
+                    // trigger covers it, while email signups are exactly the
+                    // ones whose name and birthday stayed behind in the
+                    // metadata — 303 of 352 such cards had no name at all on
+                    // 14.09.2026, and the birthday field right above this call
+                    // reached the database in zero cases out of thirty-five.
+                    emailRedirectTo: oauthCallbackUrl(
+                        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+                        window.location.pathname,
+                    ),
                     data: {
                         first_name: firstName,
                         last_name: lastName,
@@ -112,13 +128,15 @@ export default function Register() {
         }
 
         const supabase = createBrowserClient(supabaseUrl, supabaseKey)
-        // Canonical domain + current localized page (see login page note); the
-        // global OAuthCallbackHandler exchanges the ?code= and routes to /account.
+        // Canonical domain + the SERVER callback route (see the login page for
+        // why the old «return to this page» address skipped it entirely). No
+        // `next` here: after registering, the callback's own default — the
+        // account page — is exactly where this button used to land people.
         const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${canonicalOrigin}${window.location.pathname}`
+                redirectTo: oauthCallbackUrl(canonicalOrigin, window.location.pathname)
             }
         });
         if (error) {
