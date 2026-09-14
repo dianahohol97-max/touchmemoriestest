@@ -92,20 +92,60 @@ export async function GET(req: Request) {
     // Списковий запит НЕ вміє фільтрувати за id: KeyCRM відповідає 400 і сам
     // перелічує дозволені фільтри — status_id, source_id, buyer_email,
     // buyer_phone, has_tracking_code, created_between, updated_between,
-    // payment_status, source_uuid, shipping_between. Тому питаємо його рівно
-    // так, як питає дзеркало — сторінкою свіжих замовлень, — і шукаємо свої
-    // серед них. Саме ця відповідь і є предметом перевірки.
+    // payment_status, source_uuid, shipping_between. Шукати в ньому конкретні
+    // старі замовлення теж марно: за кілька днів вони йдуть глибше за першу
+    // сторінку. Тому питання ставимо інакше й самодостатньо — беремо сторінку
+    // списку рівно так, як її бере дзеркало, і дивимося на ЇЇ рядки: чи є в
+    // них поле comment і чи буває воно заповненим. Це і є відповідь.
     const listingById = new Map<string, LineView[]>();
     let listingProbeError = '';
+    const listingProbe = {
+        orders_on_page: 0,
+        lines_total: 0,
+        lines_with_comment: 0,
+        comment_key_present: false,
+        sample: [] as Array<{ crm_id: string; name: string; comment: string | null }>,
+    };
     try {
         const payload = await keycrmRequest('/order?page=1&limit=50&include=buyer,products,payments,shipping,tags,manager&sort=-id');
         const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+        listingProbe.orders_on_page = rows.length;
         for (const row of rows) {
             const id = String(row?.id ?? '').trim();
-            if (id) listingById.set(id, readLines(row));
+            const lines = readLines(row);
+            if (id) listingById.set(id, lines);
+            for (const l of lines) {
+                listingProbe.lines_total++;
+                if (l.keys.includes('comment')) listingProbe.comment_key_present = true;
+                if (l.comment) {
+                    listingProbe.lines_with_comment++;
+                    if (listingProbe.sample.length < 5) {
+                        listingProbe.sample.push({ crm_id: id, name: l.name, comment: l.comment });
+                    }
+                }
+            }
         }
     } catch (e: any) {
         listingProbeError = e?.message || 'списковий запит не вдався';
+    }
+
+    // Порівняння «яблуко з яблуком»: ті самі замовлення зі сторінки списку,
+    // перепитані поодинці. Без цього можна сплутати «список не несе коментарів»
+    // із «у цих замовленнях коментарів немає».
+    const sameOrders: any[] = [];
+    for (const [crmId, lines] of Array.from(listingById.entries()).slice(0, 3)) {
+        try {
+            const payload = await keycrmRequest(`/order/${encodeURIComponent(crmId)}?include=products`);
+            const single = readLines(payload);
+            sameOrders.push({
+                crm_id: crmId,
+                listing_lines_with_comment: lines.filter(l => !!l.comment).length,
+                single_lines_with_comment: single.filter(l => !!l.comment).length,
+                single_comments: single.filter(l => !!l.comment).map(l => ({ name: l.name, comment: l.comment })),
+            });
+        } catch (e: any) {
+            sameOrders.push({ crm_id: crmId, error: e?.message || 'запит не вдався' });
+        }
     }
 
     for (const o of orders || []) {
@@ -154,6 +194,11 @@ export async function GET(req: Request) {
             listing: countFilled('listing'),
             single_order: countFilled('single_order'),
         },
+        // ГОЛОВНА ВІДПОВІДЬ на питання про дзеркало: що видно на сторінці
+        // списку самій по собі, без прив'язки до конкретних замовлень.
+        listing_page_probe: listingProbeError ? `— ${listingProbeError}` : listingProbe,
+        // Ті самі замовлення, перепитані поодинці, — щоб порівняння було чесним.
+        same_orders_both_ways: sameOrders,
         results,
         errors,
     });
