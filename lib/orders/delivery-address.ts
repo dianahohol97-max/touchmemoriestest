@@ -84,3 +84,23 @@ export function readDeliveryAddress(order: any): DeliveryAddress {
 
     return { ...EMPTY };
 }
+
+/**
+ * Адреса одним рядком для людини — для відповідей Софії й будь-якого іншого
+ * місця, де адресу треба просто НАЗВАТИ.
+ *
+ * Існує через живий дефект: у фактах про замовлення стояло пряме
+ * `${order.delivery_address}`, а ця колонка має тип jsonb і тримає то рядок
+ * (830 замовлень, здебільшого дзеркалених з KeyCRM), то обʼєкт { city, branch }
+ * (277 замовлень із чекауту). Для обʼєкта рядковий шаблон давав рівно
+ * «[object Object]», і саме це бачила модель у фактах, коли колега питав, куди
+ * везти замовлення.
+ *
+ * Повертає порожній рядок, коли адреси немає взагалі — відсутність адреси
+ * лишається фактом, який називає той, хто викликає, а не підміняється
+ * правдоподібним текстом.
+ */
+export function formatDeliveryAddress(order: any): string {
+    const a = readDeliveryAddress(order);
+    return [a.country, a.city, a.point, a.postal].map(s => String(s || '').trim()).filter(Boolean).join(', ');
+}

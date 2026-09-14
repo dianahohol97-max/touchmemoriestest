@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { clientDialogContext, NO_DIALOG_LINE } from '@/lib/chatbot/client-chat-lookup';
 import { crmStageLabel, stageOrStatus, SITE_STATUS_UA as ORDER_STATUS_UA } from '@/lib/automation/crm-stage';
+import { formatDeliveryAddress } from '@/lib/orders/delivery-address';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES, fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
@@ -1604,6 +1605,8 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         String(order.client_comment || ''),
     );
 
+    const deliveryLine = formatDeliveryAddress(order);
+
     const facts = [
         `Номер: ${order.order_number}`,
         `Статус на сайті: ${ORDER_STATUS_UA[order.order_status] || order.order_status}`,
@@ -1626,7 +1629,11 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         (order as any).customer_telegram ? `Telegram клієнта: ${(order as any).customer_telegram}` : '',
         // Delivery, not just its method: «13500 яка країна?» is a normal
         // question and the address is where the answer lives.
-        (order as any).delivery_address ? `Доставка: ${(order as any).delivery_address}` : '',
+        //
+        // Через formatDeliveryAddress, а не рядковим шаблоном: колонка jsonb і
+        // буває обʼєктом, з якого шаблон робив «[object Object]» — саме це
+        // бачила модель у 277 замовленнях із чекауту.
+        deliveryLine ? `Доставка: ${deliveryLine}` : '',
         (order as any).delivery_method ? `Спосіб доставки: ${(order as any).delivery_method}` : '',
         `Створене: ${fmtDate(order.created_at)}`,
         `Дедлайн виробництва: ${fmtDate(order.deadline)}`,
@@ -1682,8 +1689,7 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
                 : 'Email клієнт не лишив — звʼязок через телефон/телеграм.');
             if ((order as any).customer_telegram) pick.push(`Telegram: ${(order as any).customer_telegram}.`);
         } else if (/країн|місто|адрес|куди|відділен|нова пошта|получател|одержувач/.test(q)) {
-            const address = (order as any).delivery_address;
-            pick.push(address ? `Доставка: ${address}.` : 'Адреси доставки в картці немає — скажи, куди дивитися, або уточни в клієнта.');
+            pick.push(deliveryLine ? `Доставка: ${deliveryLine}.` : 'Адреси доставки в картці немає — скажи, куди дивитися, або уточни в клієнта.');
             if ((order as any).delivery_method) pick.push(`Спосіб: ${(order as any).delivery_method}.`);
         } else if (/відправ|дедлайн|коли|ттн|трек|доставк/.test(q)) {
             pick.push(`Дедлайн виробництва: ${fmtDate(order.deadline)}.`);
