@@ -92,7 +92,7 @@ async function statusMapFromCrm(): Promise<Record<string, string>> {
  * Returns the patch rather than applying it, so the caller can show it in a dry
  * run and so every write to the orders table happens in one place.
  */
-function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, string>): {
+export function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, string>): {
     patch: Record<string, any>;
     changes: string[];
 } {
@@ -117,6 +117,33 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         (crm.status_id !== null ? statusMap[String(crm.status_id)] : undefined)
         ?? fulfilmentFromLabel(crm.status_label);
 
+    // КОЛИ стадія стала такою, як зараз. Не «зараз».
+    //
+    // Тут стояло `new Date()`, і поки звірка бачила кожне замовлення щопівгодини
+    // від самого створення, різниця між «зараз» і справжнім моментом була
+    // хвилини. 14.09.2026 черга вперше пішла за давністю звірки, дісталася
+    // замовлень, яких не звіряли тижнями, і за дві години проставила дату
+    // доставки 59 замовленням — усім сьогоднішнім вечором. Замовлення від 28
+    // липня дістало «доставлено 14 вересня, 20:30». На картці це майже
+    // непомітно, а от строки доставки в аналітиці, звіти «доставлено за
+    // місяць» і прибирання файлів друку (воно рахує вік від delivered_at)
+    // читають саме це поле.
+    //
+    // KeyCRM віддає `status_changed_at` — момент, коли картку перевели в
+    // ПОТОЧНУ стадію. Це не повна історія стадій (її API не має взагалі), тож
+    // для замовлення, що вже проїхало «доставлено» далі у «виконано», дата
+    // буде датою останнього переходу, тобто верхньою межею. Це все одно
+    // ближче до правди, ніж момент, коли ми випадково подивилися.
+    //
+    // Коли поля немає, «зараз» береться ЛИШЕ якщо цей прохід справді побачив
+    // перехід — збережена назва стадії відрізняється від живої. Замовлення,
+    // яке ми вперше побачили вже доставленим, не отримує дати зовсім: порожнє
+    // поле чесне, а вигадана дата мовчки бреше далі. Те саме правило й з тією
+    // ж причиною працює в дзеркалі для print_started_at.
+    const knownStage = String((order.custom_attributes as any)?.keycrm?.status_label ?? '');
+    const witnessedTransition = Boolean(knownStage && crm.status_label && knownStage !== crm.status_label);
+    const stageMoment = crm.status_changed_at || (witnessedTransition ? new Date().toISOString() : null);
+
     if (mappedStatus && mappedStatus !== order.order_status) {
         patch.order_status = mappedStatus;
         changes.push(`статус ${order.order_status || '—'} → ${mappedStatus}`);
@@ -124,16 +151,23 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
         // Timestamps the site's own emails and the tracking page read from.
         // Only ever set, never cleared: an order that went out yesterday did not
         // stop having been shipped because someone moved a card back a stage.
-        if (mappedStatus === 'shipped' && !order.shipped_at) patch.shipped_at = new Date().toISOString();
-        if (mappedStatus === 'delivered' && !order.delivered_at) patch.delivered_at = new Date().toISOString();
+        if (mappedStatus === 'shipped' && !order.shipped_at && stageMoment) patch.shipped_at = stageMoment;
+        if (mappedStatus === 'delivered' && !order.delivered_at && stageMoment) patch.delivered_at = stageMoment;
 
         // Delivery is the moment cash on delivery stops being a promise. Until
         // this is stamped the money is treated as still in transit, so the CRM
         // is never told the order is settled while the courier still holds the
         // balance. It is only ever set once — the money does not un-arrive if
         // somebody moves the card afterwards.
+        // Та сама дата й з тієї ж причини: післяплату віддають у момент видачі,
+        // а не в момент, коли звірка це побачила. Але запасний варіант тут
+        // інший, ніж вище: коли моменту стадії немає, дата все одно ставиться
+        // «зараз». Порожній delivered_at нікому не шкодить, а от пропущений
+        // cod_received_at лишив би замовлення назавжди «передоплаченим» і
+        // забрав би гроші з paid_amount — неточна дата дешевша за загублену
+        // суму.
         if (mappedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
-            patch.cod_received_at = new Date().toISOString();
+            patch.cod_received_at = stageMoment || new Date().toISOString();
             // Гроші, що дійшли, мають лягти і в paid_amount — інакше бейдж
             // оплати назавжди лишив би таке замовлення «передоплаченим», хоча
             // кур'єр уже розрахувався. Додається до наявної суми, а не
