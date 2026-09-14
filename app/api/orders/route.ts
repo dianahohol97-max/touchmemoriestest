@@ -24,7 +24,10 @@ export async function GET() {
     for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
             .from('orders')
-            .select('*, customers(email)')
+            // Звʼязок названий повністю: у orders два ключі на customers
+            // (customer_id і link_candidate_customer_id), і просте customers(...)
+            // PostgREST відхиляє з PGRST201.
+            .select('*, customers!orders_customer_id_fkey(email)')
             .order('created_at', { ascending: false })
             .range(from, from + PAGE - 1);
 

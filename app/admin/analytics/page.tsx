@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
                 .from('orders')
                 .select(`
                     *,
-                    customers(*),
+                    customers!orders_customer_id_fkey(*),
                     manager:staff!orders_manager_id_fkey(id, name),
                     items
                 `)

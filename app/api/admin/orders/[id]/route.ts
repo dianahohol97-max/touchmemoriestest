@@ -54,9 +54,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const { data, error } = await supabase
         .from('orders')
+        // customers названий повністю: у orders два ключі на customers
+        // (customer_id і link_candidate_customer_id, міграція 20260914_order_link_review),
+        // і без уточнення PostgREST відмовляє з PGRST201.
         .select(`
             *,
-            customers(id, name, email, phone, telegram, instagram),
+            customers!orders_customer_id_fkey(id, name, email, phone, telegram, instagram),
             manager:staff!orders_manager_id_fkey(id, name, initials, color),
             designer:staff!orders_designer_id_fkey(id, name, initials, color),
             creator:staff!orders_created_by_fkey(id, name, initials, color),

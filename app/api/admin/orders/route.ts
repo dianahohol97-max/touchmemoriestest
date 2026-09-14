@@ -6,10 +6,19 @@ import { ATTENTION_AFTER_HOURS, ATTENTION_EXCLUDED_SOURCES } from '@/lib/orders/
 
 export const dynamic = 'force-dynamic';
 
-/** Один перелік полів на обидві гілки — інакше вони мовчки розійдуться. */
+/**
+ * Один перелік полів на обидві гілки — інакше вони мовчки розійдуться.
+ *
+ * Звʼязок із customers названий ПОВНІСТЮ, і це обовʼязково. З 14.09.2026 у
+ * orders два зовнішні ключі на customers: `customer_id` — власник замовлення,
+ * і `link_candidate_customer_id` — здогад, який чекає на перевірку менеджера
+ * (міграція 20260914_order_link_review.sql). Побачивши просто `customers(...)`,
+ * PostgREST не вибирає між ними, а відмовляє з PGRST201 — і цей список
+ * перестає відкриватися взагалі.
+ */
 const ORDER_SELECT = `
     *,
-    customers(id, name, phone, email),
+    customers!orders_customer_id_fkey(id, name, phone, email),
     manager:staff!orders_manager_id_fkey(id, name, initials, color),
     designer:staff!orders_designer_id_fkey(id, name, initials, color),
     order_tag_assignments(order_tags(*))
