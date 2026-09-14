@@ -17,12 +17,18 @@ export async function POST(req: NextRequest) {
     admin.from('consent_log').select('*').or(`customer_id.eq.${user.id},email.eq.${user.email}`).order('created_at', { ascending: false }),
   ]);
 
-  // Факт вивантаження даних більше НЕ пишеться в consent_log (Diana,
-  // 14.09.2026). Це подія аудиту, а не згода: людина нічого не дозволяла і
-  // нічого не забирала, вона скористалася своїм правом. Рядок із
-  // consent_type = 'data_export_requested' усе одно відхилявся CHECK-ом
-  // таблиці, тож за весь час не записався жодного разу — прибрано, а не
-  // полагоджено. Де фіксувати такі події, якщо знадобиться, — окреме рішення.
+  // Подія аудиту йде в account_audit_log, а не в consent_log: людина нічого не
+  // дозволяла і нічого не забирала, вона скористалася своїм правом. У рядку
+  // тільки тип, час і посилання на акаунт — ні пошти, ні IP, ні User-Agent.
+  //
+  // Помилка журналу НЕ ламає вивантаження: право людини отримати свої дані не
+  // залежить від того, чи вдалося нам записати про це рядок.
+  const { error: auditError } = await admin.from('account_audit_log').insert({
+    event_type: 'data_export',
+    customer_id: customerRes.data?.id ?? null,
+  });
+  if (auditError) console.error('[data-export] audit log insert failed (export unaffected)', { error: auditError.message });
+
   const exportData = {
     exported_at: new Date().toISOString(),
     profile: customerRes.data || { email: user.email },

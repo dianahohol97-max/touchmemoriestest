@@ -26,11 +26,19 @@ export async function POST(req: NextRequest) {
     consent_marketing_at: null,
   }).eq('auth_user_id', user.id);
 
-  // Видалення акаунта більше НЕ пишеться в consent_log (Diana, 14.09.2026).
-  // Це подія аудиту, а не згода, і рядок із consent_type = 'account_deleted'
-  // усе одно відхилявся CHECK-ом таблиці — за весь час не записався жодного
-  // разу. Окрема іронія в тому, що запис про видалення лишав би пошту людини
-  // в базі рівно тоді, коли вона попросила її прибрати.
+  // Подія аудиту йде в account_audit_log — БЕЗ будь-якого посилання на людину.
+  // Тут лише те, що видалення сталося, і коли. Ні пошти, ні customer_id:
+  // зберігати ідентифікатор у рядку про прохання стерти дані означало б робити
+  // протилежне до проханого, і саме так поводився старий запис у consent_log.
+  // Заборона структурна — CHECK таблиці не дасть записати customer_id для цієї
+  // події, навіть якщо хтось колись спробує.
+  //
+  // Яке саме замовлення на видалення виконано, доводить не журнал, а стан
+  // акаунта: рядок customers знеособлюється нижче.
+  const { error: auditError } = await admin.from('account_audit_log').insert({
+    event_type: 'account_deletion',
+  });
+  if (auditError) console.error('[account-delete] audit log insert failed (deletion unaffected)', { error: auditError.message });
 
   // Ban user from logging in again (set banned_until to far future)
   try {
