@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, User, ArrowRight } from 'lucide-react';
 import { readPendingReferralCode } from '@/lib/referral/pending-code';
+import { oauthCallbackUrl } from '@/lib/auth/oauth-callback-url';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -69,6 +70,17 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
                 const { error } = await supabase.auth.signUp({
                     email, password,
                     options: {
+                        // The confirmation link goes through the server
+                        // callback route, same reason as the Google button
+                        // above. Email signups are the ones that need it:
+                        // Google supplies full_name and the trigger takes it,
+                        // while everything typed into THIS form beyond the
+                        // email stayed in the metadata.
+                        emailRedirectTo: oauthCallbackUrl(
+                            process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+                            window.location.pathname,
+                            window.location.pathname + window.location.search,
+                        ),
                         data: {
                             first_name: firstName,
                             ...(fullName ? { full_name: fullName } : {}),
@@ -97,11 +109,26 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
         setError('');
         // Store a flag so after OAuth redirect we call the callback
         try { sessionStorage.setItem('authModalPendingCallback', '1'); } catch {}
-        // Always redirect to the canonical production URL to avoid 404s on
-        // Vercel preview deployments (window.location.href would capture the
-        // ephemeral preview URL which gets deleted after new deploys).
+        // Always the canonical production URL, to avoid 404s on Vercel preview
+        // deployments (window.location.href would capture the ephemeral
+        // preview URL, which gets deleted after new deploys).
+        //
+        // Through the SERVER callback route now, so that guest-order linking
+        // and the profile fill actually run — see the login page for the
+        // measurement that showed they never did.
+        //
+        // The current page travels along as `next`, and that is not cosmetic.
+        // This modal opens ON TOP of the photo book constructor, the magazine
+        // constructor and product cards, with a message like «увійдіть, щоб
+        // відкрити конструктор». The person is signing in to CONTINUE
+        // something. Dropping them in their account instead would read as a
+        // lost action, so they come back where they were.
         const canonicalOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
-        const redirectTo = `${canonicalOrigin}${window.location.pathname}`;
+        const redirectTo = oauthCallbackUrl(
+            canonicalOrigin,
+            window.location.pathname,
+            window.location.pathname + window.location.search,
+        );
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',

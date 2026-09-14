@@ -3,12 +3,19 @@ export const dynamic = 'force-dynamic'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import { localeFromPath, safeNextPath } from '@/lib/auth/oauth-callback-url'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
 
-  if (code) {
+  // Everything between here and the redirect is wrapped, including the
+  // exchange itself. This route is now the front door of every sign-in on the
+  // site, and a throw here would show an error page to someone who has
+  // already typed their password correctly. A failed exchange leaves them at
+  // the account page without a session, which the page handles by asking them
+  // to sign in — annoying, and still far better than a 500.
+  if (code) try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,12 +113,28 @@ export async function GET(request: NextRequest) {
         console.error('Linking guest orders failed (sign-in still succeeded):', e)
       }
     }
+  } catch (e) {
+    console.error('[auth/callback] failed before redirect:', e)
   }
 
-  // Redirect to the localized account page. A bare "/account" 404s because the
-  // route only exists under [locale]; derive the locale from the callback path.
-  const LOCALES = ['uk', 'en', 'ro', 'pl', 'de']
-  const seg = requestUrl.pathname.split('/')[1] || ''
-  const locale = LOCALES.includes(seg) ? seg : 'uk'
-  return NextResponse.redirect(new URL(`/${locale}/account`, request.url))
+  // Where to put the person down.
+  //
+  // The default is the localized account page — a bare "/account" 404s
+  // because the route only exists under [locale].
+  //
+  // `next` overrides it, and it is what keeps the sign-in modal honest: it
+  // opens on top of the constructor or a product card so the person can carry
+  // on with what they were doing, and the account page would read as a lost
+  // action. Only a relative path of this site is accepted; `//evil.com` and
+  // `https://evil.com` are read by the browser as somewhere else entirely,
+  // and an open redirect is worth more to a phisher precisely because it
+  // starts on a domain the person just trusted with a password.
+  //
+  // This runs whatever happened above. An exchange that failed, a database
+  // that was unreachable, a person clicking a stale link twice — all of them
+  // end here with a redirect rather than an error page, because the sign-in
+  // matters more than anything this route adds to it.
+  const locale = localeFromPath(requestUrl.pathname)
+  const next = safeNextPath(requestUrl.searchParams.get('next'))
+  return NextResponse.redirect(new URL(next || `/${locale}/account`, request.url))
 }
