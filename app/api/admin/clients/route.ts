@@ -69,13 +69,22 @@ export async function GET(req: Request) {
         return NextResponse.json({ orders: merged });
     }
 
-    const { data: customers, error: custErr } = await admin
-        .from('customers')
-        .select('*')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-    if (custErr) {
-        return NextResponse.json({ error: custErr.message }, { status: 500 });
+    // Клієнти теж сторінками. Замовлення нижче вже бралися так, а самі клієнти
+    // — ні, хоча їх 1280 (заміряно 14.09.2026): список повертав 1000, і 280
+    // людей не бачив ніхто, разом із їхнім total_spent.
+    const customers: any[] = [];
+    for (let from = 0; ; from += ORDER_PAGE) {
+        const { data, error: custErr } = await admin
+            .from('customers')
+            .select('*')
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+            .range(from, from + ORDER_PAGE - 1);
+        if (custErr) {
+            return NextResponse.json({ error: custErr.message }, { status: 500 });
+        }
+        customers.push(...(data || []));
+        if (!data || data.length < ORDER_PAGE) break;
     }
 
     // Pull orders in pages so the route keeps working as the table grows.

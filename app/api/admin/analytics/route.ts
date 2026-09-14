@@ -5,6 +5,9 @@ import { requireAdmin } from '@/lib/auth/guards';
 
 export const dynamic = 'force-dynamic';
 
+/** Скільки рядків PostgREST віддає за один запит. Те саме число, що в /api/admin/clients. */
+const PAGE = 1000;
+
 export async function GET(req: Request) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
@@ -138,9 +141,21 @@ export async function GET(req: Request) {
             .slice(0, 5);
 
         // 8. New vs Returning Customers
-        const { data: customerOrders } = await supabase
-            .from('orders')
-            .select('customer_id');
+        //
+        // Сторінками: цей запит без дат і бере ВСЮ таблицю, а замовлень 1107
+        // (заміряно 14.09.2026). Обрізання тут не просто губить рядки, а
+        // перекошує саме те, що рахується: другі й треті замовлення постійних
+        // клієнтів — найстаріші, тобто рівно ті, які відрізало сортуванням, і
+        // постійні виглядали новими.
+        const customerOrders: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+            const { data } = await supabase
+                .from('orders')
+                .select('customer_id')
+                .range(from, from + PAGE - 1);
+            customerOrders.push(...(data || []));
+            if (!data || data.length < PAGE) break;
+        }
 
         const customerCounts: Record<string, number> = {};
         customerOrders?.forEach((o: any) => {

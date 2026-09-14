@@ -61,7 +61,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 
 - **Framework:** Next.js 16 (Turbopack) App Router · TypeScript
 - **Styling:** Tailwind + shadcn/ui (Radix primitives)
-- **Database:** Supabase (Postgres + Auth + Storage)
+- **Database:** Supabase (Postgres + Auth + Storage). **PostgREST caps every request at 1000 rows and does it SILENTLY** — no error, the response is simply short — so any `.select()` that can match more than a thousand rows needs a `.range()` loop (`const PAGE = 1000; for (let from = 0; ; from += PAGE) { … .range(from, from + PAGE - 1); if (!data || data.length < PAGE) break; }`, the shape used in `/api/admin/clients`). This is the quietest class of bug in the codebase: it looks like nothing until the table crosses the line, and then reports just start under-reporting. On 2026-09-14 five places were already over it — both client lists, `/api/orders`, the new-vs-returning split in admin analytics, and the design-lifecycle cron — and the payments page had been truncating for some time before that. A paginated loop also needs an explicit `.order()`: without one PostgREST's row order is unspecified and pages can overlap or skip. Queries bounded by a filter (`.eq('order_id', …)`) or asking only for a count (`head: true`) are not affected. Where a query is near the line but still under it, the comment above it carries the measured row count and the date it was measured, so the next reader sees a number rather than an assumption.
 - **Hosting:** Vercel (team `team_Qve9hriFT9sNYnjWZolAcFXl`, project `prj_Oz13dkGF3W1JvSVToT8WvZBseBba`)
 - **Payments:** Monobank (UA + international dual-account routing via `bank_accounts.region`; charge always in UAH, EUR shown via buffered NBU rate)
 - **Email:** Brevo

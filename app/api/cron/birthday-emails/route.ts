@@ -25,8 +25,15 @@ export async function GET(request: Request) {
         // 2. Fetch active subscribers whose birthday is today.
         // Birthday lives on `customers.birthday` (DATE) — subscribers are joined by email.
         // PG can't easily filter by month+day across years without extract(), so we pull
-        // all customers with a birthday and filter in JS. Customer count is small enough
-        // (low thousands) that this is fine for a once-a-day cron.
+        // all customers with a birthday and filter in JS.
+        //
+        // Без .range(), і поки що це безпечно з великим запасом: день народження
+        // заповнений у 5 клієнтів із 1280 при межі PostgREST у 1000 (заміряно
+        // 14.09.2026). Раніше тут стояло «low thousands, this is fine» — оцінка
+        // без числа, яку нічим перевірити; межа ж рахує саме рядки, що прийшли
+        // під фільтр, а не всю таблицю. Щойно заповнених днів народження стане
+        // понад тисячу, крон почне мовчки пропускати привітання — тоді потрібен
+        // цикл із .range(), як у /api/admin/clients.
         const { data: birthdayCustomers, error: bdayErr } = await supabase
             .from('customers')
             .select('email, name, first_name, birthday')

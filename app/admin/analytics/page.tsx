@@ -97,6 +97,13 @@ export default function AnalyticsPage() {
             }
 
             // Fetch orders for current period
+            //
+            // Без .range(), і поки що це безпечно: вибірку обмежує вікно дат, а
+            // замовлень за останні 30 днів 619 при межі PostgREST у 1000
+            // (заміряно 14.09.2026). Запас невеликий і тане найшвидше з усіх
+            // місць: щойно місячний потік перевалить за тисячу, найдовші
+            // періоди почнуть мовчки недоливати. Тоді потрібен цикл із
+            // .range(), як у /api/admin/clients.
             const { data: orders } = await supabase
                 .from('orders')
                 .select(`

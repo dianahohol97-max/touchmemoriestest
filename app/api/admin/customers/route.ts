@@ -4,6 +4,9 @@ import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
+/** Скільки рядків PostgREST віддає за один запит. Те саме число, що в /api/admin/clients. */
+const PAGE = 1000;
+
 /**
  * GET /api/admin/customers — база покупців для розділу «Клієнти».
  *
@@ -21,14 +24,27 @@ export async function GET() {
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();
-    const { data, error } = await admin
-        .from('customers')
-        .select('*')
-        .order('total_spent', { ascending: false });
 
-    if (error) {
-        console.error('[admin/customers] read failed', error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    // Сторінками, а не одним запитом. PostgREST віддає щонайбільше PAGE рядків
+    // і робить це МОВЧКИ: помилки немає, просто приходить менше. Клієнтів 1280
+    // (заміряно 14.09.2026), тож розділ показував 1000 і 280 людей не бачив
+    // ніхто — а менеджер, який не знайшов клієнта в списку, заводить його
+    // ще раз.
+    const customers: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+        const { data, error } = await admin
+            .from('customers')
+            .select('*')
+            .order('total_spent', { ascending: false })
+            .range(from, from + PAGE - 1);
+
+        if (error) {
+            console.error('[admin/customers] read failed', error.message);
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+        customers.push(...(data || []));
+        if (!data || data.length < PAGE) break;
     }
-    return NextResponse.json({ customers: data || [] });
+
+    return NextResponse.json({ customers });
 }

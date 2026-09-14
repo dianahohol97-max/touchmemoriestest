@@ -21,6 +21,12 @@ export async function GET() {
     if (!guard.ok) return guard.response;
 
     const admin = getAdminClient();
+
+    // Без .range(), і поки що це безпечно: під фільтр статусів підпадає 518
+    // замовлень при межі PostgREST у 1000 (заміряно 14.09.2026). Запас є, але
+    // він половинний, і коли черга виробництва перевалить за тисячу, список
+    // почне мовчки недоливати — помилки не буде, просто приїде менше рядків.
+    // Тоді сюди потрібен такий самий цикл із .range(), як у /api/admin/clients.
     const { data, error } = await admin
         .from('orders')
         .select(`

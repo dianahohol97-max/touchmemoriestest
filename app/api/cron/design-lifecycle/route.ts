@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
+/** Скільки рядків PostgREST віддає за один запит. Те саме число, що в /api/admin/clients. */
+const PAGE = 1000;
+
 //  Auth check 
 function unauthorized(req: Request) {
     const auth = req.headers.get('authorization');
@@ -62,15 +65,31 @@ async function processEditorProjects(supabase: any, now: Date, stats: any) {
     // "Перегенерувати макет" had nothing to render from and the design was
     // simply gone. A project linked to an order is production data, not an
     // abandoned draft: it must never be lifecycle-nagged or deleted.
-    const { data: projects, error } = await supabase
-        .from('projects')
-        .select('id, name, product_type, format, status, created_at, updated_at, user_id, notified_24h_at, notified_10d_at, notified_55d_at, notified_59d_at')
-        .eq('status', 'draft')
-        .is('order_id', null)
-        .not('user_id', 'is', null);
+    // Сторінками, і тут це важить більше, ніж деінде. Під фільтр підпадає 1227
+    // чернеток (заміряно 14.09.2026), а PostgREST віддає щонайбільше PAGE
+    // рядків. Гірше: порядок не заданий жодним .order(), тож які саме 1000 із
+    // 1227 приїдуть — не визначено. Тобто і 60-денне прибирання, і всі
+    // нагадування (24 год, 10, 55, 59 днів) працювали над випадковою
+    // підмножиною, і чернетка могла місяцями не потрапляти в жоден прогін.
+    // Впорядкування додане навмисно: сторінки без нього можуть перекриватися
+    // або пропускати рядки між запитами.
+    const projects: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+            .from('projects')
+            .select('id, name, product_type, format, status, created_at, updated_at, user_id, notified_24h_at, notified_10d_at, notified_55d_at, notified_59d_at')
+            .eq('status', 'draft')
+            .is('order_id', null)
+            .not('user_id', 'is', null)
+            .order('created_at', { ascending: true })
+            .range(from, from + PAGE - 1);
 
-    if (error) { console.error('[lifecycle] projects fetch error:', error); return; }
-    if (!projects?.length) return;
+        if (error) { console.error('[lifecycle] projects fetch error:', error); return; }
+        projects.push(...(data || []));
+        if (!data || data.length < PAGE) break;
+    }
+
+    if (!projects.length) return;
 
     // Get emails for all user_ids in one query
     const userIds = [...new Set(projects.map((p: any) => p.user_id))];
