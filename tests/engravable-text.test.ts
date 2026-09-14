@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { engravedInscriptions, hasEmoji, isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
+import { engravedInscriptions, FREE_SPEC_KEY, hasEmoji, isEngravedDeco, orderMentionsEngraving, stripEmoji } from '@/lib/print/engravable-text';
 
 /**
  * Правило: емодзі на гравіювання не йдуть (Діана, 2026-09-07).
@@ -150,5 +150,64 @@ describe('engravedInscriptions', () => {
         expect(engravedInscriptions(null)).toEqual([]);
         expect(engravedInscriptions({})).toEqual([]);
         expect(engravedInscriptions({ 'Текст напису': '   ' })).toEqual([]);
+    });
+});
+
+/**
+ * Замовлення з CRM: напис не має власного ключа.
+ *
+ * Оздоблення приїздить окремим товарним рядком, а специфікація з написом — на
+ * рядку самої книги, вільним текстом в одному полі. Тому питання про
+ * гравіювання ставиться до замовлення цілком, а перевірка напису — грубіша:
+ * є емодзі в специфікації, і менеджер дивиться сам.
+ */
+describe('orderMentionsEngraving', () => {
+    const CRM_ORDER = [
+        {
+            product_name: 'Альбом для фото 20х30/30х20',
+            options: {},
+            personalization_note: 'дизайн як на прикладі, велюр В03, гравіювання, чорні сторінки\nнадпис на альбомі «а ми з кумою… 🩶»',
+        },
+        { product_name: 'Оздоблення обкладинки', options: { 'Вид оздоблення': 'Гравіювання книга побажань' } },
+    ];
+
+    it('бачить гравіювання в окремому рядку оздоблення', () => {
+        expect(orderMentionsEngraving([CRM_ORDER[1]])).toBe(true);
+    });
+
+    it('бачить гравіювання у вільній специфікації', () => {
+        expect(orderMentionsEngraving([CRM_ORDER[0]])).toBe(true);
+    });
+
+    it('друковане оздоблення гравіюванням не вважає', () => {
+        expect(orderMentionsEngraving([
+            { options: { 'Вид оздоблення': 'Акрилова вставка' }, personalization_note: 'акрил Ø145' },
+        ])).toBe(false);
+        expect(orderMentionsEngraving([])).toBe(false);
+        expect(orderMentionsEngraving(null)).toBe(false);
+    });
+});
+
+describe('engravedInscriptions із вільною специфікацією', () => {
+    const SPEC = 'дизайн як на прикладі, велюр В03, гравіювання, чорні сторінки\nнадпис на альбомі «а ми з кумою… 🩶»';
+
+    it('сигналить на емодзі в специфікації, коли замовлення гравіюється', () => {
+        const found = engravedInscriptions({}, { freeSpec: SPEC, engravedOrder: true });
+        expect(found).toHaveLength(1);
+        expect(found[0].key).toBe(FREE_SPEC_KEY);
+        expect(found[0].dropped).toEqual(['🩶']);
+        // Текст віддаємо цілим — обрізати напис із такого абзацу надійно не можна.
+        expect(found[0].text).toBe(SPEC);
+    });
+
+    it('без гравіювання специфікацію не чіпає', () => {
+        expect(engravedInscriptions({}, { freeSpec: SPEC, engravedOrder: false })).toEqual([]);
+    });
+
+    it('специфікація без емодзі сигналу не дає', () => {
+        expect(engravedInscriptions({}, {
+            freeSpec: 'велюрова, В04, гравіювання, надпис «Таїнство Хрещення Злати, 30.08.2026»',
+            engravedOrder: true,
+        })).toEqual([]);
     });
 });

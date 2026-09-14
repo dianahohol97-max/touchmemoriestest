@@ -75,6 +75,13 @@ export type KeycrmOrder = {
         price: number;
         /** Chosen options, e.g. "Вид оздоблення: Гравіювання". */
         properties: Record<string, string>;
+        /**
+         * The line's «Коментар» column — where the team writes the whole
+         * specification by hand: «23х23, білі сторінки / В-01, гравіювання /
+         * A&N». For an Instagram order this is the ONLY place the engraving
+         * inscription exists on our side.
+         */
+        comment: string;
     }>;
 };
 
@@ -300,6 +307,12 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
             quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
             price: Number.isFinite(price) ? price : 0,
             properties,
+            // Специфікація, написана рукою менеджера. Перевірено 14.09.2026:
+            // списковий запит несе це поле так само, як запит по одному
+            // замовленню — на сторінці з 50 замовлень його мали 44 рядки з 84,
+            // і тексти збігалися символ у символ. Тобто зайвих запитів не
+            // потрібно, поле просто ніхто не читав.
+            comment: String(p?.comment ?? '').trim(),
         };
     });
 

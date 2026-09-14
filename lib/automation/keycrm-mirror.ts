@@ -132,6 +132,11 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
         unit_price: money(p.price),
         total_price: money(p.price * p.quantity),
         options: p.properties,
+        // Специфікація з картки CRM. Без неї дзеркалене замовлення в адмінці
+        // показувало саму лише назву товару й вид оздоблення: ні розміру, ні
+        // кольору, ні напису. Усе це давно приходило в полі comment товарного
+        // рядка, просто ніхто його не читав.
+        ...(p.comment ? { personalization_note: p.comment } : {}),
         product_type: 'product',
     }));
 

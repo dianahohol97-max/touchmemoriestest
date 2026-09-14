@@ -14,7 +14,7 @@ import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequir
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 import { repeatSourceOf } from '@/lib/orders/repeat-order';
-import { engravedInscriptions } from '@/lib/print/engravable-text';
+import { engravedInscriptions, orderMentionsEngraving } from '@/lib/print/engravable-text';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
@@ -1419,6 +1419,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
     if (!order) return <div style={{ padding: '100px', textAlign: 'center' }}>Замовлення не знайдено</div>;
 
+    // Гравіювання питаємо в замовлення цілком, а не в позиції: у дзеркалених
+    // замовленнях оздоблення приїздить ОКРЕМИМ рядком, а специфікація з
+    // написом лежить на рядку самої книги (lib/print/engravable-text).
+    const _orderEngraved = orderMentionsEngraving(order.items);
+
     const currentStatus = STATUS_OPTS.find(s => s.id === order.order_status) || STATUS_OPTS[0];
     // Стан оплати рахується тим самим правилом, що й у списку замовлень, щоб
     // одне замовлення не мало двох різних відповідей на одне питання.
@@ -1630,7 +1635,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // замовлення, тому останній рубіж тут: менеджер бачить
                                 // проблему до запуску у виробництво, а не після нього
                                 // (TM-001165, TM-001203, TM-001204, TM-001209).
-                                const _engravedEmoji = engravedInscriptions(_rawOpts);
+                                // Специфікація позиції: на сайті її пишуть конструктори, у
+                                // дзеркалених замовленнях — менеджер від руки в картці CRM.
+                                const _spec = String(item.personalization_note || '').trim();
+                                const _engravedEmoji = engravedInscriptions(_rawOpts, {
+                                    freeSpec: _spec,
+                                    engravedOrder: _orderEngraved,
+                                });
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1753,6 +1764,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                                 В оригіналі {_repeat.orderNumber || 'того замовлення'} був бриф — він лишився там, бо описує фотографії, яких у цьому замовленні немає.
                                                             </div>
                                                         )}
+                                                    </div>
+                                                )}
+                                                {/* Специфікація позиції. У дзеркалених замовленнях це
+                                                    все, що взагалі відомо про виріб: розмір, колір,
+                                                    напис — менеджер пише це в картці CRM одним
+                                                    полем. Досі картка його не показувала, бо дзеркало
+                                                    його не зберігало. */}
+                                                {_spec && (
+                                                    <div style={{ fontSize: 12, marginTop: 6, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 10px', whiteSpace: 'pre-wrap' }}>
+                                                        {_spec}
                                                     </div>
                                                 )}
                                                 {_engravedEmoji.map(ins => (
