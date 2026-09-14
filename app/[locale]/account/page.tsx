@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import { buildRepeatCartItem } from '@/lib/orders/repeat-order';
 import { createClient } from '@/lib/supabase/client';
 import { designThumbPath } from '@/lib/editor/design-thumb';
 import { Navigation } from '@/components/ui/Navigation';
@@ -36,6 +37,7 @@ interface Order {
     delivery_address?: string;
     ttn?: string;
     monobank_payment_url?: string | null;
+    with_designer?: boolean | null;
 }
 
 interface Design {
@@ -377,7 +379,9 @@ export default function AccountPage() {
             // email) instead of a single .or() — PostgREST .or() with an email value
             // silently returned nothing, so the pending order never showed. Merge +
             // dedupe by id. RLS still scopes each query to the user's own orders.
-            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,ttn,monobank_payment_url,monobank_invoice_id';
+            // with_designer читає «Повторити замовлення»: ознака дизайнерського
+            // замовлення лежить тут, і без неї повтор ставав самостійним макетом.
+            const orderCols = 'id,order_number,order_status,payment_status,total,created_at,items,customer_name,delivery_address,ttn,monobank_payment_url,monobank_invoice_id,with_designer';
             const [byId, byEmail] = await Promise.all([
                 myCustomerId
                     ? supabase.from('orders').select(orderCols).eq('customer_id', myCustomerId).order('created_at', { ascending: false })
@@ -583,16 +587,16 @@ export default function AccountPage() {
     const repeatOrder = async (order: Order) => {
         if (!order.items?.length) { toast.error('Немає товарів для повторення'); return; }
         setRepeatingId(order.id);
-        addItems(order.items.map((item: any) => ({
-            id: `${item.product_id || item.slug || item.product_slug || 'item'}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            product_id: item.product_id,
-            name: item.product_name || item.name || 'Товар',
-            price: Number(item.unit_price ?? item.price ?? 0),
-            qty: item.quantity ?? item.qty ?? 1,
-            slug: item.slug || item.product_slug,
-            image: item.image || '',
-            options: item.options || undefined,
-        })));
+        // Повтор копіює позицію, але не може скопіювати ні макет, ні фото —
+        // вони живуть поруч із замовленням, а не в позиції. Тому позиція
+        // ЗАПАМ'ЯТОВУЄ, чого вона повтор, і несе ознаку дизайнерського
+        // замовлення далі (lib/orders/repeat-order). Без цього TM-001314
+        // приїхав як «самостійний макет» без жодного файлу для друку.
+        addItems(order.items.map((item: any) => buildRepeatCartItem(
+            item,
+            { id: order.id, order_number: order.order_number, with_designer: order.with_designer },
+            `${item.product_id || item.slug || item.product_slug || 'item'}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        )));
         toast.success('Товари додано до кошика →');
         router.push('/cart');
         setRepeatingId(null);
