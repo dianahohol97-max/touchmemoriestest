@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { generateOrderPrintSheets } from '@/lib/print/generate-sheets';
@@ -59,7 +60,10 @@ const PRINT_FILE_SLUG_PATTERNS = [
   'photo-print', 'photoprint', 'fotodruk', 'polaroid', 'magnet',
 ];
 
-const WARNING_MARKER = 'файли для друку не завантажились';
+// Фраза одна на всю систему — див. lib/print/print-warning. Другий механізм
+// (аудит у render-order) колись мав власне формулювання, і його попереджень не
+// бачили ні цей крон, ні список замовлень, ні CRM, ні зведення.
+const WARNING_MARKER = PRINT_WARNING_MARKER;
 // Мусить бути шматком самого попередження, інакше перевірка «вже позначено» не
 // спрацює й замовлення переflagується щогодини.
 const QUALITY_MARKER = 'Перевірте макет:';

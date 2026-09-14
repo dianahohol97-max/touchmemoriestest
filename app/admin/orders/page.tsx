@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
@@ -458,7 +459,12 @@ export default function OrdersPage() {
                     {filteredOrders.map(order => {
                         const st = statusOf(order);
                         const delivery = order.delivery_status && order.tracking_number ? DELIVERY_COLORS[order.delivery_status] || { bg: '#f1f5f9', text: '#64748b' } : null;
-                        const isPrintWarning = (order.notes || '').includes('файли для друку не завантажились');
+                        // Навмисно строга перевірка, без старих формулювань:
+                        // ті 34 замовлення, що досі несуть стару фразу, і так
+                        // здебільшого не мають підстав для мітки, тож підсвітити
+                        // їх усі означало б залити список червоним на рівному
+                        // місці. Старі фрази знає лише прибирання.
+                        const isPrintWarning = (order.notes || '').includes(PRINT_WARNING_MARKER);
                         const itemsLabel = Array.isArray(order.items) && order.items.length > 0
                             ? (order.items.length === 1 ? order.items[0].name : `${order.items[0].name} +${order.items.length - 1}`)
                             : 'Без товарів';
