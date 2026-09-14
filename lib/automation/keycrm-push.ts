@@ -210,11 +210,17 @@ const DELIVERY_LABELS: Record<string, string> = {
  */
 type ProductMap = Record<string, { offer_id: string | null; sku: string | null; name: string | null }>;
 
-// KeyCRM comment fields are text columns, but a runaway comment makes the order
-// card unreadable and risks being rejected outright. Cut with a visible marker
-// rather than silently — a spec that ends mid-sentence with no warning is worse
-// than one that says it was cut.
-const LINE_COMMENT_LIMIT = 1500;
+// Межа KeyCRM на коментар товарного рядка — рівно 1024 символи, і це не м'яка
+// межа: API відхиляє ВСЕ замовлення відповіддю 422, а не обрізає само. Тут
+// стояло 1500, тобто наш «запобіжник» пропускав те, чого сервер не приймає, і
+// поки жодне замовлення не діставало тисячі символів, цього не було видно.
+// 14.09.2026 дісталося: TM-001287 (журнал «Wedding Post», історія кохання на
+// 2465 символів у полі опції) не переносилося в CRM узагалі, крон бився об 422
+// щопівгодини, а замовлення на 1250 ₴ просто не існувало для менеджерки.
+const LINE_COMMENT_LIMIT = 1024;
+// Межа KeyCRM на значення властивості товару — 255 символів, і відмова така
+// сама: 422 на все замовлення. Досі ми не обрізали властивості взагалі.
+const PROPERTY_VALUE_LIMIT = 255;
 // The CRM renders comments in a narrow list column, so length is a usability
 // problem long before it is an API limit (Diana, 2026-08-11).
 const ORDER_COMMENT_LIMIT = 450;
@@ -261,9 +267,30 @@ function summariseNotes(raw: any): string {
     return first ? `Нотатки: ${truncate(first, 120)}` : '';
 }
 
-function truncate(text: string, limit: number): string {
+/**
+ * Маркер обрізання для коментаря позиції — окремим рядком, бо коментар
+ * і так багаторядковий.
+ */
+const SPEC_CUT_MARKER = '\n[…обрізано, повна специфікація на сайті]';
+/**
+ * Маркер для значення властивості — у тому ж рядку: властивість у картці CRM
+ * показується одним рядком, і перенос там виглядав би як порожнє значення.
+ */
+const VALUE_CUT_MARKER = ' […повний текст на сайті]';
+
+/**
+ * Обрізати так, щоб РЕЗУЛЬТАТ уліз у межу.
+ *
+ * Тут була арифметична помилка, яка й робила обріз декоративним: місце під
+ * маркер відраховувалося як тридцять символів, а сам маркер має сорок один.
+ * Тобто кожен обрізаний текст виходив за власну межу на одинадцять символів —
+ * саме те, від чого обріз мав захищати. Тепер місце відраховується від
+ * довжини того маркера, який реально буде дописаний.
+ */
+function truncate(text: string, limit: number, marker: string = SPEC_CUT_MARKER): string {
     if (text.length <= limit) return text;
-    return `${text.slice(0, limit - 30).trimEnd()}\n[…обрізано, повна специфікація на сайті]`;
+    const room = Math.max(0, limit - marker.length);
+    return `${text.slice(0, room).trimEnd()}${marker}`;
 }
 
 /**
@@ -388,9 +415,16 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         ? 'УВАГА: орієнтація 30×20 (альбомна), у CRM позиція 20х30 — той самий формат, повернутий.'
         : '';
 
+    // Значення властивості ріжеться до межі KeyCRM із видимим маркером. Поле
+    // «Наша історія кохання» у весільному журналі — це кілька тисяч символів
+    // від клієнта, і нерізане воно валить усе замовлення на 422. Повний текст
+    // лишається на картці замовлення на сайті, куди дизайнер заходить по макет.
     const properties = Object.entries(options)
         .filter(([, value]) => String(value ?? '').trim() !== '')
-        .map(([name, value]) => ({ name: String(name), value: String(value) }));
+        .map(([name, value]) => ({
+            name: String(name),
+            value: truncate(String(value), PROPERTY_VALUE_LIMIT, VALUE_CUT_MARKER),
+        }));
 
     const specification = formatSpecification(item);
 
@@ -406,8 +440,11 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
         quantity: Number(item?.quantity) || 1,
         unit_type: 'шт',
         ...(properties.length ? { properties } : {}),
+        // Обрізається ЗІБРАНИЙ коментар, а не сама специфікація: попередження
+        // про орієнтацію додається зверху, і специфікація, обрізана рівно до
+        // межі, разом із ним знову виходила б за неї — тобто те саме 422.
         ...(specification || orientationNote
-            ? { comment: [orientationNote, specification].filter(Boolean).join('\n') }
+            ? { comment: truncate([orientationNote, specification].filter(Boolean).join('\n'), LINE_COMMENT_LIMIT) }
             : {}),
     };
 }
