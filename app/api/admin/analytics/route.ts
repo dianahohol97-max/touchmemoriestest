@@ -2,7 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { startOfDay, endOfDay, subDays, format, isAfter, isBefore } from 'date-fns';
 import { requireAdmin } from '@/lib/auth/guards';
-import { countedRevenue } from '@/lib/orders/payment-state';
+import { countedRevenue, countsTowardsRevenue } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,8 +55,12 @@ export async function GET(req: Request) {
         const prevOrderCount = prevOrders?.length || 0;
         const orderChange = prevOrderCount === 0 ? 100 : ((currentOrderCount - prevOrderCount) / prevOrderCount) * 100;
 
-        const currentAvgCheck = currentOrderCount === 0 ? 0 : currentRevenue / currentOrderCount;
-        const prevAvgCheck = prevOrderCount === 0 ? 0 : prevRevenue / prevOrderCount;
+        // Знаменник — лише замовлення, які дають виручку: скасованих немає в
+        // чисельнику, тож у знаменнику їм теж нема чого робити.
+        const currentRevenueOrders = (currentOrders || []).filter(countsTowardsRevenue).length;
+        const prevRevenueOrders = (prevOrders || []).filter(countsTowardsRevenue).length;
+        const currentAvgCheck = currentRevenueOrders === 0 ? 0 : currentRevenue / currentRevenueOrders;
+        const prevAvgCheck = prevRevenueOrders === 0 ? 0 : prevRevenue / prevRevenueOrders;
         const avgCheckChange = prevAvgCheck === 0 ? 100 : ((currentAvgCheck - prevAvgCheck) / prevAvgCheck) * 100;
 
         // 1.5 Cost of Goods Sold (COGS) & Profit

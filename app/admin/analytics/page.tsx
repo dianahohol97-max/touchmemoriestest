@@ -37,7 +37,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
-import { countedRevenue } from '@/lib/orders/payment-state';
+import { countedRevenue, countsTowardsRevenue } from '@/lib/orders/payment-state';
 
 const COLORS = ['#263A99', '#14b8a6', '#f59e0b', '#ef4444', '#a855f7', '#22c55e', '#6366f1'];
 
@@ -176,8 +176,17 @@ export default function AnalyticsPage() {
             const newClientsChange = (prevNewClientsCount || 0) === 0 ? 100 :
                 ((newClientsCount || 0) - (prevNewClientsCount || 0)) / (prevNewClientsCount || 1) * 100;
 
-            const avgOrderValue = ordersCount > 0 ? revenue / ordersCount : 0;
-            const prevAvgOrderValue = prevOrdersCount > 0 ? prevRevenue / prevOrdersCount : 0;
+            // Знаменник — лише ті замовлення, які дають виручку.
+            //
+            // Скасовані вже не в чисельнику, і лишати їх у знаменнику означало б
+            // показник ні про що: гроші ділилися б на замовлення, яких у цих
+            // грошах немає (Diana, 14.09.2026). Лічильник «Замовлень» поруч
+            // навмисно лишається повним — він рахує зроблені замовлення, а не
+            // виручку.
+            const revenueOrdersCount = orders.filter(countsTowardsRevenue).length;
+            const prevRevenueOrdersCount = (prevOrders || []).filter(countsTowardsRevenue).length;
+            const avgOrderValue = revenueOrdersCount > 0 ? revenue / revenueOrdersCount : 0;
+            const prevAvgOrderValue = prevRevenueOrdersCount > 0 ? prevRevenue / prevRevenueOrdersCount : 0;
             const avgOrderValueChange = prevAvgOrderValue === 0 ? 100 :
                 ((avgOrderValue - prevAvgOrderValue) / prevAvgOrderValue) * 100;
 
