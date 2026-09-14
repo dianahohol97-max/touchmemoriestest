@@ -89,6 +89,25 @@ export async function GET(req: Request) {
     const results: any[] = [];
     const errors: string[] = [];
 
+    // Списковий запит НЕ вміє фільтрувати за id: KeyCRM відповідає 400 і сам
+    // перелічує дозволені фільтри — status_id, source_id, buyer_email,
+    // buyer_phone, has_tracking_code, created_between, updated_between,
+    // payment_status, source_uuid, shipping_between. Тому питаємо його рівно
+    // так, як питає дзеркало — сторінкою свіжих замовлень, — і шукаємо свої
+    // серед них. Саме ця відповідь і є предметом перевірки.
+    const listingById = new Map<string, LineView[]>();
+    let listingProbeError = '';
+    try {
+        const payload = await keycrmRequest('/order?page=1&limit=50&include=buyer,products,payments,shipping,tags,manager&sort=-id');
+        const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
+        for (const row of rows) {
+            const id = String(row?.id ?? '').trim();
+            if (id) listingById.set(id, readLines(row));
+        }
+    } catch (e: any) {
+        listingProbeError = e?.message || 'списковий запит не вдався';
+    }
+
     for (const o of orders || []) {
         const crmId = String((o as any)?.custom_attributes?.keycrm?.order_id ?? '').trim();
         if (!crmId) {
@@ -96,23 +115,9 @@ export async function GET(req: Request) {
             continue;
         }
 
-        // 1. Так, як бачить ДЗЕРКАЛО: списковий запит, звужений до цього id.
-        let listing: LineView[] | null = null;
-        let listingError = '';
-        for (const path of [
-            `/order?filter[id]=${encodeURIComponent(crmId)}&limit=1&include=products`,
-            `/order?filter[order_id]=${encodeURIComponent(crmId)}&limit=1&include=products`,
-        ]) {
-            try {
-                const payload = await keycrmRequest(path);
-                const rows: any[] = Array.isArray(payload?.data) ? payload.data : [];
-                const row = rows.find(r => String(r?.id ?? '') === crmId) ?? rows[0];
-                if (row) { listing = readLines(row); listingError = ''; break; }
-                listingError = 'списковий запит не повернув це замовлення';
-            } catch (e: any) {
-                listingError = e?.message || 'запит не вдався';
-            }
-        }
+        // 1. Так, як бачить ДЗЕРКАЛО: рядки з тієї самої сторінки списку.
+        const listing: LineView[] | null = listingById.get(crmId) ?? null;
+        const listingError = listingProbeError || 'цього замовлення немає на першій сторінці списку';
 
         // 2. Так, як бачить функція для Софії: запит по одному замовленню.
         let single: LineView[] | null = null;
