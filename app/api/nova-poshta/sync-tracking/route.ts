@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isDomesticNovaPoshta } from '@/lib/shipping/carrier';
 
 const NOVA_POSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 
@@ -31,6 +32,53 @@ const ORDER_STATUS_MAP: Record<string, string> = {
     'delivered': 'Виконано',
 };
 
+/**
+ * Опитування Нової Пошти пачками, а не по одній посилці.
+ *
+ * `getStatusDocuments` приймає масив накладних, тож 394 замовлення у вікні
+ * відстеження — це чотири запити, а не 394 запити з паузою по 100 мс між
+ * ними. Стара форма циклу займала близько двох хвилин і не вкладалася в
+ * ліміт часу серверної функції, тобто навіть із правильним ключем вона
+ * впала б на пів дорозі.
+ */
+const NP_BATCH_SIZE = 100;
+
+async function fetchTrackingBatch(apiKey: string, ttns: string[]): Promise<Map<string, any>> {
+    const byTtn = new Map<string, any>();
+
+    for (let i = 0; i < ttns.length; i += NP_BATCH_SIZE) {
+        const chunk = ttns.slice(i, i + NP_BATCH_SIZE);
+        try {
+            const npResponse = await fetch(NOVA_POSHTA_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey,
+                    modelName: 'TrackingDocument',
+                    calledMethod: 'getStatusDocuments',
+                    methodProperties: { Documents: chunk.map(ttn => ({ DocumentNumber: ttn })) },
+                }),
+            });
+            const npData = await npResponse.json();
+            if (!npData.success || !Array.isArray(npData.data)) {
+                console.error('[NP] Tracking batch failed:', npData.errors || npData.errorCodes || 'unknown error');
+                continue;
+            }
+            for (const row of npData.data) {
+                if (row?.Number) byTtn.set(String(row.Number), row);
+            }
+        } catch (batchError) {
+            console.error('[NP] Tracking batch request failed:', batchError);
+        }
+    }
+
+    return byTtn;
+}
+
+// Опитування пачками плюс запис у базу по кожному замовленню — це хвилини, а
+// не секунди, тож функції потрібен свій ліміт часу.
+export const maxDuration = 300;
+
 export async function GET(req: NextRequest) {
     try {
         // Verify cron secret for security (Vercel Cron)
@@ -45,18 +93,28 @@ export async function GET(req: NextRequest) {
 
         const apiKey = process.env.NOVA_POSHTA_API_KEY;
         if (!apiKey) {
+            // Мовчазне падіння коштувало нам усього трекінгу. Крон щодня
+            // повертав 500 і не лишав у логах жодного рядка, тому ніхто не
+            // бачив, що статуси посилок не оновлюються з самого початку:
+            // станом на 14.09.2026 у базі 836 замовлень із ТТН і в жодного
+            // немає tracking_status. Тепер причина написана в лозі прямо.
+            console.error('[NP] NOVA_POSHTA_API_KEY is not set — tracking sync cannot run');
             return NextResponse.json({ error: 'Nova Poshta API key not configured' }, { status: 500 });
         }
 
+        // Посилка, якій більше трьох місяців, уже або вручена, або втрачена, і
+        // домашній трекінг про неї нічого нового не скаже. Без цієї межі
+        // список ріс вічно: замовлення без статусу ніколи не стає
+        // «delivered», тож само з вибірки не виходить.
+        const TRACKING_WINDOW_DAYS = 90;
+        const windowStart = new Date(Date.now() - TRACKING_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
         // Get all orders with tracking numbers that aren't delivered or cancelled
-        const { data: orders, error } = await supabase
+        const { data: candidates, error } = await supabase
             .from('orders')
-            .select('id, ttn, order_status, tracking_status, customer_phone, customer_name')
+            .select('id, ttn, order_status, tracking_status, tracking_carrier, customer_phone, customer_name')
             .not('ttn', 'is', null)
-            // Domestic orders never set tracking_carrier (it stays NULL); any
-            // non-null carrier is an international shipment whose number isn't
-            // known to api.novaposhta.ua's domestic tracking — skip those.
-            .is('tracking_carrier', null)
+            .gte('created_at', windowStart)
             .not('order_status', 'in', '("delivered","cancelled")');
 
         if (error) {
@@ -64,42 +122,33 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
         }
 
-        if (!orders || orders.length === 0) {
+        // Питаємо домашній API лише про внутрішні відправлення Новою Поштою.
+        // Раніше ознакою була порожнеча поля `tracking_carrier`, і ТТН, які
+        // приїхали з KeyCRM із назвою служби «Нова Пошта», крон відкидав як
+        // міжнародні. Правило тепер одне й дивиться на назву — lib/shipping/carrier.
+        const orders = (candidates || []).filter(o => isDomesticNovaPoshta(o.tracking_carrier));
+
+        if (orders.length === 0) {
             return NextResponse.json({ message: 'No orders to track', updated: 0 });
         }
 
-        console.log(`[Nova Poshta Sync] Processing ${orders.length} orders...`);
+        console.log(`[Nova Poshta Sync] Processing ${orders.length} of ${candidates?.length || 0} orders with a waybill...`);
 
         let updatedCount = 0;
         const results: any[] = [];
 
+        const tracking = await fetchTrackingBatch(apiKey, orders.map(o => String(o.ttn)));
+
         for (const order of orders) {
             try {
-                // Call Nova Poshta API to get document status
-                const npResponse = await fetch(NOVA_POSHTA_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        apiKey,
-                        modelName: 'TrackingDocument',
-                        calledMethod: 'getStatusDocuments',
-                        methodProperties: {
-                            Documents: [
-                                { DocumentNumber: order.ttn }
-                            ]
-                        }
-                    })
-                });
+                const trackingInfo = tracking.get(String(order.ttn));
 
-                const npData = await npResponse.json();
-
-                if (!npData.success || !npData.data || npData.data.length === 0) {
+                if (!trackingInfo) {
                     console.log(`[NP] No data for TTN ${order.ttn}`);
                     continue;
                 }
 
-                const trackingInfo = npData.data[0];
-                const statusCode = trackingInfo.StatusCode;
+                const statusCode = String(trackingInfo.StatusCode);
                 const npStatus = NP_STATUS_MAP[statusCode] || 'Невідомо';
                 const previousDeliveryStatus = order.tracking_status;
 
@@ -187,9 +236,6 @@ export async function GET(req: NextRequest) {
                 });
 
                 console.log(`[NP] Updated order ${order.id}: ${previousDeliveryStatus} → ${npStatus}`);
-
-                // Rate limiting - wait 100ms between requests to avoid hitting NP API limits
-                await new Promise(resolve => setTimeout(resolve, 100));
 
             } catch (orderError) {
                 console.error(`Error processing order ${order.id}:`, orderError);

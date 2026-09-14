@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
-import { matchCoverColor, readCoverSelection, formatCoverColor, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
+import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequirement, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
@@ -1601,6 +1601,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // actually ordered. The index is only a fallback for orders
                                 // placed before codes were stamped at submit.
                                 const _coverCode = _coverSel.code || _coverMatch?.code || '';
+                                // Обкладинка з м'якого матеріалу без кольору — це позиція, яку
+                                // неможливо виробити. Раніше така позиція просто мовчала:
+                                // блок кольору малюється лише тоді, коли колір Є, тож
+                                // TM-001296 виглядав як звичайне замовлення (шкірзамінник,
+                                // а якого кольору — ніде).
+                                const _coverNeed = coverColorRequirement(
+                                    item.slug || item.product_slug || item.product_name || item.name,
+                                    _rawOpts,
+                                );
+                                const _coverColorMissing = !!_coverNeed && !_coverSel.colorName;
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1707,6 +1717,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             .map(([k, v]) => `${k}: ${v}`).join(' • ')
                                                     }
                                                 </div>
+                                                {_coverColorMissing && (
+                                                    <div style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
+                                                        ⚠️ Колір обкладинки ({_coverNeed?.coverType.toLowerCase()}) не вказано — уточніть у клієнта до запуску у виробництво.
+                                                    </div>
+                                                )}
                                                 {/* Готова обкладинка з нашого каталогу — називаємо її,
                                                     щоб не впізнавати місто по картинці. Порожньо означає,
                                                     що клієнт зібрав обкладинку сам. */}

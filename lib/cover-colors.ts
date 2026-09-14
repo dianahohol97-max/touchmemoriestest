@@ -99,8 +99,77 @@ export function formatCoverColor(coverTypeName: string, code: string, colorName:
 
 /** Option keys, kept here so the writer and the reader can never drift apart. */
 export const COVER_COLOR_CODE_KEY = 'Код кольору обкладинки';
-export const COVER_COLOR_KEY_RE = /колір\s*обкладинки/i;
+/**
+ * Під якими ключами замовлення несе КОЛІР обкладинки.
+ *
+ * Конструктор пише «Колір обкладинки», а картка товару — назву матеріалу:
+ * «Колір велюру», «Колір шкірзамінника», «Колір тканини». Регулярка знала
+ * лише перший варіант, тож дев'ять замовлень із кольором, обраним на картці
+ * товару, адмінка бачила як замовлення без кольору взагалі: ні плашки з
+ * кольором, ні артикула для майстерні.
+ *
+ * «Колір сторінок», «Колір напису», «Колір флексу» і «Колір рамки» сюди не
+ * належать — це інші деталі виробу, і прив'язка їх до обкладинки дала б
+ * майстерні артикул, якого ніхто не замовляв.
+ */
+export const COVER_COLOR_KEY_RE = /^колір\s*(обкладинки|велюру|шкірзамінник\p{L}*|шкіри|тканини)$/iu;
 export const COVER_TYPE_KEY_RE = /^(обкладинка|тип\s*обкладинки|матеріал\s*обкладинки)$/i;
+
+/**
+ * Матеріал обкладинки, названий у самому ключі кольору.
+ *
+ * «Колір велюру» — це велюр, і окремого поля матеріалу такому замовленню не
+ * потрібно. Без цього артикул не резолвиться: пошук у cover_colors іде за
+ * парою «тип обкладинки + назва кольору», а тип нізвідки взяти.
+ */
+function coverTypeFromColorKey(key: string): string {
+  const k = norm(key);
+  if (k.includes('велюр')) return 'Велюр';
+  if (k.includes('шкірзамінник') || k.includes('шкіри')) return 'Шкірзамінник';
+  if (k.includes('тканини')) return 'Тканина';
+  return '';
+}
+
+/**
+ * Матеріал обкладинки за артикулом товару.
+ *
+ * Окремі товари — photobook-leatherette, photobook-velour, photobook-fabric —
+ * не мають опції «Матеріал обкладинки»: матеріал зашитий в артикул. Друковані
+ * і випускні обкладинки кольору не мають узагалі, для них повертаємо порожнє.
+ */
+export function coverTypeFromSlug(slugOrName: string | null | undefined): string {
+  const s = norm(slugOrName || '');
+  if (!s) return '';
+  if (s.includes('printed') || s.includes('drukov') || s.includes('друков')) return '';
+  if (s.includes('graduation') || s.includes('vypusk') || s.includes('випуск')) return '';
+  if (s.includes('velour') || s.includes('velyur') || s.includes('велюр')) return 'Велюр';
+  if (s.includes('leather') || s.includes('shkir') || s.includes('шкірзам')) return 'Шкірзамінник';
+  if (s.includes('fabric') || s.includes('tkanina') || s.includes('тканин')) return 'Тканина';
+  return '';
+}
+
+/**
+ * Чи мусить це замовлення нести колір обкладинки, і під яким ключем.
+ *
+ * Одне правило на три місця: картка товару блокує замовлення, поки колір не
+ * обрано, вона ж підписує сітку зразків, а картка замовлення в адмінці
+ * попереджає, коли колір усе-таки не записався. TM-001296 приїхав саме таким:
+ * обкладинка зі шкірзамінника, а якого кольору — ніде.
+ */
+export function coverColorRequirement(
+  slug: string | null | undefined,
+  options?: Record<string, any> | null,
+): { key: string; coverType: string } | null {
+  const material = String(options?.['Матеріал обкладинки'] ?? '').trim();
+  // Обраний матеріал важить більше за артикул: у книгах побажань обкладинку
+  // обирають опцією, і друкована тверда кольору не має.
+  const coverType = material ? coverTypeFromSlug(material) : coverTypeFromSlug(slug);
+  if (!coverType) return null;
+  const key = coverType === 'Велюр' ? 'Колір велюру'
+    : coverType === 'Шкірзамінник' ? 'Колір шкірзамінника'
+    : 'Колір тканини';
+  return { key, coverType };
+}
 
 /**
  * Read the cover type + colour an order item was placed with.
@@ -117,7 +186,12 @@ export function readCoverSelection(options: Record<string, any> | undefined | nu
     const val = String(v ?? '').trim();
     if (!val) continue;
     if (k === COVER_COLOR_CODE_KEY) out.code = val;
-    else if (COVER_COLOR_KEY_RE.test(k)) out.colorName = val;
+    else if (COVER_COLOR_KEY_RE.test(k.trim())) {
+      out.colorName = val;
+      // Ключ сам називає матеріал («Колір велюру»), і це єдине місце, де він
+      // узагалі записаний для товарів без опції «Матеріал обкладинки».
+      if (!out.coverType) out.coverType = coverTypeFromColorKey(k);
+    }
     else if (COVER_TYPE_KEY_RE.test(k.trim())) out.coverType = val;
   }
   return out;
