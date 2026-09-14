@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { updateSession } from '@/lib/supabase/middleware';
+import { buildInterceptTarget, shouldInterceptAuthCode } from '@/lib/auth/oauth-code-interception';
 
 const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
 const DEFAULT_LOCALE = 'uk';
@@ -8,7 +9,16 @@ const DEFAULT_LOCALE = 'uk';
 const SKIP_PREFIXES = [
     '/admin', '/api', '/_next', '/favicon',
     '/robots', '/sitemap', '/public',
-    '/auth', // supabase auth callback
+    // '/auth' — DOES NOT DO WHAT IT SAYS, and it is left here only so the next
+    // reader does not re-add it believing it works. The comment used to read
+    // «supabase auth callback», but that callback lives at
+    // /{locale}/auth/callback, and this check is pathname.startsWith('/auth'),
+    // which a path beginning with a locale never matches. The only address it
+    // does cover is /auth/reset, and no route exists there at all — see the
+    // note in components/ui/AuthModal.tsx. Path exclusions that must survive a
+    // locale prefix belong in lib/auth/oauth-code-interception.ts, which
+    // compares against the path WITHOUT the locale.
+    '/auth',
     // Standalone tools served straight out of /public as .html files. The
     // matcher below only excludes a list of asset extensions, and .html is not
     // among them, so without this every /tools/x.html was redirected to
@@ -134,6 +144,35 @@ async function refreshSessionAndGetUser(request: NextRequest): Promise<{
 
 export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    // ─── ?code= from Supabase goes to the server callback ───────────────
+    //
+    // Supabase decides where to drop a person after sign-in from the Redirect
+    // URLs list in the project settings, which nobody on this side can edit
+    // right now. So the redirect happens here instead: the code is carried to
+    // /{locale}/auth/callback, which exchanges it, links guest orders to the
+    // new account and fills a name left behind in the signup metadata.
+    //
+    // In middleware rather than in a call from the client-side handler,
+    // because a call has to be REMEMBERED and that is exactly what failed
+    // twice already — first the linking sat in /api/auth/register, which has
+    // no callers, then in a route nothing pointed at. Nothing has to remember
+    // middleware.
+    //
+    // It only redirects. No database work happens here: this runs on the edge
+    // for every page request, and the route it hands off to runs on Node with
+    // as long as it needs.
+    //
+    // Which paths are left alone, and why each one, is a single list in
+    // lib/auth/oauth-code-interception.ts. The /admin entry is there EXPLICITLY
+    // and not left to the fact that the admin block below runs first: someone
+    // will reorder these blocks one day, and an admin silently signed in as a
+    // customer is not a failure anyone would trace back to here.
+    if (shouldInterceptAuthCode({ pathname, hasCode: request.nextUrl.searchParams.has('code') })) {
+        return NextResponse.redirect(
+            new URL(buildInterceptTarget(pathname, request.nextUrl.search), request.url)
+        );
+    }
 
     // ─── /admin/* gating ────────────────────────────────────────────────
     // Before this guard, anyone could load /admin URLs and see the admin UI
