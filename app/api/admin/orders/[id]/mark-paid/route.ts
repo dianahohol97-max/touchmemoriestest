@@ -27,7 +27,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: order } = await admin
     .from('orders')
-    .select('id, payment_status, promo_code, items, customer_id, total, certificate_code, certificate_redeemed, certificate_applied')
+    .select('id, payment_status, monobank_invoice_id, promo_code, items, customer_id, total, certificate_code, certificate_redeemed, certificate_applied')
     .eq('id', id)
     .maybeSingle();
   if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
@@ -35,9 +35,34 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ status: 'paid', message: 'Замовлення вже позначене оплаченим.' });
   }
 
+  // Стадія інвойсу дописується ЛИШЕ якщо рахунок Monobank справді існує.
+  //
+  // Після 20260914_monobank_stage_order колонка monobank_invoice_status стала
+  // захисною: apply_monobank_payment порівнює ранг події з тим, що збережено, і
+  // окреме суворе правило «після success назад тільки reversed» читає саме її.
+  // Замовлення, яке залишилося зі стадією 'created' (ранг 10), беззахисне:
+  // запізніла подія 'failure' (ранг 35) проходить умову «не менший ранг» і
+  // переводить щойно підтверджену оплату у 'failed'.
+  //
+  // Але дописувати 'success' наосліп не можна. Цю кнопку тиснуть і на
+  // замовленнях, за які заплатили повз Monobank узагалі — готівкою, переказом,
+  // накладеним. Писати їм стадію банківського рахунку означало б вигадати
+  // подію, якої не було. Тому умова: є monobank_invoice_id — пишемо, немає —
+  // не чіпаємо стадію взагалі. Це чесно з обох боків (Diana, 14.09.2026).
+  //
+  // paid_at тут ставиться, як і ставився. Він і має ставитися: ручне
+  // підтвердження — це і є перший перехід в оплачено, і заявка вебхука на
+  // нього має програти, бо гроші вже враховані.
+  const hasInvoice = !!(order as any).monobank_invoice_id;
+
   const { data: updated, error } = await admin
     .from('orders')
-    .update({ payment_status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      payment_status: 'paid',
+      ...(hasInvoice ? { monobank_invoice_status: 'success' } : {}),
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
     .neq('payment_status', 'paid')
     .select('id')
