@@ -285,7 +285,7 @@ The three webhook endpoints, the dual `mono_*` / `monobank_*` order columns, and
 
 - All public routes live under `app/[locale]/` — locale is one of `uk`, `en`, `ro`, `pl`, `de`
 - Default locale: `uk`
-- Middleware handles locale detection and redirects (`proxy.ts`)
+- Middleware handles locale detection and redirects — it is **`proxy.ts` in the repo root, and there is no `middleware.ts`**: Next.js 16 renamed the file, the build log prints it as `ƒ Proxy (Middleware)`, and a search for `middleware.ts` finds only the unrelated `lib/supabase/middleware.ts` helper. It puts the locale prefix on any path that arrives without one (cookie `tm_locale` → `Accept-Language` → `uk`), carries the whole query string across, and sets `tm_locale` — which is why a link like `/unsubscribe?token=…` works and lands on `/uk/unsubscribe?token=…`
 - Static labels: `locales/{locale}.json` files, accessed via the `useT()` hook
 - DB-driven content (product names, category names, footer sections etc.) uses a `translations` JSONB column with shape `{ uk: {...}, en: {...}, ro: {...}, pl: {...}, de: {...} }`
 - The `getLocalized(record, field, locale)` helper in `lib/i18n/localize.ts` reads `translations[locale].field || record.field` (fallback to base column)
