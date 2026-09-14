@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { formatDateTime, formatDateOnly, formatTimeOnly } from '@/lib/date-utils';
+import { receivedAmount, outstandingAmount } from '@/lib/orders/payment-state';
 import {
     Download,
     DollarSign,
@@ -83,6 +84,9 @@ const PAYMENT_STATUSES: Record<string, string> = {
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
+/** Скільки рядків PostgREST віддає за один запит. Те саме число, що в /api/admin/clients. */
+const ORDER_PAGE = 1000;
+
 export default function PaymentsPage() {
     const supabase = createClient();
 
@@ -114,14 +118,34 @@ export default function PaymentsPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch orders with payment data
-            const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // Замовлення забираються сторінками, а не одним запитом.
+            //
+            // PostgREST віддає щонайбільше ORDER_PAGE рядків за раз і робить це
+            // МОВЧКИ: помилки немає, просто приходить менше. Замовлень уже 1107
+            // (14.09.2026), тобто звіт про гроші обрізався прямо зараз — а
+            // недолив у грошах помітити майже неможливо, бо неправильна сума
+            // виглядає точно так само, як правильна.
+            //
+            // Сортування лишається від найновіших, тож на кожній сторінці
+            // порядок стабільний. Вага всієї таблиці 1.7 МБ, тож select('*')
+            // тут не проблема; обмеження саме в кількості рядків.
+            //
+            // Той самий шаблон уже стоїть у /api/admin/clients і
+            // /api/admin/photographers.
+            const ordersData: any[] = [];
+            for (let from = 0; ; from += ORDER_PAGE) {
+                const { data: page, error: ordersError } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(from, from + ORDER_PAGE - 1);
 
-            if (ordersError) throw ordersError;
-            setOrders(ordersData || []);
+                if (ordersError) throw ordersError;
+                ordersData.push(...(page || []));
+                if (!page || page.length < ORDER_PAGE) break;
+            }
+
+            setOrders(ordersData);
 
             // Fetch staff for manager filter
             const { data: staffData } = await supabase
@@ -131,9 +155,7 @@ export default function PaymentsPage() {
             setStaff(staffData || []);
 
             // Calculate stats
-            if (ordersData) {
-                calculateStats(ordersData);
-            }
+            calculateStats(ordersData);
         } catch (error) {
             console.error('Error fetching data:', error);
             toast.error('Помилка завантаження даних');
@@ -158,19 +180,33 @@ export default function PaymentsPage() {
 
         ordersData.forEach((order) => {
             const orderDate = new Date(order.created_at);
-            const total = Number(order.total) || 0;
 
-            // Revenue calculations (only for paid orders)
-            if (order.payment_status === 'paid') {
-                if (orderDate >= todayStart) revenueToday += total;
-                if (orderDate >= weekStart) revenueWeek += total;
-                if (orderDate >= monthStart) revenueMonth += total;
+            // Дохід — це отримані гроші, а не сума замовлення.
+            //
+            // Було `if (payment_status === 'paid') revenue += total`, і воно
+            // помилялося двічі. Дзеркалені з KeyCRM замовлення платяться
+            // частинами і чесно стоять у 'pending', тож сотні тисяч уже
+            // отриманих гривень сюди не потрапляли зовсім. А там, де гейт
+            // пропускав, рахувалася сума ЗАМОВЛЕННЯ — недоплачене зараховувалося
+            // повністю. Статус більше не питаємо: правило одне, у
+            // receivedAmount().
+            const received = receivedAmount(order);
+            if (received > 0) {
+                if (orderDate >= todayStart) revenueToday += received;
+                if (orderDate >= weekStart) revenueWeek += received;
+                if (orderDate >= monthStart) revenueMonth += received;
             }
 
-            // Pending payments
-            if (order.payment_status === 'pending') {
+            // Очікувані гроші — це ЗАЛИШОК, а не повна сума замовлення.
+            //
+            // На частково оплаченому замовленні половина вже надійшла, і
+            // показувати її як очікувану означає рахувати ті самі гроші двічі:
+            // один раз у доході, другий тут. Лічильник теж рахує замовлення з
+            // непогашеним залишком, а не з певним статусом.
+            const outstanding = outstandingAmount(order);
+            if (outstanding > 0) {
                 pendingCount++;
-                pendingSum += total;
+                pendingSum += outstanding;
             }
 
             // COD to collect. There is no `payment_method` column — that field

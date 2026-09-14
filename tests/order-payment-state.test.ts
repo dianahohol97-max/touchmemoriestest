@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePaymentBadge } from '@/lib/orders/payment-state';
+import { resolvePaymentBadge, receivedAmount, outstandingAmount } from '@/lib/orders/payment-state';
 
 /**
  * Стан оплати, записаний як факти.
@@ -86,5 +86,79 @@ describe('resolvePaymentBadge', () => {
         expect(resolvePaymentBadge({ total: null, paid_amount: undefined }).state).toBe('unpaid');
         // Supabase віддає numeric рядком.
         expect(resolvePaymentBadge({ total: '1449', paid_amount: '743' }).state).toBe('partial');
+    });
+});
+
+/**
+ * Дохід для звітності.
+ *
+ * Правило винесене в receivedAmount() після того, як чотири звіти — сторінка
+ * платежів, total_spent клієнта, P&L у витратах і сума замовлень фотографа —
+ * рахували його кожен сам і всі однаково неправильно: `total` під гейтом
+ * payment_status === 'paid'.
+ *
+ * Числа нижче зняті з живих замовлень 14.09.2026. На той день гейт ховав від
+ * звітності 281 341 грн реально отриманих часткових оплат на 234 дзеркалених
+ * замовленнях, і водночас зараховував зайві 12 968 грн на тих, що гейт
+ * пропускав, бо там бралася сума замовлення замість суми платежу.
+ */
+describe('receivedAmount', () => {
+    it('частково оплачене дає отримані гроші, а не суму замовлення', () => {
+        expect(receivedAmount({ total: 3400, paid_amount: 1700, payment_status: 'pending' })).toBe(1700);
+    });
+
+    /** Саме цього гейт і не бачив: статус чесно каже «не все», гроші вже є. */
+    it('не дивиться на payment_status узагалі', () => {
+        expect(receivedAmount({ total: 1000, paid_amount: 400, payment_status: 'pending' })).toBe(400);
+        expect(receivedAmount({ total: 1000, paid_amount: 400, payment_status: 'paid' })).toBe(400);
+    });
+
+    it('оплачене не по повній не зараховується повністю', () => {
+        expect(receivedAmount({ total: 2290, paid_amount: 2000, payment_status: 'paid' })).toBe(2000);
+    });
+
+    it('переплату віддає як є, бо гроші справді надійшли', () => {
+        expect(receivedAmount({ total: 500, paid_amount: 620 })).toBe(620);
+    });
+
+    it('нуль отриманого — нуль доходу, хай рахунок і виставлено', () => {
+        expect(receivedAmount({ total: 2838, paid_amount: 0, payment_status: 'pending' })).toBe(0);
+    });
+
+    it('порожнє й нечислове читає як нуль, а numeric-рядок як число', () => {
+        expect(receivedAmount({ total: 100, paid_amount: null })).toBe(0);
+        expect(receivedAmount({ total: 100, paid_amount: undefined })).toBe(0);
+        expect(receivedAmount({ total: 100, paid_amount: 'не число' })).toBe(0);
+        expect(receivedAmount({ total: '1449', paid_amount: '743' })).toBe(743);
+    });
+});
+
+/**
+ * Залишок до сплати.
+ *
+ * На сторінці платежів плитка «очікує» рахувала повну суму замовлення, тож
+ * половина, яка вже надійшла, потрапляла водночас і в дохід, і в очікуване.
+ */
+describe('outstandingAmount', () => {
+    it('на частково оплаченому чекаємо залишок, а не повну суму', () => {
+        expect(outstandingAmount({ total: 3400, paid_amount: 1700 })).toBe(1700);
+    });
+
+    it('повністю оплачене не чекає нічого', () => {
+        expect(outstandingAmount({ total: 1000, paid_amount: 1000 })).toBe(0);
+    });
+
+    /** Переплата — це нуль боргу, а не борг магазину перед клієнтом. */
+    it('переплата не стає від’ємним залишком', () => {
+        expect(outstandingAmount({ total: 500, paid_amount: 620 })).toBe(0);
+    });
+
+    it('скасоване не чекає нічого, навіть якщо не оплачене', () => {
+        expect(outstandingAmount({ total: 900, paid_amount: 0, order_status: 'cancelled' })).toBe(0);
+        expect(outstandingAmount({ total: 900, paid_amount: 0, payment_status: 'cancelled' })).toBe(0);
+    });
+
+    it('нічого не отримано — чекаємо повну суму', () => {
+        expect(outstandingAmount({ total: 2838, paid_amount: 0, payment_status: 'pending' })).toBe(2838);
     });
 });

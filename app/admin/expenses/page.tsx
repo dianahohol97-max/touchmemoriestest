@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { receivedAmount } from '@/lib/orders/payment-state';
 import {
     Plus,
     Download,
@@ -158,15 +159,20 @@ export default function ExpensesPage() {
         const monthEnd = endOfMonth(now).toISOString();
 
         try {
-            // Revenue from paid orders
+            // Дохід — отримані за місяць гроші.
+            //
+            // Було `.eq('payment_status','paid')` і сума `total`. Дзеркалені з
+            // KeyCRM замовлення платяться частинами і лишаються в 'pending',
+            // тож у P&L не потрапляла жодна їхня гривня, а прибуток і маржа
+            // виходили заниженими. Сума замовлення тут теж не годиться:
+            // недоплачене зараховувалося б повністю.
             const { data: orders } = await supabase
                 .from('orders')
-                .select('total')
-                .eq('payment_status', 'paid')
+                .select('total, paid_amount, payment_status, order_status')
                 .gte('created_at', monthStart)
                 .lte('created_at', monthEnd);
 
-            const revenue = orders?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
+            const revenue = orders?.reduce((sum, o) => sum + receivedAmount(o), 0) || 0;
 
             // Expenses this month
             const { data: expensesData } = await supabase

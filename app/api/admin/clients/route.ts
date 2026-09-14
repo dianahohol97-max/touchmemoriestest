@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { receivedAmount } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,7 +83,7 @@ export async function GET(req: Request) {
     for (let from = 0; ; from += ORDER_PAGE) {
         const { data, error } = await admin
             .from('orders')
-            .select('customer_id, customer_email, total, payment_status, created_at')
+            .select('customer_id, customer_email, total, paid_amount, payment_status, order_status, created_at')
             .order('created_at', { ascending: false })
             .range(from, from + ORDER_PAGE - 1);
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -97,9 +98,16 @@ export async function GET(req: Request) {
     const bump = (bucket: Map<string, Stats>, key: string, order: any) => {
         const s = bucket.get(key) || { total_orders: 0, total_spent: 0, last_order_date: null };
         s.total_orders += 1;
-        // Only paid money counts as spend; pending and cancelled orders would
-        // otherwise inflate the VIP threshold and the average cheque.
-        if (order.payment_status === 'paid') s.total_spent += Number(order.total) || 0;
+        // Витрачене — це отримані гроші, а не сума замовлення.
+        //
+        // Було `if (payment_status === 'paid') total_spent += total`. Намір
+        // правильний (неоплачене не має роздувати поріг VIP і середній чек),
+        // виконання — ні: клієнт із дзеркаленого KeyCRM-замовлення платить
+        // частинами, статус у нього лишається 'pending', і всі його гроші
+        // рахувалися як нуль. А там, де статус був 'paid', у витрати йшла сума
+        // ЗАМОВЛЕННЯ, тож недоплата зараховувалася повністю. Тепер береться
+        // рівно те, що надійшло.
+        s.total_spent += receivedAmount(order);
         if (order.created_at && (!s.last_order_date || order.created_at > s.last_order_date)) {
             s.last_order_date = order.created_at;
         }

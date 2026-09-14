@@ -15,8 +15,6 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = getAdminClient();
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
-  const ua = req.headers.get('user-agent') || null;
 
   // Anonymize customer record (preserve orders for tax compliance)
   await admin.from('customers').update({
@@ -28,17 +26,11 @@ export async function POST(req: NextRequest) {
     consent_marketing_at: null,
   }).eq('auth_user_id', user.id);
 
-  // Log deletion event
-  await admin.from('consent_log').insert({
-    customer_id: user.id,
-    email: user.email,
-    consent_type: 'account_deleted',
-    granted: true,
-    policy_version: 1,
-    ip_address: ip,
-    user_agent: ua,
-    source: 'account_privacy',
-  });
+  // Видалення акаунта більше НЕ пишеться в consent_log (Diana, 14.09.2026).
+  // Це подія аудиту, а не згода, і рядок із consent_type = 'account_deleted'
+  // усе одно відхилявся CHECK-ом таблиці — за весь час не записався жодного
+  // разу. Окрема іронія в тому, що запис про видалення лишав би пошту людини
+  // в базі рівно тоді, коли вона попросила її прибрати.
 
   // Ban user from logging in again (set banned_until to far future)
   try {

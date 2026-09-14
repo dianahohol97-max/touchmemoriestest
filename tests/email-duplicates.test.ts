@@ -77,20 +77,44 @@ describe('контактна адреса в шаблонах листів', () 
         expect(source).not.toContain('hello@touchmemories');
     });
 
-    it('шість шаблонів, які кликали на мертву адресу, тепер беруть живу з константи', () => {
+    /**
+     * Шаблони, які досі КЛИЧУТЬ писати, мусять брати адресу з константи.
+     *
+     * Список коротший за початкові шість: у трьох маркетингових листах
+     * запрошення прибрано зовсім, і причина не в адресі. Воно було написане як
+     * інструкція з відписки («Якщо більше не хочете отримувати такі листи —
+     * напишіть нам на …») і конкурувало з робочим посиланням, яке
+     * withUnsubscribeFooter() і так додає в кожен маркетинговий лист разом із
+     * заголовками List-Unsubscribe. Двох виходів бути не має, а той, що просив
+     * написати листа, був гіршим навіть із живою адресою: він вимагав від
+     * людини дії, на яку хтось мусить відповісти вручну.
+     */
+    it('шаблони, які кличуть писати, беруть адресу з константи', () => {
         const fixed = [
-            'emails/AbandonedCartEmail.tsx',
             'emails/OrderCancelledEmail.tsx',
             'emails/PaymentReminderEmail.tsx',
             'emails/ReviewRequestEmail.tsx',
-            'emails/WelcomeSeriesEmail.tsx',
-            'emails/WinBackEmail.tsx',
         ];
         for (const file of fixed) {
             const source = readFileSync(path.resolve(process.cwd(), file), 'utf8');
             expect(source).toContain("from '@/lib/email/contact-address'");
             expect(source).toContain('SHOP_CONTACT_EMAIL');
         }
+    });
+
+    /**
+     * У маркетингових листах відписка живе у футері, а не в тілі.
+     *
+     * Тест стежить саме за тим, щоб текстова інструкція не повернулася: її
+     * легко дописати назад, бо вона виглядає турботливою.
+     */
+    it.each([
+        'emails/AbandonedCartEmail.tsx',
+        'emails/WelcomeSeriesEmail.tsx',
+        'emails/WinBackEmail.tsx',
+    ])('%s не просить писати листа замість посилання відписки', (file) => {
+        const source = readFileSync(path.resolve(process.cwd(), file), 'utf8');
+        expect(source).not.toContain('більше не хочете отримувати');
     });
 
     it('константа вказує на скриньку, яку справді читають', () => {
