@@ -118,9 +118,47 @@ export default function ClientsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
+    // Замовлення, схожі на акаунт, які правило не наважилося прив'язати саме.
+    // Тримаються тут, а не за прапорцем у базі: прапорець без видимого списку
+    // накопичується, і саме так накопичилися 79 гостьових замовлень, які ніхто
+    // не бачив.
+    const [linkReview, setLinkReview] = useState<any[]>([]);
+    const [linkBusyId, setLinkBusyId] = useState<string | null>(null);
+
     useEffect(() => {
         fetchCustomers();
+        fetchLinkReview();
     }, []);
+
+    const fetchLinkReview = async () => {
+        try {
+            const res = await fetch('/api/admin/clients/link-review');
+            const payload = await res.json();
+            if (res.ok) setLinkReview(payload.items || []);
+        } catch (e) {
+            console.error('Error fetching link review queue:', e);
+        }
+    };
+
+    const decideLink = async (orderId: string, decision: 'confirm' | 'reject') => {
+        setLinkBusyId(orderId);
+        try {
+            const res = await fetch('/api/admin/clients/link-review', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId, decision }),
+            });
+            const payload = await res.json();
+            if (!res.ok) throw new Error(payload?.error || 'Не вдалося зберегти рішення');
+            setLinkReview((prev) => prev.filter((x) => x.id !== orderId));
+            toast.success(decision === 'confirm' ? 'Замовлення прив’язано до клієнта' : 'Позначено як різні люди');
+            if (decision === 'confirm') fetchCustomers();
+        } catch (e: any) {
+            toast.error(e?.message || 'Не вдалося зберегти рішення');
+        } finally {
+            setLinkBusyId(null);
+        }
+    };
 
     // Goes through /api/admin/clients rather than querying Supabase from the
     // browser. RLS on `customers` grants a full read only to admin_users, so a
@@ -365,6 +403,59 @@ export default function ClientsPage() {
                     Експорт Excel
                 </button>
             </div>
+
+            {/* Замовлення на перевірку прив'язки.
+                Показується лише коли є що вирішувати, і стоїть ВИЩЕ за таблицю
+                навмисно: це робота, яку хтось має зробити руками, а не довідка. */}
+            {linkReview.length > 0 && (
+                <div style={reviewPanel}>
+                    <div style={{ marginBottom: '16px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: 800, color: '#92400e' }}>
+                            Замовлення на перевірку — {linkReview.length}
+                        </div>
+                        <p style={{ color: '#78350f', fontSize: '14px', marginTop: '6px', lineHeight: 1.5 }}>
+                            Пошта в цих замовленнях збігається з акаунтом, але ім’я розійшлося, тож
+                            автоматично вони не прив’язані. Одна пошта буває спільною на родину, і
+                            прив’язка навмання показала б людині в кабінеті чужі покупки. Подивіться
+                            пару і скажіть, чи це та сама людина.
+                        </p>
+                    </div>
+                    {linkReview.map((r) => (
+                        <div key={r.id} style={reviewRow}>
+                            <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', color: '#78350f', marginBottom: '4px' }}>
+                                    {r.order_number} · {new Date(r.created_at).toLocaleDateString('uk-UA')} · {Math.round(Number(r.total) || 0).toLocaleString('uk-UA')} ₴
+                                </div>
+                                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                                    <b>У картці:</b> {r.candidate?.name || '—'}
+                                </div>
+                                <div style={{ fontSize: '14px', color: '#1e293b' }}>
+                                    <b>У замовленні:</b> {r.customer_name || '—'}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#92400e', marginTop: '4px' }}>
+                                    {r.customer_email} · {r.link_candidate_reason}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                <button
+                                    onClick={() => decideLink(r.id, 'confirm')}
+                                    disabled={linkBusyId === r.id}
+                                    style={{ ...reviewBtn, backgroundColor: '#16a34a', color: '#fff' }}
+                                >
+                                    Та сама людина
+                                </button>
+                                <button
+                                    onClick={() => decideLink(r.id, 'reject')}
+                                    disabled={linkBusyId === r.id}
+                                    style={{ ...reviewBtn, backgroundColor: '#fff', color: '#b91c1c', border: '1px solid #fca5a5' }}
+                                >
+                                    Ні, різні
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Stats Bar */}
             <div style={statsGrid}>
@@ -855,6 +946,33 @@ const exportBtnStyle = {
     boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
     transition: 'all 0.2s'
 };
+
+const reviewPanel = {
+    backgroundColor: '#fffbeb',
+    border: '1px solid #fcd34d',
+    borderRadius: '3px',
+    padding: '20px',
+    marginBottom: '24px',
+} as const;
+
+const reviewRow = {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '12px',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 0',
+    borderTop: '1px solid #fde68a',
+};
+
+const reviewBtn = {
+    padding: '8px 14px',
+    borderRadius: '3px',
+    border: 'none',
+    fontWeight: 700,
+    fontSize: '13px',
+    cursor: 'pointer',
+} as const;
 
 const statsGrid = {
     display: 'grid',
