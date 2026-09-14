@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
+import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER, getPhotojournalHardPrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected, CONFIGURATOR_OPTION_NAMES, configuratorOptionKey } from '@/lib/products';
 import { WISHBOOK_PRICES, getWishbookPrice } from './ui/ProductOptionsSelector';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
@@ -25,7 +25,12 @@ interface ProductOption {
 // Option names the configurator has dedicated state + pricing for. Others
 // (e.g. "Верстка тексту", "Терміновість") are chosen on the product page and
 // arrive as URL params, so we don't render dead selects for them here.
-const HANDLED_OPTION_NAMES = ['Тип обкладинки', 'Кількість сторінок', 'Кількість примірників', 'Ламінація сторінок'];
+//
+// These are the names Supabase stores, which are Ukrainian in every locale.
+// Never compare an option name against t('constructor.*') — that compares a DB
+// key with a translated label and silently matches nothing; see
+// configuratorOptionKey() in lib/products.ts for what that cost us.
+const HANDLED_OPTION_NAMES: string[] = Object.values(CONFIGURATOR_OPTION_NAMES);
 
 // Some products store choices under `values: [{name, priceModifier}]` and others
 // under `options: [{label, value, price}]`. Normalize to the former shape so the
@@ -290,11 +295,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                     options.forEach((option) => {
                         const vals = getOptionValues(option);
                         if (vals.length > 0) {
-                            if (option.name === t('constructor.cover_type')) {
+                            const key = configuratorOptionKey(option.name);
+                            if (key === 'coverType') {
                                 setSelectedCoverType(vals[0].name);
-                            } else if (option.name === t('constructor.page_count')) {
+                            } else if (key === 'pageCount') {
                                 setSelectedPageCount(vals[0].name);
-                            } else if (option.name === t('constructor.copies_count')) {
+                            } else if (key === 'copies') {
                                 setSelectedCopies(vals[0].name);
                             }
                         }
@@ -892,11 +898,12 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
             options.forEach((option) => {
                 let selectedValue = '';
 
-                if (option.name === t('constructor.cover_type')) {
+                const key = configuratorOptionKey(option.name);
+                if (key === 'coverType') {
                     selectedValue = selectedCoverType;
-                } else if (option.name === t('constructor.page_count')) {
+                } else if (key === 'pageCount') {
                     selectedValue = selectedPageCount;
-                } else if (option.name === t('constructor.copies_count')) {
+                } else if (key === 'copies') {
                     selectedValue = selectedCopies;
                 }
 
@@ -1236,9 +1243,9 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
 
         if (product?.options) {
             const options = product.options as ProductOption[];
-            const requiredCoverType = options.some(o => o.name === t('constructor.cover_type'));
+            const requiredCoverType = options.some(o => configuratorOptionKey(o.name) === 'coverType');
             if (requiredCoverType && !selectedCoverType) return false;
-            const requiredPageCount = options.some(o => o.name === t('constructor.page_count'));
+            const requiredPageCount = options.some(o => configuratorOptionKey(o.name) === 'pageCount');
             if (requiredPageCount && !selectedPageCount) return false;
         }
 
@@ -1273,8 +1280,8 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
         if (product?.variants && product.variants.length > 0 && !selectedSize) out.push(t('book_config.size_label'));
         if (product?.options) {
             const options = product.options as ProductOption[];
-            if (options.some(o => o.name === t('constructor.cover_type')) && !selectedCoverType) out.push(t('book_config.cover_type'));
-            if (options.some(o => o.name === t('constructor.page_count')) && !selectedPageCount) out.push(t('book_config.page_count'));
+            if (options.some(o => configuratorOptionKey(o.name) === 'coverType') && !selectedCoverType) out.push(t('book_config.cover_type'));
+            if (options.some(o => configuratorOptionKey(o.name) === 'pageCount') && !selectedPageCount) out.push(t('book_config.page_count'));
         }
         return out;
     };
@@ -1836,21 +1843,22 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                             </label>
                             <select
                                 value={
-                                    option.name === t('constructor.cover_type') ? selectedCoverType :
-                                    option.name === t('constructor.page_count') ? selectedPageCount :
-                                    option.name === t('constructor.copies_count') ? selectedCopies :
-                                    option.name === t('constructor.page_lamination') ? selectedPageLamination :
+                                    configuratorOptionKey(option.name) === 'coverType' ? selectedCoverType :
+                                    configuratorOptionKey(option.name) === 'pageCount' ? selectedPageCount :
+                                    configuratorOptionKey(option.name) === 'copies' ? selectedCopies :
+                                    configuratorOptionKey(option.name) === 'pageLamination' ? selectedPageLamination :
                                     ''
                                 }
                                 onChange={(e) => {
-                                    if (option.name === t('constructor.cover_type')) {
+                                    const key = configuratorOptionKey(option.name);
+                                    if (key === 'coverType') {
                                         setSelectedCoverType(e.target.value);
                                         setSelectedPageCount(''); // reset — different cover types have different min pages
-                                    } else if (option.name === t('constructor.page_count')) {
+                                    } else if (key === 'pageCount') {
                                         setSelectedPageCount(e.target.value);
-                                    } else if (option.name === t('constructor.copies_count')) {
+                                    } else if (key === 'copies') {
                                         setSelectedCopies(e.target.value);
-                                    } else if (option.name === t('constructor.page_lamination')) {
+                                    } else if (key === 'pageLamination') {
                                         setSelectedPageLamination(e.target.value);
                                     }
                                 }}
@@ -1859,7 +1867,17 @@ export default function BookConstructorConfig({ productSlug }: BookConstructorCo
                                 {getOptionValues(option).map((value) => (
                                     <option key={value.name} value={value.name}>
                                         {value.name}
-                                        {option.name !== t('constructor.page_count') && value.priceModifier !== undefined && value.priceModifier !== 0 &&
+                                        {/* The surcharge shown here is a DELTA from the product's
+                                            base price, and every page-count option in the DB stores
+                                            it that way: the magazine's «36 сторінок» carries +950 on
+                                            a 525 ₴ base, which is exactly getMagazinePrice(36)=1475,
+                                            and Travel Book's +900 on 675 is its 1575. So the page
+                                            count is shown with its surcharge like every other option
+                                            — the old exception for it compared against a translated
+                                            name and never matched anyway, so nothing on screen
+                                            changes here. Photobooks never reach this block; their
+                                            page select prints the absolute matrix price instead. */}
+                                        {value.priceModifier !== undefined && value.priceModifier !== 0 &&
                                             ` (+${value.priceModifier} ₴)`
                                         }
                                     </option>

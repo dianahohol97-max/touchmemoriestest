@@ -643,6 +643,49 @@ export function getTravelBookPrice(pages: number): number {
   return lookupPagePrice(TRAVEL_BOOK.prices, pages);
 }
 
+/**
+ * Option names exactly as Supabase stores them in `products.options[].name`.
+ *
+ * They are always Ukrainian, whatever locale the customer browses in, so they
+ * are DATABASE KEYS and not UI labels. A translated label is never one of
+ * these, which is the whole point of the function below.
+ */
+export const CONFIGURATOR_OPTION_NAMES = {
+  coverType: 'Тип обкладинки',
+  pageCount: 'Кількість сторінок',
+  copies: 'Кількість примірників',
+  pageLamination: 'Ламінація сторінок',
+} as const;
+
+export type ConfiguratorOptionKey = keyof typeof CONFIGURATOR_OPTION_NAMES;
+
+/**
+ * Which piece of configurator state an option from the DB drives, or null when
+ * the configurator has no dedicated state for it (e.g. «Верстка тексту» and
+ * «Терміновість», which are chosen on the product card and arrive as URL
+ * params).
+ *
+ * This exists because the constructor used to answer that question with
+ * `option.name === t('constructor.page_count')` — a comparison between a DB
+ * key and a TRANSLATED label. In Ukrainian that translation is «Сторінок», not
+ * «Кількість сторінок», so it was false everywhere: the glossy magazine's page
+ * select got no default, no `value` and an onChange that did nothing, and every
+ * pick snapped back to 8 сторінок while the price sat on the 525 ₴ fallback.
+ * The choice never reached the editor either — the stored config carried an
+ * empty selectedPageCount, which the magazine branch reads as 8 pages. In
+ * en/ro/pl/de the other three names are translated as well, so the whole
+ * non-photobook option block was dead in those locales too.
+ *
+ * Everything that maps a DB option to state must go through here, and the
+ * pinning test asserts that translated labels resolve to null.
+ */
+export function configuratorOptionKey(optionName?: string | null): ConfiguratorOptionKey | null {
+  const name = String(optionName ?? '');
+  const entry = (Object.entries(CONFIGURATOR_OPTION_NAMES) as Array<[ConfiguratorOptionKey, string]>)
+    .find(([, dbName]) => dbName === name);
+  return entry ? entry[0] : null;
+}
+
 /** Is the rush option selected? One reading of the value, used everywhere. */
 export function isUrgentOption(value?: string | null): boolean {
   const v = String(value ?? '').trim().toLowerCase();
