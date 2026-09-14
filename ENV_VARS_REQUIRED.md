@@ -42,6 +42,7 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 | `TELEGRAM_PUBLIC_BOT_TOKEN` | Telegram notifications + the public chatbot (Софія) + Telegram Business monitoring of Diana's client dialogs |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret token passed to Telegram setWebhook; the chatbot webhook refuses unsigned updates in production without it. Re-register via `POST /api/chatbot/telegram/setup` after changing |
 | `TELEGRAM_DESIGNER_CHAT_ID` | Designer chat ID |
+| `VERCEL_API_TOKEN` | Read-only Vercel token for `/api/cron/error-alerts`, which reads the production runtime log every fifteen minutes and posts 5xx responses to the work chat. Without it that cron answers 503 and stays silent — a monitor that quietly does nothing is worse than none. Create it in Vercel account settings → Tokens, scoped to this team. `VERCEL_PROJECT_ID` and `VERCEL_TEAM_ID` are optional; the cron falls back to the ids recorded in CLAUDE.md |
 | `CRON_SECRET` | Secret for cron job auth |
 | `OPS_DIGEST_EMAIL` | Where the twice-daily "що потребує уваги" report is sent. Comma-separated for several recipients; without it the digest job runs but delivers nothing |
 | `KEYCRM_API_TOKEN` | KeyCRM API key. Used by the CRM contact import, the ops digest, and the order sync |
