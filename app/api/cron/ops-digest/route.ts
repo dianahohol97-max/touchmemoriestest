@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { crmStageLabel } from '@/lib/automation/crm-stage';
+import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
@@ -298,9 +299,9 @@ function findCrmMatch(order: OrderRow, crmOrders: KeycrmOrder[]): KeycrmOrder | 
     return null;
 }
 
-// The marker /api/cron/missing-print-files prepends to an order's notes when it
-// finds a printable product with no uploaded files.
-const MISSING_FILES_MARKER = 'файли для друку не завантажились';
+// The marker both flaggers prepend to an order's notes when they find a
+// printable product with no print file — one phrase, lib/print/print-warning.
+const MISSING_FILES_MARKER = PRINT_WARNING_MARKER;
 
 /**
  * Is this website order already in the CRM?

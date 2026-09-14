@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { hasPrintWarning, stripPrintWarning } from '@/lib/print/print-warning';
 import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
@@ -348,13 +349,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // 6. Clear any "missing print files" warning we may have flagged earlier,
   //    since the cover now exists.
   const { data: cur } = await admin.from('orders').select('notes').eq('id', id).maybeSingle();
-  if (cur?.notes && cur.notes.includes('файли для друку не завантажились')) {
-    const cleaned = cur.notes
-      .split('\n')
-      .filter((line: string) => !line.includes('файли для друку не завантажились'))
-      .join('\n')
-      .trim();
-    await admin.from('orders').update({ notes: cleaned || null }).eq('id', id);
+  if (hasPrintWarning(cur?.notes)) {
+    await admin.from('orders').update({ notes: stripPrintWarning(cur?.notes) || null }).eq('id', id);
   }
 
   return NextResponse.json({ ok: true, path, size: jpeg.length, format: specSize });

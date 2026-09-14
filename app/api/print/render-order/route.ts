@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { hasPrintWarning, printWarningLine, stripPrintWarning } from '@/lib/print/print-warning';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
 
@@ -31,8 +32,6 @@ export const maxDuration = 300;
 // save/upload code, so a bug in ANY current or future constructor is caught
 // here as long as its product name matches a class below. Unknown products are
 // not flagged (no false alarms), known ones fail LOUD.
-const MARKER = 'бракує файлів для друку';
-const LEGACY_MARKER = 'дизайн не збережено';
 const RX = {
   // no customer artwork needed at all
   exclude: /сертифікат|certificate|gift.?card/i,
@@ -48,13 +47,16 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
   try {
     const { data: ord } = await admin
       .from('orders')
-      .select('items, notes, customer_id')
+      .select('items, notes, customer_id, with_designer, designer_id')
       .eq('id', orderId)
       .maybeSingle();
     const items = Array.isArray((ord as any)?.items) ? (ord as any).items : [];
     if (!items.length) return;
     const notes: string = (ord as any)?.notes || '';
-    if (notes.includes(MARKER) || notes.includes(LEGACY_MARKER)) return; // already flagged
+    // Раніше тут стояв ранній вихід «уже позначено». Тепер перевірка йде до
+    // кінця навіть для позначеного замовлення: без цього ніхто б не побачив,
+    // що підстав для попередження вже немає, і зняти його було б нікому.
+    const alreadyFlagged = hasPrintWarning(notes);
 
     const [{ data: files }, { count: projCount }] = await Promise.all([
       admin.from('order_files').select('file_type, product_type, file_category').eq('order_id', orderId),
@@ -86,27 +88,76 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
       } catch { /* scan unavailable — stay lenient below */ }
     }
 
-    const missing: string[] = [];
-    for (const it of items) {
-      const label = `${it?.slug || ''} ${it?.name || it?.product_name || ''}`.trim();
-      if (!label || RX.exclude.test(label)) continue;
-      if (RX.book.test(label)) {
-        if (!hasProject && !hasBookExport) missing.push(label);
-      } else if (RX.self.test(label)) {
-        if (!hasOtherExport) missing.push(label);
-      } else if (RX.photoset.test(label)) {
-        if (!hasAnyRow && !hasStorageFiles) missing.push(label);
-      }
-      // unknown product classes: no requirement, no false alarm
-    }
-    if (!missing.length) return;
+    // Замовлення з дизайнером, у якого фото клієнта вже завантажені, а дизайнер
+    // призначений, — це не «немає файлів», а «ще не зверстано». Попередження
+    // писалося саме для протилежного випадку: клієнт збирав макет сам, і макет
+    // дорогою загубився. Без цієї умови аудит позначав двадцять вісім
+    // замовлень посеред нормальної роботи, і червона мітка переставала щось
+    // означати.
+    const designerInFlight = !!(ord as any)?.with_designer && !!(ord as any)?.designer_id && hasAnyRow;
 
-    // Short on purpose: this note is copied into the CRM manager comment and
-    // rendered in a narrow list column (Diana, 2026-08-11: «в CRM прилітають
-    // дуже великі коментарі, супер некомфортно»). The warning must read at a
-    // glance — the instruction «не відправляти в друк» is implied by «нема
-    // файлів» and does not need three clauses to say so.
-    const warn = `⚠️ Нема файлів для друку: ${missing.join(', ')}. Не в друк — звʼяжіться з клієнтом.`;
+    // Товар із полиці макета не потребує й потребувати не може. Фотоальбом на
+    // 500 фото і картридж Instax верстати нічого, але слово «альбом» підпадає
+    // під книжкове правило нижче, і аудит позначав такі замовлення весь час
+    // свого існування: TM-001198, TM-001218, TM-001223, TM-001263. Ознака
+    // береться з картки товару, а не з назви, бо назва тут якраз і обманює.
+    const itemSlugs = items
+      .map((it: any) => String(it?.slug || it?.product_slug || '').trim())
+      .filter(Boolean);
+    const stockSlugs = new Set<string>();
+    if (itemSlugs.length) {
+      const { data: prods } = await admin
+        .from('products')
+        .select('slug, fulfillment_type')
+        .in('slug', itemSlugs);
+      for (const p of (prods || []) as any[]) {
+        if (p?.fulfillment_type === 'in_stock' && p?.slug) stockSlugs.add(String(p.slug));
+      }
+    }
+
+    const missing: string[] = [];
+    // Чи має аудит узагалі думку про це замовлення. Товар невідомого класу він
+    // не позначає — і так само не має права знімати чуже попередження, бо про
+    // потребу в макеті для такого товару нічого не знає.
+    let sawKnownClass = false;
+    if (!designerInFlight) {
+      for (const it of items) {
+        const slug = String(it?.slug || it?.product_slug || '').trim();
+        if (slug && stockSlugs.has(slug)) continue;
+        const label = `${it?.slug || ''} ${it?.name || it?.product_name || ''}`.trim();
+        if (!label || RX.exclude.test(label)) continue;
+        if (RX.book.test(label)) {
+          sawKnownClass = true;
+          if (!hasProject && !hasBookExport) missing.push(label);
+        } else if (RX.self.test(label)) {
+          sawKnownClass = true;
+          if (!hasOtherExport) missing.push(label);
+        } else if (RX.photoset.test(label)) {
+          sawKnownClass = true;
+          if (!hasAnyRow && !hasStorageFiles) missing.push(label);
+        }
+        // unknown product classes: no requirement, no false alarm
+      }
+    }
+
+    if (!missing.length) {
+      // Підстав більше немає — макет з'явився, або замовлення пішло в роботу до
+      // дизайнера. Аудит прибирає СВІЙ рядок сам: доти попередження знімалося
+      // тільки руками, і TM-001255 доїхало до відправки з міткою «нема файлів»
+      // при збереженому проєкті й двадцяти експортах.
+      if (alreadyFlagged && (designerInFlight || sawKnownClass)) {
+        const cleaned = stripPrintWarning(notes);
+        await admin.from('orders').update({ notes: cleaned || null }).eq('id', orderId);
+        console.warn('[render-order] cleared a print warning that no longer holds', { orderId });
+      }
+      return;
+    }
+    if (alreadyFlagged) return; // вже позначено — другого рядка не пишемо
+
+    // Текст будується з тієї самої константи, за якою його потім упізнають —
+    // див. lib/print/print-warning. Власної фрази цей аудит більше не має:
+    // рядок із спільним маркером бачать список замовлень, KeyCRM і зведення.
+    const warn = printWarningLine(missing);
     await admin.from('orders')
       .update({ notes: notes.trim() ? `${warn}\n\n${notes.trim()}` : warn })
       .eq('id', orderId);

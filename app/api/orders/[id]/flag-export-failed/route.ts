@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const runtime = 'nodejs';
@@ -47,13 +48,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const warning =
-    `⚠️ УВАГА: файли для друку не завантажились для ${count} товар(ів) — ` +
+    `⚠️ УВАГА: ${PRINT_WARNING_MARKER} для ${count} товар(ів) — ` +
     `макет з конструктора відсутній. Зв'яжіться з клієнтом і попросіть оформити дизайн ще раз ` +
     `або надіслати фото перед друком.`;
 
   // Don't duplicate the warning if it's somehow flagged twice.
   const existing = (order.notes || '').trim();
-  if (existing.includes('файли для друку не завантажились')) {
+  if (existing.includes(PRINT_WARNING_MARKER)) {
     return NextResponse.json({ ok: true, alreadyFlagged: true });
   }
 
