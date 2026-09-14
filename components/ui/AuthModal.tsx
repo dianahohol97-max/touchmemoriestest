@@ -50,11 +50,28 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
                 // lib/referral/pending-code.ts for why localStorage alone is
                 // not enough (cross-device email confirmation).
                 const pendingReferralCode = readPendingReferralCode();
+                // full_name, а не тільки first_name.
+                //
+                // Картку клієнта створює тригер handle_new_auth_user, і ім'я він
+                // бере лише з двох ключів: COALESCE(name, full_name). Ключа
+                // first_name у тому виразі немає, тож усе, що вводили тут,
+                // мовчки не доходило до бази: станом на 14.09.2026 порожнє ім'я
+                // мали 303 із 352 карток, створених через пошту й пароль, проти
+                // 7 із 927 через Google — той віддає full_name сам.
+                //
+                // Полагоджено тут, а не в тригері, навмисно. Помилка в цьому
+                // рядку зіпсує щонайбільше одне ім'я, а помилка в тригері, який
+                // працює з SECURITY DEFINER на auth.users, зламала б створення
+                // акаунта взагалі. first_name лишається: його читає сторінка
+                // /register і, можливо, ще щось, а прибирати чуже поле заради
+                // охайності — зайвий ризик.
+                const fullName = firstName.trim();
                 const { error } = await supabase.auth.signUp({
                     email, password,
                     options: {
                         data: {
                             first_name: firstName,
+                            ...(fullName ? { full_name: fullName } : {}),
                             ...(pendingReferralCode ? { referral_code: pendingReferralCode } : {})
                         }
                     }

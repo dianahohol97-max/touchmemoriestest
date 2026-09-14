@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { likeEscape } from '@/lib/supabase/like-escape';
-import { linkGuestOrdersForCustomer } from '@/lib/customers/link-guest-orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,28 +169,17 @@ export async function POST(request: Request) {
             }
         }
 
-        // 2c. Гостьові замовлення цієї пошти — до нового акаунта.
+        // Прив'язка гостьових замовлень тут БУЛА і звідси прибрана.
         //
-        // Доти прив'язки заднім числом не існувало ніде: customer_id ставився
-        // лише в /api/orders/submit і лише за наявної сесії. Люди оформлюють
-        // гостем навіть маючи акаунт — станом на 14.09.2026 так накопичилося 64
-        // клієнти з порожньою карткою на 69 510 грн, і 71 із 72 їхніх замовлень
-        // зроблені ПІСЛЯ реєстрації, а не до неї.
+        // Вона не спрацьовувала жодного разу: цей маршрут не викликає ніхто —
+        // обидві форми реєстрації йдуть напряму в supabase.auth.signUp, а
+        // картку клієнта створює тригер handle_new_auth_user. Тепер прив'язка
+        // живе в app/[locale]/auth/callback/route.ts, куди справді доходять усі:
+        // і підтвердження пошти, і Google.
         //
-        // Пошта сама по собі не доказ тотожності, тому рішення ухвалює правило
-        // в lib/customers/name-match.ts: збіглося ім'я — прив'язуємо, ні —
-        // лишаємо менеджерові на перевірку. Помилка тут не має ламати
-        // реєстрацію: акаунт уже створено, і це головне.
-        try {
-            const linkResult = await linkGuestOrdersForCustomer(supabase, {
-                id: userId, email, name, phone: phone || null,
-            });
-            if (linkResult.linked || linkResult.review) {
-                console.log('[register] guest orders', { userId, ...linkResult });
-            }
-        } catch (e) {
-            console.error('Linking guest orders failed (registration still succeeded):', e);
-        }
+        // Двох місць навмисно не лишаю: якщо маршрут колись оживе, прив'язка
+        // виконається двічі, і другий раз мовчки нічого не зробить — а читач
+        // марно шукатиме, який із двох викликів відпрацював.
 
         // 3. Sync birthday to subscribers table if they are already a subscriber
         if (birthday_day && birthday_month) {
