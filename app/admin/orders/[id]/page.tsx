@@ -13,6 +13,7 @@ import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoi
 import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequirement, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
+import { repeatSourceOf } from '@/lib/orders/repeat-order';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
@@ -1616,6 +1617,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     _rawOpts,
                                 );
                                 const _coverColorMissing = !!_coverNeed && !_coverSel.colorName;
+                                // Позиція-повтор не має власних файлів: макет і фото лежать у
+                                // замовленні, з якого її повторили. Кажемо, у якому саме, і
+                                // ведемо туди посиланням — інакше менеджер бачить книгу без
+                                // жодного файлу і не знає, де їх шукати (TM-001314).
+                                const _repeat = repeatSourceOf(item);
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1724,6 +1730,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             .map(o => `${o.label}: ${o.value}`).join(' • ')
                                                     }
                                                 </div>
+                                                {_repeat && (
+                                                    <div style={{ fontSize: 12, marginTop: 4, color: '#0f766e', fontWeight: 700 }}>
+                                                        ↻ Повтор замовлення{' '}
+                                                        {_repeat.id ? (
+                                                            <Link href={`/admin/orders/${_repeat.id}`} style={{ color: '#0f766e', textDecoration: 'underline' }}>
+                                                                {_repeat.orderNumber || 'попереднього'}
+                                                            </Link>
+                                                        ) : (_repeat.orderNumber || 'попереднього')}
+                                                        {' '}— макет і фото беремо звідти.
+                                                        {_repeat.hadBrief && (
+                                                            <div style={{ fontWeight: 400, marginTop: 2 }}>
+                                                                В оригіналі {_repeat.orderNumber || 'того замовлення'} був бриф — він лишився там, бо описує фотографії, яких у цьому замовленні немає.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 {_coverColorMissing && (
                                                     <div style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
                                                         ⚠️ Колір обкладинки ({_coverNeed?.coverType.toLowerCase()}) не вказано — уточніть у клієнта до запуску у виробництво.
