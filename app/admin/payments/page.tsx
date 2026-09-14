@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { formatDateTime, formatDateOnly, formatTimeOnly } from '@/lib/date-utils';
+import { receivedAmount, outstandingAmount } from '@/lib/orders/payment-state';
 import {
     Download,
     DollarSign,
@@ -158,19 +159,33 @@ export default function PaymentsPage() {
 
         ordersData.forEach((order) => {
             const orderDate = new Date(order.created_at);
-            const total = Number(order.total) || 0;
 
-            // Revenue calculations (only for paid orders)
-            if (order.payment_status === 'paid') {
-                if (orderDate >= todayStart) revenueToday += total;
-                if (orderDate >= weekStart) revenueWeek += total;
-                if (orderDate >= monthStart) revenueMonth += total;
+            // Дохід — це отримані гроші, а не сума замовлення.
+            //
+            // Було `if (payment_status === 'paid') revenue += total`, і воно
+            // помилялося двічі. Дзеркалені з KeyCRM замовлення платяться
+            // частинами і чесно стоять у 'pending', тож сотні тисяч уже
+            // отриманих гривень сюди не потрапляли зовсім. А там, де гейт
+            // пропускав, рахувалася сума ЗАМОВЛЕННЯ — недоплачене зараховувалося
+            // повністю. Статус більше не питаємо: правило одне, у
+            // receivedAmount().
+            const received = receivedAmount(order);
+            if (received > 0) {
+                if (orderDate >= todayStart) revenueToday += received;
+                if (orderDate >= weekStart) revenueWeek += received;
+                if (orderDate >= monthStart) revenueMonth += received;
             }
 
-            // Pending payments
-            if (order.payment_status === 'pending') {
+            // Очікувані гроші — це ЗАЛИШОК, а не повна сума замовлення.
+            //
+            // На частково оплаченому замовленні половина вже надійшла, і
+            // показувати її як очікувану означає рахувати ті самі гроші двічі:
+            // один раз у доході, другий тут. Лічильник теж рахує замовлення з
+            // непогашеним залишком, а не з певним статусом.
+            const outstanding = outstandingAmount(order);
+            if (outstanding > 0) {
                 pendingCount++;
-                pendingSum += total;
+                pendingSum += outstanding;
             }
 
             // COD to collect. There is no `payment_method` column — that field

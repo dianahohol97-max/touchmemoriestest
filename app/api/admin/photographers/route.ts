@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { receivedAmount } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,13 +40,19 @@ export async function GET() {
    * фотограф замовляє на сайті зі свого звичайного акаунта, окремого звʼязку
    * «замовлення → фотограф» у базі немає. Рахуються лише оплачені.
    */
-  const fetchPaidOrders = async () => {
-    const rows: { customer_id: string | null; customer_email: string | null; total: number }[] = [];
+  // Береться сума ОТРИМАНИХ грошей, а не сума замовлення, і без гейта на
+  // payment_status: фотограф із дзеркаленого KeyCRM-замовлення платить
+  // частинами, статус лишається 'pending', і всі його гроші рахувалися як
+  // нуль. Гейт прибрано, тож сюди тепер їдуть усі замовлення, а не лише
+  // оплачені — посторінковий обхід це вже вміє. Замовлення без жодної
+  // копійки відсіюються одразу, щоб не тягти їх у зіставлення.
+  const fetchOrdersWithMoney = async () => {
+    const rows: { customer_id: string | null; customer_email: string | null; paid_amount: number }[] = [];
     for (let from = 0; ; from += 1000) {
       const { data: page } = await admin
         .from('orders')
-        .select('customer_id, customer_email, total')
-        .eq('payment_status', 'paid')
+        .select('customer_id, customer_email, total, paid_amount, payment_status, order_status')
+        .gt('paid_amount', 0)
         .range(from, from + 999);
       (page || []).forEach((r: any) => rows.push(r));
       if (!page || page.length < 1000) break;
@@ -56,13 +63,13 @@ export async function GET() {
   // Пʼять незалежних вибірок ідуть паралельно: послідовно ця сторінка
   // відкривалася ~4 секунди (найповільніший маршрут у Speed Insights), і весь
   // час ішов на чекання одного запиту за іншим, а не на самі запити.
-  const [photographersRes, galleryOwnersRes, photoRows, paidOrders, subsRes] = await Promise.all([
+  const [photographersRes, galleryOwnersRes, photoRows, ordersWithMoney, subsRes] = await Promise.all([
     admin.from('photographers')
       .select('*, photographer_galleries(count)')
       .order('created_at', { ascending: false }),
     admin.from('photographer_galleries').select('id, photographer_id'),
     fetchGalleryPhotos(),
-    fetchPaidOrders(),
+    fetchOrdersWithMoney(),
     admin.from('photographer_subscriptions')
       .select('photographer_id, amount_uah, status')
       .eq('status', 'paid'),
@@ -92,7 +99,7 @@ export async function GET() {
   return NextResponse.json({
     photographers: (data || []).map((p: any) => {
       const email = String(p.email || '').toLowerCase();
-      const own = paidOrders.filter(o =>
+      const own = ordersWithMoney.filter(o =>
         (p.customer_id && o.customer_id === p.customer_id) ||
         (email && String(o.customer_email || '').toLowerCase() === email));
       const subsInfo = subsByPhotographer[p.id] || { count: 0, sum: 0 };
@@ -101,7 +108,7 @@ export async function GET() {
         gallery_count: p.photographer_galleries?.[0]?.count || 0,
         storage_bytes: bytesByPhotographer[p.id] || 0,
         orders_count: own.length,
-        orders_total: Math.round(own.reduce((s, o) => s + Number(o.total || 0), 0)),
+        orders_total: Math.round(own.reduce((s, o) => s + receivedAmount(o), 0)),
         paid_subs_count: subsInfo.count,
         paid_subs_total: subsInfo.sum,
         photographer_galleries: undefined,
