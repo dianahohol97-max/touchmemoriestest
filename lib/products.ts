@@ -649,12 +649,34 @@ export function getTravelBookPrice(pages: number): number {
  * They are always Ukrainian, whatever locale the customer browses in, so they
  * are DATABASE KEYS and not UI labels. A translated label is never one of
  * these, which is the whole point of the function below.
+ *
+ * The print constructors got bitten by the same thing and worse: they looked
+ * the size option up as t('constructor.size'), whose Ukrainian value is
+ * «Розмір книги», while every print product stores «Розмір». That one missed
+ * nowhere even in Ukrainian — the canvas constructor resolved no sizes at all,
+ * and photo prints, magnets and posters rendered no size picker and priced
+ * everything at the bare product.price. Only polaroid survived, by accident:
+ * it stores «Формат» and the lookup had a fallback to that name.
  */
-export const CONFIGURATOR_OPTION_NAMES = {
+export const PRODUCT_OPTION_NAMES = {
+  // Book / journal configurator
   coverType: 'Тип обкладинки',
   pageCount: 'Кількість сторінок',
   copies: 'Кількість примірників',
   pageLamination: 'Ламінація сторінок',
+  // Print constructors (photo prints, magnets, canvas, polaroid)
+  size: 'Розмір',
+  format: 'Формат',
+  coating: 'Покриття',
+  whiteBorder: 'Біла рамочка 3мм',
+} as const;
+
+/** The subset the book configurator keeps dedicated state for. */
+export const CONFIGURATOR_OPTION_NAMES = {
+  coverType: PRODUCT_OPTION_NAMES.coverType,
+  pageCount: PRODUCT_OPTION_NAMES.pageCount,
+  copies: PRODUCT_OPTION_NAMES.copies,
+  pageLamination: PRODUCT_OPTION_NAMES.pageLamination,
 } as const;
 
 export type ConfiguratorOptionKey = keyof typeof CONFIGURATOR_OPTION_NAMES;

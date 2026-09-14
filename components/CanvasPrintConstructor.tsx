@@ -9,6 +9,7 @@ import { Upload, ShoppingCart, X, ChevronLeft } from 'lucide-react';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT, useTranslation } from '@/lib/i18n/context';
 import { localePath } from '@/lib/i18n/path';
+import { PRODUCT_OPTION_NAMES } from '@/lib/products';
 
 interface SizeOption {
     label: string;
@@ -56,7 +57,11 @@ export default function CanvasPrintConstructor() {
             if (data) {
                 setProduct(data);
                 const opts = (data.options || []);
-                const sizeOpt = opts.find((o: any) => o.name === t('constructor.size'));
+                // «Розмір» is the DB key, not a UI label: looking it up as
+                // t('constructor.size') resolved «Розмір книги», which
+                // druk-na-polotni does not have, so sizeOptions stayed empty
+                // and the canvas constructor offered no size to pick.
+                const sizeOpt = opts.find((o: any) => o.name === PRODUCT_OPTION_NAMES.size);
                 if (sizeOpt?.options) {
                     setSizeOptions(sizeOpt.options.map((o: any) => ({
                         label: o.label,

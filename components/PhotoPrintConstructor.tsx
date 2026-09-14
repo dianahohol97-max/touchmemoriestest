@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
+import { PRODUCT_OPTION_NAMES } from '@/lib/products';
 import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useEffect, useRef } from 'react';
 import { Upload, ShoppingCart } from 'lucide-react';
@@ -576,7 +577,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
       if (data) {
         setProduct(data);
         const opts = (data.options as ProductOption[]) || [];
-        const sizeOpt = opts.find(o => o.name === t('constructor.size')) || opts.find(o => o.name === t('constructor.format'));
+        const sizeOpt = opts.find(o => o.name === PRODUCT_OPTION_NAMES.size) || opts.find(o => o.name === PRODUCT_OPTION_NAMES.format);
         const allSizes = sizeOpt?.values || sizeOpt?.options?.map(o=>({name:o.label})) || [];
         const filteredSizes = isNonstandard ? allSizes.filter(s => !!getNonstandardConfig(s.name)) : allSizes;
         if (filteredSizes.length > 0) {
@@ -590,7 +591,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
             : null;
           setSelectedSize((matched || filteredSizes[0]).name || '');
         }
-        const fOpt = opts.find(o => o.name === t('constructor.coating'));
+        const fOpt = opts.find(o => o.name === PRODUCT_OPTION_NAMES.coating);
         const finishes = fOpt?.values || fOpt?.options?.map(o=>({name:o.label})) || [];
         if (finishes.length > 0) setSelectedFinish(finishes[0].name || '');
       }
@@ -751,10 +752,16 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const getSizeOptions = () => {
     if (!product) return [];
     const opts = (product.options as ProductOption[])||[];
-    // Polaroid stores its size option under t('constructor.format') in the DB; standard /
-    // nonstandard use t('constructor.size'). Without checking t('constructor.format') the polaroid size
-    // boxes were greyed-out and unclickable (no options resolved).
-    const sizeOpt = opts.find(o=>o.name===t('constructor.size')) || opts.find(o=>o.name===t('constructor.format'));
+    // Polaroid stores its size option as «Формат» in the DB; standard,
+    // nonstandard, magnets and posters store «Розмір». Both names are read.
+    //
+    // These are DB keys, so they come from PRODUCT_OPTION_NAMES and never from
+    // t(). Looking «Розмір» up as t('constructor.size') resolved «Розмір книги»
+    // and matched no print product at all: the size picker is gated on
+    // sizeOptions.length, so it simply did not render, and every print was
+    // priced at the bare product.price. Polaroid alone worked, purely because
+    // the «Формат» fallback happened to be spelled the same in both places.
+    const sizeOpt = opts.find(o=>o.name===PRODUCT_OPTION_NAMES.size) || opts.find(o=>o.name===PRODUCT_OPTION_NAMES.format);
     const all = sizeOpt?.values||sizeOpt?.options?.map(o=>({name:o.label,price:o.price}))||[];
     if (isNonstandard) return all.filter(o=>!!getNonstandardConfig(o.name));
     return all;
@@ -763,7 +770,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const getFinishOptions = () => {
     if (!product) return [];
     const opts = (product.options as ProductOption[])||[];
-    const fOpt = opts.find(o=>o.name===t('constructor.coating'));
+    const fOpt = opts.find(o=>o.name===PRODUCT_OPTION_NAMES.coating);
     return fOpt?.values||fOpt?.options?.map(o=>({name:o.label}))||[];
   };
 
@@ -1373,7 +1380,7 @@ export default function PhotoPrintConstructor({ productSlug, initialSize, initia
   const finishOptions = getFinishOptions();
   const sizeKey       = getSizeKey(selectedSize);
   const showBorder    = isNonstandard || (!isPolaroid && selectedBorder === 'with');
-  const hasBorderOpt  = !isNonstandard && !isPolaroid && (product.options as ProductOption[])?.some(o=>o.name===t('constructor.white_border_3mm'));
+  const hasBorderOpt  = !isNonstandard && !isPolaroid && (product.options as ProductOption[])?.some(o=>o.name===PRODUCT_OPTION_NAMES.whiteBorder);
   const captionPhotos = photos.filter(p=>p.showCaption&&p.polaroidText?.trim());
 
   const BTN = (active: boolean) => ({

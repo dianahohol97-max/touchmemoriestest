@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONFIGURATOR_OPTION_NAMES, configuratorOptionKey, getMagazinePrice } from '@/lib/products';
+import { CONFIGURATOR_OPTION_NAMES, PRODUCT_OPTION_NAMES, configuratorOptionKey, getMagazinePrice } from '@/lib/products';
 import uk from '@/locales/uk.json';
 import en from '@/locales/en.json';
 import pl from '@/locales/pl.json';
@@ -62,6 +62,20 @@ describe('configuratorOptionKey', () => {
             expect(c.page_count).not.toBe(CONFIGURATOR_OPTION_NAMES.pageCount);
             expect(configuratorOptionKey(c.page_count)).toBeNull();
         }
+    });
+
+    it('конструктори друку шукають опції під тими назвами, що лежать у базі', () => {
+        // Реальні назви з products.options для photoprint-standard,
+        // photoprint-nonstandard, photomagnets, poster, poster-star-map і
+        // druk-na-polotni — «Розмір», а в polaroid-print — «Формат».
+        expect(PRODUCT_OPTION_NAMES.size).toBe('Розмір');
+        expect(PRODUCT_OPTION_NAMES.format).toBe('Формат');
+        expect(PRODUCT_OPTION_NAMES.coating).toBe('Покриття');
+        expect(PRODUCT_OPTION_NAMES.whiteBorder).toBe('Біла рамочка 3мм');
+
+        // Саме тут ховалася друга половина тієї ж помилки: переклад
+        // constructor.size — «Розмір книги», і жоден товар так не називає опцію.
+        expect((uk as any).constructor.size).not.toBe(PRODUCT_OPTION_NAMES.size);
     });
 
     it('надбавка з картки товару збігається зі шкалою журналу', () => {
