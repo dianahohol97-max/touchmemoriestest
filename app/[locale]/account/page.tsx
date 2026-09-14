@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { buildRepeatCartItem } from '@/lib/orders/repeat-order';
+import { buildRepeatCartItem, unpaidRepeatWarning } from '@/lib/orders/repeat-order';
 import { createClient } from '@/lib/supabase/client';
 import { designThumbPath } from '@/lib/editor/design-thumb';
 import { Navigation } from '@/components/ui/Navigation';
@@ -586,6 +586,16 @@ export default function AccountPage() {
 
     const repeatOrder = async (order: Order) => {
         if (!order.items?.length) { toast.error('Немає товарів для повторення'); return; }
+        // Неоплачене замовлення повторювати майже ніколи не треба: фотографії
+        // лежать у ньому, а повтор створить окреме замовлення без них і з
+        // другим рахунком. Питаємо прямо, бо саме так виникло TM-001314.
+        const warning = unpaidRepeatWarning({
+            id: order.id,
+            order_number: order.order_number,
+            payment_status: order.payment_status,
+            order_status: order.order_status,
+        });
+        if (warning && !window.confirm(warning)) return;
         setRepeatingId(order.id);
         // Повтор копіює позицію, але не може скопіювати ні макет, ні фото —
         // вони живуть поруч із замовленням, а не в позиції. Тому позиція

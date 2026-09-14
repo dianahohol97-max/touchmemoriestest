@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRepeatCartItem, repeatSourceNumbers, repeatSourceOf } from '@/lib/orders/repeat-order';
+import { buildRepeatCartItem, repeatSourceNumbers, repeatSourceOf, unpaidRepeatWarning } from '@/lib/orders/repeat-order';
 
 /**
  * TM-001314. Клієнтка за день зробила п'ять замовлень Travel Book із
@@ -86,5 +86,24 @@ describe('repeatSourceOf', () => {
         const b = buildRepeatCartItem(DESIGNER_ITEM, DESIGNER_ORDER, 'c2');
         const c = buildRepeatCartItem(DESIGNER_ITEM, { id: 'y', order_number: 'TM-001307', with_designer: true }, 'c3');
         expect(repeatSourceNumbers([a, b, c, DESIGNER_ITEM])).toEqual(['TM-001305', 'TM-001307']);
+    });
+});
+
+describe('unpaidRepeatWarning', () => {
+    it('оплачене замовлення повторюється без питань', () => {
+        expect(unpaidRepeatWarning({ id: 'a', order_number: 'TM-001200', payment_status: 'paid' })).toBe('');
+    });
+
+    it('скасоване теж не питає', () => {
+        expect(unpaidRepeatWarning({ id: 'a', order_number: 'TM-001200', payment_status: 'pending', order_status: 'cancelled' })).toBe('');
+    });
+
+    it('неоплачене попереджає і називає номер', () => {
+        // TM-001304 … TM-001313 висіли неоплаченими з усіма фотографіями, і
+        // повтор трьох із них створив окреме замовлення на 1953 ₴ без жодного фото.
+        const warn = unpaidRepeatWarning({ id: 'a', order_number: 'TM-001304', payment_status: 'pending', order_status: 'new' });
+        expect(warn).toContain('TM-001304');
+        expect(warn).toContain('не оплачене');
+        expect(warn).toContain('Оплатити');
     });
 });

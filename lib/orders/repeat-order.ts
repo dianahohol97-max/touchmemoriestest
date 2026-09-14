@@ -31,7 +31,30 @@ export interface RepeatSourceOrder {
     id: string;
     order_number?: string | null;
     with_designer?: boolean | null;
+    payment_status?: string | null;
+    order_status?: string | null;
     items?: any[] | null;
+}
+
+/**
+ * Попередження перед повтором НЕОПЛАЧЕНОГО замовлення.
+ *
+ * Саме тут клієнтка і спіткнулась. У кабінеті висіли чотири неоплачені
+ * замовлення з її фотографіями, вона хотіла заплатити за три книги одним
+ * платежем — і натиснула «Замовити знову», бо оплатити все разом кабінет не
+ * вміє. Сайт мовчки створив паралельне замовлення на 1953 ₴ без жодного фото,
+ * а чотири з фотографіями лишились неоплаченими (TM-001314).
+ *
+ * Повернути порожній рядок означає «питати нічого, це звичайний повтор».
+ */
+export function unpaidRepeatWarning(source: RepeatSourceOrder): string {
+    const paid = String(source.payment_status || '').toLowerCase() === 'paid';
+    const cancelled = String(source.order_status || '').toLowerCase() === 'cancelled';
+    if (paid || cancelled) return '';
+    const num = String(source.order_number || '').trim();
+    return `Замовлення ${num || 'ще'} не оплачене, і ваші фотографії зберігаються саме в ньому. `
+        + 'Кнопка створить ОКРЕМЕ нове замовлення без цих фотографій, тобто заплатити доведеться двічі. '
+        + 'Щоб оплатити саме це замовлення, натисніть «Оплатити» на цій же картці. Усе одно створити нове?';
 }
 
 /** Підпис повтору для менеджера, дизайнера і майстерні. */
