@@ -26,6 +26,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import * as XLSX from 'xlsx';
 import { startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
+import { fetchRevenueForPeriod, REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
 
 interface Expense {
     id: string;
@@ -167,19 +168,18 @@ export default function ExpensesPage() {
             // виходили заниженими. Сума замовлення тут теж не годиться:
             // недоплачене зараховувалося б повністю.
             //
-            // Без .range(), і поки що це безпечно: вибірку обмежує календарний
-            // місяць, а замовлень за поточний місяць 264 при межі PostgREST у
-            // 1000 (заміряно 14.09.2026). За останні 30 днів їх 619, тобто
-            // запас тане швидко; щойно місячний потік перевалить за тисячу,
-            // дохід у P&L почне мовчки недоливати. Тоді потрібен цикл із
-            // .range(), як у /api/admin/clients.
-            const { data: orders } = await supabase
-                .from('orders')
-                .select('total, paid_amount, payment_status, order_status')
-                .gte('created_at', monthStart)
-                .lte('created_at', monthEnd);
-
-            const revenue = orders?.reduce((sum, o) => sum + receivedAmount(o), 0) || 0;
+            // Дохід — спільним правилом, lib/orders/revenue-period.ts, тим
+            // самим, яким рахує звіт P&L. Доти ця сторінка і звіт рахували
+            // по-різному: тут від дати замовлення й отриманих грошей, там від
+            // `paid_at` і суми рахунку. Два джерела давали два різні числа, і
+            // звірити їх не міг ніхто.
+            //
+            // Сторінками: місяць сьогодні 280 замовлень при межі PostgREST у
+            // 1000, найбільший досі 703 (заміряно 14.09.2026).
+            const { revenue } = await fetchRevenueForPeriod(supabase, monthStart, monthEnd, {
+                select: 'total, paid_amount, payment_status, order_status, created_at',
+                label: 'дохід місяця',
+            });
 
             // Expenses this month
             const { data: expensesData } = await supabase
@@ -350,6 +350,12 @@ export default function ExpensesPage() {
                         <div style={plLabel}>Виручка</div>
                         <div style={{ ...plValue, color: '#6366f1' }}>
                             {plSummary.revenue.toLocaleString()} ₴
+                        </div>
+                        {/* Підпис обовʼязковий: гроші зараховуються в місяць
+                            замовлення, а не платежу, тож із випискою банку по
+                            днях це число не збігатиметься. */}
+                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }} title={REVENUE_BASIS_HINT}>
+                            {REVENUE_BASIS_LABEL}
                         </div>
                     </div>
                     <div>

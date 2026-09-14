@@ -15,6 +15,7 @@ import {
 import { Download, TrendingUp, TrendingDown } from 'lucide-react';
 import type { PLReportData } from '@/lib/types/expenses';
 import { RevenueExpenseChart } from '@/components/admin/finances/RevenueExpenseChart';
+import { REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
 
 export default function PLReportPage() {
   const [report, setReport] = useState<PLReportData | null>(null);
@@ -187,6 +188,12 @@ export default function PLReportPage() {
                 <div className="text-2xl font-bold text-green-600">
                   {formatCurrency(report.revenue.total)}
                 </div>
+                {/* Підпис обовʼязковий: гроші зараховуються в місяць замовлення,
+                    а не платежу, тож із банківською випискою по днях це число
+                    не збігатиметься — і питати про це будуть саме тут. */}
+                <div className="text-xs text-muted-foreground mt-1" title={REVENUE_BASIS_HINT}>
+                  {REVENUE_BASIS_LABEL}
+                </div>
               </CardContent>
             </Card>
 
@@ -343,6 +350,9 @@ export default function PLReportPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Виручка vs Витрати (останні 12 місяців)</CardTitle>
+                <div className="text-xs text-muted-foreground" title={REVENUE_BASIS_HINT}>
+                  {REVENUE_BASIS_LABEL}
+                </div>
               </CardHeader>
               <CardContent>
                 <RevenueExpenseChart data={report.monthlyTrend} />

@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchRevenueForPeriod } from '@/lib/orders/revenue-period';
 import type {
   ExpenseCategory,
   Expense,
@@ -307,17 +308,18 @@ export async function getExpenseMetrics(): Promise<ExpenseMetrics> {
 export async function getPLReport(startDate: string, endDate: string): Promise<PLReportData> {
   const supabase = getAdminClient();
 
-  // Get revenue from orders.
-  // Order line items live in `orders.items` JSONB (no separate order_items table).
-  // We fetch orders once and pull category/cost data by joining product_name → products.title.
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('total, items')
-    .gte('paid_at', startDate)
-    .lte('paid_at', endDate)
-    .not('paid_at', 'is', null);
-
-  const revenue = orders?.reduce((sum, order: any) => sum + Number(order.total || 0), 0) || 0;
+  // Дохід за період — спільним правилом, lib/orders/revenue-period.ts.
+  //
+  // Тут стояв фільтр `paid_at is not null` і сума `total`. Обидва були хибні.
+  // Через перший звіт бачив 188 629 ₴ із 1 434 868 ₴ отриманих: у дзеркалених
+  // із KeyCRM замовлень `paid_at` порожній завжди, а їх 893 із 1 123. Через
+  // другий у дохід зараховувалася сума рахунку, а не гроші, що надійшли.
+  //
+  // Позиції замовлень так само беруться звідси: запит один, і другий похід у
+  // базу за тими самими рядками не потрібен.
+  const { revenue, orders } = await fetchRevenueForPeriod(supabase, startDate, endDate, {
+    label: 'звіт P&L',
+  });
 
   // Build a lookup of product_name → { category, cost_price } by fetching products
   // we'll need for category breakdown and COGS.
@@ -431,15 +433,11 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
     const monthStartStr = monthStart.toISOString().split('T')[0];
     const monthEndStr = monthEnd.toISOString().split('T')[0];
 
-    // Month revenue
-    const { data: monthOrders } = await supabase
-      .from('orders')
-      .select('total')
-      .gte('paid_at', monthStartStr)
-      .lte('paid_at', monthEndStr)
-      .not('paid_at', 'is', null);
-
-    const monthRevenue = monthOrders?.reduce((sum, order: any) => sum + Number(order.total || 0), 0) || 0;
+    // Дохід місяця — тим самим правилом, що й період вище.
+    const { revenue: monthRevenue } = await fetchRevenueForPeriod(
+      supabase, monthStartStr, monthEndStr,
+      { select: 'total, paid_amount, payment_status, order_status, created_at', label: `місяць ${monthStartStr}` },
+    );
 
     // Month expenses (including salaries)
     const { data: monthExpenses } = await supabase
