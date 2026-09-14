@@ -1003,6 +1003,30 @@ export default function BookLayoutEditor() {
     });
   }, []);
 
+  /**
+   * Вільний напис на обкладинці — та сама заборона на емодзі, що й у полі
+   * оздоблення.
+   *
+   * Цей напис лягає прямо на велюр, шкірзамінник чи тканину, коштує окремі
+   * 180 ₴ і ріжеться лазером так само, як вставка. Фільтр стояв лише на
+   * decoText, тож сердечко, введене тут, доходило до верстата (TM-001094 —
+   * «The Wedding Day / Олександр & Наталія», спосіб напису «гравірування»).
+   */
+  const setExtraText = useCallback((id: string, raw: string) => {
+    setCoverState(prev => {
+      // Спосіб напису обирає сам клієнт («гравіювання» чи «друк кольором»), і
+      // обидва ріже лазер. Коли напис доданий із бічної панелі оздоблення, він
+      // І Є оздобленням, тож спосіб там не ставиться — тоді вирішує тип
+      // декорації. На друкованій обкладинці не буде ні того, ні того.
+      const engraved = isEngravedDeco(prev.inscriptionMethod) || isEngravedDeco(prev.decoType);
+      const { text, dropped } = engraved ? stripEmoji(raw) : { text: raw, dropped: [] as string[] };
+      if (dropped.length > 0) {
+        toast.error('Емодзі не гравіюються, тому в напис вони не потрапляють. Літери, цифри й розділові знаки працюють як завжди.', { id: 'deco-emoji' });
+      }
+      return { ...prev, extraTexts: (prev.extraTexts || []).map(t2 => t2.id === id ? { ...t2, text } : t2) };
+    });
+  }, []);
+
   const [freeSlots, setFreeSlots] = useState<Record<number, FreeSlot[]>>({});
   const [selectedFreeSlotId, setSelectedFreeSlotId] = useState<string | null>(null);
   const [pageBgs, setPageBgs] = useState<Record<number, PageBackground>>({});
@@ -5781,7 +5805,9 @@ export default function BookLayoutEditor() {
         {texts.map(et => (
           <div key={et.id} style={{ marginTop:6, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', display:'flex', flexDirection:'column', gap:4 }}>
             <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-              <input value={et.text} onChange={e=>editEt(et.id,{ text:e.target.value })}
+              {/* Той самий напис, той самий фільтр емодзі — редактор написів
+                  викликається з двох панелей, тож правило мусить бути одне. */}
+              <input value={et.text} onChange={e=>setExtraText(et.id, e.target.value)}
                 style={{ flex:1, minWidth:0, padding:'3px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:11 }}/>
               <button onClick={()=>setCoverState(p=>{ const updated=(p.extraTexts||[]).filter(t2=>t2.id!==et.id); return { ...p, extraTexts: updated, ...(updated.length===0?{ inscriptionMethod:null }:{}) }; })}
                 style={{ width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>×</button>
@@ -6852,7 +6878,7 @@ export default function BookLayoutEditor() {
                   {(coverState.extraTexts||[]).map(et => (
                     <div key={et.id} style={{ padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, background:'#f8fafc', marginBottom:4 }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <input value={et.text} onChange={e=>setCoverState(prev=>({...prev,extraTexts:(prev.extraTexts||[]).map(t2=>t2.id===et.id?{...t2,text:e.target.value}:t2)}))} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
+                        <input value={et.text} onChange={e=>setExtraText(et.id, e.target.value)} placeholder="Текст напису" style={{ flex:1, minWidth:0, fontSize:11, color:'#374151', padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, outline:'none' }}/>
                         {/* Гравіювання фізично ОДНОГО кольору — додаткові написи
                             успадковують колір основного, без вибору (Diana,
                             2026-08-10). Друк кольором (flex) буває рівно в

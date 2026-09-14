@@ -25,6 +25,8 @@
  * прапори й основа клавішного емодзі.
  */
 
+import { detectDecoType } from '@/lib/editor/utils';
+
 /** Типи оздоблення, які фізично гравіюються лазером. */
 export const ENGRAVED_DECO_TYPES = ['metal', 'graviruvannya', 'flex'] as const;
 
@@ -99,4 +101,78 @@ export function stripEmoji(text: string | null | undefined): EngravableText {
 /** Чи є в написі те, що ми не гравіюємо. */
 export function hasEmoji(text: string | null | undefined): boolean {
     return stripEmoji(text).dropped.length > 0;
+}
+
+/**
+ * Написи позиції, які фізично підуть під лазер, і що в них не гравіюється.
+ *
+ * ЧОМУ ЦЕ ЧИТАЄ ЗАМОВЛЕННЯ, А НЕ ПОЛЕ ВВОДУ. Фільтр у полі прибирає емодзі
+ * там, де він стоїть, — а стоїть він не всюди. Напис потрапляє в замовлення
+ * шістьма різними шляхами: оздоблення в конструкторі, вільний напис на
+ * обкладинці, персоналізований напис у картці товару, поле напису для
+ * фотодруку, конфігуратор книги побажань і бриф дизайнерського сервісу. Чотири
+ * замовлення з емодзі (TM-001165, TM-001203, TM-001204, TM-001209) прийшли
+ * саме тими шляхами, де фільтра немає, і ніхто цього не побачив до друку.
+ *
+ * Тому правило дивиться на ГОТОВУ позицію: які б ключі не використав той чи
+ * інший потік, тут вони в одному місці. Функція нічого не змінює — вона лише
+ * називає проблему, щоб менеджер побачив її до запуску у виробництво.
+ *
+ * ЩО ВВАЖАЄМО ГРАВІЮВАННЯМ. Напис на самій обкладинці з м'якого матеріалу —
+ * це завжди лазер або флекс: на велюр, шкірзамінник і тканину не друкують.
+ * Друкована обкладинка кольорова, там емодзі проходить, тож її пропускаємо.
+ * Напис на ВСТАВЦІ слухається типу вставки: акрил і фотовставка друковані,
+ * метал гравіюється.
+ */
+export interface EngravedInscription {
+    /** Ключ опції, під яким напис лежить у позиції. */
+    key: string;
+    /** Текст, як його ввів клієнт. */
+    text: string;
+    /** Символи, які на виріб не потраплять. */
+    dropped: string[];
+}
+
+const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
+
+/** Напис на вставці — його доля залежить від того, яка це вставка. */
+const PLATE_INSCRIPTION_RE = /^напис\s*на\s*декорації$/i;
+/** Написи на самій обкладинці, якими б словами їх не назвав той чи інший потік. */
+const COVER_INSCRIPTION_RE = /^(текст\s*напису|напис\s*на\s*обкладин(ці|ку)|текст\s*на\s*обкладинці)$/i;
+
+const MATERIAL_RE = /^(матеріал\s*обкладинки|обкладинка)$/i;
+const DECO_RE = /^(декорація\s*обкладинки|оздоблення|тип\s*оздоблення)$/i;
+
+export function engravedInscriptions(options: Record<string, any> | null | undefined): EngravedInscription[] {
+    if (!options || typeof options !== 'object') return [];
+
+    const valueOf = (re: RegExp): string => {
+        for (const [k, v] of Object.entries(options)) {
+            if (re.test(String(k).trim())) {
+                const val = String(v ?? '').trim();
+                if (val) return val;
+            }
+        }
+        return '';
+    };
+
+    // Друкована обкладинка кольорова — на ній емодзі друкується як є.
+    const printedCover = /друков|printed/.test(norm(valueOf(MATERIAL_RE)));
+    const plateDeco = detectDecoType(valueOf(DECO_RE));
+
+    const out: EngravedInscription[] = [];
+    for (const [key, raw] of Object.entries(options)) {
+        const text = String(raw ?? '').trim();
+        if (!text) continue;
+        const k = String(key).trim();
+
+        const engraved = PLATE_INSCRIPTION_RE.test(k)
+            ? isEngravedDeco(plateDeco)
+            : COVER_INSCRIPTION_RE.test(k) && !printedCover;
+        if (!engraved) continue;
+
+        const { dropped } = stripEmoji(text);
+        if (dropped.length > 0) out.push({ key: k, text, dropped });
+    }
+    return out;
 }

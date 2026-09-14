@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasEmoji, isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
+import { engravedInscriptions, hasEmoji, isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
 
 /**
  * Правило: емодзі на гравіювання не йдуть (Діана, 2026-09-07).
@@ -84,5 +84,71 @@ describe('isEngravedDeco', () => {
         expect(isEngravedDeco('photovstavka')).toBe(false);
         expect(isEngravedDeco('none')).toBe(false);
         expect(isEngravedDeco(null)).toBe(false);
+    });
+});
+
+/**
+ * Сигнал для менеджера: емодзі в написі, який поїде під лазер.
+ *
+ * Фільтр у полі вводу стоїть не на всіх шляхах — TM-001165, TM-001203,
+ * TM-001204 і TM-001209 прийшли саме там, де його немає, і ніхто цього не
+ * побачив до друку. Тому правило читає ГОТОВУ позицію, де всі ключі лежать
+ * поруч, і називає проблему замість того, щоб мовчки її виправити.
+ */
+describe('engravedInscriptions', () => {
+    it('персоналізований напис на альбомі — випадок TM-001209', () => {
+        const found = engravedInscriptions({
+            'Колір напису': 'Білий',
+            'Текст напису': 'FAMILY🤍 Л+И',
+            'Шрифт напису': 'Philosopher',
+            'Розмір напису': 'Великий',
+        });
+        expect(found).toEqual([{ key: 'Текст напису', text: 'FAMILY🤍 Л+И', dropped: ['🤍'] }]);
+    });
+
+    it('вільний напис на велюрі — той самий лазер, хоч вставка й акрилова', () => {
+        const found = engravedInscriptions({
+            'Обкладинка': 'Велюр',
+            'Текст на обкладинці': 'Олександр & Наталія 🤍',
+            'Декорація обкладинки': 'Акрилова вставка',
+            'Спосіб напису на обкладинці': 'гравірування',
+        });
+        expect(found.map(f => f.key)).toEqual(['Текст на обкладинці']);
+    });
+
+    it('друкована обкладинка кольорова — емодзі на ній проходить', () => {
+        expect(engravedInscriptions({
+            'Матеріал обкладинки': 'Друкована',
+            'Напис на обкладинку': 'Kyrylo & Sasha 🤍 15.08.26',
+        })).toEqual([]);
+    });
+
+    it('напис на акриловій вставці друкується, а на металевій гравіюється', () => {
+        expect(engravedInscriptions({
+            'Декорація обкладинки': 'Акрилова вставка',
+            'Напис на декорації': 'Весілля 🤍',
+        })).toEqual([]);
+        expect(engravedInscriptions({
+            'Декорація обкладинки': 'Металева вставка',
+            'Напис на декорації': 'Весілля 🤍',
+        }).map(f => f.key)).toEqual(['Напис на декорації']);
+    });
+
+    it('напис без емодзі сигналу не дає', () => {
+        expect(engravedInscriptions({
+            'Обкладинка': 'Велюр',
+            'Напис на декорації': 'Андрій & Мар\'яна',
+            'Декорація обкладинки': 'гравірування',
+        })).toEqual([]);
+    });
+
+    it('типографіка лишається типографікою', () => {
+        expect(engravedInscriptions({ 'Текст напису': '─── ♡ ─── 2026' })).toEqual([]);
+    });
+
+    it('порожні опції й порожні написи нічого не повертають', () => {
+        expect(engravedInscriptions(null)).toEqual([]);
+        expect(engravedInscriptions({})).toEqual([]);
+        expect(engravedInscriptions({ 'Текст напису': '   ' })).toEqual([]);
     });
 });

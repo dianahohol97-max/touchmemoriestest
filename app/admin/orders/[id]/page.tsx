@@ -14,6 +14,7 @@ import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequir
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 import { repeatSourceOf } from '@/lib/orders/repeat-order';
+import { engravedInscriptions } from '@/lib/print/engravable-text';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
@@ -1622,6 +1623,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // ведемо туди посиланням — інакше менеджер бачить книгу без
                                 // жодного файлу і не знає, де їх шукати (TM-001314).
                                 const _repeat = repeatSourceOf(item);
+                                // Емодзі не гравіюються: лазер ріже один колір і одну
+                                // глибину, тож кольорове емодзі стає чорною плямою, а
+                                // відсутній гліф — порожнім квадратом. Фільтр у полях вводу
+                                // стоїть не на всіх шляхах, якими напис потрапляє в
+                                // замовлення, тому останній рубіж тут: менеджер бачить
+                                // проблему до запуску у виробництво, а не після нього
+                                // (TM-001165, TM-001203, TM-001204, TM-001209).
+                                const _engravedEmoji = engravedInscriptions(_rawOpts);
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1746,6 +1755,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         )}
                                                     </div>
                                                 )}
+                                                {_engravedEmoji.map(ins => (
+                                                    <div key={ins.key} style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
+                                                        ⚠️ У написі «{ins.key}» є символи, які не гравіюються: {ins.dropped.join(' ')} — на виробі буде порожній квадрат або чорна пляма. Уточніть у клієнта, чим їх замінити.
+                                                    </div>
+                                                ))}
                                                 {_coverColorMissing && (
                                                     <div style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
                                                         ⚠️ Колір обкладинки ({_coverNeed?.coverType.toLowerCase()}) не вказано — уточніть у клієнта до запуску у виробництво.

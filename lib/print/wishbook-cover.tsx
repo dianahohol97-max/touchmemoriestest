@@ -100,6 +100,9 @@ export interface WishbookCoverSpec {
   decoVariant: string;    // e.g. '90×50 срібний'
   decoColorName: string;  // 'Золотий' | 'Срібний' | ...
   title: string;          // engraved/printed text
+  /** «Спосіб напису на обкладинці» — напис на м'якій обкладинці ріже лазер
+   *  незалежно від того, яка на ній вставка. */
+  inscriptionMethod?: string;
   fontFamily: string;     // e.g. 'Cormorant Garamond'
   /**
    * Exact inscription layout from the editor's saved cover_data, when the
@@ -343,7 +346,13 @@ export async function renderWishbookCoverPng(
   // виробі: інакше на картинці сердечко є, а на металі його немає, і різницю
   // побачить уже клієнт. Друковані вставки (акрил, фотовставка) кольорові,
   // там напис лишається як є.
-  const title = isEngravedDeco(decoType)
+  // Гравіюється НАПИС, а не вставка. Раніше умова дивилася лише на тип
+  // декорації, і обкладинка з акриловою вставкою та гравійованим написом на
+  // велюрі (TM-001094) малювалася з сердечком, якого на виробі немає: акрил
+  // друкований, тож перевірка вирішувала, що чистити нічого. Спосіб напису
+  // тепер важить стільки ж, скільки тип вставки.
+  const engravedTitle = isEngravedDeco(decoType) || isEngravedDeco(spec.inscriptionMethod);
+  const title = engravedTitle
     ? stripEmoji(spec.title).text
     : (spec.title || '').trim();
 
@@ -638,6 +647,9 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
   // (TM-001171) — without it the mono route saw an empty title and skipped.
   const title = inscriptionTitle;
   const fontFamily = get('Шрифт напису', 'Шрифт', 'Font') || 'Playfair Display';
+  // Спосіб напису живе окремо від типу вставки: «гравірування» чи «друк
+  // кольором» на самій обкладинці. Обидва ріже лазер.
+  const inscriptionMethod = detectDecoType(get('Спосіб напису на обкладинці', 'Спосіб напису'));
 
   return {
     sizeKey: normalizeCoverSize(sizeRaw),
@@ -648,6 +660,7 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
     decoColorName,
     title,
     fontFamily,
+    inscriptionMethod,
   };
 }
 
