@@ -517,7 +517,11 @@ async function carriedOrderNumber(params: {
 
             const row: any = replied?.[0];
             if (row) {
-                const direct = extractOrderNumbers(String(row.text || '').replace(/@\S+/g, ' '));
+                // Ті самі скорочені форми, що й у самому зверненні: у ланцюжку
+                // реплаїв лежать повідомлення команди, а вона пише «замовлення
+                // 1314» і «Тм-001314». Без цього номер з ланцюжка не діставався,
+                // і відповідь-продовження («а колір який?») лишалася без нього.
+                const direct = extractOrderNumbers(String(row.text || '').replace(/@\S+/g, ' '), { allowShortForms: true });
                 if (direct.length) return direct[0];
 
                 if (row.reply_to_message_id) {
@@ -527,7 +531,7 @@ async function carriedOrderNumber(params: {
                         .eq('chat_id', params.chatId)
                         .eq('message_id', row.reply_to_message_id)
                         .limit(1);
-                    const up = extractOrderNumbers(String(parent?.[0]?.text || '').replace(/@\S+/g, ' '));
+                    const up = extractOrderNumbers(String(parent?.[0]?.text || '').replace(/@\S+/g, ' '), { allowShortForms: true });
                     if (up.length) return up[0];
                 }
             }
