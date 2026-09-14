@@ -533,6 +533,23 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
         .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, paid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at, crm_reconciled_at')
         .or(`created_at.gte.${since},order_status.in.(${ACTIVE_BEYOND_WINDOW.join(',')})`)
         .not('custom_attributes', 'is', null)
+        // ДВА ВІДСІВИ, ЯКІ МУСЯТЬ БУТИ В ЗАПИТІ, А НЕ ПІСЛЯ НЬОГО.
+        //
+        // Нижче стоять ті самі умови ще раз, уже в JavaScript, і доти вони там і
+        // жили самі. Поки черга йшла за датою створення, це працювало випадково:
+        // серед сотні найновіших замовлень штук двадцять були з сайту, і батч
+        // набирався. Щойно черга пішла за crm_reconciled_at, усе перевернулося —
+        // у 880 дзеркалених замовлень позначка порожня ЗАВЖДИ, бо звірка їх не
+        // торкається за визначенням, тож вони стали вічно першими. 14.09.2026 о
+        // 16:30 за Києвом зі ста вибраних рядків 99 виявилися дзеркаленими, і
+        // після відсіву в JS лишався один; звірка спинилася зовсім, хоча крон
+        // ходив і відповідав двомастами.
+        //
+        // Правило на майбутнє: коли вибірка обмежена LIMIT-ом, кожен відсів
+        // мусить стояти до нього. Відсів після LIMIT-а — це не фільтр, це
+        // лотерея на тему «що потрапило в сторінку».
+        .neq('source', MIRROR_SOURCE)
+        .not('custom_attributes->keycrm->>order_id', 'is', null)
         .order('crm_reconciled_at', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: false })
         .limit(params.limit * 4);
