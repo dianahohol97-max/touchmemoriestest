@@ -141,9 +141,43 @@ const PLATE_INSCRIPTION_RE = /^напис\s*на\s*декорації$/i;
 const COVER_INSCRIPTION_RE = /^(текст\s*напису|напис\s*на\s*обкладин(ці|ку)|текст\s*на\s*обкладинці)$/i;
 
 const MATERIAL_RE = /^(матеріал\s*обкладинки|обкладинка)$/i;
-const DECO_RE = /^(декорація\s*обкладинки|оздоблення|тип\s*оздоблення)$/i;
+const DECO_RE = /^(декорація\s*обкладинки|вид\s*оздоблення|оздоблення|тип\s*оздоблення)$/i;
 
-export function engravedInscriptions(options: Record<string, any> | null | undefined): EngravedInscription[] {
+/**
+ * Замовлення з CRM влаштоване інакше, ніж із сайту.
+ *
+ * Там напис не має власного ключа: він лежить усередині специфікації, яку
+ * менеджер пише вільним текстом в одному полі — «дизайн як на прикладі, велюр
+ * В03, гравіювання, чорні сторінки, надпис на альбомі „а ми з кумою… 🩶“».
+ * Витягти з такого абзацу рівно напис надійно неможливо, і вдавати, що можна,
+ * гірше, ніж не вдавати: помилково обрізаний напис виглядає як факт.
+ *
+ * Тому для таких позицій правило грубіше й чесніше: якщо замовлення десь
+ * згадує гравіювання, а в специфікації є емодзі — кажемо про це, не
+ * намагаючись вгадати, де саме напис починається. Текст менеджер бачить сам і
+ * вирішує сам.
+ */
+export interface EngravedInscriptionOptions {
+    /** Специфікація вільним текстом (для замовлень з CRM). */
+    freeSpec?: string | null;
+    /** Чи згадує ЗАМОВЛЕННЯ гравіювання — див. orderMentionsEngraving. */
+    engravedOrder?: boolean;
+}
+
+/** Підпис, під яким вільна специфікація показується менеджеру. */
+export const FREE_SPEC_KEY = 'Специфікація з CRM';
+
+export function engravedInscriptions(
+    options: Record<string, any> | null | undefined,
+    extra?: EngravedInscriptionOptions,
+): EngravedInscription[] {
+    const freeSpec = String(extra?.freeSpec ?? '').trim();
+    if (extra?.engravedOrder && freeSpec) {
+        const { dropped } = stripEmoji(freeSpec);
+        if (dropped.length > 0) {
+            return [{ key: FREE_SPEC_KEY, text: freeSpec, dropped }];
+        }
+    }
     if (!options || typeof options !== 'object') return [];
 
     const valueOf = (re: RegExp): string => {
@@ -175,4 +209,30 @@ export function engravedInscriptions(options: Record<string, any> | null | undef
         if (dropped.length > 0) out.push({ key: k, text, dropped });
     }
     return out;
+}
+
+/**
+ * Чи згадує це замовлення гравіювання будь-де.
+ *
+ * Оздоблення в дзеркалених замовленнях приїздить ОКРЕМИМ товарним рядком
+ * («Оздоблення обкладинки» з властивістю «Вид оздоблення: Гравіювання
+ * фотокнига»), а специфікація з написом лежить на рядку самої книги. Тобто
+ * позиція, яка несе напис, про гравіювання не знає, а та, що знає, напису не
+ * має — і питання доводиться ставити до замовлення цілком.
+ *
+ * Слово «гравіювання» у вільному тексті рахується нарівні з властивістю: у
+ * замовленнях з Інстаграма менеджер пише його саме там.
+ */
+export function orderMentionsEngraving(items: any[] | null | undefined): boolean {
+    for (const it of items || []) {
+        const opts = { ...(it?.options || {}), ...(it?.selected_options || {}) };
+        for (const [k, v] of Object.entries(opts)) {
+            const val = String(v ?? '');
+            if (DECO_RE.test(String(k).trim()) && isEngravedDeco(detectDecoType(val))) return true;
+            if (/^спосіб\s*напису/i.test(String(k).trim()) && isEngravedDeco(detectDecoType(val))) return true;
+        }
+        const free = String(it?.personalization_note ?? '');
+        if (/гравіюв|гравірув|engrav/i.test(free)) return true;
+    }
+    return false;
 }
