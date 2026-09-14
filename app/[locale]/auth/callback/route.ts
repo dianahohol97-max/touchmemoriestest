@@ -62,9 +62,36 @@ export async function GET(request: NextRequest) {
         const admin = getAdminClient()
         const { data: customer } = await admin
           .from('customers')
-          .select('id, email, name, phone')
+          .select('id, email, name, phone, birthday')
           .or(`auth_user_id.eq.${user.id},id.eq.${user.id}`)
           .maybeSingle()
+
+        // Те, що людина ввела при реєстрації, але тригер не переніс.
+        //
+        // handle_new_auth_user бере лише COALESCE(meta->>'name',
+        // meta->>'full_name'). Дату народження він не читає взагалі, тож із 35
+        // введених дат у customers не було жодної, і крон привітань працював
+        // на порожньому місці. Писала їх тільки /api/auth/register, який ніхто
+        // не викликав і який цим же комітом видалено.
+        //
+        // Тут же самозагоюється і друга діра тригера: гілка, яка при наявному
+        // рядку з такою поштою прив'язує auth_user_id і ім'я не чіпає.
+        //
+        // Заповнене НЕ перезаписується: людина могла виправити ім'я в
+        // кабінеті, і метадані з моменту реєстрації не мають права це
+        // відкотити.
+        if (customer?.id) {
+          try {
+            const { profilePatchFromMetadata } = await import('@/lib/customers/profile-from-metadata')
+            const patch = profilePatchFromMetadata(customer, user.user_metadata)
+            if (Object.keys(patch).length > 0) {
+              await admin.from('customers').update(patch).eq('id', customer.id)
+              console.log('[auth/callback] profile filled from metadata', { userId: user.id, fields: Object.keys(patch) })
+            }
+          } catch (e) {
+            console.error('Filling profile from metadata failed (sign-in still succeeded):', e)
+          }
+        }
 
         if (customer?.id) {
           const res = await linkGuestOrdersForCustomer(admin, customer)
