@@ -102,6 +102,12 @@ export default function PaymentsPage() {
         codCount: 0
     });
     const [loading, setLoading] = useState(true);
+    // Звірка неоплачених рахунків із банком. Живе на цій сторінці, бо
+    // відповідь ендпоінта — це шістдесят рядків JSON, які з телефона не
+    // прочитати, а саме з телефона її й запускають.
+    const [auditRunning, setAuditRunning] = useState(false);
+    const [auditResult, setAuditResult] = useState<any>(null);
+    const [auditError, setAuditError] = useState<string>('');
     const [filters, setFilters] = useState<Filters>({
         search: '',
         paymentType: '',
@@ -357,6 +363,33 @@ export default function PaymentsPage() {
         return icons[type] || <DollarSign size={16} />;
     };
 
+    /**
+     * Питає банк про кожен неоплачений рахунок і показує ті, які він вважає
+     * оплаченими. Нічого не змінює: ендпоінт лише читає, а сторінка лише
+     * малює відповідь. Зарахування оплати лишається ручним рішенням.
+     */
+    const runInvoiceAudit = async () => {
+        setAuditRunning(true);
+        setAuditError('');
+        setAuditResult(null);
+        try {
+            const res = await fetch('/api/admin/payments/invoice-audit');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || `Помилка ${res.status}`);
+            setAuditResult(data);
+            if ((data?.paid_at_bank_count || 0) === 0) {
+                toast.success(`Перевірено ${data?.checked ?? 0} рахунків — оплачених серед них банк не бачить.`);
+            } else {
+                toast.warning(`Банк вважає оплаченими ${data.paid_at_bank_count} рахунків, з них із розбіжністю сум ${data.mismatched_count}.`);
+            }
+        } catch (e: any) {
+            setAuditError(e?.message || 'Звірка не вдалася');
+            toast.error(e?.message || 'Звірка не вдалася');
+        } finally {
+            setAuditRunning(false);
+        }
+    };
+
     return (
         <div style={{ maxWidth: '100%', paddingBottom: '80px' }}>
             {/* Header */}
@@ -369,7 +402,11 @@ export default function PaymentsPage() {
                         Управління оплатами та фінансовими операціями
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button onClick={runInvoiceAudit} disabled={auditRunning} style={{ ...exportBtn, opacity: auditRunning ? 0.6 : 1, cursor: auditRunning ? 'wait' : 'pointer' }}>
+                        <Search size={18} />
+                        {auditRunning ? 'Звіряємо…' : 'Звірити рахунки з банком'}
+                    </button>
                     <button onClick={exportToExcel} style={exportBtn}>
                         <Download size={18} />
                         Експорт Excel
@@ -380,6 +417,81 @@ export default function PaymentsPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Результат звірки з банком */}
+            {(auditError || auditResult) && (
+                <div style={{ ...tableCard, marginBottom: '32px' }}>
+                    <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#263A99', margin: 0 }}>
+                                Звірка рахунків з банком
+                            </h3>
+                            <button onClick={() => { setAuditResult(null); setAuditError(''); }}
+                                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
+                                Сховати
+                            </button>
+                        </div>
+                        {auditError ? (
+                            <p style={{ color: '#b91c1c', fontSize: 14, marginTop: 8 }}>{auditError}</p>
+                        ) : (
+                            <p style={{ color: '#64748b', fontSize: 14, marginTop: 8 }}>
+                                Перевірено {auditResult.checked} неоплачених рахунків. Банк вважає оплаченими {auditResult.paid_at_bank_count},
+                                з них із розбіжністю сум {auditResult.mismatched_count}. Нічого не змінено — це тільки читання.
+                            </p>
+                        )}
+                    </div>
+
+                    {auditResult && auditResult.paid_at_bank?.length > 0 && (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+                                <thead>
+                                    <tr>
+                                        <th style={thStyle}>Замовлення</th>
+                                        <th style={thStyle}>Клієнт</th>
+                                        <th style={thStyle}>Сума в банку</th>
+                                        <th style={thStyle}>Сума замовлення</th>
+                                        <th style={thStyle}>Різниця</th>
+                                        <th style={thStyle}>Статус банку</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {auditResult.paid_at_bank.map((row: any) => (
+                                        <tr key={row.order_id} style={{ ...trStyle, backgroundColor: row.mismatch ? '#fff7ed' : 'transparent' }}>
+                                            <td style={tdStyle}>
+                                                <Link href={`/admin/orders/${row.order_id}`} style={{ color: '#263A99', fontWeight: 800, textDecoration: 'none' }}>
+                                                    {row.order_number}
+                                                </Link>
+                                                <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.bank_date}</div>
+                                            </td>
+                                            <td style={tdStyle}>{row.customer || '—'}</td>
+                                            <td style={{ ...tdStyle, fontWeight: 800 }}>{row.bank_amount}</td>
+                                            <td style={tdStyle}>{row.order_total}</td>
+                                            <td style={{ ...tdStyle, color: row.mismatch ? '#b45309' : '#94a3b8', fontWeight: row.mismatch ? 800 : 400 }}>
+                                                {row.mismatch ? row.diff : '—'}
+                                            </td>
+                                            <td style={tdStyle}>
+                                                <span style={{
+                                                    fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 3,
+                                                    backgroundColor: row.bank_status === 'success' ? '#f0fdf4' : '#fefce8',
+                                                    color: row.bank_status === 'success' ? '#16a34a' : '#a16207',
+                                                }}>
+                                                    {row.bank_status === 'success' ? 'Оплачено' : row.bank_status === 'hold' ? 'Заблоковано (hold)' : row.bank_status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {auditResult && auditResult.errors?.length > 0 && (
+                        <div style={{ padding: '16px 24px', borderTop: '1px solid #f1f5f9', fontSize: 13, color: '#b45309' }}>
+                            Банк не відповів про {auditResult.errors.length} рахунків: {auditResult.errors.map((e: any) => e.order_number).join(', ')}.
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Stats Dashboard */}
             <div style={statsGrid}>
