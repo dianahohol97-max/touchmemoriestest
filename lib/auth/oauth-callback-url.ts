@@ -52,6 +52,26 @@ export function safeNextPath(raw: string | null | undefined): string | null {
  * загублена дія. Коли `next` немає або він не пройшов перевірку, маршрут веде
  * в кабінет.
  */
+/**
+ * Адреса, на яку веде лист про скидання пароля.
+ *
+ * Живе поруч із адресою зворотного виклику навмисно: це два боки одного
+ * питання «куди Supabase повертає людину», і саме розбіжність між ними
+ * коштувала нам робочого відновлення пароля. Модалка входу слала на
+ * `/auth/reset` — адресу, за якою немає жодного маршруту, тобто людина з
+ * листа впиралася в 404 і пароль не змінювала. Сторінка /forgot-password весь
+ * цей час вела правильно, тож дефект бачили тільки ті, хто починав із
+ * модалки.
+ *
+ * Сторінка має ЛИШИТИ код собі: вона обмінює його і не йде нікуди, бо саме на
+ * ній вводять новий пароль. Тому вона окремим рядком виключена з перехоплення
+ * в lib/auth/oauth-code-interception.ts.
+ */
+export function resetPasswordUrl(origin: string, pathname: string): string {
+    const locale = localeFromPath(pathname);
+    return `${origin.replace(/\/+$/, '')}/${locale}/reset-password`;
+}
+
 export function oauthCallbackUrl(
     origin: string,
     pathname: string,

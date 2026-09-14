@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { X, Mail, Lock, Eye, EyeOff, Loader2, User, ArrowRight } from 'lucide-react';
 import { readPendingReferralCode } from '@/lib/referral/pending-code';
-import { oauthCallbackUrl } from '@/lib/auth/oauth-callback-url';
+import { oauthCallbackUrl, resetPasswordUrl } from '@/lib/auth/oauth-callback-url';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -92,8 +92,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, message }: AuthModalProp
                 setSuccess('Лист підтвердження надіслано на вашу пошту. Перевірте вхідні та spam.');
 
             } else if (mode === 'forgot') {
+                // /{locale}/reset-password, not /auth/reset.
+                //
+                // /auth/reset has never existed: there is no app/auth directory,
+                // no rewrite and no redirect to it, so the link in the letter
+                // opened a 404 and the password stayed as it was. The
+                // /forgot-password page always pointed at the right address,
+                // which is why this only ever broke for people who started from
+                // this modal.
+                //
+                // Old letters are handled separately by a redirect in
+                // next.config.ts, because a recovery link lives for hours and
+                // somebody may open one tomorrow.
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/auth/reset`,
+                    redirectTo: resetPasswordUrl(
+                        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin,
+                        window.location.pathname,
+                    ),
                 });
                 if (error) { setError(translateError(error.message)); return; }
                 setSuccess('Лист для скидання паролю надіслано!');

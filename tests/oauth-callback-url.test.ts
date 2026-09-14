@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     localeFromPath,
     oauthCallbackUrl,
+    resetPasswordUrl,
     safeNextPath,
 } from '@/lib/auth/oauth-callback-url';
 
@@ -51,6 +52,34 @@ describe('safeNextPath', () => {
         expect(safeNextPath(null)).toBeNull();
         expect(safeNextPath(undefined)).toBeNull();
         expect(safeNextPath(42 as any)).toBeNull();
+    });
+});
+
+/**
+ * Лист про скидання пароля має вести на сторінку, яка існує.
+ *
+ * Модалка входу до 14.09.2026 слала на /auth/reset — маршруту за цією адресою
+ * немає, тож людина з листа впиралася в 404 і пароль не змінювала.
+ */
+describe('resetPasswordUrl', () => {
+    it('веде на сторінку нового пароля в локалі сторінки', () => {
+        expect(resetPasswordUrl(ORIGIN, '/uk/catalog')).toBe(`${ORIGIN}/uk/reset-password`);
+        expect(resetPasswordUrl(ORIGIN, '/pl/order/book')).toBe(`${ORIGIN}/pl/reset-password`);
+    });
+
+    it('без локалі веде в українську', () => {
+        expect(resetPasswordUrl(ORIGIN, '/')).toBe(`${ORIGIN}/uk/reset-password`);
+    });
+
+    /** Саме та адреса, через яку все зламалося. */
+    it('ніколи не веде на /auth/reset', () => {
+        for (const path of ['/', '/uk', '/en/catalog', '/de/order/book']) {
+            expect(resetPasswordUrl(ORIGIN, path)).not.toContain('/auth/reset');
+        }
+    });
+
+    it('зайвий слеш у домені не дає подвійного', () => {
+        expect(resetPasswordUrl(`${ORIGIN}/`, '/uk')).toBe(`${ORIGIN}/uk/reset-password`);
     });
 });
 

@@ -14,8 +14,10 @@ const SKIP_PREFIXES = [
     // «supabase auth callback», but that callback lives at
     // /{locale}/auth/callback, and this check is pathname.startsWith('/auth'),
     // which a path beginning with a locale never matches. The only address it
-    // does cover is /auth/reset, and no route exists there at all — see the
-    // note in components/ui/AuthModal.tsx. Path exclusions that must survive a
+    // does cover is /auth/reset, which had no route behind it at all until
+    // 14.09.2026 and now carries only a compatibility redirect to
+    // /uk/reset-password, for password-reset letters sent before that date —
+    // see the note in components/ui/AuthModal.tsx. Path exclusions that must survive a
     // locale prefix belong in lib/auth/oauth-code-interception.ts, which
     // compares against the path WITHOUT the locale.
     '/auth',
