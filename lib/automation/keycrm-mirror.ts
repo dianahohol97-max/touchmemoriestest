@@ -251,6 +251,12 @@ function toOrderRow(crm: KeycrmOrder, existing?: { id: string; deadline?: string
                 order_id: crm.id,
                 mirrored: true,
                 status_label: crm.status_label,
+                // Ідентифікатор стадії поруч із назвою. Назву в CRM можна
+                // перейменувати, ключ — ні, тож переклад на показі
+                // (lib/automation/crm-stage.ts) має за що зачепитися надійно.
+                // Заведено 14.09.2026: до того id не писався взагалі, і в усіх
+                // 1011 дзеркалених карток він був порожній.
+                status_id: crm.status_id,
                 payments_total: crm.payments_total,
                 // The responsible manager as the CRM names them — «хто
                 // відповідальний?» is a work-chat question the bot must
@@ -451,6 +457,7 @@ export async function mirrorSingleKeycrmOrder(crmId: string | number): Promise<b
                         order_id: crm.id,
                         status_label: crm.status_label,
                         payments_total: crm.payments_total,
+                        status_id: crm.status_id,
                         adopted: true,
                         synced_at: new Date().toISOString(),
                     },
@@ -586,6 +593,7 @@ export async function mirrorKeycrmOrders(params: {
                             keycrm: {
                                 order_id: crmOrder.id,
                                 status_label: crmOrder.status_label,
+                                status_id: crmOrder.status_id,
                                 payments_total: crmOrder.payments_total,
                                 adopted: true,
                                 synced_at: new Date().toISOString(),

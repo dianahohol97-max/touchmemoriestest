@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { REPRINT_STATUSES, OPEN_STATUSES, FAULT_OPTIONS, type ReprintStatus } from '@/lib/automation/reprints';
 import { getAlertChatId, getWorkChatIds, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
+import { crmStageLabel, SITE_STATUS_UA as ORDER_STATUS_UA } from '@/lib/automation/crm-stage';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,7 +133,8 @@ export async function GET(request: Request) {
             order_number: o.order_number,
             customer_name: o.customer_name,
             deadline: o.deadline,
-            crm_stage: (o.custom_attributes as any)?.keycrm?.status_label || null,
+            // Переклад на показі: у картці лишається те, що прийшло з CRM.
+            crm_stage: crmStageLabel((o.custom_attributes as any)?.keycrm?.status_label, ORDER_STATUS_UA[o.order_status] || o.order_status),
             days_over: Math.max(1, Math.floor((startOfToday.getTime() - new Date(o.deadline).getTime()) / (24 * 60 * 60 * 1000))),
         }));
 

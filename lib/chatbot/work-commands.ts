@@ -9,6 +9,7 @@ import {
     shouldGreetToday,
 } from './telegram-business';
 import { computeUnansweredDialogs, waitingLabel } from './unanswered';
+import { crmStageLabel, SITE_STATUS_UA as ORDER_STATUS_UA } from '@/lib/automation/crm-stage';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES } from '@/lib/automation/production-visibility';
 import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 
@@ -37,15 +38,6 @@ const ACTION_WINDOW_DAYS = 21;
 // A list somebody asked for is given in full (Diana, 2026-08-13); long
 // messages are split across several Telegram posts by the sender.
 const MAX_LISTED = 60;
-
-const ORDER_STATUS_UA: Record<string, string> = {
-    new: 'нове',
-    confirmed: 'підтверджене',
-    shipped: 'відправлене',
-    delivered: 'доставлене',
-    completed: 'виконане',
-    cancelled: 'скасоване',
-};
 
 const PAYMENT_STATUS_UA: Record<string, string> = {
     paid: 'оплачено',
@@ -357,8 +349,8 @@ async function buildOrderCard(orderNumber: string): Promise<string> {
     // the site status is a coarse mapping (TTN present → «відправлене» even
     // while the book is still printing). Show the CRM stage first when we
     // have it, with the site status as context.
-    const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label;
     const siteStatus = ORDER_STATUS_UA[order.order_status] || order.order_status || '—';
+    const crmStage = crmStageLabel((order as any)?.custom_attributes?.keycrm?.status_label, siteStatus);
     const statusLine = crmStage
         ? `Статус у CRM: ${crmStage} (на сайті: ${siteStatus})`
         : `Статус: ${siteStatus}`;

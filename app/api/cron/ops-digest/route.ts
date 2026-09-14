@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { crmStageLabel } from '@/lib/automation/crm-stage';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
@@ -421,7 +422,9 @@ function buildBuckets(
             title: `У KeyCRM без руху понад ${CRM_STALE_DAYS} днів і без ТТН`,
             items: stalledInCrm.map(c => ({
                 label: `CRM #${c.id}`,
-                sublabel: `${c.buyer_name || 'без імені'}, ${c.status_label}, без змін ${waitingLabel(hoursSince(c.updated_at, now))}`,
+                // Картка живе тільки в CRM, статусу сайту в неї немає — тож
+                // невідомий ключ лишиться ключем, і це чесно.
+                sublabel: `${c.buyer_name || 'без імені'}, ${crmStageLabel(c.status_label) || c.status_label}, без змін ${waitingLabel(hoursSince(c.updated_at, now))}`,
                 waitingHours: hoursSince(c.updated_at, now),
             })),
         });

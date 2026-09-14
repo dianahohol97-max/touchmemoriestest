@@ -4,6 +4,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { isVisibleProductionOrder } from '@/lib/automation/production-visibility';
+import { crmStageLabel, SITE_STATUS_UA } from '@/lib/automation/crm-stage';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,7 +142,7 @@ export async function GET(request: Request) {
             // The stage as a human names it: the CRM's own label when the order
             // lives there too, otherwise the site's status. Refreshed by the
             // half-hourly reconcile and the hourly mirror respectively.
-            crm_status: (order.custom_attributes as any)?.keycrm?.status_label || null,
+            crm_status: crmStageLabel((order.custom_attributes as any)?.keycrm?.status_label, SITE_STATUS_UA[order.order_status] || order.order_status),
             items_summary: Array.isArray(order.items)
                 ? order.items.map((i: any) => i?.product_name).filter(Boolean).slice(0, 3).join(', ')
                 : '',

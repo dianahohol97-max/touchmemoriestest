@@ -216,6 +216,9 @@ function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<string, 
                 // every pass — the production calendar shows it on the card, so
                 // the board carries the CRM's live state without opening it.
                 status_label: crm.status_label,
+                // Ідентифікатор стадії поруч із назвою: назву в CRM можна
+                // перейменувати, ключ — ні, і переклад на показі спирається на нього.
+                status_id: crm.status_id,
                 // The CRM's responsible manager, refreshed the same way —
                 // «хто відповідальний?» answered without opening the CRM.
                 ...(crm.manager_name ? { manager_name: crm.manager_name } : {}),

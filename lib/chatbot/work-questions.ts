@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { clientDialogContext, NO_DIALOG_LINE } from '@/lib/chatbot/client-chat-lookup';
+import { crmStageLabel, stageOrStatus, SITE_STATUS_UA as ORDER_STATUS_UA } from '@/lib/automation/crm-stage';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES, fetchProductionFilter } from '@/lib/automation/production-visibility';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
@@ -934,8 +935,10 @@ async function buildOrderCount(question: string): Promise<string | null> {
         const when = new Date((o as any).created_at).toLocaleTimeString('uk-UA', {
             hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv',
         });
-        const stage = (o as any)?.custom_attributes?.keycrm?.status_label
-            || ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status;
+        const stage = stageOrStatus(
+            (o as any)?.custom_attributes?.keycrm?.status_label,
+            ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status,
+        );
         lines.push(`• ${(o as any).order_number} — ${when}, ${stage}${(o as any).customer_name ? `, ${(o as any).customer_name}` : ''}`);
     }
     // Both channels are worth naming when the question did not pick one: «22»
@@ -1038,7 +1041,10 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
         ? `🏷 Тег «${tag}»${scopeNote} — ${mine.length}:`
         : `🏷 Тег «${tag}» — активні замовлення (${mine.length}):`, ''];
     for (const o of mine.slice(0, MAX_LISTED)) {
-        const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
+        const stage = stageOrStatus(
+            (o as any)?.custom_attributes?.keycrm?.status_label,
+            ORDER_STATUS_UA[o.order_status] || o.order_status,
+        );
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
     return lines.join('\n');
@@ -1111,8 +1117,10 @@ async function buildDesignerQueues(question: string): Promise<string | null> {
     for (const [who, orders] of groups) {
         lines.push('', `${who} (${orders.length}):`);
         for (const o of orders.slice(0, MAX_LISTED)) {
-            const stage = (o as any)?.custom_attributes?.keycrm?.status_label
-                || ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status;
+            const stage = stageOrStatus(
+                (o as any)?.custom_attributes?.keycrm?.status_label,
+                ORDER_STATUS_UA[(o as any).order_status] || (o as any).order_status,
+            );
             lines.push(`• ${(o as any).order_number} — ${stage}, дедлайн ${fmtDate((o as any).deadline)}${(o as any).customer_name ? `, ${(o as any).customer_name}` : ''}`);
         }
     }
@@ -1186,7 +1194,10 @@ async function buildManagerOrders(question: string): Promise<string | null> {
     const role = wantsDesigner ? 'дизайнерка' : 'менеджерка';
     const lines = [`👩‍💼 ${managerName} (${role}) — активні замовлення${stageNote} (${mine.length}):`, ''];
     for (const o of mine.slice(0, MAX_LISTED)) {
-        const stage = (o as any)?.custom_attributes?.keycrm?.status_label || ORDER_STATUS_UA[o.order_status] || o.order_status;
+        const stage = stageOrStatus(
+            (o as any)?.custom_attributes?.keycrm?.status_label,
+            ORDER_STATUS_UA[o.order_status] || o.order_status,
+        );
         lines.push(`• ${o.order_number} — ${stage}, дедлайн ${fmtDate(o.deadline)}${o.customer_name ? `, ${o.customer_name}` : ''}`);
     }
     return lines.join('\n');
@@ -1343,11 +1354,6 @@ async function buildOpenChatTasks(): Promise<string> {
     return lines.join('\n');
 }
 
-const ORDER_STATUS_UA: Record<string, string> = {
-    new: 'нове', confirmed: 'підтверджене', shipped: 'відправлене',
-    delivered: 'доставлене', completed: 'виконане', cancelled: 'скасоване',
-};
-
 /**
  * Recommended next action for a chat-task thread (Diana, 2026-08-11: after
  * Toma's «Фоток не було ще» the card should say «Уточнити у виробництва,
@@ -1394,7 +1400,10 @@ export async function refreshTaskRecommendations(orderNumbers: string[]): Promis
 
             if (!process.env.ANTHROPIC_API_KEY) continue;
 
-            const crmStage = attrs?.keycrm?.status_label || null;
+            const crmStage = crmStageLabel(
+                attrs?.keycrm?.status_label,
+                ORDER_STATUS_UA[(order as any).order_status] || (order as any).order_status,
+            );
             const thread = rows
                 .map(r => `${r.details?.sender || '—'}: ${String(r.notes || '').slice(0, 200)}`)
                 .join('\n');
@@ -1514,7 +1523,10 @@ async function answerOrderQuestion(question: string, numbers: string[], chatId?:
         .order('created_at', { ascending: false })
         .limit(6);
 
-    const crmStage = (order as any)?.custom_attributes?.keycrm?.status_label || null;
+    const crmStage = crmStageLabel(
+        (order as any)?.custom_attributes?.keycrm?.status_label,
+        ORDER_STATUS_UA[order.order_status] || order.order_status,
+    );
     // Two different people, two different questions (Diana, 2026-08-14): the
     // manager leads the order, «Відповідальні» are the designers doing the
     // layout. Answering one for the other is the confusion she caught.
