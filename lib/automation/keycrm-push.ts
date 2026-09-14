@@ -3,6 +3,7 @@ import { keycrmRequest, findKeycrmOrderBySourceUuid, getKeycrmToken, fetchKeycrm
 import { fetchConfirmedMap, mapKey, sizeKey, itemSlug } from '@/lib/automation/keycrm-catalogue';
 import { readOrderMoney, describeMoney, shouldPushToCrm } from '@/lib/automation/keycrm-money';
 import { autoTagsForOrder, mergeTags } from '@/lib/automation/order-tags';
+import { readDeliveryAddress } from '@/lib/orders/delivery-address';
 import { splitLineByBreakdown } from '@/lib/automation/keycrm-line-split';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -416,9 +417,10 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
  * be previewed from the admin panel without touching the CRM.
  */
 export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {}, tagIdByName: Record<string, number | string> = {}): any {
-    const address = order?.delivery_address && typeof order.delivery_address === 'object'
-        ? order.delivery_address
-        : {};
+    // Адреса лежить у ДВОХ колонках: чекаут пише `delivery_address`, потік «з
+    // дизайнером» — `custom_attributes`. Читання обох живе в одному місці
+    // (lib/orders/delivery-address) разом із поясненням, чому колонки дві.
+    const address = readDeliveryAddress(order);
 
     const items = Array.isArray(order?.items) ? order.items : [];
     const deliveryLabel = DELIVERY_LABELS[String(order?.delivery_method || '')] || String(order?.delivery_method || '');
@@ -454,12 +456,31 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
     // site UUID (nobody searches by it — the order number is the handle) and
     // the standing «підтягніть оплату вручну» sentence, which repeated on
     // every single order and taught everyone to skim past the comment.
+    // Дата, до якої замовлення має бути готове. У payload окремого поля для неї
+    // НЕМАЄ свідомо: у словнику KeyCRM, який ми знаємо з їхніх же відповідей
+    // (lib/automation/keycrm.ts), у блоці shipping є tracking_code, місто,
+    // точка й отримувач, але жодного поля з датою ми не бачили, а вгадувати
+    // назву означає або мовчазно нічого не записати, або дістати 422 на
+    // створенні всього замовлення. Тому дедлайн їде туди, де його точно видно
+    // — у коментар менеджера, першим рядком після номера й грошей. Коли назву
+    // поля буде підтверджено з боку CRM, рядок переїде у shipping.
+    const deadlineLine = (() => {
+        const raw = order?.deadline;
+        if (!raw) return '';
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime())) return '';
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        return `Дедлайн: ${dd}.${mm}.${d.getUTCFullYear()}`;
+    })();
+
     const commentLines = [
         // Spelled out rather than reduced to "оплачено": for an order with cash
         // on delivery that word is actively misleading, since payment_status
         // goes to 'paid' once the prepayment clears while the courier still has
         // the balance to collect.
         `${order?.order_number || 'Сайт'} · ${describeMoney(readOrderMoney(order))}`,
+        deadlineLine,
         order?.with_designer ? '🎨 З послугою дизайнера' : '',
         order?.promo_code ? `Промокод: ${order.promo_code}` : '',
         summariseNotes(order?.notes),
@@ -481,8 +502,9 @@ export function buildKeycrmOrderPayload(order: any, productMap: ProductMap = {},
         },
         shipping: {
             shipping_service: deliveryLabel,
-            shipping_address_city: String(address?.city || ''),
-            shipping_receive_point: String(address?.branch || address?.address || ''),
+            shipping_address_city: address.city,
+            shipping_receive_point: address.point,
+            ...(address.country ? { shipping_address_country: address.country } : {}),
             recipient_full_name: String(order?.customer_name || '').trim(),
             recipient_phone: String(order?.customer_phone || '').trim(),
             ...(optionalNumber('KEYCRM_DELIVERY_SERVICE_ID')
@@ -577,7 +599,7 @@ export async function pushOrderToKeycrm(
 
     const { data: order, error } = await supabase
         .from('orders')
-        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, created_at, cod_amount, cod_received_at, tags, custom_attributes')
+        .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, payment_type, prepaid_amount, order_status, delivery_method, delivery_address, delivery_cost, discount_amount, promo_code, items, total, notes, client_comment, with_designer, paid_at, created_at, cod_amount, cod_received_at, tags, custom_attributes, deadline')
         .eq('id', orderId)
         .single();
 
