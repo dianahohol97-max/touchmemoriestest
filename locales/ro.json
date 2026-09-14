@@ -125,7 +125,13 @@
     "region_ua_sub": "Monobank, PrivatBank și altele",
     "region_intl": "Card Bancă Internațională",
     "region_intl_sub": "Visa/Mastercard emis în străinătate",
-    "cancel": "Anulare"
+    "cancel": "Anulare",
+    "marketing_optin": "Vreau să primesc e-mailuri despre noutăți și oferte. Vă puteți dezabona oricând, cu un singur clic în orice mesaj.",
+    "legal_before": "Prin plasarea comenzii acceptați",
+    "legal_offer": "condițiile de vânzare",
+    "legal_middle": ". Avem nevoie de datele dumneavoastră ca să pregătim comanda și să v-o aducem, iar le transmitem doar celor care ne ajută să facem asta: serviciului de livrare, procesatorului de plăți, sistemului nostru de comenzi și serviciilor care vă trimit e-mailurile și bonul fiscal. Lista completă este în",
+    "legal_privacy": "politica de confidențialitate",
+    "legal_after": "."
   },
   "thankyou": {
     "paid_title": "Plată Confirmată!",

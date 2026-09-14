@@ -29,6 +29,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n/context';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
@@ -38,6 +39,12 @@ export default function CheckoutPage() {
     const { t, locale } = useTranslation();
     const [currentStep, setCurrentStep] = useState<Step>('info');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Згода на розсилку — НЕОБОВʼЯЗКОВА і знята за замовчуванням. Купівлю вона
+    // не гейтить нічим: обробка даних заради виконання замовлення стоїть на
+    // виконанні договору, а не на згоді, тож чекбокса «погоджуюся на обробку»
+    // тут немає і бути не повинно (Diana, 14.09.2026). Згода потрібна рівно на
+    // те, що виходить за межі замовлення, — на листи про новинки.
+    const [agreeMarketing, setAgreeMarketing] = useState(false);
 
     // Partial checkout: the cart page stores which items to order now. Filter to
     // those; fall back to the whole cart if the selection is missing/stale, so a
@@ -872,6 +879,29 @@ export default function CheckoutPage() {
                 throw new Error(friendlyError);
             }
             const orderId = submitData.order_id;
+
+            // Згода на розсилку, якщо її дали. keepalive тут ОБОВʼЯЗКОВИЙ з тієї
+            // самої причини, що й у листів друку нижче: за кілька рядків сторінка
+            // робить window.location.href на Monobank, і звичайний
+            // fire-and-forget запит помирає разом із документом. Саме так
+            // виглядав би дефект, який ми щойно лікували в журналі згод: галочка
+            // стоїть, запису немає.
+            if (agreeMarketing && formData.email) {
+                const marketingEmail = formData.email.trim();
+                fetch('/api/subscribers/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: marketingEmail, name: formData.name || undefined, source: 'checkout' }),
+                    keepalive: true,
+                }).catch(() => {});
+                fetch('/api/consent/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'marketing_accepted', email: marketingEmail, categories: { marketing: true } }),
+                    keepalive: true,
+                }).catch(() => {});
+            }
+
             // submitData.payment_type is authoritative (may have been downgraded server-side)
             const actualPaymentType = submitData.payment_type as 'full' | 'split';
             const prepaidAmount = Number(submitData.prepaid_amount || 0);
@@ -1278,7 +1308,41 @@ export default function CheckoutPage() {
                                             </div>
                                         )}
                                     </div>
-                                    <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
+                                    {/* Необовʼязкова згода на розсилку і рядок про те, що
+                                        відбувається з даними. Чекбокса згоди на саму покупку
+                                        тут немає навмисно — див. коментар біля agreeMarketing. */}
+                                    <label style={{
+                                        marginTop: '32px',
+                                        display: 'flex',
+                                        gap: '10px',
+                                        alignItems: 'flex-start',
+                                        fontSize: '14px',
+                                        lineHeight: 1.45,
+                                        color: '#475569',
+                                        cursor: 'pointer',
+                                    }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={agreeMarketing}
+                                            onChange={e => setAgreeMarketing(e.target.checked)}
+                                            style={{ marginTop: '3px', width: 16, height: 16, flexShrink: 0, cursor: 'pointer' }}
+                                        />
+                                        <span>{t('checkout.marketing_optin')}</span>
+                                    </label>
+
+                                    <p style={{ marginTop: '14px', marginBottom: 0, fontSize: '13px', lineHeight: 1.5, color: '#64748b' }}>
+                                        {t('checkout.legal_before')}{' '}
+                                        <Link href={`/${locale}/terms`} target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                                            {t('checkout.legal_offer')}
+                                        </Link>
+                                        {t('checkout.legal_middle')}{' '}
+                                        <Link href={`/${locale}/privacy`} target="_blank" style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                                            {t('checkout.legal_privacy')}
+                                        </Link>
+                                        {t('checkout.legal_after')}
+                                    </p>
+
+                                    <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
                                         <BackButton onClick={prevStep} />
                                         <button
                                             onClick={() => handleSubmitOrder(shipRegionChoice === 'INTL' ? 'international' : 'ua')}

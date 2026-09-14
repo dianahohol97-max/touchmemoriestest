@@ -73,9 +73,32 @@ const nextConfig = {
         destination: '/uk',
         permanent: true,
       },
+      // Юридичні сторінки живуть у групі (legal): /privacy, /terms, /cookies,
+      // /refund — вони читають legal_pages і мають справжній текст. Поруч є дві
+      // старі сторінки-дублі, /privacy-policy і /public-offer: вони читають
+      // site_content, де відповідних ключів немає, тож показують «Контент ще не
+      // додано через адмін панель». На них не веде жодне посилання в коді, але
+      // вони лишаються живими адресами, і стара, збережена кимось чи
+      // проіндексована, приводила людину на порожню сторінку — саме там, де
+      // вона шукала умови або політику. Тепер обидві ведуть на чинні документи.
       {
         source: '/public-offer',
-        destination: '/uk/public-offer',
+        destination: '/uk/terms',
+        permanent: true,
+      },
+      {
+        source: '/privacy-policy',
+        destination: '/uk/privacy',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/public-offer',
+        destination: '/:locale/terms',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/privacy-policy',
+        destination: '/:locale/privacy',
         permanent: true,
       },
       // GSC-found 404s: alias paths people/old links use → real slugs

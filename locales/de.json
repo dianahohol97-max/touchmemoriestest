@@ -125,7 +125,13 @@
     "region_ua_sub": "Monobank, PrivatBank und andere",
     "region_intl": "Internationale Bankkarte",
     "region_intl_sub": "Im Ausland ausgestellte Visa/Mastercard",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "marketing_optin": "Ich möchte E-Mails über Neuheiten und Aktionen erhalten. Sie können sich jederzeit abmelden, mit einem Klick in jeder E-Mail.",
+    "legal_before": "Mit der Bestellung akzeptieren Sie unsere",
+    "legal_offer": "Verkaufsbedingungen",
+    "legal_middle": ". Wir brauchen Ihre Daten, um die Bestellung zusammenzustellen und zu Ihnen zu bringen, und geben sie nur an jene weiter, die dabei helfen: an den Lieferdienst, den Zahlungsdienstleister, unser Bestellsystem und die Dienste, die Ihnen E-Mails und den Kassenbon senden. Die vollständige Liste steht in unserer",
+    "legal_privacy": "Datenschutzerklärung",
+    "legal_after": "."
   },
   "thankyou": {
     "paid_title": "Zahlung Bestätigt!",

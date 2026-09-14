@@ -125,7 +125,13 @@
     "region_ua_sub": "Monobank, PrivatBank i inne",
     "region_intl": "Karta Zagranicznego Banku",
     "region_intl_sub": "Visa/Mastercard wydana za granicą",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "marketing_optin": "Chcę otrzymywać e-maile o nowościach i promocjach. Możesz zrezygnować w każdej chwili, jednym kliknięciem w wiadomości.",
+    "legal_before": "Składając zamówienie, akceptujesz",
+    "legal_offer": "warunki sprzedaży",
+    "legal_middle": ". Twoje dane są nam potrzebne, żeby skompletować zamówienie i je dostarczyć, i przekazujemy je wyłącznie tym, którzy nam w tym pomagają: firmie kurierskiej, operatorowi płatności, naszemu systemowi zamówień oraz usługom, które wysyłają Ci e-maile i paragon fiskalny. Pełna lista znajduje się w",
+    "legal_privacy": "polityce prywatności",
+    "legal_after": "."
   },
   "thankyou": {
     "paid_title": "Płatność Potwierdzona!",

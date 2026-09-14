@@ -125,7 +125,13 @@
     "region_ua_sub": "Monobank, PrivatBank, Oschadbank and others",
     "region_intl": "International Bank Card",
     "region_intl_sub": "Visa/Mastercard issued abroad",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "marketing_optin": "I would like to receive emails about new products and offers. You can unsubscribe at any time, with one click in any letter.",
+    "legal_before": "By placing this order you accept our",
+    "legal_offer": "terms of sale",
+    "legal_middle": ". We need your details to put the order together and bring it to you, and we pass them only to those who help make that happen: the delivery service, the payment provider, our order system, and the services that send you emails and the fiscal receipt. The full list is in our",
+    "legal_privacy": "privacy policy",
+    "legal_after": "."
   },
   "thankyou": {
     "paid_title": "Payment Confirmed!",
