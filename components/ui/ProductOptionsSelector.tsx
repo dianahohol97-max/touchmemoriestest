@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
+import { coverColorRequirement } from '@/lib/cover-colors';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
 import { useT } from '@/lib/i18n/context';
@@ -547,7 +548,12 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
   // hasColorAndDecoration alone missed the runtime "Друкована тверда" choice.
   const showCoverColor = hasColorAndDecoration && !isPrintedMaterialSelected;
 
-  const [selectedColor, setSelectedColor] = useState(VELOUR_COLORS[0]);
+  // Жодного кольору «за замовчуванням». Перший зразок раніше підсвічувався
+  // сам, підпис над сіткою показував його назву, і клієнт бачив обраний колір,
+  // якого насправді не обирав. У замовлення він при цьому не потрапляв:
+  // TM-001296 поїхав у виробництво з обкладинкою зі шкірзамінника, у якої ніде
+  // не вказано кольору. Колір тепер завжди явний вибір людини.
+  const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedWishbookColor, setSelectedWishbookColor] = useState<{code:string;name:string;hex:string;photo_url?:string|null}|null>(null);
   const [wishbookCoverColors, setWishbookCoverColors] = useState<{[material:string]: any[]}>({});
   // Initialise from parent state so the decoration pill and the URL value
@@ -598,9 +604,6 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         if (colorData) {
           const filtered = colorData.filter((c: any) => c.cover_type?.name === coverTypeName);
           setCoverColors(filtered);
-          if (filtered.length > 0 && !selectedCoverColor) {
-            setSelectedCoverColor(filtered[0]);
-          }
         }
       }
     }
@@ -960,8 +963,13 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
         const colors = dbColors.length > 0
           ? dbColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }))
           : isVelour ? VELOUR_COLORS : isLeather ? FABRIC_COLORS_WB : LEATHERETTE_COLORS_WB;
-        const colorLabel = isVelour ? optLabel('Колір велюру') : isLeather ? optLabel('Колір тканини') : optLabel('Колір шкірзамінника');
-        const colorLabelKey = isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника';
+        // Ключ — те саме правило, що й на фотокнигах (lib/cover-colors), підпис —
+        // його переклад. Записували раніше саме ПІДПИС, тож на будь-якій мові,
+        // крім української, колір лягав у замовлення під ключем «Velour colour»
+        // і жоден екран потім його не знаходив.
+        const colorLabelKey = coverColorRequirement(slug, selectedOptions)?.key
+          ?? (isVelour ? 'Колір велюру' : isLeather ? 'Колір тканини' : 'Колір шкірзамінника');
+        const colorLabel = optLabel(colorLabelKey);
         const current = selectedWishbookColor;
         return (
           <div>
@@ -979,7 +987,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                   title={optValueLabel(color.name)}
                   onClick={() => {
                     setSelectedWishbookColor(color);
-                    const newOptions = { ...selectedOptions, [colorLabel]: `${color.name} (${color.code})` };
+                    const newOptions = { ...selectedOptions, [colorLabelKey]: `${color.name} (${color.code})` };
                     const price = calculatePrice(newOptions);
                     onChange(newOptions, price || undefined);
                   }}
@@ -1016,7 +1024,10 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
               : VELOUR_COLORS.map((c: any) => ({ ...c, photo_url: null })))
           : coverColors.map((c: any) => ({ code: c.code, name: c.name, hex: c.hex_approx, photo_url: c.photo_url }));
         const current = isVelourProduct ? selectedColor : selectedCoverColor;
-        const colorLabel = isVelourProduct ? 'Колір велюру' : isLeatherProduct ? 'Колір шкірзамінника' : 'Колір тканини';
+        // Ключ кольору бере те саме правило, що блокує замовлення без нього
+        // і що читає адмінка — lib/cover-colors.
+        const colorLabel = coverColorRequirement(slug, selectedOptions)?.key
+          ?? (isVelourProduct ? 'Колір велюру' : isLeatherProduct ? 'Колір шкірзамінника' : 'Колір тканини');
         if (colors.length === 0) return null;
         return (
           <div>
@@ -1236,6 +1247,14 @@ export function areAllRequiredOptionsFilled(slug: string, selectedOptions: Recor
     if (txt === undefined || txt === null || String(txt).trim() === '') {
       return false;
     }
+  }
+
+  // Колір м'якої обкладинки живе не в PRODUCT_OPTIONS, а в сітці зразків із
+  // cover_colors, тож жодна перевірка обов'язкових опцій його не бачила. Без
+  // кольору замовлення не виробиш, тому воно й не має оформлюватись.
+  const coverColor = coverColorRequirement(slug, selectedOptions);
+  if (coverColor && String(selectedOptions[coverColor.key] ?? '').trim() === '') {
+    return false;
   }
 
   if (!productType) {

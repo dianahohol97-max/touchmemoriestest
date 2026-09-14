@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { transliterateUk } from '@/lib/shipping/transliterate';
 import { exportCommercialInvoicePDF, type SellerLegal } from '@/lib/export/invoice';
-import { matchCoverColor, readCoverSelection, formatCoverColor, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
+import { matchCoverColor, readCoverSelection, formatCoverColor, coverColorRequirement, COVER_COLOR_CODE_KEY, type CoverColorRow } from '@/lib/cover-colors';
 import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
@@ -1606,6 +1606,16 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                 // чекаут і кошик (lib/orders/item-options).
                                 const _cleanOpts = cleanItemOptions(_rawOpts);
                                 const _deco = resolveDecoration(_rawOpts);
+                                // Обкладинка з м'якого матеріалу без кольору — це позиція, яку
+                                // неможливо виробити. Раніше така позиція просто мовчала:
+                                // блок кольору малюється лише тоді, коли колір Є, тож
+                                // TM-001296 виглядав як звичайне замовлення (шкірзамінник,
+                                // а якого кольору — ніде).
+                                const _coverNeed = coverColorRequirement(
+                                    item.slug || item.product_slug || item.product_name || item.name,
+                                    _rawOpts,
+                                );
+                                const _coverColorMissing = !!_coverNeed && !_coverSel.colorName;
                                 const normalizeOpts = (obj: Record<string, any> | undefined) => {
                                     if (!obj) return obj;
                                     const out: Record<string, any> = { ...obj };
@@ -1717,6 +1727,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 {/* Два ключі назвали різні оздоблення. Обрати за менеджера
                                                     не можна — на верстат поїде не та вставка, — тож кажемо
                                                     про суперечність уголос. */}
+                                                {_coverColorMissing && (
+                                                    <div style={{ fontSize: 12, marginTop: 4, color: '#b91c1c', fontWeight: 700 }}>
+                                                        ⚠️ Колір обкладинки ({_coverNeed?.coverType.toLowerCase()}) не вказано — уточніть у клієнта до запуску у виробництво.
+                                                    </div>
+                                                )}
                                                 {_deco.conflict && (
                                                     <div style={{ fontSize: 12, marginTop: 4, color: '#b45309' }}>
                                                         ⚠️ Позиція називає два різні оздоблення — уточніть у клієнта, яке з них замовили.
