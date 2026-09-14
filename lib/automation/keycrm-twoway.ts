@@ -365,6 +365,25 @@ async function pushCancellation(order: any, crm: KeycrmOrder, dryRun: boolean): 
 }
 
 /** Reconcile one order that exists in both systems. */
+/**
+ * «Це замовлення щойно звірили».
+ *
+ * Ставиться ТІЛЬКИ після відповіді від CRM — успішної або остаточної («такої
+ * картки більше немає»). Після провалу запиту позначка не ставиться навмисно:
+ * інакше збійне замовлення поїхало б у кінець черги і збій став би невидимим,
+ * а так воно лишається в голові й спробує ще раз наступного разу.
+ *
+ * Помилка самого запису в чергу не валить прохід: замовлення просто спробують
+ * звірити ще раз, і це дешевше за перерваний батч.
+ */
+async function stampReconciled(orderId: string, result: TwoWayResult): Promise<void> {
+    const { error } = await getAdminClient()
+        .from('orders')
+        .update({ crm_reconciled_at: new Date().toISOString() })
+        .eq('id', orderId);
+    if (error) result.problems.push(`Не вдалося позначити час звірки: ${error.message}`);
+}
+
 export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean }): Promise<TwoWayResult | null> {
     const dryRun = opts?.dryRun === true;
     const keycrmOrderId = order?.custom_attributes?.keycrm?.order_id;
@@ -388,6 +407,9 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
 
     if (!crm) {
         result.problems.push('Замовлення з таким номером у CRM більше немає.');
+        // Це теж відповідь, і її треба позначити. Без позначки мертва картка
+        // вічно стоятиме в голові черги і щопівгодини зʼїдатиме місце в батчі.
+        if (!dryRun) await stampReconciled(order.id, result);
         return result;
     }
 
@@ -395,6 +417,13 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
     const statusMap = await statusMapFromCrm();
     const { patch, changes } = buildSitePatch(order, crm, statusMap);
     result.changes.push(...changes);
+
+    // Картку прочитали — отже звірка відбулася, незалежно від того, знайшлося
+    // в ній що міняти чи ні. Саме «прочитали і все збіглося» ніде не
+    // записувалося, і саме через це чергу не було з чого будувати. Коли патч є,
+    // позначка їде з ним одним запитом; коли патча немає — окремим точковим.
+    const reconciledAt = new Date().toISOString();
+    if (Object.keys(patch).length) patch.crm_reconciled_at = reconciledAt;
 
     if (Object.keys(patch).length && !dryRun) {
         const supabase = getAdminClient();
@@ -432,6 +461,10 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
         }
     }
 
+    if (!Object.keys(patch).length && !dryRun) {
+        await stampReconciled(order.id, result);
+    }
+
     // Site → CRM.
     //
     // The patch is folded into the in-memory order first, and the ordering here
@@ -461,11 +494,35 @@ export async function syncOrderBothWays(order: any, opts?: { dryRun?: boolean })
 }
 
 /**
- * Orders present in both systems, newest first.
+ * Статуси, яким вік не виправдання: замовлення в цих станах ще не доїхало до
+ * кінця, і те, що з ним відбувається, живе в CRM. Таких старших за вікно
+ * знайшлося три на 6 390 ₴, найдавніше від 03.07.2026, і вони не звірялися б
+ * ніколи. Розширювати вікно заради них не можна — це сотні мертвих карток
+ * зайвими запитами; виняток саме за станом дешевший і точніший
+ * (Diana, 14.09.2026).
+ */
+export const ACTIVE_BEYOND_WINDOW = ['new', 'confirmed', 'in_production', 'quality_check', 'ready', 'shipped'];
+
+/**
+ * Orders present in both systems, LONGEST UNRECONCILED FIRST.
  *
  * Bounded by a window because an order delivered two months ago has nothing
  * left to reconcile, and re-reading it every half hour would spend the CRM's
- * rate limit on nothing.
+ * rate limit on nothing. Orders still in an active state are taken regardless
+ * of age — see ACTIVE_BEYOND_WINDOW above.
+ *
+ * ПОРЯДОК — ГОЛОВНЕ В ЦІЙ ФУНКЦІЇ. Раніше тут стояло сортування за датою
+ * створення від найновішого, і батч на двадцять пʼять щоразу набирався з тих
+ * самих замовлень. Двадцять шосте за свіжістю і всі старші не звірялися
+ * більше ніколи: 81 знімок зі 131 був старший за тиждень, 16 — старший за
+ * місяць, а 33 усиновлені картки не звіряли жодного разу. Тепер черга йде за
+ * crm_reconciled_at: спершу ті, кого не звіряли ніколи, далі найдавніші. Друга
+ * ознака — дата створення від найновішого, щоб серед однакових (а на початку
+ * порожні всі) свіже замовлення все одно йшло першим.
+ *
+ * Розмір батча лишається 25: місткості це не потребує більше (25 × 48
+ * запусків на добу проти 131 замовлення), а повний оберт займає близько трьох
+ * годин.
  */
 export async function findSyncedOrders(params: { windowDays: number; limit: number }) {
     const supabase = getAdminClient();
@@ -473,9 +530,10 @@ export async function findSyncedOrders(params: { windowDays: number; limit: numb
 
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, paid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at')
-        .gte('created_at', since)
+        .select('id, order_number, source, customer_name, order_status, payment_status, payment_type, total, prepaid_amount, paid_amount, cod_amount, cod_received_at, ttn, tracking_carrier, shipped_at, delivered_at, tags, deadline, notes, client_comment, paid_at, custom_attributes, created_at, crm_reconciled_at')
+        .or(`created_at.gte.${since},order_status.in.(${ACTIVE_BEYOND_WINDOW.join(',')})`)
         .not('custom_attributes', 'is', null)
+        .order('crm_reconciled_at', { ascending: true, nullsFirst: true })
         .order('created_at', { ascending: false })
         .limit(params.limit * 4);
 
