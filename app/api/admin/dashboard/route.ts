@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { countedRevenue, outstandingAmount } from '@/lib/orders/payment-state';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,30 +34,32 @@ export async function GET() {
     // жодним словом. На 14.09.2026 замовлень 1107, тобто сто сім із них
     // дашборд просто не бачив: і в лічильнику «очікують оплати», і в сумі, і
     // в «у роботі». Помилка тиха і росте сама.
-    const PAGE = 1000;
-    const allOrders: any[] = [];
-    for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('id,order_status,payment_status,total,paid_amount,with_designer,created_at')
-        .order('created_at', { ascending: false })
-        .range(from, from + PAGE - 1);
-      if (error) {
-        console.error('[Dashboard API] orders error:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      allOrders.push(...(data || []));
-      if (!data || data.length < PAGE) break;
-    }
+    const allOrders = await fetchAllRows<any>((from, to) => supabase
+      .from('orders')
+      .select('id,order_status,payment_status,total,paid_amount,with_designer,created_at')
+      .order('created_at', { ascending: false })
+      .range(from, to), { label: 'замовлення дашборда' });
 
-    const [queueRes, clientsRes] = await Promise.all([
-      supabase.from('orders')
-        .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items,order_tag_assignments(order_tags(id,name,color,icon))')
-        .not('order_status', 'in', '("completed","cancelled")')
+    // Черга активних замовлень — свідомо перші двадцять, це екран, а не звіт.
+    const queueRes = await supabase
+      .from('orders')
+      .select('id,order_number,customer_name,order_status,payment_status,total,source,created_at,with_designer,items,order_tag_assignments(order_tags(id,name,color,icon))')
+      .not('order_status', 'in', '("completed","cancelled")')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    // Нові клієнти за тиждень, сторінками.
+    //
+    // Сьогодні їх 111 при межі PostgREST у 1000 (заміряно 14.09.2026), тобто
+    // запас великий. Пагінація тут не через нинішнє число, а через правило:
+    // `customers` росте від роботи магазину, і тиждень із тисячею реєстрацій
+    // не потребує жодної зміни в коді, щоб настати.
+    const newClients = await fetchAllRows<{ id: string }>((from, to) => supabase
+        .from('customers')
+        .select('id')
+        .gte('created_at', weekAgo)
         .order('created_at', { ascending: false })
-        .limit(20),
-      supabase.from('customers').select('id').gte('created_at', weekAgo),
-    ]);
+        .range(from, to), { label: 'нові клієнти' });
 
     const orders = allOrders;
     const todayOrders = orders.filter(o => o.created_at >= todayIso);
@@ -76,7 +79,7 @@ export async function GET() {
         .reduce((s, o) => s + outstandingAmount(o), 0),
       inProgress: orders.filter(o => ['new', 'pending', 'in_progress'].includes(o.order_status)).length,
       needDesigner: orders.filter(o => o.with_designer && !['completed', 'cancelled'].includes(o.order_status)).length,
-      newClients: (clientsRes.data || []).length,
+      newClients: newClients.length,
     };
 
     return NextResponse.json({ stats, queue: queueRes.data || [] });

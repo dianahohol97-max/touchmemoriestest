@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,13 +29,22 @@ export async function GET() {
     const now = new Date();
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 
-    const { data: orders, error } = await admin
-        .from('orders')
-        .select('total, manager_id, designer_id')
-        .gte('created_at', monthStart);
-
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    // Замовлення місяця, сторінками.
+    //
+    // За вересень їх 280 при межі PostgREST у 1000, найбільший місяць досі —
+    // 703 у серпні (заміряно 14.09.2026). Тобто сьогодні не обрізається, але
+    // запас невеликий, а наслідок був би тихим: у місяць із тисячею замовлень
+    // менеджери недорахували б собі частину роботи, і ніхто б не помітив.
+    let orders: any[];
+    try {
+        orders = await fetchAllRows<any>((from, to) => admin
+            .from('orders')
+            .select('total, manager_id, designer_id')
+            .gte('created_at', monthStart)
+            .order('created_at', { ascending: false })
+            .range(from, to), { label: 'замовлення місяця' });
+    } catch (e: any) {
+        return NextResponse.json({ error: e?.message || 'не вдалося прочитати замовлення' }, { status: 500 });
     }
 
     const stats: Record<string, { ordersThisMonth: number; revenueThisMonth: number }> = {};

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export async function calculateSalary(staffId: string, fromDate: string, toDate: string) {
     const supabase = getAdminClient();
@@ -35,13 +36,20 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
 
     // - Orders (Based on paid_at for managers, or relevant IDs for others)
     // We fetch all orders that might be relevant to this person
-    let query = supabase.from('orders').select('*');
-    if (staff.role === 'manager') {
-        query = query.gte('paid_at', startDate.toISOString()).lte('paid_at', endDate.toISOString());
-    } else {
-        query = query.gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString());
-    }
-    const { data: orders } = await query;
+    // Сторінками, бо період задається ззовні і може бути довшим за місяць.
+    //
+    // Місяць — це щонайбільше 703 замовлення (серпень 2026), а от два місяці
+    // поспіль дають 1 083, тобто вже за межею PostgREST. Зарплата, порахована
+    // з обрізаної вибірки, виглядала б просто меншою, без жодної ознаки
+    // помилки — і сперечатися з нею довелося б людині.
+    const dateColumn = staff.role === 'manager' ? 'paid_at' : 'created_at';
+    const orders = await fetchAllRows<any>((from, to) => supabase
+        .from('orders')
+        .select('*')
+        .gte(dateColumn, startDate.toISOString())
+        .lte(dateColumn, endDate.toISOString())
+        .order(dateColumn, { ascending: false })
+        .range(from, to), { label: 'замовлення для зарплати' });
 
     const breakdown: any = {};
     let total = 0;

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { startOfDay, endOfDay, subDays, format, isAfter, isBefore } from 'date-fns';
 import { requireAdmin } from '@/lib/auth/guards';
 import { countedRevenue, countsTowardsRevenue } from '@/lib/orders/payment-state';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,16 +35,23 @@ export async function GET(req: Request) {
         }
 
         // 1. Fetch Orders for Current and Previous Period
-        const { data: currentOrders } = await supabase
+        // Сторінками. Період тут щонайбільше тридцять днів (615 замовлень на
+        // 14.09.2026), але межа PostgREST від цього не зникає, а сам маршрут
+        // нікому не служить — див. нижче. Правило одне на всіх, гоча 14.
+        const currentOrders = await fetchAllRows<any>((from, to) => supabase
             .from('orders')
             .select('total, paid_amount, order_status, payment_status, created_at, items')
-            .gte('created_at', startDate.toISOString());
+            .gte('created_at', startDate.toISOString())
+            .order('created_at', { ascending: false })
+            .range(from, to), { label: 'аналітика, поточний період' });
 
-        const { data: prevOrders } = await supabase
+        const prevOrders = await fetchAllRows<any>((from, to) => supabase
             .from('orders')
             .select('total, paid_amount, order_status, payment_status, items')
             .gte('created_at', prevStartDate.toISOString())
-            .lt('created_at', startDate.toISOString());
+            .lt('created_at', startDate.toISOString())
+            .order('created_at', { ascending: false })
+            .range(from, to), { label: 'аналітика, попередній період' });
 
         // Гроші, що надійшли, а не сума рахунків; скасовані дають нуль.
         // Правило спільне — lib/orders/payment-state.ts.
