@@ -29,26 +29,103 @@ import { getAdminClient } from '@/lib/supabase/admin';
  * The bot never talks in the chat; the webhook acknowledges with a reaction:
  * ✍ = instruction captured, 👌 = completion report recorded.
  *
- * Order references understood: TM-001234 / CRM-13808 / PB-…, and the team's
+ * Order references understood: TM-001234 / CRM-13808 / PB-…, in Latin or in
+ * the Cyrillic lookalikes people actually type («Тм-001314»), and the team's
  * shorthand — a bare 5-digit number («13808»), treated as a KeyCRM id. A
  * bare number followed by a currency marker («13500 грн») is a price and is
- * ignored.
+ * ignored. The four-digit shorthand for a site order («1314» for TM-001314)
+ * is OFF here and opt-in per caller: this module reads every message in the
+ * chat, and four digits are usually a page count or a time.
  */
 
-const PREFIXED = /\b(TM|CRM|PB)[-\s]?(\d{3,6})\b/gi;
-const BARE = /(?<![\d.,:+-])(\d{5})(?![\d])/g;
+/**
+ * Кириличні двійники латинських літер, якими насправді пишуть номери.
+ *
+ * «Тм-001314» з великою кириличною Т і кириличною м виглядає в чаті точно так
+ * само, як латинське «TM-001314», і саме так його набирають з української
+ * розкладки. 14.09.2026 на цьому згорів живий тест: номер не розпізнався,
+ * питання пішло повз усі обробники, і Софія вигадала статус, дедлайн і оплату.
+ *
+ * Заміна робиться символ у символ, тож довжина рядка не змінюється і всі
+ * індекси лишаються дійсними. Застосовується ТІЛЬКИ до пошуку префікса:
+ * на решті тексту вона зіпсувала б українські слова, а разом з ними й
+ * перевірку «це ціна, а не номер» — «грн» після заміни перестало б бути «грн».
+ */
+const HOMOGLYPHS: Record<string, string> = {
+    'Т': 'T', 'т': 't', 'М': 'M', 'м': 'm', 'С': 'C', 'с': 'c', 'Р': 'P', 'р': 'p',
+    'В': 'B', 'в': 'b', 'К': 'K', 'к': 'k', 'А': 'A', 'а': 'a', 'О': 'O', 'о': 'o',
+    'Е': 'E', 'е': 'e', 'Н': 'H', 'н': 'h', 'Х': 'X', 'х': 'x', 'І': 'I', 'і': 'i',
+};
 
-export function extractOrderNumbers(text: string): string[] {
+function latinise(text: string): string {
+    return text.replace(/[ТтМмСсРрВвКкАаОоЕеНнХхІі]/g, ch => HOMOGLYPHS[ch] || ch);
+}
+
+// Межа зліва задана явним lookbehind, а не \b: у JavaScript \b знає лише
+// ASCII, тож після кириличної літери він СПРАЦЮВАВ БИ, і «абвTM-1» зійшло б за
+// номер. CPM — це «СРМ», набране кирилицею: Р має латинським двійником P.
+const PREFIXED = /(?<![\p{L}\d])(TM|CRM|CPM|PB)[-–—\s]?(\d{3,6})(?![\d])/giu;
+const BARE = /(?<![\p{L}\d.,:+-])(\d{5})(?![\d])/gu;
+// Скорочення, якими команда називає замовлення з сайту: «1314» замість
+// TM-001314 і зрідка повне «001314». Обидві форми беруться лише з опорою —
+// див. allowShortForms нижче.
+const SHORT_TM = /(?<![\p{L}\d.,:+-])(\d{4})(?![\d])/gu;
+const PADDED_TM = /(?<![\p{L}\d.,:+-])(0\d{5})(?![\d])/gu;
+
+const MONEY = /грн|₴|uah|€|eur|\$/;
+/** Слово поруч, яке робить голе число номером замовлення, а не кількістю. */
+const ORDER_WORD = /(замовлен|замовл|заказ|заявк|номер|тм|tm|crm)/i;
+
+export interface OrderNumberOptions {
+    /**
+     * Дозволити скорочені форми: чотиризначне «1314» і «001314» як TM.
+     * Вимкнено за замовчуванням, бо тихий перехоплювач доручень читає ВСІ
+     * повідомлення чату, а чотири цифри там — це найчастіше кількість
+     * сторінок, ціна або час, а не замовлення.
+     */
+    allowShortForms?: boolean;
+    /**
+     * Розмова вже про замовлення — наприклад, людина відповідає реплаєм на
+     * питання Софії «напиши номер». Тоді голе «1314» рахується номером і без
+     * слова-опори поруч.
+     */
+    assumeOrderContext?: boolean;
+}
+
+export function extractOrderNumbers(text: string, opts: OrderNumberOptions = {}): string[] {
     const found = new Set<string>();
-    for (const m of text.matchAll(PREFIXED)) {
-        const prefix = m[1].toUpperCase();
+    const lat = latinise(text);
+
+    for (const m of lat.matchAll(PREFIXED)) {
+        const raw = m[1].toUpperCase();
+        const prefix = raw === 'CPM' ? 'CRM' : raw;
         found.add(prefix === 'TM' ? `TM-${m[2].padStart(6, '0')}` : `${prefix}-${m[2]}`);
     }
+
+    /** Чи це число — гроші (дивимось у ХВІСТ) і чи є опора (дивимось У ГОЛОВУ). */
+    const priced = (i: number, len: number) => MONEY.test(text.slice(i + len, i + len + 8).toLowerCase());
+    const supported = (i: number) => opts.assumeOrderContext === true
+        || ORDER_WORD.test(text.slice(Math.max(0, i - 30), i));
+
     for (const m of text.matchAll(BARE)) {
-        const tail = text.slice((m.index ?? 0) + m[1].length, (m.index ?? 0) + m[1].length + 8).toLowerCase();
-        if (/грн|₴|uah|€|eur|\$/.test(tail)) continue; // price, not an order
+        const i = m.index ?? 0;
+        if (priced(i, m[1].length)) continue; // price, not an order
         found.add(`CRM-${m[1]}`);
     }
+
+    if (opts.allowShortForms) {
+        for (const m of text.matchAll(PADDED_TM)) {
+            const i = m.index ?? 0;
+            if (priced(i, m[1].length)) continue;
+            found.add(`TM-${m[1]}`);
+        }
+        for (const m of text.matchAll(SHORT_TM)) {
+            const i = m.index ?? 0;
+            if (priced(i, m[1].length) || !supported(i)) continue;
+            found.add(`TM-${m[1].padStart(6, '0')}`);
+        }
+    }
+
     return [...found];
 }
 

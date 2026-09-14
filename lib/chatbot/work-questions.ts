@@ -48,6 +48,62 @@ const QUESTION_MARKER = /\?|(?<!\p{L})(що|шо|коли|який|яка|яке
 const ADDRESSED_BY_NAME = /софі\p{L}*|sofi\p{L}*/iu;
 
 /**
+ * РОБОЧА тема — те, про що Софія не має права говорити без даних у руках.
+ *
+ * Список навмисно вузький і складається з тем, у яких кожне слово є твердженням
+ * про факт: статус, дедлайн, оплата, склад, накладна. Балачка про життя від
+ * цього не страждає, бо «як справи» і «дякую» сюди не потрапляють.
+ */
+// «склад» окремим словом, а не всередині «складно» чи «складається». Межа
+// виписана lookahead-ом, бо \b у JavaScript знає лише ASCII: після
+// кириличної літери він не спрацьовує, і «що по складу» проходило повз.
+const WORK_TOPIC = /(замовлен|замовл|заказ|дедлайн|оплат|сплач|доплат|статус|склад(?:і|у|ом|и|ів|ах)?(?!\p{L})|залиш|накладн|ттн|відправ|номер)/iu;
+
+/** Будь-що схоже на номер: 4–6 цифр поспіль або префікс TM/CRM/PB у будь-якій розкладці. */
+const ORDER_SHAPE = /(?<![\p{L}\d])(\d{4,6})(?![\d])|(?<![\p{L}\d])([TТ][MМ]|[CС][RР][MМ]|[PР][BВ])[-–—\s]?\d{3,6}/iu;
+
+/**
+ * Єдина відповідь на робоче питання без номера. Називає всі форми, які код
+ * тепер розуміє, щоб порада була правдою: до 14.09.2026 Софія сама вигадала,
+ * ніби «в системі номер записується як 1314», і це була єдина форма, яку код
+ * не розумів у принципі.
+ */
+export const ORDER_NUMBER_HINT =
+    'Щоб відповісти про замовлення, мені потрібен його номер. Підійде будь-яка форма: '
+    + 'TM-001314, Тм-001314, просто 1314 або номер KeyCRM на кшталт 13814. '
+    + 'Без номера можу хіба порахувати чергу за тегом або за менеджером, тоді скажи, за яким саме.';
+
+/**
+ * Структурний запобіжник (Diana, 14.09.2026).
+ *
+ * Повертає готову відповідь, якщо звернення схоже на робоче. Потрібен тому, що
+ * останній шлях у роутері — chatAboutLife, тобто розмова про життя: окремий
+ * виклик моделі з температурою 0,8 і БЕЗ жодного факту про замовлення. Коли
+ * туди потрапляє робоче питання, модель мусить щось відповісти й вигадує.
+ *
+ * Саме так і сталося: «Тм-001314» не розпізналося як номер, слова
+ * «замовлення» в тому повідомленні вже не було, і Софія повідомила команді
+ * статус «в роботі», дедлайн «15 січня», повну оплату і вкомплектований склад.
+ * У базі стояло «підтверджене», 15.09, оплата справді повна, а поняття «склад»
+ * для замовлення не існує взагалі.
+ *
+ * Правило в промпті там БУЛО — «нічого не вигадуй про замовлення» — і воно не
+ * втрималося. Тому запобіжник структурний: перевірка стоїть і в роутері, і
+ * всередині самого chatAboutLife, тож дійти до моделі з робочою темою не можна
+ * жодним шляхом.
+ *
+ * Дивимось і на текст, і на повідомлення, якому він відповідає: «Все» у
+ * відповідь на питання Софії «статус, дедлайн, оплата чи склад?» — це робоче
+ * питання, хоч у ньому самому немає жодного робочого слова.
+ */
+export function workGuardReply(text: string, replyText?: string): string | null {
+    const own = String(text || '');
+    const parent = String(replyText || '');
+    const workish = (t: string) => WORK_TOPIC.test(t) || ORDER_SHAPE.test(t);
+    return workish(own) || workish(parent) ? ORDER_NUMBER_HINT : null;
+}
+
+/**
  * Addressed to the BOT, not merely mentioning a person who shares the name.
  * Live case: the bare message «Sofiia Gerega» (a teammate's full name) drew
  * the bot into the conversation. The name word immediately followed by a
@@ -105,7 +161,7 @@ const SHIP_URGENCY = /(сьогодні|завтра|післязавтра|те
 export function matchDigestQuestion(text: string): boolean {
     const t = String(text || '');
     if (!QUESTION_MARKER.test(t) && !isAddressedToBot(t)) return false;
-    if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return false;
+    if (extractOrderNumbers(t.replace(/@\S+/g, ' '), { allowShortForms: true }).length) return false;
 
     // A COUNTING question is not a digest, however many «вчора» and «було» it
     // contains. Live: «скільки замовлень з тегом терміновий з доплатою було
@@ -124,7 +180,7 @@ export function matchShipQuestion(text: string): { horizonDays: number } | null 
     const t = String(text || '');
     if (!QUESTION_MARKER.test(t) && !isAddressedToBot(t)) return null;
     if (!SHIP_WORDS.test(t) || !SHIP_URGENCY.test(t)) return null;
-    if (extractOrderNumbers(t.replace(/@\S+/g, ' ')).length) return null;
+    if (extractOrderNumbers(t.replace(/@\S+/g, ' '), { allowShortForms: true }).length) return null;
     if (/післязавтра/i.test(t)) return { horizonDays: 2 };
     if (/завтра/i.test(t)) return { horizonDays: 1 };
     return { horizonDays: 0 };
@@ -302,7 +358,7 @@ export async function handleWorkQuestion(params: {
     // терміновий з доплатою було зроблено вчора» was answered with the whole
     // shift digest, because «вчора» plus «було» matched the digest first.
     const aboutPeople = /(дизайнер|менеджер|відповідальн)/iu.test(text);
-    if (TAG_WORD.test(text) && !aboutPeople && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+    if (TAG_WORD.test(text) && !aboutPeople && !extractOrderNumbers(text.replace(/@\S+/g, ' '), { allowShortForms: true }).length) {
         const tagReply = await buildTagOrders(text);
         if (tagReply) return tagReply;
     }
@@ -311,7 +367,7 @@ export async function handleWorkQuestion(params: {
     // by period and by where the order came from (Diana, 2026-08-13; Софія had
     // asked for an order number instead, which no count question can give).
     if (/скільки/iu.test(text) && /(замовлен|заказ)/iu.test(text)
-        && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+        && !extractOrderNumbers(text.replace(/@\S+/g, ' '), { allowShortForms: true }).length) {
         const countReply = await buildOrderCount(text);
         if (countReply) return countReply;
     }
@@ -324,7 +380,7 @@ export async function handleWorkQuestion(params: {
     // «Скільки в нас залишилось маркерів на складі?» — stock by product name
     // (Diana, 2026-08-11: «чи можна щоб софія і залишки теж тягнула»).
     if (/(залиш|на склад|склад[іу]|наявн)/i.test(text)
-        && !extractOrderNumbers(text.replace(/@\S+/g, ' ')).length) {
+        && !extractOrderNumbers(text.replace(/@\S+/g, ' '), { allowShortForms: true }).length) {
         const stockReply = await buildStockAnswer(text);
         if (stockReply) return stockReply;
     }
@@ -338,7 +394,14 @@ export async function handleWorkQuestion(params: {
     // was swallowed by the per-manager queue, which looked for a PERSON in the
     // text, found none and answered «Не впізнала імʼя відповідального» — while
     // the answer sat on the order the question named.
-    let numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '));
+    //
+    // allowShortForms — бо команда пише «замовлення 1314», а не «TM-001314»;
+    // assumeOrderContext — бо відповідь реплаєм на питання Софії про номер уже
+    // означає, що йдеться про замовлення, і опорне слово там не потрібне.
+    let numbers = extractOrderNumbers(`${text} ${params.replyText || ''}`.replace(/@\S+/g, ' '), {
+        allowShortForms: true,
+        assumeOrderContext: !!params.repliedToBot,
+    });
 
     // A follow-up carries no number: «А колір обкладинки який?» right under
     // her own answer about 13852 (Diana, 2026-08-13). The thread knows which
@@ -410,6 +473,11 @@ export async function handleWorkQuestion(params: {
         // запитує»). Only genuinely non-work talk reaches the chat model.
         const clarification = await clarifyWorkQuestion(text);
         if (clarification) return clarification;
+        // Робоча тема без номера далі НЕ ЙДЕ. Модель у chatAboutLife не тримає
+        // жодного факту про замовлення, тож будь-яка її відповідь про статус чи
+        // дедлайн була б вигадкою.
+        const guarded = workGuardReply(text, params.replyText);
+        if (guarded) return guarded;
         return chatAboutLife(text, params.replyText, params.chatId);
     }
 
@@ -493,7 +561,7 @@ async function clarifyWorkQuestion(text: string): Promise<string | null> {
     }
 
     if (/(замовлен|заказ)/i.test(t)) {
-        return 'Напиши номер замовлення — і я гляну статус, дедлайн, оплату чи склад. Без номера можу хіба порахувати чергу за тегом або за менеджером, тоді скажи, за яким саме.';
+        return ORDER_NUMBER_HINT;
     }
 
     if (/(залиш|склад|наявн)/i.test(t)) {
@@ -522,6 +590,13 @@ async function knownTagNames(): Promise<string[]> {
  * called by name reads as broken.
  */
 async function chatAboutLife(text: string, replyText?: string, chatId?: string): Promise<string> {
+    // Другий шар того самого запобіжника, і він тут не зайвий: роутер може
+    // змінитися, а ця функція не має права говорити про замовлення НІКОЛИ —
+    // вона не бачить жодного факту про них. Перевірка стоїть до звернення до
+    // моделі, тож на робочу тему виклику просто не відбувається.
+    const guarded = workGuardReply(text, replyText);
+    if (guarded) return guarded;
+
     // When Софія has no answer of her own, she hands over to a human (Diana,
     // 2026-08-11: «якщо софія не може відповісти, то хай тагає
     // @Alina_Avlastsova в чаті») — the tag pings Аліна, and the second
