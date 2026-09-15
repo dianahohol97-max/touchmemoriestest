@@ -1042,7 +1042,22 @@ export async function linkPastedId(params: {
             const hits = family.filter(o => {
                 const label = canonicaliseDimensions(`${o.variant_label || ''} ${o.name || ''}`).toLowerCase();
                 const sizeHit = label.includes(size) || label.includes(reversed);
-                const pagesHit = new RegExp(`(?<![\\d.])${pages}(?![\\d.])`).test(label);
+                // РОЗМІР ПРИБИРАЄТЬСЯ З ПІДПИСУ, ПЕРШ НІЖ ШУКАТИ РОЗВОРОТИ.
+                //
+                // Інакше число розміру рахується за кількість розворотів: у
+                // підписі «Розмір: 20х20 Кількість сторінок: 22» пошук двадцяти
+                // знаходить двадцятку всередині «20x20», і під умову підпадають
+                // УСІ двадцять три позиції того розміру. Далі спрацьовує
+                // правило «збіг має бути один», і варіант чесно лишається
+                // незвʼязаним — хоча позиція в CRM є.
+                //
+                // Так загубилися рівно ті пари, де кількість розворотів
+                // збігається з числом у розмірі: 20 розворотів для 20х20 і
+                // 20х30, 30 для 30х30 і 30х20. На 15.09.2026 це 22 рядки з 101
+                // незвʼязаного — чверть усього хвоста, і жодного з них не треба
+                // заводити в CRM, бо вони там уже є.
+                const withoutSizes = label.replace(/\d+(?:\.\d+)?x\d+(?:\.\d+)?/gu, ' ');
+                const pagesHit = new RegExp(`(?<![\\d.])${pages}(?![\\d.])`).test(withoutSizes);
                 return sizeHit && pagesHit;
             });
             return hits.length === 1 ? hits[0] : undefined;
