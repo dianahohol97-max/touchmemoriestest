@@ -144,15 +144,44 @@ export function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<s
     const witnessedTransition = Boolean(knownStage && crm.status_label && knownStage !== crm.status_label);
     const stageMoment = crm.status_changed_at || (witnessedTransition ? new Date().toISOString() : null);
 
-    if (mappedStatus && mappedStatus !== order.order_status) {
-        patch.order_status = mappedStatus;
-        changes.push(`статус ${order.order_status || '—'} → ${mappedStatus}`);
+    // ОПЛАЧЕНЕ ЗАМОВЛЕННЯ СТАДІЯ CRM САМА НЕ СКАСОВУЄ.
+    //
+    // Скасувати замовлення, за яке взяті гроші, — це не оновлення статусу, це
+    // рішення про повернення, і воно за людиною. Живий приклад, на якому це
+    // писалося: TM-001036, картка 12916 — на сайті оплачено 3705 ₴, у CRM
+    // стадія «canceled» із проведеним нулем, і при цьому щойно підтягнулася
+    // ТТН. Картка суперечить сама собі, і автоматичне скасування просто
+    // сховало б цю суперечність під «скасовано».
+    //
+    // Правило свідомо за ОЗНАКОЮ, а не за списком номерів: список застаріє
+    // наступного ж разу, коли оплачену картку скасують у CRM.
+    // Що рахується грошима, а що ні. `prepaid_amount` СВІДОМО не входить: це
+    // планована сума, чекаут пише туди повний підсумок ще при створенні рахунку, і
+    // TM-001203 має там 2838 ₴ ніколи не отримані. `paid_amount` — навпаки,
+    // фактично проведене: у всіх чотирнадцяти неоплачених із цього переліку
+    // він нуль, а в обох оплачених дорівнює сумі замовлення. Проведене в CRM
+    // теж гроші, тож `payments_total` рахується нарівні.
+    const moneyReceived = order?.payment_status === 'paid'
+        || readOrderMoney(order).received > 0
+        || money(order?.paid_amount) > 0
+        || money(crm?.payments_total) > 0;
+    if (mappedStatus === 'cancelled' && moneyReceived && order.order_status !== 'cancelled') {
+        changes.push(
+            'у CRM стадія скасування, але на сайті є отримані гроші — статус НЕ змінено, потрібне рішення людини',
+        );
+    }
+
+    const appliedStatus = (mappedStatus === 'cancelled' && moneyReceived) ? undefined : mappedStatus;
+
+    if (appliedStatus && appliedStatus !== order.order_status) {
+        patch.order_status = appliedStatus;
+        changes.push(`статус ${order.order_status || '—'} → ${appliedStatus}`);
 
         // Timestamps the site's own emails and the tracking page read from.
         // Only ever set, never cleared: an order that went out yesterday did not
         // stop having been shipped because someone moved a card back a stage.
-        if (mappedStatus === 'shipped' && !order.shipped_at && stageMoment) patch.shipped_at = stageMoment;
-        if (mappedStatus === 'delivered' && !order.delivered_at && stageMoment) patch.delivered_at = stageMoment;
+        if (appliedStatus === 'shipped' && !order.shipped_at && stageMoment) patch.shipped_at = stageMoment;
+        if (appliedStatus === 'delivered' && !order.delivered_at && stageMoment) patch.delivered_at = stageMoment;
 
         // Delivery is the moment cash on delivery stops being a promise. Until
         // this is stamped the money is treated as still in transit, so the CRM
@@ -166,7 +195,7 @@ export function buildSitePatch(order: any, crm: KeycrmOrder, statusMap: Record<s
         // cod_received_at лишив би замовлення назавжди «передоплаченим» і
         // забрав би гроші з paid_amount — неточна дата дешевша за загублену
         // суму.
-        if (mappedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
+        if (appliedStatus === 'delivered' && money(order.cod_amount) > 0 && !order.cod_received_at) {
             patch.cod_received_at = stageMoment || new Date().toISOString();
             // Гроші, що дійшли, мають лягти і в paid_amount — інакше бейдж
             // оплати назавжди лишив би таке замовлення «передоплаченим», хоча

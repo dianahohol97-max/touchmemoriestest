@@ -94,3 +94,69 @@ describe('delivered_at зі стадії KeyCRM', () => {
         expect(patch.paid_amount).toBe(928);
     });
 });
+
+/**
+ * Скасування зі стадії CRM не торкається оплачених замовлень.
+ *
+ * Живий випадок: TM-001036, картка 12916 — на сайті оплачено 3705 ₴, у CRM
+ * стадія «canceled» із проведеним нулем і свіжою ТТН. Скасувати таке
+ * автоматично означало б сховати суперечність під «скасовано», а рішення про
+ * повернення грошей за людиною.
+ */
+describe('скасування зі стадії CRM', () => {
+    const cancelMap = { '19': 'cancelled' };
+
+    it('неоплачене скасовує', () => {
+        const order = siteOrder({
+            order_status: 'new', payment_status: 'pending', paid_amount: 0, total: 928,
+            custom_attributes: { keycrm: { status_label: 'new' } },
+        });
+        const { patch } = buildSitePatch(order, crmCard({ status_id: 19, status_label: 'canceled', payments_total: 0 }), cancelMap);
+
+        expect(patch.order_status).toBe('cancelled');
+    });
+
+    it('оплачене НЕ скасовує і каже про це', () => {
+        const order = siteOrder({
+            order_status: 'confirmed', payment_status: 'paid', paid_amount: 3705, total: 3705,
+            custom_attributes: { keycrm: { status_label: 'new' } },
+        });
+        const { patch, changes } = buildSitePatch(order, crmCard({ status_id: 19, status_label: 'canceled', payments_total: 3705 }), cancelMap);
+
+        expect(patch.order_status).toBeUndefined();
+        expect(changes.join(' ')).toContain('потрібне рішення людини');
+    });
+
+    /**
+     * Частково оплачене — теж гроші. Передоплата в 400 ₴ на замовленні, яке
+     * CRM скасувала, це так само привід поговорити з клієнтом.
+     */
+    it('часткова оплата теж утримує від скасування', () => {
+        const order = siteOrder({
+            order_status: 'confirmed', payment_status: 'pending', paid_amount: 400, total: 770,
+            custom_attributes: { keycrm: { status_label: 'new' } },
+        });
+        const { patch } = buildSitePatch(order, crmCard({ status_id: 19, status_label: 'canceled', payments_total: 0 }), cancelMap);
+
+        expect(patch.order_status).toBeUndefined();
+    });
+    /**
+     * Планована передоплата грошима НЕ рахується. Чекаут пише повну суму в
+     * prepaid_amount у момент створення рахунку, тож TM-001203 має там
+     * 2838 ₴, яких ніхто не платив. Якби цей рядок рахувався за оплату,
+     * запобіжник заблокував би скасування половини відмов.
+     */
+    it('планована передоплата не заважає скасувати неоплачене', () => {
+        const order = siteOrder({
+            order_status: 'new', payment_status: 'pending', paid_amount: 0, prepaid_amount: 2838, total: 2838,
+            custom_attributes: { keycrm: { status_label: 'new' } },
+        });
+        const { patch } = buildSitePatch(
+            order,
+            crmCard({ status_id: 19, status_label: 'canceled', payments_total: 0 }),
+            cancelMap,
+        );
+
+        expect(patch.order_status).toBe('cancelled');
+    });
+});
