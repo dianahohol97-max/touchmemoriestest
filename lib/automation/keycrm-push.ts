@@ -808,6 +808,39 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
 
     const rows = data || [];
 
+    // БЛИЗНЮКІВ ТРЕБА ШУКАТИ СЕРЕД УСІХ ЗАМОВЛЕНЬ ВІКНА, А НЕ СЕРЕД КАНДИДАТІВ.
+    //
+    // Це прямий наслідок виправлення вище, і він коштував картки. Коли умови
+    // переїхали в запит, із вибірки зникли замовлення, які вже мають картку в
+    // CRM, — а саме вони і є тим близнюком, за яким isSupersededAttempt
+    // упізнає покинуту спробу оплати. Доти сторінка з шістдесяти найновіших
+    // тримала і перенесені, і неперенесені разом, тож близнюк випадково
+    // траплявся поруч.
+    //
+    // 14.09.2026 о 19:30 через це в CRM створилася картка 14515 на TM-001290 —
+    // покинуту першу спробу Анастасії Скрипки. Справжня покупка, TM-001291 на
+    // ту саму суму 1533 ₴ одинадцятьма хвилинами пізніше, уже лежала карткою
+    // 14375 і була «Передано на друк». Менеджерка вранці скасувала дубль
+    // руками.
+    //
+    // Тому пул близнюків читається окремо: те саме вікно, але БЕЗ умови про
+    // відсутність картки, і лише ті поля, за якими впізнається близнюк.
+    // Сторінками, бо orders — таблиця з готчі 14.
+    const twinPool: any[] = [];
+    for (let from = 0; ; from += 1000) {
+        const { data: page, error: poolError } = await supabase
+            .from('orders')
+            .select('id, customer_phone, total, created_at, payment_status, custom_attributes')
+            .gte('created_at', since)
+            .neq('source', MIRROR_SOURCE)
+            .order('created_at', { ascending: false })
+            .range(from, from + 999);
+
+        if (poolError) throw poolError;
+        twinPool.push(...(page || []));
+        if (!page || page.length < 1000) break;
+    }
+
     return rows
         .filter(o => !(o.custom_attributes as any)?.keycrm?.order_id)
         // A mirrored order is a read-only copy of an order that already lives in
@@ -820,7 +853,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // that never got a product. Diana asked for unpaid orders in the CRM,
         // not for empty rows (TM-001212, TM-001163 are both 0 ₴).
         .filter(o => (Number(o.total) || 0) > 0)
-        .filter(o => !isSupersededAttempt(o, rows))
+        .filter(o => !isSupersededAttempt(o, twinPool))
         .filter(shouldPushToCrm)
         .slice(0, params.limit);
 }
