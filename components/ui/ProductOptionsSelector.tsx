@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
+import { minPagesForSize } from '@/lib/pricing/photobook-min-pages';
 import { coverColorRequirement } from '@/lib/cover-colors';
 import { createBrowserClient } from '@supabase/auth-helpers-nextjs';
 import { SizeVisualizer } from './SizeVisualizer';
@@ -772,14 +773,7 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
     // invalid state where `Кількість сторінок = 6` for a size that
     // requires at least 10. Bump it up to the new size's minimum.
     if (optionName === 'Розмір') {
-      const MIN_PAGES_BY_SIZE: Record<string, number> = {
-        '20х20': 6, '20x20': 6, '20×20': 6,
-        '25х25': 8, '25x25': 8, '25×25': 8,
-        '20х30': 10, '20x30': 10, '20×30': 10,
-        '30х20': 10, '30x20': 10, '30×20': 10,
-        '30х30': 16, '30x30': 16, '30×30': 16,
-      };
-      const minForNewSize = MIN_PAGES_BY_SIZE[String(value)] || 0;
+      const minForNewSize = minPagesForSize(value);
       if (minForNewSize > 0) {
         const currentPages = Number(newOptions['Кількість сторінок'] || 0);
         if (currentPages > 0 && currentPages < minForNewSize) {
@@ -915,15 +909,9 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
                   if (option.name === 'Кількість сторінок') {
                     const selectedSize = selectedOptions['Розмір'];
                     if (selectedSize) {
-                      // Find min_pages from product options (passed via slug-based config)
-                      const MIN_PAGES: Record<string, number> = {
-                        '20х20': 6, '20x20': 6, '20×20': 6,
-                        '25х25': 8, '25x25': 8, '25×25': 8,
-                        '20х30': 10, '20x30': 10, '20×30': 10,
-                        '30х20': 10, '30x20': 10, '30×20': 10,
-                        '30х30': 16, '30x30': 16, '30×30': 16,
-                      };
-                      const minPages = MIN_PAGES[String(selectedSize)] || 6;
+                      // Мінімуми лежать в одному місці на обидва застосування —
+                      // тут і в підтягуванні вже обраного значення вище.
+                      const minPages = minPagesForSize(selectedSize) || 6;
                       return Number(value) >= minPages;
                     }
                   }
