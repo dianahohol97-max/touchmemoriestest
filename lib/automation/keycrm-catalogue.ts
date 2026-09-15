@@ -1,5 +1,6 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fetchKeycrmOffers, fetchKeycrmOffersByIds, fetchKeycrmOffersByProduct, keycrmRequest, type KeycrmOffer } from '@/lib/automation/keycrm';
+import { matchCoverType } from '@/lib/editor/pricing';
 
 /**
  * Reconcile the website catalogue against the KeyCRM catalogue.
@@ -272,6 +273,45 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
 
     if (error) throw error;
 
+    // ЯКІ ПАРИ «РОЗМІР + РОЗВОРОТИ» СПРАВДІ ІСНУЮТЬ.
+    //
+    // Раніше перелік варіантів фотокниги будувався як усі розміри × усі
+    // кількості розворотів, і виходило 115 пар на обкладинку замість реальних
+    // 105. Мінімум розворотів залежить від розміру (30×30 від шістнадцяти), і
+    // картка товару це враховує давно — а цей генератор ні. Через те в мапі
+    // зіставлень зʼявилося 18 пар на товари, яких не існує, і ще чотири мало
+    // не поїхали менеджерці списком «завести в CRM».
+    //
+    // Єдине джерело правди тут — таблиця цін: те, чого не можна порахувати,
+    // не можна й продати. Сторінками, бо мовчазний обрив на тисячі тут
+    // викидав би справжні варіанти, а не додавав зайві — помилка дорожча.
+    const pricedCombos = new Set<string>();
+    for (let from = 0; ; from += 1000) {
+        const { data: priceRows, error: priceError } = await supabase
+            .from('photobook_prices')
+            .select('page_count, cover_types(name), photobook_sizes(name)')
+            .range(from, from + 999);
+
+        if (priceError) {
+            // Не тиха відмова: без таблиці цін відсів вимикається цілком (нижче),
+            // і поводимося як раніше — краще зайвий варіант, ніж загублений.
+            console.error('[keycrm-catalogue] photobook_prices read failed:', priceError.message);
+            pricedCombos.clear();
+            break;
+        }
+
+        for (const row of priceRows || []) {
+            const cover = Array.isArray((row as any).cover_types)
+                ? (row as any).cover_types[0]?.name : (row as any).cover_types?.name;
+            const size = Array.isArray((row as any).photobook_sizes)
+                ? (row as any).photobook_sizes[0]?.name : (row as any).photobook_sizes?.name;
+            if (!cover || !size) continue;
+            pricedCombos.add(`${cover}|${sizeKey(String(size))}-${row.page_count}`);
+        }
+
+        if (!priceRows || priceRows.length < 1000) break;
+    }
+
     // Active swatch colours per cover type, for the colour-split products
     // below. One query for all of them — the table is tiny.
     const coverColoursByType = new Map<string, string[]>();
@@ -341,9 +381,16 @@ export async function fetchSiteProducts(): Promise<SiteProduct[]> {
 
             if (pageValues.length) {
                 for (const pages of pageValues) {
+                    const variant = `${sizeKey(label)}-${pages}`;
+                    // Відсів працює лише тоді, коли обкладинку впізнано І
+                    // таблиця цін прочиталася. Інакше все йде як раніше:
+                    // зайвий варіант у мапі — дрібниця, загублений — дірка.
+                    const cover = matchCoverType(`${slug} ${name}`);
+                    if (cover && pricedCombos.size && !pricedCombos.has(`${cover}|${variant}`)) continue;
+
                     products.push({
                         slug,
-                        variant: `${sizeKey(label)}-${pages}`,
+                        variant,
                         variantLabel: `${label}, ${pages} стор.`,
                         name: `${name} ${label} ${pages} сторінок`.trim(),
                     });
