@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allows, mergeRolePermissions } from '@/lib/auth/permissions';
+import { allows, mergeRolePermissions, canApprovePartners } from '@/lib/auth/permissions';
 
 /**
  * Права в адмінці.
@@ -74,5 +74,39 @@ describe('allows', () => {
 
     it('lets an admin through everything, denials included', () => {
         expect(allows(manager as any, 'finance', 'full', true)).toBe(true);
+    });
+});
+
+/**
+ * Підтвердження партнера — окреме право.
+ *
+ * Воно випускає в світ активний промокод зі знижкою, тому завжди належало
+ * лише адмінам і власникам. Тепер його можна дати й окремій людині через
+ * повний рівень у розділі «Маркетинг»: роль менеджера дає там 'edit', тож
+ * саме по собі це нікому нічого не додає (Діана, 15.09.2026, про Катерину).
+ */
+describe('canApprovePartners', () => {
+    it('адмін і власник можуть завжди', () => {
+        expect(canApprovePartners(true, {})).toBe(true);
+        expect(canApprovePartners(true, { marketing: 'none' })).toBe(true);
+    });
+
+    it('менеджер із рівнем edit — не може', () => {
+        expect(canApprovePartners(false, { marketing: 'edit' })).toBe(false);
+    });
+
+    it('повний рівень у «Маркетингу» відкриває підтвердження', () => {
+        expect(canApprovePartners(false, { marketing: 'full' })).toBe(true);
+    });
+
+    it('порожні права нікого не пускають', () => {
+        // Тут правило СУВОРІШЕ за allows(): відсутній ключ не означає «можна».
+        expect(canApprovePartners(false, {})).toBe(false);
+        expect(canApprovePartners(false, null)).toBe(false);
+        expect(canApprovePartners(false, undefined)).toBe(false);
+    });
+
+    it('повний рівень в іншому розділі права не дає', () => {
+        expect(canApprovePartners(false, { finance: 'full', orders: 'full' })).toBe(false);
     });
 });

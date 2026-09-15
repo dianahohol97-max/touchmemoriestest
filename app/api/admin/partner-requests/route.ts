@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin, likeEscape } from '@/lib/auth/guards';
+import { requirePartnerApprover, likeEscape } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createAgencyPartner } from '@/lib/agency/create-partner';
 import { sendPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
@@ -19,12 +19,13 @@ const FROM_EMAIL = 'hello@touchmemories.com.ua';
  * менеджера» коштував менеджеру комісії за закриту ним угоду, тому він більше
  * не окремий крок.
  *
- * requireAdmin, а не requireStaff: підтвердження випускає в світ активний
- * промокод зі знижкою.
+ * requirePartnerApprover, а не requireStaff: підтвердження випускає в світ
+ * активний промокод зі знижкою. Крім адмінів і власників пускає людину з
+ * повним рівнем у розділі «Маркетинг» — див. canApprovePartners.
  */
 
 export async function GET() {
-  const guard = await requireAdmin();
+  const guard = await requirePartnerApprover();
   if (!guard.ok) return guard.response;
 
   const admin = getAdminClient();
@@ -47,7 +48,7 @@ export async function GET() {
  * decline приймає decline_reason — його бачить менеджер у своєму кабінеті.
  */
 export async function PATCH(request: Request) {
-  const guard = await requireAdmin();
+  const guard = await requirePartnerApprover();
   if (!guard.ok) return guard.response;
 
   const body = await request.json().catch(() => ({}));

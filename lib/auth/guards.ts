@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { likeEscape } from '@/lib/supabase/like-escape';
 import { resolveStaffPermissions } from '@/lib/auth/staff-permissions';
-import { allows, type PermissionLevel } from '@/lib/auth/permissions';
+import { allows, canApprovePartners, type PermissionLevel } from '@/lib/auth/permissions';
 
 /**
  * Auth guards for API routes.
@@ -175,6 +175,38 @@ export async function requireStaff(): Promise<Guard> {
 
     return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
 }
+/**
+ * Право підтверджувати заявки на оформлення партнера.
+ *
+ * Ширше за requireAdmin рівно на одну людину: крім адмінів і власників,
+ * пускає співробітника з ПОВНИМ рівнем у розділі «Маркетинг». Роль менеджера
+ * дає там 'edit', тож доступ з'являється лише тоді, коли рівень проставлено
+ * людині індивідуально — і так само індивідуально знімається. Правило, чому
+ * саме «Маркетинг», — у canApprovePartners.
+ */
+export async function requirePartnerApprover(): Promise<Guard> {
+    const { user } = await getSession();
+    if (!user) {
+        return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    }
+
+    const email = user.email;
+    if (email) {
+        const admin = getAdminClient();
+        const { data: adminRow } = await admin
+            .from('admin_users')
+            .select('id')
+            .ilike('email', likeEscape(email))
+            .maybeSingle();
+        if (adminRow) return { ok: true, userId: user.id };
+
+        const { isAdmin, permissions } = await resolveStaffPermissions(email);
+        if (canApprovePartners(isAdmin, permissions)) return { ok: true, userId: user.id };
+    }
+
+    return { ok: false, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+}
+
 /**
  * Доступ до РОЗДІЛУ адмінки, а не просто «я співробітник».
  *
