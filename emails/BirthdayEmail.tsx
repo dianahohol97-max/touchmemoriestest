@@ -13,6 +13,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BodyParagraphs } from './BodyParagraphs';
+import { withPromoCode } from '@/lib/referral/promo-code';
 
 
 interface BirthdayEmailProps {
@@ -89,7 +90,7 @@ export default function BirthdayEmail({
                             {/* CTA */}
                             <Section className="text-center mt-[32px]">
                                 <Button
-                                    href={`${appUrl}`}
+                                    href={withPromoCode(appUrl, promoCode)}
                                     className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline"
                                 >
                                     Зробити замовлення зі знижкою →

@@ -11,6 +11,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BodyParagraphs } from './BodyParagraphs';
+import { withPromoCode } from '@/lib/referral/promo-code';
 
 
 interface WinBackEmailProps {
@@ -76,7 +77,7 @@ export default function WinBackEmail({
 
                             <Section className="text-center mb-[32px]">
                                 <Button
-                                    href={appUrl}
+                                    href={withPromoCode(appUrl, promoCode)}
                                     className="bg-[#263A99] text-white font-bold text-[16px] px-[32px] py-[14px] rounded-[3px] no-underline"
                                 >
                                     Обрати подарунок

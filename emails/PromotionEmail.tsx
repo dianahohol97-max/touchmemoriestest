@@ -13,6 +13,7 @@ import {
     Tailwind
 } from '@react-email/components';
 import * as React from 'react';
+import { withPromoCode } from '@/lib/referral/promo-code';
 
 interface PromotionEmailProps {
     title: string;
@@ -103,7 +104,7 @@ export default function PromotionEmail({
 
                             {/* CTA */}
                             <Button
-                                href={appUrl}
+                                href={withPromoCode(appUrl, promoCode)}
                                 className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline inline-block w-full max-w-[300px]"
                             >
                                 Перейти в каталог →

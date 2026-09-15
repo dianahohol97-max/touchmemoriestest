@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { useTranslation } from '@/lib/i18n/context';
 import Image from 'next/image';
 import Link from 'next/link';
+import { readStoredPromoCode, PROMO_STORAGE_KEY } from '@/lib/referral/promo-code';
 
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
@@ -248,6 +249,11 @@ export default function CheckoutPage() {
             const params = new URLSearchParams(window.location.search);
             code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
             if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
+            // Останнім — акційний код із листа, відкладений ReferralCapture.
+            // Саме останнім, бо реферальний означає комісію агенції, і код із
+            // розсилки не має права її перебивати. Він же має строк: місяць,
+            // щоб давня акція не підставлялася тихцем у кожне замовлення.
+            if (!code) code = readStoredPromoCode() || '';
         } catch { /* ignore */ }
         // Partner codes may contain Cyrillic (generated from agency names,
         // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
@@ -984,6 +990,8 @@ export default function CheckoutPage() {
             // (ReferralCapture intentionally no longer deletes it, so checkout owns
             // the end of its lifecycle.)
             try { localStorage.removeItem('tm_ref_code'); localStorage.removeItem('tm_ref_captured'); } catch { /* ignore */ }
+            // Акційний код із листа теж використаний — прибираємо разом із рештою.
+            try { localStorage.removeItem(PROMO_STORAGE_KEY); } catch { /* ignore */ }
             toast.dismiss();
             window.location.href = invoiceData.pageUrl;
 

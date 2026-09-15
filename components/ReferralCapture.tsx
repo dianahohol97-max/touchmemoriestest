@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { storePromoCode } from '@/lib/referral/promo-code';
 
 const REF_KEY = 'tm_ref_code';
 // Codes we've already attempted to link as a customer referral, so we don't
@@ -62,6 +63,15 @@ export default function ReferralCapture() {
         // Stash any ?ref= arriving on this page load.
         try {
             const params = new URLSearchParams(window.location.search);
+
+            // Те саме для ?promo=, і з тієї ж причини: параметр живе рівно до
+            // першого переходу. Лист із каталогом веде на /catalog, звідти
+            // людина йде на товар — і код зникає, так і не діставшись чекауту.
+            // Ключ окремий від реферального: партнерський код означає комісію
+            // агенції, і акційний не має права його перебивати.
+            const promo = params.get('promo');
+            if (promo) storePromoCode(promo);
+
             const ref = params.get('ref');
             // Allow Cyrillic: partner codes are generated from agency names.
             if (ref && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(ref)) {

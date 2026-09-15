@@ -12,6 +12,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BodyParagraphs } from './BodyParagraphs';
+import { withPromoCode } from '@/lib/referral/promo-code';
 
 
 interface WelcomeEmailProps {
@@ -100,7 +101,7 @@ export default function WelcomeEmail({
                             {/* CTA */}
                             <Section className="text-center mb-[24px]">
                                 <Button
-                                    href={`${appUrl}/constructor/photobook`}
+                                    href={withPromoCode(`${appUrl}/constructor/photobook`, promoCode)}
                                     className="bg-[#263A99] text-white px-[32px] py-[16px] rounded-[3px] text-[16px] font-bold no-underline w-full max-w-[280px]"
                                 >
                                     Створити фотокнигу →

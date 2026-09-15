@@ -11,6 +11,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BodyParagraphs } from './BodyParagraphs';
+import { withPromoCode } from '@/lib/referral/promo-code';
 
 
 interface WelcomeSeriesEmailProps {
@@ -107,7 +108,7 @@ export default function WelcomeSeriesEmail({
 
                             <Section className="text-center mb-[8px]">
                                 <Button
-                                    href={`${appUrl}/catalog`}
+                                    href={withPromoCode(`${appUrl}/catalog`, promoCode)}
                                     className="bg-[#263A99] text-white font-bold text-[16px] px-[32px] py-[14px] rounded-[3px] no-underline"
                                 >
                                     {isReminder ? 'Використати промокод' : 'Подивитися каталог'}
