@@ -3556,13 +3556,23 @@ export default function BookLayoutEditor() {
   };
   const clearSlot = (pi: number, si: number) => {
     pushHistory();
-    // After removing a photo, re-flow the page to fewer slots. This already
-    // applied to photobooks (spread mode); now also to journals (page mode), so
-    // deleting a photo drops its slot instead of leaving an empty box. Scoped to
-    // journals to avoid disturbing magazine/travelbook editorial layouts; endpaper
-    // pages keep their single fixed slot.
-    const isJournalDoc = _slug.includes('journal') || _slug.includes('fotozhurnal');
-    const canReflow = pi > 0 && (isSpreadMode || (isJournalDoc && !isEndpaperPage(pi)));
+    // Видалили фото — розкладка перебудовується під меншу кількість, а не
+    // лишає порожню коробку. Фотокниги (режим розворотів) і журнали робили це
+    // й раніше; тепер так само поводяться травелбуки й журнали-магазини
+    // (Діана, 15.09.2026: «коли видаляю фото, то слот не зникає а залишається
+    // пустим, а я б хотіла щоб він зникав а колажі переранжовувались під
+    // меншу кількість фото»).
+    //
+    // Раніше ці два типи були виключені навмисно, щоб не чіпати «редакторські»
+    // розкладки. Ціна виключення виявилася більшою за користь: порожній слот
+    // лишався в макеті й їхав у друк білою плашкою, а прибрати його не було чим.
+    // Перебудова ж не є незворотною: pushHistory() вище знімає стан ДО
+    // видалення, тож «Скасувати» повертає і фото, і попередню розкладку разом.
+    // Саме тому нижче ще й підказка з кнопкою — щоб людина знала, що перехід
+    // можна відкотити одним рухом.
+    //
+    // Форзаци не чіпаються: там один слот за визначенням.
+    const canReflow = pi > 0 && (isSpreadMode || !isEndpaperPage(pi));
     if (canReflow) {
       const page = pages[pi];
       if (page) {
@@ -3573,6 +3583,15 @@ export default function BookLayoutEditor() {
         } else {
           // Re-collage with remaining photos (drops the emptied slot; custom sizes reset)
           autoCollage(remaining, pi);
+          // Перебудова змінює вигляд усього розвороту, тож про неї треба
+          // сказати вголос і одразу дати дорогу назад. Кнопка тут — той самий
+          // undo, що й у горішній панелі: pushHistory() на початку clearSlot
+          // зняв стан до видалення, тож повертається і фото, і розкладка.
+          toast('Розкладку перебудовано під ' + remaining.length + ' фото', {
+            description: 'Попередній вигляд повертає «Скасувати».',
+            action: { label: 'Скасувати', onClick: () => undo() },
+            duration: 6000,
+          });
         }
         setPhotoEditSlot(null);
         setEditSlotKey(null);
@@ -8946,15 +8965,15 @@ export default function BookLayoutEditor() {
                                     style={{ position:'absolute', left:hx-7, top:hy-7, width:14, height:14,
                                       borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
                                       cursor:`${dir}-resize`, zIndex:16, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
-                                      touchAction:'manipulation' }}/>
+                                      pointerEvents:'auto', touchAction:'manipulation' }}/>
                                 );
                               })}
                               {/* Size info */}
-                              <div style={{position:'absolute',left:lx+sw/2,top:ty+sh+8,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:16,whiteSpace:'nowrap'}}>
+                              <div style={{position:'absolute',left:lx+sw/2,top:ty+sh+8,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:16,pointerEvents:'none',whiteSpace:'nowrap'}}>
                                 {Math.round(sw)}×{Math.round(sh)}px
                               </div>
                               {/* Rotation slider */}
-                              <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',left:lx+sw/2,top:ty+sh+26,transform:'translateX(-50%)',background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:9,fontWeight:600,padding:'4px 10px',borderRadius:12,zIndex:16,display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
+                              <div onMouseDown={e=>e.stopPropagation()} style={{position:'absolute',left:lx+sw/2,top:ty+sh+26,transform:'translateX(-50%)',background:'rgba(0,0,0,0.8)',color:'#fff',fontSize:9,fontWeight:600,padding:'4px 10px',borderRadius:12,zIndex:16,pointerEvents:'auto',display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap'}}>
                                 <span>↻</span>
                                 <input type="range" min={0} max={359} value={slot?.rotation||0} onChange={e=>{const r=+e.target.value;setPages(prev=>prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,rotation:r})}));}} style={{width:80,accentColor:'#3b82f6'}}/>
                                 <span style={{minWidth:28,textAlign:'center'}}>{slot?.rotation||0}°</span>
@@ -8963,7 +8982,7 @@ export default function BookLayoutEditor() {
                               {/* Done button */}
                               <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}}
                                 onMouseDown={e=>e.stopPropagation()}
-                                style={{position:'absolute',left:lx+sw/2,top:ty-24,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:16,boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
+                                style={{position:'absolute',left:lx+sw/2,top:ty-24,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:16,pointerEvents:'auto',boxShadow:'0 2px 6px rgba(0,0,0,0.3)'}}>
                                  Готово
                               </button>
                             </>
@@ -9719,7 +9738,7 @@ export default function BookLayoutEditor() {
                                 {/* Move handle (top bar) */}
                                 <div onPointerDown={e=>{e.stopPropagation();startPageSlotDrag(e,'move');}}
                                   onClick={e=>e.stopPropagation()}
-                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:90,height:16,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.9)',touchAction:'none'}}>
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:90,height:16,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.9)',pointerEvents:'auto',touchAction:'none'}}>
                                   <div style={{width:20,height:3,borderRadius:2,background:'#fff'}}/>
                                 </div>
                                 {/* Corner resize handles */}
@@ -9727,14 +9746,14 @@ export default function BookLayoutEditor() {
                                   const pos = dir==='nw'?{left:-7,top:-7}:dir==='ne'?{right:-7,top:-7}:dir==='se'?{right:-7,bottom:-7}:{left:-7,bottom:-7};
                                   return (
                                     <div key={dir} onPointerDown={e=>startPageSlotDrag(e,dir)}
-                                      style={{position:'absolute',...pos,width:14,height:14,borderRadius:'50%',background:'#3b82f6',border:'2.5px solid #fff',cursor:`${dir}-resize`,zIndex:58,boxShadow:'0 1px 4px rgba(0,0,0,0.4)',touchAction:'none'}}/>
+                                      style={{position:'absolute',...pos,width:14,height:14,borderRadius:'50%',background:'#3b82f6',border:'2.5px solid #fff',cursor:`${dir}-resize`,zIndex:58,boxShadow:'0 1px 4px rgba(0,0,0,0.4)',pointerEvents:'auto',touchAction:'none'}}/>
                                   );
                                 })}
                                 {/* Size readout */}
                                 <div style={{position:'absolute',left:'50%',bottom:-20,transform:'translateX(-50%)',background:'rgba(0,0,0,0.7)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:10,zIndex:58,whiteSpace:'nowrap',pointerEvents:'none'}}>{Math.round(Number(slotStyle.width)||0)}×{Math.round(Number(slotStyle.height)||0)}px</div>
                                 {/* Done */}
                                 <button onClick={e=>{e.stopPropagation();setEditSlotKey(null);}} onPointerDown={e=>e.stopPropagation()}
-                                  style={{position:'absolute',left:'50%',top:-26,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:58,boxShadow:'0 2px 6px rgba(0,0,0,0.3)',whiteSpace:'nowrap'}}>Готово</button>
+                                  style={{position:'absolute',left:'50%',top:-26,transform:'translateX(-50%)',background:'#16a34a',color:'#fff',border:'none',cursor:'pointer',fontSize:10,fontWeight:700,padding:'3px 12px',borderRadius:10,zIndex:58,pointerEvents:'auto',boxShadow:'0 2px 6px rgba(0,0,0,0.3)',whiteSpace:'nowrap'}}>Готово</button>
                               </>
                               </div>
                             )}
