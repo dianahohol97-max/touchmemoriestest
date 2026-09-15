@@ -41,15 +41,23 @@ const PRINT_RENDER_TOKEN = process.env.PRINT_RENDER_TOKEN!; // shared secret wit
  * callback makes indexing independent of the awaiting function's lifetime;
  * registration on the app side is idempotent, so double delivery is safe.
  */
-async function reportRenderComplete(projectId: string, uploaded: string[]): Promise<void> {
+async function reportRenderComplete(
+  projectId: string,
+  uploaded: string[],
+  failed: { spread: number; error: string }[] = [],
+): Promise<void> {
   if (!uploaded.length) return;
   try {
     const res = await fetch(`${APP_BASE_URL}/api/print/render-complete`, {
       method: 'POST',
+      // `failed` travels with the callback so a partial render is visible in the
+      // app's own logs. Without it the only record of which pages died lived in
+      // Railway's console, and by the time anyone noticed the missing files it
+      // had rotated away.
       headers: { 'Content-Type': 'application/json', 'x-render-token': PRINT_RENDER_TOKEN },
-      body: JSON.stringify({ projectId, uploaded, serviceCommit: SERVICE_COMMIT }),
+      body: JSON.stringify({ projectId, uploaded, failed, serviceCommit: SERVICE_COMMIT }),
     });
-    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files)`);
+    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files${failed.length ? `, ${failed.length} failed` : ''})`);
   } catch (e: any) {
     console.error('[render] completion callback failed:', e?.message || e);
   }
@@ -459,6 +467,20 @@ app.post('/render', async (req, res) => {
     // label) are stripped by BookPreviewModal's print mode.
 
     // 2. Render each spread (0 = cover) at the exact print pixel size.
+    // One bad spread must not cost the whole book — the same rule the calendar
+    // loop above already follows, and the one this loop was missing.
+    //
+    // There was no catch here at all: any throw (a dead Chromium, an upload
+    // error, the aspect guard) left the loop, hit the outer catch and ended the
+    // render there and then. Everything after that spread simply never
+    // rendered, the completion callback never fired, and the order sat with a
+    // partial set that only the hourly reconcile cron ever noticed. TM-001301
+    // is what that looks like from the outside: a 14-page travel book with
+    // cover, f1, 01, 02, 03 in storage and nothing else, twice in a row — the
+    // second run died in the same place twenty seconds in. The customer's
+    // photos were never at risk (all 17 uploads are registered), but eleven
+    // page files were missing from the макет with nothing in the app to say so.
+    const failedSpreads: { spread: number; error: string }[] = [];
     for (let spread = 0; spread < spreadCount; spread++) {
       const isCover = spread === 0;
       const mm = isCover ? dims.cover : dims.spread;
@@ -792,14 +814,38 @@ app.post('/render', async (req, res) => {
           if (upErr) throw new Error(`upload ${storagePath}: ${upErr.message}`);
           uploaded.push(storagePath);
         }
+      } catch (spreadErr: any) {
+        // Record and carry on. The browser is relaunched by getBrowser() on the
+        // next iteration whenever this was a crash, so a spread that died of a
+        // dead Chromium costs one spread instead of every spread after it.
+        const msg = String(spreadErr?.message || spreadErr);
+        console.error(`[render] ${isCover ? 'cover' : `spread ${spread}`} failed, continuing:`, msg);
+        failedSpreads.push({ spread, error: msg });
       } finally {
         await page.close().catch(() => { /* the browser may already be gone */ });
         await recycleBrowserIfNeeded(pxW * pxH);
       }
     }
 
-    await reportRenderComplete(projectId, uploaded);
-    return res.json({ ok: true, projectId, spreads: spreadCount, uploaded });
+    if (failedSpreads.length > 0) {
+      console.error(
+        `[render] ${failedSpreads.length} of ${spreadCount} spreads failed — the макет is INCOMPLETE: `
+        + failedSpreads.map(f => `#${f.spread} (${f.error})`).join('; '),
+      );
+    }
+
+    await reportRenderComplete(projectId, uploaded, failedSpreads);
+    // ok says whether the whole book rendered, and the caller uses it to decide
+    // whether the previous export may be pruned. A partial run must never look
+    // complete: replacing yesterday's whole макет with five of its files is a
+    // worse outcome than an out-of-date one.
+    return res.json({
+      ok: failedSpreads.length === 0,
+      projectId,
+      spreads: spreadCount,
+      uploaded,
+      failed: failedSpreads,
+    });
   } catch (e: any) {
     console.error('[render] failed', e);
     return res.status(500).json({ error: e?.message || 'render failed' });

@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { hasPrintWarning, printWarningLine, stripPrintWarning } from '@/lib/print/print-warning';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
+import { isRenderComplete } from '@/lib/print/render-result';
 
 export const dynamic = 'force-dynamic';
 // The Railway render of every spread can take 1–2 min for a large book; give the
@@ -335,18 +336,44 @@ export async function POST(request: NextRequest) {
       // photobook-uploads bucket; we record that bucket + path here (variant A:
       // keep the files where the service put them, just index them in the DB).
       const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
+      // Частковий рендер. Сервіс більше не вмирає на першій невдалій сторінці,
+      // а пропускає її й іде далі, тож відповідь 200 уже НЕ означає, що макет
+      // зібрався весь: detail.ok каже, чи дійшов він до кінця, а detail.failed
+      // перелічує, що впало. Такий набір реєструємо (файли є, виробництву вони
+      // потрібні), але перерендереним не рахуємо — прибирання нижче знесло б
+      // учорашній цілий макет заради сьогоднішніх пʼяти аркушів.
+      const failedSpreads: Array<{ spread?: number; error?: string }> =
+        Array.isArray(detail?.failed) ? detail.failed : [];
+      const complete = isRenderComplete(detail);
+      if (!complete) {
+        console.error('[render-order] partial render — макет неповний, старі файли лишаємо', {
+          orderId, projectId: project.id, uploaded: uploaded.length, failed: failedSpreads,
+        });
+        results[results.length - 1] = {
+          projectId: project.id,
+          ok: false,
+          detail: { ...detail, note: `неповний макет: ${failedSpreads.length} аркушів не відрендерилось` },
+        };
+      }
       if (uploaded.length) {
         allUploaded.push(...uploaded);
         // Тільки тепер цей макет вважається перерендереним — і тільки його старі
         // файли можна прибирати.
-        renderedProjectIds.push(String(project.id));
+        if (complete) renderedProjectIds.push(String(project.id));
         // Shared with /api/print/render-complete (the service's completion
         // callback that covers renders outliving this route's maxDuration).
         const ofErrMsg = await registerExportFiles(admin, orderId, project.product_type, uploaded);
         if (ofErrMsg) {
           // The render itself succeeded; surface the indexing problem but don't
           // fail the whole call — files exist in storage and can be re-indexed.
-          results[results.length - 1] = { projectId: project.id, ok: true, detail: { ...detail, orderFilesError: ofErrMsg } };
+          // `complete` is carried through: a partial render stays not-ok even
+          // when the indexing also had something to say.
+          const prev = results[results.length - 1];
+          results[results.length - 1] = {
+            projectId: project.id,
+            ok: complete,
+            detail: { ...(typeof prev?.detail === 'object' && prev?.detail ? prev.detail : detail), orderFilesError: ofErrMsg },
+          };
         }
       }
     } catch (e: any) {
@@ -374,7 +401,10 @@ export async function POST(request: NextRequest) {
   // Тільки після УСПІШНОГО рендеру. Якщо цього разу не зібралося нічого, на
   // замовленні краще лишити старий набір: він застарілий, але це принаймні
   // файли, а порожня картка не дає виробництву нічого.
-  if (allUploaded.length > 0) await pruneExportsOfDetachedProjects(admin, orderId);
+  // Умова читає renderedProjectIds, а не allUploaded: відколи сервіс переживає
+  // невдалу сторінку, «щось завантажилось» уже не означає «макет зібрався», і
+  // частковий набір не має права нічого зносити.
+  if (renderedProjectIds.length > 0) await pruneExportsOfDetachedProjects(admin, orderId);
 
   // A soft-cover book (велюр / шкірзамінник / тканина) with гравіювання or
   // флекс also needs the monochrome engraving макет, which Railway does not
