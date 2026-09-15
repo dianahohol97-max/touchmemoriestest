@@ -4,6 +4,7 @@ import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { countedRevenue } from '@/lib/orders/payment-state';
 import { REVENUE_DATE_COLUMN } from '@/lib/orders/revenue-period';
+import { resolvePlanBonus } from '@/lib/salary/plan-bonus';
 import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export async function calculateSalary(staffId: string, fromDate: string, toDate: string) {
@@ -101,18 +102,21 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         const shiftRate = workedShifts * 400;
         breakdown.shifts = { label: `Зміни (${workedShifts} × 400)`, value: shiftRate };
 
-        // 3. Plan Bonus (1000)
+        // 3. Plan Bonus
         //
-        // УВАГА: стовпця `manager_plan_target` у таблиці `staff` немає —
-        // міграція `salary_qc/20260313010000_salary_qc_module.sql` створила
-        // таблиці змін і помилок, а ALTER на `staff` не доїхав (перевірено
-        // 15.09.2026, information_schema). Тож план тут завжди нуль, умова
-        // завжди істинна, і тисяча нараховується всім незалежно від обігу.
-        // Свідомо лишено як є: змінити означало б зменшити людям виплату без
-        // рішення Діани. Питання їй поставлене окремо.
-        const planReached = totalRevenue >= (staff.manager_plan_target || 0);
-        const planBonus = planReached ? 1000 : 0;
-        breakdown.plan_bonus = { label: 'Бонус за план', value: planBonus, status: planReached ? 'ok' : 'missed' };
+        // Правило в lib/salary/plan-bonus.ts: немає плану — немає бонусу.
+        // Раніше було навпаки, бо порожній `manager_plan_target` через `|| 0`
+        // ставав планом «нуль», і тисяча нараховувалася всім, у тому числі за
+        // місяць без жодного замовлення. Стовпець додала міграція
+        // 20260915_manager_plan_target.sql, значення в ньому ставить Діана.
+        const plan = resolvePlanBonus(totalRevenue, staff.manager_plan_target);
+        const planBonus = plan.value;
+        breakdown.plan_bonus = {
+            label: 'Бонус за план',
+            value: plan.value,
+            status: plan.status,
+            note: plan.note,
+        };
 
         // 4. Quality Bonus (75 per shift if QC < 30)
         const qualityBonus = totalQCPoints < 30 ? workedShifts * 75 : 0;
