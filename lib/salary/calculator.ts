@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 
 import { getAdminClient } from '@/lib/supabase/admin';
+import { countedRevenue } from '@/lib/orders/payment-state';
+import { REVENUE_DATE_COLUMN } from '@/lib/orders/revenue-period';
 import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export async function calculateSalary(staffId: string, fromDate: string, toDate: string) {
@@ -12,7 +14,8 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
 
     const startDate = startOfDay(new Date(fromDate));
     // Include the whole final day — a bare `new Date(toDate)` is midnight, so
-    // `.lte('paid_at', endDate)` would drop everything after 00:00 on toDate.
+    // `.lte(REVENUE_DATE_COLUMN, endDate)` would drop everything after 00:00
+    // on toDate.
     const endDate = endOfDay(new Date(toDate));
 
     // 2. Fetch Common Data
@@ -34,21 +37,32 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         .lte('error_date', toDate);
     const totalQCPoints = qcLogs?.reduce((sum: number, log: any) => sum + (Number(log.points) || 0), 0) || 0;
 
-    // - Orders (Based on paid_at for managers, or relevant IDs for others)
-    // We fetch all orders that might be relevant to this person
-    // Сторінками, бо період задається ззовні і може бути довшим за місяць.
+    // - Orders for the period.
     //
+    // Вікно — по даті замовлення, для всіх ролей однаково, тим самим стовпцем,
+    // яким рахує дохід уся звітність (REVENUE_DATE_COLUMN).
+    //
+    // Було: менеджерам вікно бралося по `paid_at`. Цей стовпець заповнюється
+    // лише тоді, коли оплату провів наш власний обробник платежу, а таких
+    // замовлень три на всю базу. У дзеркалених із KeyCRM і в тих, де оплату
+    // проставив адміністратор руками, він порожній завжди. Через це вибірка
+    // менеджера була порожня, обіг виходив нуль, а разом із ним нуль давали
+    // комісія півтора відсотка і комісія за «Пісню». Заміряно 15.09.2026: за
+    // серпень жодне з вісімнадцяти замовлень із менеджером не мало `paid_at`,
+    // за вересень — три з двохсот сорока, і всі три чужі. Помилка мовчазна:
+    // екран показував охайний нуль, а не відмову.
+    //
+    // Сторінками, бо період задається ззовні і може бути довшим за місяць.
     // Місяць — це щонайбільше 703 замовлення (серпень 2026), а от два місяці
     // поспіль дають 1 083, тобто вже за межею PostgREST. Зарплата, порахована
     // з обрізаної вибірки, виглядала б просто меншою, без жодної ознаки
     // помилки — і сперечатися з нею довелося б людині.
-    const dateColumn = staff.role === 'manager' ? 'paid_at' : 'created_at';
     const orders = await fetchAllRows<any>((from, to) => supabase
         .from('orders')
         .select('*')
-        .gte(dateColumn, startDate.toISOString())
-        .lte(dateColumn, endDate.toISOString())
-        .order(dateColumn, { ascending: false })
+        .gte(REVENUE_DATE_COLUMN, startDate.toISOString())
+        .lte(REVENUE_DATE_COLUMN, endDate.toISOString())
+        .order(REVENUE_DATE_COLUMN, { ascending: false })
         .range(from, to), { label: 'замовлення для зарплати' });
 
     const breakdown: any = {};
@@ -57,18 +71,45 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
     // 3. Role-Specific Logic
     if (staff.role === 'manager' || (staff.role === 'admin' && staff.name.toLowerCase() !== 'андрій')) {
         // --- MANAGERS ---
-        const managerOrders = orders?.filter((o: any) => o.manager_id === staffId && o.payment_status === 'paid') || [];
-        const totalRevenue = managerOrders.reduce((sum: number, o: any) => sum + Number(o.total), 0);
+        // Обіг менеджера — гроші, які НАДІЙШЛИ по його замовленнях, а не сума
+        // виставлених рахунків.
+        //
+        // Було `payment_status === 'paid'` і сума `total`. Обидва хибні в той
+        // самий бік. Статус 'paid' ставиться лише на повністю оплачених, а
+        // більшість замовлень із KeyCRM живе на передоплаті п'ятдесят
+        // відсотків і лишається в 'pending' — гроші в касі є, для комісії їх
+        // наче немає. Сума рахунку ж зараховувала б менеджеру й ту половину,
+        // якої ще не внесли. Скасовані дають нуль: countedRevenue.
+        //
+        // Різниця на вересні 2026: у Катерини Івашиної надійшло 157 604 ₴, а
+        // під старим фільтром «оплачених» видно 119 064 ₴ — 38 540 ₴ живих
+        // грошей не рахувалися б людині в обіг.
+        const managerOrders = orders?.filter((o: any) => o.manager_id === staffId) || [];
+        const totalRevenue = managerOrders.reduce((sum: number, o: any) => sum + countedRevenue(o), 0);
 
         // 1. Commission (1.5%)
         const commission = totalRevenue * 0.015;
-        breakdown.commission = { label: 'Комісія (1.5%)', value: commission, details: `${totalRevenue.toLocaleString()} ₴ turnover` };
+        breakdown.commission = {
+            label: 'Комісія (1.5%)',
+            value: commission,
+            // Підпис каже, з чого рахували: обіг тут — отримані гроші за
+            // датою замовлення, і саме так його звірятимуть із банком.
+            details: `${Math.round(totalRevenue).toLocaleString('uk-UA')} ₴ обігу — гроші, що надійшли, за датою замовлення`,
+        };
 
         // 2. Shift Rate (400 per shift)
         const shiftRate = workedShifts * 400;
         breakdown.shifts = { label: `Зміни (${workedShifts} × 400)`, value: shiftRate };
 
         // 3. Plan Bonus (1000)
+        //
+        // УВАГА: стовпця `manager_plan_target` у таблиці `staff` немає —
+        // міграція `salary_qc/20260313010000_salary_qc_module.sql` створила
+        // таблиці змін і помилок, а ALTER на `staff` не доїхав (перевірено
+        // 15.09.2026, information_schema). Тож план тут завжди нуль, умова
+        // завжди істинна, і тисяча нараховується всім незалежно від обігу.
+        // Свідомо лишено як є: змінити означало б зменшити людям виплату без
+        // рішення Діани. Питання їй поставлене окремо.
         const planReached = totalRevenue >= (staff.manager_plan_target || 0);
         const planBonus = planReached ? 1000 : 0;
         breakdown.plan_bonus = { label: 'Бонус за план', value: planBonus, status: planReached ? 'ok' : 'missed' };
@@ -78,8 +119,12 @@ export async function calculateSalary(staffId: string, fromDate: string, toDate:
         breakdown.quality_bonus = { label: 'Бонус за якість', value: qualityBonus, points: totalQCPoints };
 
         // 5. "Пісня" Commission (10%)
+        //
+        // Лише по замовленнях, де гроші вже надійшли: до цього фільтром був
+        // статус 'paid', і прибрати його зовсім означало б платити відсоток за
+        // пісню, яку ще не оплатили.
         let pesnyaCommission = 0;
-        managerOrders.forEach((o: any) => {
+        managerOrders.filter((o: any) => countedRevenue(o) > 0).forEach((o: any) => {
             const items = (o.items || []) as any[];
             items.forEach((item: any) => {
                 const name = (item.product_name || item.name || '').toLowerCase();
