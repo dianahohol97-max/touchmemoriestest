@@ -2178,6 +2178,22 @@ export default function BookLayoutEditor() {
   // acrylic/photo insert, flex). So gate all print-on-cover UI behind this.
   const isPrintedCover = isPrintedBack;
 
+  // Задня обкладинка оформлена, якщо її ввімкнули АБО якщо на ній уже лежить фото.
+  //
+  // Друга половина цієї умови — виправлення. Полотно малювало слот задньої
+  // обкладинки лише за backCoverEnabled, а перетягнути фото на задню половину
+  // можна було й до того, як цей прапорець зʼявиться: обробник drop писав
+  // backCoverPhotoId і на цьому все. Фото зберігалося, слот лишався
+  // невидимим, і на місці фото далі стояла пунктирна кнопка «Додати фото на
+  // задню обкладинку». Виглядало це рівно так, як і сказала Діана: фото
+  // додала, а його не показує.
+  //
+  // Гірше те, що друк дивився на це інакше. BookPreviewModal малює задню
+  // фотографію за самим лише backCoverPhotoId, без огляду на прапорець, — тож
+  // редактор показував порожню спинку, а в книжку пішло б фото. Тепер обидва
+  // боки читають наявність фото однаково.
+  const hasBackCoverContent = !!coverState.backCoverEnabled || !!coverState.backCoverPhotoId;
+
   // Wishbook + scrapbook share cover-only flow with fixed page count
   const isScrapbook = _slug.includes('scrapbook');
   const isWishbook = _slug.includes('wish') || _slug.includes('guest') || _slug.includes('pobazhan') || isScrapbook ||
@@ -6622,7 +6638,7 @@ export default function BookLayoutEditor() {
                       </p>
 
                       {/* Opt-in toggle for back cover photo */}
-                      {!coverState.backCoverEnabled ? (
+                      {!hasBackCoverContent ? (
                         <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                           style={{ width:'100%', padding:'8px 10px', border:'1px dashed #c7d2fe', borderRadius:8,
                             background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5',
@@ -8146,13 +8162,13 @@ export default function BookLayoutEditor() {
                   return (
                     <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
-                      onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
+                      onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverEnabled:true, backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
                       {/* Back cover photo slot — hidden by default, shown only when user opted in */}
-                      {isPrinted && !isWishbook && coverState.backCoverEnabled && (
+                      {isPrinted && !isWishbook && hasBackCoverContent && (
                         <div
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
-                          onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
+                          onDrop={e=>{e.stopPropagation();e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverEnabled:true, backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
                           style={{ position:'absolute', left:bSlotPx.x, top:bSlotPx.y, width:bSlotPx.w, height:bSlotPx.h,
                             borderRadius:bBr, overflow:'hidden', cursor: backPhoto ? 'move' : 'default', zIndex:2,
                             border: backPhoto ? 'none' : 'none',
@@ -8240,7 +8256,7 @@ export default function BookLayoutEditor() {
                         </div>
                       )}
                       {/* Resize handles for back cover slot */}
-                      {isPrinted && coverState.backCoverEnabled && (['nw','ne','se','sw'] as const).map(dir => {
+                      {isPrinted && hasBackCoverContent && (['nw','ne','se','sw'] as const).map(dir => {
                         const lp = (dir==='ne'||dir==='se') ? bSlotPx.x+bSlotPx.w : bSlotPx.x;
                         const tp = (dir==='se'||dir==='sw') ? bSlotPx.y+bSlotPx.h : bSlotPx.y;
                         return (
@@ -8259,7 +8275,7 @@ export default function BookLayoutEditor() {
                           Without this the back cover looks like dead space and users (Diana
                           specifically) can't tell it's editable. The sidebar has the same
                           opt-in button but it's not discoverable from canvas. */}
-                      {isPrinted && !isWishbook && !coverState.backCoverEnabled && (
+                      {isPrinted && !isWishbook && !hasBackCoverContent && (
                         <button
                           onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                           style={{ position:'absolute', inset:0, margin:'auto', width:'70%', maxWidth:280, height:'auto', padding:'14px 18px',
@@ -10473,12 +10489,17 @@ export default function BookLayoutEditor() {
                     onDragEnd={() => { setDragPhotoId(null); setDropTarget(null); }}
                     onClick={(e) => {
                       if (used) return;
-                      // Cmd/Ctrl-click — keep current set, just toggle this one.
-                      // Plain click — also toggle this one in selectedPhotoIds, so the
-                      // very first photo gets a number badge (1) instead of disappearing
-                      // into a separate single-tap state. Drag-to-page works off
-                      // selectedPhotoIds when there's >1, and falls back to the dragged
-                      // photo when there's 1, so this is consistent for both flows.
+                      // Cmd/Ctrl-click — накопичує добірку: додає або знімає це фото,
+                      // не чіпаючи решти. Саме так переносять кілька фото одним рухом.
+                      //
+                      // Звичайний клік — вибирає ОДНЕ фото, а не додає його до вже
+                      // вибраних. Раніше обидві гілки робили те саме, тобто накопичували,
+                      // і добірка росла непомітно: людина клацнула одне фото, клацнула
+                      // друге — і потягнула друге. onDragStart бачить, що в добірці двоє,
+                      // кладе в перенесення обидва, і на розворот лягають два фото замість
+                      // одного («перенесла одне фото, а вставилося відразу обидва»,
+                      // Діана 15.09.2026). Повторний клік по єдиному вибраному знімає
+                      // вибір, тож значок (1) на першому фото нікуди не зник.
                       if (e.ctrlKey || e.metaKey) {
                         setSelectedPhotoIds(prev => {
                           const next = new Set(prev);
@@ -10488,9 +10509,10 @@ export default function BookLayoutEditor() {
                         setTapSelectedPhotoId(null);
                       } else {
                         setSelectedPhotoIds(prev => {
-                          const next = new Set(prev);
-                          if (next.has(ph.id)) next.delete(ph.id); else next.add(ph.id);
-                          return next;
+                          // Уже вибране й самотнє — знімаємо. В усіх інших випадках
+                          // добірка стає рівно цим фото.
+                          const onlyThis = prev.size === 1 && prev.has(ph.id);
+                          return onlyThis ? new Set<string>() : new Set<string>([ph.id]);
                         });
                         // Keep tap-selection in sync for the rest of the editor that
                         // still consults tapSelectedPhotoId for click-to-place.
@@ -11725,7 +11747,7 @@ export default function BookLayoutEditor() {
                       <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
                         style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
                     </div>
-                    {!coverState.backCoverEnabled ? (
+                    {!hasBackCoverContent ? (
                       <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                         style={{ width:'100%', padding:'8px', border:'1px dashed #c7d2fe', borderRadius:8,
                           background:'#f8fafc', cursor:'pointer', fontSize:11, fontWeight:600, color:'#4f46e5' }}>
