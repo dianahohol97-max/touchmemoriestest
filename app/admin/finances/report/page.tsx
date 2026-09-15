@@ -15,7 +15,7 @@ import {
 import { Download, TrendingUp, TrendingDown } from 'lucide-react';
 import type { PLReportData } from '@/lib/types/expenses';
 import { RevenueExpenseChart } from '@/components/admin/finances/RevenueExpenseChart';
-import { REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
+import { periodRange, REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
 
 export default function PLReportPage() {
   const [report, setReport] = useState<PLReportData | null>(null);
@@ -31,31 +31,18 @@ export default function PLReportPage() {
   }, [period]);
 
   function getPeriodDates() {
-    const now = new Date();
-    let start: string = '';
-    let end: string = '';
-
-    switch (period) {
-      case 'month':
-        start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-        break;
-      case 'quarter':
-        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-        start = new Date(now.getFullYear(), quarterStart, 1).toISOString().split('T')[0];
-        end = new Date(now.getFullYear(), quarterStart + 3, 0).toISOString().split('T')[0];
-        break;
-      case 'year':
-        start = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-        end = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
-        break;
-      case 'custom':
-        start = customDates.start;
-        end = customDates.end;
-        break;
+    // Межі періоду — спільним правилом, lib/orders/revenue-period.ts.
+    //
+    // Тут стояло `new Date(рік, місяць, 1).toISOString().split('T')[0]`. У
+    // браузері з UTC+3 перше число опівночі — це двадцять перша година
+    // попереднього дня за Гринвічем, тож у рядок потрапляла вчорашня дата і
+    // весь період з'їжджав на добу назад. Вересень 2026 через це давав у звіті
+    // 327 338 ₴ проти 307 757 ₴ на сторінці витрат: двадцять одне замовлення
+    // від 31 серпня звіт зараховував вересню.
+    if (period === 'custom') {
+      return { start: customDates.start, end: customDates.end };
     }
-
-    return { start, end };
+    return periodRange(period);
   }
 
   async function loadReport() {

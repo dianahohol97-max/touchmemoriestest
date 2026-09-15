@@ -1,5 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
-import { fetchRevenueForPeriod } from '@/lib/orders/revenue-period';
+import { dayEndIso, fetchRevenueForPeriod, kyivDateOnly, monthRange } from '@/lib/orders/revenue-period';
 import type {
   ExpenseCategory,
   Expense,
@@ -424,14 +424,20 @@ export async function getPLReport(startDate: string, endDate: string): Promise<P
   const margin = revenue > 0 ? (operationalProfit / revenue) * 100 : 0;
 
   // Monthly trend (last 12 months)
+  //
+  // Межі кожного місяця — спільним правилом. Раніше вони будувалися тут через
+  // `.toISOString().split('T')[0]`, і остання доба місяця в період не входила:
+  // `.lte('created_at', '2026-07-31')` порівнюється з опівніччю цього дня.
+  // Липень 2026 через це показував 150 834 ₴ замість 202 429 ₴ — двадцять
+  // замовлень останнього дня просто зникали з графіка, серпень недорахував
+  // 19 581 ₴.
   const monthlyTrend: any[] = [];
-  const now = new Date(endDate);
+  const anchor = kyivDateOnly(new Date(dayEndIso(endDate)));
+  const [anchorYear, anchorMonth] = anchor.split('-').map(Number);
 
   for (let i = 11; i >= 0; i--) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-    const monthStartStr = monthStart.toISOString().split('T')[0];
-    const monthEndStr = monthEnd.toISOString().split('T')[0];
+    const { start: monthStartStr, end: monthEndStr } = monthRange(anchorYear, anchorMonth - i);
+    const monthStart = new Date(`${monthStartStr}T12:00:00Z`);
 
     // Дохід місяця — тим самим правилом, що й період вище.
     const { revenue: monthRevenue } = await fetchRevenueForPeriod(

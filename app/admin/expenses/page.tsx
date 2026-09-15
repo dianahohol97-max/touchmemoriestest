@@ -25,8 +25,8 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import * as XLSX from 'xlsx';
-import { startOfMonth, endOfMonth, format as formatDate } from 'date-fns';
-import { fetchRevenueForPeriod, REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
+import { format as formatDate } from 'date-fns';
+import { fetchRevenueForPeriod, periodRange, REVENUE_BASIS_HINT, REVENUE_BASIS_LABEL } from '@/lib/orders/revenue-period';
 
 interface Expense {
     id: string;
@@ -155,9 +155,10 @@ export default function ExpensesPage() {
     };
 
     const calculatePL = async () => {
-        const now = new Date();
-        const monthStart = startOfMonth(now).toISOString();
-        const monthEnd = endOfMonth(now).toISOString();
+        // Межі місяця — спільним правилом, не датами з браузера. Раніше тут
+        // стояв місяць у зоні браузера, а звіт P&L рахував свій, і той самий
+        // вересень давав 307 757 ₴ тут і 327 338 ₴ там.
+        const { start: monthStart, end: monthEnd } = periodRange('month');
 
         try {
             // Дохід — отримані за місяць гроші.
@@ -185,8 +186,8 @@ export default function ExpensesPage() {
             const { data: expensesData } = await supabase
                 .from('expenses')
                 .select('amount_uah')
-                .gte('date', monthStart.split('T')[0])
-                .lte('date', monthEnd.split('T')[0]);
+                .gte('date', monthStart)
+                .lte('date', monthEnd);
 
             const expenses = expensesData?.reduce((sum, e) => sum + (Number(e.amount_uah) || 0), 0) || 0;
 
