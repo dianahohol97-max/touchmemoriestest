@@ -7,6 +7,7 @@ import {
     isPricingClean,
     PAGE_PRICED_PRODUCTS,
 } from '@/lib/pricing/audit';
+import { auditRotatedSizes, describeRotatedSizes } from '@/lib/pricing/rotated-sizes';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,10 +47,31 @@ export async function GET() {
         return NextResponse.json({ error: `page_product_prices: ${tableError.message}` }, { status: 500 });
     }
 
+    // Фотокниги живуть в іншій таблиці й під цей аудит не потрапляли зовсім.
+    // Повного звіряння з прайсом тут поки немає, але одна річ перевіряється
+    // дешево й ловить саме те, що вже сталося: 20×30 і 30×20 — це один виріб
+    // боком, і ціни в них мусять збігатися. Помилка в кроці шкали лишила
+    // 30×20 дешевшим на 5–95 ₴ у дев'ятнадцяти тарифах із двадцяти одного.
+    const { data: bookRows, error: bookError } = await supabase
+        .from('photobook_prices')
+        .select('page_count, base_price, size:photobook_sizes(name), cover_type:cover_types(name)');
+    if (bookError) {
+        return NextResponse.json({ error: `photobook_prices: ${bookError.message}` }, { status: 500 });
+    }
+    const rotatedSizes = auditRotatedSizes(
+        (bookRows || []).map((r: any) => ({
+            size: r.size?.name ?? '',
+            cover: r.cover_type?.name ?? '',
+            page_count: r.page_count,
+            base_price: r.base_price,
+        })),
+    );
+
     const report = auditPagePricing(data || [], tableRows || []);
     return NextResponse.json({
-        clean: isPricingClean(report),
-        summary: describePricingAudit(report),
+        clean: isPricingClean(report) && rotatedSizes.length === 0,
+        summary: [...describePricingAudit(report), ...describeRotatedSizes(rotatedSizes)],
         ...report,
+        rotatedSizes,
     });
 }
