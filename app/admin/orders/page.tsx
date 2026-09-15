@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
 import { Search, Download, User, Plus, MessageSquare, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { resolvePaymentBadge } from '@/lib/orders/payment-state';
+import { countedRevenue, countsTowardsRevenue, outstandingAmount, resolvePaymentBadge } from '@/lib/orders/payment-state';
 import { formatLastContact } from '@/lib/orders/attention';
 
 /**
@@ -301,11 +301,26 @@ export default function OrdersPage() {
     }), [orders, activeTab, searchQuery, dateRange, managerFilter, designerFilter, tagFilter, sourceFilter]);
 
     // Підсумок по тому, що зараз на екрані — відповідь на «скільки я бачу».
+    //
+    // Три числа, і кожне про своє. «На суму» — це вартість замовлень у списку,
+    // тобто виставлені рахунки; «надійшло» — гроші, які вже в касі; «чекаємо» —
+    // залишок, а не повна вартість недоплачених.
+    //
+    // Раніше недоплачені підсумовувалися повним рахунком, і на замовленні з
+    // передоплатою п'ятдесят відсотків половина потрапляла в «не оплачено»
+    // вдруге. Скасовані в надходження не йдуть.
     const summary = useMemo(() => {
         const total = filteredOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-        const unpaid = filteredOrders.filter(o => o.payment_status !== 'paid');
-        const unpaidSum = unpaid.reduce((s, o) => s + (Number(o.total) || 0), 0);
-        return { count: filteredOrders.length, total: Math.round(total), unpaid: unpaid.length, unpaidSum: Math.round(unpaidSum) };
+        const received = filteredOrders.reduce((s, o) => s + countedRevenue(o), 0);
+        const unpaid = filteredOrders.filter(o => outstandingAmount(o) > 0 && countsTowardsRevenue(o));
+        const unpaidSum = unpaid.reduce((s, o) => s + outstandingAmount(o), 0);
+        return {
+            count: filteredOrders.length,
+            total: Math.round(total),
+            received: Math.round(received),
+            unpaid: unpaid.length,
+            unpaidSum: Math.round(unpaidSum),
+        };
     }, [filteredOrders]);
 
     const hasExtraFilters = searchQuery || dateRange.start || dateRange.end || tagFilter !== 'all' || managerFilter !== 'all' || designerFilter !== 'all' || sourceFilter !== 'all';
@@ -445,7 +460,8 @@ export default function OrdersPage() {
             {!loading && !authError && (
                 <div style={{ fontSize: 13, color: '#64748b', margin: '0 2px 14px' }}>
                     Показано <b style={{ color: '#0f172a' }}>{summary.count}</b> замовлень на <b style={{ color: '#0f172a' }}>{summary.total.toLocaleString('uk-UA')} ₴</b>
-                    {summary.unpaid > 0 && <> · з них не оплачено {summary.unpaid} на {summary.unpaidSum.toLocaleString('uk-UA')} ₴</>}
+                    {' '}· надійшло <b style={{ color: '#0f172a' }}>{summary.received.toLocaleString('uk-UA')} ₴</b>
+                    {summary.unpaid > 0 && <> · чекаємо ще {summary.unpaidSum.toLocaleString('uk-UA')} ₴ по {summary.unpaid} замовленнях</>}
                 </div>
             )}
 

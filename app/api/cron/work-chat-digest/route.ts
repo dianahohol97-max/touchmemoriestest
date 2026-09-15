@@ -8,6 +8,7 @@ import { buildResponsibleLookup } from '@/lib/chatbot/responsible';
 import { isTestOrder } from '@/lib/automation/test-orders';
 import { computeLowStock, computeDeadlineRisks, computeWaitingForClient } from '@/lib/automation/risk-radar';
 import { isSupersededAttempt } from '@/lib/automation/keycrm-push';
+import { outstandingAmount } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -158,7 +159,7 @@ export async function GET(req: Request) {
         // sale was paid twenty-three seconds later as TM-001194.
         const { data: windowRows } = await supabase
             .from('orders')
-            .select('id, order_number, customer_name, customer_phone, total, created_at, payment_status, order_status, source, custom_attributes')
+            .select('id, order_number, customer_name, customer_phone, total, paid_amount, created_at, payment_status, order_status, source, custom_attributes')
             .eq('source', 'site')
             .gte('created_at', since)
             .not('order_status', 'in', '("cancelled","refunded")')
@@ -173,16 +174,25 @@ export async function GET(req: Request) {
             .filter(o => (Number(o.total) || 0) > 0)
             // The same guard the CRM push uses, so the chat never nags about a
             // checkout the customer simply retried and paid on the second go.
-            .filter(o => !isSupersededAttempt(o, pool));
+            .filter(o => !isSupersededAttempt(o, pool))
+            // Часткова оплата — теж борг, але вже менший, а рядок, за яким
+            // нічого не винні, у списку для дзвінків робити нічого.
+            .filter(o => outstandingAmount(o) > 0);
 
         if (unpaid.length) {
-            const sum = unpaid.reduce((s, o) => s + (Number(o.total) || 0), 0);
-            lines.push(`💳 Не оплачені замовлення (${unpaid.length}, разом ${Math.round(sum)} грн):`);
+            // Залишок, а не сума рахунку. На замовленні з передоплатою
+            // п'ятдесят відсотків половина вже в касі, і в чат має йти те, що
+            // справді чекають, інакше зведення щоранку називає більше грошей,
+            // ніж їх є. Те саме правило, що й на плашці дашборда.
+            const sum = unpaid.reduce((s, o) => s + outstandingAmount(o), 0);
+            lines.push(`💳 Не оплачені замовлення (${unpaid.length}, разом чекаємо ${Math.round(sum)} грн):`);
             for (const o of unpaid.slice(0, MAX_LISTED)) {
                 const ageH = Math.max(1, Math.round((now - new Date(o.created_at).getTime()) / HOUR_MS));
                 const age = ageH < 48 ? `${ageH} год тому` : `${Math.round(ageH / 24)} дн тому`;
                 const phone = o.customer_phone ? `, ${o.customer_phone}` : '';
-                lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}${phone}, ${Math.round(Number(o.total))} грн, оформлено ${age}`);
+                const owed = Math.round(outstandingAmount(o));
+                const partial = owed < Math.round(Number(o.total) || 0) ? ` з ${Math.round(Number(o.total))} грн` : '';
+                lines.push(`• ${o.order_number} — ${o.customer_name || 'без імені'}${phone}, чекаємо ${owed} грн${partial}, оформлено ${age}`);
             }
             if (unpaid.length > MAX_LISTED) lines.push(`…і ще ${unpaid.length - MAX_LISTED} у списку.`);
             lines.push('');

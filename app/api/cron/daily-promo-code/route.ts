@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail } from '@/lib/email/brevo';
+import { countedRevenue } from '@/lib/orders/payment-state';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -125,8 +126,15 @@ export async function GET(request: Request) {
 
         const orderIds = (usages || []).map(u => u.order_id).filter(Boolean);
         if (orderIds.length) {
-            const { data: ord } = await admin.from('orders').select('total').in('id', orderIds);
-            revenue = Math.round((ord || []).reduce((s, o) => s + (Number(o.total) || 0), 0));
+            // Гроші, що надійшли по цих замовленнях, а не сума виставлених
+            // рахунків: у зведенні це число читають як заробіток розсилки, а
+            // скасоване й недоплачене заробітком не є. Правило спільне —
+            // lib/orders/payment-state.ts.
+            const { data: ord } = await admin
+                .from('orders')
+                .select('total, paid_amount, payment_status, order_status')
+                .in('id', orderIds);
+            revenue = Math.round((ord || []).reduce((s, o) => s + countedRevenue(o), 0));
         }
     }
 
