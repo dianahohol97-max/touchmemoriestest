@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { stuckLabel, stuckParcels, STUCK_THRESHOLDS } from '@/lib/shipping/stuck-parcels';
 import { crmStageLabel } from '@/lib/automation/crm-stage';
 import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -81,6 +82,8 @@ type OrderRow = {
     with_designer: boolean | null;
     designer_id: string | null;
     ttn: string | null;
+    tracking_status: string | null;
+    tracking_status_at: string | null;
     deadline: string | null;
     paid_at: string | null;
     created_at: string;
@@ -397,6 +400,33 @@ function buildBuckets(
         { title: 'Позначені попередженням про відсутні файли', items: flaggedFiles.map(o => siteItem(o, now)) },
     ];
 
+    // Посилки, які застрягли дорогою до клієнта. Рахуються по ВСІХ відкритих
+    // замовленнях, а не лише по свіжих: накладна, видалена в серпні, лишається
+    // проблемою у вересні, і саме такі випадки роками ніхто не бачив, бо
+    // трекінг мовчав. Пороги й причини — lib/shipping/stuck-parcels.
+    const parcels = stuckParcels(open as any, now);
+    const parcelItem = (p: { row: any; days: number | null }): Item => ({
+        label: `#${p.row.order_number || String(p.row.id).slice(0, 8)}`,
+        sublabel: [(p.row.customer_name || '').trim() || 'без імені', stuckLabel(p as any)].join(', '),
+        href: `${SITE_URL}/admin/orders/${p.row.id}`,
+        waitingHours: (p.days ?? 0) * 24,
+    });
+    if (parcels.problem.length) {
+        buckets.push({ title: 'Посилка не дійшла: накладну видалено або відмова', items: parcels.problem.map(parcelItem) });
+    }
+    if (parcels.atBranch.length) {
+        buckets.push({
+            title: `На відділенні понад ${STUCK_THRESHOLDS.atBranchDays} дні — нагадати клієнту`,
+            items: parcels.atBranch.map(parcelItem),
+        });
+    }
+    if (parcels.notHandedOver.length) {
+        buckets.push({
+            title: `Накладна створена, посилку не передали — понад ${STUCK_THRESHOLDS.waybillNewDays} днів`,
+            items: parcels.notHandedOver.map(parcelItem),
+        });
+    }
+
     // Cross-system check. Skipped entirely when the CRM pull failed, because an
     // empty CRM list would report every single order as "not transferred".
     if (crm.ok) {
@@ -565,7 +595,7 @@ export async function GET(request: Request) {
     try {
         const { data, error } = await supabase
             .from('orders')
-            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, deadline, paid_at, created_at, custom_attributes, source, notes, total')
+            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, tracking_status, tracking_status_at, deadline, paid_at, created_at, custom_attributes, source, notes, total')
             .gte('created_at', since)
             .order('created_at', { ascending: false });
 

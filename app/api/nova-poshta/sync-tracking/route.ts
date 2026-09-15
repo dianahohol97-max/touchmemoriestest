@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
         // Get all orders with tracking numbers that aren't delivered or cancelled
         const { data: candidates, error } = await supabase
             .from('orders')
-            .select('id, ttn, order_status, tracking_status, tracking_carrier, customer_phone, customer_name')
+            .select('id, ttn, order_status, tracking_status, tracking_status_at, tracking_carrier, customer_phone, customer_name')
             .not('ttn', 'is', null)
             .gte('created_at', windowStart)
             .not('order_status', 'in', '("delivered","cancelled")');
@@ -215,12 +215,20 @@ export async function GET(req: NextRequest) {
                 }
 
                 // Update database
+                //
+                // tracking_status_at пишемо ТІЛЬКИ при справжній зміні статусу.
+                // Крон ходить щодня, тож оновлення щопрогону означало б, що
+                // кожна посилка вічно має нуль днів у статусі, і зведення про
+                // застряглі ніколи б нікого не показало. Порожнє поле теж
+                // заповнюємо: це перша зустріч із цією посилкою.
+                const statusChanged = previousDeliveryStatus !== npStatus || !order.tracking_status_at;
                 await supabase
                     .from('orders')
                     .update({
                         tracking_status: npStatus,
                         order_status: newOrderStatus,
                         updated_at: new Date().toISOString(),
+                        ...(statusChanged ? { tracking_status_at: new Date().toISOString() } : {}),
                         ...(newOrderStatus === 'delivered' && order.order_status !== 'delivered'
                             ? { delivered_at: new Date().toISOString() }
                             : {}),
