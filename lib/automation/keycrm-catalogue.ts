@@ -115,6 +115,43 @@ export function sizeKey(label: string): string {
         .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Канонічний ключ варіанта — те, під чим пара «товар сайту ↔ позиція CRM»
+ * лежить у keycrm_product_map.
+ *
+ * Для більшості товарів це просто розмір. Для фотокниг це РОЗМІР І КІЛЬКІСТЬ
+ * РОЗВОРОТІВ разом, бо в CRM «Розмір: 20х20, Кількість сторінок: 22» — окрема
+ * позиція зі своїм складом і своєю закупівельною ціною (Діана, 2026-08-11:
+ * «важливо»). Складений ключ будується в fetchSiteProducts як
+ * `${sizeKey(label)}-${pages}`, і push шукає точно таким самим.
+ *
+ * Чому ця функція взагалі знадобилася. У saveMappings стояв прямий виклик
+ * sizeKey на вже готовому складеному ключі, а sizeKey за задумом відповідає
+ * лише за розмір: із «20x20-6» вона віддає «20x20», і кількість розворотів
+ * зникала. Двадцять три варіанти однієї сторони злипалися в один ключ, і
+ * Postgres відмовляв ЦІЛОМУ запиту помилкою 21000 — «ON CONFLICT DO UPDATE
+ * command cannot affect row a second time». Через це звʼязування каталогу не
+ * працювало взагалі, 460 рядків фотокниг висіли незвʼязаними, і замовлення на
+ * фотокниги їхали в CRM без offer_id: 173 замовлення за 60 днів, 517 698 ₴,
+ * невидимі для складу й товарної аналітики CRM.
+ *
+ * Суфікс відрізається лише тоді, коли голова справді розмір виду NxM. Інакше
+ * колірний варіант «в-01» втратив би свою частину так само тихо.
+ */
+export function variantKey(label: string): string {
+    const raw = String(label || '').trim();
+    if (!raw) return '';
+
+    const composite = raw.match(/^(.*)-(\d+)$/);
+    if (composite) {
+        const [, head, pages] = composite;
+        const size = sizeKey(head);
+        if (/^\d+(?:\.\d+)?x\d+(?:\.\d+)?$/.test(size)) return `${size}-${pages}`;
+    }
+
+    return sizeKey(raw);
+}
+
 export function normaliseName(value: string): string[] {
     const canonical = canonicaliseDimensions(String(value || '')).toLowerCase();
 
@@ -1363,14 +1400,36 @@ export async function saveMappings(rows: Array<{
         // Normalised here as well as on read: a row saved with a raw label
         // ("30×20 см (горизонтальна)") would never be found again by the push,
         // which only ever looks up canonical keys.
-        site_variant: row.site_variant ? sizeKey(row.site_variant) : '',
+        site_variant: row.site_variant ? variantKey(row.site_variant) : '',
         updated_at: new Date().toISOString(),
     }));
 
+    // Дедуплікація ПІСЛЯ нормалізації, а не до неї.
+    //
+    // Виклики вище відсівають дублі за ключем, який прийшов, — тобто до того,
+    // як цей рядок його перепише. Поки нормалізація щось міняла, два різні
+    // ключі могли стати одним уже тут, і запит падав цілком (21000). Тепер
+    // ключ остаточний саме в цьому місці, тож і відсів стоїть тут.
+    //
+    // Коли злиплися рядки з РІЗНИМИ позиціями CRM — це не дріб'язок, а
+    // суперечність у даних, і вона пишеться в журнал, а не ковтається.
+    const byFinalKey = new Map<string, any>();
+    for (const row of payload) {
+        const key = mapKey(row.site_slug, row.site_variant);
+        const prev = byFinalKey.get(key);
+        if (prev && String(prev.keycrm_offer_id ?? '') !== String(row.keycrm_offer_id ?? '')) {
+            console.warn(
+                `[keycrm-catalogue] два різні зіставлення на один ключ ${key}: `
+                + `${prev.keycrm_offer_id ?? '—'} і ${row.keycrm_offer_id ?? '—'}; записано друге.`,
+            );
+        }
+        byFinalKey.set(key, row);
+    }
+
     const { error } = await supabase
         .from('keycrm_product_map')
-        .upsert(payload, { onConflict: 'site_slug,site_variant' });
+        .upsert([...byFinalKey.values()], { onConflict: 'site_slug,site_variant' });
 
     if (error) throw error;
-    return { saved: payload.length };
+    return { saved: byFinalKey.size };
 }

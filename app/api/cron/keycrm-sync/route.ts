@@ -199,13 +199,35 @@ export async function GET(request: Request) {
             if ((pendingLinks || 0) + (pendingNamed || 0) > 0) {
                 const links = await resolvePendingProductLinks();
                 catalogue = { links };
-                if (links.resolved > 0 && !dryRun) {
+
+                // ЗАПИС АРТИКУЛІВ ЖИВЕ ЗА ОКРЕМИМ ВИМИКАЧЕМ.
+                //
+                // Звʼязування каталогу не працювало з 11.08.2026, тож перший
+                // же успішний прохід звʼяже сотні рядків одразу — і ці два
+                // виклики тоді підуть писати артикули в ЖИВИЙ каталог KeyCRM
+                // і закупівельні ціни на сайт, теж сотнями, без жодного
+                // показу перед тим. Діана, 15.09.2026: спершу сухий прогін,
+                // запис тільки з її слова.
+                //
+                // Вимикач у settings, а не в env: його вмикають один раз і
+                // руками, і для цього не має бути потрібен деплой. Немає
+                // рядка — запис вимкнено; це свідомо безпечна відмова.
+                const { data: skuGate } = await supabase
+                    .from('settings').select('value').eq('key', 'keycrm_sku_write_enabled').maybeSingle();
+                const skuWriteEnabled = skuGate?.value === true || String((skuGate?.value as any) ?? '') === 'true';
+
+                if (links.resolved > 0 && !dryRun && skuWriteEnabled) {
                     const skus = await syncSkusToKeycrm({ dryRun: false });
                     const costs = await syncCostPrices({ dryRun: false });
                     catalogue = {
                         links,
                         skus: { filled: skus.filled.length, adopted: skus.adopted.length, problems: skus.problems },
                         costs: { updated: costs.updated_products.length, per_size: costs.updated_variants.length, conflicts: costs.conflicts.length },
+                    };
+                } else if (links.resolved > 0 && !dryRun) {
+                    catalogue = {
+                        links,
+                        skus_held: 'Запис артикулів у KeyCRM вимкнено (settings.keycrm_sku_write_enabled).',
                     };
                 }
                 console.log('[keycrm-sync] catalogue', JSON.stringify(catalogue));
