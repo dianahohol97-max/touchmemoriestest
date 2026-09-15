@@ -12,14 +12,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const supabase = getAdminClient();
     try {
         const body = await req.json();
-        const { status, is_locked, notes, breakdown, total_amount } = body;
+        // Сума лежить у стовпці `total`. Ім'я `total_amount` приймається як
+        // синонім, бо саме його слав старий код, і десь могла лишитися вкладка,
+        // відкрита до виправлення.
+        const { status, is_locked, notes, breakdown, total, total_amount } = body;
 
         const updateData: any = {};
         if (status !== undefined) updateData.status = status;
         if (is_locked !== undefined) updateData.is_locked = is_locked;
         if (notes !== undefined) updateData.notes = notes;
         if (breakdown !== undefined) updateData.breakdown = breakdown;
-        if (total_amount !== undefined) updateData.total_amount = total_amount;
+        const amount = total !== undefined ? total : total_amount;
+        if (amount !== undefined) updateData.total = amount;
 
         updateData.updated_at = new Date().toISOString();
         if (status === 'paid') updateData.paid_at = new Date().toISOString();

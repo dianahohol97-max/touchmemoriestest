@@ -32,6 +32,16 @@ export async function GET(req: Request) {
     return NextResponse.json(data || []);
 }
 
+/**
+ * POST — перерахувати період і зберегти результат.
+ *
+ * Поля навмисно ті, що є в таблиці: сума лежить у `total`, а не в
+ * `total_amount`. До 15.09.2026 код писав `total_amount`, такого стовпця в
+ * бойовій базі немає, PostgREST відмовляв кожним записом, помилка не
+ * перевірялася — і маршрут відповідав `success: true` зі списком із самих
+ * null. У таблиці за весь час не з'явилося жодного рядка, а кнопка щоразу
+ * казала, що період розраховано.
+ */
 export async function POST(req: Request) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
@@ -48,52 +58,75 @@ export async function POST(req: Request) {
         let staffQuery = supabase.from('staff').select('id').eq('is_active', true);
         if (staff_id) staffQuery = staffQuery.eq('id', staff_id);
 
-        const { data: staffList } = await staffQuery;
-        if (!staffList) return NextResponse.json({ error: 'No staff found' }, { status: 404 });
+        const { data: staffList, error: staffError } = await staffQuery;
+        if (staffError) {
+            console.error('Salary POST: не вдалося прочитати список співробітників', staffError);
+            return NextResponse.json({ error: staffError.message }, { status: 500 });
+        }
+        if (!staffList?.length) return NextResponse.json({ error: 'No staff found' }, { status: 404 });
 
         const results: any[] = [];
+        // Кожен збій називається поіменно. Мовчазний перебір тут коштував
+        // дорого: маршрут писав неіснуючі стовпці, помилку ніхто не дивився,
+        // і екран казав «Період розраховано» над порожнім списком.
+        const failures: string[] = [];
 
         for (const staff of staffList) {
             const { total, breakdown } = await calculateSalary(staff.id, from, to);
 
             // Check if calculation already exists and is locked
-            const { data: existing } = await supabase
+            const { data: existing, error: existingError } = await supabase
                 .from('salary_calculations')
                 .select('id, is_locked')
                 .eq('staff_id', staff.id)
                 .eq('date_from', from)
                 .eq('date_to', to)
-                .single();
+                .maybeSingle();
+
+            if (existingError) {
+                failures.push(`${staff.id}: ${existingError.message}`);
+                continue;
+            }
 
             if (existing?.is_locked) continue;
 
             if (existing) {
-                const { data: updated } = await supabase
+                const { data: updated, error } = await supabase
                     .from('salary_calculations')
                     .update({
-                        total_amount: total,
+                        total,
                         breakdown,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', existing.id)
                     .select()
                     .single();
+                if (error) { failures.push(`${staff.id}: ${error.message}`); continue; }
                 results.push(updated);
             } else {
-                const { data: inserted } = await supabase
+                const { data: inserted, error } = await supabase
                     .from('salary_calculations')
                     .insert({
                         staff_id: staff.id,
                         date_from: from,
                         date_to: to,
-                        total_amount: total,
+                        total,
                         breakdown,
                         status: 'draft'
                     })
                     .select()
                     .single();
+                if (error) { failures.push(`${staff.id}: ${error.message}`); continue; }
                 results.push(inserted);
             }
+        }
+
+        if (failures.length) {
+            console.error('Salary POST: не збереглося', failures);
+            return NextResponse.json({
+                error: `Не збереглося розрахунків: ${failures.length}. Перший збій — ${failures[0]}`,
+                saved: results.length,
+            }, { status: 500 });
         }
 
         return NextResponse.json({ success: true, results });

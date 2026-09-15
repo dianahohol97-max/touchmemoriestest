@@ -80,11 +80,16 @@ export default function SalaryPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ from: dateFrom, to: dateTo })
             });
-            if (res.ok) {
+            // Успіх кажемо лише тоді, коли записалося. Маршрут раніше
+            // відповідав двомастами навіть тоді, коли не зберіг жодного рядка,
+            // і кнопка щоразу рапортувала «Період розраховано» над порожнім
+            // списком.
+            const payload = await res.json().catch(() => null);
+            if (res.ok && payload?.success) {
                 toast.success('Період розраховано', { id: tid });
                 fetchSalaries();
             } else {
-                toast.error('Помилка розрахунку', { id: tid });
+                toast.error(payload?.error || 'Помилка розрахунку', { id: tid });
             }
         } catch (e) {
             toast.error('Помилка системи', { id: tid });
@@ -99,7 +104,7 @@ export default function SalaryPage() {
         if (newStatus === 'paid') {
             const s = salaries.find(x => x.id === id);
             const who = s?.staff?.name || 'співробітника';
-            const amount = Number(s?.total_amount ?? s?.total ?? s?.amount ?? 0);
+            const amount = Number(s?.total ?? s?.total_amount ?? s?.amount ?? 0);
             const amountLabel = amount > 0 ? ` (${amount.toLocaleString()} ₴)` : '';
             if (!confirm(`Позначити зарплату для ${who}${amountLabel} як виплачену?`)) return;
         }
@@ -217,7 +222,7 @@ export default function SalaryPage() {
                         <div style={miniStat}>
                             <span style={miniStatLabel}>Нараховано</span>
                             <span style={miniStatValue}>
-                                {filteredSalaries.reduce((sum, s) => sum + Number(s.total_amount), 0).toLocaleString()} ₴
+                                {filteredSalaries.reduce((sum, s) => sum + Number(s.total || 0), 0).toLocaleString()} ₴
                             </span>
                         </div>
                     </div>
@@ -284,7 +289,7 @@ function SalaryCard({ salary, onStatusUpdate }: any) {
                 <div style={cardMetrics}>
                     <div style={totalContainer}>
                         <span style={totalLabel}>Разом</span>
-                        <div style={totalValue}>{Number(salary.total_amount).toLocaleString()} ₴</div>
+                        <div style={totalValue}>{Number(salary.total || 0).toLocaleString()} ₴</div>
                     </div>
 
                     <div style={statusGroup}>
