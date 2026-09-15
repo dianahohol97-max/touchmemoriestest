@@ -1210,11 +1210,30 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         allWarnings.push(...warnings);
     }
 
+    // ЗАПИС НЕ МАЄ ПРАВА ЗУПИНИТИ ВЕСЬ ПРОХІД.
+    //
+    // Тут стояв голий await, і будь-яка помилка запису летіла нагору, у крон.
+    // Через це не виконувалося зняття рядків із черги нижче — тобто наступний
+    // прохід брав ту саму чергу, падав так само, і поломка ставала вічною. З
+    // 11.08.2026 до 15.09.2026 цей прохід не добіг до кінця жодного разу, і
+    // єдиним слідом був рядок у журналі, якого ніхто не читає.
+    //
+    // Тепер помилка запису лишається помилкою — вона потрапляє в попередження,
+    // які зберігаються в settings, і обнуляє лічильник звʼязаних, щоб наступні
+    // кроки крона не вирішили, що щось вдалося. Але зняття з черги тих рядків,
+    // які до запису стосунку не мають, відбувається все одно: інакше одна
+    // погана пара блокує решту назавжди.
+    let writeError: string | null = null;
     if (allRows.length) {
         // Deduplicate by (slug, variant) — the same size can only be written
         // once per upsert.
         const byKey = new Map(allRows.map(r => [`${r.site_slug}::${r.site_variant || ''}`, r]));
-        await saveMappings([...byKey.values()]);
+        try {
+            await saveMappings([...byKey.values()]);
+        } catch (e: any) {
+            writeError = e?.message || String(e);
+            allWarnings.push(`Запис зіставлень не вдався: ${writeError}. Рядки лишаються в черзі.`);
+        }
     }
 
     // Retire every processed pending row the resolution did not overwrite —
@@ -1231,12 +1250,20 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         const retiredNote = row.note && /^пошук:/i.test(String(row.note))
             ? String(row.note).replace(/^пошук:/i, 'пошук не вдався:')
             : row.note;
-        await supabase
+        const { error: retireError } = await supabase
             .from('keycrm_product_map')
             .update({ keycrm_offer_id: null, note: retiredNote ?? null, updated_at: new Date().toISOString() })
             .eq('site_slug', row.site_slug)
             .eq('site_variant', row.site_variant || '')
             .eq('confirmed', false);
+
+        // Помилку цього запису досі не перевіряли взагалі. Тихо не знятий
+        // рядок — це той самий вічний цикл, тільки без жодного сліду.
+        if (retireError) {
+            allWarnings.push(
+                `Не вдалося зняти з черги ${row.site_slug}::${row.site_variant || ''}: ${retireError.message}`,
+            );
+        }
     }
 
     // The warnings are the ONLY record of why a pasted number resolved to
@@ -1250,7 +1277,10 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         });
     }
 
-    return { resolved: allRows.length, warnings: allWarnings };
+    // Нуль звʼязаних при невдалому записі — свідомо. Крон за цим числом
+    // вирішує, чи запускати наступні кроки; «звʼязали, але не зберегли» для
+    // них нічим не відрізняється від «не звʼязали».
+    return { resolved: writeError ? 0 : allRows.length, warnings: allWarnings };
 }
 
 export type SkuSyncReport = {
