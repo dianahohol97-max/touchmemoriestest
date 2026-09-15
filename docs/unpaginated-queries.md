@@ -1,6 +1,6 @@
 # Запити без пагінації до великих таблиць
 
-Останній замір: **14.09.2026**, гілка `main`, комміт `4fe6a44b`.
+Останній замір: **15.09.2026**, гілка `main`.
 Перезаміряти: `node scripts/unpaginated-queries.mjs`
 
 ## Навіщо цей файл
@@ -54,44 +54,41 @@ PostgREST. Саме цей список має ставати коротшим.
 фільтр по `conversation_id` його не врятував. Переглядати варто тоді, коли в
 одного батька рядків може стати понад тисячу.
 
-## Треба переписати — 25 місць
+## Треба переписати — 13 місць
 
-| таблиця | місце |
+| таблиця | місце | область |
+|---|---|---|
+| orders | `app/api/account/orders/route.ts:17` | кабінет клієнта |
+| orders | `app/api/admin/orders/[id]/route.ts:100` | замовлення |
+| customers | `app/api/admin/orders/create/route.ts:28` | замовлення |
+| customers | `app/api/cron/birthday-emails/route.ts:38` | листи |
+| orders | `app/api/cron/design-lifecycle/route.ts:170` | крони |
+| orders | `app/api/nova-poshta/sync-tracking/route.ts:142` | доставка |
+| orders | `lib/automation/keycrm-mirror.ts:580` | KeyCRM |
+| orders | `lib/automation/keycrm-mirror.ts:623` | KeyCRM |
+| orders | `lib/automation/keycrm-mirror.ts:638` | KeyCRM |
+| orders | `lib/automation/keycrm-push.ts:786` | KeyCRM |
+| orders | `lib/automation/keycrm-twoway.ts:595` | KeyCRM |
+| orders | `lib/chatbot/work-questions.ts:957` | чат-бот |
+| orders | `lib/chatbot/work-questions.ts:1373` | чат-бот |
+
+`app/api/cron/birthday-emails/route.ts:38` — хибне спрацювання, і воно таким і
+лишиться: запит бере лише клієнтів із заповненим днем народження, а таких
+сорок. Скрипт читає текст і фільтра по вмісту не розуміє; у самому файлі про це
+є коментар із числом.
+
+## Полагоджено 15.09.2026
+
+| місце | скільки не робилося |
 |---|---|
-| orders | `app/admin/expenses/page.tsx:177` |
-| orders | `app/api/account/orders/route.ts:17` |
-| orders | `app/api/admin/analytics/route.ts:38` |
-| orders | `app/api/admin/analytics/route.ts:43` |
-| customers | `app/api/admin/dashboard/route.ts:58` |
-| orders | `app/api/admin/orders/[id]/route.ts:100` |
-| customers | `app/api/admin/orders/create/route.ts:28` |
-| orders | `app/api/admin/production/route.ts:31` |
-| orders | `app/api/admin/staff/stats/route.ts:32` |
-| customers | `app/api/cron/birthday-emails/route.ts:38` |
-| orders | `app/api/cron/design-lifecycle/route.ts:170` |
-| orders | `app/api/cron/ops-digest/route.ts:567` |
-| orders | `app/api/designer/free-orders/route.ts:44` |
-| orders | `app/api/nova-poshta/sync-tracking/route.ts:142` |
-| orders | `app/api/production/queue/route.ts:30` |
-| orders | `lib/automation/keycrm-mirror.ts:575` |
-| orders | `lib/automation/keycrm-mirror.ts:618` |
-| orders | `lib/automation/keycrm-mirror.ts:633` |
-| orders | `lib/automation/keycrm-twoway.ts:532` |
-| social_conversations | `lib/chatbot/unanswered.ts:88` |
-| orders | `lib/chatbot/work-questions.ts:957` |
-| orders | `lib/chatbot/work-questions.ts:1373` |
-| orders | `lib/salary/calculator.ts:38` |
-| orders | `lib/supabase/expenses.ts:314` |
-| orders | `lib/supabase/expenses.ts:436` |
+| `app/api/admin/production/route.ts` | 1 066 рядків під фільтром, 66 найстаріших сторінка не показувала — межу перейшли за добу, учора було 518 |
+| `app/api/cron/ops-digest/route.ts` | 1 099 замовлень за шістдесят днів, 99 не потрапляли у зведення: 65 доставлених, 34 відкритих, два з живою накладною |
+| `app/api/production/queue/route.ts` | 293 сьогодні, втрат ще немає |
+| `app/api/designer/free-orders/route.ts` | 102 сьогодні, втрат ще немає |
+| `lib/chatbot/unanswered.ts` | 425 діалогів за два тижні, втрат ще немає |
 
-Кілька з них уже мають у коді власний коментар про те, що межа близько —
-наприклад `app/api/admin/production/route.ts:31`. Коментар не рятує: він
-пояснює майбутню поломку тому, хто вже прийшов її шукати.
-
-Розподіл по областях, щоб було видно, кому це віддавати: вісім місць в
-адмінці та її маршрутах, чотири в дзеркаленні KeyCRM, три в кронах, три в
-чат-боті, два у витратах, і по одному в кабінеті клієнта, зарплатах, Новій
-Пошті, черзі виробництва та маршруті дизайнерів.
+Раніше того ж дня полагоджено дашборд, аналітику, список клієнтів, зарплати,
+витрати і звіт P&L — розбір у `docs/revenue-sources.md`.
 
 ## Чого цей список НЕ ловить
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,10 @@ export async function GET() {
 
     const supabase = getAdminClient();
     try {
-        const { data: orders, error } = await supabase
+        // Сторінками. Сьогодні у виробництві 293 замовлення при межі PostgREST
+        // у тисячу (заміряно 15.09.2026), тобто запас є, але черга росте від
+        // роботи цеху, а не від чийогось рішення — гоча 14.
+        const orders = await fetchAllRows<any>((from, to) => supabase
             .from('orders')
             .select(`
                 id,
@@ -42,9 +46,8 @@ export async function GET() {
                 customer:customers(name, is_vip)
             `)
             .in('order_status', ['confirmed', 'in_production', 'quality_check'])
-            .order('priority_score', { ascending: true, nullsFirst: false });
-
-        if (error) throw error;
+            .order('priority_score', { ascending: true, nullsFirst: false })
+            .range(from, to), { label: 'черга виробництва' });
 
         // Resolve designer names in one round-trip rather than per-row joins.
         const designerIds = Array.from(new Set((orders || [])

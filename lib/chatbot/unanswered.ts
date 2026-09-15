@@ -1,4 +1,5 @@
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 /**
  * Shared "which client dialogs are waiting on us" computation. Used by the
@@ -84,12 +85,17 @@ export async function computeUnansweredDialogs(): Promise<UnansweredReport> {
         ? handoffSetting.value.map(String)
         : ['передано в друк', 'передаємо в друк', 'передали в друк'];
 
-    const { data: conversations, error: convErr } = await supabase
+    // Сторінками. За два тижні діалогів 425 при межі PostgREST у тисячу
+    // (заміряно 15.09.2026), і вартість помилки тут несиметрична: коротша
+    // відповідь означає, що сторож просто не побачить частину діалогів і
+    // нікому про них не скаже — тиша замість тривоги.
+    const conversations = await fetchAllRows<any>((from, to) => supabase
         .from('social_conversations')
         .select('id, platform, external_username, status, last_message_at')
-        .gte('last_message_at', lookbackIso);
-    if (convErr) throw new Error(convErr.message);
-    if (!conversations?.length) return { unanswered: [], needsHuman: [], thresholdHours };
+        .gte('last_message_at', lookbackIso)
+        .order('last_message_at', { ascending: false })
+        .range(from, to), { label: 'діалоги для сторожа' });
+    if (!conversations.length) return { unanswered: [], needsHuman: [], thresholdHours };
 
     // Latest message per conversation decides "answered or not". One query,
     // newest first; the first row seen per conversation wins.

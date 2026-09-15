@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAnySection } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,25 +23,26 @@ export async function GET() {
 
     const admin = getAdminClient();
 
-    // Без .range(), і поки що це безпечно: під фільтр статусів підпадає 518
-    // замовлень при межі PostgREST у 1000 (заміряно 14.09.2026). Запас є, але
-    // він половинний, і коли черга виробництва перевалить за тисячу, список
-    // почне мовчки недоливати — помилки не буде, просто приїде менше рядків.
-    // Тоді сюди потрібен такий самий цикл із .range(), як у /api/admin/clients.
-    const { data, error } = await admin
-        .from('orders')
-        .select(`
-            *,
-            manager:staff!orders_manager_id_fkey(id, name, initials, color),
-            designer:staff!orders_designer_id_fkey(id, name, initials, color),
-            order_tag_assignments(order_tags(*))
-        `)
-        .in('order_status', PRODUCTION_STATUSES as unknown as string[])
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('[production] read failed', error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    // Сторінками, і це вже не запобіжник, а лікування. Учора під фільтр
+    // статусів підпадало 518 замовлень, сьогодні 15.09.2026 їх 1 066 — межу
+    // PostgREST у тисячу черга перейшла за добу, і 66 найстаріших рядків
+    // сторінка виробництва вже не показувала. Помилки не було, просто приїхало
+    // менше, і побачити це можна було лише звіркою з базою.
+    try {
+        const data = await fetchAllRows<any>((from, to) => admin
+            .from('orders')
+            .select(`
+                *,
+                manager:staff!orders_manager_id_fkey(id, name, initials, color),
+                designer:staff!orders_designer_id_fkey(id, name, initials, color),
+                order_tag_assignments(order_tags(*))
+            `)
+            .in('order_status', PRODUCTION_STATUSES as unknown as string[])
+            .order('created_at', { ascending: false })
+            .range(from, to), { label: 'виробництво' });
+        return NextResponse.json({ orders: data });
+    } catch (e: any) {
+        console.error('[production] read failed', e.message);
+        return NextResponse.json({ error: e.message }, { status: 500 });
     }
-    return NextResponse.json({ orders: data || [] });
 }

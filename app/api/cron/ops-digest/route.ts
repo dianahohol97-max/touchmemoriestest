@@ -3,6 +3,7 @@ import { splitLikelyMerged, stuckLabel, stuckParcels, STUCK_THRESHOLDS } from '@
 import { crmStageLabel } from '@/lib/automation/crm-stage';
 import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 import { sendEmail } from '@/lib/email/resend';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
@@ -620,13 +621,19 @@ export async function GET(request: Request) {
     const since = new Date(now.getTime() - LOOKBACK_DAYS * 24 * HOUR_MS).toISOString();
 
     try {
-        const { data, error } = await supabase
+        // Сторінками. Вікно тут шістдесят днів, а це вже 1 099 замовлень при
+        // межі PostgREST у тисячу (заміряно 15.09.2026): дев'яносто дев'ять
+        // найстаріших рядків, з 17 по 31 липня, у зведення не потрапляли
+        // зовсім. Серед них 65 доставлених, тобто статистика доставки
+        // недорахувала, 34 ще відкритих і два з живою накладною — саме ті, що
+        // мали б показатися в блоці застряглих посилок. Мовчки, бо коротша
+        // відповідь помилкою не є.
+        const data = await fetchAllRows<any>((from, to) => supabase
             .from('orders')
             .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, tracking_status, tracking_status_at, delivered_at, deadline, paid_at, created_at, custom_attributes, source, notes, total')
             .gte('created_at', since)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
+            .order('created_at', { ascending: false })
+            .range(from, to), { label: 'замовлення для зведення' });
 
         // Test orders («Киця Кицюня») would sit in the action buckets forever —
         // nobody is ever going to "resolve" a checkout smoke test.
