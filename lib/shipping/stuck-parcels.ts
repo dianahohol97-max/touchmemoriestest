@@ -17,6 +17,8 @@
  * а не перебільшить. З наступного прогону крона позначка є в усіх.
  */
 
+import { phoneKey } from '@/lib/automation/keycrm';
+
 export type ParcelRow = {
     id: string;
     order_number: string | null;
@@ -27,6 +29,7 @@ export type ParcelRow = {
     tracking_status_at?: string | null;
     created_at: string;
     order_status: string | null;
+    delivered_at?: string | null;
 };
 
 /**
@@ -154,4 +157,69 @@ export function stuckLabel(parcel: StuckParcel): string {
 
     if (parcel.row.ttn) parts.push(`ТТН ${parcel.row.ttn}`);
     return parts.join(', ');
+}
+
+/**
+ * Посилка, яка виглядає застряглою, а насправді поїхала разом з іншою.
+ *
+ * ЗВІДКИ ЦЕ ВЗЯЛОСЯ. Кілька замовлень одного клієнта складають в одну коробку й
+ * виписують на них ОДНУ накладну. Її отримує лише одне замовлення з групи;
+ * решта лишаються зі своїми старими накладними, які після цього ніхто не
+ * використовує. Нова Пошта їх або видаляє, або вони вічно висять у статусі
+ * «Нове» — і для сайту такі замовлення назавжди неотримані, хоча клієнт давно
+ * все забрав.
+ *
+ * Живий приклад: 09.09.2026 у робочому чаті «13410+13463+13683+13969 треба
+ * накладну». Спільна накладна лягла на CRM-13410, воно доставлене 15.09, а
+ * CRM-13683 і CRM-13969 досі стоять із мертвими серпневими номерами.
+ *
+ * ЯК УПІЗНАЄМО. Ознака непряма, тому й називається «ймовірно»: той самий
+ * клієнт має ІНШЕ замовлення, посилку якого вручено вже ПІСЛЯ того, як
+ * застрягла накладна востаннє змінила статус. Це здогад, який економить
+ * менеджерці дзвінок, а не факт — тому такі рядки стоять окремим блоком зі
+ * словом «ймовірно», а не ховаються зі зведення.
+ */
+export interface DeliveredSibling {
+    order_number: string | null;
+    customer_phone?: string | null;
+    ttn: string | null;
+    delivered_at?: string | null;
+}
+
+export function likelyMergedWith(parcel: StuckParcel, delivered: DeliveredSibling[] | null | undefined): DeliveredSibling | null {
+    const key = phoneKey(String(parcel.row.customer_phone || ''));
+    if (!key) return null;
+
+    // Відлік від моменту, коли застрягла накладна востаннє ворухнулася; якщо
+    // позначки ще немає — від дати замовлення.
+    const since = new Date(parcel.row.tracking_status_at || parcel.row.created_at).getTime();
+    if (!Number.isFinite(since)) return null;
+
+    for (const sibling of delivered || []) {
+        if (!sibling?.delivered_at) continue;
+        if (sibling.order_number === parcel.row.order_number) continue;
+        if (phoneKey(String(sibling.customer_phone || '')) !== key) continue;
+        if (sibling.ttn && parcel.row.ttn && sibling.ttn === parcel.row.ttn) continue;
+        const when = new Date(sibling.delivered_at).getTime();
+        if (Number.isFinite(when) && when >= since) return sibling;
+    }
+    return null;
+}
+
+/**
+ * Ділить список на справді застряглі й ті, що ймовірно поїхали разом з іншим
+ * замовленням. Порядок усередині кожного списку зберігається.
+ */
+export function splitLikelyMerged(
+    parcels: StuckParcel[],
+    delivered: DeliveredSibling[] | null | undefined,
+): { stuck: StuckParcel[]; merged: Array<StuckParcel & { sibling: DeliveredSibling }> } {
+    const stuck: StuckParcel[] = [];
+    const merged: Array<StuckParcel & { sibling: DeliveredSibling }> = [];
+    for (const p of parcels) {
+        const sibling = likelyMergedWith(p, delivered);
+        if (sibling) merged.push({ ...p, sibling });
+        else stuck.push(p);
+    }
+    return { stuck, merged };
 }

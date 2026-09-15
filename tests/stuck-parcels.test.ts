@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STUCK_THRESHOLDS, stuckLabel, stuckParcels } from '@/lib/shipping/stuck-parcels';
+import { splitLikelyMerged, STUCK_THRESHOLDS, stuckLabel, stuckParcels } from '@/lib/shipping/stuck-parcels';
 
 /**
  * Застряглі посилки.
@@ -112,5 +112,59 @@ describe('stuckLabel для посилки на відділенні', () => {
             tracking_status_at: ago(6),
         })], NOW).atBranch;
         expect(stuckLabel(p)).toContain('зберігання вже платне з 14.09');
+    });
+});
+
+/**
+ * Об'єднані посилки. Кілька замовлень одного клієнта їдуть однією коробкою й
+ * однією накладною; її отримує тільки одне замовлення з групи, решта лишаються
+ * зі старими номерами, які потім видаляють. Живий випадок: CRM-13683 і
+ * CRM-13969 поїхали всередині CRM-13410, доставленого 15.09.2026.
+ */
+describe('splitLikelyMerged', () => {
+    const delivered = [{
+        order_number: 'CRM-13410',
+        customer_phone: '+380961422252',
+        ttn: '20451531982869',
+        delivered_at: ago(0),
+    }];
+
+    const stuckOne = () => stuckParcels([row({
+        order_number: 'CRM-13969',
+        customer_phone: '0961422252',
+        ttn: '20451514074686',
+        tracking_status: 'Вилучено',
+        tracking_status_at: ago(10),
+    })], NOW).problem;
+
+    it('упізнає сусіда, вручення якого сталося вже після смерті накладної', () => {
+        const { stuck, merged } = splitLikelyMerged(stuckOne(), delivered);
+        expect(stuck).toEqual([]);
+        expect(merged).toHaveLength(1);
+        expect(merged[0].sibling.order_number).toBe('CRM-13410');
+    });
+
+    it('номер телефону в різних форматах — це той самий клієнт', () => {
+        // У базі сусідять '0994405069' і '+380996498974'; порівнювати їх як
+        // рядки означало б не побачити жодного об'єднання.
+        const { merged } = splitLikelyMerged(stuckOne(), [{ ...delivered[0], customer_phone: '0961422252' }]);
+        expect(merged).toHaveLength(1);
+    });
+
+    it('чуже замовлення сусідом не вважається', () => {
+        const { stuck, merged } = splitLikelyMerged(stuckOne(), [{ ...delivered[0], customer_phone: '+380500000000' }]);
+        expect(merged).toEqual([]);
+        expect(stuck).toHaveLength(1);
+    });
+
+    it('вручення ДО того, як накладна застрягла, ні про що не свідчить', () => {
+        const { stuck, merged } = splitLikelyMerged(stuckOne(), [{ ...delivered[0], delivered_at: ago(30) }]);
+        expect(merged).toEqual([]);
+        expect(stuck).toHaveLength(1);
+    });
+
+    it('без телефону здогад не будуємо', () => {
+        const noPhone = stuckParcels([row({ customer_phone: null, tracking_status_at: ago(10) })], NOW).problem;
+        expect(splitLikelyMerged(noPhone, delivered).merged).toEqual([]);
     });
 });

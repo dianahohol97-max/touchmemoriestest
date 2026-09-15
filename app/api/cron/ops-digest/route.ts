@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { stuckLabel, stuckParcels, STUCK_THRESHOLDS } from '@/lib/shipping/stuck-parcels';
+import { splitLikelyMerged, stuckLabel, stuckParcels, STUCK_THRESHOLDS } from '@/lib/shipping/stuck-parcels';
 import { crmStageLabel } from '@/lib/automation/crm-stage';
 import { PRINT_WARNING_MARKER } from '@/lib/print/print-warning';
 import { getAdminClient } from '@/lib/supabase/admin';
@@ -84,6 +84,7 @@ type OrderRow = {
     ttn: string | null;
     tracking_status: string | null;
     tracking_status_at: string | null;
+    delivered_at: string | null;
     deadline: string | null;
     paid_at: string | null;
     created_at: string;
@@ -411,8 +412,34 @@ function buildBuckets(
         href: `${SITE_URL}/admin/orders/${p.row.id}`,
         waitingHours: (p.days ?? 0) * 24,
     });
-    if (parcels.problem.length) {
-        buckets.push({ title: 'Посилка не дійшла: накладну видалено або відмова', items: parcels.problem.map(parcelItem) });
+
+    // Кілька замовлень одного клієнта нерідко їдуть однією коробкою й однією
+    // накладною. Її отримує тільки одне замовлення з групи, решта лишаються зі
+    // старими номерами, які потім видаляють, — і виглядають застряглими, хоча
+    // клієнт усе забрав (CRM-13683 і CRM-13969 поїхали всередині CRM-13410).
+    // Такі випадки не ховаємо, а виносимо окремо й обережним словом
+    // «ймовірно»: це здогад за непрямою ознакою, і вирішує людина.
+    const delivered = orders.filter(o => o.order_status === 'delivered' && o.delivered_at);
+    const problemSplit = splitLikelyMerged(parcels.problem, delivered as any);
+    const notHandedSplit = splitLikelyMerged(parcels.notHandedOver, delivered as any);
+    const mergedItem = (p: any): Item => ({
+        ...parcelItem(p),
+        sublabel: [
+            (p.row.customer_name || '').trim() || 'без імені',
+            stuckLabel(p),
+            `схоже, поїхало разом із #${p.sibling.order_number}`,
+        ].join(', '),
+    });
+    const likelyMerged = [...problemSplit.merged, ...notHandedSplit.merged];
+
+    if (problemSplit.stuck.length) {
+        buckets.push({ title: 'Посилка не дійшла: накладну видалено або відмова', items: problemSplit.stuck.map(parcelItem) });
+    }
+    if (likelyMerged.length) {
+        buckets.push({
+            title: 'Ймовірно поїхало разом з іншим замовленням — перевірити, а не дзвонити',
+            items: likelyMerged.map(mergedItem),
+        });
     }
     if (parcels.atBranch.length) {
         buckets.push({
@@ -420,10 +447,10 @@ function buildBuckets(
             items: parcels.atBranch.map(parcelItem),
         });
     }
-    if (parcels.notHandedOver.length) {
+    if (notHandedSplit.stuck.length) {
         buckets.push({
             title: `Накладна створена, посилку не передали — понад ${STUCK_THRESHOLDS.waybillNewDays} днів`,
-            items: parcels.notHandedOver.map(parcelItem),
+            items: notHandedSplit.stuck.map(parcelItem),
         });
     }
 
@@ -595,7 +622,7 @@ export async function GET(request: Request) {
     try {
         const { data, error } = await supabase
             .from('orders')
-            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, tracking_status, tracking_status_at, deadline, paid_at, created_at, custom_attributes, source, notes, total')
+            .select('id, order_number, customer_name, customer_email, customer_phone, payment_status, order_status, with_designer, designer_id, ttn, tracking_status, tracking_status_at, delivered_at, deadline, paid_at, created_at, custom_attributes, source, notes, total')
             .gte('created_at', since)
             .order('created_at', { ascending: false });
 
