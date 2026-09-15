@@ -61,6 +61,16 @@ const WRITE = /\.(insert|update|upsert|delete)\s*\(/;
  */
 const BY_PARENT = /\.(eq|in|ilike)\s*\(\s*['"][a-z_]*(id|email)['"]/;
 
+/**
+ * Фільтр по списку, який передав викликач.
+ *
+ * `.in('order_number', orderNumbers)` обмежений не лімітом і не ключем, а
+ * довжиною масиву, що прийшов у функцію. Це та сама природа, що й фільтр по
+ * батьківському ключу: тримають дані, а не запит. Літеральний список у дужках
+ * сюди не рахується — там усе видно очима.
+ */
+const BY_CALLER_LIST = /\.in\s*\(\s*['"][a-z_]+['"]\s*,\s*[A-Za-z_$][\w$.]*\s*\)/;
+
 function walk(dir, out = []) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory()) {
@@ -116,7 +126,7 @@ for (const file of files) {
             const bound = BOUNDED.find((b) => b.re.test(chain.text));
             if (bound) { bounded++; continue; }
 
-            if (BY_PARENT.test(chain.text)) byParent.push({ where, table });
+            if (BY_PARENT.test(chain.text) || BY_CALLER_LIST.test(chain.text)) byParent.push({ where, table });
             else needsWork.push({ where, table });
         }
     }

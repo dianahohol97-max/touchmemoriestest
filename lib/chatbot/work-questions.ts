@@ -5,6 +5,7 @@ import { crmStageLabel, stageOrStatus, SITE_STATUS_UA as ORDER_STATUS_UA } from 
 import { formatDeliveryAddress } from '@/lib/orders/delivery-address';
 import { extractOrderNumbers } from './work-chat-monitor';
 import { isVisibleProductionOrder, PRODUCTION_ACTIVE_STATUSES, fetchProductionFilter } from '@/lib/automation/production-visibility';
+import { fetchAllRows } from '@/lib/supabase/paginate';
 import { ANDRIY_TAG, MAGNETS_TAG, PHOTO_TAG } from '@/lib/automation/order-tags';
 import { answerFromMemory } from './open-questions';
 import { buildResponsibleLookup } from './responsible';
@@ -953,20 +954,41 @@ async function buildTagOrders(question: string, requireStrongWord = false): Prom
     const supabase = getAdminClient();
     const window = matchDayWindow(question);
 
-    let query = supabase
-        .from('orders')
-        .select('id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes');
+    // Сторінками, а не лімітом, бо відсів стоїть НИЖЧЕ, вже в JavaScript:
+    // isVisibleProductionOrder прибирає тестові, закриті в CRM і давні сайтові
+    // замовлення. Ліміт із відсівом після нього — це гоча 13, лотерея: поки
+    // ліміт більший за весь можливий набір, усе добре, а щойно набір його
+    // перерос, відповіді про теги починають залежати від того, що саме
+    // потрапило в зріз.
+    //
+    // Запас тут був 49 рядків: під активні статуси підпадає 351 замовлення
+    // проти ліміту в 400 (заміряно 15.09.2026), і росте цей набір від роботи
+    // цеху. Мовчазна неправда в питанні «скільки для Андрія?» — це рівно те,
+    // заради чого чат-бот і зроблено.
+    const columns = 'id, order_number, customer_name, deadline, order_status, source, created_at, tags, custom_attributes';
+    const sinceIso = window ? new Date(window.since).toISOString() : '';
+    // Верхня межа завжди присутня, щоб кожна гілка лишалася одним ланцюжком:
+    // так і читається легше, і скрипт scripts/unpaginated-queries.mjs бачить
+    // `.range()` поруч із `.from('orders')`, а не через змінну.
+    const untilIso = window?.until ? new Date(window.until).toISOString() : '9999-12-31T00:00:00.000Z';
 
-    if (window) {
-        query = query.gte('created_at', new Date(window.since).toISOString());
-        if (window.until) query = query.lt('created_at', new Date(window.until).toISOString());
-        query = query.order('created_at', { ascending: false }).limit(600);
-    } else {
-        query = query.in('order_status', PRODUCTION_ACTIVE_STATUSES).order('deadline', { ascending: true }).limit(400);
-    }
+    const buildQuery = (from: number, to: number) => (window
+        ? supabase
+            .from('orders')
+            .select(columns)
+            .gte('created_at', sinceIso)
+            .lt('created_at', untilIso)
+            .order('created_at', { ascending: false })
+            .range(from, to)
+        : supabase
+            .from('orders')
+            .select(columns)
+            .in('order_status', PRODUCTION_ACTIVE_STATUSES)
+            .order('deadline', { ascending: true })
+            .range(from, to));
 
-    const { data } = await query;
-    const scoped = (data || []).filter(o => isVisibleProductionOrder(o as any));
+    const data = await fetchAllRows<any>(buildQuery, { label: 'замовлення за тегами' });
+    const scoped = data.filter(o => isVisibleProductionOrder(o as any));
     const tagsOf = (o: any): string[] => (Array.isArray(o?.tags) ? o.tags : []).map((t: any) => String(t || '').trim()).filter(Boolean);
 
     // The tag universe, keyed lower-case so «Для Андрія» and «для Андрія» are

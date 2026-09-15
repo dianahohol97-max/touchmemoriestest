@@ -54,7 +54,7 @@ PostgREST. Саме цей список має ставати коротшим.
 фільтр по `conversation_id` його не врятував. Переглядати варто тоді, коли в
 одного батька рядків може стати понад тисячу.
 
-## Треба переписати — 13 місць
+## Треба переписати — 10 місць
 
 | таблиця | місце | область |
 |---|---|---|
@@ -66,11 +66,8 @@ PostgREST. Саме цей список має ставати коротшим.
 | orders | `app/api/nova-poshta/sync-tracking/route.ts:142` | доставка |
 | orders | `lib/automation/keycrm-mirror.ts:580` | KeyCRM |
 | orders | `lib/automation/keycrm-mirror.ts:623` | KeyCRM |
-| orders | `lib/automation/keycrm-mirror.ts:638` | KeyCRM |
 | orders | `lib/automation/keycrm-push.ts:786` | KeyCRM |
 | orders | `lib/automation/keycrm-twoway.ts:595` | KeyCRM |
-| orders | `lib/chatbot/work-questions.ts:957` | чат-бот |
-| orders | `lib/chatbot/work-questions.ts:1373` | чат-бот |
 
 `app/api/cron/birthday-emails/route.ts:38` — хибне спрацювання, і воно таким і
 лишиться: запит бере лише клієнтів із заповненим днем народження, а таких
@@ -86,9 +83,22 @@ PostgREST. Саме цей список має ставати коротшим.
 | `app/api/production/queue/route.ts` | 293 сьогодні, втрат ще немає |
 | `app/api/designer/free-orders/route.ts` | 102 сьогодні, втрат ще немає |
 | `lib/chatbot/unanswered.ts` | 425 діалогів за два тижні, втрат ще немає |
+| `lib/chatbot/work-questions.ts` (питання про теги) | ліміт 400 проти 351 активного замовлення, тобто запас 49 рядків — і відсів стояв уже в JavaScript, тобто гоча 13 |
 
 Раніше того ж дня полагоджено дашборд, аналітику, список клієнтів, зарплати,
 витрати і звіт P&L — розбір у `docs/revenue-sources.md`.
+
+## Що змінилося в самому скрипті
+
+Додано третє правило впізнавання: `.in('order_number', numbers)` — тобто фільтр
+по списку, який передав викликач, — тепер потрапляє в «обмежені даними», а не в
+«треба переписати». Природа в нього та сама, що й у фільтра по батьківському
+ключу: вибірку тримає довжина масиву, а не запит. Літеральний список у дужках
+під це правило не підпадає, бо там усе видно очима.
+
+Через це до «обмежених даними» переїхали `lib/automation/keycrm-mirror.ts:638`
+і `lib/chatbot/work-questions.ts` (рекомендації задач), обидва — цілком
+законні випадки.
 
 ## Чого цей список НЕ ловить
 
