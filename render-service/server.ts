@@ -598,10 +598,46 @@ app.post('/render', async (req, res) => {
           }
         }
 
-        const scaled = await sharp(raw)
+        const captured = await sharp(raw)
           .resize(contentPxW, contentPxH, { fit: 'fill' })  // aspect already matches within 1%
           .png({ compressionLevel: 1 })                     // lossless intermediate — see bleedFill
           .toBuffer();
+
+        // ── The capture's own outermost pixels never reach the mirror ──────
+        //
+        // A screenshot's edge pixel is not artwork: the page box lands on a
+        // fractional device pixel, so the outermost column is the photo blended
+        // with the white page behind it. One pale column, invisible on its own.
+        //
+        // The mirror below is what makes it visible. It reflects the outer band
+        // outward, which places that pale column immediately beside ITSELF —
+        // one on each side of the trim line. Two pale columns together read as a
+        // hairline running the full height of the sheet, sitting exactly where
+        // the guillotine goes, and on dark artwork it is unmissable: measured on
+        // TM-001254's spreads the line is +90 levels over a background of 23.
+        // It is the same defect as the white sheet edge (lib/print/white-edge.ts
+        // in the app), one bleed-width further in, and the app's repair route
+        // cannot reach it — that one counts white lines inward FROM the edge and
+        // stops at the first line of real artwork, long before the trim.
+        //
+        // So the band is clamped before anything mirrors it: the outer ring is
+        // replaced by its inner neighbour, and the mirror then copies artwork
+        // only. Two pixels at 300 DPI is 0.17 mm — an order of magnitude below
+        // the ±1 mm the knife itself wanders, and it is a copy of the adjacent
+        // pixel rather than a hole, so nothing visible is lost.
+        const EDGE_CLAMP_PX = 2;
+        const clampCaptureEdge = async (buf: Buffer, w: number, h: number, n: number): Promise<Buffer> => {
+          if (n <= 0 || w <= 2 * n || h <= 2 * n) return buf;
+          return await sharp(buf)
+            .extract({ left: n, top: n, width: w - 2 * n, height: h - 2 * n })
+            // extendWith 'copy' replicates the edge pixels of what is left, so
+            // the ring comes back as a copy of the first clean line and the
+            // buffer returns at exactly its original size.
+            .extend({ top: n, bottom: n, left: n, right: n, extendWith: 'copy' })
+            .png({ compressionLevel: 1 })
+            .toBuffer();
+        };
+        const scaled = await clampCaptureEdge(captured, contentPxW, contentPxH, EDGE_CLAMP_PX);
 
         const bx = Math.floor(dx / 2);   // per-side horizontal bleed
         const by = Math.floor(dy / 2);   // per-side vertical bleed
