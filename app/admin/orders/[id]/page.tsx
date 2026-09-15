@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import DesignerProjectBlock from './DesignerProjectBlock';
 import PrintSheetsCard from './PrintSheetsCard';
+import { AutoGrowTextarea } from '@/components/admin/AutoGrowTextarea';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime, formatDateOnly } from '@/lib/date-utils';
@@ -3767,24 +3768,35 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                             <h3 style={cardTitleStyle}><Info size={20} /> Нотатки та коментарі</h3>
                             <button onClick={saveNotes} style={{ border: 'none', background: 'none', color: '#10b981', cursor: 'pointer' }}><Save size={18} /></button>
                         </div>
+                        {/* Обидва поля самі підганяють висоту під текст — див.
+                            AutoGrowTextarea. Довгу нотатку тут читають частіше,
+                            ніж пишуть, а вікно на три рядки давало її тільки
+                            прокруткою.
+                            minHeight 160, бо поле перейшло на border-box: старі
+                            120 були висотою ВМІСТУ, і разом із падінгами й
+                            рамкою порожнє поле займало ті самі ~155 px. Без
+                            цього числа воно б скоротилось — рівно навпаки до
+                            того, заради чого все це. */}
                         <div style={{ marginBottom: '12px' }}>
                             <label style={smallLabelStyle}>Службові нотатки (менеджер)</label>
-                            <textarea
+                            <AutoGrowTextarea
                                 value={notes}
-                                onChange={e => setNotes(e.target.value)}
+                                onChange={setNotes}
                                 placeholder="Внутрішні коментарі для команди..."
                                 style={notesInputStyle}
-                                rows={3}
+                                minHeight={160}
+                                maxHeight={560}
                             />
                         </div>
                         <div>
                             <label style={smallLabelStyle}>Коментар клієнта</label>
-                            <textarea
+                            <AutoGrowTextarea
                                 value={clientComment}
-                                onChange={e => setClientComment(e.target.value)}
+                                onChange={setClientComment}
                                 placeholder="Побажання та коментарі від клієнта..."
                                 style={{ ...notesInputStyle, backgroundColor: '#fffbeb', borderColor: '#fbbf24' }}
-                                rows={3}
+                                minHeight={160}
+                                maxHeight={560}
                             />
                         </div>
                     </div>
