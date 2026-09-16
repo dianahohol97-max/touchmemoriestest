@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import { partnerRefLink } from '@/lib/partners/referral-link';
+import { partnerShareMessage } from '@/lib/partners/share-message';
 
 /**
  * Sales manager cabinet: their own leads, the partners they closed, and what
@@ -208,9 +210,7 @@ export default function SalesCabinetClient({ token }: { token: string }) {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                 {partners.map(p => (
-                  <div key={p.id} style={{ border: '1px solid #eee6d8', borderRadius: 12, padding: '10px 13px', fontSize: 13.5 }}>
-                    <b>{p.agency_name}</b> · код <code>{p.referral_code}</code> · {p.status === 'active' ? 'активний' : p.status}
-                  </div>
+                  <PartnerShare key={p.id} partner={p} flash={flash} />
                 ))}
                 {photographers.map(p => (
                   <div key={p.id} style={{ border: '1px solid #eee6d8', borderRadius: 12, padding: '10px 13px', fontSize: 13.5 }}>
@@ -260,6 +260,65 @@ export default function SalesCabinetClient({ token }: { token: string }) {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Партнер у списку менеджера: публічне реферальне посилання, готовий текст для
+ * директу і дві кнопки копіювання.
+ *
+ * ЩО СЮДИ СВІДОМО НЕ ПОТРАПЛЯЄ. Приватний `cabinet_token` партнера. Він
+ * відкриває нарахування й реквізити для виплат без жодного пароля, тож
+ * менеджеру його не показують і переслати він його не може. Партнер отримує
+ * кабінет вітальним листом або формою на /uk/partner/find — обидва шляхи ведуть
+ * лише на його власну пошту. Дані сюди приходять із /api/sales/me, який
+ * `cabinet_token` не вибирає взагалі, тобто межа тримається на сервері, а не на
+ * тому, що екран його не намалював.
+ */
+function PartnerShare({ partner, flash }: { partner: any; flash: (m: string) => void }) {
+  const link = partnerRefLink(partner.referral_code);
+  const message = partnerShareMessage(partner.referral_code);
+
+  const copy = async (value: string, said: string) => {
+    try {
+      await navigator.clipboard?.writeText(value);
+      flash(said);
+    } catch {
+      flash('Не вдалося скопіювати — виділіть текст вручну');
+    }
+  };
+
+  const smallBtn: React.CSSProperties = {
+    ...btnGhost, padding: '6px 12px', fontSize: 12.5, whiteSpace: 'nowrap',
+  };
+
+  return (
+    <div style={{ border: '1px solid #eee6d8', borderRadius: 12, padding: '11px 13px', fontSize: 13.5 }}>
+      <div>
+        <b>{partner.agency_name}</b> · код <code>{partner.referral_code}</code> · {partner.status === 'active' ? 'активний' : partner.status}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+        <code style={{ fontSize: 12.5, color: '#263A99', background: '#f4f6ff', borderRadius: 8, padding: '6px 9px', wordBreak: 'break-all', flex: '1 1 220px' }}>
+          {link}
+        </code>
+        <button type="button" style={smallBtn} onClick={() => copy(link, 'Посилання скопійовано')}>
+          Копіювати посилання
+        </button>
+      </div>
+
+      <details style={{ marginTop: 9 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12.5, color: '#8B8378' }}>
+          Готовий текст для директу
+        </summary>
+        <div style={{ whiteSpace: 'pre-wrap', fontSize: 12.5, color: '#55504a', background: '#fbfaf7', border: '1px solid #eee6d8', borderRadius: 10, padding: '9px 11px', marginTop: 7, lineHeight: 1.5 }}>
+          {message}
+        </div>
+        <button type="button" style={{ ...smallBtn, marginTop: 7 }} onClick={() => copy(message, 'Текст скопійовано')}>
+          Копіювати текст
+        </button>
+      </details>
+    </div>
   );
 }
 

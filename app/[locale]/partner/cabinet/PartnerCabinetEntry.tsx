@@ -66,6 +66,11 @@ export default function PartnerCabinetEntry() {
         <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 440 }}>
           Заходите вперше? <a href={`/${lang}/register`} style={{ color: '#263A99', fontWeight: 700 }}>Створіть акаунт</a> на пошту вашого партнерства, підтвердіть її й поверніться сюди, щоб увійти — кабінет прив'яжеться сам.
         </div>
+        {/* Акаунт заведений не на партнерську пошту — найчастіший випадок, коли
+            цей шлях не спрацьовує. Тоді лишається лист на саму пошту. */}
+        <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 440 }}>
+          Акаунта немає або він на іншу пошту? <a href={`/${lang}/partner/find`} style={{ color: '#263A99', fontWeight: 700 }}>Надішлемо посилання на кабінет поштою</a>.
+        </div>
       </div>
     );
   }
@@ -79,6 +84,7 @@ export default function PartnerCabinetEntry() {
         </div>
         <a href={`/${lang}/travel-agencies/apply`} style={btn}>Стати партнером</a>
         <a href={`/${lang}/login?next=/${lang}/partner/cabinet`} style={{ color: '#94a3b8', fontSize: 13 }}>Увійти під іншою поштою →</a>
+        <a href={`/${lang}/partner/find`} style={{ color: '#94a3b8', fontSize: 13 }}>Надіслати посилання на кабінет поштою →</a>
       </div>
     );
   }
