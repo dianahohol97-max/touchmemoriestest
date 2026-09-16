@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { buildLifecycleEmail } from '@/lib/email/lifecycle-template';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -207,9 +208,30 @@ async function sendLifecycleEmail(
 ): Promise<boolean> {
     const { subject, html } = buildLifecycleEmail(type, designName, projectId, SITE_URL);
 
-    const result = await sendEmail({ to, subject, html });
-    if (!result.success) {
-        console.error(`[lifecycle] Failed to send ${type} email to ${to}:`, result.error);
+    // Найбільший потік листів у системі: 459 за тиждень на всі чотири пороги.
+    // До 16.09.2026 про жоден із них не лишалося сліду, хоча вони попереджають
+    // людину, що її макет скоро зникне назавжди (Діана, 16.09.2026).
+    let outcome;
+    try {
+        outcome = readSendOutcome(await sendEmail({ to, subject, html }));
+    } catch (e: any) {
+        outcome = sendOutcomeFromError(e);
+    }
+
+    // orderId порожній: лист про макет, а не про замовлення. Тип порогу
+    // лишається в назві шаблону, щоб у журналі було видно, котре це з
+    // чотирьох нагадувань.
+    await logOutgoingEmail({
+        orderId: null,
+        to,
+        template: `design_lifecycle_${type}`,
+        subject,
+        body: htmlToTextSnapshot(html),
+        outcome,
+    });
+
+    if (!outcome.sent) {
+        console.error(`[lifecycle] Failed to send ${type} email to ${to}:`, outcome.error);
         return false;
     }
     console.log(`[lifecycle] Sent ${type} email to ${to} for project ${projectId}`);
@@ -278,14 +300,28 @@ async function sendAbandonedOrderEmail(order: any): Promise<boolean> {
 </body>
 </html>`;
 
-    const result = await sendEmail({
+    const subject = ` Ваше замовлення #${order.order_number} чекає на оплату`;
+
+    let outcome;
+    try {
+        outcome = readSendOutcome(await sendEmail({ to, subject, html }));
+    } catch (e: any) {
+        outcome = sendOutcomeFromError(e);
+    }
+
+    // Тут замовлення є, тож рядок стає на його місце в історії листування —
+    // менеджер побачить це нагадування в картці разом із рештою.
+    await logOutgoingEmail({
+        orderId: order.id,
         to,
-        subject: ` Ваше замовлення #${order.order_number} чекає на оплату`,
-        html,
+        template: 'abandoned_order',
+        subject,
+        body: htmlToTextSnapshot(html),
+        outcome,
     });
 
-    if (!result.success) {
-        console.error(`[lifecycle] Failed to send abandoned email to ${to}:`, result.error);
+    if (!outcome.sent) {
+        console.error(`[lifecycle] Failed to send abandoned email to ${to}:`, outcome.error);
         return false;
     }
     console.log(`[lifecycle] Sent abandoned order email to ${to} for order ${order.id}`);
