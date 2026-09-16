@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripUnusedDecorationVariants } from '@/lib/orders/decoration-variants';
+import { cleanItemOptions } from '@/lib/orders/item-options';
 import { randomUUID } from 'crypto';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { isTestOrder } from '@/lib/automation/test-orders';
@@ -196,11 +196,22 @@ export async function POST(request: NextRequest) {
       if (!hasPageLine) it.options['Сторінок'] = '32 сторінки';
     }
 
-    // Прибрати варіанти оздоблення, яких не замовляли. Правило і пояснення,
-    // чому воно мусить питати саме «Тип оздоблення», живуть у
-    // lib/orders/decoration-variants — разом із тестами.
-    for (const bag of [it?.options, it?.selected_options]) {
-      stripUnusedDecorationVariants(bag);
+    // Прибрати з позиції те, чого клієнт не обирав: чужі варіанти оздоблення,
+    // брехливий старий ключ поруч із новим, колір напису без флексу,
+    // дубльоване покриття обкладинки і порожні значення.
+    //
+    // Функція ТА САМА, що чистить конфігурацію з картки товару і з модалки «з
+    // дизайнером». Тут доти жив власний, вужчий відсів — і це був другий
+    // прибирач у проєкті поруч зі спільним, тобто рівно та вада, від якої ми
+    // щойно позбулися в порядку ключів оздоблення.
+    //
+    // Заміна на кошику майже непомітна: за 120 днів зі 127 позицій вона
+    // зачіпає пʼять, і в усіх пʼяти зникають рядки без значення
+    // («Колір напису: », «Отримувач: »). Варіантів чужих оздоблень у кошику
+    // немає жодного — їх і раніше ловив тутешній відсів.
+    if (it?.options && typeof it.options === 'object') it.options = cleanItemOptions(it.options);
+    if (it?.selected_options && typeof it.selected_options === 'object') {
+      it.selected_options = cleanItemOptions(it.selected_options);
     }
   }
 

@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { stripUnusedDecorationVariants } from '@/lib/orders/decoration-variants';
-import { resolveDecoration } from '@/lib/orders/item-options';
+import { cleanItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 
 /**
+ * Оздоблення в позиції замовлення: що читається як обране і що прибирається.
+ *
+ * Прибирач у проєкті ОДИН — cleanItemOptions — і його кличуть три місця:
+ * кошик (/api/orders/submit), картка товару і модалка «з дизайнером». Ці
+ * тести стерегли вужчу копію, яка жила окремо один день; вони перенесені на
+ * спільну функцію, щоб покриття не зникло разом із модулем.
+ *
  * Відсів варіантів оздоблення, яких не замовляли.
  *
  * Дві помилки, які тут закріплені, мовчали рівно тому, що акрил через цей
@@ -50,11 +56,13 @@ describe('відсів варіантів', () => {
             'Варіант фотовставки': '100×100 мм',
         };
 
-        const removed = stripUnusedDecorationVariants(bag);
+        const cleaned = cleanItemOptions(bag);
 
-        expect(bag['Варіант акрилу']).toBe('100×100 мм');
-        expect(bag['Варіант фотовставки']).toBeUndefined();
-        expect(removed).toEqual(['Варіант фотовставки']);
+        expect(cleaned['Варіант акрилу']).toBe('100×100 мм');
+        expect(cleaned['Варіант фотовставки']).toBeUndefined();
+        // Брехливий сусід теж не доїжджає: обране назване новим ключем.
+        expect(cleaned['Оздоблення']).toBeUndefined();
+        expect(cleaned['Тип оздоблення']).toBe('Акрил');
     });
 
     /**
@@ -70,11 +78,11 @@ describe('відсів варіантів', () => {
             'Варіант фотовставки': '100×100 мм',
         };
 
-        stripUnusedDecorationVariants(bag);
+        const cleaned = cleanItemOptions(bag);
 
-        expect(bag['Варіант оздоблення']).toBe('90×50 золотий');
-        expect(bag['Варіант акрилу']).toBeUndefined();
-        expect(bag['Варіант фотовставки']).toBeUndefined();
+        expect(cleaned['Варіант оздоблення']).toBe('90×50 золотий');
+        expect(cleaned['Варіант акрилу']).toBeUndefined();
+        expect(cleaned['Варіант фотовставки']).toBeUndefined();
     });
 
     it('фотовставці лишає саме фотовставку', () => {
@@ -84,10 +92,10 @@ describe('відсів варіантів', () => {
             'Варіант фотовставки': '100×100 мм',
         };
 
-        stripUnusedDecorationVariants(bag);
+        const cleaned = cleanItemOptions(bag);
 
-        expect(bag['Варіант фотовставки']).toBe('100×100 мм');
-        expect(bag['Варіант акрилу']).toBeUndefined();
+        expect(cleaned['Варіант фотовставки']).toBe('100×100 мм');
+        expect(cleaned['Варіант акрилу']).toBeUndefined();
     });
 
     it('гравіруванню не лишає нічого зайвого', () => {
@@ -97,14 +105,12 @@ describe('відсів варіантів', () => {
             'Варіант фотовставки': 'foto_100x100',
         };
 
-        stripUnusedDecorationVariants(bag);
-
-        expect(Object.keys(bag)).toEqual(['Тип оздоблення']);
+        expect(Object.keys(cleanItemOptions(bag))).toEqual(['Тип оздоблення']);
     });
 
     it('порожній набір і відсутній обʼєкт не ламають нічого', () => {
-        expect(stripUnusedDecorationVariants({})).toEqual([]);
-        expect(stripUnusedDecorationVariants(undefined as any)).toEqual([]);
+        expect(cleanItemOptions({})).toEqual({});
+        expect(cleanItemOptions(undefined as any)).toEqual({});
     });
 });
 
@@ -172,5 +178,55 @@ describe('фотокниги з конструктора', () => {
         const resolved = resolveDecoration({ 'Тип оздоблення': 'Металева вставка', 'Оздоблення': 'Акрилова вставка' });
 
         expect(resolved.conflict).toBe(true);
+    });
+});
+
+/**
+ * Те, що спільний прибирач додає понад стару вужчу копію в кошику.
+ *
+ * Обидва приклади — живі позиції з кошика: у них є ключі з порожнім
+ * значенням, які в картці замовлення читаються рядком «Колір напису: » без
+ * нічого. За 120 днів таких позицій пʼять зі 127.
+ */
+describe('що саме змінюється в кошику', () => {
+    it('порожні значення більше не доїжджають у позицію', () => {
+        const cleaned = cleanItemOptions({
+            'Колір напису': '',
+            'Текст напису': 'Аіша(булка)💋',
+            'Шрифт напису': '',
+            'Розмір напису': 'Великий',
+            'Колір обкладинки': 'Зелений',
+        });
+
+        expect(Object.keys(cleaned)).toEqual(['Текст напису', 'Розмір напису', 'Колір обкладинки']);
+    });
+
+    it('сертифікат без отримувача не несе порожнього рядка', () => {
+        const cleaned = cleanItemOptions({
+            'Номер': 'TM-2026-M509',
+            'Формат': 'Друкований',
+            'Отримувач': '',
+            'Термін дії': '8 вересня 2027 р.',
+            'Тип сертифікату': 'На суму 1500 ₴',
+        });
+
+        expect(cleaned['Отримувач']).toBeUndefined();
+        expect(cleaned['Номер']).toBe('TM-2026-M509');
+    });
+
+    /**
+     * Порядок ключів менеджер читає згори вниз, і прибирач його зберігає —
+     * інакше картка замовлення перетасовувалася б на кожному збереженні.
+     */
+    it('порядок решти ключів не змінюється', () => {
+        const cleaned = cleanItemOptions({
+            'Розмір': '30х20', 'Корінець': 'standard', 'Оздоблення': 'none',
+            'Колір велюру': 'Молочний (В-01)', 'Тип оздоблення': 'Гравірування',
+            'Кількість сторінок': 30,
+        });
+
+        expect(Object.keys(cleaned)).toEqual([
+            'Розмір', 'Корінець', 'Колір велюру', 'Тип оздоблення', 'Кількість сторінок',
+        ]);
     });
 });
