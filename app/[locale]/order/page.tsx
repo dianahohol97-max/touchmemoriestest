@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import FlowHeader from '@/components/ui/FlowHeader'
 import { describeItemOptions, resolveDecoration } from '@/lib/orders/item-options'
 import { parseDecoVariantMm, type DecoVariantDims } from '@/lib/print/deco-variant'
+import { readAttributableReferralCode } from '@/lib/referral/pending-code'
 
 interface UploadedFile {
   id: string
@@ -838,6 +839,9 @@ function OrderForm() {
   })
   const [orderId, setOrderId] = useState<string | null>(null)
   const [orderNumber, setOrderNumber] = useState<string | null>(null)
+  // Знижка від партнера, яку застосував сервер. Показується на екрані успіху —
+  // коли рахунок створити не вдалося і людина не побачила суму на Монобанку.
+  const [partnerDiscount, setPartnerDiscount] = useState(0)
   // Live upload progress. 40+ phone photos are ~100 MB over LTE; the button
   // used to just say "Відправляємо..." for 5–15 minutes with zero feedback,
   // so customers assumed it had frozen and abandoned the order (Софія, 01.08:
@@ -1082,6 +1086,36 @@ function OrderForm() {
 
       if (order) { setOrderId(order.id); setOrderNumber(order.order_number) }
       sessionStorage.removeItem('designerOrderConfig')
+
+      /**
+       * Партнерська атрибуція і знижка (Діана, 16.09.2026).
+       *
+       * Цей потік вставляє замовлення прямо з браузера і НЕ проходить через
+       * /api/orders/submit, де партнер визначається для звичайного чекауту.
+       * Через це TM-001325 приїхало без знижки й без атрибуції, хоча перехід за
+       * посиланням був записаний: половина замовлень із сайту йде саме тут.
+       *
+       * Кличемо ЗАВЖДИ, навіть коли коду немає: привʼязаний клієнт партнера
+       * коду не має, його визначає пошта — на цьому тримається комісія з
+       * повторних замовлень. Сервер сам вирішує, хто партнер і чи діє знижка,
+       * і сам переписує суму; рахунок Монобанку нижче читає її з рядка
+       * замовлення, тож приходить уже правильний. Порядок тут важливий: до
+       * створення рахунку, інакше людина заплатила б стару суму.
+       *
+       * Помилка не має блокувати оплату: втратити атрибуцію прикро, не дати
+       * людині заплатити — гірше.
+       */
+      if (order) {
+        try {
+          const res = await fetch('/api/referral/attach-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id, refCode: readAttributableReferralCode() || undefined }),
+          })
+          const json = await res.json().catch(() => null)
+          if (json?.discount > 0) setPartnerDiscount(Number(json.discount))
+        } catch { /* атрибуція не має ламати оплату */ }
+      }
 
       // Payment step — this flow used to END at "Підтвердити замовлення"
       // with no payment at all (customers wrote "немає оплати, лише
