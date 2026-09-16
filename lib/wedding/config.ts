@@ -58,6 +58,14 @@ export const GALLERY_POLL_MS = 15_000;
 /** Скільки фото віддається за одну сторінку галереї. */
 export const GALLERY_PAGE_SIZE = 48;
 
+/** Скільки фото лягає в один архів для пари. */
+//
+// Півтори сотні знімків — це приблизно 150 МБ, які функція встигає зібрати й
+// віддати в межах своїх обмежень. Одним архівом на все весілля не віддати:
+// пів тисячі фото це близько 500 МБ, і така відповідь не вкладається ані в
+// памʼять, ані в час. Число можна піднімати, поки архіви збираються надійно.
+export const ALBUM_BATCH_SIZE = 150;
+
 export interface WeddingEvent {
   id: string;
   slug: string;
@@ -79,6 +87,10 @@ export const photoUrl = (id: string) => `/api/wedding/photo/${id}`;
 
 /** Адреса фото пари для шапки. */
 export const heroUrl = (slug: string) => `/api/wedding/${slug}/hero`;
+
+/** Адреса однієї порції архіву для пари. */
+export const albumZipUrl = (token: string, offset: number) =>
+  `/api/wedding/album/${token}/zip?offset=${offset}`;
 
 /** Запасне фото пари, поки hero_photo_path порожній. */
 //
