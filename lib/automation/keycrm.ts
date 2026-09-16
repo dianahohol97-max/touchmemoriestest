@@ -73,6 +73,18 @@ export type KeycrmOrder = {
         sku: string;
         quantity: number;
         price: number;
+        /**
+         * Собівартість рядка — `purchased_price` у відповіді KeyCRM.
+         *
+         * Приходить у КОЖНОМУ товарному рядку замовлення і залежить від
+         * варіанта: глянцевий журнал на 8 сторінок коштує 121 ₴ при ціні 525 ₴,
+         * журнал на 12 сторінок — 136 ₴ при 675 ₴, фотокнига 25х25 на 30
+         * сторінок — 825 ₴ при 1 715 ₴ (перевірено 16.09.2026 на живих
+         * замовленнях). Нуль теж буває значенням: послуги на кшталт «Текст для
+         * журналу» чи «Терміновість +30%» мають собівартість нуль чесно.
+         * Порожньо (null) означає, що CRM не сказала нічого.
+         */
+        cost: number | null;
         /** Chosen options, e.g. "Вид оздоблення: Гравіювання". */
         properties: Record<string, string>;
         /**
@@ -301,11 +313,23 @@ function normaliseOrder(raw: any, statusLabels: Record<string, string>): KeycrmO
         const price = Number(p?.price ?? 0);
         const quantity = Number(p?.quantity ?? 1);
 
+        // Собівартість рядка. Назви поля різняться між версіями API, тож
+        // перебираємо той самий список, що й синхронізація каталогу. Різниця
+        // одна і свідома: там нуль означає «не заповнено» і його відкидають,
+        // щоб не затерти собівартість, введену на сайті руками, а тут нуль —
+        // це відповідь CRM про конкретний рядок, і послуга з нульовою
+        // собівартістю має лишитися нулем, а не стати невідомістю.
+        const costRaw = COST_FIELDS
+            .map(field => p?.[field])
+            .find(value => value !== null && value !== undefined && value !== '');
+        const costNumber = Number(costRaw);
+
         return {
             name: String(p?.name ?? p?.product_name ?? '').trim(),
             sku: String(p?.sku ?? '').trim(),
             quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
             price: Number.isFinite(price) ? price : 0,
+            cost: Number.isFinite(costNumber) ? costNumber : null,
             properties,
             // Специфікація, написана рукою менеджера. Перевірено 14.09.2026:
             // списковий запит несе це поле так само, як запит по одному
