@@ -1,3 +1,5 @@
+import { resolveDecoration } from '@/lib/orders/item-options';
+
 /**
  * Which covers get a server-generated monochrome engraving макет.
  *
@@ -64,7 +66,17 @@ export function findMonoCoverItem(items: any[]): any | null {
     if (slug.includes('wish') || slug.includes('pobazhan') || slug.includes('guest') || name.includes('побажан')) continue;
     const opts = it?.options || {};
     const material = String(opts['Обкладинка'] || opts['Матеріал обкладинки'] || opts['Cover'] || '');
-    const deco = String(opts['Декорація обкладинки'] || opts['Оздоблення'] || opts['Decoration'] || '');
+    // Оздоблення питаємо в ЄДИНОГО розбирача, а не власним ланцюжком ключів.
+    //
+    // Тут стояло `opts['Декорація обкладинки'] || opts['Оздоблення'] ||
+    // opts['Decoration']`, і ключ «Тип оздоблення» не питався взагалі. Для
+    // фотокниг із конструктора це означало, що рішення про файли для друку
+    // ухвалювалося за сусіднім ключем, який у восьми позиціях каже «Без
+    // оздоблення» поруч із названою вставкою: позиція мовчки пропускалася.
+    // Жодне з відомих замовлень від цього не постраждало лише тому, що
+    // фотовставку через цей потік ще не замовляли — а саме її пропуск колись
+    // уже коштував TM-001182 вирізаного фото.
+    const deco = resolveDecoration(opts).label;
     if (!isSoftCoverMaterial(material)) continue;
     // Гравіювання / флекс covers always qualify; a фотовставка cover qualifies
     // when it ALSO carries a напис — the напис is engraved/printed on the cover

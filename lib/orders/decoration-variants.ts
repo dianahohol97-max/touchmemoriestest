@@ -17,30 +17,7 @@
  * замовляв (Діана, 16.09.2026). Тепер воно тут, під тестами.
  */
 
-/** Ключ, який тримає ПРАВДУ про оздоблення, а не сусідній із схожою назвою. */
-const TYPE_KEYS = ['тип оздоблення', 'декорація обкладинки', 'оздоблення', 'decoration'];
-
-const norm = (s: string) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-
-/**
- * Обраний вид оздоблення.
- *
- * ПОРЯДОК КЛЮЧІВ ТУТ — НЕ ОЗДОБА. Раніше тип шукався як «перший ключ, у якому
- * є слово оздоблен», а першим у даних стоїть саме «Оздоблення» — сусід, який у
- * пʼяти живих замовленнях каже «Без оздоблення», поки «Тип оздоблення» каже
- * «Металева вставка». Тобто відсів питав неправильний ключ і для справжнього
- * акрилового замовлення видалив би саме той варіант, який клієнт обрав.
- */
-export function readDecorationType(bag: Record<string, any>): string {
-    if (!bag || typeof bag !== 'object') return '';
-    const byNormalisedKey = new Map(Object.keys(bag).map(k => [norm(k), k]));
-    for (const wanted of TYPE_KEYS) {
-        const key = byNormalisedKey.get(wanted);
-        const value = key ? String(bag[key] ?? '').trim() : '';
-        if (value) return value;
-    }
-    return '';
-}
+import { resolveDecoration } from '@/lib/orders/item-options';
 
 /**
  * Прибрати варіанти, які не відповідають обраному типу.
@@ -51,18 +28,23 @@ export function readDecorationType(bag: Record<string, any>): string {
 export function stripUnusedDecorationVariants(bag: Record<string, any>): string[] {
     if (!bag || typeof bag !== 'object') return [];
 
-    const deco = readDecorationType(bag);
-    const isAcrylic = /акрил|acryl/i.test(deco);
-    // «фото або вставк» ловило «Металева вставка», бо слово «вставка» є і в
-    // ній — тож металевим замовленням фотовставка лишалася завжди. Тепер
-    // умова називає саме фотовставку, а не будь-яку вставку.
-    const isPhotoInsert = /фотовставк|фото\s*вставк|photo\s*insert/i.test(deco);
+    // Яке оздоблення обрали — питаємо ЄДИНИЙ розбирач, а не власний список
+    // ключів. Раніше тут стояв власний, і він читав «перший ключ зі словом
+    // оздоблен», тобто сусіда «Оздоблення», який у восьми позиціях каже
+    // «Без оздоблення» поруч із названою вставкою. Для справжнього акрилового
+    // замовлення це видалило б саме той варіант, який клієнт обрав.
+    //
+    // Заразом зникає власна перевірка на фотовставку: «фото або вставк»
+    // ловило слово «вставка» всередині «Металева вставка», тож металевим
+    // замовленням фотовставка лишалася завжди. decoKindOf розбирає метал
+    // першим і цієї пастки не має.
+    const kind = resolveDecoration(bag).kind;
 
     const removed: string[] = [];
     for (const key of Object.keys(bag)) {
-        const k = norm(key);
-        if (/^варіант\s*акрил/.test(k) && !isAcrylic) { delete bag[key]; removed.push(key); }
-        if (/^варіант\s*фото/.test(k) && !isPhotoInsert) { delete bag[key]; removed.push(key); }
+        const k = key.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (/^варіант\s*акрил/.test(k) && kind !== 'acryl') { delete bag[key]; removed.push(key); }
+        if (/^варіант\s*фото/.test(k) && kind !== 'photovstavka') { delete bag[key]; removed.push(key); }
     }
     return removed;
 }

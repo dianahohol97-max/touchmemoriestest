@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readDecorationType, stripUnusedDecorationVariants } from '@/lib/orders/decoration-variants';
+import { stripUnusedDecorationVariants } from '@/lib/orders/decoration-variants';
+import { resolveDecoration } from '@/lib/orders/item-options';
 
 /**
  * Відсів варіантів оздоблення, яких не замовляли.
@@ -24,13 +25,14 @@ describe('тип оздоблення', () => {
             'Тип оздоблення': 'Металева вставка',
         };
 
-        expect(readDecorationType(bag)).toBe('Металева вставка');
+        expect(resolveDecoration(bag).label).toBe('Металева вставка');
+        expect(resolveDecoration(bag).sourceKey).toBe('Тип оздоблення');
     });
 
     it('без «Тип оздоблення» бере те, що є', () => {
-        expect(readDecorationType({ 'Декорація обкладинки': 'Акрил' })).toBe('Акрил');
-        expect(readDecorationType({ 'Оздоблення': 'Гравірування' })).toBe('Гравірування');
-        expect(readDecorationType({})).toBe('');
+        expect(resolveDecoration({ 'Декорація обкладинки': 'Акрил' }).label).toBe('Акрил');
+        expect(resolveDecoration({ 'Оздоблення': 'Гравірування' }).label).toBe('Гравірування');
+        expect(resolveDecoration({}).label).toBe('');
     });
 });
 
@@ -103,5 +105,72 @@ describe('відсів варіантів', () => {
     it('порожній набір і відсутній обʼєкт не ламають нічого', () => {
         expect(stripUnusedDecorationVariants({})).toEqual([]);
         expect(stripUnusedDecorationVariants(undefined as any)).toEqual([]);
+    });
+});
+
+/**
+ * Книги побажань не мають змінитися від того, що порядок ключів став один на
+ * всі родини товарів.
+ *
+ * Їхній діалект — «Декорація обкладинки», і ключ «Тип оздоблення» в них не
+ * зустрічається ЖОДНОГО разу: перевірено запитом по всій базі, перетин
+ * дорівнює нулю. Тут закріплені всі чотири значення, які реально трапляються
+ * в замовленнях книг побажань.
+ */
+describe('книги побажань не змінюються', () => {
+    const WISHBOOK_DECOS: Array<[string, string]> = [
+        ['гравірування', 'graviruvannya'],
+        ['Акрилова вставка', 'acryl'],
+        ['Металева вставка', 'metal'],
+        ['Флекс (друк кольором)', 'flex'],
+    ];
+
+    it.each(WISHBOOK_DECOS)('«%s» читається так само', (value, kind) => {
+        const resolved = resolveDecoration({ 'Декорація обкладинки': value, 'Розмір книги': '23х23' });
+
+        expect(resolved.label).toBe(value);
+        expect(resolved.kind).toBe(kind);
+        expect(resolved.sourceKey).toBe('Декорація обкладинки');
+    });
+
+    /**
+     * Металева вставка в книзі побажань не має ставати фотовставкою — саме
+     * ця пастка зі словом «вставка» ховала метал в адмінці.
+     */
+    it('металева вставка лишається металом', () => {
+        expect(resolveDecoration({ 'Декорація обкладинки': 'Металева вставка' }).kind).toBe('metal');
+    });
+});
+
+/**
+ * Фотокниги з конструктора — та сама суперечлива пара, через яку друкарські
+ * маршрути ухвалювали рішення за брехливим ключем.
+ */
+describe('фотокниги з конструктора', () => {
+    it('фотовставка впізнається попри сусіда «Без оздоблення»', () => {
+        const opts = {
+            'Оздоблення': 'none',
+            'Тип оздоблення': 'Фотовставка',
+            'Варіант фотовставки': '100×100 мм',
+        };
+
+        expect(resolveDecoration(opts).kind).toBe('photovstavka');
+        expect(resolveDecoration(opts).label).toBe('Фотовставка');
+    });
+
+    it('гравірування впізнається попри сусіда «none»', () => {
+        expect(resolveDecoration({ 'Оздоблення': 'none', 'Тип оздоблення': 'Гравірування' }).kind)
+            .toBe('graviruvannya');
+    });
+
+    /**
+     * Коли обидва ключі кажуть про оздоблення, але РІЗНЕ, модуль не обирає
+     * мовчки — він піднімає прапорець. Мовчазний вибір одного з двох і є те,
+     * через що на верстат може поїхати не та вставка.
+     */
+    it('справжню суперечність називає вголос', () => {
+        const resolved = resolveDecoration({ 'Тип оздоблення': 'Металева вставка', 'Оздоблення': 'Акрилова вставка' });
+
+        expect(resolved.conflict).toBe(true);
     });
 });

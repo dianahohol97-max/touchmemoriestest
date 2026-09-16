@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { resolveDecoration } from '@/lib/orders/item-options';
 import { deriveGeometry, normalizeSizeKey as geoNormalizeSizeKey } from './geometry';
 import { coverTextScale } from './text-scale';
 import { glyphCoverage, fixToPrintableText } from './font-coverage';
@@ -635,7 +636,11 @@ export function specFromOrderOptions(options: Record<string, any>): WishbookCove
   const sizeRaw = get('Розмір книги', 'Розмір', 'Size');
   const material = get('Обкладинка', 'Матеріал обкладинки', 'Cover') || 'Велюр';
   const coverColorName = get('Колір обкладинки', 'Cover color');
-  const decoRaw = get('Декорація обкладинки', 'Оздоблення', 'Decoration');
+  // Той самий єдиний розбирач, що й у решті місць. Для книг побажань нічого
+  // не змінює — «Тип оздоблення» в них не зустрічається жодного разу, тож
+  // береться та сама «Декорація обкладинки», що й раніше. Спільний виклик
+  // потрібен, щоб у проєкті не лишилося другого порядку переваги ключів.
+  const decoRaw = resolveDecoration(options || {}).label;
   const decoVariant = get('Варіант декорації', 'Варіант оздоблення', 'Decoration variant');
   const inscriptionTitle = get('Напис на декорації', 'Напис на обкладинку', 'Текст на обкладинці', 'Напис', 'Title', 'Text');
   // The variant IS the physical SKU the customer bought ("90×50 срібний"), so

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveDecoration } from '@/lib/orders/item-options';
 import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
@@ -221,7 +222,10 @@ async function exportInsertPhoto(params: {
   const { admin, orderId: id, userKey, target, coverData, force } = params;
   let insertPath: string | null = null;
   try {
-    const decoRaw = String(target.options?.['Декорація обкладинки'] || target.options?.['Оздоблення'] || '');
+    // Той самий єдиний розбирач, що і в cover-eligibility: ланцюжок ключів
+    // тут не питав «Тип оздоблення», тож для фотокниг із конструктора
+    // фотовставка не впізнавалася і фото не вирізалося.
+    const decoRaw = resolveDecoration(target.options || {}).label;
     const photoId = coverData?.photoId;
     if (isPhotoInsertDeco(decoRaw) && photoId) {
       const already = !force && (await admin
