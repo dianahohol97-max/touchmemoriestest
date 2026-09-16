@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { sendBrevoEmail } from '@/lib/email/brevo';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 const supabase = getAdminClient();
 
@@ -65,25 +67,36 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`;
 
-    // Send via Brevo
-    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': process.env.BREVO_API_KEY || '',
-      },
-      body: JSON.stringify({
-        sender: { name: 'Touch.Memories', email: 'noreply@touchmemories.ua' },
-        to: [{ email: customerEmail, name: customerName || customerEmail }],
-        subject: `✨ Текст для вашого журналу готовий — Touch.Memories`,
-        htmlContent,
-      }),
+    // Через sendBrevoEmail, а не fetch напряму: інакше лист не рахується в
+    // денній квоті. Заодно зникає відправник noreply@touchmemories.ua —
+    // домен без «.com», якого в нас немає; лист тепер іде з тієї самої адреси,
+    // що й решта (Діана, 16.09.2026).
+    const subject = `✨ Текст для вашого журналу готовий — Touch.Memories`;
+
+    let outcome;
+    try {
+      outcome = readSendOutcome(await sendBrevoEmail({
+        to: customerEmail,
+        toName: customerName || customerEmail,
+        subject,
+        html: htmlContent,
+      }));
+    } catch (e: any) {
+      console.error('[send-email] Brevo error:', e?.message || e);
+      outcome = sendOutcomeFromError(e);
+    }
+
+    await logOutgoingEmail({
+      orderId: null,
+      to: customerEmail,
+      template: 'magazine_brief',
+      subject,
+      body: htmlToTextSnapshot(htmlContent),
+      outcome,
     });
 
-    if (!brevoRes.ok) {
-      const err = await brevoRes.text();
-      console.error('[send-email] Brevo error:', err);
-      return NextResponse.json({ error: 'Email failed', details: err }, { status: 500 });
+    if (!outcome.sent) {
+      return NextResponse.json({ error: 'Email failed', details: outcome.error }, { status: 500 });
     }
 
     // Mark email sent

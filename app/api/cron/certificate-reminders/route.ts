@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +12,9 @@ export async function GET(req: Request) {
     }
 
     const supabase = getAdminClient();
-    const brevoKey = process.env.BREVO_API_KEY;
-    if (!brevoKey) return NextResponse.json({ error: 'No Brevo key' }, { status: 500 });
+    // Через sendBrevoEmail, а не fetch напряму: інакше цей крон витрачає денний
+    // ліміт Brevo, не зменшуючи наш власний бюджет (Діана, 16.09.2026).
+    if (!getBrevoApiKey()) return NextResponse.json({ error: 'No Brevo key' }, { status: 500 });
 
     // Find active certs expiring in 6-8 days (window to catch the ~7d mark)
     const now = new Date();
@@ -58,18 +61,31 @@ export async function GET(req: Request) {
   </div>
 </div>`;
 
-        const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sender: { name: 'Touch.Memories', email: 'hello@touchmemories.com.ua' },
-                to: [{ email: cert.recipient_email, name: cert.recipient_name || '' }],
-                subject: `⏰ Ваш сертифікат Touch.Memories закінчується через ${daysLeft} днів`,
-                htmlContent: html
-            })
+        const subject = `⏰ Ваш сертифікат Touch.Memories закінчується через ${daysLeft} днів`;
+
+        let outcome;
+        try {
+            outcome = readSendOutcome(await sendBrevoEmail({
+                to: cert.recipient_email,
+                toName: cert.recipient_name || '',
+                subject,
+                html,
+            }));
+        } catch (e: any) {
+            console.error('[certificate-reminders] send failed for', cert.recipient_email, e?.message || e);
+            outcome = sendOutcomeFromError(e);
+        }
+
+        await logOutgoingEmail({
+            orderId: null,
+            to: cert.recipient_email,
+            template: 'certificate_reminder',
+            subject,
+            body: htmlToTextSnapshot(html),
+            outcome,
         });
 
-        if (emailRes.ok) {
+        if (outcome.sent) {
             await supabase.from('certificates')
                 .update({ reminder_7d_sent: true, reminder_sent_at: new Date().toISOString() })
                 .eq('id', cert.id);

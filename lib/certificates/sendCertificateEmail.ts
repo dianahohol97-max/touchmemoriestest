@@ -1,8 +1,17 @@
+import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
+
 /**
  * Shared gift-certificate email sender (Brevo).
  *
  * Used by both the admin "send certificate" action and the automatic
  * on-payment issuance flow, so the email template stays in one place.
+ *
+ * ЧОМУ ЧЕРЕЗ sendBrevoEmail, А НЕ fetch НАПРЯМУ. До 16.09.2026 цей файл сам
+ * стукав в API Brevo, і через це обходив резервування денної квоти, яке живе
+ * всередині sendBrevoEmail. Сертифікатні листи витрачали ліміт тарифу, не
+ * зменшуючи наш власний бюджет, — а в день великої розсилки це означає, що
+ * транзакційний лист про оплату може не піти зовсім (Діана, 16.09.2026).
  */
 
 export interface CertificateEmailParams {
@@ -22,8 +31,7 @@ export async function sendCertificateEmail(
 
     if (!recipient_email) return { ok: false, error: 'No recipient email' };
 
-    const brevoKey = process.env.BREVO_API_KEY;
-    if (!brevoKey) return { ok: false, error: 'BREVO_API_KEY not configured' };
+    if (!getBrevoApiKey()) return { ok: false, error: 'BREVO_API_KEY not configured' };
 
     const expiryStr = expires_at
         ? new Date(expires_at).toLocaleDateString('uk-UA', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -61,25 +69,28 @@ export async function sendCertificateEmail(
   </div>
 </div>`;
 
-    try {
-        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: { 'api-key': brevoKey, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sender: { name: 'Touch.Memories', email: 'hello@touchmemories.com.ua' },
-                to: [{ email: recipient_email, name: recipient_name || '' }],
-                subject: ` Ваш подарунковий сертифікат Touch.Memories на ${amount} грн`,
-                htmlContent: html,
-            }),
-        });
+    const subject = ` Ваш подарунковий сертифікат Touch.Memories на ${amount} грн`;
 
-        if (!res.ok) {
-            let detail = '';
-            try { detail = JSON.stringify(await res.json()); } catch { detail = String(res.status); }
-            return { ok: false, error: `Brevo error: ${detail}` };
-        }
-        return { ok: true };
+    let outcome;
+    try {
+        outcome = readSendOutcome(await sendBrevoEmail({
+            to: recipient_email,
+            toName: recipient_name || '',
+            subject,
+            html,
+        }));
     } catch (err: any) {
-        return { ok: false, error: err?.message || 'Brevo request failed' };
+        outcome = sendOutcomeFromError(err);
     }
+
+    await logOutgoingEmail({
+        orderId: null,
+        to: recipient_email,
+        template: 'certificate',
+        subject,
+        body: htmlToTextSnapshot(html),
+        outcome,
+    });
+
+    return outcome.sent ? { ok: true } : { ok: false, error: outcome.error || 'Brevo request failed' };
 }
