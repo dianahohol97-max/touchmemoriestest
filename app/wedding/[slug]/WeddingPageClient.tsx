@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { heroUrl, type WeddingEvent } from "@/lib/wedding/config";
 import { formatWeddingDate } from "@/lib/wedding/format";
+import { useGuestName } from "./useGuestName";
 import { useWeddingPhotos } from "./useWeddingPhotos";
 import WeddingUploader from "./WeddingUploader";
 import WeddingGallery from "./WeddingGallery";
-import WeddingGuestbook from "./WeddingGuestbook";
 import WeddingLightbox from "./WeddingLightbox";
 
 interface Props {
@@ -25,18 +25,7 @@ export default function WeddingPageClient({ event }: Props) {
   // гість дивиться знімок, той самий номер починає вказувати на інший. На
   // весіллі, де фото сиплються пачками, картинка мінялася б під час перегляду.
   const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
-
-  // Книга побажань і галерея — це один список, поділений навпіл.
-  //
-  // Другого запиту на сервер вони не вимагають: побажань завжди на порядок
-  // менше за знімки, тож дешевше розділити те, що вже прийшло, ніж тримати дві
-  // черги опитування і два курсори.
-  const wishes = useMemo(() => photos.filter((p) => p.is_wish), [photos]);
-  const gallery = useMemo(() => photos.filter((p) => !p.is_wish), [photos]);
-
-  // Перегляд відкривається і з галереї, і з книги, тож список для нього —
-  // спільний. Інакше стрілки «далі» впиралися б у межу свого блоку.
-  const openable = photos;
+  const { guestName, setGuestName } = useGuestName();
 
   return (
     <main className="min-h-screen bg-[#faf7f3] pb-16">
@@ -45,84 +34,81 @@ export default function WeddingPageClient({ event }: Props) {
       {/* Раніше тут стояв від'ємний відступ, щоб блок завантаження трохи
           заходив на фото. Відколи першим у ньому йде заголовок, він лягав
           просто на знімок — тому відступ звичайний. */}
-      <div className="relative z-10 mt-10 space-y-12">
-        <section className="mx-auto w-full max-w-2xl px-4">
-          {/* РОЛЬ ЗАГОЛОВКА ЗАМІСТЬ ТЕГА h1/h2 — І ЦЕ НЕ ПРИМХА.
-          У app/globals.css правила для h1 і h2 стоять ПОЗА шарами CSS і
-          задають свій колір (--primary, синій), свій шрифт, вагу 900 і
-          нижній відступ. Утиліти Tailwind живуть у @layer utilities, а
-          нешарова CSS перемагає шарову незалежно від специфічності — тож
-          text-white і text-[#6E1F2E] тут програвали, і напис виходив синім
-          важким шрифтом просто поверх фото.
-          Тег div із роллю heading для читача з екрана рівноцінний
-          заголовку, але глобальні правила його не чіпають. Виправляти
-          globals.css заради однієї сторінки не можна: ті правила тримають
-          вигляд усього магазину. */}
-          <div
-            role="heading"
-            aria-level={2}
-            className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
-          >
-            Додати фото та відео
-          </div>
-          <WeddingUploader slug={event.slug} mode="media" onUploaded={addOwn} />
-        </section>
-
-        <div className="mx-auto w-full max-w-2xl px-4">
-          <div className="rounded-3xl bg-[#f3ebe1] px-4 py-6 sm:px-6">
-            <WeddingUploaderWish slug={event.slug} onUploaded={addOwn} />
-            <div className="mt-8">
-              <WeddingGuestbook wishes={wishes} loading={loading} onOpen={setOpenPhotoId} />
+      {/* ДВІ КОЛОНКИ НА ШИРОКОМУ ЕКРАНІ, ОДНА НА ТЕЛЕФОНІ.
+          Гість приходить сюди з QR-коду, тобто майже завжди з телефона, де
+          колонки стають одна під одною самі. Широкий екран — це вже пара чи
+          хтось із гостей удома, і там два блоки поруч видно цілком, без
+          прокрутки. items-start потрібен, щоб колонка з довшою чергою
+          завантаження не розтягувала сусідню порожнечею. */}
+      <div className="relative z-10 mt-10 px-4">
+        <div className="mx-auto grid w-full max-w-5xl items-start gap-6 md:grid-cols-2">
+          <section className="rounded-3xl bg-white/60 px-4 py-6 sm:px-6">
+            <div
+              role="heading"
+              aria-level={2}
+              className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+            >
+              Додати фото та відео
             </div>
-          </div>
+            <WeddingUploader
+              slug={event.slug}
+              mode="media"
+              onUploaded={addOwn}
+              guestName={guestName}
+              onGuestNameChange={setGuestName}
+            />
+          </section>
+
+          {/* Записані побажання тут НЕ показуються, і це рішення, а не пропуск.
+              Відеолистівку гість адресує парі, а не залі: знаючи, що її одразу
+              побачать усі, половина людей просто не стане її записувати. Пара
+              дивиться побажання на своїй сторінці альбому. */}
+          <section className="rounded-3xl bg-[#f3ebe1] px-4 py-6 sm:px-6">
+            <div
+              role="heading"
+              aria-level={2}
+              className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+            >
+              Відеопобажання
+            </div>
+            <p className="mb-5 text-center text-sm leading-relaxed text-[#8A7A6B]">
+              Скажіть кілька теплих слів на камеру. Ваше побажання побачить тільки пара, у
+              галереї свята воно не зʼявиться.
+            </p>
+            <WeddingUploader
+              slug={event.slug}
+              mode="wish"
+              onUploaded={addOwn}
+              guestName={guestName}
+              onGuestNameChange={setGuestName}
+            />
+          </section>
         </div>
 
-        <WeddingGallery
-          photos={gallery}
-          loading={loading}
-          failed={failed}
-          hasMore={hasMore}
-          loadingMore={loadingMore}
-          onLoadMore={loadMore}
-          onOpen={setOpenPhotoId}
-        />
+        <div className="mt-12">
+          <WeddingGallery
+            photos={photos}
+            loading={loading}
+            failed={failed}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+            onOpen={setOpenPhotoId}
+          />
+        </div>
       </div>
 
       <Footer />
 
       {openPhotoId && (
         <WeddingLightbox
-          photos={openable}
+          photos={photos}
           photoId={openPhotoId}
           onClose={() => setOpenPhotoId(null)}
           onNavigate={setOpenPhotoId}
         />
       )}
     </main>
-  );
-}
-
-function WeddingUploaderWish({
-  slug,
-  onUploaded,
-}: {
-  slug: string;
-  onUploaded: Parameters<typeof WeddingUploader>[0]["onUploaded"];
-}) {
-  return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div
-        role="heading"
-        aria-level={2}
-        className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
-      >
-        Відеопобажання
-      </div>
-      <p className="mb-5 text-center text-sm leading-relaxed text-[#8A7A6B]">
-        Скажіть кілька теплих слів на камеру, і вони лишаться в парі на згадку про цей день.
-      </p>
-      <WeddingUploader slug={slug} mode="wish" onUploaded={onUploaded} />
-    </div>
   );
 }
 

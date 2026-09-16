@@ -24,8 +24,6 @@ import { isVideoFile, messageFor, uploadOne } from "@/lib/wedding/upload-client"
 // Послідовно ж видно, що саме зараз їде, а обрив коштує одного файлу, який
 // гість повторює кнопкою.
 
-const NAME_STORAGE_KEY = "wedding-guest-name";
-
 type ItemStatus = "waiting" | "preparing" | "uploading" | "done" | "error";
 
 interface QueueItem {
@@ -42,39 +40,32 @@ interface Props {
   slug: string;
   mode: "media" | "wish";
   onUploaded: (photo: WeddingPhoto) => void;
+  // Імʼя спільне на всю сторінку: блоки стоять поруч, і два незалежні поля
+  // показували б поруч різні значення. Стан живе в useGuestName.
+  guestName: string;
+  onGuestNameChange: (value: string) => void;
 }
 
-export default function WeddingUploader({ slug, mode, onUploaded }: Props) {
+export default function WeddingUploader({
+  slug,
+  mode,
+  onUploaded,
+  guestName,
+  onGuestNameChange,
+}: Props) {
   const isWishMode = mode === "wish";
 
-  const [guestName, setGuestName] = useState("");
   const [items, setItems] = useState<QueueItem[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
   const pickInputRef = useRef<HTMLInputElement>(null);
   const captureInputRef = useRef<HTMLInputElement>(null);
 
-  // Ім'я гостя читається з пам'яті браузера, щоб не набирати його вдруге —
-  // гість повертається за вечір кілька разів, і щоразу підписуватися нудно.
-  // Ключ спільний для обох режимів: людина та сама.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(NAME_STORAGE_KEY);
-      if (saved) setGuestName(saved);
-    } catch {
-      // Приватний режим або заблоковані дані сайту. Поле лишиться порожнім.
-    }
-  }, []);
-
+  // Імʼя в ref, бо черга відправки читає його під час роботи, а не на момент
+  // натискання: гість цілком може дописати підпис, поки файли ще їдуть.
   const guestNameRef = useRef("");
   useEffect(() => {
     guestNameRef.current = guestName;
-    try {
-      if (guestName.trim()) localStorage.setItem(NAME_STORAGE_KEY, guestName.trim());
-      else localStorage.removeItem(NAME_STORAGE_KEY);
-    } catch {
-      // Без пам'яті браузера все працює, просто ім'я не переживе перезавантаження.
-    }
   }, [guestName]);
 
   const itemsRef = useRef<QueueItem[]>([]);
@@ -270,7 +261,7 @@ export default function WeddingUploader({ slug, mode, onUploaded }: Props) {
           type="text"
           value={guestName}
           maxLength={60}
-          onChange={(e) => setGuestName(e.target.value)}
+          onChange={(e) => onGuestNameChange(e.target.value)}
           placeholder="Наприклад, Марічка"
           className="w-full rounded-xl border border-[#ddd3c8] bg-white px-4 py-3 text-base text-[#4A4038] outline-none transition placeholder:text-[#b3a595] focus:border-[#6E1F2E]"
         />
