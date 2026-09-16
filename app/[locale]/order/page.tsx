@@ -15,6 +15,7 @@ import FlowHeader from '@/components/ui/FlowHeader'
 import { describeItemOptions, resolveDecoration } from '@/lib/orders/item-options'
 import { parseDecoVariantMm, type DecoVariantDims } from '@/lib/print/deco-variant'
 import { readAttributableReferralCode } from '@/lib/referral/pending-code'
+import { orderFlowMarker } from '@/lib/orders/server-order-flow'
 
 interface UploadedFile {
   id: string
@@ -1051,6 +1052,12 @@ function OrderForm() {
             // недоукомплектована заявка виглядає в адмінці як повна.
             photos_submitted: total,
             photos_attached: uploaded.filter(u => !u.cover).length,
+            // Помітка джерела (Діана, 16.09.2026). Цей потік переїде на сервер
+            // другим, після брифа на текст журналу, але помітка стоїть уже
+            // зараз: інакше через тиждень після перемикання не буде з чим
+            // порівнювати — старі замовлення були б невідрізненні від усієї
+            // історії. `price_declared` — сума, яку порахував браузер.
+            ...orderFlowMarker({ flow: 'designer', path: 'client', declaredTotal: estPrice || null }),
           },
           total: estPrice,
           subtotal: estPrice,

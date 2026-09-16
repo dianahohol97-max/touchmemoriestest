@@ -29,6 +29,7 @@ import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { downscaleImageIfLarge } from '@/lib/downscale-image';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
 import { readAttributableReferralCode } from '@/lib/referral/pending-code';
+import { orderFlowMarker } from '@/lib/orders/server-order-flow';
 
 type Package = 'basic' | 'premium';
 
@@ -432,7 +433,19 @@ function MagazineTextBriefContent() {
           // orders table uses `total` (not total_price) and has no
           // contact_method column — store the contact preference inside
           // custom_attributes so it's still surfaced for the manager.
-          custom_attributes: { contact_method: contactMethod },
+          // Помітка джерела (Діана, 16.09.2026). Оформлення цієї сторінки
+          // переїжджає на сервер, і за тиждень після перемикання треба буде
+          // сказати, скільки замовлень пройшло новим шляхом, а скільки старим.
+          // Помітка стоїть у коді РАНІШЕ за серверний маршрут саме тому: якби
+          // вона зʼявилася разом із ним, помічені були б тільки нові
+          // замовлення, а старі не відрізнялися б від усієї історії товару.
+          // `price_declared` — та сама сума, яку клієнт бачив у підсумку; на
+          // серверному шляху поруч ляже порахована, і різниця між ними і є те,
+          // за чим тиждень спостерігають.
+          custom_attributes: {
+            contact_method: contactMethod,
+            ...orderFlowMarker({ flow: 'magazine-text-brief', path: 'client', declaredTotal: estTotal || null }),
+          },
           total: estTotal,
           subtotal: estTotal,
           text_brief: {
