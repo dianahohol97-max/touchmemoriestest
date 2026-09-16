@@ -1,10 +1,3 @@
--- ЦЮ МІГРАЦІЮ НЕ ЗАСТОСОВАНО. Вона чекає на рішення Діани.
---
--- Тому вона лежить у docs/proposed-migrations, а НЕ в supabase/migrations:
--- та тека — запис того, що вже накочено на базу, і незастосований файл у ній
--- рано чи пізно накотили б наосліп. Коли рішення буде, файл переїжджає в
--- supabase/migrations і застосовується звідти.
---
 -- Анонімна вставка замовлення більше не може заявити, що гроші вже отримані.
 --
 -- ЩО ЗАРАЗ. Політика «Customers create orders» дозволяє INSERT у public.orders
@@ -46,7 +39,7 @@ for insert
 with check (
     coalesce(payment_status, 'pending') = 'pending'
     and coalesce(paid_amount, 0) = 0
-    and coalesce(cod_received_at::text, '') = ''
+    and cod_received_at is null
     and paid_at is null
     and coalesce(source, 'site') <> 'keycrm'
 );
