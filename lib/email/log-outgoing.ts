@@ -119,7 +119,32 @@ export function readSendOutcome(res: unknown): SendOutcome {
             : { sent: true, providerMessageId: readMessageId(r.data), error: null, failureKind: null };
     }
 
+    // sendBrevoEmail() напряму: сира відповідь Brevo, тобто { messageId }.
+    // Третя форма зʼявилася 16.09.2026, коли під журнал почали підводити
+    // автоматичні розсилки — вони кличуть Brevo без обгортки. Без цієї гілки
+    // успішний лист розбирався як «незрозуміла відповідь» і лягав у журнал
+    // помилкою, а ідентифікатор, заради якого все й робиться, губився.
+    if (readMessageId(r)) {
+        return { sent: true, providerMessageId: readMessageId(r), error: null, failureKind: null };
+    }
+
     return { sent: false, providerMessageId: null, error: 'Незрозуміла відповідь провайдера', failureKind: 'provider' };
+}
+
+/**
+ * Відмова, яку провайдер кинув винятком.
+ *
+ * sendBrevoEmail не повертає помилку, а кидає її, і причину знає лише
+ * classifyFailure. Без цієї функції кожен виклик мусив би вгадувати вид
+ * відмови сам і писав би 'precheck' там, де насправді вичерпано ліміт.
+ */
+export function sendOutcomeFromError(error: unknown): SendOutcome {
+    return {
+        sent: false,
+        providerMessageId: null,
+        error: readError(error),
+        failureKind: classifyFailure(error),
+    };
 }
 
 /** Відмова, яка сталася ДО звернення до провайдера (немає email, поганий файл). */

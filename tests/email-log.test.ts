@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readSendOutcome, failedOutcome, htmlToTextSnapshot, readActor } from '@/lib/email/log-outgoing';
+import { readSendOutcome, failedOutcome, sendOutcomeFromError, htmlToTextSnapshot, readActor } from '@/lib/email/log-outgoing';
 
 /**
  * Журнал вихідних листів: розбір відповіді провайдера.
@@ -19,6 +19,22 @@ describe('readSendOutcome', () => {
         expect(o.sent).toBe(true);
         expect(o.providerMessageId).toBe('<202609.13@smtp-relay.brevo.com>');
         expect(o.error).toBeNull();
+    });
+
+    it('sendBrevoEmail напряму: сира відповідь { messageId } — це успіх', () => {
+        // Третя форма, яка зʼявилася разом з автоматичними розсилками: вони
+        // кличуть Brevo без обгортки. Раніше така відповідь розбиралася як
+        // «незрозуміла» і успішний лист лягав у журнал помилкою.
+        const o = readSendOutcome({ messageId: '<202609.16@smtp-relay.brevo.com>' });
+        expect(o.sent).toBe(true);
+        expect(o.providerMessageId).toBe('<202609.16@smtp-relay.brevo.com>');
+        expect(o.error).toBeNull();
+    });
+
+    it('обʼєкт без жодного ідентифікатора лишається відмовою', () => {
+        const o = readSendOutcome({ whatever: 1 });
+        expect(o.sent).toBe(false);
+        expect(o.failureKind).toBe('provider');
     });
 
     it('sendEmail: відмова віддає причину, а не «send failed»', () => {
@@ -122,5 +138,28 @@ describe('readActor', () => {
         expect(readActor('Катерина')).toBeNull();
         expect(readActor({})).toBeNull();
         expect(readActor({ id: 123, name: {} })).toBeNull();
+    });
+});
+
+describe('sendOutcomeFromError', () => {
+    it('вичерпаний власний ліміт розпізнається як quota', () => {
+        const e: any = new Error('Денний ліміт вичерпано');
+        e.code = 'EMAIL_QUOTA_EXCEEDED';
+        const o = sendOutcomeFromError(e);
+        expect(o.sent).toBe(false);
+        expect(o.failureKind).toBe('quota');
+    });
+
+    it('402 від Brevo — теж quota', () => {
+        const e: any = new Error('Not enough credits');
+        e.status = 402;
+        expect(sendOutcomeFromError(e).failureKind).toBe('quota');
+    });
+
+    it('решта відмов лишаються provider і зберігають причину', () => {
+        const o = sendOutcomeFromError(new Error('Invalid sender'));
+        expect(o.failureKind).toBe('provider');
+        expect(o.error).toBe('Invalid sender');
+        expect(o.providerMessageId).toBeNull();
     });
 });

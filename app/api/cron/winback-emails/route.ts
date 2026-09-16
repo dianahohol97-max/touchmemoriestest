@@ -4,6 +4,7 @@ import WinBackEmail from '@/emails/WinBackEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { getAutomationConfig } from '@/lib/email/automation-config';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,11 +83,21 @@ export async function GET(request: Request) {
             // Legacy CRM stores "Прізвище Імʼя", so the given name is the last token
             // (matches the |last convention used in the KeyCRM templates).
             const firstName = nameParts.length ? nameParts[nameParts.length - 1] : '';
+            // Журнал вихідних пишеться і на успіх, і на відмову: інакше
+            // «не дійшло» і «не відправляли» виглядають однаково. Автора
+            // немає — лист автоматичний, і orderId теж немає, бо winback
+            // прив'язаний до людини, а не до замовлення (Діана, 16.09.2026).
+            //
+            // Складання листа стоїть усередині того самого try: збій шаблону —
+            // це теж «лист не пішов», і одна людина з поламаним імʼям не має
+            // права зупинити всю розсилку.
+            let outcome;
+            let html = '';
             try {
-                const html = await render(
+                html = await render(
                     WinBackEmail({ firstName, promoCode, discount: '-7%', appUrl, body: bodyOverride })
                 );
-                await sendBrevoEmail({
+                const res = await sendBrevoEmail({
                     to: c.email,
                     toName: c.customer_name || c.email,
                     subject,
@@ -97,14 +108,33 @@ export async function GET(request: Request) {
                         token: tokenByEmail.get(c.email.toLowerCase()) || null,
                     },
                 });
+                outcome = readSendOutcome(res);
+            } catch (e: any) {
+                console.error('[winback] send failed for', c.email, e?.message || e);
+                outcome = sendOutcomeFromError(e);
+            }
+
+            await logOutgoingEmail({
+                orderId: null,
+                to: c.email,
+                template: 'winback',
+                subject,
+                body: html ? htmlToTextSnapshot(html) : 'Лист не склався: шаблон winback не відрендерився.',
+                outcome,
+            });
+
+            if (outcome.sent) {
+                // Запис у email_automation_log — це захист від повторів, а не
+                // журнал доставки. Ставиться тільки після успішної відправки:
+                // інакше відмова Brevo назавжди закрила б людині winback на
+                // період охолодження, хоча листа вона не бачила.
                 await supabase.from('email_automation_log').insert({
                     email: c.email,
                     automation_type: 'winback',
                     meta: { promo_code: promoCode },
                 });
                 sent++;
-            } catch (e: any) {
-                console.error('[winback] send failed for', c.email, e?.message || e);
+            } else {
                 errors++;
             }
         }
