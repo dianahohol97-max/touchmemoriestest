@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data: photo, error } = await supabase
     .from('wedding_photos')
-    .select('storage_path')
+    .select('storage_path, poster_path, mime_type')
     .eq('id', id)
     .maybeSingle();
 
@@ -47,6 +47,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   if (!photo) {
     return new NextResponse('Not found', { status: 404 });
+  }
+
+  // Для відео цей роут віддає КАДР-ОБКЛАДИНКУ, а не ролик.
+  //
+  // Так сітка галереї не мусить знати, на що вона дивиться: вона завжди питає
+  // одну адресу й отримує картинку, яку next/image зменшує й кешує. Сам ролик
+  // програється за підписаним посиланням прямо зі сховища — воно вміє часткові
+  // запити, а наша функція віддавала б сто мегабайтів цілком, ще й на кожен
+  // перегляд.
+  //
+  // Обкладинки може не бути: браузер гостя не завжди віддає перший кадр. Тоді
+  // плитка лишиться порожньою, і це краще за спробу віддати сюди відео.
+  if (photo.mime_type?.startsWith('video/')) {
+    if (!photo.poster_path) return new NextResponse('Not found', { status: 404 });
+    return streamFromBucket(photo.poster_path);
   }
 
   return streamFromBucket(photo.storage_path);

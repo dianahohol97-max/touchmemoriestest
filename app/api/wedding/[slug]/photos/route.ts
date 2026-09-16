@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { clientIp, rateLimit } from '@/lib/wedding/rate-limit';
-import { GALLERY_PAGE_SIZE } from '@/lib/wedding/config';
+import {
+  GALLERY_PAGE_SIZE,
+  VIDEO_URL_TTL_SECONDS,
+  WEDDING_BUCKET,
+  isVideoMime,
+} from '@/lib/wedding/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,9 +85,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
   // /api/wedding/photo/[id], і знати розташування файлу в бакеті йому не треба.
   const ascending = Boolean(after);
 
+  // Книга побажань і галерея читають той самий список, але різні його частини.
+  // Умова стоїть УСЕРЕДИНІ запиту, до .limit() — відсів у JavaScript після
+  // ліміту перетворив би вибірку на лотерею (гоча 13): побажань на порядок
+  // менше за знімки, тож зі сторінки в 48 рядків після відсіву лишалося б
+  // одне-два, а решта книги не показалася б ніколи.
+  const wishesOnly = url.searchParams.get('wishes') === '1';
+
   let query = supabase
     .from('wedding_photos')
-    .select('id, guest_name, width, height, created_at')
+    .select('id, guest_name, width, height, created_at, mime_type, duration_seconds, is_wish, storage_path, poster_path')
     .eq('event_id', event.id)
     .order('created_at', { ascending })
     // Друге поле сортування розводить фото, що лягли б у базу однією міткою
@@ -93,6 +105,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
     .order('id', { ascending })
     .limit(GALLERY_PAGE_SIZE);
 
+  if (wishesOnly) query = query.eq('is_wish', true);
   if (before) query = query.lt('created_at', before);
   if (after) query = query.gt('created_at', after);
 
@@ -105,8 +118,47 @@ export async function GET(req: Request, { params }: { params: Promise<{ slug: st
 
   // Сторінка показує найновіші зверху завжди, тож віддаємо вже в цьому порядку
   // незалежно від того, яким його зібрав запит.
-  const photos = (data ?? []).slice();
-  if (ascending) photos.reverse();
+  const rows = (data ?? []).slice();
+  if (ascending) rows.reverse();
+
+  // ВІДЕО НЕ ЙДЕ ЧЕРЕЗ НАШ РОУТ, на відміну від картинок.
+  //
+  // Програвачеві потрібні часткові запити (range), щоб перемотувати ролик і не
+  // тягнути сто мегабайтів заради перших секунд. Сховище вміє це саме, а наша
+  // функція віддавала б файл цілком і платила б за кожен перегляд. Тому для
+  // відео тут підписується тимчасове посилання прямо в сховище; опитування раз
+  // на п'ятнадцять секунд однаково оновлює його задовго до того, як воно
+  // протермінується.
+  const videoRows = rows.filter((row) => isVideoMime(row.mime_type));
+  const videoUrls = new Map<string, string>();
+  if (videoRows.length) {
+    const { data: signed, error: signError } = await supabase.storage
+      .from(WEDDING_BUCKET)
+      .createSignedUrls(videoRows.map((row) => row.storage_path), VIDEO_URL_TTL_SECONDS);
+    if (signError) {
+      // Без посилання плитка лишиться обкладинкою без відтворення — прикро, але
+      // не привід ронити всю галерею.
+      console.error('[wedding/photos] не вдалося підписати посилання на відео:', signError);
+    }
+    signed?.forEach((entry, i) => {
+      if (entry.signedUrl) videoUrls.set(videoRows[i].id, entry.signedUrl);
+    });
+  }
+
+  // storage_path і poster_path назовні не віддаються: клієнту вони ні для чого,
+  // а розташування файлів у бакеті — не те, що варто друкувати в кожній
+  // відповіді.
+  const photos = rows.map((row) => ({
+    id: row.id,
+    guest_name: row.guest_name,
+    width: row.width,
+    height: row.height,
+    created_at: row.created_at,
+    mime_type: row.mime_type,
+    duration_seconds: row.duration_seconds,
+    is_wish: row.is_wish,
+    video_url: videoUrls.get(row.id) ?? null,
+  }));
 
   return NextResponse.json({
     photos,

@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { Loader2 } from 'lucide-react';
-import { photoUrl, type WeddingPhoto } from '@/lib/wedding/config';
+import { Loader2, Play } from 'lucide-react';
+import { isVideoMime, photoUrl, type WeddingPhoto } from '@/lib/wedding/config';
 
 // Жива сітка всіх фото події, найновіші зверху.
 //
@@ -70,7 +70,26 @@ export default function WeddingGallery({
                     className="object-cover transition duration-300 group-hover:scale-[1.03]"
                     // Перший ряд видно одразу, решта чекає прокрутки.
                     loading={index < 4 ? 'eager' : 'lazy'}
+                    // Відео без обкладинки віддає 404. Ховаємо биту картинку,
+                    // щоб лишилася спокійна плашка з позначкою відтворення.
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                    }}
                   />
+                  {isVideoMime(photo.mime_type) && (
+                    <>
+                      {/* Плитка відео мусить читатися як відео з першого
+                          погляду, інакше гість тицяє в неї, очікуючи фото. */}
+                      <span className="pointer-events-none absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-[#6E1F2E] shadow-sm">
+                        <Play className="h-4 w-4 translate-x-[1px]" aria-hidden />
+                      </span>
+                      {photo.duration_seconds ? (
+                        <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                          {formatDuration(photo.duration_seconds)}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                   {photo.guest_name && (
                     <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-2 pb-1.5 pt-6 text-left text-[11px] text-white/95">
                       <span className="line-clamp-1">{photo.guest_name}</span>
@@ -98,4 +117,11 @@ export default function WeddingGallery({
       )}
     </section>
   );
+}
+
+/** Тривалість ролика у вигляді 1:07. */
+function formatDuration(seconds: number): string {
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  return `${minutes}:${String(total % 60).padStart(2, '0')}`;
 }

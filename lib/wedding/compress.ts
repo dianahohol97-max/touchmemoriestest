@@ -22,6 +22,107 @@ export interface PreparedPhoto {
   file: File;
   width: number;
   height: number;
+  /** Кадр-обкладинка. Буває лише у відео. */
+  poster?: Blob | null;
+  /** Тривалість ролика в секундах. */
+  durationSeconds?: number | null;
+}
+
+export const isVideoFile = (file: File) => (file.type || '').toLowerCase().startsWith('video/');
+
+/**
+ * Готує будь-який файл гостя: фото стискає, відео лишає як є і знімає обкладинку.
+ *
+ * ВІДЕО МИ НЕ ЧІПАЄМО. Перекодувати його в браузері можна хіба
+ * WebCodecs, який на телефонах або відсутній, або зʼїдає батарею і кілька
+ * хвилин часу — а гість за цей час закриє вкладку. Тому ролик летить
+ * оригіналом, і межа для нього окрема, 200 МБ.
+ */
+export async function prepareMedia(input: File): Promise<PreparedPhoto> {
+  if (isVideoFile(input)) return prepareVideo(input);
+  return preparePhoto(input);
+}
+
+/**
+ * Знімає перший придатний кадр ролика й міряє тривалість.
+ *
+ * НАВІЩО. Без обкладинки плитка в сітці або чорна, або мусить тягнути сам
+ * ролик заради першого кадру — півсотні таких плиток на телефоні це десятки
+ * мегабайтів заради картинок, які гість, може, й не відкриє.
+ *
+ * Кадр беремо не з нуля, а трохи згодом: найперший кадр у відео з телефона
+ * часто чорний, бо камера ще не встигла виставити експозицію.
+ */
+async function prepareVideo(file: File): Promise<PreparedPhoto> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  // Без цього iOS відкриває ролик на весь екран замість того, щоб віддати кадр.
+  video.playsInline = true;
+
+  try {
+    const meta = await new Promise<{ width: number; height: number; duration: number }>(
+      (resolve, reject) => {
+        video.onloadedmetadata = () =>
+          resolve({
+            width: video.videoWidth,
+            height: video.videoHeight,
+            duration: Number.isFinite(video.duration) ? video.duration : 0,
+          });
+        video.onerror = () => reject(new Error('VIDEO_DECODE_FAILED'));
+        video.src = url;
+      }
+    );
+
+    const poster = await grabFrame(video, Math.min(0.5, Math.max(0, meta.duration - 0.1)));
+
+    return {
+      file,
+      width: meta.width || 0,
+      height: meta.height || 0,
+      poster,
+      durationSeconds: meta.duration || null,
+    };
+  } catch {
+    // Браузер не дав ані розмірів, ані кадру. Ролик усе одно вартий того, щоб
+    // його надіслати: пара побачить його в альбомі, просто плитка буде порожня.
+    return { file, width: 0, height: 0, poster: null, durationSeconds: null };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function grabFrame(video: HTMLVideoElement, at: number): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const draw = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx || !canvas.width || !canvas.height) {
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.7);
+      } catch {
+        resolve(null);
+      }
+    };
+
+    video.onseeked = draw;
+    video.onerror = () => resolve(null);
+    try {
+      video.currentTime = at;
+    } catch {
+      resolve(null);
+    }
+    // Перемотка на деяких телефонах не звітує ніколи. Без цього запобіжника
+    // черга завантаження зупинилася б назавжди на одному ролику.
+    setTimeout(() => resolve(null), 5000);
+  });
 }
 
 /**

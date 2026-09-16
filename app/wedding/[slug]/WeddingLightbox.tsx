@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { photoUrl, type WeddingPhoto } from '@/lib/wedding/config';
+import { isVideoMime, photoUrl, type WeddingPhoto } from '@/lib/wedding/config';
 
 // Перегляд одного фото на весь екран.
 //
@@ -108,19 +108,42 @@ export default function WeddingLightbox({ photos, photoId, onClose, onNavigate }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative h-[78vh] w-full">
-          <Image
-            src={photoUrl(photo.id)}
-            alt={photo.guest_name ? `Фото від гостя на імʼя ${photo.guest_name}` : 'Фото з весілля'}
-            fill
-            sizes="(min-width: 1024px) 896px, 100vw"
-            // contain, а не cover: тут фото показується цілим, без обрізання.
-            className="object-contain"
-            priority
-          />
+          {isVideoMime(photo.mime_type) ? (
+            photo.video_url ? (
+              // Ролик програється ПРЯМО ЗІ СХОВИЩА за підписаним посиланням, а
+              // не через наш роут: програвачеві потрібні часткові запити, щоб
+              // перемотувати й не тягнути сто мегабайтів заради перших секунд.
+              <video
+                key={photo.id}
+                src={photo.video_url}
+                poster={photoUrl(photo.id)}
+                controls
+                autoPlay
+                playsInline
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <p className="flex h-full items-center justify-center px-6 text-center text-white/80">
+                Це відео зараз не відкривається. Спробуйте оновити сторінку за хвилину.
+              </p>
+            )
+          ) : (
+            <Image
+              src={photoUrl(photo.id)}
+              alt={photo.guest_name ? `Фото від гостя на імʼя ${photo.guest_name}` : 'Фото з весілля'}
+              fill
+              sizes="(min-width: 1024px) 896px, 100vw"
+              // contain, а не cover: тут фото показується цілим, без обрізання.
+              className="object-contain"
+              priority
+            />
+          )}
         </div>
         {photo.guest_name && (
           <figcaption className="mt-3 text-center text-sm text-white/80">
-            Світлину надіслала або надіслав {photo.guest_name}
+            {photo.is_wish
+              ? `Побажання від гостя на імʼя ${photo.guest_name}`
+              : `Надіслала або надіслав ${photo.guest_name}`}
           </figcaption>
         )}
       </figure>
