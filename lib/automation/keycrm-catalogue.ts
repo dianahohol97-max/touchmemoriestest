@@ -1331,13 +1331,36 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
     // The warnings are the ONLY record of why a pasted number resolved to
     // nothing, and runtime logs rot in minutes — persist them where a human
     // (or the assistant) can read them after the fact.
-    if (allWarnings.length) {
-        await supabase.from('settings').upsert({
-            key: 'keycrm_link_warnings',
-            value: { at: new Date().toISOString(), warnings: allWarnings.slice(0, 50) },
-            updated_at: new Date().toISOString(),
-        });
-    }
+    //
+    // ПИШЕТЬСЯ ЗАВЖДИ, А НЕ ЛИШЕ КОЛИ Є ПОПЕРЕДЖЕННЯ.
+    //
+    // Раніше запис стояв під `if (allWarnings.length)`, і через це ідеально
+    // чистий прохід не лишав по собі жодного сліду — рівно такого самого, як
+    // прохід, що не запускався. 15.09.2026 це вже плуталося: прогін звʼязав
+    // усі 22 рядки без єдиного попередження, і єдина ознака завершення
+    // лишилася датою семигодинної давності. Відрізнити «все добре» від
+    // «нічого не сталося» по ній було неможливо, а це той самий клас, що й
+    // «поломка виглядала як успішний прогін».
+    //
+    // Тепер рядок оновлюється щоразу, коли прохід дійшов сюди, і несе
+    // достатньо, щоб зрозуміти, ЧИМ саме він скінчився: час, скільки пар
+    // звʼязано, чи впав запис, і самі попередження — порожній масив теж
+    // відповідь.
+    const finishedAt = new Date().toISOString();
+    const { error: journalError } = await supabase.from('settings').upsert({
+        key: 'keycrm_link_warnings',
+        value: {
+            at: finishedAt,
+            resolved: writeError ? 0 : allRows.length,
+            write_failed: writeError ?? null,
+            warnings: allWarnings.slice(0, 50),
+        },
+        updated_at: finishedAt,
+    });
+
+    // Не мовчати й тут: якщо не пишеться навіть журнал, наступний прохід знову
+    // виглядатиме як незапущений, і вже без пояснення.
+    if (journalError) console.error('[keycrm-catalogue] journal write failed:', journalError.message);
 
     // Нуль звʼязаних при невдалому записі — свідомо. Крон за цим числом
     // вирішує, чи запускати наступні кроки; «звʼязали, але не зберегли» для
