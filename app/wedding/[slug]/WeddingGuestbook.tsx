@@ -18,13 +18,9 @@ interface Props {
 export default function WeddingGuestbook({ wishes, loading, onOpen }: Props) {
   return (
     <section className="mx-auto w-full max-w-2xl px-4">
-      <h2 className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
-        Книга побажань
-      </h2>
-      <p className="mb-5 text-center text-sm leading-relaxed text-[#8A7A6B]">
-        Запишіть коротку відеолистівку з теплими словами, і вона лишиться в парі назавжди.
-      </p>
-
+      {/* Заголовка тут немає навмисно: блок стоїть одразу під «Відеопобажання»
+          з його поясненням, і власний підпис читався б як той самий текст
+          удруге. */}
       {loading ? (
         <p className="py-6 text-center text-sm text-[#a2937f]">Завантажуємо побажання…</p>
       ) : wishes.length === 0 ? (
