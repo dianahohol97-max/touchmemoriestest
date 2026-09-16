@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { cleanItemOptions } from '@/lib/orders/item-options';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -177,7 +178,18 @@ export default function DesignerConfigModal({ isOpen, onClose, productType, prod
     if (totalPrice > 0) params.set('price', String(totalPrice));
 
     sessionStorage.setItem('designerOrderConfig', JSON.stringify({
-      productType, productName: dbProduct?.name || productName, slug, config,
+      productType, productName: dbProduct?.name || productName, slug,
+      // Те саме прибирання, що й на картці товару, і тією самою функцією.
+      //
+      // Конфіг вище засіяний ПЕРШИМ значенням кожної групи products.options, а
+      // групи оздоблення сховані з інтерфейсу для м'яких обкладинок — тобто
+      // клієнтка їх не бачить і не чіпає, а типові значення лишаються в стані
+      // й їдуть у замовлення. Звідти в позиціях і бралося «Тип оздоблення:
+      // Металева вставка» поруч із «Варіант акрилу» і «Варіант фотовставки»,
+      // яких ніхто не замовляв. Замовлення з дизайнером вставляється прямо з
+      // браузера (/order) і через чекаут не проходить, тож відсів там йому не
+      // допомагав ніколи.
+      config: cleanItemOptions(config),
       coverColor: selectedColor, decoration: selectedDeco, decorationVariant: selectedDecoVariant,
       totalPrice, timestamp: Date.now(),
     }));
