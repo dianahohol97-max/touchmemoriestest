@@ -69,7 +69,7 @@ export default async function WeddingAlbumPage({ params }: Props) {
     <main className={`${display.variable} min-h-screen bg-[#faf7f3] px-4 py-12`}>
       <div className="mx-auto w-full max-w-xl">
         <header className="text-center">
-          <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl text-[#4a4038] sm:text-5xl">
+          <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl text-[#6E1F2E] sm:text-5xl">
             {event.couple_names}
           </h1>
           <p className="mt-2 text-[#7a6d61]">{formatWeddingDate(event.event_date)}</p>
@@ -82,7 +82,7 @@ export default async function WeddingAlbumPage({ params }: Props) {
           </p>
         ) : (
           <>
-            <p className="mt-8 text-center text-[#4a4038]">
+            <p className="mt-8 text-center text-[#4A4038]">
               Ваші гості надіслали фотографій: {total}. Завантажте їх на компʼютер, поки вони
               вам потрібні.
             </p>
@@ -95,7 +95,7 @@ export default async function WeddingAlbumPage({ params }: Props) {
                   <a
                     key={i}
                     href={albumZipUrl(token, i * ALBUM_BATCH_SIZE)}
-                    className="flex items-center justify-between gap-4 rounded-2xl bg-[#2f2a26] px-6 py-4 text-white transition hover:bg-[#443c35]"
+                    className="flex items-center justify-between gap-4 rounded-2xl bg-[#6E1F2E] px-6 py-4 text-white transition hover:bg-[#571825]"
                   >
                     <span className="font-medium">
                       {parts === 1 ? 'Завантажити всі фото' : `Частина ${i + 1}`}

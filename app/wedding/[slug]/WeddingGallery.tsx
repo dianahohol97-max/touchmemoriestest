@@ -35,7 +35,7 @@ export default function WeddingGallery({
 }: Props) {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 pb-4">
-      <h2 className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#4a4038]">
+      <h2 className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
         Фото цього дня
       </h2>
 

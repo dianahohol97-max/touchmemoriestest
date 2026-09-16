@@ -228,7 +228,7 @@ export default function WeddingUploader({ slug, onUploaded }: Props) {
         <button
           type="button"
           onClick={() => galleryInputRef.current?.click()}
-          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#2f2a26] px-6 py-4 text-base font-medium text-white shadow-sm transition active:scale-[0.99] hover:bg-[#443c35]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#6E1F2E] px-6 py-4 text-base font-medium text-white shadow-sm transition active:scale-[0.99] hover:bg-[#571825]"
         >
           <ImagePlus className="h-5 w-5" aria-hidden />
           Додати фото
@@ -236,7 +236,7 @@ export default function WeddingUploader({ slug, onUploaded }: Props) {
         <button
           type="button"
           onClick={() => cameraInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 rounded-2xl border border-[#d9cfc4] bg-white px-6 py-4 text-base font-medium text-[#4a4038] transition active:scale-[0.99] hover:bg-[#f6f1ea] sm:w-auto"
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[#d9cfc4] bg-white px-6 py-4 text-base font-medium text-[#4A4038] transition active:scale-[0.99] hover:bg-[#f6f1ea] sm:w-auto"
         >
           <Camera className="h-5 w-5" aria-hidden />
           Зняти зараз
@@ -251,7 +251,7 @@ export default function WeddingUploader({ slug, onUploaded }: Props) {
           maxLength={60}
           onChange={(e) => setGuestName(e.target.value)}
           placeholder="Наприклад, Марічка"
-          className="w-full rounded-xl border border-[#ddd3c8] bg-white px-4 py-3 text-base text-[#2f2a26] outline-none transition placeholder:text-[#b3a595] focus:border-[#9c8873]"
+          className="w-full rounded-xl border border-[#ddd3c8] bg-white px-4 py-3 text-base text-[#2f2a26] outline-none transition placeholder:text-[#b3a595] focus:border-[#6E1F2E]"
         />
       </label>
 
@@ -325,7 +325,7 @@ function StatusLine({ item }: { item: QueueItem }) {
       <p className="text-xs text-[#9a8b7c]">{label}</p>
       <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[#ece4da]">
         <div
-          className="h-full rounded-full bg-[#9c8873] transition-[width] duration-200"
+          className="h-full rounded-full bg-[#6E1F2E] transition-[width] duration-200"
           style={{ width: `${item.status === 'preparing' ? 8 : Math.max(4, item.progress)}%` }}
         />
       </div>

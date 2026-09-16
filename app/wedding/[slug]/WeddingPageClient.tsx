@@ -98,7 +98,7 @@ function Hero({ event }: { event: WeddingEvent }) {
           {formatWeddingDate(event.event_date)}
         </p>
         <p className="mx-auto mt-4 max-w-md text-sm text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-base">
-          Поділіться своїми фото з цього дня.
+          Поділіться фото та відео з нашого святкування тут
         </p>
       </div>
     </header>
