@@ -26,8 +26,17 @@ import { deliveryMethodLabel } from '@/lib/orders/delivery-method';
  * замовлення на однаковий товар.
  */
 
-/** Персоналізація, яку не можна загубити: напис на гравіювання живе тут. */
-const PERSONALISATION_KEYS = ['personalization_note', 'personalisation_note', 'engraving_text'];
+/**
+ * Персоналізація, яку не можна загубити: напис на гравіювання живе тут.
+ *
+ * Обидва імені перевірені по живих даних, а не вигадані — саме на вигаданих
+ * назвах полів цей аркуш і зламався. На 16.09.2026 серед 2068 позицій дошки
+ * personalization_note має 274 позиції, comment — одну (TM-001088, де в ньому
+ * лежить увесь бриф: «фотокнига 30х20, 30ст / в-01, гравіювання / калька»).
+ * Одна позиція теж рахується: це чиєсь замовлення, і без цього рядка його
+ * друкуватимуть наосліп.
+ */
+const PERSONALISATION_KEYS = ['personalization_note', 'comment'];
 
 function itemLine(item: any): string {
     const name = String(item?.product_name || item?.name || 'Позиція').trim();
@@ -70,7 +79,15 @@ export function buildPrintSlip(order: any): string {
     else lines.push('- позицій немає');
 
     const address = formatDeliveryAddress(order);
-    const method = deliveryMethodLabel(order?.delivery_method);
+    const rawMethod = String(order?.delivery_method ?? '').trim();
+
+    // «Не обрано — узгодити з клієнтом» біля повної адреси суперечить саме
+    // собі, а виробництво читає цей рядок буквально. Так виглядають дзеркалені
+    // з CRM замовлення: спосіб доставки в нашій колонці лишається 'other', бо
+    // CRM його окремим полем не віддає, а адреса при цьому є повна, з
+    // відділенням і отримувачем. Тому напоумлення «узгодити» лишається тільки
+    // там, де узгоджувати справді нічого: коли адреси немає.
+    const method = rawMethod === 'other' && address ? '' : deliveryMethodLabel(rawMethod);
 
     lines.push('');
     lines.push(`Клієнт: ${String(order?.customer_name || '').trim() || 'без імені'}`);

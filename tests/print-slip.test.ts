@@ -99,4 +99,27 @@ describe('аркуш на друк', () => {
         const slip = buildPrintSlip({ ...bookOrder, items: [] });
         expect(slip).toContain('- позицій немає');
     });
+    /**
+     * Дзеркалене з CRM замовлення: спосіб доставки в нашій колонці лишається
+     * 'other', бо CRM не віддає його окремим полем, а адреса при цьому повна.
+     * «Не обрано — узгодити з клієнтом» біля такої адреси суперечить саме
+     * собі, і виробництво читає цей рядок буквально.
+     */
+    it('не радить узгоджувати доставку, коли адреса вже є', () => {
+        const slip = buildPrintSlip({
+            ...bookOrder,
+            delivery_method: 'other',
+            delivery_address: 'Ukraine, Одеська, Нерубайське, Відділення №1: вул. Вознесенська, 2-Б',
+        });
+
+        expect(slip).not.toContain('узгодити з клієнтом');
+        expect(slip).toContain('Доставка: Ukraine, Одеська, Нерубайське');
+    });
+
+    it('але радить, коли адреси немає', () => {
+        const slip = buildPrintSlip({ ...bookOrder, delivery_method: 'other', delivery_address: {}, custom_attributes: {} });
+
+        expect(slip).toContain('узгодити з клієнтом');
+        expect(slip).toContain('УВАГА: адреси доставки в замовленні немає.');
+    });
 });
