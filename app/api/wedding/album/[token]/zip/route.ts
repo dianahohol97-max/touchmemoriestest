@@ -68,7 +68,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   // рівно тисячу, а решта фото не потрапила б у жоден архів.
   const { data: photos, error } = await supabase
     .from('wedding_photos')
-    .select('id, guest_name, storage_path, created_at')
+    .select('id, guest_name, storage_path, created_at, is_wish')
     .eq('event_id', event.id)
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
@@ -101,7 +101,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
       }
 
       yield {
-        name: entryName(eventDate, offset + i + 1, photo.guest_name, photo.storage_path),
+        name: entryName(eventDate, offset + i + 1, photo.guest_name, photo.storage_path, photo.is_wish),
         data: new Uint8Array(await data.arrayBuffer()),
         modified: new Date(photo.created_at),
       };
@@ -132,12 +132,17 @@ function entryName(
   eventDate: string,
   index: number,
   guestName: string | null,
-  storagePath: string
+  storagePath: string,
+  isWish: boolean
 ): string {
   const extension = storagePath.split('.').pop()?.toLowerCase() || 'jpg';
   const number = String(index).padStart(4, '0');
   const guest = safeNamePart(guestName);
-  return `${eventDate}_${number}${guest ? `_${guest}` : ''}.${extension}`;
+  // Побажання позначені в назві, бо в архіві вони інакше загубилися б серед
+  // сотень знімків — а це якраз те, що пара шукатиме першим. Позначка стоїть
+  // після дати, щоб сортування за назвою й далі йшло за часом вечора.
+  const kind = isWish ? '_pobazhannia' : '';
+  return `${eventDate}_${number}${kind}${guest ? `_${guest}` : ''}.${extension}`;
 }
 
 /**

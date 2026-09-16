@@ -2,7 +2,14 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Cormorant_Garamond } from 'next/font/google';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { ALBUM_BATCH_SIZE, albumZipUrl } from '@/lib/wedding/config';
+import {
+  ALBUM_BATCH_SIZE,
+  VIDEO_URL_TTL_SECONDS,
+  WEDDING_BUCKET,
+  WISHES_PAGE_SIZE,
+  albumZipUrl,
+  photoUrl,
+} from '@/lib/wedding/config';
 import { formatWeddingDate } from '@/lib/wedding/format';
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +72,47 @@ export default async function WeddingAlbumPage({ params }: Props) {
   const total = count ?? 0;
   const parts = Math.ceil(total / ALBUM_BATCH_SIZE);
 
+  // ВІДЕОПОБАЖАННЯ ЖИВУТЬ ТІЛЬКИ ТУТ.
+  //
+  // Сторінка гостя їх не показує і роут /api/wedding/[slug]/photos не віддає
+  // взагалі: листівку людина адресує парі, а не залі. Тому єдине місце, де їх
+  // видно, — ця адреса, яку пара отримує особисто.
+  //
+  // Ліміт стоїть свідомо (гоча 14): вибірка з wedding_photos без нього
+  // лишилася б необмеженою, а мовчазну тисячу рядків PostgREST віддає без
+  // жодної помилки.
+  const { data: wishRows, error: wishError } = await admin
+    .from('wedding_photos')
+    .select('id, guest_name, storage_path, created_at')
+    .eq('event_id', event.id)
+    .eq('is_wish', true)
+    .order('created_at', { ascending: true })
+    .limit(WISHES_PAGE_SIZE);
+
+  if (wishError) {
+    console.error('[wedding/album] не вдалося прочитати побажання:', wishError);
+  }
+
+  // Ролики програються ПРЯМО ЗІ СХОВИЩА за підписаним посиланням, а не через
+  // наш роут: програвачеві потрібні часткові запити, щоб перемотувати й не
+  // тягнути сто мегабайтів заради перших секунд.
+  const wishes: { id: string; guestName: string | null; videoUrl: string | null }[] = [];
+  if (wishRows?.length) {
+    const { data: signed, error: signError } = await admin.storage
+      .from(WEDDING_BUCKET)
+      .createSignedUrls(wishRows.map((row) => row.storage_path), VIDEO_URL_TTL_SECONDS);
+    if (signError) {
+      console.error('[wedding/album] не вдалося підписати посилання:', signError);
+    }
+    wishRows.forEach((row, i) => {
+      wishes.push({
+        id: row.id,
+        guestName: row.guest_name,
+        videoUrl: signed?.[i]?.signedUrl ?? null,
+      });
+    });
+  }
+
   return (
     <main className={`${display.variable} min-h-screen bg-[#faf7f3] px-4 py-12`}>
       <div className="mx-auto w-full max-w-xl">
@@ -80,6 +128,56 @@ export default async function WeddingAlbumPage({ params }: Props) {
           </div>
           <p className="mt-2 text-[#7a6d61]">{formatWeddingDate(event.event_date)}</p>
         </header>
+
+        {wishes.length > 0 && (
+          <section className="mt-10">
+            <div
+              role="heading"
+              aria-level={2}
+              className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+            >
+              Відеопобажання від гостей
+            </div>
+            <p className="mb-5 text-center text-sm leading-relaxed text-[#8A7A6B]">
+              Ці листівки бачите тільки ви. На сторінці, куди заходили гості, їх немає.
+            </p>
+
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {wishes.map((wish) => (
+                <li key={wish.id} className="overflow-hidden rounded-2xl bg-white/70 shadow-sm">
+                  {wish.videoUrl ? (
+                    <video
+                      // Обкладинку віддає наш роут: для відео він показує кадр,
+                      // знятий браузером гостя під час завантаження.
+                      poster={photoUrl(wish.id)}
+                      src={wish.videoUrl}
+                      controls
+                      // preload="metadata" навмисно: інакше десяток листівок
+                      // почав би тягнутися одночасно ще до того, як пара
+                      // натисне бодай одну.
+                      preload="metadata"
+                      playsInline
+                      className="aspect-[3/4] w-full bg-[#efe7dd] object-cover"
+                    />
+                  ) : (
+                    <p className="flex aspect-[3/4] items-center justify-center bg-[#efe7dd] px-4 text-center text-sm text-[#8A7A6B]">
+                      Це відео зараз не відкривається. Оновіть сторінку за хвилину.
+                    </p>
+                  )}
+                  <p className="px-4 py-3 text-center text-sm text-[#4A4038]">
+                    {wish.guestName || 'Від гостя'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            {wishes.length === WISHES_PAGE_SIZE && (
+              <p className="mt-4 text-center text-sm text-[#8A7A6B]">
+                Тут показані перші {WISHES_PAGE_SIZE} побажань. Решта чекає в архіві нижче.
+              </p>
+            )}
+          </section>
+        )}
 
         {total === 0 ? (
           <p className="mt-10 rounded-2xl bg-white/70 px-6 py-8 text-center text-[#7a6d61]">
