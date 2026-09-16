@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { applicationGate, PARTNER_CABINET_URL } from '@/lib/partners/application-gate';
+import { likeEscape } from '@/lib/supabase/like-escape';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +51,26 @@ export async function POST(request: Request) {
         }
 
         const admin = getAdminClient();
+
+        // Друга заявка з тієї самої пошти не створюється, поки партнер
+        // активний або попередня заявка ще на розгляді — людині показуємо, що
+        // в неї вже є, замість мовчазного дубля (Діана, 16.09.2026).
+        // Посилання ведемо на /partner/cabinet, а не на токен: сторінка
+        // впускає через вхід в акаунт, тож форма нічого не видає тому, хто
+        // просто підставив чужу пошту.
+        const [{ data: samePartners }, { data: sameRequests }] = await Promise.all([
+            admin.from('agency_partners').select('status').ilike('email', likeEscape(email)),
+            admin.from('partnership_requests').select('status').ilike('email', likeEscape(email)),
+        ]);
+        const gate = applicationGate(samePartners, sameRequests);
+        if (!gate.allow) {
+            return NextResponse.json({
+                error: gate.message,
+                code: gate.code,
+                cabinetUrl: gate.code === 'active_partner' ? PARTNER_CABINET_URL : null,
+            }, { status: 409 });
+        }
+
         await admin.from('partnership_requests').insert({
             kind,
             agency_name: agencyName,

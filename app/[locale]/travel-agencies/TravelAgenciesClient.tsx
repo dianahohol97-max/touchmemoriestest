@@ -49,6 +49,10 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    // Заявка не створена, бо на цю пошту вже є партнер або заявка на розгляді.
+    // Це не помилка заповнення, тому й показується інакше — спокійним блоком із
+    // дорогою далі, а не червоним рядком під полями (Діана, 16.09.2026).
+    const [notice, setNotice] = useState<{ message: string; cabinetUrl: string | null } | null>(null);
     const [done, setDone] = useState(false);
     // Photographers have their own workflow at /photographers — removed from
     // this form per Diana («фотографів саме звідси треба забрати»).
@@ -58,6 +62,7 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setNotice(null);
         if (!agencyName.trim() || !email.trim()) {
             setError('Вкажіть назву та email.');
             return;
@@ -70,7 +75,15 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                 body: JSON.stringify({ kind, agencyName, contactName, email, phone, website, interestedModel, message }),
             });
             const data = await res.json();
-            if (!res.ok) { setError(data.error || 'Сталася помилка.'); setLoading(false); return; }
+            if (!res.ok) {
+                if (data?.code === 'active_partner' || data?.code === 'pending_request') {
+                    setNotice({ message: data.error, cabinetUrl: data.cabinetUrl || null });
+                } else {
+                    setError(data.error || 'Сталася помилка.');
+                }
+                setLoading(false);
+                return;
+            }
             setDone(true);
         } catch {
             setError('Сталася помилка. Спробуйте ще раз.');
@@ -169,6 +182,16 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                                 </div>
                             ) : (
                                 <>
+                                    {notice && (
+                                        <div style={{ background: '#eef3ff', border: '1px solid #c7d6ff', borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+                                            <p style={{ fontSize: 14, lineHeight: 1.7, color: '#1e2d7d', margin: 0 }}>{notice.message}</p>
+                                            {notice.cabinetUrl && (
+                                                <a href={notice.cabinetUrl} style={{ display: 'inline-block', marginTop: 10, color: '#263A99', fontWeight: 700, fontSize: 14 }}>
+                                                    Увійти в партнерський кабінет →
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
                                     <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1e2d7d', marginBottom: 6, textAlign: 'center' }}>Хочемо співпрацювати</h2>
                                     <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови співпраці</p>
 

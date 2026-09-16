@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { requireStaff, requireAdmin } from '@/lib/auth/guards';
+import { requireStaff, requirePartnerApprover } from '@/lib/auth/guards';
 import { sendPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
 import { findLeadAttribution, attachManagerToPartner, logAttributionClaim } from '@/lib/sales/attribution';
 
@@ -56,8 +56,12 @@ export async function GET() {
 // raw fields { agencyName, email, ... }.
 export async function POST(request: Request) {
   // Approval mints a client-facing discount promo code and a partner row —
-  // an admin-only action, not general staff.
-  const guard = await requireAdmin();
+  // не для будь-кого зі staff, але й не тільки для власників: підтверджувати
+  // партнерів мають право ті самі люди, що й у /api/admin/partner-requests
+  // (Діана, 15.09.2026). Без цього кнопка «Підтвердити та видати код» на
+  // /admin/agency-partners і далі відповідала б 403 усім, крім адміністраторів,
+  // хоча права на підтвердження вже видані.
+  const guard = await requirePartnerApprover();
   if (!guard.ok) return guard.response;
   const admin = getAdminClient();
 

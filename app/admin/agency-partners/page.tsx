@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'sonner';
-import { Copy, Check, Loader2, Plus, Mail } from 'lucide-react';
+import { Copy, Check, Loader2, Plus, Mail, X, RotateCcw, Users } from 'lucide-react';
+import { isRepeatApplication } from '@/lib/partners/application-gate';
 
 interface Partner {
   id: string;
@@ -25,6 +25,7 @@ interface Partner {
   payout_requested_at?: string | null;
   /** Менеджер, який привів партнера — з нього рахується його комісія. */
   sales_manager_id?: string | null;
+  created_at?: string;
 }
 
 interface PendingRequest {
@@ -38,7 +39,21 @@ interface PendingRequest {
   status: string;
   created_at: string;
   kind?: string;
+  decline_reason?: string | null;
+  closed_at?: string | null;
+  closed_by?: string | null;
 }
+
+/**
+ * Причини відмови коротким вибором — щоб закриття заявки не перетворювалося на
+ * вправу з формулювання. Будь-що поза списком пишеться текстом (Діана,
+ * 16.09.2026). Лист партнеру при відмові НЕ надсилається: це окреме рішення.
+ */
+const DECLINE_REASONS = [
+    'Не відповідає профілю бренду',
+    'Немає активної сторінки або портфоліо',
+    'Не вийшли на звʼязок',
+];
 
 export default function AgencyPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -47,14 +62,12 @@ export default function AgencyPartnersPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [payingOut, setPayingOut] = useState<string | null>(null);
   const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+  // Відкрита панель відмови: id заявки та вже обрана причина.
+  const [closing, setClosing] = useState<{ id: string; reason: string } | null>(null);
+  const [savingRequest, setSavingRequest] = useState<string | null>(null);
   // Менеджери з продажів — щоб привʼязку «хто привів» можна було поставити або
   // виправити просто тут, у списку партнерів, а не окремою сторінкою.
   const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
 
   const load = async () => {
     setLoading(true);
@@ -69,14 +82,15 @@ export default function AgencyPartnersPage() {
       if (res.ok) setManagers(((await res.json()).managers || []).map((m: any) => ({ id: m.id, name: m.name })));
     } catch { /* ignore */ }
 
-    // New travel-agency / travel-blogger requests not yet approved
-    const { data: reqs } = await supabase
-      .from('partnership_requests')
-      .select('*')
-      .in('kind', ['travel_agency', 'travel_blogger'])
-      .neq('status', 'approved')
-      .order('created_at', { ascending: false });
-    setRequests(reqs || []);
+    // Тягнемо заявки ВСІХ статусів, включно з підтвердженими: підтверджені на
+    // екрані не показуються, але без них не видно, що заявка повторна.
+    // Читаємо через маршрут, а не напряму з браузера, щоб список бачив кожен,
+    // кому видано право підтверджувати партнерів, а не тільки адміністратор.
+    try {
+      const res = await fetch('/api/admin/partnership-requests?status=all');
+      const json = await res.json();
+      setRequests((json.requests || []).filter((r: PendingRequest) => ['travel_agency', 'travel_blogger'].includes(r.kind || 'travel_agency')));
+    } catch { /* ignore */ }
     setLoading(false);
   };
 
@@ -104,6 +118,47 @@ export default function AgencyPartnersPage() {
       setApproving(null);
     }
   };
+
+  /**
+   * Закриття заявки або повернення її в роботу.
+   *
+   * 'duplicate' і 'declined' навмисно різні: повторну заявку не відхилили по
+   * суті, і в списку вона стоїть окремим блоком із посиланням на картку
+   * партнера, а не серед відмов.
+   */
+  const patchRequest = async (id: string, status: 'new' | 'declined' | 'duplicate', reason?: string) => {
+    setSavingRequest(id);
+    try {
+      const res = await fetch('/api/admin/partnership-requests', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, reason }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || 'Помилка');
+      toast.success(
+        status === 'duplicate' ? 'Позначено повторною'
+          : status === 'declined' ? 'Заявку відхилено'
+          : 'Заявку повернено в роботу',
+      );
+      setClosing(null);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || 'Не вдалося зберегти');
+    } finally {
+      setSavingRequest(null);
+    }
+  };
+
+  /** Партнер на ту саму пошту — щоб дати посилання на його картку. */
+  const partnerFor = (email: string | null) => {
+    const key = String(email || '').trim().toLowerCase();
+    if (!key) return null;
+    return partners.find(p => String(p.email || '').trim().toLowerCase() === key) || null;
+  };
+
+  const shortDate = (iso?: string | null) =>
+    iso ? new Date(iso).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) : '';
 
   const payout = async (agencyId: string) => {
     // Irreversible: the endpoint zeroes the partner's accrued balance. Never
@@ -147,34 +202,182 @@ export default function AgencyPartnersPage() {
         Реферальна програма: агенція отримує 5% з тревелбуків і 3% з решти товарів за своїм промокодом; клієнт за кодом/посиланням отримує знижку 5%. Нарахування рахуються автоматично при оплаті.
       </p>
 
-      {/* New requests to approve */}
-      {requests.length > 0 && (
-        <section style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Нові заявки ({requests.length})</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {requests.map(r => (
-              <div key={r.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      {/* Заявки: нові, повторні, відхилені.
+          До 16.09.2026 тут був один список усього, що не 'approved', і єдина
+          кнопка «Підтвердити». Відхилити заявку з адмінки було неможливо, тож
+          усе, що не стало партнером, висіло тут вічно. */}
+      {(() => {
+        const openRequests = requests.filter(r => ['new', 'contacted'].includes(r.status));
+        const duplicateRequests = requests.filter(r => r.status === 'duplicate');
+        const declinedRequests = requests.filter(r => r.status === 'declined');
+
+        const requestCard = (r: PendingRequest, tone: 'open' | 'closed') => {
+          const partner = partnerFor(r.email);
+          const repeat = isRepeatApplication(r, partners, requests);
+          const busy = savingRequest === r.id;
+          const closingThis = closing?.id === r.id;
+          const earlier = requests
+            .filter(o => o.id !== r.id
+              && String(o.email || '').toLowerCase() === String(r.email || '').toLowerCase()
+              && new Date(o.created_at).getTime() < new Date(r.created_at).getTime())
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          const repeatNote = partner
+            ? `повторна заявка, партнер уже є з ${shortDate(partner.created_at)}`
+            : earlier
+              ? `повторна заявка, попередня від ${shortDate(earlier.created_at)}`
+              : 'повторна заявка';
+
+          return (
+            <div key={r.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16, opacity: tone === 'closed' ? 0.75 : 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a' }}>{r.agency_name}</div>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: r.kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: r.kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>{r.kind === 'travel_blogger' ? 'Блогер' : 'Агенція'}</span>
+                    {repeat && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#fef3c7', color: '#92400e' }}>
+                        <Users size={11} /> Повторна
+                      </span>
+                    )}
+                    <span style={{ fontSize: 12, color: '#cbd5e1' }}>{shortDate(r.created_at)}</span>
                   </div>
                   <div style={{ fontSize: 13, color: '#64748b' }}>{r.contact_name && `${r.contact_name} · `}{r.email}{r.phone && ` · ${r.phone}`}</div>
                   {r.website && <div style={{ fontSize: 12, color: '#94a3b8' }}>{r.website}</div>}
+                  {repeat && (
+                    <div style={{ fontSize: 12.5, color: '#92400e', marginTop: 6 }}>
+                      {repeatNote}
+                      {partner && (
+                        <a href={`#partner-${partner.id}`} style={{ color: '#263A99', fontWeight: 700, marginLeft: 6 }}>
+                          відкрити картку →
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {tone === 'closed' && (
+                    <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 6 }}>
+                      {r.status === 'duplicate' ? 'Позначено повторною' : 'Відхилено'}
+                      {r.closed_at && ` ${shortDate(r.closed_at)}`}
+                      {r.closed_by && `, ${r.closed_by}`}
+                      {r.decline_reason && ` · ${r.decline_reason}`}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => approve(r.id)}
-                  disabled={approving === r.id}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#263A99', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
-                >
-                  {approving === r.id ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                  Підтвердити та видати код
-                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {tone === 'open' ? (
+                    <>
+                      <button
+                        onClick={() => approve(r.id)}
+                        disabled={approving === r.id || busy}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#263A99', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        {approving === r.id ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                        Підтвердити та видати код
+                      </button>
+                      {repeat && (
+                        <button
+                          onClick={() => patchRequest(r.id, 'duplicate', repeatNote)}
+                          disabled={busy}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', color: '#92400e', border: '1.5px solid #fcd34d', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                        >
+                          {busy ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />}
+                          Повторна
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setClosing(closingThis ? null : { id: r.id, reason: '' })}
+                        disabled={busy}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', color: '#b91c1c', border: '1.5px solid #fecaca', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        <X size={14} /> Відхилити
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => patchRequest(r.id, 'new')}
+                      disabled={busy}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', color: '#475569', border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                    >
+                      {busy ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                      Повернути в роботу
+                    </button>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+
+              {closingThis && (
+                <div style={{ marginTop: 14, borderTop: '1px solid #f1f5f9', paddingTop: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8 }}>Причина відмови</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {DECLINE_REASONS.map(reason => (
+                      <button key={reason} type="button"
+                        onClick={() => setClosing({ id: r.id, reason })}
+                        style={{ fontSize: 12.5, padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontWeight: 600,
+                          border: closing?.reason === reason ? '1.5px solid #263A99' : '1px solid #e2e8f0',
+                          background: closing?.reason === reason ? '#eef3ff' : '#fff',
+                          color: closing?.reason === reason ? '#263A99' : '#475569' }}>
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    value={closing?.reason || ''}
+                    onChange={e => setClosing({ id: r.id, reason: e.target.value })}
+                    placeholder="Або напишіть свою причину"
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => patchRequest(r.id, 'declined', closing?.reason)}
+                      disabled={busy || !String(closing?.reason || '').trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: String(closing?.reason || '').trim() ? '#b91c1c' : '#e2e8f0', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: String(closing?.reason || '').trim() ? 'pointer' : 'not-allowed' }}
+                    >
+                      {busy ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                      Відхилити заявку
+                    </button>
+                    <button onClick={() => setClosing(null)}
+                      style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      Скасувати
+                    </button>
+                    <span style={{ fontSize: 12, color: '#94a3b8' }}>Лист партнеру не надсилається</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        return (
+          <>
+            {openRequests.length > 0 && (
+              <section style={{ marginBottom: 36 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Нові заявки ({openRequests.length})</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {openRequests.map(r => requestCard(r, 'open'))}
+                </div>
+              </section>
+            )}
+
+            {duplicateRequests.length > 0 && (
+              <section style={{ marginBottom: 36 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#92400e', marginBottom: 12 }}>Повторні заявки ({duplicateRequests.length})</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {duplicateRequests.map(r => requestCard(r, 'closed'))}
+                </div>
+              </section>
+            )}
+
+            {declinedRequests.length > 0 && (
+              <section style={{ marginBottom: 36 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#64748b', marginBottom: 12 }}>Відхилені заявки ({declinedRequests.length})</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {declinedRequests.map(r => requestCard(r, 'closed'))}
+                </div>
+              </section>
+            )}
+          </>
+        );
+      })()}
 
       {/* Active partners */}
       <section>
@@ -184,7 +387,9 @@ export default function AgencyPartnersPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {partners.map(p => (
-              <div key={p.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 }}>
+              // id — щоб посилання «відкрити картку» з повторної заявки вело
+              // саме на цього партнера, а не просто на розділ.
+              <div key={p.id} id={`partner-${p.id}`} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18, scrollMarginTop: 90 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
