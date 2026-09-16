@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { normalizeBindingEmail } from '@/lib/agency/binding';
 
 /**
  * Shared partner-creation for the referral program.
@@ -67,12 +68,47 @@ export const DEFAULT_PARTNER_TERMS = {
 } as const;
 
 /**
+ * Пошта партнера, приведена до вигляду, за яким її потім шукають.
+ *
+ * ЧОМУ ЦЕ ТУТ, А НЕ В МІСЦЯХ ВИКЛИКУ. Раніше кожен виклик мав нормалізувати
+ * сам, і з чотирьох це робили два: заявка менеджера і її підтвердження. Ручне
+ * оформлення в адмінці брало пошту прямо з тіла запиту або з
+ * `partnership_requests.email`, а кабінет фотографа — з `photographers.email`,
+ * і обидва передавали її як прийшла. Латати два з чотирьох означало б лишити
+ * пастку для пʼятого, тож нормалізація переїхала в саму спільну функцію.
+ *
+ * ЧИМ ЦЕ ЗАГРОЖУВАЛО. Регістр нешкідливий: усі читання йдуть через `ilike`,
+ * який його не розрізняє. А от пробіл по краях не прощає ніхто — партнер із
+ * `" studio@x.com"` у базі не збігся б із `"studio@x.com"` із сесії, і провал
+ * був би мовчазним: `/uk/partner/cabinet` сказав би «кабінет не знайдено», а
+ * форма відновлення чесно відповіла б «надіслали» і не надіслала б нічого, бо
+ * її відповідь однакова для всіх. Уражених рядків у базі нуль, тож це
+ * страховка, а не лікування.
+ *
+ * Береться та сама функція, що нормалізує пошту привʼязки клієнта, і навмисно:
+ * `isSelfReferral` порівнює пошту покупця саме з `agency_partners.email` через
+ * неї, тож два різні правила нормалізації дали б два різні уявлення про те, чи
+ * партнер купує сам у себе.
+ */
+function partnerEmail(raw: string | null | undefined): string {
+  const email = normalizeBindingEmail(raw);
+  // Партнер без придатної пошти зламаний за побудовою: йому нікуди надіслати
+  // вітальний лист, він не зайде через /uk/partner/cabinet і не відновить
+  // доступ формою. Краще гучна відмова при створенні, ніж мовчазний напівживий
+  // запис, який виявиться аж тоді, коли людина не зможе увійти.
+  if (!email) throw new Error('Потрібна коректна пошта партнера — на неї йде код і доступ до кабінету');
+  return email;
+}
+
+/**
  * Create the promo code + partner pair. Returns the partner row (including
  * cabinet_token) or throws with a readable message. The promo row is rolled
  * back if the partner insert fails — a live discount code with no partner
  * behind it is exactly the orphan the admin flow once produced.
  */
 export async function createAgencyPartner(admin: SupabaseClient, input: CreatePartnerInput) {
+  // Перед будь-якою роботою: пошта або придатна, або партнера не створюємо.
+  const email = partnerEmail(input.email);
   /**
    * Код має бути вільним в ОБОХ таблицях.
    *
@@ -121,7 +157,7 @@ export async function createAgencyPartner(admin: SupabaseClient, input: CreatePa
     .insert({
       agency_name: input.name,
       contact_name: input.contactName || null,
-      email: input.email,
+      email,
       phone: input.phone || null,
       website: input.website || null,
       referral_code: code,
