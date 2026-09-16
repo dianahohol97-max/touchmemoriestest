@@ -21,7 +21,7 @@ interface Props {
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
-  onOpen: (index: number) => void;
+  onOpen: (photoId: string) => void;
 }
 
 export default function WeddingGallery({
@@ -56,7 +56,7 @@ export default function WeddingGallery({
               <li key={photo.id}>
                 <button
                   type="button"
-                  onClick={() => onOpen(index)}
+                  onClick={() => onOpen(photo.id)}
                   className="group relative block aspect-square w-full overflow-hidden rounded-xl bg-[#ece4da]"
                 >
                   <Image

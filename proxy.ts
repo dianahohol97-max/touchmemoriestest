@@ -232,6 +232,28 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next();
     }
 
+    // Весільні сторінки гостей живуть поза локалями.
+    //
+    // Гість приходить сюди з QR-коду на столі, сторінка одномовна, і ніякого
+    // перемикача мов на ній немає. Без цього винятку блок нижче дописував би
+    // локаль до адреси — /wedding/… ставало б /uk/wedding/…, де маршруту не
+    // існує, — і замість фото з весілля гість бачив би 404. Саме так воно й
+    // повелося при першому ж відкритті на проді.
+    //
+    // Адресу з локаллю попереду ПЕРЕПИСУЄМО, а не перенаправляємо, з тієї самої
+    // причини, що й /tools вище: перенаправлення змагалося б із локальним
+    // нижче, і браузер здався б із ERR_TOO_MANY_REDIRECTS.
+    const localisedWedding = pathname.match(/^\/(?:uk|en|ro|pl|de)(\/wedding\/.*)$/);
+    if (localisedWedding) {
+        return NextResponse.rewrite(new URL(localisedWedding[1], request.url));
+    }
+    // Сесія Supabase тут не потрібна взагалі: ані входу, ані кабінету на цій
+    // сторінці немає, а зайве оновлення сесії лише додало б затримки кожному
+    // гостю на весільній мережі.
+    if (pathname.startsWith('/wedding/')) {
+        return NextResponse.next();
+    }
+
     // Skip non-page routes
     if (SKIP_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
         // Still update Supabase session for auth routes

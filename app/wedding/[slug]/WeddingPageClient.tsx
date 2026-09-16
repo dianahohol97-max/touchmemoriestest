@@ -17,7 +17,13 @@ export default function WeddingPageClient({ event }: Props) {
   const { photos, loading, failed, hasMore, loadingMore, loadMore, addOwn } = useWeddingPhotos(
     event.slug
   );
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // Відкрите фото запам'ятовується за ІДЕНТИФІКАТОРОМ, а не за місцем у списку.
+  //
+  // Місце тут не тримається: опитування додає нові фото на початок сітки, і
+  // поки гість дивиться знімок, той самий номер починає вказувати на інший.
+  // На весіллі, де фото сиплються пачками, картинка мінялася б просто під
+  // час перегляду.
+  const [openPhotoId, setOpenPhotoId] = useState<string | null>(null);
 
   return (
     <main className="min-h-screen bg-[#faf7f3] pb-16">
@@ -32,18 +38,18 @@ export default function WeddingPageClient({ event }: Props) {
           hasMore={hasMore}
           loadingMore={loadingMore}
           onLoadMore={loadMore}
-          onOpen={setLightboxIndex}
+          onOpen={setOpenPhotoId}
         />
       </div>
 
       <Footer />
 
-      {lightboxIndex !== null && (
+      {openPhotoId && (
         <WeddingLightbox
           photos={photos}
-          index={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-          onNavigate={setLightboxIndex}
+          photoId={openPhotoId}
+          onClose={() => setOpenPhotoId(null)}
+          onNavigate={setOpenPhotoId}
         />
       )}
     </main>

@@ -13,21 +13,25 @@ import { photoUrl, type WeddingPhoto } from '@/lib/wedding/config';
 
 interface Props {
   photos: WeddingPhoto[];
-  index: number;
+  photoId: string;
   onClose: () => void;
-  onNavigate: (index: number) => void;
+  onNavigate: (photoId: string) => void;
 }
 
-export default function WeddingLightbox({ photos, index, onClose, onNavigate }: Props) {
-  const photo = photos[index];
+export default function WeddingLightbox({ photos, photoId, onClose, onNavigate }: Props) {
+  // Місце шукаємо щоразу заново, бо список під накладкою живий: опитування
+  // додає нові фото на початок, і номер того самого знімка зсувається. Саме
+  // тому назовні ми тримаємо ідентифікатор, а не номер.
+  const index = photos.findIndex((p) => p.id === photoId);
+  const photo = index >= 0 ? photos[index] : undefined;
 
   const goPrev = useCallback(() => {
-    if (index > 0) onNavigate(index - 1);
-  }, [index, onNavigate]);
+    if (index > 0) onNavigate(photos[index - 1].id);
+  }, [index, photos, onNavigate]);
 
   const goNext = useCallback(() => {
-    if (index < photos.length - 1) onNavigate(index + 1);
-  }, [index, photos.length, onNavigate]);
+    if (index >= 0 && index < photos.length - 1) onNavigate(photos[index + 1].id);
+  }, [index, photos, onNavigate]);
 
   // Клавіатура — для пари й гостей, які відкриють галерею з ноутбука вдома.
   useEffect(() => {
