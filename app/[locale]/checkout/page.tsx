@@ -32,6 +32,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { readStoredPromoCode, PROMO_STORAGE_KEY } from '@/lib/referral/promo-code';
 import { readAttributableReferralCode, REF_STORAGE_KEY } from '@/lib/referral/pending-code';
+import { selectCheckoutCodes } from '@/lib/referral/checkout-codes';
 
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
@@ -292,22 +293,23 @@ export default function CheckoutPage() {
         let code = '';
         try {
             const params = new URLSearchParams(window.location.search);
-            const fromUrlRef = (params.get('ref') || '').trim().toUpperCase();
-            // Відкладений реферальний код читається зі строком у девʼяносто
-            // днів (Діана, 16.09.2026). Комісія партнеру за перехід дворічної
-            // давнини — це вже не рекомендація, а випадковість. Строк стосується
-            // лише шляху ДО привʼязки: привʼязаному клієнту партнера визначає
-            // пошта, і localStorage там уже ні до чого.
-            partnerCode = fromUrlRef || readAttributableReferralCode() || '';
-            code = (params.get('promo') || '').trim().toUpperCase() || partnerCode;
-            // Останнім — акційний код із листа, відкладений ReferralCapture.
-            // Саме останнім, бо реферальний означає комісію агенції, і код із
-            // розсилки не має права її перебивати. Він же має строк: місяць,
-            // щоб давня акція не підставлялася тихцем у кожне замовлення.
-            if (!code) code = readStoredPromoCode() || '';
+            // Вибір коду живе в lib/referral/checkout-codes — він стосується
+            // ВСІХ замовлень, не тільки партнерських, тож має бути під тестом.
+            // Відкладений реферальний код читається зі строком у девʼяносто днів
+            // (Діана, 16.09.2026): комісія за перехід дворічної давнини — це вже
+            // не рекомендація, а випадковість. Строк стосується лише шляху ДО
+            // привʼязки; привʼязаному клієнту партнера визначає пошта.
+            const picked = selectCheckoutCodes({
+                urlPromo: params.get('promo'),
+                urlRef: params.get('ref'),
+                storedRef: readAttributableReferralCode(),
+                storedPromo: readStoredPromoCode(),
+            });
+            partnerCode = picked.partnerCode;
+            code = picked.code;
         } catch { /* ignore */ }
 
-        if (partnerCode && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(partnerCode)) {
+        if (partnerCode) {
             setRefCode(prev => (prev === partnerCode ? prev : partnerCode));
         }
 
@@ -316,7 +318,7 @@ export default function CheckoutPage() {
         // Partner codes may contain Cyrillic (generated from agency names,
         // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
         // referral links applied no discount.
-        if (!code || !/^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(code)) return;
+        if (!code) return;
 
         // Only send an email once it looks complete — otherwise every
         // keystroke would post a half-typed address as the dedupe key.
@@ -352,6 +354,12 @@ export default function CheckoutPage() {
                     setPromoDiscount(Math.min(discount, rawTotal));
                     setPromoCode(code);
                     setPromoIsPartner(!!result.partner);
+                    // Партнерський код міг приїхати не в ?ref=, а в ?promo= —
+                    // так буває, коли посилання перебрали вручну. Тоді знижку
+                    // ми дали, а атрибуції не було б зовсім: магазин втрачає
+                    // пʼять відсотків, партнер не отримує нічого. Дізнаємося про
+                    // це лише з відповіді роута, тому ставимо код звідси.
+                    if (result.partner) setRefCode(prev => (prev ? prev : code));
                     // Партнерський код у поле вводу не кладемо: клієнт його не
                     // бачить і не має бачити. Звичайний промокод — як раніше.
                     setPromoInput(result.partner ? '' : code);
