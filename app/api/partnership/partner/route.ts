@@ -28,13 +28,24 @@ async function loadPartner(admin: ReturnType<typeof getAdminClient>, token: stri
   return partner;
 }
 
+/**
+ * Сума до виплати. Рахує Postgres, а не JavaScript.
+ *
+ * Раніше тут вибиралися ВСІ рядки журналу партнера і додавалися в циклі.
+ * PostgREST віддає щонайбільше тисячу рядків і не каже про це нічим: відповідь
+ * просто коротша за правду. Партнер, у якого нарахувань більше тисячі, бачив би
+ * занижену суму до виплати й не дізнався б про це ніколи — помилки немає, у
+ * журнал не потрапляє ніщо. Та сама пастка, що 14.09 поклала список клієнтів і
+ * аналітику.
+ */
 async function pendingPayout(admin: ReturnType<typeof getAdminClient>, agencyId: string) {
-  const { data: rows } = await admin
-    .from('agency_commissions')
-    .select('total_commission, payout_status')
-    .eq('agency_id', agencyId)
-    .eq('payout_status', 'pending');
-  return (rows || []).reduce((s, r: any) => s + (Number(r.total_commission) || 0), 0);
+  const { data: rows, error } = await admin.rpc('agency_commission_stats');
+  if (error) {
+    console.error('[partner] pending payout stats failed:', error.message);
+    return 0;
+  }
+  const stat = (rows || []).find((r: any) => r.agency_id === agencyId);
+  return Number(stat?.pending_sum || 0);
 }
 
 export async function GET(request: Request) {
@@ -48,10 +59,13 @@ export async function GET(request: Request) {
   const pending = await pendingPayout(admin, partner.id);
 
   // Commission history: which orders earned what, and whether it's paid out.
-  // Order numbers come via the FK join; totals are already per-order rows.
+  // Звʼязок названо повністю (agency_commissions_order_id_fkey), хоча ключ на
+  // orders поки один: щойно на цю таблицю додадуть другий, PostgREST відмовить
+  // цілим запитом із PGRST201 — не частиною, а всім — і кабінет партнера ляже
+  // мовчки, як уже було з orders 14.09.
   const { data: commissionRows } = await admin
     .from('agency_commissions')
-    .select('id, total_commission, travelbook_commission, other_commission, payout_status, paid_at, created_at, orders(order_number)')
+    .select('id, total_commission, travelbook_commission, other_commission, payout_status, paid_at, created_at, orders!agency_commissions_order_id_fkey(order_number)')
     .eq('agency_id', partner.id)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -93,6 +107,21 @@ export async function POST(request: Request) {
   const admin = getAdminClient();
   const partner = await loadPartner(admin, token);
   if (!partner) return NextResponse.json({ error: 'Партнера не знайдено' }, { status: 404 });
+
+  /**
+   * Партнерство на паузі — кабінет лишається на читання, але писати в нього не
+   * можна. Статус не перевірявся тут узагалі: деактивований партнер міг
+   * змінити рахунок для виплати і надіслати запит на виплату, хоча комісія йому
+   * вже не нараховувалася (lib/agency/commission.ts). Виходило, що всередині
+   * одного кабінету одна дія статус поважає, а дві сусідні ні —
+   * /api/partnership/certificates перевіряв його від самого початку.
+   */
+  if (partner.status !== 'active') {
+    return NextResponse.json(
+      { error: 'Партнерство неактивне — напишіть нам, і ми розберемося разом' },
+      { status: 403 },
+    );
+  }
 
   // ── Payout request ────────────────────────────────────────────────
   if (body?.action === 'request_payout') {

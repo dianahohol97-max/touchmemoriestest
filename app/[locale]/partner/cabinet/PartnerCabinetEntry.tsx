@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
+
+/** Локалі сайту. Усе, що поза списком, читаємо як українську. */
+const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
 
 type State =
   | { kind: 'loading' }
@@ -11,6 +14,13 @@ type State =
 
 export default function PartnerCabinetEntry() {
   const router = useRouter();
+  const params = useParams();
+  // Усі посилання на цій сторінці вели на /uk жорстко, тож відвідувач, який
+  // прийшов на /de/partner/cabinet, з кнопки «Увійти» опинявся в українській
+  // частині сайту, а повернутися до своєї мови вже не міг. Сам кабінет
+  // лишається українським — він службовий і не перекладається.
+  const rawLocale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale;
+  const lang = LOCALES.includes(String(rawLocale)) ? String(rawLocale) : 'uk';
   const [state, setState] = useState<State>({ kind: 'loading' });
 
   useEffect(() => {
@@ -20,7 +30,7 @@ export default function PartnerCabinetEntry() {
         const json = await res.json();
         if (!json.loggedIn) { setState({ kind: 'guest' }); return; }
         if (json.cabinet_token) {
-          router.replace(`/uk/partner/${json.cabinet_token}`);
+          router.replace(`/${lang}/partner/${json.cabinet_token}`);
           return;
         }
         setState({ kind: 'not_partner' });
@@ -52,9 +62,9 @@ export default function PartnerCabinetEntry() {
         <div style={{ maxWidth: 440 }}>
           Увійдіть у свій акаунт — на <b>ту саму пошту</b>, на яку оформлене ваше партнерство. Кабінет із нарахуваннями й виплатами відкриється автоматично.
         </div>
-        <a href="/uk/login?next=/uk/partner/cabinet" style={btn}>Увійти</a>
+        <a href={`/${lang}/login?next=/${lang}/partner/cabinet`} style={btn}>Увійти</a>
         <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 440 }}>
-          Заходите вперше? <a href="/uk/register" style={{ color: '#263A99', fontWeight: 700 }}>Створіть акаунт</a> на пошту вашого партнерства, підтвердіть її й поверніться сюди, щоб увійти — кабінет прив'яжеться сам.
+          Заходите вперше? <a href={`/${lang}/register`} style={{ color: '#263A99', fontWeight: 700 }}>Створіть акаунт</a> на пошту вашого партнерства, підтвердіть її й поверніться сюди, щоб увійти — кабінет прив'яжеться сам.
         </div>
       </div>
     );
@@ -67,8 +77,8 @@ export default function PartnerCabinetEntry() {
         <div style={{ maxWidth: 460 }}>
           До цього акаунта не прив'язане партнерство. Переконайтеся, що ви увійшли <b>на ту саму пошту</b>, на яку ми оформили вашу співпрацю. Якщо ви ще не партнер — залиште заявку.
         </div>
-        <a href="/uk/travel-agencies/apply" style={btn}>Стати партнером</a>
-        <a href="/uk/login?next=/uk/partner/cabinet" style={{ color: '#94a3b8', fontSize: 13 }}>Увійти під іншою поштою →</a>
+        <a href={`/${lang}/travel-agencies/apply`} style={btn}>Стати партнером</a>
+        <a href={`/${lang}/login?next=/${lang}/partner/cabinet`} style={{ color: '#94a3b8', fontSize: 13 }}>Увійти під іншою поштою →</a>
       </div>
     );
   }
@@ -77,7 +87,7 @@ export default function PartnerCabinetEntry() {
     <div style={wrap}>
       <div style={{ fontSize: 18, fontWeight: 700, color: '#991b1b' }}>Сталася помилка</div>
       <div style={{ maxWidth: 440 }}>Не вдалося відкрити кабінет. Спробуйте увійти ще раз.</div>
-      <a href="/uk/login?next=/uk/partner/cabinet" style={btn}>Спробувати увійти</a>
+      <a href={`/${lang}/login?next=/${lang}/partner/cabinet`} style={btn}>Спробувати увійти</a>
     </div>
   );
 }

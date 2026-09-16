@@ -1,7 +1,7 @@
 import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { requireSection, requireAdmin, resolveActingStaff } from '@/lib/auth/guards';
-import { processAgencyCommission } from '@/lib/agency/commission';
+import { processAgencyCommission, reverseAgencyCommission } from '@/lib/agency/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 import { buildCancellationHistoryRow, validateCancellation } from '@/lib/orders/cancellation';
@@ -343,6 +343,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 orderNumber: (data as any)?.order_number || null,
             });
         } catch (e) { console.error('[order-patch] bonus refund failed (order still updated):', e); }
+
+        // Партнерська комісія за скасованим замовленням. Бонуси клієнта тут
+        // поверталися від самого початку, а нарахування партнеру — ні: рядок в
+        // agency_commissions лишався й далі йшов у виплату, тобто замовлення,
+        // якого більше немає, платило комісію. Знімається лише невиплачене
+        // (Діана, 16.09.2026); ідемпотентно, тож повторне скасування безпечне.
+        try {
+            await reverseAgencyCommission(supabase, { orderId: id });
+        } catch (e) { console.error('[order-patch] agency commission reversal failed (order still updated):', e); }
     }
 
     return NextResponse.json({ order: data });

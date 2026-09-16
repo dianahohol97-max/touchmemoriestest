@@ -34,12 +34,22 @@ const MODELS = [
     // },
 ];
 
+/** Локалі сайту. Усе, що поза списком, читаємо як українську. */
+const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
+
 /**
  * mode 'landing' — hero + models + the two-button chooser (увійти /
  * зареєструватися), same workflow as /photographers (Diana, 2026-08-04).
  * mode 'apply' — the application form alone, hosted at /travel-agencies/apply.
+ *
+ * `locale` потрібна кнопкам. Усі посилання тут вели на /uk жорстко, тож
+ * відвідувач, який зайшов на /de/travel-agencies, з першої ж кнопки провалювався
+ * в українську частину сайту й губив свою мову. Сам текст сторінки поки
+ * український на всіх локалях — це переклад, а не помилка коду, і він окремою
+ * задачею.
  */
-export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'landing' | 'apply' }) {
+export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }: { mode?: 'landing' | 'apply'; locale?: string }) {
+    const lang = LOCALES.includes(locale) ? locale : 'uk';
     const [agencyName, setAgencyName] = useState('');
     const [contactName, setContactName] = useState('');
     const [email, setEmail] = useState('');
@@ -149,11 +159,11 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                 <section style={{ padding: '0 0 56px' }}>
                     <div className="container" style={{ maxWidth: 620, textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <a href="/uk/partner/cabinet"
+                            <a href={`/${lang}/partner/cabinet`}
                                 style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
                                 Увійти в кабінет
                             </a>
-                            <a href="/uk/travel-agencies/apply"
+                            <a href={`/${lang}/travel-agencies/apply`}
                                 style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#1e2d7d', color: '#fff', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
                                 Зареєструватися
                             </a>
@@ -249,7 +259,7 @@ export default function TravelAgenciesClient({ mode = 'landing' }: { mode?: 'lan
                                         </button>
                                     </form>
                                     <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', margin: '16px 0 0' }}>
-                                        Вже наш партнер? <a href="/uk/partner/cabinet" style={{ color: '#263A99', fontWeight: 700 }}>Увійти в кабінет →</a>
+                                        Вже наш партнер? <a href={`/${lang}/partner/cabinet`} style={{ color: '#263A99', fontWeight: 700 }}>Увійти в кабінет →</a>
                                     </p>
                                 </>
                             )}

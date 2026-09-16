@@ -31,6 +31,7 @@ import { useTranslation } from '@/lib/i18n/context';
 import Image from 'next/image';
 import Link from 'next/link';
 import { readStoredPromoCode, PROMO_STORAGE_KEY } from '@/lib/referral/promo-code';
+import { readAttributableReferralCode, REF_STORAGE_KEY } from '@/lib/referral/pending-code';
 
 type Step = 'info' | 'shipping' | 'payment' | 'complete';
 
@@ -70,6 +71,9 @@ export default function CheckoutPage() {
     const [promoDiscount, setPromoDiscount] = useState(0);
     const [promoLoading, setPromoLoading] = useState(false);
     const [promoError, setPromoError] = useState('');
+    // Клієнт зняв підставлений код і не хоче його назад. Автопідстановка нижче
+    // цей прапорець поважає; ручне «Застосувати» його скидає.
+    const [promoDismissed, setPromoDismissed] = useState(false);
     // Gift certificate payment
     const [certInput, setCertInput] = useState('');
     const [certCode, setCertCode] = useState('');
@@ -140,6 +144,8 @@ export default function CheckoutPage() {
         if (!promoInput.trim()) return;
         setPromoLoading(true);
         setPromoError('');
+        // Ввели код руками — значить, відмова від автопідстановки скасована.
+        setPromoDismissed(false);
         const code = promoInput.trim().toUpperCase();
         try {
             const res = await fetch('/api/promo/validate', {
@@ -243,12 +249,19 @@ export default function CheckoutPage() {
     // has typed one. A logged-in buyer no longer needs it: the route resolves
     // them from their session cookie.
     useEffect(() => {
-        if (promoCode || rawTotal <= 0) return;
+        // `promoDismissed` — клієнт натиснув «прибрати». Кнопка існувала й
+        // раніше, але цей ефект не знав про неї нічого: щойно змінювався кошик
+        // чи пошта, він підставляв той самий код назад, і зняти партнерський
+        // код із замовлення було фактично неможливо.
+        if (promoCode || promoDismissed || rawTotal <= 0) return;
         let code = '';
         try {
             const params = new URLSearchParams(window.location.search);
             code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
-            if (!code) code = (localStorage.getItem('tm_ref_code') || '').trim().toUpperCase();
+            // Відкладений реферальний код читається зі строком у девʼяносто
+            // днів (Діана, 16.09.2026). Комісія партнеру за перехід дворічної
+            // давнини — це вже не рекомендація, а випадковість.
+            if (!code) code = readAttributableReferralCode() || '';
             // Останнім — акційний код із листа, відкладений ReferralCapture.
             // Саме останнім, бо реферальний означає комісію агенції, і код із
             // розсилки не має права її перебивати. Він же має строк: місяць,
@@ -297,7 +310,7 @@ export default function CheckoutPage() {
 
         return () => { cancelled = true; clearTimeout(timer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [rawTotal, formData.email]);
+    }, [rawTotal, formData.email, promoDismissed]);
 
     // Determine available payment options based on current cart contents
     // Authoritative payment_mode per product, looked up from the DB by
@@ -989,7 +1002,7 @@ export default function CheckoutPage() {
             // it so a stale code doesn't silently auto-apply to a future order.
             // (ReferralCapture intentionally no longer deletes it, so checkout owns
             // the end of its lifecycle.)
-            try { localStorage.removeItem('tm_ref_code'); localStorage.removeItem('tm_ref_captured'); } catch { /* ignore */ }
+            try { localStorage.removeItem(REF_STORAGE_KEY); localStorage.removeItem('tm_ref_captured'); } catch { /* ignore */ }
             // Акційний код із листа теж використаний — прибираємо разом із рештою.
             try { localStorage.removeItem(PROMO_STORAGE_KEY); } catch { /* ignore */ }
             toast.dismiss();
@@ -1465,7 +1478,7 @@ export default function CheckoutPage() {
                                             <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
                                                 ✓ Промокод <b>{promoCode}</b> — знижка {promoDiscount} ₴
                                             </div>
-                                            <button type="button" onClick={() => { setPromoCode(''); setPromoDiscount(0); setPromoInput(''); }}
+                                            <button type="button" onClick={() => { setPromoCode(''); setPromoId(null); setPromoDiscount(0); setPromoInput(''); setPromoDismissed(true); }}
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>×</button>
                                         </div>
                                     )}

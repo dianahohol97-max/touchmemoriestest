@@ -5,6 +5,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import OrderCancelledEmail from '@/emails/OrderCancelledEmail';
 import PaymentReminderEmail from '@/emails/PaymentReminderEmail';
 import { refundOrderBonus } from '@/lib/referral/referral';
+import { reverseAgencyCommission } from '@/lib/agency/commission';
 import { buildCancellationHistoryRow } from '@/lib/orders/cancellation';
 
 export const dynamic = 'force-dynamic';
@@ -164,6 +165,18 @@ export async function GET(request: Request) {
                 });
             } catch (e) {
                 console.error(`[unpaid-orders] bonus refund failed for ${order.order_number} (order still cancelled):`, e);
+            }
+
+            // Та сама дія, що й при скасуванні руками в адмінці: зняти
+            // невиплачену партнерську комісію. Тут вона майже завжди нічого не
+            // знаходить, бо нарахування зʼявляється тільки після оплати, а крон
+            // бере неоплачені. Майже — бо замовлення, якому адмін повернув
+            // статус «очікує оплати», під цю вибірку підпадає, і тоді
+            // нарахування за ним існує. Ідемпотентно.
+            try {
+                await reverseAgencyCommission(supabase, { orderId: order.id });
+            } catch (e) {
+                console.error(`[unpaid-orders] commission reversal failed for ${order.order_number} (order still cancelled):`, e);
             }
 
             // Send cancellation email

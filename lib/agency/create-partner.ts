@@ -73,15 +73,25 @@ export const DEFAULT_PARTNER_TERMS = {
  * behind it is exactly the orphan the admin flow once produced.
  */
 export async function createAgencyPartner(admin: SupabaseClient, input: CreatePartnerInput) {
+  /**
+   * Код має бути вільним в ОБОХ таблицях.
+   *
+   * Перевірка дивилася лише в agency_partners, хоча унікальний індекс стоїть ще
+   * й на promo_codes.code. Достатньо, щоб рядок збігся з уже наявним
+   * промокодом — наприклад, від партнера, якого колись видалили, а код лишився,
+   * або з акційним кодом, — і цикл шість разів «не бачив» колізії, а вставка
+   * падала сирою помилкою Postgres просто в адмінку. Ще одна дрібниця: індекси
+   * регістрозалежні, а пошук іде через ilike, тож ilike тут суворіший за індекс,
+   * і це саме та сторона, з якої помилятися безпечно.
+   */
   let code = '';
   for (let attempt = 0; attempt < 6; attempt++) {
     const candidate = genAgencyCode(input.name);
-    const { data: clash } = await admin
-      .from('agency_partners')
-      .select('id')
-      .ilike('referral_code', likeEscape(candidate))
-      .maybeSingle();
-    if (!clash) { code = candidate; break; }
+    const [{ data: partnerClash }, { data: promoClash }] = await Promise.all([
+      admin.from('agency_partners').select('id').ilike('referral_code', likeEscape(candidate)).maybeSingle(),
+      admin.from('promo_codes').select('id').ilike('code', likeEscape(candidate)).maybeSingle(),
+    ]);
+    if (!partnerClash && !promoClash) { code = candidate; break; }
   }
   if (!code) throw new Error('could not generate a unique referral code');
 

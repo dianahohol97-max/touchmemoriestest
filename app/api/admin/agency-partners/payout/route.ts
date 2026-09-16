@@ -15,15 +15,14 @@ export async function POST(request: Request) {
   const { agencyId } = await request.json().catch(() => ({}));
   if (!agencyId) return NextResponse.json({ error: 'agencyId required' }, { status: 400 });
 
-  // Sum pending commissions (for the minimum-payout gate).
-  const { data: pending } = await admin
-    .from('agency_commissions')
-    .select('id, total_commission')
-    .eq('agency_id', agencyId)
-    .eq('payout_status', 'pending');
-
-  const pendingSum = (pending || []).reduce((s, c) => s + Number(c.total_commission), 0);
-  if (!pending || pending.length === 0) {
+  // Сума до виплати для перевірки мінімуму. Рахує Postgres, а не JavaScript:
+  // вибірка всіх рядків журналу впиралася б у тисячу, яку PostgREST віддає
+  // мовчки, і поріг у 500 ₴ рахувався б від неповної суми.
+  const { data: statRows, error: statErr } = await admin.rpc('agency_commission_stats');
+  if (statErr) return NextResponse.json({ error: statErr.message }, { status: 500 });
+  const stat = (statRows || []).find((r: any) => r.agency_id === agencyId);
+  const pendingSum = Number(stat?.pending_sum || 0);
+  if (pendingSum <= 0) {
     return NextResponse.json({ ok: true, paid: 0, message: 'Немає нарахувань до виплати' });
   }
   // Minimum payout threshold.
@@ -44,18 +43,18 @@ export async function POST(request: Request) {
 
   const paidSum = (flipped || []).reduce((s, c) => s + Number(c.total_commission), 0);
 
-  // Only bump the running total when this call actually paid something —
-  // otherwise a racing no-op call could overwrite the winner's bump.
+  // Зведення партнера перераховується з журналу, а не додається до колонки.
+  // Читання-запис тут мало ту саму ваду, що й у нарахуванні: два виклики, які
+  // розминулися в часі на мілісекунду, писали одне й те саме значення, і одна
+  // виплата зникала зі «Виплачено». Функція в базі рахує обидві суми одним
+  // оператором, тож повторний виклик безпечний за побудовою.
   if (paidSum > 0) {
-    const { data: agency } = await admin
-      .from('agency_partners')
-      .select('total_paid_out')
-      .eq('id', agencyId)
-      .maybeSingle();
+    const { error: recalcErr } = await admin.rpc('recalc_agency_partner_totals', { p_agency_id: agencyId });
+    if (recalcErr) console.error('[agency-payout] totals recalc failed:', recalcErr.message);
+    // Запит на виплату закритий саме цією виплатою.
     await admin
       .from('agency_partners')
-      // Also clear any open payout request — this payout fulfils it.
-      .update({ total_paid_out: Number(agency?.total_paid_out || 0) + paidSum, payout_requested_at: null })
+      .update({ payout_requested_at: null })
       .eq('id', agencyId);
   }
 

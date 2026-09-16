@@ -517,15 +517,28 @@ export async function POST(request: NextRequest) {
   // (usage is only recorded AFTER insert). Re-check the promo here, before the
   // order exists, and reject an exhausted or already-used code. Mirrors the
   // validate logic. (customer_id is the server-resolved UUID, not client input.)
+  //
+  // ТУТ ЖЕ ВИЗНАЧАЄТЬСЯ САМ РЯДОК КОДУ, який ляже в orders.promo_code. Досі він
+  // брався з тіла запиту як є, і це був розрив, крізь який витікали гроші: на
+  // знижку дивиться promo_id (стеля нижче рахується саме за ним), а на комісію
+  // партнера — promo_code (lib/agency/commission.ts шукає партнера за цим
+  // рядком). Двоє різних полів, і ніщо їх не звʼязувало. Замовлення з
+  // promo_code партнера й БЕЗ promo_id проходило всі перевірки — знижки немає,
+  // тож і стеля не спрацьовує, — а після оплати партнеру капала комісія. Код,
+  // який партнер знає напамʼять, ставав кнопкою «нарахувати собі» на будь-якому
+  // чужому замовленні. Тепер рядок береться з promo_codes за promo_id, тобто з
+  // бази, а не з браузера; немає promo_id — немає й коду.
+  let resolvedPromoCode: string | null = null;
   {
     const promoId = (body as any).promo_id;
     if (promoId && typeof promoId === 'string') {
       const { data: promo } = await admin
         .from('promo_codes')
-        .select('id, is_active, valid_until, max_uses, uses_count, is_single_use_per_customer')
+        .select('id, code, is_active, valid_until, max_uses, uses_count, is_single_use_per_customer')
         .eq('id', promoId)
         .maybeSingle();
       if (promo) {
+        resolvedPromoCode = String(promo.code || '').trim().toUpperCase().slice(0, 64) || null;
         const expired = promo.valid_until && new Date(promo.valid_until) < new Date();
         const capped = promo.max_uses !== null && Number(promo.uses_count) >= Number(promo.max_uses);
         if (!promo.is_active || expired || capped) {
@@ -860,7 +873,9 @@ export async function POST(request: NextRequest) {
       // The applied promo code string — the paid-transition hooks (Monobank
       // webhook, admin check-payment) look up agency partners by this code
       // to accrue their commission. Without it commissions never accrued.
-      promo_code: String((body as any).promo_code || '').trim().toUpperCase().slice(0, 64) || null,
+      // Значення взяте з promo_codes за promo_id вище, а не з тіла запиту:
+      // рядок від клієнта тут означав комісію партнеру без жодної перевірки.
+      promo_code: resolvedPromoCode,
       payment_type,
       prepaid_amount: amounts.prepaid_amount,
       cod_amount: amounts.cod_amount,

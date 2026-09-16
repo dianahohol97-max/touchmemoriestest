@@ -22,12 +22,38 @@ function isPremiumRateItem(item: any): boolean {
     || hay.includes('magazine') || hay.includes('zhurnal') || hay.includes('журнал');
 }
 
+/**
+ * Комісія рахується від суми ДО знижки клієнта (Діана, 16.09.2026).
+ *
+ * На тревелбуку за 1000 ₴ клієнт за партнерським кодом платить 950 ₴, а
+ * партнер отримує 50 ₴, тобто пʼять відсотків від тисячі, а не від девʼятисот
+ * пʼятдесяти. `total_price` позицій — це саме повна ціна: знижка ніколи не
+ * розкладається по позиціях, вона живе в різниці між orders.subtotal і
+ * orders.total. Правило досі ніде не було записане, і його легко було
+ * прийняти за недогляд — тому воно тут.
+ */
 function itemTotal(item: any): number {
   const t = Number(item?.total_price);
   if (Number.isFinite(t)) return t;
   const unit = Number(item?.unit_price) || 0;
   const qty = Number(item?.quantity) || 1;
   return unit * qty;
+}
+
+/**
+ * Перерахувати total_earned і total_paid_out партнера з журналу нарахувань.
+ *
+ * Раніше обидві колонки оновлювалися читанням і записом назад. Два вебхуки,
+ * що прийшли одночасно за різними замовленнями одного партнера, читали те саме
+ * значення і писали ту саму суму: одне нарахування зникало з кабінету назовсім,
+ * бо джерелом правди була сама колонка, а не журнал. Функція в базі робить це
+ * одним оператором UPDATE із підзапитом, тобто атомарно, і будь-який повторний
+ * виклик дає той самий результат. Помилка тут ніколи не валить нарахування —
+ * рядок у журналі вже є, а зведення перерахується з наступним викликом.
+ */
+async function syncPartnerTotals(admin: SupabaseClient, agencyId: string): Promise<void> {
+  const { error } = await admin.rpc('recalc_agency_partner_totals', { p_agency_id: agencyId });
+  if (error) console.error('[agency-commission] totals recalc failed:', error.message);
 }
 
 /**
@@ -38,9 +64,10 @@ function itemTotal(item: any): number {
  * splits the order items into travelbook vs other subtotals, applies the
  * agency's OWN per-partner rates (travelbook_rate / other_rate — set at
  * approval, defaulting to 5% travelbook / 3% other), writes one
- * agency_commissions row, and bumps the agency's total_earned.
+ * agency_commissions row, and recomputes the agency's totals from the ledger.
  *
- * Returns the commission amount granted, or 0 if no agency code applied.
+ * Returns the commission amount granted, or 0 if no agency code applied — a
+ * self-referral (buyer email == partner email) counts as "no commission".
  */
 export async function processAgencyCommission(
   admin: SupabaseClient,
@@ -54,10 +81,38 @@ export async function processAgencyCommission(
   // Is this promo code an agency partner code?
   const { data: agency } = await admin
     .from('agency_partners')
-    .select('id, travelbook_rate, other_rate, total_earned, status')
+    .select('id, email, travelbook_rate, other_rate, status')
     .ilike('referral_code', likeEscape(code))
     .maybeSingle();
   if (!agency || agency.status !== 'active') return 0;
+
+  /**
+   * Самореферал: знижка так, комісія ні (Діана, 16.09.2026).
+   *
+   * Партнер, який замовляє за власним кодом, лишається клієнтом і свої мінус
+   * пʼять відсотків отримує — це нормальна умова партнерства. А от платити йому
+   * ще й комісію означало б віддавати десять відсотків за покупку, яку він
+   * зробив сам собі, і рахунок при цьому виглядав би як звичайний продаж.
+   * Промокод має is_single_use_per_customer, тож із тим самим акаунтом це
+   * спрацювало б один раз, але друга пошта знімала й це обмеження.
+   *
+   * Перевірка стоїть тут, а не в місцях виклику, бо їх пʼять — вебхук
+   * Монобанку, «Позначити оплаченим», звірка платежу, редактор замовлення і
+   * ручне створення, — і забути її в одному з них було б надто легко. Менеджер
+   * партнера за таке замовлення теж нічого не отримує, тому перевірка йде до
+   * нарахування менеджеру.
+   */
+  const { data: order } = await admin
+    .from('orders')
+    .select('customer_email')
+    .eq('id', orderId)
+    .maybeSingle();
+  const buyerEmail = String((order as any)?.customer_email || '').trim().toLowerCase();
+  const partnerEmail = String(agency.email || '').trim().toLowerCase();
+  if (buyerEmail && partnerEmail && buyerEmail === partnerEmail) {
+    console.warn(`[agency-commission] self-referral skipped: order ${orderId}, code ${code}`);
+    return 0;
+  }
 
   // Split items into travelbook vs other subtotals.
   let travelbookSubtotal = 0;
@@ -110,11 +165,43 @@ export async function processAgencyCommission(
   });
   if (insErr) return 0; // likely the UNIQUE(order_id) race guard — already credited
 
-  // Bump the agency running total.
-  await admin
-    .from('agency_partners')
-    .update({ total_earned: Number(agency.total_earned || 0) + totalCommission })
-    .eq('id', agency.id);
+  await syncPartnerTotals(admin, agency.id);
 
   return totalCommission;
+}
+
+/**
+ * Зняти нарахування за скасованим замовленням.
+ *
+ * Досі цього не робив ніхто: при скасуванні поверталися бонуси клієнта, а
+ * рядок в agency_commissions лишався і далі йшов у виплату. Замовлення, якого
+ * більше немає, платило партнеру комісію.
+ *
+ * Знімається ЛИШЕ невиплачене (Діана, 16.09.2026). Якщо гроші партнеру вже
+ * пішли, рядок лишається зі статусом 'paid' недоторканим: повертати виплачене
+ * назад — це розмова з людиною, а не дія скрипта. Рядок не видаляється, а
+ * переходить у 'cancelled', тож у журналі кабінету видно і саме нарахування, і
+ * те, що воно зняте, а UNIQUE(order_id) далі захищає від повторного
+ * зарахування того самого замовлення.
+ *
+ * Ідемпотентна: умова payout_status='pending' стоїть у самому UPDATE, тож
+ * повторне скасування чи повтор запиту не знімає нічого вдруге. Повертає суму,
+ * яку зняли, або 0.
+ */
+export async function reverseAgencyCommission(
+  admin: SupabaseClient,
+  opts: { orderId: string },
+): Promise<number> {
+  const { data: reversed } = await admin
+    .from('agency_commissions')
+    .update({ payout_status: 'cancelled' })
+    .eq('order_id', opts.orderId)
+    .eq('payout_status', 'pending')
+    .select('agency_id, total_commission');
+
+  const row = reversed?.[0];
+  if (!row) return 0;
+
+  await syncPartnerTotals(admin, row.agency_id);
+  return Number(row.total_commission) || 0;
 }

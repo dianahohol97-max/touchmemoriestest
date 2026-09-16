@@ -21,8 +21,13 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
 
     const admin = getAdminClient();
-    let q = admin.from('partnership_requests').select('*').order('created_at', { ascending: false });
+    // Свідомий ліміт замість вибірки без межі: заявки надходять із публічної
+    // форми, тобто таблиця росте сама, а PostgREST мовчки віддає щонайбільше
+    // тисячу рядків. Екран «останні заявки» більшого й не показує, а решта
+    // знайдеться фільтром за статусом.
+    let q = admin.from('partnership_requests').select('*');
     if (status && status !== 'all') q = q.eq('status', status);
+    q = q.order('created_at', { ascending: false }).limit(300);
 
     const { data, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

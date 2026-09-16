@@ -108,7 +108,7 @@ export default async function TravelAgenciesPage({ params }: { params: Promise<{
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqJsonLd) }} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(serviceJsonLd) }} />
-            <TravelAgenciesClient />
+            <TravelAgenciesClient locale={locale} />
             {/* Visible FAQ — server-rendered so crawlers see exactly what the
                 FAQPage schema declares. Styled to match the landing. */}
             <section style={{ background: '#f4f6fb', padding: '56px 16px 72px' }}>

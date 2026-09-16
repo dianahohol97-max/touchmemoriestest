@@ -272,11 +272,16 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                                     <tr key={c.id} style={{ borderTop: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('uk-UA')}</td>
                                         <td style={{ padding: '9px 6px', fontWeight: 600 }}>{c.order_number}</td>
-                                        <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 800, color: '#1e2d7d', whiteSpace: 'nowrap' }}>{uah(c.total_commission)}</td>
+                                        <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap', color: c.payout_status === 'cancelled' ? '#94a3b8' : '#1e2d7d', textDecoration: c.payout_status === 'cancelled' ? 'line-through' : 'none' }}>{uah(c.total_commission)}</td>
                                         <td style={{ padding: '9px 6px', textAlign: 'right' }}>
+                                            {/* Скасоване нарахування показується окремо, а не як «Очікує».
+                                                Замовлення скасували, комісію за ним зняли — і партнер має
+                                                бачити саме це, а не суму, яка ніколи не прийде. */}
                                             {c.payout_status === 'paid'
                                                 ? <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>Виплачено</span>
-                                                : <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>Очікує</span>}
+                                                : c.payout_status === 'cancelled'
+                                                    ? <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', background: '#f1f5f9', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>Скасовано</span>
+                                                    : <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>Очікує</span>}
                                         </td>
                                     </tr>
                                 ))}

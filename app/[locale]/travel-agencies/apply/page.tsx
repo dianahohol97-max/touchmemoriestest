@@ -28,6 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 /** The moderated partnership application, split out of the /travel-agencies
  *  landing — same two-button workflow as /photographers. */
-export default function TravelApplyPage() {
-    return <TravelAgenciesClient mode="apply" />;
+export default async function TravelApplyPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
+    return <TravelAgenciesClient mode="apply" locale={locale} />;
 }

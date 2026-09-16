@@ -3,8 +3,9 @@
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { storePromoCode } from '@/lib/referral/promo-code';
+import { REF_STORAGE_KEY, storeReferralCode, readPendingReferralCode } from '@/lib/referral/pending-code';
 
-const REF_KEY = 'tm_ref_code';
+const REF_KEY = REF_STORAGE_KEY;
 // Codes we've already attempted to link as a customer referral, so we don't
 // re-POST on every mount. Kept SEPARATE from REF_KEY on purpose (see below).
 const TRIED_KEY = 'tm_ref_captured';
@@ -76,8 +77,14 @@ export default function ReferralCapture() {
             // Allow Cyrillic: partner codes are generated from agency names.
             if (ref && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(ref)) {
                 const code = ref.toUpperCase();
-                const previous = read(REF_KEY);
-                write(REF_KEY, code);
+                const previous = readPendingReferralCode();
+                // Запис іде разом із часом переходу. Сам звʼязок «друг запросив
+                // друга» строку не має й читається без нього, а от партнерська
+                // атрибуція на чекауті живе девʼяносто днів — і відлік починає
+                // саме цей момент. Раніше код лежав голим рядком без часу, тож
+                // перехід дворічної давнини приносив партнеру комісію так само,
+                // як учорашній.
+                storeReferralCode(code);
                 // A DIFFERENT code than the one we last tried deserves a fresh
                 // attempt, otherwise a stale TRIED_KEY would suppress it.
                 if (previous !== code) { try { localStorage.removeItem(TRIED_KEY); } catch { /* ignore */ } }
@@ -97,7 +104,11 @@ export default function ReferralCapture() {
         const attempt = async (retriesLeft = 2) => {
             if (cancelled || inFlight) return;
 
-            const stored = read(REF_KEY);
+            // Через readPendingReferralCode, а не сирим читанням ключа: у
+            // сховищі тепер лежить JSON із часом переходу, а не голий рядок.
+            // Строку тут свідомо немає — це реферальний звʼязок, який не
+            // старіє; строк має лише партнерська атрибуція на чекауті.
+            const stored = readPendingReferralCode();
             const guardValue = stored || METADATA_ONLY;
             if (read(TRIED_KEY) === guardValue) return;
 

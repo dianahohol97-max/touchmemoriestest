@@ -6,9 +6,11 @@ import { findLeadAttribution, attachManagerToPartner, logAttributionClaim } from
 
 export const dynamic = 'force-dynamic';
 
-// Code generation moved to lib/agency/create-partner so the photographer
-// cabinet (which enrols into the same program) can't drift from this flow.
-import { genAgencyCode } from '@/lib/agency/create-partner';
+// Створення партнера цілком живе в lib/agency/create-partner: цей роут,
+// підтвердження заявки менеджера і кабінет фотографа заводять партнера однією
+// функцією, тож розійтися в умовах чи в перевірках їм більше немає де.
+import { createAgencyPartner, DEFAULT_PARTNER_TERMS } from '@/lib/agency/create-partner';
+import { PARTNER_KINDS, type PartnerKind } from '@/lib/sales/partner-activation';
 import { likeEscape } from '@/lib/supabase/like-escape';
 
 // GET — list all agency partners with their commission totals + pending payout
@@ -25,35 +27,45 @@ export async function GET() {
   // Комісії партнера + скільки замовлень і виручки пройшло за його кодом
   // (Diana, 2026-08-06). Рядок в agency_commissions зʼявляється лише після
   // підтвердженої оплати, тож це оплачені замовлення, а не створені кошики.
-  const { data: pending } = await admin
-    .from('agency_commissions')
-    .select('agency_id, total_commission, payout_status, travelbook_subtotal, other_subtotal');
+  //
+  // Рахує Postgres. Раніше тут вибирався ВЕСЬ журнал і складався в циклі —
+  // вибірка без ліміту, тобто тисяча рядків, які PostgREST віддає мовчки, і
+  // список партнерів показував би занижені суми без жодної помилки. Скасовані
+  // нарахування (payout_status='cancelled') функція не рахує ні в замовлення,
+  // ні у виручку, ні в суму до виплати.
+  const { data: statRows, error: statErr } = await admin.rpc('agency_commission_stats');
+  if (statErr) console.error('[agency-partners] commission stats failed:', statErr.message);
+  const statByAgency = new Map<string, any>((statRows || []).map((r: any) => [r.agency_id, r]));
 
-  const pendingByAgency: Record<string, number> = {};
-  const ordersByAgency: Record<string, { count: number; revenue: number }> = {};
-  for (const c of pending || []) {
-    if (c.payout_status === 'pending') {
-      pendingByAgency[c.agency_id] = (pendingByAgency[c.agency_id] || 0) + Number(c.total_commission);
-    }
-    const cur = ordersByAgency[c.agency_id] || { count: 0, revenue: 0 };
-    cur.count += 1;
-    cur.revenue += Number(c.travelbook_subtotal || 0) + Number(c.other_subtotal || 0);
-    ordersByAgency[c.agency_id] = cur;
-  }
-
-  const enriched = (partners || []).map(p => ({
-    ...p,
-    pending_payout: pendingByAgency[p.id] || 0,
-    orders_count: ordersByAgency[p.id]?.count || 0,
-    orders_revenue: Math.round(ordersByAgency[p.id]?.revenue || 0),
-  }));
+  const enriched = (partners || []).map(p => {
+    const stat = statByAgency.get(p.id);
+    return {
+      ...p,
+      pending_payout: Number(stat?.pending_sum || 0),
+      orders_count: Number(stat?.orders_count || 0),
+      orders_revenue: Math.round(Number(stat?.revenue || 0)),
+    };
+  });
 
   return NextResponse.json({ partners: enriched });
 }
 
-// POST — approve a partnership request into an agency partner (creates the
-// personal promo code + the agency_partners row). Body: { requestId } OR the
-// raw fields { agencyName, email, ... }.
+/**
+ * POST — approve a partnership request into an agency partner (creates the
+ * personal promo code + the agency_partners row). Body: { requestId } OR the
+ * raw fields { agencyName, email, ... }.
+ *
+ * Створення партнера тут було ВЛАСНОЮ копією того, що робить
+ * createAgencyPartner: цей роут старший за спільну функцію, і коли її винесли
+ * для заявок менеджерів, сюди її не завели. Копія встигла розʼїхатися рівно
+ * так, як це завжди буває. Вона не перевіряла, чи немає вже партнера з тією ж
+ * поштою, — а новіший роут /api/admin/partner-requests перевіряє, — тож дві
+ * заявки від одного бізнесу давали два коди, дві знижки й нарахування,
+ * розбите між ними навпіл. Вона знала лише два види з чотирьох, тож заявка
+ * фотографа з сайту ставала «тревел-агенцією». І в примітці промокоду вона
+ * завжди писала «тревел-агенції», навіть коли партнер був блогером.
+ * Тепер обидва шляхи ведуть в одну функцію.
+ */
 export async function POST(request: Request) {
   // Approval mints a client-facing discount promo code and a partner row —
   // не для будь-кого зі staff, але й не тільки для власників: підтверджувати
@@ -67,11 +79,10 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   let { agencyName, contactName, email, phone, website, requestId } = body;
-  const travelbookRate = Number(body?.travelbookRate ?? 5);
-  const otherRate = Number(body?.otherRate ?? 3);
-  const clientDiscount = Number(body?.clientDiscount ?? 5); // % discount the code gives the client
-  // travel_agency | travel_blogger — same mechanics/rates, label only.
-  let partnerKind = body?.kind === 'travel_blogger' ? 'travel_blogger' : 'travel_agency';
+  const travelbookRate = Number(body?.travelbookRate ?? DEFAULT_PARTNER_TERMS.travelbookRate);
+  const otherRate = Number(body?.otherRate ?? DEFAULT_PARTNER_TERMS.otherRate);
+  const clientDiscount = Number(body?.clientDiscount ?? DEFAULT_PARTNER_TERMS.clientDiscount); // % discount the code gives the client
+  let partnerKind: PartnerKind = PARTNER_KINDS.includes(body?.kind) ? body.kind : 'travel_agency';
 
   // If approving an existing request, pull its details.
   if (requestId) {
@@ -81,12 +92,18 @@ export async function POST(request: Request) {
       .eq('id', requestId)
       .maybeSingle();
     if (req) {
+      // Підтверджувати вдруге нічого: перше підтвердження вже випустило код і
+      // надіслало лист. Без цієї перевірки друге натискання (чи дві вкладки
+      // адмінки) створювало другого партнера на ту саму заявку.
+      if (req.status === 'approved') {
+        return NextResponse.json({ error: 'Заявку вже підтверджено' }, { status: 409 });
+      }
       agencyName = agencyName || req.agency_name;
       contactName = contactName || req.contact_name;
       email = email || req.email;
       phone = phone || req.phone;
       website = website || req.website;
-      if (req.kind === 'travel_blogger') partnerKind = 'travel_blogger';
+      if (!body?.kind && PARTNER_KINDS.includes(req.kind)) partnerKind = req.kind;
     }
   }
 
@@ -94,62 +111,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'agencyName and email required' }, { status: 400 });
   }
 
-  // Generate a unique code (retry on collision).
-  let code = '';
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const candidate = genAgencyCode(agencyName);
-    const { data: clash } = await admin
-      .from('agency_partners')
-      .select('id')
-      .ilike('referral_code', likeEscape(candidate))
-      .maybeSingle();
-    if (!clash) { code = candidate; break; }
-  }
-  if (!code) return NextResponse.json({ error: 'could not generate code' }, { status: 500 });
-
-  // Create the client-facing promo code (percentage discount for the client).
-  const { data: promo, error: promoErr } = await admin
-    .from('promo_codes')
-    .insert({
-      code,
-      type: 'percent',
-      value: clientDiscount,
-      applies_to: 'all',
-      is_active: true,
-      created_by: 'agency-partner',
-      notes: `Промокод тревел-агенції ${agencyName}`,
-    })
-    .select('id')
-    .single();
-  if (promoErr) {
-    return NextResponse.json({ error: `promo create failed: ${promoErr.message}` }, { status: 500 });
-  }
-
-  const { data: partner, error: partnerErr } = await admin
+  // Партнер із такою поштою вже може існувати: людина, з якою домовлялися в
+  // директі, часто йде на сайт і подає заявку сама, а фотограф міг увімкнути
+  // реферальний код у власному кабінеті. Другий код їй не потрібен — це були б
+  // дві знижки й нарахування, розбите між двома рядками.
+  const { data: clash } = await admin
     .from('agency_partners')
-    .insert({
-      agency_name: agencyName,
-      contact_name: contactName || null,
+    .select('id, agency_name, referral_code')
+    .ilike('email', likeEscape(String(email)))
+    .maybeSingle();
+  if (clash) {
+    return NextResponse.json({
+      error: `Партнер із поштою ${email} уже існує: ${clash.agency_name}, код ${clash.referral_code}`,
+    }, { status: 409 });
+  }
+
+  let partner: any;
+  try {
+    partner = await createAgencyPartner(admin, {
+      name: agencyName,
       email,
+      contactName: contactName || null,
       phone: phone || null,
       website: website || null,
-      referral_code: code,
-      promo_code_id: promo.id,
-      travelbook_rate: travelbookRate,
-      other_rate: otherRate,
-      status: 'active',
-      partner_kind: partnerKind,
-      source_request_id: requestId || null,
-    })
-    .select('*')
-    .single();
-  if (partnerErr) {
-    // Roll the promo row back — without this, a failed partner insert left an
-    // ACTIVE discount code with no partner behind it: a live -N% code nobody
-    // knows exists, invisible in the partners list, redeemable at checkout.
-    await admin.from('promo_codes').delete().eq('id', promo.id);
-    return NextResponse.json({ error: `partner create failed: ${partnerErr.message}` }, { status: 500 });
+      partnerKind,
+      clientDiscount,
+      travelbookRate,
+      otherRate,
+      sourceRequestId: requestId || null,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || 'Не вдалося створити партнера' }, { status: 500 });
   }
+
+  const code = partner.referral_code;
 
   // Mark the source request approved.
   if (requestId) {
