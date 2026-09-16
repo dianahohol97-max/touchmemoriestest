@@ -61,16 +61,36 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  */
 export async function accrueOrderCommission(
   admin: SupabaseClient,
-  opts: { orderId: string; promoCode: string | null; orderTotal: number },
+  opts: { orderId: string; promoCode: string | null; orderTotal: number; partnerId?: string | null },
 ): Promise<AccrueResult> {
   const code = String(opts.promoCode || '').trim().toUpperCase();
-  if (!code || !opts.orderTotal) return { amount: 0 };
+  if (!opts.orderTotal) return { amount: 0 };
 
-  const { data: partner } = await admin
-    .from('agency_partners')
-    .select('id, sales_manager_id, status, agency_name')
-    .ilike('referral_code', likeEscape(code))
-    .maybeSingle();
+  /**
+   * Партнера шукаємо за id, коли він переданий, і лише інакше — за кодом.
+   *
+   * У моделі з довічною привʼязкою (Діана, 16.09.2026) повторне замовлення
+   * привʼязаного клієнта не несе ні коду, ні знижки: партнера визначає пошта.
+   * Пошук виключно за кодом лишав би менеджера без відсотка саме на тих
+   * замовленнях, заради яких привʼязку й зробили, і зникала б ця комісія тихо —
+   * просто нічого не нараховувалося б.
+   */
+  let partner: any = null;
+  if (opts.partnerId) {
+    const { data } = await admin
+      .from('agency_partners')
+      .select('id, sales_manager_id, status, agency_name')
+      .eq('id', opts.partnerId)
+      .maybeSingle();
+    partner = data;
+  } else if (code) {
+    const { data } = await admin
+      .from('agency_partners')
+      .select('id, sales_manager_id, status, agency_name')
+      .ilike('referral_code', likeEscape(code))
+      .maybeSingle();
+    partner = data;
+  }
   if (!partner?.sales_manager_id || partner.status !== 'active') return { amount: 0 };
 
   const { data: manager } = await admin
@@ -88,7 +108,11 @@ export async function accrueOrderCommission(
   const paid = await insertCommission(admin, {
     manager_id: manager.id, kind: 'order', source_id: opts.orderId,
     partner_id: partner.id, base_amount: opts.orderTotal, rate, amount,
-    note: `Замовлення за кодом ${code} (${partner.agency_name || 'партнер'})`,
+    // Повторне замовлення привʼязаного клієнта коду не має — і рядок у журналі
+    // менеджера має це казати, а не вигадувати код, якого не було.
+    note: code
+      ? `Замовлення за кодом ${code} (${partner.agency_name || 'партнер'})`
+      : `Замовлення привʼязаного клієнта (${partner.agency_name || 'партнер'})`,
   });
   return { amount: paid, managerId: manager.id };
 }

@@ -8,6 +8,8 @@ interface Commission {
     order_number: string;
     total_commission: number;
     payout_status: string;
+    /** 'new_client' — партнер привів цю людину; 'repeat' — вона повернулася сама. */
+    kind?: string;
     paid_at: string | null;
     created_at: string;
 }
@@ -27,6 +29,8 @@ interface PartnerData {
     status: string;
     visits?: number;
     paid_orders?: number;
+    new_clients?: number;
+    repeat_orders?: number;
 }
 
 const uah = (n: number) => `${(Math.round((n || 0) * 100) / 100).toLocaleString('uk-UA')} грн`;
@@ -169,11 +173,13 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
                     Клієнт переходить за посиланням і бачить знижку вже в кошику, вводити нічого не треба.
                 </div>
+                {/* Коду тут більше немає, і це рішення, а не пропуск (Діана,
+                    16.09.2026). Програма працює лише за посиланням: код,
+                    введений руками, отримує ввічливу відмову, тож показувати
+                    його партнеру означало б давати інструмент, який не працює.
+                    В адмінці код лишається видимим як внутрішній ідентифікатор. */}
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(165,180,252,0.5)' }}>
-                    Якщо замовлення оформлюють без переходу за посиланням, той самий результат дає код{' '}
-                    <b style={{ color: '#64748b', letterSpacing: '0.06em' }}>{data.referral_code}</b> — його вводять при оформленні.
-                    <br />
-                    <button style={{ ...btnGhost, marginTop: 8 }} onClick={() => copy(data.referral_code, 'Код скопійовано')}>Скопіювати код</button>
+                    Клієнт, який хоч раз замовив за вашим посиланням, лишається за вами назавжди. Кожна його наступна покупка приносить вам комісію, навіть коли він заходить на сайт сам, а знижка діє на перше замовлення.
                 </div>
             </div>
 
@@ -183,13 +189,14 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                 але не купували», а це різні проблеми з різними рішеннями.
                 Конверсія рахується з того самого журналу нарахувань, що й
                 гроші, тож два числа поруч ніколи не розійдуться. */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
                 <Stat label="Переходів за посиланням" value={String(data.visits ?? 0)} />
-                <Stat label="Оплачених замовлень" value={String(data.paid_orders ?? 0)} />
+                <Stat label="Нових клієнтів" value={String(data.new_clients ?? 0)} />
+                <Stat label="Повторних замовлень" value={String(data.repeat_orders ?? 0)} />
                 <Stat
                     label="Конверсія"
                     value={(data.visits ?? 0) > 0
-                        ? `${Math.round(((data.paid_orders ?? 0) / (data.visits ?? 1)) * 100)}%`
+                        ? `${Math.round(((data.new_clients ?? 0) / (data.visits ?? 1)) * 100)}%`
                         : '—'}
                 />
             </div>
@@ -202,7 +209,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             </div>
 
             <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginBottom: 16 }}>
-                Переходом вважається відкриття вашого посилання. Повторні заходи за тим самим посиланням протягом доби рахуються один раз, щоб число показувало людей, а не кліки.
+                Переходом вважається відкриття вашого посилання, а повторні заходи протягом доби рахуються один раз, щоб число показувало людей, а не кліки. Конверсія — це частка переходів, які стали новим клієнтом. Повторні замовлення приходять уже без переходу, тому в конверсію вони не входять, а комісію приносять так само.
             </div>
 
             {/* Payout */}
@@ -294,7 +301,12 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                                 {commissions.map(c => (
                                     <tr key={c.id} style={{ borderTop: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '9px 6px', whiteSpace: 'nowrap' }}>{new Date(c.created_at).toLocaleDateString('uk-UA')}</td>
-                                        <td style={{ padding: '9px 6px', fontWeight: 600 }}>{c.order_number}</td>
+                                        <td style={{ padding: '9px 6px', fontWeight: 600 }}>
+                                            {c.order_number}
+                                            <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: c.kind === 'repeat' ? '#0369a1' : '#15803d' }}>
+                                                {c.kind === 'repeat' ? 'повторне' : 'новий клієнт'}
+                                            </span>
+                                        </td>
                                         <td style={{ padding: '9px 6px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap', color: c.payout_status === 'cancelled' ? '#94a3b8' : '#1e2d7d', textDecoration: c.payout_status === 'cancelled' ? 'line-through' : 'none' }}>{uah(c.total_commission)}</td>
                                         <td style={{ padding: '9px 6px', textAlign: 'right' }}>
                                             {/* Скасоване нарахування показується окремо, а не як «Очікує».

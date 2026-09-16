@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { accrueOrderCommission } from '@/lib/sales/commission';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { bindClientToPartner, findBinding, isSelfReferral } from '@/lib/agency/binding';
 
 /**
  * The PREMIUM commission bucket — earns travelbook_rate (default 5%); every
@@ -59,42 +60,98 @@ async function syncPartnerTotals(admin: SupabaseClient, agencyId: string): Promi
 /**
  * Process an agency referral commission when an order transitions to paid.
  *
- * Idempotent (a UNIQUE(order_id) on agency_commissions + an existence check
- * make webhook retries safe). Looks up the agency by the order's promo_code,
- * splits the order items into travelbook vs other subtotals, applies the
- * agency's OWN per-partner rates (travelbook_rate / other_rate — set at
- * approval, defaulting to 5% travelbook / 3% other), writes one
- * agency_commissions row, and recomputes the agency's totals from the ledger.
+ * ЯК ЗНАХОДИТЬСЯ ПАРТНЕР (модель «лише посилання + довічна привʼязка», Діана,
+ * 16.09.2026). Три джерела, у порядку спадання надійності:
  *
- * Returns the commission amount granted, or 0 if no agency code applied — a
- * self-referral (buyer email == partner email) counts as "no commission".
+ *  1. `orders.referral_partner_id` — те, що чекаут визначив і записав при
+ *     створенні замовлення. Головне джерело: воно переживає введення звичайного
+ *     промокоду поверх партнерського посилання, бо лежить окремо від promo_code.
+ *  2. Привʼязка за поштою покупця — клієнт, якого партнер привів колись.
+ *     Саме вона робить комісію довічною: жодного переходу, localStorage чи
+ *     реєстрації для цього не потрібно.
+ *  3. `orders.promo_code` — старий шлях, лишений для замовлень, створених до
+ *     цієї зміни, і для ручного оформлення в адмінці.
+ *
+ * Idempotent (a UNIQUE(order_id) on agency_commissions + an existence check
+ * make webhook retries safe): splits the order items into travelbook vs other
+ * subtotals, applies the agency's OWN per-partner rates (travelbook_rate /
+ * other_rate — set at approval, defaulting to 5% travelbook / 3% other), writes
+ * one agency_commissions row, and recomputes the agency's totals from the
+ * ledger.
+ *
+ * ПОБІЧНА ДІЯ, заради якої модель і працює: на першому оплаченому замовленні з
+ * партнерською атрибуцією пошта покупця закріплюється за партнером назавжди.
+ * Рядок нарахування позначається `kind='new_client'`, усі наступні — 'repeat'.
+ *
+ * Returns the commission amount granted, or 0 if no partner applied — a
+ * self-referral (buyer email == partner email) counts as "no commission" and
+ * creates no binding either.
  */
 export async function processAgencyCommission(
   admin: SupabaseClient,
   opts: { orderId: string; promoCode: string | null; items: any[] },
 ): Promise<number> {
   const { orderId, promoCode, items } = opts;
-  if (!promoCode) return 0;
-  const code = promoCode.trim().toUpperCase();
-  if (!code) return 0;
 
-  // Is this promo code an agency partner code?
-  const { data: agency } = await admin
-    .from('agency_partners')
-    .select('id, email, travelbook_rate, other_rate, status')
-    .ilike('referral_code', likeEscape(code))
+  // Замовлення потрібне і для пошти покупця, і для записаної атрибуції.
+  const { data: order } = await admin
+    .from('orders')
+    .select('customer_email, referral_partner_id')
+    .eq('id', orderId)
     .maybeSingle();
+  const buyerEmail = String((order as any)?.customer_email || '').trim().toLowerCase();
+
+  // ── 1. Атрибуція, записана при створенні замовлення ──────────────
+  let agency: any = null;
+  const attributedId = (order as any)?.referral_partner_id || null;
+  if (attributedId) {
+    const { data } = await admin
+      .from('agency_partners')
+      .select('id, email, travelbook_rate, other_rate, status')
+      .eq('id', attributedId)
+      .maybeSingle();
+    agency = data;
+  }
+
+  // ── 2. Довічна привʼязка за поштою ───────────────────────────────
+  // Клієнт, якого цей партнер привів колись. Саме ця гілка нараховує комісію
+  // на повторних замовленнях, де немає ні переходу, ні знижки, ні промокоду.
+  if (!agency && buyerEmail) {
+    const binding = await findBinding(admin, buyerEmail);
+    if (binding) {
+      const { data } = await admin
+        .from('agency_partners')
+        .select('id, email, travelbook_rate, other_rate, status')
+        .eq('id', binding.partner_id)
+        .maybeSingle();
+      agency = data;
+    }
+  }
+
+  // ── 3. Старий шлях за промокодом ─────────────────────────────────
+  // Замовлення, створені до переходу на нову модель, несуть партнера тільки
+  // тут; ручне оформлення в адмінці тежіде цим шляхом.
+  const code = String(promoCode || '').trim().toUpperCase();
+  if (!agency && code) {
+    const { data } = await admin
+      .from('agency_partners')
+      .select('id, email, travelbook_rate, other_rate, status')
+      .ilike('referral_code', likeEscape(code))
+      .maybeSingle();
+    agency = data;
+  }
+
   if (!agency || agency.status !== 'active') return 0;
 
   /**
    * Самореферал: знижка так, комісія ні (Діана, 16.09.2026).
    *
-   * Партнер, який замовляє за власним кодом, лишається клієнтом і свої мінус
-   * пʼять відсотків отримує — це нормальна умова партнерства. А от платити йому
-   * ще й комісію означало б віддавати десять відсотків за покупку, яку він
-   * зробив сам собі, і рахунок при цьому виглядав би як звичайний продаж.
-   * Промокод має is_single_use_per_customer, тож із тим самим акаунтом це
-   * спрацювало б один раз, але друга пошта знімала й це обмеження.
+   * Партнер, який замовляє за власним посиланням, лишається клієнтом і свої
+   * мінус пʼять відсотків отримує — це нормальна умова партнерства. А от
+   * платити йому ще й комісію означало б віддавати відсоток за покупку, яку він
+   * зробив сам собі. У новій моделі ціна помилки вища за стару: без цієї
+   * перевірки партнер привʼязав би сам себе і отримував би відсоток із КОЖНОЇ
+   * власної покупки до кінця часів, а не один раз.
    *
    * Перевірка стоїть тут, а не в місцях виклику, бо їх пʼять — вебхук
    * Монобанку, «Позначити оплаченим», звірка платежу, редактор замовлення і
@@ -102,15 +159,8 @@ export async function processAgencyCommission(
    * партнера за таке замовлення теж нічого не отримує, тому перевірка йде до
    * нарахування менеджеру.
    */
-  const { data: order } = await admin
-    .from('orders')
-    .select('customer_email')
-    .eq('id', orderId)
-    .maybeSingle();
-  const buyerEmail = String((order as any)?.customer_email || '').trim().toLowerCase();
-  const partnerEmail = String(agency.email || '').trim().toLowerCase();
-  if (buyerEmail && partnerEmail && buyerEmail === partnerEmail) {
-    console.warn(`[agency-commission] self-referral skipped: order ${orderId}, code ${code}`);
+  if (isSelfReferral(buyerEmail, agency.email)) {
+    console.warn(`[agency-commission] self-referral skipped: order ${orderId}, partner ${agency.id}`);
     return 0;
   }
 
@@ -130,7 +180,13 @@ export async function processAgencyCommission(
   // a failure here must never stop the agency from being credited.
   try {
     await accrueOrderCommission(admin, {
-      orderId, promoCode: code, orderTotal: travelbookSubtotal + otherSubtotal,
+      orderId,
+      promoCode: code,
+      // Партнер уже знайдений — передаємо його явно. На повторному замовленні
+      // коду немає взагалі, і пошук за кодом лишив би менеджера без відсотка
+      // саме на тих замовленнях, які приносить довічна привʼязка.
+      partnerId: agency.id,
+      orderTotal: travelbookSubtotal + otherSubtotal,
     });
   } catch (e) {
     console.error('[sales-commission] order accrual failed (agency commission unaffected):', e);
@@ -143,6 +199,22 @@ export async function processAgencyCommission(
     .eq('order_id', orderId)
     .maybeSingle();
   if (existing) return 0;
+
+  /**
+   * Закріпити клієнта за партнером. САМЕ ТУТ, на оплаті, а не на створенні
+   * замовлення: привʼязка довічна, і купувати її за невиконане замовлення, яке
+   * так і лишиться неоплаченим, не можна.
+   *
+   * Повертає true лише тоді, коли привʼязку створив цей виклик — звідси й
+   * береться `kind`. Пошта вже за кимось закріплена означає, що це повторне
+   * замовлення привʼязаного клієнта, навіть якщо він щойно перейшов за чужим
+   * посиланням: перша привʼязка не перезаписується.
+   */
+  const boundNow = await bindClientToPartner(admin, {
+    email: buyerEmail,
+    partnerId: agency.id,
+    orderId,
+  });
 
   const tbRate = Number(agency.travelbook_rate) || 0;
   const otherRate = Number(agency.other_rate) || 0;
@@ -162,6 +234,11 @@ export async function processAgencyCommission(
     other_commission: otherCommission,
     total_commission: totalCommission,
     payout_status: 'pending',
+    // «Новий клієнт» — це замовлення, яке щойно створило привʼязку. Усе інше
+    // приходить від клієнта, якого партнер привів раніше, і в кабінеті стоїть
+    // окремим рядком: привести людину і отримати від неї повторне замовлення —
+    // різна робота.
+    kind: boundNow ? 'new_client' : 'repeat',
   });
   if (insErr) return 0; // likely the UNIQUE(order_id) race guard — already credited
 

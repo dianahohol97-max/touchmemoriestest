@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { likeEscape } from '@/lib/auth/guards';
+import { findBinding } from '@/lib/agency/binding';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { code, cart_total, items, email: rawEmail } = await request.json();
+        const { code, cart_total, items, email: rawEmail, source } = await request.json();
         const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : null;
 
         // Who is asking, according to their session cookie. A logged-in buyer
@@ -126,6 +127,59 @@ export async function POST(request: Request) {
             .select('*')
             .ilike('code', likeEscape(rawCode))
             .maybeSingle();
+
+        /**
+         * ПАРТНЕРСЬКІ КОДИ ПРАЦЮЮТЬ ЛИШЕ ЗА ПОСИЛАННЯМ (Діана, 16.09.2026).
+         *
+         * Нова модель прибирає код із поля зору клієнта зовсім: він переходить
+         * за посиланням і бачить готову знижку, а вводити руками нема чого.
+         * Код лишається внутрішнім ідентифікатором в адмінці.
+         *
+         * `source` каже, звідки прийшла спроба: 'link' — автопідстановка з
+         * ?ref= чи відкладеного коду, будь-що інше — поле вводу. Це межа для
+         * ЛЮДИНИ, а не захист: підробити прапорець у запиті може будь-хто, і
+         * тоді він отримає рівно те, що отримав би, клацнувши посилання. Справжні
+         * обмеження нижче й на submit — знижка лише на перше замовлення і стеля
+         * на суму знижки — від цього прапорця не залежать.
+         */
+        const fromLink = String(source || '') === 'link';
+        const partnerRes = await supabase
+            .from('agency_partners')
+            .select('id, status')
+            .ilike('referral_code', likeEscape(rawCode))
+            .maybeSingle();
+        const partner = partnerRes.data;
+
+        if (partner && !fromLink) {
+            return NextResponse.json({
+                valid: false,
+                message: 'Цей код працює лише за посиланням партнера — попросіть у нього актуальне посилання.',
+            }, { status: 400 });
+        }
+
+        if (partner) {
+            if (partner.status !== 'active') {
+                return NextResponse.json({ valid: false, message: 'Промокод недійсний' }, { status: 400 });
+            }
+            /**
+             * Знижка діє лише на ПЕРШЕ замовлення. Далі клієнт закріплений за
+             * партнером назавжди і партнер отримує свої відсотки з кожної його
+             * покупки, але платить клієнт звичайну ціну: це винагорода за
+             * приведеного клієнта, а не знижка, яку він носить із собою.
+             *
+             * Перевіряється і пошта із сесії, і введена в формі — гість
+             * вписує її сам, і саме на ній тримається привʼязка.
+             */
+            const bindingEmail = email || sessionEmail;
+            const binding = await findBinding(supabase, bindingEmail);
+            if (binding) {
+                return NextResponse.json({
+                    valid: false,
+                    code: 'partner_returning_client',
+                    message: 'Знижка від партнера діє на перше замовлення. Ваші наступні замовлення оформлюються за звичайною ціною.',
+                }, { status: 400 });
+            }
+        }
 
         if (!promo) {
             // NOTE: the legacy referral_codes fallback (flat -10% on the whole
@@ -295,6 +349,11 @@ export async function POST(request: Request) {
             discount_amount,
             message: `Знижка -${discount_amount} грн застосована`,
             promo_id: promo.id,
+            // Чекаут показує партнерську знижку рядком «Знижка від партнера»,
+            // без назви коду: у новій моделі клієнт коду не бачить узагалі.
+            // Прапорець, а не код — щоб не повертати рядок, який ми щойно
+            // перестали показувати.
+            partner: !!partner,
             // `code` is deliberately NOT returned: the caller already knows the
             // code it sent, and echoing the stored value turned a lucky match
             // into a disclosure of the real code.

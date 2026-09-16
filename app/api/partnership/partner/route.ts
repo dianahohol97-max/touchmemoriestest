@@ -82,7 +82,7 @@ export async function GET(request: Request) {
   // мовчки, як уже було з orders 14.09.
   const { data: commissionRows } = await admin
     .from('agency_commissions')
-    .select('id, total_commission, travelbook_commission, other_commission, payout_status, paid_at, created_at, orders!agency_commissions_order_id_fkey(order_number)')
+    .select('id, total_commission, travelbook_commission, other_commission, payout_status, kind, paid_at, created_at, orders!agency_commissions_order_id_fkey(order_number)')
     .eq('agency_id', partner.id)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -91,6 +91,10 @@ export async function GET(request: Request) {
     order_number: (Array.isArray(c.orders) ? c.orders[0] : c.orders)?.order_number || '—',
     total_commission: Number(c.total_commission) || 0,
     payout_status: c.payout_status,
+    // 'new_client' — партнер привів цю людину цим замовленням; 'repeat' —
+    // вона повернулася сама, бо закріплена за ним назавжди. У кабінеті це
+    // різні рядки, бо це різна робота.
+    kind: c.kind || 'new_client',
     paid_at: c.paid_at,
     created_at: c.created_at,
   }));
@@ -115,6 +119,11 @@ export async function GET(request: Request) {
       // конверсія рахується з того самого, що й гроші.
       visits,
       paid_orders: commissions.filter(c => c.payout_status !== 'cancelled').length,
+      // Скільки людей партнер привів і скільки замовлень вони зробили потім.
+      // Конверсія рахується по нових клієнтах, а не по всіх замовленнях:
+      // повторні приходять без переходу, і ділити їх на переходи безглуздо.
+      new_clients: commissions.filter(c => c.payout_status !== 'cancelled' && c.kind === 'new_client').length,
+      repeat_orders: commissions.filter(c => c.payout_status !== 'cancelled' && c.kind === 'repeat').length,
     },
     commissions,
     min_payout: MIN_PAYOUT_UAH,

@@ -57,7 +57,7 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
                 <tr><td style="padding:6px 0;color:#6b7280">Знижка клієнту за посиланням:</td><td style="padding:6px 0;font-weight:700;text-align:right">${clientDiscount}%</td></tr>
               </table>
               <p style="font-size:14px;color:#334155;margin:0 0 16px">Клієнт переходить за посиланням і бачить знижку вже в кошику, вводити нічого не треба. Комісія нараховується вам <b>автоматично після оплати замовлення</b>.</p>
-              <p style="font-size:13px;color:#64748b;margin:0 0 16px">Якщо замовлення оформлюють у директі чи телефоном, тобто без переходу за посиланням, той самий результат дає код <b>${code}</b> — його вводять при оформленні.</p>
+              <p style="font-size:13px;color:#64748b;margin:0 0 16px">Клієнт, який хоч раз оформив замовлення за вашим посиланням, лишається за вами назавжди: кожна його наступна покупка так само приносить вам комісію, навіть коли він заходить на сайт сам. Знижка діє на перше замовлення, а ваші відсотки — на всі.</p>
               <div style="text-align:center;margin:18px 0"><a href="${cabinetLink}" style="display:inline-block;background:#263A99;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 22px;border-radius:10px">Відкрити партнерський кабінет</a></div>
               <p style="font-size:13px;color:#64748b;margin:0 0 16px">Щоб заходити в кабінет будь-коли, навіть без цього листа — <a href="${SITE}/uk/register" style="color:#263A99">створіть акаунт</a> на цю саму пошту (${email}), і далі входьте через <a href="${SITE}/uk/partner/cabinet" style="color:#263A99">touchmemories.com.ua/uk/partner/cabinet</a> — кабінет прив'яжеться автоматично.</p>
               <p style="font-size:13px;color:#64748b;margin:0 0 16px">У кабінеті ви бачите свої нарахування й можете вказати рахунок для виведення коштів. Мінімальна сума виведення — 500 грн; нарахування відбувається автоматично після оплати замовлень.</p>
@@ -69,7 +69,7 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
     `Вітаємо, ${name}! Ви стали партнером-${kindWord} touch.memories.`,
     `Ваше персональне реферальне посилання: ${refLink}`,
     `Знижка клієнту за посиланням ${clientDiscount}%, ваша комісія ${travelbookRate}% з тревелбуків і ${otherRate}% з решти товарів.`,
-    `Якщо замовлення оформлюють без переходу за посиланням, той самий результат дає код ${code}.`,
+    `Клієнт, який хоч раз замовив за вашим посиланням, лишається за вами назавжди: кожна його наступна покупка приносить вам комісію. Знижка діє на перше замовлення, ваші відсотки — на всі.`,
     `Партнерський кабінет: ${cabinetLink}`,
   ].join('\n\n');
 

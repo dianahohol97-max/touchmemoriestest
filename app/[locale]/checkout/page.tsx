@@ -74,6 +74,23 @@ export default function CheckoutPage() {
     // Клієнт зняв підставлений код і не хоче його назад. Автопідстановка нижче
     // цей прапорець поважає; ручне «Застосувати» його скидає.
     const [promoDismissed, setPromoDismissed] = useState(false);
+    /**
+     * Чи застосована знижка — партнерська. Від цього залежить рядок у підсумку:
+     * «Знижка від партнера −5%» замість «Знижка (КОД)». У новій моделі клієнт
+     * коду не бачить узагалі, і показати його тут означало б віддати назад те,
+     * що ми щойно прибрали з листа й кабінету (Діана, 16.09.2026).
+     */
+    const [promoIsPartner, setPromoIsPartner] = useState(false);
+    /**
+     * Код партнера, із яким прийшли, ОКРЕМО від застосованої знижки.
+     *
+     * Він потрібен серверу для атрибуції і живе своїм життям: клієнт може
+     * ввести звичайний промокод поверх партнерського посилання або відмовитися
+     * від знижки зовсім, і комісія партнеру в обох випадках лишається. Раніше
+     * обидві ролі ніс один рядок promoCode, тож відмова від знижки забирала в
+     * партнера й комісію.
+     */
+    const [refCode, setRefCode] = useState<string | null>(null);
     // Gift certificate payment
     const [certInput, setCertInput] = useState('');
     const [certCode, setCertCode] = useState('');
@@ -153,6 +170,10 @@ export default function CheckoutPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     code,
+                    // Поле вводу — це завжди ручна спроба. Партнерський код
+                    // тут отримує ввічливу відмову: він працює лише за
+                    // посиланням (Діана, 16.09.2026).
+                    source: 'manual',
                     cart_total: rawTotal,
                     email: formData.email || undefined,
                     items: items.map((it: any) => ({
@@ -171,8 +192,13 @@ export default function CheckoutPage() {
             const discount = typeof result.discount_amount === 'number'
                 ? result.discount_amount
                 : 0;
+            // Введений промокод ЗАМІНЯЄ партнерську знижку, а не додається до
+            // неї: дві знижки на одне замовлення не сумуються. Атрибуція при
+            // цьому не страждає — вона живе в refCode окремо, і комісія
+            // партнеру нараховується так само.
             setPromoDiscount(Math.min(discount, rawTotal));
             setPromoCode(code);
+            setPromoIsPartner(false);
             setPromoId(result.promo_id || null);
         } catch (err) {
             console.error('Promo validation error:', err);
@@ -253,21 +279,40 @@ export default function CheckoutPage() {
         // раніше, але цей ефект не знав про неї нічого: щойно змінювався кошик
         // чи пошта, він підставляв той самий код назад, і зняти партнерський
         // код із замовлення було фактично неможливо.
-        if (promoCode || promoDismissed || rawTotal <= 0) return;
+        if (rawTotal <= 0) return;
+
+        /**
+         * Партнерський код збирається ЗАВЖДИ, навіть коли знижку вже
+         * застосовано або клієнт від неї відмовився: він їде на сервер окремим
+         * полем ref_code і відповідає за комісію, а не за знижку. Раніше обидві
+         * ролі ніс один рядок, тож хрестик на знижці забирав у партнера й
+         * комісію, а введений поверх промокод — тим паче.
+         */
+        let partnerCode = '';
         let code = '';
         try {
             const params = new URLSearchParams(window.location.search);
-            code = (params.get('promo') || params.get('ref') || '').trim().toUpperCase();
+            const fromUrlRef = (params.get('ref') || '').trim().toUpperCase();
             // Відкладений реферальний код читається зі строком у девʼяносто
             // днів (Діана, 16.09.2026). Комісія партнеру за перехід дворічної
-            // давнини — це вже не рекомендація, а випадковість.
-            if (!code) code = readAttributableReferralCode() || '';
+            // давнини — це вже не рекомендація, а випадковість. Строк стосується
+            // лише шляху ДО привʼязки: привʼязаному клієнту партнера визначає
+            // пошта, і localStorage там уже ні до чого.
+            partnerCode = fromUrlRef || readAttributableReferralCode() || '';
+            code = (params.get('promo') || '').trim().toUpperCase() || partnerCode;
             // Останнім — акційний код із листа, відкладений ReferralCapture.
             // Саме останнім, бо реферальний означає комісію агенції, і код із
             // розсилки не має права її перебивати. Він же має строк: місяць,
             // щоб давня акція не підставлялася тихцем у кожне замовлення.
             if (!code) code = readStoredPromoCode() || '';
         } catch { /* ignore */ }
+
+        if (partnerCode && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(partnerCode)) {
+            setRefCode(prev => (prev === partnerCode ? prev : partnerCode));
+        }
+
+        // Знижку більше не чіпаємо, якщо вона вже стоїть або від неї відмовились.
+        if (promoCode || promoDismissed) return;
         // Partner codes may contain Cyrillic (generated from agency names,
         // e.g. ПОДОTABB) — a latin-only filter here silently dropped them and
         // referral links applied no discount.
@@ -288,6 +333,10 @@ export default function CheckoutPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             code,
+                            // Автопідстановка — це і є «за посиланням». Роут
+                            // пускає партнерський код лише з цією позначкою:
+                            // руками його вводити більше не можна.
+                            source: 'link',
                             cart_total: rawTotal,
                             email: emailReady ? typedEmail : undefined,
                             items: items.map((it: any) => ({
@@ -302,7 +351,10 @@ export default function CheckoutPage() {
                     const discount = typeof result.discount_amount === 'number' ? result.discount_amount : 0;
                     setPromoDiscount(Math.min(discount, rawTotal));
                     setPromoCode(code);
-                    setPromoInput(code);
+                    setPromoIsPartner(!!result.partner);
+                    // Партнерський код у поле вводу не кладемо: клієнт його не
+                    // бачить і не має бачити. Звичайний промокод — як раніше.
+                    setPromoInput(result.partner ? '' : code);
                     setPromoId(result.promo_id || null);
                 } catch { /* silent — no code applied */ }
             })();
@@ -862,6 +914,12 @@ export default function CheckoutPage() {
                     bonus_redeemed: bonusRedeemed,
                     promo_id: promoId,
                     promo_code: promoCode || undefined,
+                    // Партнерська атрибуція окремо від знижки. Їде навіть тоді,
+                    // коли знижку замінив звичайний промокод або клієнт зняв її
+                    // хрестиком: комісія партнеру від цього не залежить. Сервер
+                    // однаково перевіряє код і сам вирішує, чи є привʼязка,
+                    // яка все одно переважить.
+                    ref_code: refCode || undefined,
                     certificate_code: certCode || undefined,
                     // Digital-only carts (electronic certificates) have no
                     // physical delivery — the certificate goes to the email.
@@ -1476,9 +1534,13 @@ export default function CheckoutPage() {
                                     ) : (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
                                             <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
-                                                ✓ Промокод <b>{promoCode}</b> — знижка {promoDiscount} ₴
+                                                {promoIsPartner
+                                                    ? <>✓ Знижка від партнера — {promoDiscount} ₴</>
+                                                    : <>✓ Промокод <b>{promoCode}</b> — знижка {promoDiscount} ₴</>}
                                             </div>
-                                            <button type="button" onClick={() => { setPromoCode(''); setPromoId(null); setPromoDiscount(0); setPromoInput(''); setPromoDismissed(true); }}
+                                            {/* Відмова від знижки НЕ скидає refCode: атрибуція й комісія
+                                                партнеру лишаються, зникає лише знижка. */}
+                                            <button type="button" onClick={() => { setPromoCode(''); setPromoId(null); setPromoDiscount(0); setPromoInput(''); setPromoIsPartner(false); setPromoDismissed(true); }}
                                                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>×</button>
                                         </div>
                                     )}
@@ -1537,7 +1599,7 @@ export default function CheckoutPage() {
                                 )}
                                 {promoDiscount > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#16a34a', fontWeight: 700 }}>
-                                        <span>Знижка ({promoCode}):</span>
+                                        <span>{promoIsPartner ? 'Знижка від партнера −5%:' : `Знижка (${promoCode}):`}</span>
                                         <span>-{money(promoDiscount)}</span>
                                     </div>
                                 )}

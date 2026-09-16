@@ -15,6 +15,8 @@ import { buildCoverColorIndex, matchCoverColor, readCoverSelection, COVER_COLOR_
 import { sizeKey } from '@/lib/automation/keycrm-catalogue';
 import { getPhotobookPriceTable } from '@/lib/pricing/photobook-price-table';
 import { priceConfiguredBook } from '@/lib/pricing/configured-book-price';
+import { findBinding, isSelfReferral } from '@/lib/agency/binding';
+import { likeEscape } from '@/lib/supabase/like-escape';
 import type { Currency } from '@/lib/i18n/currency';
 
 export const dynamic = 'force-dynamic';
@@ -582,6 +584,48 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  /**
+   * АТРИБУЦІЯ ПАРТНЕРА, окремо від знижки (Діана, 16.09.2026).
+   *
+   * У новій моделі це два різні питання. Знижку дає promo_id — і це може бути
+   * звичайний промокод, введений поверх партнерського посилання. Комісію дає
+   * партнер, і він лишається тим самим, хоч би яку знижку клієнт застосував і
+   * навіть якщо відмовився від неї зовсім.
+   *
+   * Порядок джерел важливий. Спершу ДОВІЧНА ПРИВʼЯЗКА за поштою: клієнт,
+   * якого партнер привів колись, лишається за ним, і жодне нове посилання
+   * цього не змінює. Тільки якщо пошта ще нічия — код, із яким прийшли.
+   *
+   * Довіра до `ref_code` тут така сама, як була до промокоду: перевірити факт
+   * переходу сервер не може. Але наслідки обмежені — підставити можна лише
+   * ЖИВОГО партнера, знижку все одно обмежує стеля нижче, а самореферал
+   * відсікається окремо. Привʼязка при цьому не створюється: вона зʼявиться
+   * лише на оплаті, у processAgencyCommission.
+   */
+  let referralPartnerId: string | null = null;
+  {
+    const buyerEmail = body.customer_email?.trim().toLowerCase() || null;
+    const binding = await findBinding(admin, buyerEmail);
+    if (binding) {
+      referralPartnerId = binding.partner_id;
+    } else {
+      const refCode = String((body as any).ref_code || '').trim().toUpperCase();
+      if (refCode && /^[A-Za-z0-9А-ЯІЇЄҐа-яіїєґ]{4,16}$/.test(refCode)) {
+        const { data: refPartner } = await admin
+          .from('agency_partners')
+          .select('id, email, status')
+          .ilike('referral_code', likeEscape(refCode))
+          .maybeSingle();
+        // Самореферал не створює ні атрибуції, ні привʼязки: інакше партнер
+        // закріпив би сам себе й отримував відсоток із кожної власної покупки
+        // назавжди, а не один раз.
+        if (refPartner?.status === 'active' && !isSelfReferral(buyerEmail, refPartner.email)) {
+          referralPartnerId = refPartner.id;
+        }
+      }
+    }
+  }
+
   let payment_type: 'full' | 'split' = body.payment_type === 'split' ? 'split' : 'full';
   const modeBySlug = new Map<string, string>();
   const costBySlug = new Map<string, number>();
@@ -887,6 +931,11 @@ export async function POST(request: NextRequest) {
       // Значення взяте з promo_codes за promo_id вище, а не з тіла запиту:
       // рядок від клієнта тут означав комісію партнеру без жодної перевірки.
       promo_code: resolvedPromoCode,
+      // Партнер, якому належить це замовлення. Окреме поле від promo_code:
+      // клієнт може ввести звичайний промокод поверх партнерського
+      // посилання або відмовитися від знижки зовсім, і в обох випадках
+      // комісія партнеру лишається. Читається на оплаті.
+      referral_partner_id: referralPartnerId,
       payment_type,
       prepaid_amount: amounts.prepaid_amount,
       cod_amount: amounts.cod_amount,
