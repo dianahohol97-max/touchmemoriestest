@@ -43,6 +43,11 @@ export default function robots(): MetadataRoute.Robots {
           '/*/magazine-brief/',
           // Private authoring surface (also noindex).
           '/*/editor',
+          // Весільні сторінки гостей: приватні фото, захищені лише тим, що
+          // адресу не вгадати. Сторінка несе noindex, у sitemap її немає, і
+          // тут стоїть та сама заборона, що й для галерей та брифів вище.
+          // Сам слаг у robots.txt не потрапляє — лише спільний префікс.
+          '/wedding/',
         ],
       },
     ],

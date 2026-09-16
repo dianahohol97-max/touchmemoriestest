@@ -34,6 +34,10 @@ const WATCHED_TABLES = [
     'social_conversations',
     'email_logs',
     'projects',
+    // Весільна сторінка: фото складають гості, а не адміністратор. Сто гостей
+    // по двадцять знімків — це дві тисячі рядків на одному весіллі, тобто
+    // критерій той самий, що й у шести вище.
+    'wedding_photos',
 ];
 
 const SKIP_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.vercel', 'scripts']);
