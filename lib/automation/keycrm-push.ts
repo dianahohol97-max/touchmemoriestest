@@ -7,6 +7,7 @@ import { readDeliveryAddress } from '@/lib/orders/delivery-address';
 import { splitLineByBreakdown } from '@/lib/automation/keycrm-line-split';
 import { MIRROR_SOURCE } from '@/lib/automation/keycrm-mirror';
 import { isTestOrder } from '@/lib/automation/test-orders';
+import { DELIVERY_LABELS } from '@/lib/orders/delivery-method';
 
 /**
  * Push website orders into KeyCRM so nobody has to re-type them.
@@ -188,16 +189,6 @@ function money(value: any): number {
     return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
 }
 
-const DELIVERY_LABELS: Record<string, string> = {
-    nova_poshta: 'Нова Пошта',
-    ukrposhta: 'Укрпошта',
-    pickup: 'Самовивіз',
-    courier: "Кур'єр",
-    // Не «інше», а прямим текстом: спосіб доставки ще не узгоджений із
-    // клієнтом. Раніше такі замовлення приходили в CRM як «Самовивіз», і
-    // менеджер не мав підстав переспитати.
-    other: 'Не обрано — узгодити з клієнтом',
-};
 
 /**
  * Site line item → KeyCRM product line.

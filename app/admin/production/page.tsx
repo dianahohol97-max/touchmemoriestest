@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { formatUKDate, addWorkingDays, getDeadlineStatus } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
+import { buildPrintSlip } from '@/lib/production/print-slip';
+import { readDeliveryAddress } from '@/lib/orders/delivery-address';
 import { saveAs } from 'file-saver';
 import {
     Loader2, Download, ChevronRight, ChevronLeft,
@@ -104,13 +106,9 @@ export default function ProductionKanbanPage() {
             const selectedOrders = orders.filter(o => selectedIds.has(o.id));
 
             for (const order of selectedOrders) {
-                // In a real app, you would fetch actual print PDFs.
-                // Here we mock creating a text file representing the printing instructions
-                const content = `Зміст замовлення ${order.order_number}:\n` +
-                    order.items?.map((i: any) => `- ${i.name} (${i.options?.format} ${i.options?.cover} ${i.options?.pages} стор.) - ${i.qty} шт.`).join('\n') +
-                    `\nКонтакти: ${order.customer_name}, ${order.delivery_method}, ${order.delivery_address}`;
-
-                zip.file(`${order.order_number}_print.txt`, content);
+                // Текст збирає lib/production/print-slip — там же пояснення,
+                // чому він не може жити тут шаблонним рядком.
+                zip.file(`${order.order_number}_print.txt`, buildPrintSlip(order));
             }
 
             const blob = await zip.generateAsync({ type: 'blob' });
@@ -129,11 +127,7 @@ export default function ProductionKanbanPage() {
         toast.loading(`Формуємо PDF для ${order.order_number}...`);
         try {
             const zip = new JSZip();
-            const content = `Зміст замовлення ${order.order_number}:\n` +
-                order.items?.map((i: any) => `- ${i.name} (${i.options?.format} ${i.options?.cover} ${i.options?.pages} стор.) - ${i.qty} шт.`).join('\n') +
-                `\nКонтакти: ${order.customer_name}, ${order.delivery_method}, ${order.delivery_address}`;
-
-            zip.file(`${order.order_number}_print.txt`, content);
+            zip.file(`${order.order_number}_print.txt`, buildPrintSlip(order));
             const blob = await zip.generateAsync({ type: 'blob' });
             saveAs(blob, `print_${order.order_number}.zip`);
             toast.dismiss();
@@ -323,9 +317,18 @@ export default function ProductionKanbanPage() {
                                                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px' }}>
                                                             <Box size={14} style={{ flexShrink: 0, marginTop: '2px', color: '#888' }} />
                                                             <span style={{ lineHeight: 1.3 }}>
-                                                                <span style={{ fontWeight: 600 }}>{item.name}</span> <br />
+                                                                <span style={{ fontWeight: 600 }}>{item.product_name || item.name || 'Позиція'}</span> <br />
                                                                 <span style={{ color: '#888', fontSize: '12px' }}>
-                                                                    {item.options?.format} • {item.options?.cover} • {item.options?.pages} стор. ({item.qty}шт)
+                                                                    {/* Опції в позиції звуться «Розмір», «Кількість
+                                                                        сторінок» і так далі, і набір у кожного товару
+                                                                        свій. Раніше тут стояли три англійські назви,
+                                                                        яких у даних немає жодної, тож картка показувала
+                                                                        три «undefined». */}
+                                                                    {Object.entries(item.options || {})
+                                                                        .map(([k, v]) => `${k}: ${String(v ?? '').trim()}`)
+                                                                        .filter(line => !line.endsWith(': '))
+                                                                        .join(' • ') || 'без опцій'}
+                                                                    {' '}({Number(item.quantity ?? item.qty) || 1} шт)
                                                                 </span>
                                                             </span>
                                                         </div>
@@ -338,7 +341,11 @@ export default function ProductionKanbanPage() {
                                                 {/* Customer */}
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>
                                                     <User size={14} />
-                                                    {order.customer_name}, {order.delivery_address?.split(',')[0] || 'Місто не вказано'}
+                                                    {/* delivery_address — це jsonb: для 224 замовлень дошки
+                                                        там обʼєкт, і .split() на ньому кидав TypeError, а не
+                                                        просто показував негарний текст. Місто читає спільний
+                                                        розбирач, який знає обидві форми колонки. */}
+                                                    {order.customer_name}, {readDeliveryAddress(order).city || readDeliveryAddress(order).point || 'Місто не вказано'}
                                                 </div>
 
                                                 {/* Assigned Staff */}
