@@ -6,6 +6,7 @@ import OrderCancelledEmail from '@/emails/OrderCancelledEmail';
 import PaymentReminderEmail from '@/emails/PaymentReminderEmail';
 import { refundOrderBonus } from '@/lib/referral/referral';
 import { reverseAgencyCommission } from '@/lib/agency/commission';
+import { reverseSalesCommission } from '@/lib/sales/commission';
 import { buildCancellationHistoryRow } from '@/lib/orders/cancellation';
 import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
@@ -202,6 +203,14 @@ export async function GET(request: Request) {
                 await reverseAgencyCommission(supabase, { orderId: order.id });
             } catch (e) {
                 console.error(`[unpaid-orders] commission reversal failed for ${order.order_number} (order still cancelled):`, e);
+            }
+
+            // І комісія менеджера за тим самим замовленням, з тієї ж причини:
+            // нараховуються вони разом, а зніматися мають теж разом.
+            try {
+                await reverseSalesCommission(supabase, { orderId: order.id });
+            } catch (e) {
+                console.error(`[unpaid-orders] sales commission reversal failed for ${order.order_number} (order still cancelled):`, e);
             }
 
             // Send cancellation email

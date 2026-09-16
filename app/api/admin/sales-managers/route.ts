@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin, requireStaff } from '@/lib/auth/guards';
+import { syncManagerTotals } from '@/lib/sales/commission';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -127,17 +128,16 @@ export async function PATCH(request: Request) {
       .eq('id', row.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Keep the manager's paid total in step with the ledger.
-    if (row.status !== status) {
-      const { data: mgr } = await admin
-        .from('sales_managers').select('total_paid').eq('id', row.manager_id).maybeSingle();
-      const delta = status === 'paid' ? Number(row.amount) : row.status === 'paid' ? -Number(row.amount) : 0;
-      if (delta !== 0) {
-        await admin.from('sales_managers')
-          .update({ total_paid: Math.max(0, Number(mgr?.total_paid || 0) + delta) })
-          .eq('id', row.manager_id);
-      }
-    }
+    /**
+     * Зведення менеджера перераховується з журналу, а не правиться дельтою.
+     *
+     * Було читання-запис по total_paid і не було ЖОДНОГО дотику до
+     * total_earned — тобто рядок, знятий у 'cancelled', і далі рахувався
+     * заробленим, а в кабінеті висіла сума, якої менеджер уже не отримає.
+     * Одна функція в базі приводить обидві колонки до того, що справді лежить у
+     * рядках, і робить це атомарно.
+     */
+    await syncManagerTotals(admin, row.manager_id);
     return NextResponse.json({ ok: true });
   }
 

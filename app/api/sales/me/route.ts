@@ -45,6 +45,18 @@ export async function GET(req: NextRequest) {
 
   const rows = commissions || [];
   const sum = (f: (r: any) => boolean) => rows.filter(f).reduce((s, r) => s + Number(r.amount || 0), 0);
+  /**
+   * Зняте нарахування не є заробленим.
+   *
+   * «Зароблено всього» підсумовувало ВСІ рядки, включно зі статусом
+   * 'cancelled', тоді як дві сусідні картки фільтрували за статусом. До
+   * 16.09.2026 це нічого не ламало, бо знімати менеджерські нарахування не
+   * вміло ніщо — рядків 'cancelled' просто не бувало. Тепер скасування
+   * замовлення їх створює, тож без цієї умови кабінет показував би менеджеру
+   * гроші за замовлення, якого більше немає. Та сама межа, що й у партнера:
+   * рядок у журналі лишається видимим, у суму не входить.
+   */
+  const live = (r: any) => r.status !== 'cancelled';
 
   return NextResponse.json({
     manager: {
@@ -58,7 +70,7 @@ export async function GET(req: NextRequest) {
     partner_requests: partnerRequests || [],
     commissions: rows,
     money: {
-      total: Math.round(sum(() => true) * 100) / 100,
+      total: Math.round(sum(live) * 100) / 100,
       pending: Math.round(sum(r => r.status === 'pending') * 100) / 100,
       paid: Math.round(sum(r => r.status === 'paid') * 100) / 100,
     },
