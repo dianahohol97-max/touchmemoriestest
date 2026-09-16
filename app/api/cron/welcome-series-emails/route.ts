@@ -4,6 +4,7 @@ import WelcomeSeriesEmail from '@/emails/WelcomeSeriesEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { getAutomationConfig } from '@/lib/email/automation-config';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,11 +60,18 @@ export async function GET(request: Request) {
             for (const c of (candidates || []) as Array<{ email: string; name: string | null }>) {
                 const parts = (c.name || '').trim().split(/\s+/).filter(Boolean);
                 const firstName = parts.length ? parts[parts.length - 1] : '';
+                // Журнал вихідних пишеться на кожну спробу, і на успішну, і на
+                // провалену: інакше «не дійшло» і «не відправляли» виглядають
+                // однаково. Складання листа стоїть усередині того самого try —
+                // збій шаблону теж означає «лист не пішов», і одна людина не
+                // має права зупинити всю чергу (Діана, 16.09.2026).
+                let outcome;
+                let html = '';
                 try {
-                    const html = await render(
+                    html = await render(
                         WelcomeSeriesEmail({ firstName, variant: step.variant, promoCode, discount: '-7%', appUrl, body: bodyOverride })
                     );
-                    await sendBrevoEmail({
+                    const res = await sendBrevoEmail({
                         to: c.email,
                         toName: c.name || c.email,
                         subject,
@@ -71,10 +79,28 @@ export async function GET(request: Request) {
                         kind: 'marketing',
                         unsubscribe: { email: c.email },
                     });
-                    await supabase.from('email_automation_log').insert({ email: c.email, automation_type: step.type });
-                    sent++;
+                    outcome = readSendOutcome(res);
                 } catch (e: any) {
                     console.error(`[welcome-series] ${step.type} failed for`, c.email, e?.message || e);
+                    outcome = sendOutcomeFromError(e);
+                }
+
+                await logOutgoingEmail({
+                    orderId: null,
+                    to: c.email,
+                    template: step.type,
+                    subject,
+                    body: html ? htmlToTextSnapshot(html) : `Лист не склався: шаблон ${step.type} не відрендерився.`,
+                    outcome,
+                });
+
+                if (outcome.sent) {
+                    // Захист від повторів, а не журнал доставки: ставиться лише
+                    // після успіху, інакше відмова Brevo назавжди закрила б
+                    // людині цей крок серії.
+                    await supabase.from('email_automation_log').insert({ email: c.email, automation_type: step.type });
+                    sent++;
+                } else {
                     errors++;
                 }
             }

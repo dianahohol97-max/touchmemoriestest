@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email/resend';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 import WelcomeEmail from '@/emails/WelcomeEmail';
 import { getAutomationConfig } from '@/lib/email/automation-config';
 import { render } from '@react-email/components';
@@ -86,15 +87,34 @@ export async function POST(request: Request) {
                 .eq('id', subscriberId)
                 .single();
 
-            // We mock a campaign ID or send independent. Given email_logs requires campaign_id by FK, 
-            // we'll bypass full logging for standalone welcome emails unless we setup an "Auto_Welcome" campaign row.
-            // For now, standalone send.
+            // Раніше тут стояло пояснення, чому цей лист не логується: нібито
+            // email_logs вимагає campaign_id зовнішнім ключем. Такої колонки в
+            // таблиці немає взагалі, тож причина була хибна, а лист — найбільш
+            // масовий у вітальній серії (37 підписок за тиждень проти 29 на
+            // обидва наступні кроки) — не лишав жодного сліду (Діана,
+            // 16.09.2026).
+            const subject = welcomeCfg?.subject || 'Раді вітати вас в TouchMemories! Ваш подарунок всередині ';
+            let outcome;
+            try {
+                const res = await sendEmail({
+                    to: email,
+                    subject,
+                    html: htmlMessage,
+                    unsubscribeToken: subData?.unsubscribe_token
+                });
+                outcome = readSendOutcome(res);
+            } catch (e: any) {
+                console.error('[subscribe] welcome email failed for', email, e?.message || e);
+                outcome = sendOutcomeFromError(e);
+            }
 
-            await sendEmail({
+            await logOutgoingEmail({
+                orderId: null,
                 to: email,
-                subject: welcomeCfg?.subject || 'Раді вітати вас в TouchMemories! Ваш подарунок всередині ',
-                html: htmlMessage,
-                unsubscribeToken: subData?.unsubscribe_token
+                template: 'welcome',
+                subject,
+                body: htmlToTextSnapshot(htmlMessage),
+                outcome,
             });
         }
 
