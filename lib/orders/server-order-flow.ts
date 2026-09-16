@@ -59,15 +59,12 @@ export function isFlagOn(value: unknown): boolean {
     return false;
 }
 
-type SettingsReader = {
-    from: (table: string) => {
-        select: (columns: string) => {
-            eq: (column: string, value: string) => {
-                maybeSingle: () => Promise<{ data: { value?: unknown } | null; error?: unknown }>;
-            };
-        };
-    };
-};
+/**
+ * Навмисно широкий тип: сюди передають і службовий клієнт Supabase, і
+ * підробку з тестів. Вужчий структурний тип клієнт не задовольняє — його
+ * власні типи розкручуються до «excessively deep».
+ */
+type SettingsReader = { from: (table: string) => any };
 
 /**
  * Читання вимикача. Помилка читання — це «вимкнено», не виняток: замовлення

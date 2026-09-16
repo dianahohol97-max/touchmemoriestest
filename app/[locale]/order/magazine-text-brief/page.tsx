@@ -27,11 +27,16 @@ import { toast, Toaster } from 'react-hot-toast';
 import { Upload, X, Check } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { downscaleImageIfLarge } from '@/lib/downscale-image';
-import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
+import {
+  MAGAZINE_TEXT_PACKAGE_LABEL as PACKAGE_LABEL,
+  MAGAZINE_TEXT_PACKAGE_PRICE as PACKAGE_PRICE,
+  buildMagazineBriefOrderRow,
+  priceMagazineBrief,
+  type MagazineTextPackage,
+} from '@/lib/orders/magazine-brief';
 import { readAttributableReferralCode } from '@/lib/referral/pending-code';
-import { orderFlowMarker } from '@/lib/orders/server-order-flow';
 
-type Package = 'basic' | 'premium';
+type Package = MagazineTextPackage;
 
 // Fields used to render the questionnaire dynamically. Each field
 // belongs to one or both packages. Keeping them in a single list
@@ -72,11 +77,8 @@ const FIELDS: Array<{
   { id: 'extra_article',   label: 'Якщо хочете додати 1 персоналізовану статтю — напишіть про що (опційно)',                       packages: ['premium'], multiline: true },
 ];
 
-const PACKAGE_PRICE: Record<Package, number> = { basic: 195, premium: 395 };
-const PACKAGE_LABEL: Record<Package, string> = {
-  basic: 'Базовий пакет — 6 розділів',
-  premium: 'Преміум пакет — 6 розділів + опція кастомної статті',
-};
+// Ціни й назви пакетів тексту живуть у lib/orders/magazine-brief разом із
+// підрахунком суми: їх читає і ця сторінка, і серверний маршрут.
 
 // What each "Ми пишемо" package includes, shown on the brief page so the
 // customer can make an informed choice between basic and premium. Each
@@ -363,132 +365,81 @@ function MagazineTextBriefContent() {
       //    text package) with a labeled breakdown; the manager still
       //    confirms it after reading the brief, but starts from a number
       //    instead of a blank.
-      const estPagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
-      const estBase = estPagesNum ? (getMagazinePrice(estPagesNum, false) || 0) : 0;
-      const estUrgentRaw = String(carriedOptions['Терміновість'] || carriedOptions['urgent'] || '').toLowerCase();
-      const estIsUrgent = estUrgentRaw !== '' && estUrgentRaw !== '0' && estUrgentRaw !== 'standard' && !estUrgentRaw.includes('стандартна');
-      const estUrgentExtra = estIsUrgent ? Math.round(estBase * URGENT_MULTIPLIER) : 0;
-      const estTotal = estBase ? estBase + estUrgentExtra + PACKAGE_PRICE[pkg] : 0;
-      const estBreakdown = estBase ? [
-        { label: `Базова вартість (${estPagesNum} стор.)`, amount: estBase },
-        ...(estUrgentExtra ? [{ label: 'Термінове виготовлення', amount: estUrgentExtra }] : []),
-        { label: `Текст пише команда — ${PACKAGE_LABEL[pkg]}`, amount: PACKAGE_PRICE[pkg] },
-      ] : [];
+      const price = priceMagazineBrief(carriedOptions, pkg);
+      const estTotal = price.total;
 
-      const PRODUCT_NAMES: Record<string, string> = {
-        'personalized-glossy-magazine': 'Глянцевий журнал про людину',
+      // Спільні поля заявки: те саме йде і на сервер, і в браузерну вставку,
+      // щоб два шляхи не розійшлися в тому, що саме записують.
+      const briefPayload = {
+        productSlug,
+        pkg,
+        answers,
+        options: carriedOptions,
+        firstName, lastName, phone, email, telegram, contactMethod,
+        coverName, coverDate, coverEra, coverStyle, coverPhotoNote, coverInscription,
+        coverPhotoPath,
+        declaredTotal: estTotal,
+        idempotencyKey: sessionId,
       };
-      const productName = PRODUCT_NAMES[productSlug]
-        || productSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          // Denormalised full name the admin orders list/queue renders in the
-          // «Клієнт» column. Without it the order showed up blank there even
-          // though the contact fields below were saved — looking like "paid but
-          // no data". Fall back to whichever name part is present.
-          customer_name: [firstName, lastName].map(s => s.trim()).filter(Boolean).join(' ') || null,
-          customer_first_name: firstName,
-          customer_last_name: lastName,
-          customer_phone: phone,
-          customer_email: email || null,
-          customer_telegram: telegram || null,
-          with_designer: true,
-          // order_number comes from the DB sequence default (TM-NNNNNN), read back
-          // via .select.
-          //
-          // Доставку ця форма не питає взагалі, а колонка не приймає порожнього
-          // значення. Досі сюди писався 'pickup' із наміром «команда узгодить
-          // пізніше» — і не узгоджував ніхто: у базі ВСІ замовлення цього
-          // товару стояли як самовивіз, включно з терміновими, яким самовивіз
-          // заборонено (див. lib/orders/pickup-rules). Пишемо чесне «ще не
-          // обрано»: воно вже є в обмеженні таблиці, і на ньому стоїть
-          // більшість замовлень.
-          delivery_method: DELIVERY_NOT_CHOSEN,
-          items: [{
-            product_slug: productSlug,
-            product_name: productName,
-            quantity: 1,
-            unit_price: estTotal,
-            total_price: estTotal,
-            price_breakdown: estBreakdown,
-            text_package: pkg,
-            text_package_price: PACKAGE_PRICE[pkg],
-            options: carriedOptions,
-          }],
-          notes: [
-            estTotal
-              ? `Рахунок виставлено автоматично: ${estTotal} ₴ (база + терміновість + пакет тексту).`
-              : 'Ціну не пораховано автоматично (немає кількості сторінок) — визначте вручну і надішліть посилання на оплату.',
-            `Текст пише команда — пакет: ${PACKAGE_LABEL[pkg]}`,
-            coverName ? `Імʼя на обкладинці: ${coverName}` : '',
-            coverDate ? `Дата на обкладинці: ${coverDate}` : '',
-            coverEra ? `Епоха/настрій: ${coverEra}` : '',
-            coverStyle ? `Стиль обкладинки: ${coverStyle}` : '',
-            coverPhotoNote ? `Фото на обкладинку: ${coverPhotoNote}` : '',
-            coverInscription ? `Надпис на обкладинці: ${coverInscription}` : '',
-          ].filter(Boolean).join('\n---\n'),
-          order_status: 'new',
-          payment_status: 'pending',
-          // orders table uses `total` (not total_price) and has no
-          // contact_method column — store the contact preference inside
-          // custom_attributes so it's still surfaced for the manager.
-          // Помітка джерела (Діана, 16.09.2026). Оформлення цієї сторінки
-          // переїжджає на сервер, і за тиждень після перемикання треба буде
-          // сказати, скільки замовлень пройшло новим шляхом, а скільки старим.
-          // Помітка стоїть у коді РАНІШЕ за серверний маршрут саме тому: якби
-          // вона зʼявилася разом із ним, помічені були б тільки нові
-          // замовлення, а старі не відрізнялися б від усієї історії товару.
-          // `price_declared` — та сама сума, яку клієнт бачив у підсумку; на
-          // серверному шляху поруч ляже порахована, і різниця між ними і є те,
-          // за чим тиждень спостерігають.
-          custom_attributes: {
-            contact_method: contactMethod,
-            ...orderFlowMarker({ flow: 'magazine-text-brief', path: 'client', declaredTotal: estTotal || null }),
-          },
-          total: estTotal,
-          subtotal: estTotal,
-          text_brief: {
-            package: pkg,
-            answers,
-            cover: {
-              name: coverName,
-              date: coverDate,
-              era: coverEra,
-              style: coverStyle,
-              photo_note: coverPhotoNote,
-              photo_path: coverPhotoPath,
-              inscription: coverInscription,
-            },
-            cover_inscription: coverInscription,
-            collected_at: new Date().toISOString(),
-          },
-        })
-        .select('id, order_number')
-        .single();
 
-      if (orderError) throw orderError;
+      // Оформлення на сервері, якщо його ввімкнено в settings. Сервер рахує
+      // ціну сам і сам підвʼязує файли. Вимкнений маршрут, недоступний
+      // маршрут і будь-яка його помилка означають одне: йдемо старим шляхом,
+      // який працює і зараз. Відкат не потребує деплою.
+      let order: { id: string; order_number: string } | null = null;
+      try {
+        const resp = await fetch('/api/orders/magazine-text-brief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...briefPayload, files: uploadedItems }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && data?.enabled && data?.orderId) {
+          order = { id: data.orderId, order_number: data.orderNumber };
+        } else if (resp.ok && data?.enabled === false) {
+          // Вимкнено — це очікувана відповідь, не помилка.
+        } else {
+          console.error('server order failed, falling back to client insert:', data);
+        }
+      } catch (e) {
+        console.error('server order unreachable, falling back to client insert:', e);
+      }
 
-      // 3) Link photos to order with full metadata so /admin/orders/
-      //    [id]/files shows them with the journal badge. The order already
-      //    exists at this point — a linking failure must NOT surface as an
-      //    order error (that would make the customer retry and double-order).
-      if (order && uploadedItems.length > 0) {
-        const { error: filesErr } = await supabase.from('order_files').insert(
-          uploadedItems.map((it, idx) => ({
-            order_id: order.id,
-            file_path: it.path,
-            file_name: it.name,
-            file_type: 'upload',
-            file_category: 'magazine-text-brief',
-            product_type: 'journal',
-            bucket_name: 'order-files',
-            file_size: it.size,
-            mime_type: it.type,
-            page_number: idx + 1,
-          }))
-        );
-        if (filesErr) console.error('order_files link error (order still created):', filesErr);
+      // Старий шлях: вставка прямо з браузера. Лишається робочою, поки
+      // серверний маршрут не проживе тиждень без відкату — і лишається
+      // єдиною, поки вимикач вимкнено. Рядок збирає та сама функція, що й на
+      // сервері, тож два шляхи не можуть записати різне.
+      if (!order) {
+        const { data: created, error: orderError } = await supabase
+          .from('orders')
+          .insert(buildMagazineBriefOrderRow({ ...briefPayload, path: 'client' }))
+          .select('id, order_number')
+          .single();
+
+        if (orderError) throw orderError;
+        order = created as { id: string; order_number: string };
+
+        // Підвʼязка фото. Тільки для старого шляху — на серверному її робить
+        // маршрут, і там вона ще й звіряється зі сховищем. Замовлення на цей
+        // момент уже існує, тож помилка підвʼязки НЕ має вилітати як помилка
+        // оформлення: клієнт оформив би друге.
+        if (uploadedItems.length > 0) {
+          const { error: filesErr } = await supabase.from('order_files').insert(
+            uploadedItems.map((it, idx) => ({
+              order_id: order!.id,
+              file_path: it.path,
+              file_name: it.name,
+              file_type: 'upload',
+              file_category: 'magazine-text-brief',
+              product_type: 'journal',
+              bucket_name: 'order-files',
+              file_size: it.size,
+              mime_type: it.type,
+              page_number: idx + 1,
+            }))
+          );
+          if (filesErr) console.error('order_files link error (order still created):', filesErr);
+        }
       }
 
       setOrderId(order.id);
@@ -1067,15 +1018,11 @@ function MagazineTextBriefContent() {
           product page: base magazine price for the page count, × urgency
           if chosen, + the text package price. */}
       {(() => {
-        const pagesNum = parseInt(String(carriedOptions['Кількість сторінок'] || '').replace(/[^\d]/g, ''), 10) || 0;
-        if (!pagesNum) return null;
-        const base = getMagazinePrice(pagesNum, false) || 0;
-        if (!base) return null;
-        const urgentRaw = String(carriedOptions['Терміновість'] || carriedOptions['urgent'] || '').toLowerCase();
-        const isUrgent = urgentRaw !== '' && urgentRaw !== '0' && urgentRaw !== 'standard' && !urgentRaw.includes('стандартна');
-        let total = base;
-        if (isUrgent) total = Math.round(total * (1 + URGENT_MULTIPLIER));
-        total += PACKAGE_PRICE[pkg];
+        // Та сама функція, що рахує суму замовлення і на сервері. Раніше тут
+        // стояла третя копія арифметики, і терміновість у ній множилася
+        // інакше, ніж у рядку, який лягав у базу.
+        const { total } = priceMagazineBrief(carriedOptions, pkg);
+        if (!total) return null;
         return (
           <div style={{ background: '#f8fafc', borderRadius: 12, padding: 20, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             <div>
