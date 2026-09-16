@@ -7,6 +7,7 @@ import PaymentReminderEmail from '@/emails/PaymentReminderEmail';
 import { refundOrderBonus } from '@/lib/referral/referral';
 import { reverseAgencyCommission } from '@/lib/agency/commission';
 import { buildCancellationHistoryRow } from '@/lib/orders/cancellation';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,12 +72,36 @@ export async function GET(request: Request) {
                     expiresInHours,
                 }));
 
-                await sendBrevoEmail({
+                // Журнал вихідних: обидва листи цього крона стосуються
+                // конкретного замовлення, тож стають у його історію листування
+                // поряд із «замовлення прийнято» (Діана, 16.09.2026).
+                const subject = `Нагадування: оплатіть замовлення ${order.order_number}`;
+                let outcome;
+                try {
+                    outcome = readSendOutcome(await sendBrevoEmail({
+                        to: order.customer_email,
+                        toName: order.customer_name || '',
+                        subject,
+                        html,
+                    }));
+                } catch (e: any) {
+                    console.error(`[unpaid-orders] reminder send failed for ${order.order_number}:`, e?.message || e);
+                    outcome = sendOutcomeFromError(e);
+                }
+
+                await logOutgoingEmail({
+                    orderId: order.id,
                     to: order.customer_email,
-                    toName: order.customer_name || '',
-                    subject: `Нагадування: оплатіть замовлення ${order.order_number}`,
-                    html,
+                    template: 'payment_reminder',
+                    subject,
+                    body: htmlToTextSnapshot(html),
+                    outcome,
                 });
+
+                // Поведінка як раніше: невдала відправка НЕ ставить позначку
+                // «нагадано», тож завтра крон спробує ще раз. Журнал уже
+                // записаний, тому слід про спробу лишається в обох випадках.
+                if (!outcome.sent) throw new Error(outcome.error || 'Не вдалося надіслати нагадування');
             }
 
             // Mark reminder sent (even if no email — to prevent re-processing)
@@ -188,12 +213,32 @@ export async function GET(request: Request) {
                     catalogUrl: `${APP_URL}/uk/catalog`,
                 }));
 
-                await sendBrevoEmail({
+                const subject = `Замовлення ${order.order_number} скасовано`;
+                let outcome;
+                try {
+                    outcome = readSendOutcome(await sendBrevoEmail({
+                        to: order.customer_email,
+                        toName: order.customer_name || '',
+                        subject,
+                        html,
+                    }));
+                } catch (e: any) {
+                    console.error(`[unpaid-orders] cancellation send failed for ${order.order_number}:`, e?.message || e);
+                    outcome = sendOutcomeFromError(e);
+                }
+
+                await logOutgoingEmail({
+                    orderId: order.id,
                     to: order.customer_email,
-                    toName: order.customer_name || '',
-                    subject: `Замовлення ${order.order_number} скасовано`,
-                    html,
+                    template: 'order_cancelled',
+                    subject,
+                    body: htmlToTextSnapshot(html),
+                    outcome,
                 });
+
+                // Замовлення на цей момент уже скасоване — як і раніше, збій
+                // листа рахується помилкою прогону, а не скасуванням скасування.
+                if (!outcome.sent) throw new Error(outcome.error || 'Не вдалося надіслати лист про скасування');
             }
 
             stats.cancelled++;
