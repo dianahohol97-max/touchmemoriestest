@@ -22,6 +22,9 @@ interface Partner {
   pending_payout: number;
   orders_count: number;
   orders_revenue: number;
+  /** Переходи за реферальним посиланням; повтори за добу рахуються один раз. */
+  visits?: number;
+  last_visit_at?: string | null;
   status: string;
   partner_kind?: string;
   payout_account?: string | null;
@@ -545,6 +548,11 @@ export default function AgencyPartnersPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>
+                  <Stat
+                    label="Переходів"
+                    value={String(p.visits ?? 0)}
+                    hint={p.last_visit_at ? `востаннє ${new Date(p.last_visit_at).toLocaleDateString('uk-UA')}` : 'повтори за добу — один'}
+                  />
                   <Stat label="Замовлень за кодом" value={String(p.orders_count)} hint="лише оплачені" />
                   <Stat label="Виручка за кодом" value={`${Number(p.orders_revenue).toFixed(0)} ₴`} />
                   <Stat label="Ставки" value={`${p.travelbook_rate}% / ${p.other_rate}%`} hint="тревелбук / інше" />

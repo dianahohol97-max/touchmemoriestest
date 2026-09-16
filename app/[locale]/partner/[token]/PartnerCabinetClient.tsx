@@ -25,6 +25,8 @@ interface PartnerData {
     payout_account: string;
     payout_requested_at: string | null;
     status: string;
+    visits?: number;
+    paid_orders?: number;
 }
 
 const uah = (n: number) => `${(Math.round((n || 0) * 100) / 100).toLocaleString('uk-UA')} грн`;
@@ -175,11 +177,32 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                 </div>
             </div>
 
+            {/* Переходи за посиланням і що з них вийшло.
+                Окремим рядком над грошима: партнер без жодного замовлення досі
+                не міг відрізнити «посилання ніхто не відкрив» від «відкривали,
+                але не купували», а це різні проблеми з різними рішеннями.
+                Конверсія рахується з того самого журналу нарахувань, що й
+                гроші, тож два числа поруч ніколи не розійдуться. */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 12 }}>
+                <Stat label="Переходів за посиланням" value={String(data.visits ?? 0)} />
+                <Stat label="Оплачених замовлень" value={String(data.paid_orders ?? 0)} />
+                <Stat
+                    label="Конверсія"
+                    value={(data.visits ?? 0) > 0
+                        ? `${Math.round(((data.paid_orders ?? 0) / (data.visits ?? 1)) * 100)}%`
+                        : '—'}
+                />
+            </div>
+
             {/* Earnings */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
                 <Stat label="Нараховано всього" value={uah(data.total_earned)} />
                 <Stat label="Виплачено" value={uah(data.total_paid_out)} />
                 <Stat label="До виплати" value={uah(data.pending_payout)} accent />
+            </div>
+
+            <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6, marginBottom: 16 }}>
+                Переходом вважається відкриття вашого посилання. Повторні заходи за тим самим посиланням протягом доби рахуються один раз, щоб число показувало людей, а не кліки.
             </div>
 
             {/* Payout */}

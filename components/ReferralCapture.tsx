@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { storePromoCode } from '@/lib/referral/promo-code';
 import { REF_STORAGE_KEY, storeReferralCode, readPendingReferralCode } from '@/lib/referral/pending-code';
+import { shouldRecordVisit, visitStorageKey } from '@/lib/referral/visit';
 
 const REF_KEY = REF_STORAGE_KEY;
 // Codes we've already attempted to link as a customer referral, so we don't
@@ -88,6 +89,36 @@ export default function ReferralCapture() {
                 // A DIFFERENT code than the one we last tried deserves a fresh
                 // attempt, otherwise a stale TRIED_KEY would suppress it.
                 if (previous !== code) { try { localStorage.removeItem(TRIED_KEY); } catch { /* ignore */ } }
+
+                /**
+                 * Порахувати перехід. САМЕ ТУТ, усередині гілки «код прийшов
+                 * параметром»: людина клацнула партнерське посилання. Далі вона
+                 * ходить каталогом і кошиком уже без ?ref=, і жодна з тих
+                 * сторінок переходом не рахується — інакше партнер бачив би
+                 * глибину перегляду замість переходів.
+                 *
+                 * Памʼять про порахований перехід лежить у localStorage самого
+                 * відвідувача, а не в нас: таблиця переходів не зберігає
+                 * персональних даних, і дедуплікація не має ставати причиною,
+                 * з якої вони там зʼявляться. Доба — щоб той самий лист,
+                 * відкритий уранці й увечері, лишався одним переходом.
+                 *
+                 * Тиха й необовʼязкова: це статистика, а не гроші, тож ні збій
+                 * мережі, ні заблоковане сховище не мають нічого ламати на
+                 * сторінці, яку людина щойно відкрила.
+                 */
+                try {
+                    const visitKey = visitStorageKey(code);
+                    if (shouldRecordVisit(read(visitKey))) {
+                        write(visitKey, String(Date.now()));
+                        fetch('/api/referral/visit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ code, path: window.location.pathname }),
+                            keepalive: true,
+                        }).catch(() => { /* статистика не має ламати сторінку */ });
+                    }
+                } catch { /* ignore */ }
             }
         } catch { /* ignore */ }
 

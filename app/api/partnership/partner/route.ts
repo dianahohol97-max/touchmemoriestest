@@ -58,6 +58,23 @@ export async function GET(request: Request) {
 
   const pending = await pendingPayout(admin, partner.id);
 
+  // Переходи за посиланням. Рахує Postgres — таблиця наповнюється трафіком
+  // магазину і росте швидше за всі шість із гочі 14, тож вибірка рядків тут
+  // уперлася б у тисячу мовчки. Збій підрахунку не має валити кабінет:
+  // нарахування важливіші за статистику, і показати нуль переходів чесніше,
+  // ніж не показати нічого.
+  let visits = 0;
+  try {
+    const { data: visitRows, error: visitErr } = await admin.rpc('referral_visit_stats');
+    if (visitErr) throw new Error(visitErr.message);
+    const row = (visitRows || []).find(
+      (r: any) => String(r.referral_code || '').toUpperCase() === String(partner.referral_code || '').toUpperCase(),
+    );
+    visits = Number(row?.visits || 0);
+  } catch (e) {
+    console.error('[partner] visit stats failed:', e);
+  }
+
   // Commission history: which orders earned what, and whether it's paid out.
   // Звʼязок названо повністю (agency_commissions_order_id_fkey), хоча ключ на
   // orders поки один: щойно на цю таблицю додадуть другий, PostgREST відмовить
@@ -93,6 +110,11 @@ export async function GET(request: Request) {
       payout_account: partner.payout_account || '',
       payout_requested_at: partner.payout_requested_at,
       status: partner.status,
+      // Скільки разів відкривали посилання, і скільки з тих переходів стали
+      // оплаченим замовленням. Друге число — це рядки журналу нарахувань, тож
+      // конверсія рахується з того самого, що й гроші.
+      visits,
+      paid_orders: commissions.filter(c => c.payout_status !== 'cancelled').length,
     },
     commissions,
     min_payout: MIN_PAYOUT_UAH,

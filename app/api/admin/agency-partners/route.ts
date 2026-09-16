@@ -37,13 +37,25 @@ export async function GET() {
   if (statErr) console.error('[agency-partners] commission stats failed:', statErr.message);
   const statByAgency = new Map<string, any>((statRows || []).map((r: any) => [r.agency_id, r]));
 
+  // Переходи за посиланням, теж порахованi в Postgres і тим самим індексом.
+  // Дають те, чого зі списку не було видно: партнер без замовлень міг або не
+  // ділитися посиланням узагалі, або ділитися, але без результату.
+  const { data: visitRows, error: visitErr } = await admin.rpc('referral_visit_stats');
+  if (visitErr) console.error('[agency-partners] visit stats failed:', visitErr.message);
+  const visitsByCode = new Map<string, any>(
+    (visitRows || []).map((r: any) => [String(r.referral_code || '').toUpperCase(), r]),
+  );
+
   const enriched = (partners || []).map(p => {
     const stat = statByAgency.get(p.id);
+    const visit = visitsByCode.get(String(p.referral_code || '').toUpperCase());
     return {
       ...p,
       pending_payout: Number(stat?.pending_sum || 0),
       orders_count: Number(stat?.orders_count || 0),
       orders_revenue: Math.round(Number(stat?.revenue || 0)),
+      visits: Number(visit?.visits || 0),
+      last_visit_at: visit?.last_visit_at || null,
     };
   });
 
