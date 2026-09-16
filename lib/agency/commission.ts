@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { accrueOrderCommission } from '@/lib/sales/commission';
 import { likeEscape } from '@/lib/supabase/like-escape';
-import { bindClientToPartner, findBinding, isSelfReferral } from '@/lib/agency/binding';
+import { findBinding, isSelfReferral, normalizeBindingEmail } from '@/lib/agency/binding';
 
 /**
  * The PREMIUM commission bucket — earns travelbook_rate (default 5%); every
@@ -18,7 +18,13 @@ import { bindClientToPartner, findBinding, isSelfReferral } from '@/lib/agency/b
  * (personalized-glossy-magazine, фотожурнал…).
  */
 function isPremiumRateItem(item: any): boolean {
-  const hay = `${String(item?.slug || '')} ${String(item?.product_name || item?.name || '')}`.toLowerCase();
+  // `product_slug` тут не про запас: потік «з дизайнером» пише саме його і
+  // `slug` не ставить узагалі (63 позиції в базі). Сьогодні бакет для тих
+  // позицій вгадується назвою — «Travel Book», «Глянцевий журнал» — і тому
+  // працює, але тримати ставку на випадковому збігу назви означає та сама
+  // пастка, що вже спіймала itemTotal: перейменують товар, і тревелбук тихо
+  // поїде за ставкою «решти».
+  const hay = `${String(item?.slug || '')} ${String(item?.product_slug || '')} ${String(item?.product_name || item?.name || '')}`.toLowerCase();
   return hay.includes('travelbook') || hay.includes('travel-book') || hay.includes('travel book')
     || hay.includes('magazine') || hay.includes('zhurnal') || hay.includes('журнал');
 }
@@ -64,6 +70,60 @@ export function itemTotal(item: any): number {
 }
 
 /**
+ * Наскільки сума позицій може бути меншою за orders.subtotal і це ще нормально.
+ *
+ * Один відсоток. Число не з голови: на 815 оплачених замовленнях у базі сума
+ * позицій не була меншою за subtotal ЖОДНОГО разу — 763 збіглися до копійки, а
+ * 52, що розійшлися, усі дзеркалені з KeyCRM і всі в інший бік (позиції
+ * БІЛЬШІ за subtotal на 3–8%, бо знижка в CRM стоїть на замовленні, а не на
+ * позиціях). Тобто поріг сьогодні не відсіює нічого і спрацює лише тоді, коли
+ * зʼявиться справді нова форма позиції — рівно тоді, коли він і потрібен.
+ */
+export const ITEMS_SUBTOTAL_TOLERANCE = 0.01;
+
+export type ItemsSubtotalVerdict = 'ok' | 'legit_zero' | 'suspect';
+
+/**
+ * Чи можна вірити сумі, яку дали позиції замовлення.
+ *
+ * ЗАДАЧА, ЯКУ ЦЕ РОЗВʼЯЗУЄ. Комісія нуль буває з двох геть різних причин, і
+ * поводитися з ними треба протилежно. Законний нуль — це партнер зі ставками
+ * 0% або замовлення, за яке справді нічого не платили: клієнт при цьому
+ * справжній, і привʼязати його треба, щоб наступні замовлення приносили
+ * комісію. Нуль через ваду — це позиції, ціну яких читач не впізнав: там не
+ * можна ні нараховувати, ні привʼязувати, бо привʼязка довічна, а нарахування
+ * захищене UNIQUE(order_id) і другого шансу не буде.
+ *
+ * РОЗРІЗНЯЄ ЇХ НЕ ФОРМА ПОЗИЦІЇ, А ГРОШІ ЗАМОВЛЕННЯ. Перелічувати відомі назви
+ * полів — це та сама латка, яка вже підвела: наступна назва знову буде
+ * невідомою. Натомість поруч лежить незалежне число, `orders.subtotal`, яке
+ * пише той самий потік, що й позиції, але окремо від них. Якщо замовлення
+ * каже «шістсот сімдесят пʼять», а позиції дають нуль, то зламані позиції, і
+ * це видно без жодного знання про їхню форму.
+ */
+export function classifyItemsSubtotal(
+  itemsSubtotal: number,
+  orderSubtotal: number,
+): ItemsSubtotalVerdict {
+  const items = Number.isFinite(itemsSubtotal) && itemsSubtotal > 0 ? itemsSubtotal : 0;
+  const order = Number.isFinite(orderSubtotal) && orderSubtotal > 0 ? orderSubtotal : 0;
+
+  // Порівнювати нема з чим: у замовленні немає власної суми. Тоді єдине, що
+  // можна сказати, — чи дали щось самі позиції.
+  if (order <= 0) return items > 0 ? 'ok' : 'legit_zero';
+
+  // Замовлення з грошима, позиції без грошей. Форма позиції невідома.
+  if (items <= 0) return 'suspect';
+
+  // Частковий недобір: частину позицій прочитали, частину ні. Мовчазна
+  // недоплата партнеру гірша за гучну відмову, бо відмову видно в журналі і
+  // прогін можна повторити, а занижений рядок уже не переписати.
+  if (items < order * (1 - ITEMS_SUBTOTAL_TOLERANCE)) return 'suspect';
+
+  return 'ok';
+}
+
+/**
  * Перерахувати total_earned і total_paid_out партнера з журналу нарахувань.
  *
  * Раніше обидві колонки оновлювалися читанням і записом назад. Два вебхуки,
@@ -104,10 +164,20 @@ async function syncPartnerTotals(admin: SupabaseClient, agencyId: string): Promi
  * ПОБІЧНА ДІЯ, заради якої модель і працює: на першому оплаченому замовленні з
  * партнерською атрибуцією пошта покупця закріплюється за партнером назавжди.
  * Рядок нарахування позначається `kind='new_client'`, усі наступні — 'repeat'.
+ * Привʼязка і нарахування пишуться ОДНІЄЮ транзакцією в базі
+ * (`record_agency_commission`), тож напівстану «клієнт закріплений, грошей
+ * немає» не буває: або зʼявилося і те, і те, або не зʼявилося нічого.
  *
- * Returns the commission amount granted, or 0 if no partner applied — a
- * self-referral (buyer email == partner email) counts as "no commission" and
- * creates no binding either.
+ * ЧОТИРИ ПРИЧИНИ НЕ НАРАХУВАТИ, і вони поводяться по-різному:
+ *   — партнер не знайшовся або неактивний: ні комісії, ні привʼязки;
+ *   — самореферал (пошта покупця збіглася з поштою партнера): те саме, свідомо;
+ *   — сума позицій не сходиться з orders.subtotal: ні комісії, ні привʼязки,
+ *     плюс гучний рядок у журналі помилок — форму позиції не впізнали;
+ *   — комісія законно нульова (ставки 0% чи безкоштовне замовлення): привʼязка
+ *     Є, рядка нарахування немає. Клієнт справжній, і наступне його замовлення
+ *     має принести партнеру відсоток.
+ *
+ * Returns the commission amount granted, or 0 in every one of those cases.
  */
 export async function processAgencyCommission(
   admin: SupabaseClient,
@@ -118,7 +188,7 @@ export async function processAgencyCommission(
   // Замовлення потрібне і для пошти покупця, і для записаної атрибуції.
   const { data: order } = await admin
     .from('orders')
-    .select('customer_email, referral_partner_id')
+    .select('customer_email, referral_partner_id, subtotal')
     .eq('id', orderId)
     .maybeSingle();
   const buyerEmail = String((order as any)?.customer_email || '').trim().toLowerCase();
@@ -195,6 +265,31 @@ export async function processAgencyCommission(
     else otherSubtotal += total;
   }
 
+  const itemsSubtotal = travelbookSubtotal + otherSubtotal;
+
+  /**
+   * Позиції прочитані — але чи правильно? Перевірка стоїть САМЕ ТУТ, до
+   * першого запису: нижче йдуть три незворотні дії поспіль — нарахування
+   * менеджеру під UNIQUE(kind, source_id), привʼязка клієнта назавжди і
+   * нарахування партнеру під UNIQUE(order_id). Кожна з них після запису вже не
+   * переписується, тож єдиний момент, коли з хибною сумою ще можна нічого не
+   * зробити, — цей.
+   *
+   * Відмова гучна і зворотна: у журналі лишається рядок із номером замовлення,
+   * а коли читач навчиться новій формі позиції, той самий прогін («Позначити
+   * оплаченим», звірка платежу, повтор вебхука) пройде вже нормально й
+   * нарахує все, що належить. Мовчазна недоплата такого другого шансу не дає.
+   */
+  const orderSubtotal = Number((order as any)?.subtotal);
+  const verdict = classifyItemsSubtotal(itemsSubtotal, orderSubtotal);
+  if (verdict === 'suspect') {
+    console.error(
+      `[agency-commission] items subtotal looks broken, refusing to accrue OR bind: ` +
+      `order ${orderId}, partner ${agency.id}, items=${itemsSubtotal}, order.subtotal=${orderSubtotal}`,
+    );
+    return 0;
+  }
+
   // The sales manager who brought this partner earns their percentage of the
   // same order. Deliberately BEFORE the agency idempotency check and in its
   // own try: it has its own UNIQUE guard, so a re-run can still create a
@@ -208,7 +303,7 @@ export async function processAgencyCommission(
       // коду немає взагалі, і пошук за кодом лишив би менеджера без відсотка
       // саме на тих замовленнях, які приносить довічна привʼязка.
       partnerId: agency.id,
-      orderTotal: travelbookSubtotal + otherSubtotal,
+      orderTotal: itemsSubtotal,
     });
   } catch (e) {
     console.error('[sales-commission] order accrual failed (agency commission unaffected):', e);
@@ -222,49 +317,53 @@ export async function processAgencyCommission(
     .maybeSingle();
   if (existing) return 0;
 
-  /**
-   * Закріпити клієнта за партнером. САМЕ ТУТ, на оплаті, а не на створенні
-   * замовлення: привʼязка довічна, і купувати її за невиконане замовлення, яке
-   * так і лишиться неоплаченим, не можна.
-   *
-   * Повертає true лише тоді, коли привʼязку створив цей виклик — звідси й
-   * береться `kind`. Пошта вже за кимось закріплена означає, що це повторне
-   * замовлення привʼязаного клієнта, навіть якщо він щойно перейшов за чужим
-   * посиланням: перша привʼязка не перезаписується.
-   */
-  const boundNow = await bindClientToPartner(admin, {
-    email: buyerEmail,
-    partnerId: agency.id,
-    orderId,
-  });
-
   const tbRate = Number(agency.travelbook_rate) || 0;
   const otherRate = Number(agency.other_rate) || 0;
   const travelbookCommission = Math.round(travelbookSubtotal * tbRate) / 100;
   const otherCommission = Math.round(otherSubtotal * otherRate) / 100;
   const totalCommission = travelbookCommission + otherCommission;
-  if (totalCommission <= 0) return 0;
 
-  // Insert the commission ledger row. UNIQUE(order_id) guards double-credit;
-  // if a concurrent webhook retry beat us, the insert fails and we stop.
-  const { error: insErr } = await admin.from('agency_commissions').insert({
-    agency_id: agency.id,
-    order_id: orderId,
-    travelbook_subtotal: travelbookSubtotal,
-    other_subtotal: otherSubtotal,
-    travelbook_commission: travelbookCommission,
-    other_commission: otherCommission,
-    total_commission: totalCommission,
-    payout_status: 'pending',
-    // «Новий клієнт» — це замовлення, яке щойно створило привʼязку. Усе інше
-    // приходить від клієнта, якого партнер привів раніше, і в кабінеті стоїть
-    // окремим рядком: привести людину і отримати від неї повторне замовлення —
-    // різна робота.
-    kind: boundNow ? 'new_client' : 'repeat',
+  /**
+   * Привʼязка і нарахування — одна дія, і робить її база.
+   *
+   * ЧОМУ НЕ ДВА ВИКЛИКИ ПОСПІЛЬ, ЯК БУЛО. Раніше клієнт закріплювався за
+   * партнером окремим запитом, а нарахування йшло наступним, і між ними ще
+   * стояла умова «сума більша за нуль». Досить було сумі вийти нульовою через
+   * незнайому форму позиції — і лишався напівстан, який нічим не лікується:
+   * клієнт закріплений НАЗАВЖДИ, а грошей немає ні партнеру, ні його
+   * менеджеру, ні рядком у журналі. Те саме давала будь-яка помилка другого
+   * запиту чи смерть процесу між ними.
+   *
+   * Тепер обидві вставки лежать у тілі однієї функції, тобто в одній
+   * транзакції: не лягло нарахування — не лишилося й привʼязки. Функція ж
+   * рахує `kind` і перераховує зведення партнера, бо тільки вона знає, чи
+   * привʼязку створив саме цей виклик.
+   *
+   * НУЛЬОВУ КОМІСІЮ ПЕРЕДАЄМО СВІДОМО. Сюди ми доходимо лише після
+   * classifyItemsSubtotal, тобто нуль тут може бути тільки законним — ставки
+   * партнера нульові або замовлення справді безкоштовне. Такий клієнт
+   * справжній, тож привʼязка створюється, а рядка нарахування немає, і наступне
+   * його замовлення вже принесе партнеру відсоток.
+   */
+  const { data: recorded, error: rpcErr } = await admin.rpc('record_agency_commission', {
+    p_agency_id: agency.id,
+    p_order_id: orderId,
+    p_email: normalizeBindingEmail(buyerEmail),
+    p_travelbook_subtotal: travelbookSubtotal,
+    p_other_subtotal: otherSubtotal,
+    p_travelbook_commission: travelbookCommission,
+    p_other_commission: otherCommission,
+    p_total_commission: totalCommission,
   });
-  if (insErr) return 0; // likely the UNIQUE(order_id) race guard — already credited
+  if (rpcErr) {
+    console.error('[agency-commission] record failed (nothing written):', rpcErr.message);
+    return 0;
+  }
 
-  await syncPartnerTotals(admin, agency.id);
+  const row = Array.isArray(recorded) ? recorded[0] : recorded;
+  // Нічого не вставили: або комісія законно нульова, або UNIQUE(order_id)
+  // спіймав паралельний повтор. В обох випадках грошей цим викликом не додано.
+  if (!row?.commission_inserted) return 0;
 
   return totalCommission;
 }
