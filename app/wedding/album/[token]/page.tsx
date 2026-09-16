@@ -69,9 +69,15 @@ export default async function WeddingAlbumPage({ params }: Props) {
     <main className={`${display.variable} min-h-screen bg-[#faf7f3] px-4 py-12`}>
       <div className="mx-auto w-full max-w-xl">
         <header className="text-center">
-          <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl text-[#6E1F2E] sm:text-5xl">
+          {/* div із роллю заголовка, а не h1: нешарові правила globals.css
+              перефарбували б імена в синій і поставили б свій шрифт. */}
+          <div
+            role="heading"
+            aria-level={1}
+            className="font-[family-name:var(--font-wedding-display)] text-4xl font-medium text-[#6E1F2E] sm:text-5xl"
+          >
             {event.couple_names}
-          </h1>
+          </div>
           <p className="mt-2 text-[#7a6d61]">{formatWeddingDate(event.event_date)}</p>
         </header>
 

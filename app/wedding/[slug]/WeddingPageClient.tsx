@@ -42,11 +42,29 @@ export default function WeddingPageClient({ event }: Props) {
     <main className="min-h-screen bg-[#faf7f3] pb-16">
       <Hero event={event} />
 
-      <div className="relative z-10 -mt-8 space-y-12">
+      {/* Раніше тут стояв від'ємний відступ, щоб блок завантаження трохи
+          заходив на фото. Відколи першим у ньому йде заголовок, він лягав
+          просто на знімок — тому відступ звичайний. */}
+      <div className="relative z-10 mt-10 space-y-12">
         <section className="mx-auto w-full max-w-2xl px-4">
-          <h2 className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
+          {/* РОЛЬ ЗАГОЛОВКА ЗАМІСТЬ ТЕГА h1/h2 — І ЦЕ НЕ ПРИМХА.
+          У app/globals.css правила для h1 і h2 стоять ПОЗА шарами CSS і
+          задають свій колір (--primary, синій), свій шрифт, вагу 900 і
+          нижній відступ. Утиліти Tailwind живуть у @layer utilities, а
+          нешарова CSS перемагає шарову незалежно від специфічності — тож
+          text-white і text-[#6E1F2E] тут програвали, і напис виходив синім
+          важким шрифтом просто поверх фото.
+          Тег div із роллю heading для читача з екрана рівноцінний
+          заголовку, але глобальні правила його не чіпають. Виправляти
+          globals.css заради однієї сторінки не можна: ті правила тримають
+          вигляд усього магазину. */}
+          <div
+            role="heading"
+            aria-level={2}
+            className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+          >
             Додати фото та відео
-          </h2>
+          </div>
           <WeddingUploader slug={event.slug} mode="media" onUploaded={addOwn} />
         </section>
 
@@ -93,9 +111,13 @@ function WeddingUploaderWish({
 }) {
   return (
     <div className="mx-auto w-full max-w-2xl">
-      <h2 className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
+      <div
+        role="heading"
+        aria-level={2}
+        className="mb-2 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+      >
         Відеопобажання
-      </h2>
+      </div>
       <p className="mb-5 text-center text-sm leading-relaxed text-[#8A7A6B]">
         Скажіть кілька теплих слів на камеру, і вони лишаться в парі на згадку про цей день.
       </p>
@@ -143,9 +165,13 @@ function Hero({ event }: { event: WeddingEvent }) {
       />
 
       <div className="absolute inset-x-0 bottom-0 px-6 pb-10 text-center">
-        <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-6xl">
+        <div
+          role="heading"
+          aria-level={1}
+          className="font-[family-name:var(--font-wedding-display)] text-4xl font-medium leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-6xl"
+        >
           {event.couple_names}
-        </h1>
+        </div>
         <p className="mt-2 text-base text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-lg">
           {formatWeddingDate(event.event_date)}
         </p>

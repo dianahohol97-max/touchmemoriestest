@@ -35,9 +35,16 @@ export default function WeddingGallery({
 }: Props) {
   return (
     <section className="mx-auto w-full max-w-5xl px-4 pb-4">
-      <h2 className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
+      {/* div із роллю заголовка, а не h2: нешарові правила globals.css
+          перефарбували б його в синій і змінили шрифт. Пояснення повністю —
+          у WeddingPageClient. */}
+      <div
+        role="heading"
+        aria-level={2}
+        className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl font-medium text-[#6E1F2E]"
+      >
         Фото цього дня
-      </h2>
+      </div>
 
       {loading ? (
         <p className="py-10 text-center text-sm text-[#9a8b7c]">Завантажуємо галерею…</p>
