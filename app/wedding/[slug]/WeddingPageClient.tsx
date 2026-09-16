@@ -108,18 +108,22 @@ function WeddingUploaderWish({
  * Шапка з фото пари.
  *
  * ЧИТАБЕЛЬНІСТЬ НАПИСУ НА БУДЬ-ЯКОМУ ФОТО. Фото пари ми наперед не бачимо: воно
- * може бути і світлим кадром проти сонця, і темним вечірнім. Імена тепер
- * бордові, а кольоровий текст поверх строкатого знімка не читається — тож під
- * написом лежить світла картка. Вона й дає контраст, і не залежить від того,
- * яке саме фото пара пришле: на будь-якому тлі картка лишається світлою, а
- * бордо на ній — темним.
+ * може бути і світлим кадром проти сонця, і темним вечірнім. Тому під текстом
+ * стоїть не одна накладка, а дві. Перша — рівне затемнення всього кадру, щоб
+ * пересвічене небо вгорі не зливалося з білими літерами. Друга — градієнт від
+ * низу, який гарантує темну основу саме під написом. Разом вони дають достатній
+ * контраст в обидва боки, і жодне фото не доведеться підбирати під дизайн.
  *
- * Сам кадр під карткою трохи притемнений градієнтом, щоб її край не губився на
- * пересвіченому небі.
+ * ЧОМУ ІМЕНА БІЛІ, А НЕ БОРДОВІ, як решта акцентів на сторінці. Бордо було
+ * серед кольорів, які назвала Діана, і його тут пробували: щоб кольоровий текст
+ * читався поверх строкатого знімка, під ним довелося покласти світлу картку.
+ * Картка Діані не сподобалася, і шапку повернули до тексту просто на фото — а
+ * там надійно працює лише білий із тінню. Білий теж був у списку її кольорів,
+ * тож палітра від цього не порушена.
  */
 function Hero({ event }: { event: WeddingEvent }) {
   return (
-    <header className="relative min-h-[72vh] w-full overflow-hidden pb-16">
+    <header className="relative h-[68vh] min-h-[420px] w-full overflow-hidden">
       <Image
         src={heroUrl(event.slug)}
         alt={`${event.couple_names} — фото пари`}
@@ -130,25 +134,26 @@ function Hero({ event }: { event: WeddingEvent }) {
         priority
       />
 
+      {/* Рівне затемнення всього кадру — страховка для світлих фото. */}
+      <div className="absolute inset-0 bg-black/25" aria-hidden />
+      {/* Градієнт від низу — основа під самим написом. */}
       <div
-        className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-black/15"
+        className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10"
         aria-hidden
       />
 
-      <div className="relative flex min-h-[72vh] items-end justify-center px-4 pb-6 pt-24">
-        <div className="w-full max-w-lg rounded-3xl bg-[#faf7f3]/92 px-6 py-7 text-center shadow-[0_10px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:px-10">
-          <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl leading-tight text-[#6E1F2E] sm:text-6xl">
-            {event.couple_names}
-          </h1>
-          <p className="mt-1.5 text-base text-[#8A7A6B] sm:text-lg">
-            {formatWeddingDate(event.event_date)}
-          </p>
-          <p className="mt-4 text-sm leading-relaxed text-[#4A4038] sm:text-base">
-            Поділіться вашим поглядом на наше свято! Скидайте сюди свої фото та відео з нашого
-            святкування. Будемо раді, якщо ви також залишите на згадку міні-відеолистівку з теплими
-            словами або побажанням.
-          </p>
-        </div>
+      <div className="absolute inset-x-0 bottom-0 px-6 pb-10 text-center">
+        <h1 className="font-[family-name:var(--font-wedding-display)] text-4xl leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)] sm:text-6xl">
+          {event.couple_names}
+        </h1>
+        <p className="mt-2 text-base text-white/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-lg">
+          {formatWeddingDate(event.event_date)}
+        </p>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-base">
+          Поділіться вашим поглядом на наше свято! Скидайте сюди свої фото та відео з нашого
+          святкування. Будемо раді, якщо ви також залишите на згадку міні-відеолистівку з теплими
+          словами або побажанням.
+        </p>
       </div>
     </header>
   );
