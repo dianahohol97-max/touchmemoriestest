@@ -180,58 +180,49 @@ export async function GET(request: Request) {
         let catalogue: any = null;
         try {
             const supabase = getAdminClient();
-            const { count: pendingLinks } = await supabase
-                .from('keycrm_product_map')
-                .select('id', { count: 'exact', head: true })
-                .eq('confirmed', false)
-                .eq('match_type', 'manual')
-                .not('keycrm_offer_id', 'is', null);
+            // Порожня черга — теж результат, і його треба записати.
+            //
+            // Тут стояла попередня перевірка на кількість рядків у черзі, і
+            // прохід узагалі не викликався, коли черги немає. Через це
+            // «синхронізація жива, просто робити нічого» виглядало точно так
+            // само, як «синхронізація стоїть із серпня»: у журналі однакова
+            // тиша. Сама функція рахує чергу тим самим запитом і повертається
+            // одразу, якщо вона порожня, — але тепер лишає по собі запис. Тож
+            // перевірка тут не потрібна, а шкодила.
+            const links = await resolvePendingProductLinks();
+            catalogue = { links };
 
-            // Name-seeded links («пошук: Альбом для фото») carry no number.
-            const { count: pendingNamed } = await supabase
-                .from('keycrm_product_map')
-                .select('id', { count: 'exact', head: true })
-                .eq('confirmed', false)
-                .eq('match_type', 'manual')
-                .is('keycrm_offer_id', null)
-                .ilike('note', 'пошук:%');
+            // ЗАПИС АРТИКУЛІВ ЖИВЕ ЗА ОКРЕМИМ ВИМИКАЧЕМ.
+            //
+            // Звʼязування каталогу не працювало з 11.08.2026, тож перший же
+            // успішний прохід звʼязав сотні рядків одразу — і ці два виклики
+            // тоді пішли б писати артикули в ЖИВИЙ каталог KeyCRM і
+            // закупівельні ціни на сайт, теж сотнями, без жодного показу
+            // перед тим. Діана, 15.09.2026: спершу сухий прогін, запис тільки
+            // з її слова.
+            //
+            // Вимикач у settings, а не в env: його вмикають один раз і
+            // руками, і для цього не має бути потрібен деплой. Немає рядка —
+            // запис вимкнено; це свідомо безпечна відмова.
+            const { data: skuGate } = await supabase
+                .from('settings').select('value').eq('key', 'keycrm_sku_write_enabled').maybeSingle();
+            const skuWriteEnabled = skuGate?.value === true || String((skuGate?.value as any) ?? '') === 'true';
 
-            if ((pendingLinks || 0) + (pendingNamed || 0) > 0) {
-                const links = await resolvePendingProductLinks();
-                catalogue = { links };
-
-                // ЗАПИС АРТИКУЛІВ ЖИВЕ ЗА ОКРЕМИМ ВИМИКАЧЕМ.
-                //
-                // Звʼязування каталогу не працювало з 11.08.2026, тож перший
-                // же успішний прохід звʼяже сотні рядків одразу — і ці два
-                // виклики тоді підуть писати артикули в ЖИВИЙ каталог KeyCRM
-                // і закупівельні ціни на сайт, теж сотнями, без жодного
-                // показу перед тим. Діана, 15.09.2026: спершу сухий прогін,
-                // запис тільки з її слова.
-                //
-                // Вимикач у settings, а не в env: його вмикають один раз і
-                // руками, і для цього не має бути потрібен деплой. Немає
-                // рядка — запис вимкнено; це свідомо безпечна відмова.
-                const { data: skuGate } = await supabase
-                    .from('settings').select('value').eq('key', 'keycrm_sku_write_enabled').maybeSingle();
-                const skuWriteEnabled = skuGate?.value === true || String((skuGate?.value as any) ?? '') === 'true';
-
-                if (links.resolved > 0 && !dryRun && skuWriteEnabled) {
-                    const skus = await syncSkusToKeycrm({ dryRun: false });
-                    const costs = await syncCostPrices({ dryRun: false });
-                    catalogue = {
-                        links,
-                        skus: { filled: skus.filled.length, adopted: skus.adopted.length, problems: skus.problems },
-                        costs: { updated: costs.updated_products.length, per_size: costs.updated_variants.length, conflicts: costs.conflicts.length },
-                    };
-                } else if (links.resolved > 0 && !dryRun) {
-                    catalogue = {
-                        links,
-                        skus_held: 'Запис артикулів у KeyCRM вимкнено (settings.keycrm_sku_write_enabled).',
-                    };
-                }
-                console.log('[keycrm-sync] catalogue', JSON.stringify(catalogue));
+            if (links.resolved > 0 && !dryRun && skuWriteEnabled) {
+                const skus = await syncSkusToKeycrm({ dryRun: false });
+                const costs = await syncCostPrices({ dryRun: false });
+                catalogue = {
+                    links,
+                    skus: { filled: skus.filled.length, adopted: skus.adopted.length, problems: skus.problems },
+                    costs: { updated: costs.updated_products.length, per_size: costs.updated_variants.length, conflicts: costs.conflicts.length },
+                };
+            } else if (links.resolved > 0 && !dryRun) {
+                catalogue = {
+                    links,
+                    skus_held: 'Запис артикулів у KeyCRM вимкнено (settings.keycrm_sku_write_enabled).',
+                };
             }
+            console.log('[keycrm-sync] catalogue', JSON.stringify(catalogue));
         } catch (e: any) {
             console.error('[keycrm-sync] catalogue upkeep failed:', e);
             stats.errors++;

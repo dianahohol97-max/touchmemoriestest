@@ -1169,6 +1169,41 @@ export async function linkPastedId(params: {
  * is reachable, resolves it on the next sync pass. Cheap when idle: the caller
  * checks for pending rows before fetching the catalogue.
  */
+/**
+ * Записати, чим скінчився прохід звʼязування каталогу.
+ *
+ * Окремою функцією, бо прохід має ТРИ виходи, і мовчазний серед них
+ * найнебезпечніший: черга порожня, прохід відпрацював, прохід упав на записі.
+ * Доти слід лишав лише останній, та й то не завжди — і «все добре» виглядало
+ * так само, як «нічого не запускалося».
+ *
+ * Пишеться навіть тоді, коли робити не було чого: саме цей випадок і
+ * відрізняє живу синхронізацію від зупиненої.
+ */
+export async function recordCatalogueLinkPass(outcome: {
+    resolved: number;
+    warnings: string[];
+    writeFailed?: string | null;
+    queueEmpty?: boolean;
+}): Promise<void> {
+    const at = new Date().toISOString();
+    const { error } = await getAdminClient().from('settings').upsert({
+        key: 'keycrm_link_warnings',
+        value: {
+            at,
+            resolved: outcome.resolved,
+            queue_empty: outcome.queueEmpty === true,
+            write_failed: outcome.writeFailed ?? null,
+            warnings: outcome.warnings.slice(0, 50),
+        },
+        updated_at: at,
+    });
+
+    // Не мовчати й тут: якщо не пишеться навіть журнал, наступний прохід знову
+    // виглядатиме як незапущений, і вже без пояснення.
+    if (error) console.error('[keycrm-catalogue] journal write failed:', error.message);
+}
+
 export async function resolvePendingProductLinks(): Promise<{ resolved: number; warnings: string[] }> {
     const supabase = getAdminClient();
 
@@ -1195,7 +1230,10 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         .ilike('note', 'пошук:%');
 
     const pending = [...(numbered || []), ...(named || [])];
-    if (!pending.length) return { resolved: 0, warnings: [] };
+    if (!pending.length) {
+        await recordCatalogueLinkPass({ resolved: 0, warnings: [], queueEmpty: true });
+        return { resolved: 0, warnings: [] };
+    }
 
     const offers = await fetchKeycrmOffers();
     const siteProducts = await fetchSiteProducts();
@@ -1328,39 +1366,13 @@ export async function resolvePendingProductLinks(): Promise<{ resolved: number; 
         }
     }
 
-    // The warnings are the ONLY record of why a pasted number resolved to
-    // nothing, and runtime logs rot in minutes — persist them where a human
-    // (or the assistant) can read them after the fact.
-    //
-    // ПИШЕТЬСЯ ЗАВЖДИ, А НЕ ЛИШЕ КОЛИ Є ПОПЕРЕДЖЕННЯ.
-    //
-    // Раніше запис стояв під `if (allWarnings.length)`, і через це ідеально
-    // чистий прохід не лишав по собі жодного сліду — рівно такого самого, як
-    // прохід, що не запускався. 15.09.2026 це вже плуталося: прогін звʼязав
-    // усі 22 рядки без єдиного попередження, і єдина ознака завершення
-    // лишилася датою семигодинної давності. Відрізнити «все добре» від
-    // «нічого не сталося» по ній було неможливо, а це той самий клас, що й
-    // «поломка виглядала як успішний прогін».
-    //
-    // Тепер рядок оновлюється щоразу, коли прохід дійшов сюди, і несе
-    // достатньо, щоб зрозуміти, ЧИМ саме він скінчився: час, скільки пар
-    // звʼязано, чи впав запис, і самі попередження — порожній масив теж
-    // відповідь.
-    const finishedAt = new Date().toISOString();
-    const { error: journalError } = await supabase.from('settings').upsert({
-        key: 'keycrm_link_warnings',
-        value: {
-            at: finishedAt,
-            resolved: writeError ? 0 : allRows.length,
-            write_failed: writeError ?? null,
-            warnings: allWarnings.slice(0, 50),
-        },
-        updated_at: finishedAt,
+    // Слід лишається завжди — і коли попереджень не було. Пояснення, чому це
+    // важливо, живе в recordCatalogueLinkPass.
+    await recordCatalogueLinkPass({
+        resolved: writeError ? 0 : allRows.length,
+        warnings: allWarnings,
+        writeFailed: writeError,
     });
-
-    // Не мовчати й тут: якщо не пишеться навіть журнал, наступний прохід знову
-    // виглядатиме як незапущений, і вже без пояснення.
-    if (journalError) console.error('[keycrm-catalogue] journal write failed:', journalError.message);
 
     // Нуль звʼязаних при невдалому записі — свідомо. Крон за цим числом
     // вирішує, чи запускати наступні кроки; «звʼязали, але не зберегли» для
