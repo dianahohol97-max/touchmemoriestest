@@ -40,6 +40,9 @@ export async function POST(request: Request) {
             ? order.items[0].product_id : null;
 
         await supabase!.from('reviews').insert({
+            // Звʼязок із замовленням: без нього крон прохань не може
+            // відрізнити того, хто вже написав, від того, хто мовчить.
+            order_id: orderId,
             product_id: productId,
             rating: Number(rating),
             caption: text.trim(),

@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
-import { render } from '@react-email/components';
-import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { getAdminClient } from '@/lib/supabase/admin';
-import ReviewRequestEmail from '@/emails/ReviewRequestEmail';
-import crypto from 'crypto';
+import { getBrevoApiKey } from '@/lib/email/brevo';
+import { sendReviewRequest } from '@/lib/email/review-request';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Прохання про відгук по ОДНОМУ замовленню.
+ *
+ * Це виконавець, а не планувальник: він шле тому, кого назвали. Хто саме
+ * заслуговує листа сьогодні, вирішує /api/cron/review-requests — до
+ * 16.09.2026 такого крона не існувало, і цей маршрут за весь час не надіслав
+ * жодного листа, бо його ніхто не кликав.
+ *
+ * Складання листа й журнал живуть у lib/email/review-request, спільні з кроном.
+ */
 export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -33,37 +41,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'BREVO_API_KEY not set' }, { status: 500 });
     }
 
-    const secret = process.env.REVIEW_TOKEN_SECRET || process.env.NEXTAUTH_SECRET || 'tm-review-secret';
-    const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    const payload = `${orderId}:${expiresAt}`;
-    const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
-    const token = Buffer.from(`${payload}:${sig}`).toString('base64url');
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://touchmemories.com.ua';
-    const reviewUrl = `${appUrl}/uk/review?token=${token}`;
-
-    const firstName = order.customer_name?.split(' ')[0] || '';
-    const productName = Array.isArray(order.items) && order.items[0]?.name
-        ? order.items[0].name : 'ваш товар';
-
-    const html = await render(ReviewRequestEmail({
-        firstName,
-        orderNumber: order.order_number || order.id.substring(0, 8).toUpperCase(),
-        productName, reviewUrl, appUrl,
-    }));
-
-    await sendBrevoEmail({
-        to: order.customer_email,
-        toName: order.customer_name || order.customer_email,
-        subject: `Як вам ${productName}? Поділіться враженнями ⭐`,
-        html,
-    });
-
-    await supabase.from('email_automation_log').insert({
-        email: order.customer_email,
-        automation_type: 'review_request',
-        meta: { order_id: orderId },
-    });
-
-    return NextResponse.json({ ok: true, reviewUrl });
+    const result = await sendReviewRequest(order as any);
+    if (!result.sent) {
+        return NextResponse.json({ error: result.error || 'Не вдалося надіслати' }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true, reviewUrl: result.reviewUrl });
 }
