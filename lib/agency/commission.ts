@@ -32,13 +32,35 @@ function isPremiumRateItem(item: any): boolean {
  * розкладається по позиціях, вона живе в різниці між orders.subtotal і
  * orders.total. Правило досі ніде не було записане, і його легко було
  * прийняти за недогляд — тому воно тут.
+ *
+ * ТРИ НАЗВИ ОДНІЄЇ ЦІНИ, і це не запас про всяк випадок.
+ *
+ * Позиції замовлення складають три різні місця, і вони домовилися не до кінця.
+ * Чекаут пише `unit_price` і `total_price`. Бриф журналу теж. А потік «з
+ * дизайнером» (app/[locale]/order/page.tsx) пише саме `price` — і жодної з двох
+ * перших назв не ставить.
+ *
+ * Поки читалися тільки перші дві, для потоку дизайнера ця функція повертала
+ * НУЛЬ: `total_price` немає, `unit_price` немає, отже `0 × 1`. Наслідок був би
+ * тихий і саме там, де його найважче помітити — партнер отримував би
+ * привʼязаного клієнта й нульову комісію, бо нарахування відсікається умовою
+ * «сума більша за нуль» нижче. Менеджеру партнера теж не діставалося б нічого:
+ * accrueOrderCommission рахує від цієї ж суми. Знайдено при підготовці
+ * тестового переходу TM-001326 в оплачено (Діана, 16.09.2026) — до того, як
+ * воно встигло коштувати комісії.
+ *
+ * Порядок саме такий: `total_price` — це вже сума по позиції, тож множити її на
+ * кількість не можна; решта — ціни за одиницю.
  */
-function itemTotal(item: any): number {
+export function itemTotal(item: any): number {
   const t = Number(item?.total_price);
   if (Number.isFinite(t)) return t;
-  const unit = Number(item?.unit_price) || 0;
   const qty = Number(item?.quantity) || 1;
-  return unit * qty;
+  const unit = Number(item?.unit_price);
+  if (Number.isFinite(unit)) return unit * qty;
+  const price = Number(item?.price);
+  if (Number.isFinite(price)) return price * qty;
+  return 0;
 }
 
 /**

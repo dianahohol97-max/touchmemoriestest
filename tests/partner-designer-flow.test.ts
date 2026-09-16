@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { selectCheckoutCodes } from '@/lib/referral/checkout-codes';
 import { parseStoredReferralCode, serializeReferralCode } from '@/lib/referral/pending-code';
 import { isSelfReferral, normalizeBindingEmail } from '@/lib/agency/binding';
+import { itemTotal } from '@/lib/agency/commission';
 
 /**
  * ПОТІК «З ДИЗАЙНЕРОМ» — той, на якому партнерська модель зламалася в проді.
@@ -83,6 +84,36 @@ const makeOrder = (over: Partial<Order> = {}): Order => ({
     total: 675,
     referralPartnerId: null,
     ...over,
+});
+
+describe('ціна позиції — три різні назви в трьох потоках', () => {
+    /**
+     * Знайдено при підготовці тестового переходу TM-001326 в оплачено.
+     * Потік «з дизайнером» пише `price`, а itemTotal читав тільки `total_price`
+     * і `unit_price` — тобто повертав нуль, і комісія відсікалася умовою
+     * «сума більша за нуль». Партнер отримав би привʼязаного клієнта й нульове
+     * нарахування, а менеджер партнера — нічого: він рахує від тієї ж суми.
+     */
+    it('потік дизайнера: price × quantity', () => {
+        // Рівно та позиція, що лежить у TM-001326.
+        expect(itemTotal({ price: 675, quantity: 1, product_slug: 'travelbook-20x30' })).toBe(675);
+        expect(itemTotal({ price: 675, quantity: 3 })).toBe(2025);
+    });
+
+    it('чекаут і бриф журналу: total_price має перевагу і НЕ множиться', () => {
+        // total_price — це вже сума по позиції.
+        expect(itemTotal({ total_price: 1200, unit_price: 400, quantity: 3 })).toBe(1200);
+    });
+
+    it('unit_price множиться на кількість', () => {
+        expect(itemTotal({ unit_price: 400, quantity: 3 })).toBe(1200);
+    });
+
+    it('нуль лишається нулем, а не падає', () => {
+        expect(itemTotal({})).toBe(0);
+        expect(itemTotal(null)).toBe(0);
+        expect(itemTotal({ price: 'дурниця' })).toBe(0);
+    });
 });
 
 describe('весь шлях: візит на /uk → localStorage → потік дизайнера', () => {
