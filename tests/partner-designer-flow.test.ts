@@ -174,6 +174,35 @@ describe('потік дизайнера: межі', () => {
     });
 });
 
+describe('другий браузерний потік: бриф на текст журналу', () => {
+    /**
+     * /order/magazine-text-brief вставляє замовлення так само з браузера і так
+     * само минає submit. Що він живий, а не залишковий, показали дані: 27
+     * замовлень, 17 оплачених, 12 за останні тридцять днів, останнє 15.09,
+     * 17 225 ₴ оплаченої виручки. Тому він підключений тим самим роутом і
+     * перевіряється тими самими правилами.
+     */
+    it('замовлення з брифу теж отримує знижку й атрибуцію', () => {
+        const w = makeWorld();
+        const order = makeOrder({ id: 'brief-1', subtotal: 1200, total: 1200 });
+        const r = attachOrder(w, order, 'ПОДОTABB');
+        expect(r.attributed).toBe(true);
+        expect(r.discount).toBe(60);
+        expect(order.total).toBe(1140);
+        expect(order.subtotal).toBe(1200);
+    });
+
+    it('повторне замовлення з брифу дає комісію без знижки', () => {
+        const w = makeWorld();
+        w.bindings.set('client@mail.com', 'p1');
+        const order = makeOrder({ id: 'brief-2', subtotal: 1200, total: 1200 });
+        const r = attachOrder(w, order);
+        expect(r.attributed).toBe(true);
+        expect(r.discount).toBe(0);
+        expect(order.total).toBe(1200);
+    });
+});
+
 describe('чекаут лишається справним — гіпотези, які прод спростував', () => {
     it('код із localStorage доходить до чекауту як партнерський', () => {
         // Гіпотеза «гард глушить код із localStorage» не підтвердилась:

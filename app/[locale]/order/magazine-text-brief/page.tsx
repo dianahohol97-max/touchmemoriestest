@@ -28,6 +28,7 @@ import { Upload, X, Check } from 'lucide-react';
 import { normalizeImageFile } from '@/lib/heic-to-jpeg';
 import { downscaleImageIfLarge } from '@/lib/downscale-image';
 import { getMagazinePrice, TYPESETTING_PRICE, URGENT_MULTIPLIER } from '@/lib/products';
+import { readAttributableReferralCode } from '@/lib/referral/pending-code';
 
 type Package = 'basic' | 'premium';
 
@@ -479,6 +480,28 @@ function MagazineTextBriefContent() {
 
       setOrderId(order.id);
       setOrderNumber(order.order_number);
+
+      /**
+       * Партнерська атрибуція і знижка (Діана, 16.09.2026).
+       *
+       * Той самий випадок, що й у потоці з дизайнером: ця сторінка вставляє
+       * замовлення прямо з браузера і не проходить через /api/orders/submit,
+       * де партнер визначається для звичайного чекауту. Шлях живий — 27
+       * замовлень, 17 оплачених, 12 за останні тридцять днів, — тож без цього
+       * виклику клієнт за партнерським посиланням не отримав би знижки, а
+       * партнер не отримав би комісії.
+       *
+       * ДО створення рахунку: сервер переписує суму замовлення, а рахунок
+       * нижче читає її з рядка. Кличемо завжди, навіть без коду — привʼязаного
+       * клієнта визначає пошта. Помилка не має блокувати оплату.
+       */
+      try {
+        await fetch('/api/referral/attach-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order.id, refCode: readAttributableReferralCode() || undefined }),
+        });
+      } catch { /* атрибуція не має ламати оплату */ }
 
       // Payment step. The brief used to end at «менеджер звʼяжеться з вами»
       // even though this page computes the exact price (base + urgency +
