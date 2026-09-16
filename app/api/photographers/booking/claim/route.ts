@@ -12,6 +12,22 @@ export const dynamic = 'force-dynamic';
  * and emails the photographer, who then verifies against their bank and
  * flips it to 'paid' in the cabinet. Slot id is the capability the client
  * received when booking.
+ *
+ * ХТО ЦЕ КЛИЧЕ — перевірено 16.09.2026, і відповідь варта рядка, щоб наступний
+ * не шукав удруге. У репозиторії викликів немає взагалі: ні сторінки, ні
+ * кнопки, ні посилання в жодному шаблоні листа — шукали і по `booking/claim`,
+ * і по `/claim` в lib/email, lib, app і components. У журналі Vercel маршрут
+ * теж не зустрічається.
+ *
+ * Але видаляти його не можна, і ось чому: стан, який він виставляє, ЧИТАЄТЬСЯ
+ * живим екраном. Кабінет фотографа (app/[locale]/photographer/cabinet/[token]/
+ * CabinetClient.tsx) окремо малює броні з `payment_status === 'claimed'`, і
+ * цей маршрут — єдине місце в коді, яке таке значення записує. Тобто споживач
+ * є, а виробника ніхто не викликає: або сторінку для клієнта так і не зробили,
+ * або її кличуть ззовні — посиланням, надісланим руками.
+ *
+ * Рядків зі станом 'claimed' у базі на 16.09.2026 нуль, тож підтвердити
+ * використання даними теж не виходить. Рішення Діани: лишити (16.09.2026).
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
