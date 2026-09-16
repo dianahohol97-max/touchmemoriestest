@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { Copy, Check, Loader2, Plus, Mail, X, RotateCcw, Users } from 'lucide-react';
 import { isRepeatApplication } from '@/lib/partners/application-gate';
 import { partnerRefLink } from '@/lib/partners/referral-link';
+import { usePermissions } from '../context/PermissionsContext';
+import { canApprovePartners } from '@/lib/auth/permissions';
 
 interface Partner {
   id: string;
@@ -57,6 +59,27 @@ const DECLINE_REASONS = [
 ];
 
 export default function AgencyPartnersPage() {
+  /**
+   * Сторінка й кнопки на ній живуть за РІЗНИМИ правами, і це не збіг.
+   *
+   * У меню «Тревел-партнери» стоїть у розділі `catalog`, тож відкрити її може
+   * кожен, у кого є каталог. Але API під кнопками суворіші: підтвердження
+   * заявки вимагає `marketing: full` (requirePartnerApprover — воно випускає в
+   * світ активний промокод зі знижкою), а виплата вимагає адміністратора, бо
+   * це видача грошей. До цього сторінка не питала про права нічого й малювала
+   * всі кнопки всім: людина з каталогом бачила «Підтвердити та видати код»,
+   * натискала й отримувала тост «Forbidden», який виглядає як поломка сайту, а
+   * не як межа її повноважень.
+   *
+   * Гасити кнопку — половина відповіді. Провайдер прав має запобіжник: якщо
+   * /api/admin/me/permissions не відповість за чотири секунди, він ставить
+   * isAdmin=true, щоб ніхто не лишився в порожній адмінці. Тому кожен обробник
+   * нижче окремо розбирає 403 і каже словами, кому ця дія доступна.
+   */
+  const { permissions, isAdmin } = usePermissions();
+  const canApprove = canApprovePartners(isAdmin, permissions);
+  const canPayout = isAdmin;
+
   const [partners, setPartners] = useState<Partner[]>([]);
   const [requests, setRequests] = useState<PendingRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,6 +164,9 @@ export default function AgencyPartnersPage() {
         body: JSON.stringify({ requestId }),
       });
       const json = await res.json();
+      // Підтвердження випускає живий промокод зі знижкою, тому воно під
+      // requirePartnerApprover. Голий «Forbidden» тут читався як поломка.
+      if (res.status === 403) throw new Error('Підтверджувати партнерів можуть адміністратори та маркетинг із повним доступом');
       if (!res.ok) throw new Error(json?.error || 'Помилка');
       toast.success(
         json.credited_manager
@@ -171,6 +197,9 @@ export default function AgencyPartnersPage() {
         body: JSON.stringify({ id, status, reason }),
       });
       const json = await res.json();
+      // Той самий гард, що й на підтвердженні: закрити заявку означає вирішити
+      // її долю, тож право те саме.
+      if (res.status === 403) throw new Error('Закривати заявки можуть адміністратори та маркетинг із повним доступом');
       if (!res.ok) throw new Error(json?.error || 'Помилка');
       toast.success(
         status === 'duplicate' ? 'Позначено повторною'
@@ -212,6 +241,9 @@ export default function AgencyPartnersPage() {
         body: JSON.stringify({ agencyId }),
       });
       const json = await res.json();
+      // Виплата — це видача грошей, тому вона лишається суто
+      // адміністраторською (requireAdmin) і не йде під право підтвердження.
+      if (res.status === 403) throw new Error('Проводити виплати може лише адміністратор');
       if (!res.ok) throw new Error(json?.error || 'Помилка');
       toast.success(json.paid > 0 ? `Виплачено ${json.paid} ₴` : json.message);
       await load();
@@ -309,7 +341,11 @@ export default function AgencyPartnersPage() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  {tone === 'open' ? (
+                  {!canApprove ? (
+                    <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.6 }}>
+                      Рішення по заявці ухвалюють адміністратори та маркетинг із повним доступом. Ви бачите заявку, щоб знати про неї, але кнопок тут немає саме тому.
+                    </div>
+                  ) : tone === 'open' ? (
                     <>
                       <button
                         onClick={() => approve(r.id)}
@@ -530,7 +566,11 @@ export default function AgencyPartnersPage() {
                   </div>
                 )}
 
-                {p.pending_payout >= 500 ? (
+                {p.pending_payout >= 500 && !canPayout ? (
+                  <div style={{ marginTop: 14, textAlign: 'right', fontSize: 12, color: '#92400e' }}>
+                    До виплати {Number(p.pending_payout).toFixed(0)} ₴ — проводить виплату адміністратор
+                  </div>
+                ) : p.pending_payout >= 500 ? (
                   <div style={{ marginTop: 14, textAlign: 'right' }}>
                     <button
                       onClick={() => payout(p.id)}

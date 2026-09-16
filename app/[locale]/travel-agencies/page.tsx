@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import TravelAgenciesClient from './TravelAgenciesClient';
-import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
+import { getCanonicalUrl, getSingleLocaleAlternates, type Locale } from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 
 // Single source of truth for the partner FAQ: rendered VISIBLY on the page
@@ -36,7 +36,13 @@ const FAQ: Array<{ q: string; a: string }> = [
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
-    const canonical = getCanonicalUrl(locale as Locale, '/travel-agencies');
+    // Канонічна адреса завжди українська, якою б локаллю сторінку не відкрили.
+    // Текст лендінга український на всіх пʼяти локалях і перекладатися не буде
+    // (Діана, 16.09.2026), тож повний набір hreflang робив із однієї сторінки
+    // пʼять дублів в індексі, кожен із яких обіцяв мову, якої там немає.
+    // Сторінка лишається доступною за будь-якою локаллю — це вказівка Google,
+    // а не заборона відвідувачу.
+    const canonical = getCanonicalUrl('uk', '/travel-agencies');
     const title = 'Партнерська програма для тревел-агенцій і блогерів | Touch.Memories';
     const description =
         'Заробляйте з Touch.Memories: комісія 5% з тревелбуків і 3% з інших товарів, знижка 5% вашим клієнтам, ' +
@@ -51,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
         ],
         alternates: {
             canonical,
-            languages: getAlternateLanguages('/travel-agencies'),
+            languages: getSingleLocaleAlternates('/travel-agencies', 'uk'),
         },
         openGraph: {
             title,
@@ -59,7 +65,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
             url: canonical,
             siteName: 'Touch.Memories',
             type: 'website',
-            locale: locale === 'uk' ? 'uk_UA' : locale,
+            locale: 'uk_UA',
         },
         twitter: {
             card: 'summary',
@@ -71,7 +77,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function TravelAgenciesPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
-    const canonical = getCanonicalUrl(locale as Locale, '/travel-agencies');
+    // Та сама українська адреса, що й у canonical вище: посилання в
+    // структурованих даних не має сперечатися з канонічним, інакше Google
+    // отримує дві різні відповіді на питання, де ця сторінка живе.
+    const canonical = getCanonicalUrl('uk', '/travel-agencies');
     const base = 'https://touchmemories.com.ua';
 
     const faqJsonLd = {

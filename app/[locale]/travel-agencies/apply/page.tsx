@@ -1,26 +1,29 @@
 import type { Metadata } from 'next';
 import TravelAgenciesClient from '../TravelAgenciesClient';
-import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { getCanonicalUrl, getSingleLocaleAlternates } from '@/lib/seo/locales';
 
 const TITLE = 'Заявка на співпрацю — Touch.Memories';
 const DESCRIPTION = 'Подайте заявку на партнерство для тревел-агенцій і блогерів: після схвалення ви отримаєте персональний промокод і кабінет партнера.';
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-    const { locale: rawLocale } = await params;
-    const locale = (rawLocale || 'uk') as Locale;
+/**
+ * Метадані не залежать від локалі: сторінка українська за будь-якою адресою,
+ * тож канонічне посилання й hreflang вказують на українську версію (Діана,
+ * 16.09.2026). Сама сторінка відкривається з усіх локалей як і раніше.
+ */
+export async function generateMetadata(): Promise<Metadata> {
     return {
         title: TITLE,
         description: DESCRIPTION,
         alternates: {
-            canonical: getCanonicalUrl(locale, '/travel-agencies/apply'),
-            languages: getAlternateLanguages('/travel-agencies/apply'),
+            canonical: getCanonicalUrl('uk', '/travel-agencies/apply'),
+            languages: getSingleLocaleAlternates('/travel-agencies/apply', 'uk'),
         },
         openGraph: {
             title: TITLE,
             description: DESCRIPTION,
-            url: getCanonicalUrl(locale, '/travel-agencies/apply'),
+            url: getCanonicalUrl('uk', '/travel-agencies/apply'),
             siteName: 'Touch.Memories',
-            locale: OG_LOCALE_MAP[locale],
+            locale: 'uk_UA',
             type: 'website',
         },
     };

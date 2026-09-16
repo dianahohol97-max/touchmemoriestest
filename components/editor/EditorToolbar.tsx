@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEditorStore } from '@/lib/editor-store'
 import PreviewModal from '@/components/editor/PreviewModal'
-import OrderFlow from '@/components/editor/OrderFlow'
 import { createClient } from '@/lib/supabase/client'
 import {
   ArrowLeft,
@@ -14,7 +13,6 @@ import {
   ZoomOut,
   Eye,
   Save,
-  ShoppingCart,
   Type,
   Square,
   Trash2,
@@ -48,7 +46,6 @@ export default function EditorToolbar() {
 
   const [zoom, setZoom] = useState(100)
   const [showPreview, setShowPreview] = useState(false)
-  const [showOrderFlow, setShowOrderFlow] = useState(false)
 
   if (!project) return null
 
@@ -356,13 +353,15 @@ export default function EditorToolbar() {
           <span className="text-sm font-medium">Зберегти</span>
         </button>
 
-        <button
-          onClick={() => setShowOrderFlow(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-[#1e2d7d] hover:bg-[#263a99] text-white rounded-lg transition-colors"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          <span className="text-sm font-medium">Замовити</span>
-        </button>
+        {/* Кнопки «Замовити» тут більше немає, і це не втрата функції.
+            Вона відкривала components/editor/OrderFlow, який писав у orders
+            напряму з браузера чотирнадцять колонок, яких у таблиці немає
+            (total_price, base_price, status, comment, project_id, extras…), і
+            не ставив ні items, ні payment_status. Замовлення з неї не виходило
+            жодного разу за всю історію бази — вставку відхиляв PostgREST, а
+            людина бачила помилку збереження. Живий шлях замовлення інший:
+            конструктор → кошик → /checkout → /api/orders/submit, де є доставка,
+            оплата, промокоди й регіональні ціни. Видалено 16.09.2026. */}
       </div>
 
       {/* Preview Modal */}
@@ -373,13 +372,6 @@ export default function EditorToolbar() {
         />
       )}
 
-      {/* Order Flow */}
-      {showOrderFlow && (
-        <OrderFlow
-          project={project}
-          onClose={() => setShowOrderFlow(false)}
-        />
-      )}
     </div>
   )
 }

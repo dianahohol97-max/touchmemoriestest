@@ -53,6 +53,32 @@ export function withBrandSuffix(title: string): string {
   return clean ? `${clean} | Touch.Memories` : 'Touch.Memories';
 }
 
+/**
+ * Сторінка існує тільки однією мовою, хоч і відкривається за будь-якою локаллю.
+ *
+ * Такий випадок у нас є: лендінг партнерської програми /travel-agencies має
+ * український текст на всіх пʼяти локалях, і перекладати його Діана не планує
+ * (16.09.2026). Поки він віддавав повний набір hreflang, ми самі казали Google,
+ * що /de/travel-agencies — це німецька версія: пошуковик індексував пʼять
+ * адрес з однаковим українським текстом, тобто пʼять дублів, і жодна з них не
+ * була тим, що обіцяв hreflang.
+ *
+ * Тут віддається тільки та мова, якою сторінка справді написана, плюс
+ * x-default на неї ж. Разом із канонічним посиланням на ту саму адресу (а його
+ * ставить сторінка) це означає: заходити можна звідки завгодно, індексується
+ * одна версія. Сторінка лишається повністю доступною — це вказівка пошуковику,
+ * а не заборона відвідувачу.
+ */
+export function getSingleLocaleAlternates(
+  path: string = '',
+  locale: Locale = DEFAULT_LOCALE,
+): Record<string, string> {
+  return {
+    [HREFLANG_MAP[locale]]: getCanonicalUrl(locale, path),
+    'x-default': getCanonicalUrl(locale, path),
+  };
+}
+
 export function getAlternateLanguages(path: string = ''): Record<string, string> {
   const result: Record<string, string> = {};
   for (const loc of LOCALES) {
