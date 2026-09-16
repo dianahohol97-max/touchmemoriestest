@@ -848,6 +848,22 @@ function OrderForm() {
   // so customers assumed it had frozen and abandoned the order (Софія, 01.08:
   // two abandoned attempts, no order created). Show real numbers instead.
   const [progress, setProgress] = useState<{ done: number; total: number; failed: number } | null>(null)
+  /**
+   * На чому саме стоїть відправка. Фото — лише перша третина роботи: далі
+   * створюється замовлення, чіпляється партнерська знижка і виставляється
+   * рахунок. Досі кнопка на всіх цих кроках показувала останнє число фото,
+   * тож «Завантажуємо фото 13 з 13…» висіло тоді, коли фото вже давно всі
+   * на місці, і виглядало це як зависання.
+   */
+  const [stage, setStage] = useState<'upload' | 'order'>('upload')
+  /**
+   * Ми самі йдемо на Монобанк — попередження про закриття сторінки не має
+   * ставати нам на дорозі. Це саме те, що зламало крок 5 (Діана, 16.09.2026):
+   * перехід на оплату — це навігація, beforeunload спрацьовував на ній так
+   * само, як на закритті вкладки, і людина отримувала «Закрыть сайт?». Ref, а
+   * не стан: стан React встигає застосувати вже після того, як діалог виліз.
+   */
+  const leavingForPaymentRef = useRef(false)
   // Stable across retries: a retry reuses the same folder and SKIPS files that
   // already made it, instead of re-uploading everything from zero.
   const sessionIdRef = useRef<string>('')
@@ -899,6 +915,7 @@ function OrderForm() {
 
   const handleSubmit = async () => {
     setSubmitting(true)
+    setStage('upload')
     setError('')
     try {
       // Upload photos straight to Supabase Storage from the browser —
@@ -988,6 +1005,11 @@ function OrderForm() {
           console.error('cover upload error:', cErr)
         }
       }
+
+      // Фото закінчились — далі замовлення, знижка і рахунок. Лічильник більше
+      // не потрібен, і показувати його — означає брехати про те, що зараз іде.
+      setStage('order')
+      setProgress(null)
 
       const productSlug = savedConfig?.slug || searchParams.get('product') || ''
       const productName = savedConfig?.productName
@@ -1140,6 +1162,11 @@ function OrderForm() {
           })
           const invoiceData = await invoiceRes.json()
           if (invoiceRes.ok && invoiceData.pageUrl) {
+            // Спочатку знімаємо запобіжник, аж потім ідемо. Інакше браузер
+            // питає «Закрыть сайт?» на нашому ж переході, а діалог іще й
+            // морозить сторінку: React не встигає прибрати «Завантажуємо
+            // фото», і замовлення виглядає зависшим, хоч воно вже створене.
+            leavingForPaymentRef.current = true
             window.location.href = invoiceData.pageUrl
             return
           }
@@ -1175,10 +1202,15 @@ function OrderForm() {
     }
   }
 
-  // While photos are uploading, a closed tab loses the order. Warn on exit.
+  // While photos are uploading, a closed tab loses the order. Warn on exit —
+  // але тільки коли втрачати справді є що. Після переходу на оплату замовлення
+  // вже в базі, і питати нема про що.
   useEffect(() => {
     if (!submitting) return
-    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (leavingForPaymentRef.current) return
+      e.preventDefault(); e.returnValue = ''
+    }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [submitting])
@@ -1288,7 +1320,7 @@ function OrderForm() {
           {step === 3 && <DeliveryStep delivery={formData.delivery} city={formData.city} address={formData.address} onChange={update} pickupBlocked={pickupBlocked} />}
           {step === 4 && <ContactsStep name={formData.name} lastName={formData.lastName} phone={formData.phone} email={formData.email} channel={formData.contactChannel} handle={formData.contactHandle} onChange={update} />}
           {step === 5 && <ConfirmationStep data={formData} />}
-          {submitting && progress && progress.total > 0 && (
+          {submitting && stage === 'upload' && progress && progress.total > 0 && (
             <div className="mt-4 bg-blue-50 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between text-sm text-[#1e2d7d] font-semibold">
                 <span>Завантажуємо ваші фото — {progress.done} з {progress.total}</span>
@@ -1328,9 +1360,9 @@ function OrderForm() {
                 className="flex items-center gap-2 px-8 py-3 rounded-lg font-semibold bg-[#1e2d7d] hover:bg-[#263a99] text-white transition-colors disabled:opacity-60"
               >
                 {submitting
-                  ? (progress && progress.total > 0
+                  ? (stage === 'upload' && progress && progress.total > 0
                       ? `Завантажуємо фото ${progress.done} з ${progress.total}…`
-                      : 'Відправляємо...')
+                      : 'Оформлюємо замовлення…')
                   : 'Підтвердити замовлення'} <Check className="w-4 h-4" />
               </button>
             )}
