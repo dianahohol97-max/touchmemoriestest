@@ -5,6 +5,7 @@ import { LANDING_THEMES } from '@/lib/photographers/themes';
 import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
+import { partnerRefLink } from '@/lib/partners/referral-link';
 
 interface Profile {
   id: string; slug: string; name: string; bio: string | null; email: string;
@@ -285,7 +286,7 @@ function ReferralSection({ token, flash }: { token: string; flash: (m: string) =
   }
 
   const p = data.partner;
-  const link = `https://touchmemories.com.ua/?ref=${p.referral_code}`;
+  const link = partnerRefLink(p.referral_code);
   const minPayout = Number(data.min_payout) || 500;
 
   const copyLink = () => {

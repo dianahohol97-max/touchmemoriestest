@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Copy, Check, Loader2, Plus, Mail, X, RotateCcw, Users } from 'lucide-react';
 import { isRepeatApplication } from '@/lib/partners/application-gate';
+import { partnerRefLink } from '@/lib/partners/referral-link';
 
 interface Partner {
   id: string;
@@ -65,22 +66,51 @@ export default function AgencyPartnersPage() {
   // Відкрита панель відмови: id заявки та вже обрана причина.
   const [closing, setClosing] = useState<{ id: string; reason: string } | null>(null);
   const [savingRequest, setSavingRequest] = useState<string | null>(null);
+  /**
+   * Помилки завантаження показуються, а не ковтаються.
+   *
+   * До 16.09.2026 всі три запити тут стояли в порожньому catch, і збій виглядав
+   * як порожнеча: список менеджерів без доступу згортався в єдиний пункт
+   * «Ніхто — прийшов сам», і людина робила висновок, що менеджерів у системі
+   * немає. Порожньо і зламано мають виглядати по-різному (Діана, 16.09.2026).
+   */
+  const [loadErrors, setLoadErrors] = useState<string[]>([]);
   // Менеджери з продажів — щоб привʼязку «хто привів» можна було поставити або
   // виправити просто тут, у списку партнерів, а не окремою сторінкою.
   const [managers, setManagers] = useState<{ id: string; name: string }[]>([]);
 
+  /** Одна відповідь — один зрозумілий рядок помилки замість мовчазної порожнечі. */
+  const describeFailure = (what: string, res: Response | null, json: any) => {
+    if (res?.status === 403) return `${what}: немає доступу до цих даних під вашим обліковим записом`;
+    if (res?.status === 401) return `${what}: сесія завершилася, увійдіть ще раз`;
+    return `${what}: ${json?.error || (res ? `сервер відповів ${res.status}` : 'запит не дійшов')}`;
+  };
+
   const load = async () => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/admin/agency-partners');
-      const json = await res.json();
-      setPartners(json.partners || []);
-    } catch { /* ignore */ }
+    const errors: string[] = [];
 
     try {
-      const res = await fetch('/api/admin/sales-managers');
-      if (res.ok) setManagers(((await res.json()).managers || []).map((m: any) => ({ id: m.id, name: m.name })));
-    } catch { /* ignore */ }
+      const res = await fetch('/api/admin/agency-partners');
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(describeFailure('Список партнерів', res, json));
+      setPartners(json?.partners || []);
+    } catch (e: any) {
+      setPartners([]);
+      errors.push(e?.message || 'Список партнерів не завантажився');
+    }
+
+    // Лише імена: повний вигляд цього маршруту віддає ще й комісії менеджерів,
+    // і саме тому він адміністраторський.
+    try {
+      const res = await fetch('/api/admin/sales-managers?fields=names');
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(describeFailure('Список менеджерів', res, json));
+      setManagers((json?.managers || []).map((m: any) => ({ id: m.id, name: m.name })));
+    } catch (e: any) {
+      setManagers([]);
+      errors.push(e?.message || 'Список менеджерів не завантажився');
+    }
 
     // Тягнемо заявки ВСІХ статусів, включно з підтвердженими: підтверджені на
     // екрані не показуються, але без них не видно, що заявка повторна.
@@ -88,9 +118,15 @@ export default function AgencyPartnersPage() {
     // кому видано право підтверджувати партнерів, а не тільки адміністратор.
     try {
       const res = await fetch('/api/admin/partnership-requests?status=all');
-      const json = await res.json();
-      setRequests((json.requests || []).filter((r: PendingRequest) => ['travel_agency', 'travel_blogger'].includes(r.kind || 'travel_agency')));
-    } catch { /* ignore */ }
+      const json = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(describeFailure('Заявки на партнерство', res, json));
+      setRequests((json?.requests || []).filter((r: PendingRequest) => ['travel_agency', 'travel_blogger'].includes(r.kind || 'travel_agency')));
+    } catch (e: any) {
+      setRequests([]);
+      errors.push(e?.message || 'Заявки не завантажилися');
+    }
+
+    setLoadErrors(errors);
     setLoading(false);
   };
 
@@ -201,6 +237,15 @@ export default function AgencyPartnersPage() {
       <p style={{ color: '#64748b', marginBottom: 28, fontSize: 14 }}>
         Реферальна програма: агенція отримує 5% з тревелбуків і 3% з решти товарів за своїм промокодом; клієнт за кодом/посиланням отримує знижку 5%. Нарахування рахуються автоматично при оплаті.
       </p>
+
+      {loadErrors.length > 0 && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#b91c1c', marginBottom: 4 }}>Частина даних не завантажилася</div>
+          {loadErrors.map((e, i) => (
+            <div key={i} style={{ fontSize: 13, color: '#7f1d1d', lineHeight: 1.6 }}>{e}</div>
+          ))}
+        </div>
+      )}
 
       {/* Заявки: нові, повторні, відхилені.
           До 16.09.2026 тут був один список усього, що не 'approved', і єдина
@@ -408,10 +453,10 @@ export default function AgencyPartnersPage() {
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Посилання:</span>
                   <code style={{ fontSize: 12, background: '#f8fafc', border: '1px solid #e2e8f0', padding: '5px 10px', borderRadius: 6, color: '#475569', wordBreak: 'break-all' }}>
-                    {`https://touchmemories.com.ua/?ref=${p.referral_code}`}
+                    {partnerRefLink(p.referral_code)}
                   </code>
                   <button
-                    onClick={() => { navigator.clipboard?.writeText(`https://touchmemories.com.ua/?ref=${p.referral_code}`); toast.success('Посилання скопійовано'); }}
+                    onClick={() => { navigator.clipboard?.writeText(partnerRefLink(p.referral_code)); toast.success('Посилання скопійовано'); }}
                     title="Копіювати посилання"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4, display: 'flex' }}
                   ><Copy size={15} /></button>
@@ -440,6 +485,7 @@ export default function AgencyPartnersPage() {
                   <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700 }}>Привів менеджер:</span>
                   <select
                     value={p.sales_manager_id || ''}
+                    disabled={managers.length === 0}
                     onChange={async e => {
                       const managerId = e.target.value || null;
                       const r = await fetch('/api/admin/sales-managers', {
@@ -447,12 +493,19 @@ export default function AgencyPartnersPage() {
                         body: JSON.stringify({ assign: 'partner', target_id: p.id, manager_id: managerId }),
                       });
                       if (r.ok) { await load(); toast.success(managerId ? 'Менеджера записано' : 'Привʼязку знято'); }
+                      // Привʼязка керує тим, кому піде комісія з продажу, тому
+                      // лишається адміністраторською. Кажемо це прямо, щоб 403
+                      // не виглядав як збій збереження.
+                      else if (r.status === 403) toast.error('Змінювати «привів менеджер» може лише адміністратор');
                       else toast.error('Не вдалося зберегти');
                     }}
                     style={{ fontSize: 12.5, border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 10px', background: '#fff', color: '#475569' }}>
                     <option value="">Ніхто — прийшов сам</option>
                     {managers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                   </select>
+                  {managers.length === 0 && (
+                    <span style={{ fontSize: 12, color: '#b91c1c' }}>список менеджерів не завантажився</span>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginTop: 16 }}>

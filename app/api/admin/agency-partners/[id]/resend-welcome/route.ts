@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { partnerRefLink } from '@/lib/partners/referral-link';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const clientDiscount = 5;
   const code = p.referral_code;
-  const refLink = `https://touchmemories.com.ua/?ref=${code}`;
+  const refLink = partnerRefLink(code);
   const cabinetLink = `https://touchmemories.com.ua/uk/partner/${p.cabinet_token}`;
   const kindWord = p.partner_kind === 'travel_blogger' ? 'блогером' : 'агенцією';
 

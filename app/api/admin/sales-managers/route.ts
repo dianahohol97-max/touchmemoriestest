@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth/guards';
+import { requireAdmin, requireStaff } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +12,31 @@ export const dynamic = 'force-dynamic';
  * whoever gets credited for a partner must not be able to credit themselves.
  */
 
-export async function GET() {
-  const guard = await requireAdmin();
+/**
+ * ?fields=names — лише перелік імен менеджерів, дозволений будь-кому зі staff.
+ *
+ * Потрібен він одному місцю: випадаючому списку «Привів менеджер» на сторінці
+ * тревел-партнерів. Повний вигляд лишається адміністраторським, бо віддає ще й
+ * sales_commissions — заробітки менеджерів, яких решті співробітників бачити
+ * нема чого. Тому це вузький режим, а не послаблення всього маршруту
+ * (Діана, 16.09.2026).
+ */
+export async function GET(request: Request) {
+  const namesOnly = new URL(request.url).searchParams.get('fields') === 'names';
+  const guard = namesOnly ? await requireStaff() : await requireAdmin();
   if (!guard.ok) return guard.response;
 
   const admin = getAdminClient();
+
+  if (namesOnly) {
+    const { data, error } = await admin
+      .from('sales_managers')
+      .select('id, name')
+      .order('name', { ascending: true });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ managers: data || [] });
+  }
+
   const [{ data: managers }, { data: commissions }, { data: partners }, { data: photographers }] = await Promise.all([
     admin.from('sales_managers').select('*').order('created_at', { ascending: false }),
     admin.from('sales_commissions').select('*').order('created_at', { ascending: false }).limit(500),

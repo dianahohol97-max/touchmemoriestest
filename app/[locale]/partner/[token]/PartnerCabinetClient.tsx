@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { partnerRefLink } from '@/lib/partners/referral-link';
 
 interface Commission {
     id: string;
@@ -132,7 +133,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
     // варто скопіювати посилання в месенджер чи документ — і воно приїде
     // побитим. Відколи посилання стало головним інструментом партнера, ця
     // дрібниця коштує втраченої комісії.
-    const refLink = `https://touchmemories.com.ua/?ref=${encodeURIComponent(data.referral_code)}`;
+    const refLink = partnerRefLink(data.referral_code);
     const CERT_NOMINALS = [675, 825, 975, 1125, 1425, 1725, 2025, 2350, 2900];
     const certUnit = Math.round(certNominal * 0.9 * 100) / 100;
     const certTotal = Math.round(certUnit * certQty * 100) / 100;

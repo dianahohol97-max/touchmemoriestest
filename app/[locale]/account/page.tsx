@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/lib/i18n/context';
 import { useCartStore } from '@/store/cart-store';
+import { partnerRefLink } from '@/lib/partners/referral-link';
 
 //  Types 
 
@@ -121,6 +122,24 @@ export default function AccountPage() {
     // gallery-cabinet + landing links (sidebar card). The cabinet is open
     // self-service for everyone; the discount is B2B-verification-gated.
     const [b2b, setB2b] = useState<{ isB2b: boolean; role: string | null; discountPercent: number; label: string | null; photographer: { cabinet_token: string; slug: string } | null; loggedIn?: boolean } | null>(null);
+    /**
+     * Картка тревел-партнера в кабінеті клієнта.
+     *
+     * До 16.09.2026 партнерського кабінету в акаунті не було видно взагалі:
+     * посилання приходило одним листом при підтвердженні, і далі партнер мусив
+     * його зберігати. /api/b2b/me знає про фотографів і B2B, але про
+     * agency_partners не знав нічого (Діана, 16.09.2026).
+     */
+    const [partnerCard, setPartnerCard] = useState<{
+        cabinet_token: string;
+        agency_name: string | null;
+        partner_kind: string | null;
+        referral_code: string;
+        travelbook_rate: number;
+        other_rate: number;
+        pending_payout: number;
+        client_discount: number;
+    } | null>(null);
     const [creatingCabinet, setCreatingCabinet] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -518,6 +537,19 @@ export default function AccountPage() {
             .catch(() => { /* the account works fine without the B2B card */ });
     }, []);
 
+    // Тревел-партнер — окремий запит до маршруту, який уже вміє знаходити
+    // партнера за поштою залогіненого користувача.
+    useEffect(() => {
+        fetch('/api/partnership/my-cabinet')
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => {
+                if (d?.loggedIn && d?.partner && d?.cabinet_token) {
+                    setPartnerCard({ ...d.partner, cabinet_token: d.cabinet_token });
+                }
+            })
+            .catch(() => { /* кабінет працює й без цієї картки */ });
+    }, []);
+
     const createPhotographerCabinet = async () => {
         if (creatingCabinet) return;
         setCreatingCabinet(true);
@@ -669,6 +701,62 @@ export default function AccountPage() {
                                 ))}
                             </div>
                         </div>
+
+                        {/* Тревел-партнер: посилання головне, код — запасний
+                            варіант. Суми показуються лише тоді, коли вони є:
+                            нарахування зʼявляються після першого оплаченого
+                            замовлення за посиланням, а стіна нулів до того
+                            тільки збиває з пантелику (Діана, 16.09.2026). */}
+                        {partnerCard && (
+                            <div style={{ background: '#fff', border: '1px solid #c7d2fe', borderRadius: 14, padding: '16px 18px', marginBottom: 12, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 14 }}>Партнерська програма</span>
+                                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: partnerCard.partner_kind === 'travel_blogger' ? '#fce7f3' : '#e0e7ff', color: partnerCard.partner_kind === 'travel_blogger' ? '#be185d' : '#3730a3' }}>
+                                        {partnerCard.partner_kind === 'travel_blogger' ? 'Блогер'
+                                            : partnerCard.partner_kind === 'photographer' ? 'Фотограф'
+                                            : partnerCard.partner_kind === 'wedding_agency' ? 'Весільна агенція'
+                                            : 'Агенція'}
+                                    </span>
+                                    {partnerCard.agency_name && (
+                                        <span style={{ fontSize: 13, color: '#64748b' }}>{partnerCard.agency_name}</span>
+                                    )}
+                                </div>
+
+                                <div style={{ fontSize: 13, color: '#475569', marginBottom: 8, lineHeight: 1.6 }}>
+                                    {partnerCard.client_discount > 0
+                                        ? `Клієнт переходить за вашим посиланням і бачить знижку ${partnerCard.client_discount}% уже в кошику, вводити нічого не треба.`
+                                        : 'Клієнт переходить за вашим посиланням, і знижка застосовується сама, вводити нічого не треба.'}
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                                    <code style={{ flex: 1, minWidth: 180, fontSize: 12, background: '#f8fafc', border: '1px solid #e2e8f0', padding: '8px 10px', borderRadius: 8, color: '#475569', wordBreak: 'break-all' }}>
+                                        {partnerRefLink(partnerCard.referral_code)}
+                                    </code>
+                                    <button
+                                        onClick={() => { navigator.clipboard?.writeText(partnerRefLink(partnerCard.referral_code)); toast.success('Посилання скопійовано'); }}
+                                        style={{ background: '#1e2d7d', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                                        Скопіювати
+                                    </button>
+                                </div>
+
+                                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+                                    Якщо переходу за посиланням немає, лишається код{' '}
+                                    <b style={{ color: '#64748b', letterSpacing: '0.06em' }}>{partnerCard.referral_code}</b> — його вводять при оформленні.
+                                </div>
+
+                                <div style={{ fontSize: 12.5, color: '#475569', marginBottom: 10 }}>
+                                    Ваша винагорода: {partnerCard.travelbook_rate}% за тревелбуки та {partnerCard.other_rate}% за решту товарів.
+                                    {partnerCard.pending_payout > 0
+                                        ? ` До виплати ${partnerCard.pending_payout} ₴.`
+                                        : ' Нарахування зʼявляться після першого оплаченого замовлення за посиланням.'}
+                                </div>
+
+                                <a href={`/uk/partner/${partnerCard.cabinet_token}`}
+                                    style={{ display: 'block', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                                    Партнерський кабінет
+                                </a>
+                            </div>
+                        )}
 
                         {/* Photographer / partner card. The gallery cabinet + landing
                             is self-service for everyone; the 10% discount line shows
