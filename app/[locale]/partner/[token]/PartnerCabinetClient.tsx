@@ -127,7 +127,12 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
     const isBlogger = data.partner_kind === 'travel_blogger';
     const isPhotographer = data.partner_kind === 'photographer';
     const kindLabel = isPhotographer ? 'Фотограф' : isBlogger ? 'Блогер' : 'Агенція';
-    const refLink = `https://touchmemories.com.ua/?ref=${data.referral_code}`;
+    // Код кодується: партнерські коди роблять із назв агенцій, тож бувають
+    // кириличними («ПОДОTABB»). У самому браузері такий рядок працює, але
+    // варто скопіювати посилання в месенджер чи документ — і воно приїде
+    // побитим. Відколи посилання стало головним інструментом партнера, ця
+    // дрібниця коштує втраченої комісії.
+    const refLink = `https://touchmemories.com.ua/?ref=${encodeURIComponent(data.referral_code)}`;
     const CERT_NOMINALS = [675, 825, 975, 1125, 1425, 1725, 2025, 2350, 2900];
     const certUnit = Math.round(certNominal * 0.9 * 100) / 100;
     const certTotal = Math.round(certUnit * certQty * 100) / 100;
@@ -142,20 +147,30 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             </div>
             <p style={{ color: '#64748b', marginTop: 0, marginBottom: 20 }}>Ваш партнерський кабінет touch.memories</p>
 
-            {/* Referral code + shareable link */}
+            {/* Реферальне посилання — головний інструмент партнера.
+                Раніше тут великим стояв код, а посилання йшло приміткою під ним.
+                Це змінено (Діана, 16.09.2026): за посиланням знижка застосовується
+                сама, а код вимагає, щоб клієнт його згадав і не помилився при
+                введенні — зайвий крок рівно там, де людина вже готова платити.
+                Код лишився нижче дрібним рядком, бо потрібен для замовлень, які
+                оформлюють у директі чи телефоном, тобто без переходу за посиланням. */}
             <div style={{ ...card, background: '#eef2ff', border: '1px dashed #a5b4fc', textAlign: 'center' }}>
-                <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ваш промокод</div>
-                <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '0.1em', color: '#1e2d7d' }}>{data.referral_code}</div>
+                <div style={{ fontSize: 12, color: '#6366f1', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ваше реферальне посилання</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#1e2d7d', wordBreak: 'break-all', lineHeight: 1.4 }}>{refLink}</div>
                 <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
                     Комісія: {data.travelbook_rate}% з тревелбуків і журналів · {data.other_rate}% з решти товарів
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 }}>
-                    <button style={btnGhost} onClick={() => copy(data.referral_code, 'Промокод скопійовано')}>Скопіювати код</button>
                     <button style={btn} onClick={() => copy(refLink, 'Посилання скопійовано')}>Скопіювати посилання</button>
                 </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, wordBreak: 'break-all' }}>
-                    {refLink}
-                    <br />За цим посиланням знижка клієнту застосується автоматично — код вводити не треба.
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>
+                    Клієнт переходить за посиланням і бачить знижку вже в кошику, вводити нічого не треба.
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(165,180,252,0.5)' }}>
+                    Якщо замовлення оформлюють без переходу за посиланням, той самий результат дає код{' '}
+                    <b style={{ color: '#64748b', letterSpacing: '0.06em' }}>{data.referral_code}</b> — його вводять при оформленні.
+                    <br />
+                    <button style={{ ...btnGhost, marginTop: 8 }} onClick={() => copy(data.referral_code, 'Код скопійовано')}>Скопіювати код</button>
                 </div>
             </div>
 
@@ -176,7 +191,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
                         ? (data.payout_requested_at
                             ? `Запит на виплату надіслано ${new Date(data.payout_requested_at).toLocaleDateString('uk-UA')} — обробляємо, кошти надійдуть на вказаний рахунок.`
                             : 'Сума до виплати перевищує мінімум. Перевірте рахунок нижче й натисніть кнопку.')
-                        : `Накопичуйте комісію: виплата стає доступною від ${uah(minPayout)}. Нарахування відбувається автоматично після оплати замовлень за вашим кодом.`}
+                        : `Накопичуйте комісію: виплата стає доступною від ${uah(minPayout)}. Нарахування відбувається автоматично після оплати замовлень за вашим посиланням.`}
                 </div>
                 {canPayout && !data.payout_requested_at && (
                     <button style={{ ...btn, marginTop: 12, background: '#047857' }} onClick={requestPayout} disabled={requesting}>
@@ -223,8 +238,8 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             <div style={{ ...card, background: '#f8fafc' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#1e2d7d', marginBottom: 8 }}>Умови партнерства</div>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#475569', lineHeight: 1.8 }}>
-                    <li>Ваша комісія: <b>{data.travelbook_rate}%</b> з тревелбуків і глянцевих журналів, <b>{data.other_rate}%</b> з решти товарів — нараховується автоматично після оплати замовлення за вашим кодом чи посиланням.</li>
-                    <li>Клієнт за вашим кодом отримує знижку на замовлення.</li>
+                    <li>Ваша комісія: <b>{data.travelbook_rate}%</b> з тревелбуків і глянцевих журналів, <b>{data.other_rate}%</b> з решти товарів — нараховується автоматично після оплати замовлення за вашим посиланням.</li>
+                    <li>Клієнт за вашим посиланням отримує знижку на замовлення, і вона застосовується сама.</li>
                     <li>Сертифікати для дарування — зі знижкою <b>10%</b> (у цьому кабінеті), діють 3 місяці, зберігають повний номінал.</li>
                     <li>Виплата комісії — від <b>{uah(minPayout)}</b>, на вказаний вами рахунок.</li>
                 </ul>
@@ -234,7 +249,7 @@ export default function PartnerCabinetClient({ token }: { token: string }) {
             <div style={card}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#1e2d7d', marginBottom: 4 }}>Історія нарахувань</div>
                 <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>
-                    Комісія нараховується після оплати замовлення за вашим кодом чи посиланням.
+                    Комісія нараховується після оплати замовлення за вашим посиланням.
                 </div>
                 {commissions.length === 0 ? (
                     <div style={{ color: '#94a3b8', fontSize: 14, padding: '10px 0' }}>
