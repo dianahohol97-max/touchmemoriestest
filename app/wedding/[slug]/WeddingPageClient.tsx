@@ -43,9 +43,10 @@ export default function WeddingPageClient({ event }: Props) {
       <Hero event={event} />
 
       <div className="relative z-10 -mt-8 space-y-12">
-        {/* Без заголовка навмисно: те, що тут роблять, уже сказано в шапці, і
-            другий підпис поспіль читався б як повтор. */}
         <section className="mx-auto w-full max-w-2xl px-4">
+          <h2 className="mb-4 text-center font-[family-name:var(--font-wedding-display)] text-2xl text-[#6E1F2E]">
+            Додати фото та відео
+          </h2>
           <WeddingUploader slug={event.slug} mode="media" onUploaded={addOwn} />
         </section>
 
