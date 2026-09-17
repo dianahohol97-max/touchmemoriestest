@@ -82,9 +82,18 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
             const map: Record<string, string> = {};
             await Promise.all(Object.entries(byBucket).map(async ([bucket, list]) => {
                 try {
-                    const { data: signed } = await supabase.storage.from(bucket)
-                        .createSignedUrls(list.map(f => f.file_path), 60 * 60);
-                    (signed || []).forEach((s, i) => { if (s?.signedUrl) map[list[i].id] = s.signedUrl; });
+                    // Signed on the SERVER, not here. Browser-side signing obeys
+                    // the storage.objects policies, which grant order-files to the
+                    // folder owner or is_admin() only — a manager or designer got
+                    // no signature at all and saw empty rectangles.
+                    const res = await fetch('/api/admin/storage-signed-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bucket, paths: list.map(f => f.file_path) }),
+                    });
+                    if (!res.ok) throw new Error(`sign failed: ${res.status}`);
+                    const { urls } = await res.json() as { urls: Record<string, string> };
+                    list.forEach(f => { const u = urls?.[f.file_path]; if (u) map[f.id] = u; });
                 } catch (e) { console.error('sign error', bucket, e); }
             }));
             setSignedUrls(map);
@@ -93,13 +102,46 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
         setLoading(false);
     };
 
+
+    /**
+     * Свіжий підпис на один файл, у момент кліку.
+     *
+     * Раніше обидва завантаження йшли через supabase.storage.download() прямо з
+     * браузера, тобто під політиками storage.objects і під сесією користувача, а
+     * прев'ю підписувались на годину наперед при завантаженні сторінки. На
+     * TM-001254 це дало саме те, що описала Діана: фото «не можливо» завантажити,
+     * а розворот віддає
+     * {"statusCode":"400","error":"InvalidJWT","message":"\"exp\" claim timestamp check failed"}
+     * — картка провисіла довше години, і підпис протух ще до натискання.
+     *
+     * Тепер підпис береться заново на кожен клік, тож протухнути між відкриттям
+     * картки й натисканням більше нема як: на момент відкриття його ще нема.
+     */
+    const signedUrlFor = async (file: OrderFile): Promise<string> => {
+        const params = new URLSearchParams({
+            bucket: file.bucket_name || 'order-files',
+            path: file.file_path,
+        });
+        const res = await fetch(`/api/admin/storage-signed-url?${params}`);
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body?.error || `Не вдалося підписати посилання (${res.status})`);
+        }
+        const { url } = await res.json() as { url: string };
+        return url;
+    };
+
+    /** Байти файлу за свіжим підписом. */
+    const fetchFileBlob = async (file: OrderFile): Promise<Blob> => {
+        const url = await signedUrlFor(file);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Сховище відповіло ${res.status}`);
+        return await res.blob();
+    };
+
     const downloadFile = async (file: OrderFile) => {
         try {
-            const { data, error } = await supabase.storage
-                .from(file.bucket_name)
-                .download(file.file_path);
-
-            if (error) throw error;
+            const data = await fetchFileBlob(file);
 
             const url = URL.createObjectURL(data);
             const a = document.createElement('a');
@@ -113,7 +155,7 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
             toast.success(`Файл "${file.file_name}" завантажено`);
         } catch (error: any) {
             console.error('Download error:', error);
-            toast.error('Помилка завантаження файлу');
+            toast.error(error?.message ? `Не вдалося завантажити: ${error.message}` : 'Помилка завантаження файлу');
         }
     };
 
@@ -150,11 +192,10 @@ export default function OrderFilesPage({ params }: { params: Promise<{ id: strin
                     if (i >= picked.length) return;
                     const file = picked[i];
                     try {
-                        const { data, error } = await supabase.storage
-                            .from(file.bucket_name)
-                            .download(file.file_path);
-
-                        if (error) throw error;
+                        // Same fresh-signature path as the single download: a
+                        // long ZIP run would otherwise outlive a pre-signed URL
+                        // partway through and drop the rest of the files.
+                        const data = await fetchFileBlob(file);
 
                         // Add file to zip with folder structure
                         const folderName = file.file_type === 'upload' ? 'uploads' : 'exports';
