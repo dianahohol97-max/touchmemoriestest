@@ -4,6 +4,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { getRoleConfig, type B2bRole } from '@/lib/b2b/config';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -182,7 +183,7 @@ export async function POST(request: Request) {
                 fromEmail: 'hello@touchmemories.com.ua',
             });
             // Confirm to applicant
-            await sendBrevoEmail({
+            await sendLoggedEmail({
                 to: email,
                 toName: name,
                 subject: 'Дякуємо! Вашу заявку отримано',
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
                     </div>`,
                 fromName: 'Touch.Memories',
                 fromEmail: 'hello@touchmemories.com.ua',
-            });
+            }, { template: 'b2b_application_received' });
         }
 
         return NextResponse.json({ ok: true });

@@ -249,8 +249,11 @@ export default function SalesCabinetClient({ token }: { token: string }) {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 900, fontSize: 16, color: '#263A99' }}>{money(c.amount)}</div>
-                    <div style={{ fontSize: 12, color: c.status === 'paid' ? '#16a34a' : '#d97706' }}>
-                      {c.status === 'paid' ? 'виплачено' : 'очікує виплати'}
+                    {/* Знятий рядок мусить називатися знятим. Раніше тут було
+                        дві гілки, і 'cancelled' потрапляв у «очікує виплати» —
+                        тобто кабінет обіцяв гроші за скасоване замовлення. */}
+                    <div style={{ fontSize: 12, color: c.status === 'paid' ? '#16a34a' : c.status === 'cancelled' ? '#94a3b8' : '#d97706' }}>
+                      {c.status === 'paid' ? 'виплачено' : c.status === 'cancelled' ? 'знято, замовлення скасовано' : 'очікує виплати'}
                     </div>
                   </div>
                 </div>

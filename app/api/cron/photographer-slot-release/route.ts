@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { monoInvoiceStatus } from '@/lib/photographers/payments';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +82,7 @@ export async function GET(request: Request) {
         .maybeSingle();
       if (ph?.email) {
         const dateHuman = new Date(`${s.slot_date}T00:00:00`).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
-        sendBrevoEmail({
+        sendLoggedEmail({
           to: ph.email,
           toName: ph.name,
           subject: `Бронювання скасовано (не оплачено): ${dateHuman}, ${s.slot_time}`,
@@ -97,7 +98,7 @@ export async function GET(request: Request) {
                 </p>
               </div>
             </div>`,
-        }).catch(e => console.error('[slot-release] notify failed:', e));
+        }, { template: 'photographer_slot_released' }).catch(e => console.error('[slot-release] notify failed:', e));
       }
     }
   }

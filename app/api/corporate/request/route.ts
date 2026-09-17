@@ -4,6 +4,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { buildProposal, type BriefLine, type PriceTier } from '@/lib/corporate/quote';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
                         <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${l.line_total} грн</td>
                     </tr>`;
                 }).join('');
-                await sendBrevoEmail({
+                await sendLoggedEmail({
                     to: email,
                     toName: contactName || companyName,
                     subject: `Комерційна пропозиція для ${companyName}`,
@@ -161,9 +162,9 @@ export async function POST(request: Request) {
                         </div>`,
                     fromName: 'Touch.Memories',
                     fromEmail: 'hello@touchmemories.com.ua',
-                });
+                }, { template: 'corporate_proposal' });
             } else {
-                await sendBrevoEmail({
+                await sendLoggedEmail({
                     to: email,
                     toName: contactName || companyName,
                     subject: 'Дякуємо! Готуємо для вас пропозицію',
@@ -178,7 +179,7 @@ export async function POST(request: Request) {
                         </div>`,
                     fromName: 'Touch.Memories',
                     fromEmail: 'hello@touchmemories.com.ua',
-                });
+                }, { template: 'corporate_received' });
             }
         }
 

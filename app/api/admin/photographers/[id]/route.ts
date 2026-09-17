@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
 import { sendBrevoEmail } from '@/lib/email/brevo';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const landingUrl = `${site}/uk/photographer/${p.slug}`;
 
   try {
-    await sendBrevoEmail({
+    await sendLoggedEmail({
       to: p.email,
       toName: p.name,
       subject: 'Ваш кабінет фотографа на Touch.Memories',
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           <p>Ваша публічна сторінка: <a href="${landingUrl}">${landingUrl}</a></p>
           <p style="color:#6b7280;font-size:13px">Посилання на кабінет — особисте, не передавайте його стороннім.</p>
         </div>`,
-    });
+    }, { template: 'photographer_cabinet' });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Не вдалося надіслати лист' }, { status: 500 });
   }

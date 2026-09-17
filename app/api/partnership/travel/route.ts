@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { applicationGate, PARTNER_CABINET_URL } from '@/lib/partners/application-gate';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
                 fromEmail: 'hello@touchmemories.com.ua',
             });
             // Confirm to agency
-            await sendBrevoEmail({
+            await sendLoggedEmail({
                 to: email,
                 toName: contactName || agencyName,
                 subject: 'Дякуємо за інтерес до співпраці!',
@@ -174,7 +175,7 @@ export async function POST(request: Request) {
                     </div>`,
                 fromName: 'Touch.Memories',
                 fromEmail: 'hello@touchmemories.com.ua',
-            });
+            }, { template: 'partnership_application_received' });
         }
 
         return NextResponse.json({ ok: true });

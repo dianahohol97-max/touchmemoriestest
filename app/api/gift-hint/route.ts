@@ -4,6 +4,7 @@ import { escapeHtml } from '@/lib/email/escape';
 
 
 import { getAdminClient } from '@/lib/supabase/admin';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -64,8 +65,9 @@ export async function POST(req: Request) {
 
         const senderDisplay = escapeHtml(sender_name || 'Ваш близький або друг');
 
-        const { data: emailData, error: emailError } = await sendEmail({
+        const outcome = await sendLoggedEmail({
             to: recipient,
+            toName: recipient_name || recipient,
             subject: `${sender_name || 'Ваш близький або друг'} мріє про цей подарунок 🎁`,
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
@@ -99,11 +101,9 @@ export async function POST(req: Request) {
                     </div>
                 </div>
             `
-        });
+        }, { template: 'gift_hint' });
 
-        if (emailError) {
-            // If domain not verified, it might fail. For now we log and proceed to save in DB.
-            console.error('Resend Error:', emailError);
+        if (!outcome.sent) {
             return NextResponse.json({ error: 'Помилка відправки email. Перевірте налаштування.' }, { status: 500 });
         }
 
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
             ip_address: ip
         });
 
-        return NextResponse.json({ success: true, id: emailData?.id });
+        return NextResponse.json({ success: true, id: outcome.providerMessageId });
 
     } catch (e: any) {
         console.error('[gift-hint] error:', e);

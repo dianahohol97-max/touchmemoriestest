@@ -4,6 +4,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { findLeadAttribution } from '@/lib/sales/attribution';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
 
     if (getBrevoApiKey()) {
       try {
-        await sendBrevoEmail({
+        await sendLoggedEmail({
           to: email,
           toName: name,
           subject: 'Ваш кабінет фотографа готовий 🎉',
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
                 <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Хочете знижку 10% на друк і заробіток з рекомендацій? Подайте заявку фотографа з портфоліо: <a href="${site}/uk/photographers/apply">touchmemories.com.ua/uk/photographers/apply</a> — після підтвердження обидві опції увімкнуться у вашому кабінеті.</p>
               </div>
             </div>`,
-        });
+        }, { template: 'photographer_cabinet' });
       } catch (e) {
         console.error('[photographers/register] welcome email failed:', e);
       }

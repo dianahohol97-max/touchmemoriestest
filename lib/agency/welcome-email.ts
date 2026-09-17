@@ -1,4 +1,5 @@
-import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
+import { getBrevoApiKey } from '@/lib/email/brevo';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 /**
  * Вітальний лист новому партнеру: його реферальне посилання, умови й вхід у кабінет.
@@ -79,16 +80,16 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
 export async function sendPartnerWelcomeEmail(input: PartnerWelcomeInput) {
   const built = buildPartnerWelcomeEmail(input);
   if (!getBrevoApiKey() || !input.email) return { ...built, sent: false };
-  try {
-    await sendBrevoEmail({
-      to: input.email,
-      toName: input.name,
-      subject: built.subject,
-      html: built.html,
-    });
-    return { ...built, sent: true };
-  } catch (e) {
-    console.error('partner welcome email failed (partner still created):', e);
-    return { ...built, sent: false };
-  }
+  const outcome = await sendLoggedEmail({
+    to: input.email,
+    toName: input.name,
+    subject: built.subject,
+    html: built.html,
+  }, { template: 'partner_welcome' });
+
+  // Функція й далі не кидає: партнер уже створений, і провалений лист не має
+  // права перетворити це на помилку. Різниця в тому, що тепер спроба лишає
+  // слід у журналі — і успішна, і ні.
+  if (!outcome.sent) console.error('partner welcome email failed (partner still created):', outcome.error);
+  return { ...built, sent: outcome.sent };
 }

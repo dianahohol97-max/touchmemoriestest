@@ -28,6 +28,25 @@ interface AccrueResult {
   managerId?: string;
 }
 
+/**
+ * Перерахувати total_earned і total_paid менеджера з журналу нарахувань.
+ *
+ * Раніше обидві суми правилися читанням і записом назад — total_earned тут, при
+ * нарахуванні, а total_paid в адмінці, при зміні статусу рядка. Два вебхуки за
+ * різними замовленнями одного менеджера, що прийшли одночасно, читали те саме
+ * значення і писали ту саму суму: одне нарахування зникало з кабінету назовсім,
+ * і зійтися назад воно не могло, бо джерелом правди була сама колонка.
+ *
+ * Функція в базі робить це одним оператором UPDATE із підзапитами, тобто
+ * атомарно, і повторний виклик дає той самий результат. Помилка тут ніколи не
+ * валить нарахування — рядок у журналі вже є, а зведення перерахується з
+ * наступним викликом. Точна пара до syncPartnerTotals у lib/agency/commission.
+ */
+export async function syncManagerTotals(admin: SupabaseClient, managerId: string): Promise<void> {
+  const { error } = await admin.rpc('recalc_sales_manager_totals', { p_manager_id: managerId });
+  if (error) console.error('[sales-commission] totals recalc failed:', error.message);
+}
+
 async function insertCommission(
   admin: SupabaseClient,
   row: {
@@ -43,13 +62,8 @@ async function insertCommission(
     console.error('[sales-commission] insert failed', error.message);
     return 0;
   }
-  // Running total for the cabinet header; the rows stay the source of truth.
-  const { data: mgr } = await admin
-    .from('sales_managers').select('total_earned').eq('id', row.manager_id).maybeSingle();
-  await admin
-    .from('sales_managers')
-    .update({ total_earned: Number(mgr?.total_earned || 0) + row.amount, updated_at: new Date().toISOString() })
-    .eq('id', row.manager_id);
+  // Зведення для шапки кабінету — похідне від рядків, а не окрема правда.
+  await syncManagerTotals(admin, row.manager_id);
   return row.amount;
 }
 
@@ -164,4 +178,50 @@ export async function getManagerByToken(admin: SupabaseClient, token: string) {
     .eq('is_active', true)
     .maybeSingle();
   return data;
+}
+
+/**
+ * Зняти менеджерське нарахування за скасованим замовленням.
+ *
+ * ЧОМУ ЦЕ ЗʼЯВИЛОСЯ ОКРЕМО ВІД ПАРТНЕРСЬКОГО. 16.09.2026 скасування навчили
+ * знімати комісію ПАРТНЕРА (reverseAgencyCommission), і на тому зупинилися.
+ * Менеджерське нарахування за тим самим замовленням лишалося в журналі зі
+ * статусом 'pending' і далі йшло у виплату — тобто замовлення, якого більше
+ * немає, платило менеджеру рівно так само, як до того платило партнеру.
+ * Половина лікування виглядала як ціле саме тому, що обидва нарахування
+ * робляться одним викликом processAgencyCommission, а знімалося лише одне.
+ *
+ * ЩО САМЕ ЗНІМАЄТЬСЯ. Тільки рядок за ЗАМОВЛЕННЯМ (`kind='order'`). Нарахування
+ * за оплачений тариф памʼяті фотографа має свій `source_id` і до скасування
+ * замовлення стосунку не має; фільтр по виду стоїть у запиті, щоб випадковий
+ * збіг ідентифікаторів не зняв чужі гроші.
+ *
+ * ЛИШЕ НЕВИПЛАЧЕНЕ, як і в партнера. Якщо гроші менеджеру вже пішли, рядок
+ * лишається зі статусом 'paid' недоторканим: повертати виплачене назад — це
+ * розмова з людиною, а не дія скрипта. Рядок не видаляється, а переходить у
+ * 'cancelled', тож у кабінеті видно і саме нарахування, і те, що воно зняте.
+ *
+ * Ідемпотентна: умова status='pending' стоїть у самому UPDATE, тож повторне
+ * скасування чи повтор запиту не знімає нічого вдруге. Повертає суму, яку
+ * зняли, або 0.
+ */
+export async function reverseSalesCommission(
+  admin: SupabaseClient,
+  opts: { orderId: string },
+): Promise<number> {
+  const { data: reversed } = await admin
+    .from('sales_commissions')
+    .update({ status: 'cancelled' })
+    // source_id у цій таблиці текстовий, а не uuid — приводимо явно, щоб
+    // порівняння не залежало від того, що надішле клієнт Supabase.
+    .eq('source_id', String(opts.orderId))
+    .eq('kind', 'order')
+    .eq('status', 'pending')
+    .select('manager_id, amount');
+
+  const row = reversed?.[0];
+  if (!row) return 0;
+
+  await syncManagerTotals(admin, row.manager_id);
+  return Number(row.amount) || 0;
 }

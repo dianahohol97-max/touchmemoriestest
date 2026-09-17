@@ -2,6 +2,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 import { requireSection, requireAdmin, resolveActingStaff } from '@/lib/auth/guards';
 import { processAgencyCommission, reverseAgencyCommission } from '@/lib/agency/commission';
+import { reverseSalesCommission } from '@/lib/sales/commission';
 import { processReferralReward, refundOrderBonus } from '@/lib/referral/referral';
 import { redeemOrderCertificate } from '@/lib/certificates/redeemCertificate';
 import { buildCancellationHistoryRow, validateCancellation } from '@/lib/orders/cancellation';
@@ -352,6 +353,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         try {
             await reverseAgencyCommission(supabase, { orderId: id });
         } catch (e) { console.error('[order-patch] agency commission reversal failed (order still updated):', e); }
+
+        // Комісія менеджера за тим самим замовленням. Знімалася лише партнерська,
+        // хоча нараховуються обидві одним викликом, — тож менеджеру скасоване
+        // замовлення платило далі. Умови ті самі: лише невиплачене, ідемпотентно.
+        try {
+            await reverseSalesCommission(supabase, { orderId: id });
+        } catch (e) { console.error('[order-patch] sales commission reversal failed (order still updated):', e); }
     }
 
     return NextResponse.json({ order: data });
