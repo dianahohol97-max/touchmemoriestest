@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     PRINT_WARNING_MARKER,
     hasPrintWarning,
+    isDesignerInFlight,
     printWarningLine,
     stripPrintWarning,
 } from '@/lib/print/print-warning';
@@ -71,5 +72,42 @@ describe('stripPrintWarning', () => {
     it('без попередження примітка лишається як є', () => {
         const notes = 'Замовлення з дизайнером\n---\nДоставка: Нова Пошта — Канів';
         expect(stripPrintWarning(notes)).toBe(notes);
+    });
+});
+
+describe('isDesignerInFlight', () => {
+    /**
+     * 17.09.2026 менеджерка написала «TM-001335 нема фоток» і додала «але там
+     * отаке, то може клієнтка не завантажила, я хз». Мітка на той момент
+     * стояла на пʼятьох замовленнях, і чотири з них були цілком справні —
+     * звідси й «я хз».
+     *
+     * Причина була в тому, що умова вимагала ПРИЗНАЧЕНОГО дизайнера, а його
+     * призначають уже після оплати. Аудит біжить одразу по оплаті, тож у тому
+     * вікні умова не виконувалася ніколи.
+     */
+    it('оплачене замовлення з дизайнером і фото клієнта — це не втрачений макет', () => {
+        // TM-001332, TM-001336, TM-001338: with_designer, фото на місці,
+        // дизайнера ще не призначили.
+        expect(isDesignerInFlight({ with_designer: true }, true)).toBe(true);
+    });
+
+    it('призначення дизайнера більше ні на що не впливає', () => {
+        expect(isDesignerInFlight({ with_designer: true, designer_id: null } as any, true)).toBe(true);
+        expect(isDesignerInFlight({ with_designer: true, designer_id: 'x' } as any, true)).toBe(true);
+    });
+
+    it('заявка з дизайнером БЕЗ жодного файлу — це справжня втрата, мітка лишається', () => {
+        expect(isDesignerInFlight({ with_designer: true }, false)).toBe(false);
+    });
+
+    it('замовлення з конструктора мітку отримує, і це саме TM-001335', () => {
+        expect(isDesignerInFlight({ with_designer: false }, false)).toBe(false);
+        expect(isDesignerInFlight({ with_designer: false }, true)).toBe(false);
+    });
+
+    it('порожнє замовлення не валить перевірку', () => {
+        expect(isDesignerInFlight({}, true)).toBe(false);
+        expect(isDesignerInFlight(null as any, true)).toBe(false);
     });
 });
