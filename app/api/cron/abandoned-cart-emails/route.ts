@@ -4,6 +4,7 @@ import AbandonedCartEmail from '@/emails/AbandonedCartEmail';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { getAutomationConfig } from '@/lib/email/automation-config';
+import { logOutgoingEmail, readSendOutcome, sendOutcomeFromError, htmlToTextSnapshot } from '@/lib/email/log-outgoing';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,8 +54,12 @@ export async function GET(request: Request) {
         let errors = 0;
 
         for (const c of candidates as Array<{ email: string; items: any[]; total: number; currency: string }>) {
+            // Журнал вихідних на кожну спробу: «не дійшло» і «не відправляли»
+            // мають виглядати по-різному (Діана, 16.09.2026).
+            let outcome;
+            let html = '';
             try {
-                const html = await render(
+                html = await render(
                     AbandonedCartEmail({
                         items: Array.isArray(c.items) ? c.items : [],
                         total: Number(c.total) || 0,
@@ -63,22 +68,37 @@ export async function GET(request: Request) {
                         body: bodyOverride,
                     })
                 );
-                await sendBrevoEmail({
+                outcome = readSendOutcome(await sendBrevoEmail({
                     to: c.email,
                     toName: c.email,
                     subject,
                     html,
                     kind: 'marketing',
                     unsubscribe: { email: c.email },
-                });
+                }));
+            } catch (e: any) {
+                console.error('[abandoned-cart] send failed for', c.email, e?.message || e);
+                outcome = sendOutcomeFromError(e);
+            }
+
+            await logOutgoingEmail({
+                orderId: null,
+                to: c.email,
+                template: 'abandoned_cart',
+                subject,
+                body: html ? htmlToTextSnapshot(html) : 'Лист не склався: шаблон покинутого кошика не відрендерився.',
+                outcome,
+            });
+
+            if (outcome.sent) {
+                // Захист від повторів — лише після успіху.
                 await supabase.from('email_automation_log').insert({
                     email: c.email,
                     automation_type: 'abandoned_cart',
                     meta: { total: c.total },
                 });
                 sent++;
-            } catch (e: any) {
-                console.error('[abandoned-cart] send failed for', c.email, e?.message || e);
+            } else {
                 errors++;
             }
         }

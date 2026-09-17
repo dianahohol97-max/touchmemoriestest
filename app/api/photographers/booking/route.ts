@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
   // Notify the photographer (best-effort — the booking must not fail on mail).
   if (p?.email && getBrevoApiKey()) {
     const dateHuman = new Date(`${booked.slot_date}T00:00:00`).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
-    sendBrevoEmail({
+    sendLoggedEmail({
       to: p.email,
       toName: p.name,
       subject: `Нове бронювання: ${dateHuman}, ${booked.slot_time}`,
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
             <p style="font-size:13px;color:#64748b;margin:18px 0 0">Клієнту показано ваші способи оплати. Зв'яжіться з клієнтом для підтвердження.</p>
           </div>
         </div>`,
-    }).catch(e => console.error('[booking] notify email failed:', e));
+    }, { template: 'photographer_booking' }).catch(e => console.error('[booking] notify email failed:', e));
   }
 
   return NextResponse.json({

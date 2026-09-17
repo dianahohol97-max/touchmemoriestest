@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
 
   if (p?.email && getBrevoApiKey()) {
     const dateHuman = new Date(`${slot.slot_date}T00:00:00`).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
-    sendBrevoEmail({
+    sendLoggedEmail({
       to: p.email,
       toName: p.name,
       subject: `Клієнт повідомив про оплату: ${dateHuman}, ${slot.slot_time}`,
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
             <p style="font-size:13px;color:#64748b;margin:16px 0 0">Перевірте надходження у своєму банку та позначте бронювання «Оплачено» в кабінеті.</p>
           </div>
         </div>`,
-    }).catch(e => console.error('[booking/claim] email failed:', e));
+    }, { template: 'photographer_booking_paid' }).catch(e => console.error('[booking/claim] email failed:', e));
   }
 
   return NextResponse.json({ success: true });

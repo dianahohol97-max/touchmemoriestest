@@ -5,6 +5,7 @@ import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { getRoleConfig } from '@/lib/b2b/config';
 import { likeEscape } from '@/lib/supabase/like-escape';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,7 +140,7 @@ export async function PATCH(request: Request) {
                         </p>
                         ${landingSlug ? `<p style="font-size:13px;color:#94a3b8;margin:12px 0 0">Ваша публічна сторінка: <a href="${site}/uk/photographer/${landingSlug}">${site}/uk/photographer/${landingSlug}</a></p>` : ''}`
                 : '';
-            await sendBrevoEmail({
+            await sendLoggedEmail({
                 to: app.email,
                 toName: app.name || app.email,
                 subject: 'Вітаємо! Вашу заявку підтверджено 🎉',
@@ -154,9 +155,9 @@ export async function PATCH(request: Request) {
                     </div>`,
                 fromName: 'Touch.Memories',
                 fromEmail: 'hello@touchmemories.com.ua',
-            });
+            }, { template: 'b2b_approved' });
         } else {
-            await sendBrevoEmail({
+            await sendLoggedEmail({
                 to: app.email,
                 toName: app.name || app.email,
                 subject: 'Щодо вашої заявки на партнерство',
@@ -170,7 +171,7 @@ export async function PATCH(request: Request) {
                     </div>`,
                 fromName: 'Touch.Memories',
                 fromEmail: 'hello@touchmemories.com.ua',
-            });
+            }, { template: 'b2b_declined' });
         }
     }
 

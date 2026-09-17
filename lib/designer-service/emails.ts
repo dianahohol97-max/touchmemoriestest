@@ -1,5 +1,6 @@
-import { getResendClient } from '@/lib/email/resend';
+import { render } from '@react-email/components';
 import DesignerBriefEmail from '@/emails/DesignerBriefEmail';
+import { sendLoggedEmail } from '@/lib/email/send-logged';
 
 /**
  * Send email with brief link to customer after payment
@@ -18,24 +19,18 @@ export async function sendBriefLinkEmail({
   const briefUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/brief/${token}`;
 
   try {
-    const resend = getResendClient();
-    const { data, error } = await resend.emails.send({
-      from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
-      to: [customerEmail],
+    // Шаблон рендеримо тут, а не передаємо компонентом: у журнал має лягти
+    // текст листа, а не згадка про те, що він колись існував.
+    const html = await render(DesignerBriefEmail({ customerName, orderNumber, briefUrl }));
+    const outcome = await sendLoggedEmail({
+      to: customerEmail,
+      toName: customerName,
       subject: `Заповніть бриф для вашого фотоальбому — Замовлення ${orderNumber}`,
-      react: DesignerBriefEmail({
-        customerName,
-        orderNumber,
-        briefUrl,
-      }),
-    });
+      html,
+    }, { template: 'designer_brief' });
 
-    if (error) {
-      console.error('Error sending brief link email:', error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, data };
+    if (!outcome.sent) return { success: false, error: outcome.error };
+    return { success: true, data: { id: outcome.providerMessageId } };
   } catch (error: any) {
     console.error('Error sending brief link email:', error);
     return { success: false, error: error.message };
@@ -59,10 +54,9 @@ export async function sendDesignReadyEmail({
   const reviewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/review/${reviewToken}`;
 
   try {
-    const resend = getResendClient();
-    const { data, error } = await resend.emails.send({
-      from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
-      to: [customerEmail],
+    const outcome = await sendLoggedEmail({
+      to: customerEmail,
+      toName: customerName,
       subject: `Ваш дизайн готовий!  Замовлення ${orderNumber}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -116,14 +110,14 @@ export async function sendDesignReadyEmail({
           </div>
         </div>
       `,
-    });
+    }, { template: 'designer_design_ready' });
 
-    if (error) {
-      console.error('Error sending design ready email:', error);
-      return { success: false, error: error.message };
+    if (!outcome.sent) {
+      console.error('Error sending design ready email:', outcome.error);
+      return { success: false, error: outcome.error };
     }
 
-    return { success: true, data };
+    return { success: true, data: { id: outcome.providerMessageId } };
   } catch (error: any) {
     console.error('Error sending design ready email:', error);
     return { success: false, error: error.message };
@@ -147,10 +141,9 @@ export async function sendRevisionsCompleteEmail({
   const reviewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/review/${reviewToken}`;
 
   try {
-    const resend = getResendClient();
-    const { data, error } = await resend.emails.send({
-      from: 'TOUCH MEMORIES <noreply@touchmemories.com.ua>',
-      to: [customerEmail],
+    const outcome = await sendLoggedEmail({
+      to: customerEmail,
+      toName: customerName,
       subject: `Правки виконано  Замовлення ${orderNumber}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -182,14 +175,14 @@ export async function sendRevisionsCompleteEmail({
           </div>
         </div>
       `,
-    });
+    }, { template: 'designer_revisions_done' });
 
-    if (error) {
-      console.error('Error sending revisions complete email:', error);
-      return { success: false, error: error.message };
+    if (!outcome.sent) {
+      console.error('Error sending revisions complete email:', outcome.error);
+      return { success: false, error: outcome.error };
     }
 
-    return { success: true, data };
+    return { success: true, data: { id: outcome.providerMessageId } };
   } catch (error: any) {
     console.error('Error sending revisions complete email:', error);
     return { success: false, error: error.message };
