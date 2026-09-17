@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { geoCityLabel, clusterLabel } from '@/lib/seo/landingLabels';
 import { getLocalized } from '@/lib/i18n/localize';
+import { KEY_PRODUCT_LINKS, keyLinkAnchor } from '@/lib/seo/keyPages';
 
 interface Row {
     category_slug: string;
@@ -25,8 +26,20 @@ export default async function LandingLinks({ locale }: { locale: string }) {
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
 
+    // Товари з внутрішньої перелінковки. Беремо тільки активні: слаг у списку
+    // може застаріти, і посилання в 404 з головної шкодить більше, ніж його
+    // відсутність. Вибірка обмежена переліком слагів, тобто це не той запит,
+    // якому потрібна пагінація.
+    const { data: keyProducts } = await supabase
+        .from('products')
+        .select('slug')
+        .in('slug', KEY_PRODUCT_LINKS.map(l => l.slug))
+        .eq('is_active', true);
+    const liveSlugs = new Set(((keyProducts as { slug: string }[]) || []).map(p => p.slug));
+    const keyLinks = KEY_PRODUCT_LINKS.filter(l => liveSlugs.has(l.slug));
+
     const rows = (data as Row[]) || [];
-    if (!rows.length) return null;
+    if (!rows.length && !keyLinks.length) return null;
 
     const geo = rows.filter(r => r.kind === 'geo');
     const countries = rows.filter(r => r.kind === 'country');
@@ -98,6 +111,20 @@ export default async function LandingLinks({ locale }: { locale: string }) {
                     <span className="ll-chev" aria-hidden="true">▾</span>
                 </summary>
                 <div className="ll-body" style={wrapStyle}>
+                {keyLinks.length > 0 && (
+                    <div>
+                        <h2 style={headingStyle}>Що найчастіше шукають</h2>
+                        <ul style={listStyle}>
+                            {keyLinks.map(l => (
+                                <li key={l.slug}>
+                                    <Link href={`/${locale}/catalog/${l.slug}`} style={linkStyle}>
+                                        {keyLinkAnchor(l, locale)}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
                 {geo.length > 0 && (
                     <div>
                         <h2 style={headingStyle}>Фотокниги з доставкою в містах</h2>
