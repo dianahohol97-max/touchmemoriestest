@@ -60,6 +60,36 @@ describe('readDesignerConfig', () => {
     });
 });
 
+describe('категорії без сторінки товару (/constructor/puzzles і сусіди)', () => {
+    it('магніти й постери мають єдину позицію, тож slug відомий', () => {
+        expect(readDesignerConfig(null, params({ kind: 'magnets' })))
+            .toMatchObject({ slug: 'photomagnets', productName: 'Фотомагніти' });
+        expect(readDesignerConfig(null, params({ kind: 'posters' })))
+            .toMatchObject({ slug: 'poster', productName: 'Постер' });
+    });
+
+    it('де позицій кілька — записуємо категорію, а товар не вигадуємо', () => {
+        for (const [kind, name] of [['puzzles', 'Фотопазл'], ['calendars', 'Фотокалендар'], ['prints', 'Фотодрук']]) {
+            const got = readDesignerConfig(null, params({ kind }));
+            expect(got).toMatchObject({ slug: '', productName: name });
+        }
+    });
+
+    it('категорія сама по собі вже не дає порожньої заявки', () => {
+        // Саме це й відрізняє «Фотопазл» від «Замовлення з дизайнером».
+        expect(readDesignerConfig(null, params({ kind: 'puzzles' }))).not.toBeNull();
+    });
+
+    it('невідома категорія нічого не вигадує', () => {
+        expect(readDesignerConfig(null, params({ kind: 'хтозна' }))).toBeNull();
+    });
+
+    it('справжній товар перебиває підказку категорії', () => {
+        expect(readDesignerConfig(null, params({ kind: 'puzzles', product: 'puzzle-a5', name: 'Пазл А5' })))
+            .toMatchObject({ slug: 'puzzle-a5', productName: 'Пазл А5' });
+    });
+});
+
 describe('hasSomethingToSell', () => {
     it('звичайне замовлення з сумою їде в CRM', () => {
         expect(hasSomethingToSell({ total: 1415, with_designer: false })).toBe(true);

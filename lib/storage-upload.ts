@@ -110,6 +110,74 @@ export function logUploadAttempt(
  */
 const SERVER_UPLOAD_BUCKETS = new Set(['order-files', 'photobook-uploads']);
 
+/**
+ * З якої ваги файл йде в сховище напряму, повз нашу функцію.
+ *
+ * Функція на Vercel приймає тіло запиту близько 4,5 МБ, і це межа
+ * платформи: запит ріжеться ще до того, як наш код запуститься, тож
+ * у відповідь приходить голе 413 без жодного пояснення. Живі числа з
+ * upload_attempt_log показують межу до байта: найбільший файл, який
+ * колись доїхав, важив 4 487 593 байти, а найменший, який упав, —
+ * 4 497 036.
+ *
+ * Чотири мільйони байтів залишають півмегабайта запасу на обгортку
+ * multipart і на те, що межа ніде не задокументована точно. Кордон має
+ * бути з запасом, а не впритул до обриву.
+ */
+export const DIRECT_UPLOAD_FROM_BYTES = 4_000_000;
+
+/** Чи цей файл завеликий, щоб йти тілом запиту до нашої функції. */
+export function needsDirectUpload(size: number): boolean {
+  return Number(size) >= DIRECT_UPLOAD_FROM_BYTES;
+}
+
+/**
+ * Важкий файл прямо в сховище за підписаним посиланням.
+ *
+ * Після завантаження сервер ще раз дивиться, що НАСПРАВДІ лягло в
+ * бакет. Це та сама перевірка, яка перетворила тиху втрату TM-001245 на
+ * звичайну помилку з повтором; без неї пряме завантаження відкотило
+ * б нас туди, де «успіх» нічого не гарантує.
+ */
+async function uploadViaSignedUrl(
+  supabase: any,
+  bucket: string,
+  path: string,
+  prepared: File,
+  contentType: string,
+): Promise<{ data: any; error: any }> {
+  const body = JSON.stringify({ path, bucket, contentType, size: prepared.size });
+
+  const signRes = await fetch('/api/upload/order-file-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  });
+  const signJson = await signRes.json().catch(() => ({} as any));
+  if (!signRes.ok || !signJson?.token) {
+    return { data: null, error: { message: signJson?.error || `could not sign upload (${signRes.status})` } };
+  }
+
+  const { error: upErr } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(path, signJson.token, prepared, { contentType, upsert: true });
+  if (upErr) {
+    return { data: null, error: { message: upErr.message || 'direct upload failed' } };
+  }
+
+  const verifyRes = await fetch('/api/upload/order-file-url', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  });
+  if (!verifyRes.ok) {
+    const j = await verifyRes.json().catch(() => ({} as any));
+    return { data: null, error: { message: j?.error || `upload not confirmed (${verifyRes.status})` } };
+  }
+
+  return { data: { path }, error: null };
+}
+
 export async function uploadImageToStorage(
   supabase: any,
   bucket: string,
@@ -128,21 +196,29 @@ export async function uploadImageToStorage(
     // "new row violates row-level security policy" checkout error. See the
     // function doc above for why the direct browser upsert failed for anon.
     try {
-      const fd = new FormData();
-      fd.append('file', prepared, path.split('/').pop() || 'photo.jpg');
-      fd.append('path', path);
-      fd.append('bucket', bucket);
-      // Скільки байтів ми відправляємо. Сервер звіряє з тим, що дочитав, і
-      // відмовляє на розбіжності — обрізане тіло більше не лягає у сховище
-      // під виглядом фотографії (TM-001245).
-      fd.append('size', String(prepared.size));
-      const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
-      if (!resp.ok) {
-        const j = await resp.json().catch(() => ({}));
-        error = { message: j?.error || `upload failed (${resp.status})` };
+      if (needsDirectUpload(prepared.size)) {
+        // Важке фото взагалі не йде крізь функцію — див. DIRECT_UPLOAD_FROM_BYTES.
+        const direct = await uploadViaSignedUrl(supabase, bucket, path, prepared, contentType);
+        data = direct.data;
+        error = direct.error;
       } else {
-        const j = await resp.json().catch(() => ({}));
-        data = { path: j?.path || path };
+        const fd = new FormData();
+        fd.append('file', prepared, path.split('/').pop() || 'photo.jpg');
+        fd.append('path', path);
+        fd.append('bucket', bucket);
+        // Скільки байтів ми відправляємо. Сервер звіряє з тим, що дочитав, і
+        // відмовляє на розбіжності — обрізане тіло більше не лягає у сховище
+        // під виглядом фотографії (TM-001245). Для прямого завантаження те саме
+        // робить PATCH у /api/upload/order-file-url.
+        fd.append('size', String(prepared.size));
+        const resp = await fetch('/api/upload/order-file', { method: 'POST', body: fd });
+        if (!resp.ok) {
+          const j = await resp.json().catch(() => ({}));
+          error = { message: j?.error || `upload failed (${resp.status})` };
+        } else {
+          const j = await resp.json().catch(() => ({}));
+          data = { path: j?.path || path };
+        }
       }
     } catch (e: any) {
       error = { message: e?.message || 'upload failed' };

@@ -1,5 +1,13 @@
 import { redirect } from 'next/navigation'
 
+// Calendars use the designer order flow.
+//
+// Категорія їде параметром, а не губиться. Голе redirect('/order') відкривало
+// заявку взагалі без товару, і замовлення лягало з порожнім slug, нулем
+// гривень і назвою «Замовлення з дизайнером» — так приїхало TM-001320, і
+// перенесення в CRM відкидало його як порожній кошик. Конкретну позицію
+// (А5 чи А4, настільний чи настінний) уточнює менеджер, але знати, про що
+// взагалі йдеться, він мусить із самої заявки.
 export default function ConstructorPage() {
-  redirect('/order') // Calendars use designer order flow
+  redirect('/order?kind=calendars')
 }
