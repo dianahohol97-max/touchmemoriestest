@@ -133,9 +133,24 @@ const nextConfig = {
         destination: '/:locale/pro-nas',
         permanent: true,
       },
+      // «Випускні книги» — категорія вимкнена (is_active = false, нуль активних
+      // товарів). Тут стояв редирект /category/vypuskni-knyhy →
+      // /category/graduation-books, і це був нескінченний цикл: `vypuskni-knyhy`
+      // — це публічний український слаг із UA_TO_DB_CATEGORY, тож сторінка
+      // категорії відповідала на `graduation-books` постійним редиректом назад
+      // на `vypuskni-knyhy`, а next.config знову слав на `graduation-books`.
+      // Браузер показував ERR_TOO_MANY_REDIRECTS, Google — помилку сканування.
+      // Поки категорія порожня, обидві адреси ведуть одним кроком у каталог;
+      // коли Діана додасть туди товар і ввімкне категорію, ці два рядки треба
+      // прибрати, і публічною адресою знову стане /category/vypuskni-knyhy.
       {
         source: '/:locale(uk|en|ro|pl|de)/category/vypuskni-knyhy',
-        destination: '/:locale/category/graduation-books',
+        destination: '/:locale/catalog',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/category/graduation-books',
+        destination: '/:locale/catalog',
         permanent: true,
       },
       // Legacy product URLs. /[locale]/product/[slug] was an old duplicate
@@ -162,106 +177,157 @@ const nextConfig = {
         destination: '/uk/catalog/:slug',
         permanent: true,
       },
-      // Old-site URLs (pre-migration /shop structure): stop leaking their SEO
-      // weight into 404s — land visitors on the catalog instead.
-      {
-        source: '/shop/:path*',
-        destination: '/uk/catalog',
-        permanent: true,
-      },
-      {
-        source: '/shop',
-        destination: '/uk/catalog',
-        permanent: true,
-      },
+      // NB: the old-site /shop/* rules live at the BOTTOM of this array, next to
+      // the per-product mapping table. A blanket `/shop/:path*` → `/uk/catalog`
+      // used to sit right here, and because Next.js takes the FIRST matching
+      // redirect, it swallowed every one of those ~60 hand-written product
+      // mappings below — each ranking /shop/ URL was dumped on the generic
+      // catalog instead of on its own product. Never reintroduce a broad
+      // /shop/ rule above the specific ones.
       {
         source: '/constructor',
         destination: '/constructor/photobook',
         permanent: false,
       },
+      // Безлокальні псевдоніми ведуть одразу на /uk/…, а не на шлях без локалі.
+      // proxy.ts на адресу без префікса локалі відповідає ще одним редиректом,
+      // тож /about → / → /uk було двома кроками замість одного, а людина з
+      // наміром «про нас» узагалі опинялася на головній замість /pro-nas.
       {
         source: '/contacts',
-        destination: '/kontakty',
+        destination: '/uk/kontakty',
         permanent: true,
       },
       {
         source: '/about',
-        destination: '/',
-        permanent: false,
+        destination: '/uk/pro-nas',
+        permanent: true,
       },
       {
         source: '/delivery',
-        destination: '/',
-        permanent: false,
+        destination: '/uk/oplata-i-dostavka',
+        permanent: true,
       },
-      // Wishbook duplicates → canonical
+      // Wishbook duplicates → canonical.
+      //
+      // `guestbook-kids` свідомо НЕ в цьому списку. Це живий товар «Книга
+      // побажань дитяча»: власний опис на три з половиною тисячі знаків, чотири
+      // фото, свій meta_title про хрещення, і Діана редагувала його 20.08.2026 —
+      // уже після того, як тут зʼявився редирект. Редирект робив зворотне тому,
+      // чого ми хочемо: сторінка товару була недосяжна, хоча лежала в
+      // sitemap.xml, тобто ми самі здавали Google адресу, яка відповідає 301.
+      // Заразом це та сторінка, що відповідає запиту «книга побажань на 1 рік».
+      // Слаги нижче — справді неіснуючі товари, їх редиректити правильно.
       { source: '/:locale(uk|en|pl|ro|de)/catalog/guestbook-wedding',       destination: '/:locale/catalog/wishbook', permanent: true },
-      { source: '/:locale(uk|en|pl|ro|de)/catalog/guestbook-kids',          destination: '/:locale/catalog/wishbook', permanent: true },
-      { source: '/:locale(uk|en|pl|ro|de)/catalog/knyha-pobazhan-dytyacha', destination: '/:locale/catalog/wishbook', permanent: true },
+      { source: '/:locale(uk|en|pl|ro|de)/catalog/knyha-pobazhan-dytyacha', destination: '/:locale/catalog/guestbook-kids', permanent: true },
       { source: '/:locale(uk|en|pl|ro|de)/catalog/knyha-pobazhan-vesillia', destination: '/:locale/catalog/wishbook', permanent: true },
-      { source: '/catalog/guestbook-wedding',       destination: '/catalog/wishbook', permanent: true },
-      { source: '/catalog/guestbook-kids',          destination: '/catalog/wishbook', permanent: true },
-      { source: '/catalog/knyha-pobazhan-dytyacha', destination: '/catalog/wishbook', permanent: true },
-      { source: '/catalog/knyha-pobazhan-vesillia', destination: '/catalog/wishbook', permanent: true },
+      // Безлокальні варіанти ведуть одразу на /uk/…, а не на /catalog/…:
+      // інакше спрацьовувало б загальне правило /catalog/:slug* → /uk/catalog/…
+      // нижче, і виходив ланцюг із двох 301 замість одного.
+      { source: '/catalog/guestbook-wedding',       destination: '/uk/catalog/wishbook', permanent: true },
+      { source: '/catalog/knyha-pobazhan-dytyacha', destination: '/uk/catalog/guestbook-kids', permanent: true },
+      { source: '/catalog/knyha-pobazhan-vesillia', destination: '/uk/catalog/wishbook', permanent: true },
       // Calendar duplicates → 2026 canonical
       { source: '/:locale(uk|en|pl|ro|de)/catalog/calendar-table',    destination: '/:locale/catalog/desk-calendar-2026', permanent: true },
       { source: '/:locale(uk|en|pl|ro|de)/catalog/calendar-wall-a3',  destination: '/:locale/catalog/wall-calendar-2026', permanent: true },
-      { source: '/catalog/calendar-table',    destination: '/catalog/desk-calendar-2026', permanent: true },
-      { source: '/catalog/calendar-wall-a3',  destination: '/catalog/wall-calendar-2026', permanent: true },
+      { source: '/catalog/calendar-table',    destination: '/uk/catalog/desk-calendar-2026', permanent: true },
+      { source: '/catalog/calendar-wall-a3',  destination: '/uk/catalog/wall-calendar-2026', permanent: true },
       // Stale constructor paths from the old site structure (/order/calendar/<type>)
       { source: '/:locale(uk|en|pl|ro|de)/order/calendar/wall', destination: '/:locale/order/wall-calendar', permanent: true },
       { source: '/:locale(uk|en|pl|ro|de)/order/calendar/desk', destination: '/:locale/order/desk-calendar', permanent: true },
-      { source: '/order/calendar/wall', destination: '/order/wall-calendar', permanent: true },
-      { source: '/order/calendar/desk', destination: '/order/desk-calendar', permanent: true },
+      { source: '/order/calendar/wall', destination: '/uk/order/wall-calendar', permanent: true },
+      { source: '/order/calendar/desk', destination: '/uk/order/desk-calendar', permanent: true },
       // Legacy sitemap filename → canonical sitemap
       { source: '/sitemap_pages.xml', destination: '/sitemap.xml', permanent: true },
 
-      // Legacy category slugs (old Ukrainian names → new English slugs)
-      { source: '/:locale(uk|en|ro|de|pl)/category/fotoknyhy',         destination: '/:locale/category/photobooks',           permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/fotodruk',          destination: '/:locale/category/prints',               permanent: true },
+      // Legacy category slugs (old Ukrainian names → канонічний публічний слаг).
+      //
+      // Призначення тут — саме UA-слаг із UA_TO_DB_CATEGORY, а не слаг у базі.
+      // Раніше ці рядки вели на слаг бази (`photobooks`, `prints`, …), і виходив
+      // ланцюг із двох 301: next.config слав на слаг бази, а сторінка категорії
+      // додатково слала з нього на публічний UA-слаг. Кожен зайвий крок — це
+      // втрачена вага посилання і зайвий запит для сканера, тож ведемо одразу
+      // туди, де сторінка справді відповідає кодом 200.
+      { source: '/:locale(uk|en|ro|de|pl)/category/fotoknyhy',         destination: '/:locale/category/fotoknygy',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/fotodruk',          destination: '/:locale/category/druk-foto',            permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/category/zhurnaly',          destination: '/:locale/category/hlyantsevi-zhurnaly',  permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/albomy',            destination: '/:locale/category/photoalbomy-failykovi', permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/kalendari',         destination: '/:locale/category/calendars',            permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/magnity',           destination: '/:locale/category/photomagnets',         permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/category/travelbuky',        destination: '/:locale/category/travelbooks',          permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/albomy',            destination: '/:locale/category/fotoalbomy',           permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/kalendari',         destination: '/:locale/category/fotokalendari',        permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/magnity',           destination: '/:locale/category/fotomahnity',          permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/category/travelbuky',        destination: '/:locale/category/trevel-buky',          permanent: true },
 
 
       // Google found these as alternate pages. Redirect to canonical clean URL.
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photomagnets' }],    destination: '/:locale/category/photomagnets',         permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'kids' }],            destination: '/:locale/category/kids',                 permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'prints' }],          destination: '/:locale/category/prints',               permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'accessories' }],     destination: '/:locale/category/accessories',           permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'scrapbook-albums' }], destination: '/:locale/category/scrapbook-albums',     permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photobooks' }],      destination: '/:locale/category/photobooks',           permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'calendars' }],       destination: '/:locale/category/calendars',            permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'guestbooks' }],      destination: '/:locale/category/guestbooks',           permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'travelbooks' }],     destination: '/:locale/category/travelbooks',          permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'posters' }],         destination: '/:locale/category/posters',              permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'puzzles' }],         destination: '/:locale/category/puzzles',              permanent: true },
+      //
+      // Призначення — публічний UA-слаг категорії, а не слаг бази: інакше тут
+      // теж виходив ланцюг із двох 301 (див. коментар про застарілі слаги вище).
+      // `gifts` і `graduation-books` вимкнені та порожні, тож ведуть у каталог.
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photomagnets' }],    destination: '/:locale/category/fotomahnity',          permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'kids' }],            destination: '/:locale/category/dytyachi-fototovary',  permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'prints' }],          destination: '/:locale/category/druk-foto',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'accessories' }],     destination: '/:locale/category/aksesuary',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'scrapbook-albums' }], destination: '/:locale/category/albomy-dlya-vkleyky', permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photobooks' }],      destination: '/:locale/category/fotoknygy',            permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'calendars' }],       destination: '/:locale/category/fotokalendari',        permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'guestbooks' }],      destination: '/:locale/category/knyha-pobazhan',       permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'travelbooks' }],     destination: '/:locale/category/trevel-buky',          permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'posters' }],         destination: '/:locale/category/postery',              permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'puzzles' }],         destination: '/:locale/category/pazly',                permanent: true },
       { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'hlyantsevi-zhurnaly' }], destination: '/:locale/category/hlyantsevi-zhurnaly', permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photoalbomy-failykovi' }], destination: '/:locale/category/photoalbomy-failykovi', permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'graduation-books' }], destination: '/:locale/category/graduation-books',   permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'gifts' }],           destination: '/:locale/category/gifts',                permanent: true },
-      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'certificates' }],    destination: '/:locale/category/certificates',         permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'photoalbomy-failykovi' }], destination: '/:locale/category/fotoalbomy',     permanent: true },
+      { source: '/:locale(uk|en|ro|de|pl)/catalog', has: [{ type: 'query', key: 'category', value: 'certificates' }],    destination: '/:locale/category/sertyfikaty',          permanent: true },
+      // `gifts` і `graduation-books` навмисно НЕ мають тут рядка. Обидві
+      // категорії вимкнені, тобто вести їх нема куди, а призначення
+      // `/:locale/catalog` дало б нескінченний цикл: Next.js переносить
+      // невикористані параметри запиту в призначення сам, тож /uk/catalog
+      // ?category=gifts вело б рівно саме на себе. Без правила ці адреси просто
+      // показують каталог, canonical вказує на /catalog без параметра, а
+      // robots.txt і так закриває /*/catalog?*.
 
-      // ── BLOG ?category= query params → /blog (no separate category pages) ─
-      { source: '/:locale(uk|en|ro|de|pl)/blog', has: [{ type: 'query', key: 'category' }], destination: '/:locale/blog', permanent: true },
+      // ── BLOG ?category= ────────────────────────────────────────────────────
+      //
+      // Тут стояло правило /:locale/blog з has: query 'category' і призначенням
+      // /:locale/blog — тобто сторінка вела рівно сама на себе. Виглядало це як
+      // прибирання параметра, а насправді було нескінченним циклом: Next.js
+      // переносить у призначення ті параметри запиту, яких немає в шаблоні
+      // призначення, тож /uk/blog?category=poradи віддавало 308 на
+      // /uk/blog?category=poradи, і так до ERR_TOO_MANY_REDIRECTS. Знайшов це
+      // scripts/redirect-chains.mjs.
+      //
+      // Правило не потрібне: сторінка блогу вже ставить canonical на /blog без
+      // параметрів, а robots.txt закриває /*/blog?*. Окремих сторінок категорій
+      // у блозі немає, тож параметр просто фільтрує список.
 
 
       // These were indexed by Google from the old Хорошоп/Prom platform.
       // Mapping them prevents 404 penalties and passes link equity to new URLs.
 
-      // Category pages
-      { source: '/shop',                    destination: '/uk',                              permanent: true },
-      { source: '/shop/cat/albomi',         destination: '/uk/category/photoalbomy-failykovi', permanent: true },
+      // Category pages.
+      //
+      // Призначення — публічний UA-слаг категорії (той, що в sitemap і в
+      // canonical), а не слаг бази. Доти тут стояли слаги бази, і кожна з цих
+      // адрес віддавала 301 на сторінку, яка сама відповідала ще одним 301.
+      // Для адрес, які реально ранжуються (а /shop/cat/albomi — одна з них),
+      // зайвий крок коштує ваги посилання.
+      { source: '/shop',                    destination: '/uk/catalog',                      permanent: true },
+      { source: '/shop/cat/albomi',         destination: '/uk/category/fotoalbomy',          permanent: true },
       { source: '/shop/cat/fotozhurnal',    destination: '/uk/category/hlyantsevi-zhurnaly',  permanent: true },
-      { source: '/shop/cat/fotoknyhy',      destination: '/uk/category/photobooks',           permanent: true },
-      { source: '/shop/cat/fotodruk',       destination: '/uk/category/prints',               permanent: true },
-      { source: '/shop/cat/postory',        destination: '/uk/category/posters',              permanent: true },
-      { source: '/shop/cat/kalendari',      destination: '/uk/category/calendars',            permanent: true },
-      { source: '/shop/cat/magnity',        destination: '/uk/category/photomagnets',         permanent: true },
-      { source: '/shop/cat/knyha-pobazhan', destination: '/uk/category/guestbooks',           permanent: true },
-      { source: '/shop/cat/vypuskni',       destination: '/uk/category/graduation-books',     permanent: true },
+      { source: '/shop/cat/fotoknyhy',      destination: '/uk/category/fotoknygy',           permanent: true },
+      { source: '/shop/cat/fotodruk',       destination: '/uk/category/druk-foto',           permanent: true },
+      { source: '/shop/cat/postory',        destination: '/uk/category/postery',             permanent: true },
+      { source: '/shop/cat/kalendari',      destination: '/uk/category/fotokalendari',       permanent: true },
+      { source: '/shop/cat/magnity',        destination: '/uk/category/fotomahnity',         permanent: true },
+      { source: '/shop/cat/knyha-pobazhan', destination: '/uk/category/knyha-pobazhan',      permanent: true },
+      // «Друк на полотні (холсті)» був окремим розділом старого магазину, а в
+      // нас це один товар, тож ведемо на сам товар, а не на розділ аксесуарів.
+      { source: '/shop/cat/druk-na-polotni-holsti', destination: '/uk/catalog/druk-na-polotni', permanent: true },
+      { source: '/shop/cat/druk-na-polotni',        destination: '/uk/catalog/druk-na-polotni', permanent: true },
+      // Категорія випускних книг вимкнена і порожня, тож ведемо в каталог: на
+      // /category/vypuskni-knyhy сторінка віддала б 404.
+      { source: '/shop/cat/vypuskni',       destination: '/uk/catalog',                      permanent: true },
+      { source: '/shop/cat/albomy-dlya-vkleyuvannya', destination: '/uk/category/albomy-dlya-vkleyky', permanent: true },
+      { source: '/shop/cat/pazly',          destination: '/uk/category/pazly',               permanent: true },
+      { source: '/shop/cat/travelbook',     destination: '/uk/category/trevel-buky',         permanent: true },
 
       // Velour albums 200
       { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-blakitnogo-koloru', destination: '/uk/catalog/velour-album-200', permanent: true },
@@ -333,13 +399,41 @@ const nextConfig = {
       { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-sinogo-koloru',  destination: '/uk/catalog/velour-album-200',    permanent: true },
       { source: '/shop/fajlikovij-velyurovij-albom-na-200-foto-sinioho-koloru', destination: '/uk/catalog/velour-album-200',    permanent: true },
       { source: '/shop/photomagnity',                        destination: '/uk/catalog/photomagnets',           permanent: true },
-      { source: '/shop/albom-dlya-fotografij-na-200-foto-fotografhs-sirij',     destination: '/uk/catalog/velour-album-200',    permanent: true },
-      { source: '/shop/fotoalbom-na-200-foto-10x15-kvitkovui', destination: '/uk/catalog/velour-album-200',    permanent: true },
-      { source: '/shop/cat/keyboards',                       destination: '/uk',                                permanent: true },
+      { source: '/shop/cat/keyboards',                       destination: '/uk/catalog',                        permanent: true },
       { source: '/shop/videoramka',                          destination: '/uk/catalog/tsyfrova-fotoramka',     permanent: true },
-      { source: '/shop/ckotch-dvostoronij',                  destination: '/uk',                                permanent: true },
+      // Товар «Скотч двосторонній» існує — раніше ця адреса вела на головну.
+      { source: '/shop/ckotch-dvostoronij',                  destination: '/uk/catalog/skotch-dvostoronnii',    permanent: true },
+      { source: '/shop/skotch-dvostoronnij',                 destination: '/uk/catalog/skotch-dvostoronnii',    permanent: true },
       { source: '/shop/fotodruk-9h9',                        destination: '/uk/catalog/photoprint-nonstandard', permanent: true },
       { source: '/shop/kniga-pobazhan-na-vesillya',          destination: '/uk/catalog/wishbook',               permanent: true },
+
+      // ── Адреси зі SEO-аудиту (вересень 2026), які ранжуються й досі ────────
+      //
+      // Тут навмисно є призначення виду /category/fotoalbomy/<N>-foto. Це не
+      // «загальна категорія», а сторінка landing_pages рівно про той самий
+      // запит: «Фотоальбоми на 200 фото» перелічує всі активні альбоми цього
+      // розміру. Старі адреси були списком-добіркою, а не одним товаром, тож
+      // відповідник один до одного — саме така сторінка, а не навмання вибраний
+      // альбом із десятка однакових за розміром.
+      { source: '/shop/fotoalbom-na-200-foto-10x15',          destination: '/uk/category/fotoalbomy/200-foto', permanent: true },
+      { source: '/shop/fotoalbom-na-200-foto-10x15-kvitkovui', destination: '/uk/category/fotoalbomy/200-foto', permanent: true },
+      { source: '/shop/albom-dlya-fotografij-na-200-foto-fotografhs-sirij', destination: '/uk/category/fotoalbomy/200-foto', permanent: true },
+      { source: '/shop/albom-dlya-fotografij-na-300-foto-1',  destination: '/uk/category/fotoalbomy/300-foto', permanent: true },
+      { source: '/shop/albom-dlya-fotografij-na-300-foto',    destination: '/uk/category/fotoalbomy/300-foto', permanent: true },
+      // «Альбом з чорними сторінками та фотовікном» — точного відповідника в
+      // каталозі НЕМАЄ: наш «Альбом для вклеювання фото» має білі сторінки й без
+      // фотовікна, тобто відрізняється двома ознаками, які людина й шукала.
+      // Ведемо на категорію альбомів для вклеювання — найвужча сторінка того ж
+      // наміру. Цей випадок є в списку прогалин у ARCHITECTURE.md: щойно товар
+      // із чорними сторінками зʼявиться, рядок треба перевести на нього.
+      { source: '/shop/albom-z-chornimi-storinkami-ta-fotoviknom', destination: '/uk/category/albomy-dlya-vkleyky', permanent: true },
+      { source: '/shop/albom-z-chornymy-storinkamy',              destination: '/uk/category/albomy-dlya-vkleyky', permanent: true },
+      // Друк фото в стилі полароїд — окремий активний товар.
+      { source: '/shop/polaroid',                             destination: '/uk/catalog/polaroid-print', permanent: true },
+      { source: '/shop/druk-polaroid',                        destination: '/uk/catalog/polaroid-print', permanent: true },
+      { source: '/shop/fotodruk-polaroid',                    destination: '/uk/catalog/polaroid-print', permanent: true },
+      { source: '/shop/druk-foto-polaroid',                   destination: '/uk/catalog/polaroid-print', permanent: true },
+      { source: '/shop/druk-na-polotni-holsti',               destination: '/uk/catalog/druk-na-polotni', permanent: true },
 
       // /blog, /catalog, /category without locale → /uk/...
       { source: '/blog',          destination: '/uk/blog',           permanent: true },
@@ -354,8 +448,18 @@ const nextConfig = {
       { source: '/rozmalovka',                         destination: '/tools/rozmalovka.html', permanent: false },
       { source: '/:locale(uk|en|ro|pl|de)/rozmalovka', destination: '/tools/rozmalovka.html', permanent: false },
 
-      // Catch-all: any remaining /shop/ path → home
-      { source: '/shop/:path*',                              destination: '/uk', permanent: true },
+      // Catch-all: усе, що лишилося з /shop/, — у каталог, а не на головну.
+      //
+      // Цей рядок МУСИТЬ бути останнім серед правил про /shop/: Next.js бере
+      // перший збіг, тож будь-яке ширше правило вище знеструмлює всю таблицю
+      // відповідників. Саме так ми й втратили її на кілька місяців.
+      //
+      // Призначення — /uk/catalog, а не /uk. Головна сторінка розповідає про
+      // бренд, каталог показує товари, а сюди потрапляє людина, яка шукала
+      // конкретну річ. Кожну адресу, що приходить сюди й має покази в Search
+      // Console, треба виносити рядком вище, до її власного товару: каталог —
+      // це запасний варіант для решти, а не відповідь на запит.
+      { source: '/shop/:path*',                              destination: '/uk/catalog', permanent: true },
 
       // Old root paths without /shop/ prefix (some indexed without it)
       { source: '/&',  destination: '/uk', permanent: true },
