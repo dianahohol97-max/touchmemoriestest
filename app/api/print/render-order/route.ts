@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { hasPrintWarning, printWarningLine, stripPrintWarning } from '@/lib/print/print-warning';
+import { hasPrintWarning, isDesignerInFlight, printWarningLine, stripPrintWarning } from '@/lib/print/print-warning';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
 import { isRenderComplete } from '@/lib/print/render-result';
@@ -89,13 +89,27 @@ async function auditPrintArtifacts(admin: ReturnType<typeof getAdminClient>, ord
       } catch { /* scan unavailable — stay lenient below */ }
     }
 
-    // Замовлення з дизайнером, у якого фото клієнта вже завантажені, а дизайнер
-    // призначений, — це не «немає файлів», а «ще не зверстано». Попередження
-    // писалося саме для протилежного випадку: клієнт збирав макет сам, і макет
-    // дорогою загубився. Без цієї умови аудит позначав двадцять вісім
-    // замовлень посеред нормальної роботи, і червона мітка переставала щось
-    // означати.
-    const designerInFlight = !!(ord as any)?.with_designer && !!(ord as any)?.designer_id && hasAnyRow;
+    /**
+     * Замовлення з дизайнером, у якого фото клієнта вже завантажені, — це не
+     * «немає файлів», а «ще не зверстано». Попередження писалося саме для
+     * протилежного випадку: клієнт збирав макет сам, і макет дорогою загубився.
+     *
+     * ПРО designer_id, який стояв тут раніше і сам став джерелом хибних міток.
+     * Дизайнера призначають ПІСЛЯ оплати, інколи через години, а аудит біжить
+     * одразу по ній. У тому вікні умова ніколи не виконувалася, і кожне свіжо
+     * оплачене замовлення з дизайнером діставало «макет з конструктора
+     * відсутній» — хоча його там і не має бути за визначенням. 17.09.2026 так
+     * позначило TM-001317, TM-001318, TM-001332, TM-001336 і TM-001338 — усі зі
+     * своїми фото на місці (19, 21, 23, 45 і 57 файлів), і менеджерка перестала
+     * вірити мітці взагалі — а єдине справжнє (TM-001335) через це й списали на
+     * «може клієнтка не завантажила».
+     *
+     * Призначений дизайнер нічого не каже про те, чи мав клієнт збирати макет.
+     * Це каже саме with_designer, а те, що клієнт свою частину виконав, — наявність
+     * його фото. Замовлення з дизайнером БЕЗ жодного файлу — це все ще справжня
+     * біда, і його мітка лишається.
+     */
+    const designerInFlight = isDesignerInFlight(ord as any, hasAnyRow);
 
     // Товар із полиці макета не потребує й потребувати не може. Фотоальбом на
     // 500 фото і картридж Instax верстати нічого, але слово «альбом» підпадає
