@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     FALLBACK_ALERT_KEY,
+    FALLBACK_WATCH_KEY,
     checkMagazineBriefFallback,
     decideFallbackAlert,
     formatFallbackAlert,
@@ -106,8 +107,8 @@ describe('прохід сторожа', () => {
         });
         expect(result.sent).toBe(true);
         expect(sentTexts).toHaveLength(1);
-        expect(fake.upserts[0].key).toBe(FALLBACK_ALERT_KEY);
-        expect(fake.upserts[0].value.order_number).toBe('TM-001331');
+        const memory = fake.upserts.find(u => u.key === FALLBACK_ALERT_KEY);
+        expect(memory?.value.order_number).toBe('TM-001331');
     });
 
     /**
@@ -126,7 +127,21 @@ describe('прохід сторожа', () => {
         const fake = fakeSupabase({ flag: { value: true, updated_at: '2026-09-16T13:57:20Z' }, orders: [order] });
         const result = await checkMagazineBriefFallback(fake.client, { send: async () => false });
         expect(result.sent).toBe(false);
-        expect(fake.upserts).toHaveLength(0);
+        expect(fake.upserts.some(u => u.key === FALLBACK_ALERT_KEY)).toBe(false);
+        expect(fake.upserts.find(u => u.key === FALLBACK_WATCH_KEY)?.value.outcome).toBe('send_failed');
+    });
+
+    /**
+     * Мовчазний прохід і незапущений прохід не мають виглядати однаково —
+     * тому кожен прохід лишає дату й причину мовчання.
+     */
+    it('кожен прохід лишає слід, навіть коли сигналу немає', async () => {
+        const fake = fakeSupabase({ flag: { value: true, updated_at: '2026-09-16T13:57:20Z' }, orders: [] });
+        await checkMagazineBriefFallback(fake.client, { send: async () => true });
+        const beat = fake.upserts.find(u => u.key === FALLBACK_WATCH_KEY);
+        expect(beat?.value.outcome).toBe('no_fallback');
+        expect(beat?.value.flag_on).toBe(true);
+        expect(String(beat?.value.last_checked_at)).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it('перегляд нічого не надсилає і нічого не запамʼятовує', async () => {

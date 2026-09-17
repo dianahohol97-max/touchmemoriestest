@@ -10,6 +10,8 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { isTestOrder } from '@/lib/automation/test-orders';
+import { checkMagazineBriefFallback } from '@/lib/alerts/magazine-brief-fallback';
+import { getWatchdogChatId, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
 
 export const dynamic = 'force-dynamic';
 // The catalogue upkeep walks the whole KeyCRM catalogue and can resolve
@@ -71,6 +73,30 @@ export async function GET(request: Request) {
 
     const dryRun = new URL(request.url).searchParams.get('dry') === '1';
 
+    // Сторож відкату брифа на текст журналу. Живе і в error-alerts, і тут
+    // навмисно: той крон читає журнал Vercel і відмовляє цілим маршрутом, коли
+    // немає VERCEL_API_TOKEN, а рядка error_alert_state у settings немає від
+    // самого його заведення 14.09 — тобто покладатися на нього поки не можна.
+    // Цей крон працює доведено, кожні півгодини. Подвійний виклик нічого не
+    // подвоює: сигнал іде один раз, і тримає це памʼять у settings.
+    let briefFallback: any = null;
+    try {
+        const chatId = await getWatchdogChatId();
+        const result = await checkMagazineBriefFallback(getAdminClient(), {
+            preview: dryRun,
+            send: async (text) => {
+                if (!chatId) return false;
+                const sent = await sendViaPublicBot({ chat_id: chatId, text });
+                if (!sent.success) console.error('[keycrm-sync] brief fallback alert failed:', sent.error);
+                return sent.success;
+            },
+        });
+        briefFallback = { reason: (result.decision as any).reason || 'sent', sent: result.sent };
+    } catch (e: any) {
+        console.error('[keycrm-sync] brief fallback watchdog failed:', e?.message || e);
+        briefFallback = { error: e?.message || 'сторож відкату впав' };
+    }
+
     const stats: Record<string, number> = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, stock_counted: 0, defects_enqueued: 0, errors: 0 };
     const details: any[] = [];
 
@@ -102,6 +128,7 @@ export async function GET(request: Request) {
             ok: true,
             stats,
             stock,
+            briefFallback,
             note: 'KEYCRM_SYNC_FROM не заданий, тому синхронізація свідомо не переносить нічого. Постав дату старту, і з неї підуть лише нові замовлення.',
         });
     }
@@ -358,7 +385,7 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, stock_follow, chat_comments: chatComments });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, stock_follow, chat_comments: chatComments, briefFallback });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);

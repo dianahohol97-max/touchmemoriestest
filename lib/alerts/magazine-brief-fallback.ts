@@ -22,6 +22,14 @@ import { readServerOrderFlowFlag } from '@/lib/orders/server-order-flow';
 /** Памʼять про вже надісланий сигнал. Рядок є — більше не надсилаємо. */
 export const FALLBACK_ALERT_KEY = 'magazine_brief_client_fallback_alerted';
 
+/**
+ * Слід кожного проходу. Сторож, який мовчить, і сторож, якого ніхто не
+ * запускав, виглядають однаково — а це різні речі (Діана, 15.09.2026, про
+ * журнал звірки каталогу). Тому кожен прохід лишає дату й причину мовчання,
+ * і «воно живе» перевіряється одним рядком у settings.
+ */
+export const FALLBACK_WATCH_KEY = 'magazine_brief_fallback_watch';
+
 export type FallbackOrder = {
     order_number: string | null;
     created_at: string | null;
@@ -113,12 +121,26 @@ export async function checkMagazineBriefFallback(
         alreadyAlerted: Boolean(alerted),
         order,
     });
-    if (!decision.send) return { decision, sent: false };
+
+    const heartbeat = async (outcome: string) => {
+        if (opts.preview) return;
+        await supabase.from('settings').upsert({
+            key: FALLBACK_WATCH_KEY,
+            value: { last_checked_at: new Date().toISOString(), outcome, flag_on: flag.enabled },
+            updated_at: new Date().toISOString(),
+        });
+    };
+
+    if (!decision.send) {
+        await heartbeat(decision.reason);
+        return { decision, sent: false };
+    }
 
     const message = formatFallbackAlert(decision.order);
     if (opts.preview) return { decision, sent: false, message };
 
     const ok = await opts.send(message);
+    await heartbeat(ok ? 'alerted' : 'send_failed');
     if (ok) {
         await supabase.from('settings').upsert({
             key: FALLBACK_ALERT_KEY,
