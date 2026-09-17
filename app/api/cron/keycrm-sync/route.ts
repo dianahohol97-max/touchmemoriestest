@@ -11,6 +11,7 @@ import { resolveOrderDeadline } from '@/lib/automation/deadline-resolver';
 import { fetchProductTermsBySlug } from '@/lib/automation/product-terms';
 import { isTestOrder } from '@/lib/automation/test-orders';
 import { checkMagazineBriefFallback } from '@/lib/alerts/magazine-brief-fallback';
+import { checkLostOrderSignals } from '@/lib/alerts/lost-order-signals';
 import { getWatchdogChatId, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
 
 export const dynamic = 'force-dynamic';
@@ -80,6 +81,7 @@ export async function GET(request: Request) {
     // Цей крон працює доведено, кожні півгодини. Подвійний виклик нічого не
     // подвоює: сигнал іде один раз, і тримає це памʼять у settings.
     let briefFallback: any = null;
+    let crmCandidateIds: string[] | undefined;
     try {
         const chatId = await getWatchdogChatId();
         const result = await checkMagazineBriefFallback(getAdminClient(), {
@@ -96,6 +98,44 @@ export async function GET(request: Request) {
         console.error('[keycrm-sync] brief fallback watchdog failed:', e?.message || e);
         briefFallback = { error: e?.message || 'сторож відкату впав' };
     }
+
+    /**
+     * Сторож тихих втрат у замовленнях.
+     *
+     * Тут, а не в error-alerts, з тієї самої причини, що й сторож відкату брифа:
+     * цей крон працює доведено і кожні півгодини.
+     *
+     * Функція, а не рядок перед відповіддю, бо виходів із маршруту два: звичайний
+     * і ранній, коли KEYCRM_SYNC_FROM не заданий. Сторож, який мовчить через
+     * незадану змінну оточення, — це рівно та тиша, від якої ми лікуємося.
+     *
+     * Він нічого не лагодить і нічого не змінює в замовленнях, тож його падіння не
+     * сміє валити саме перенесення.
+     */
+    const runLostOrderWatchdog = async (): Promise<any> => {
+        try {
+            const chatId = await getWatchdogChatId();
+            const result = await checkLostOrderSignals(getAdminClient(), {
+                preview: dryRun,
+                crmCandidateIds,
+                send: async (text) => {
+                    if (!chatId) return false;
+                    const sent = await sendViaPublicBot({ chat_id: chatId, text });
+                    if (!sent.success) console.error('[keycrm-sync] lost-order alert failed:', sent.error);
+                    return sent.success;
+                },
+            });
+            return {
+                found: result.found.length,
+                fresh: result.fresh.length,
+                sent: result.sent,
+                ...(dryRun && result.message ? { message: result.message } : {}),
+            };
+        } catch (e: any) {
+            console.error('[keycrm-sync] lost-order watchdog failed:', e?.message || e);
+            return { error: e?.message || 'сторож тихих втрат впав' };
+        }
+    };
 
     const stats: Record<string, number> = { candidates: 0, created: 0, alreadySynced: 0, skipped: 0, reconciled: 0, stock_counted: 0, defects_enqueued: 0, errors: 0 };
     const details: any[] = [];
@@ -129,6 +169,7 @@ export async function GET(request: Request) {
             stats,
             stock,
             briefFallback,
+            lostSignals: await runLostOrderWatchdog(),
             note: 'KEYCRM_SYNC_FROM не заданий, тому синхронізація свідомо не переносить нічого. Постав дату старту, і з неї підуть лише нові замовлення.',
         });
     }
@@ -136,6 +177,9 @@ export async function GET(request: Request) {
     try {
         const pending = await findUnsyncedOrders({ windowDays: WINDOW_DAYS, limit: BATCH_LIMIT });
         stats.candidates = pending.length;
+        // Список кандидатів ЦЬОГО проходу потрібен сторожу нижче: замовлення,
+        // яке лишається кандидатом годинами, переноситься невдало щопроходу.
+        crmCandidateIds = pending.map(o => o.id);
 
         for (const order of pending) {
             const result = await pushOrderToKeycrm(order.id, { dryRun });
@@ -385,7 +429,7 @@ export async function GET(request: Request) {
             stats.errors++;
         }
 
-        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, stock_follow, chat_comments: chatComments, briefFallback });
+        return NextResponse.json({ ok: true, dryRun, stats, details, reconciled, stock, defects, catalogue, stock_follow, chat_comments: chatComments, briefFallback, lostSignals: await runLostOrderWatchdog() });
 
     } catch (err: any) {
         console.error('[keycrm-sync] Fatal error:', err);
