@@ -74,15 +74,27 @@ export async function isServerOrderFlowEnabled(
     supabase: SettingsReader,
     flow: ServerOrderFlow,
 ): Promise<boolean> {
+    return (await readServerOrderFlowFlag(supabase, flow)).enabled;
+}
+
+/**
+ * Те саме читання, але разом із часом останнього перемикання. Час потрібен
+ * сторожу відкату: замовлення старим шляхом до вмикання вимикача — це норма,
+ * і сигналом воно бути не має.
+ */
+export async function readServerOrderFlowFlag(
+    supabase: SettingsReader,
+    flow: ServerOrderFlow,
+): Promise<{ enabled: boolean; updatedAt: string | null }> {
     try {
         const { data } = await supabase
             .from('settings')
-            .select('value')
+            .select('value, updated_at')
             .eq('key', SERVER_ORDER_FLOW_FLAGS[flow])
             .maybeSingle();
-        return isFlagOn(data?.value);
+        return { enabled: isFlagOn(data?.value), updatedAt: (data as any)?.updated_at || null };
     } catch {
-        return false;
+        return { enabled: false, updatedAt: null };
     }
 }
 

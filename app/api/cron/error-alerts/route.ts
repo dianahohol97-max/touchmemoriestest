@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getWatchdogChatId, sendViaPublicBot } from '@/lib/chatbot/telegram-business';
+import { checkMagazineBriefFallback } from '@/lib/alerts/magazine-brief-fallback';
 import {
     decide,
     formatAlert,
@@ -118,10 +119,32 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Сторож відкату брифа на текст журналу. Стоїть ДО перевірки токена
+    // навмисно: він читає базу, а не журнал Vercel, і не має замовкати через
+    // те, що для читання журналу немає чим. Сигнал іде в той самий чат і
+    // рівно один раз (Діана, 16.09.2026).
+    let fallback: any = null;
+    try {
+        const chatIdForFallback = preview ? null : await getWatchdogChatId();
+        const result = await checkMagazineBriefFallback(getAdminClient(), {
+            preview,
+            send: async (text) => {
+                if (!chatIdForFallback) return false;
+                const sent = await sendViaPublicBot({ chat_id: chatIdForFallback, text });
+                if (!sent.success) console.error('[error-alerts] fallback alert send failed:', sent.error);
+                return sent.success;
+            },
+        });
+        fallback = { reason: (result.decision as any).reason || 'sent', sent: result.sent, message: result.message };
+    } catch (e: any) {
+        console.error('[error-alerts] fallback watchdog failed:', e?.message || e);
+        fallback = { error: e?.message || 'сторож відкату впав' };
+    }
+
     const token = process.env.VERCEL_API_TOKEN;
     if (!token) {
         return NextResponse.json(
-            { error: 'VERCEL_API_TOKEN не налаштований — читати журнал немає чим' },
+            { error: 'VERCEL_API_TOKEN не налаштований — читати журнал немає чим', fallback },
             { status: 503 },
         );
     }
@@ -134,7 +157,7 @@ export async function GET(request: Request) {
     try {
         const deploymentId = await currentProductionDeployment(token);
         if (!deploymentId) {
-            return NextResponse.json({ ok: true, sent: 0, reason: 'бойового деплою не знайдено' });
+            return NextResponse.json({ ok: true, sent: 0, reason: 'бойового деплою не знайдено', fallback });
         }
 
         const rows = await fetchRuntimeLogs(token, deploymentId, sinceMs);
@@ -153,12 +176,13 @@ export async function GET(request: Request) {
                 wouldSend: toReport.length,
                 messages: toReport.slice(0, MAX_ALERTS_PER_RUN).map(formatAlert),
                 note: 'Нічого не надіслано і памʼять не змінена.',
+                fallback,
             });
         }
 
         const chatId = await getWatchdogChatId();
         if (!chatId) {
-            return NextResponse.json({ ok: true, sent: 0, reason: 'чат для сповіщень не налаштований' });
+            return NextResponse.json({ ok: true, sent: 0, reason: 'чат для сповіщень не налаштований', fallback });
         }
 
         let sent = 0;
@@ -180,7 +204,7 @@ export async function GET(request: Request) {
         // наступний прохід спробує ще раз, а не зарахує помилку показаною.
         await writeStore(pruneStore(nextStore, now));
 
-        return NextResponse.json({ ok: true, rowsInWindow: rows.length, groups: groups.length, sent, hidden });
+        return NextResponse.json({ ok: true, rowsInWindow: rows.length, groups: groups.length, sent, hidden, fallback });
     } catch (e: any) {
         console.error('[error-alerts] run failed:', e?.message || e);
         return NextResponse.json({ error: e?.message || 'прохід не вдався' }, { status: 500 });
