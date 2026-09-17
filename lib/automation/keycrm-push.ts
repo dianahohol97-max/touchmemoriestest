@@ -424,7 +424,10 @@ function mapProduct(item: any, productMap: ProductMap = {}) {
     // goes over with its name and price — readable to a human, invisible to CRM
     // analytics — and the slug is sent as the SKU so the gap is traceable.
     return {
-        sku: mapped?.sku || slug || String(item?.product_id || ''),
+        // Заявка з дизайнером може приїхати без slug і без product_id — тоді сюди
+        // йшов порожній рядок. Видима помітка краща за порожнечу: вона каже
+        // менеджерці, що товар ще не обраний, а не що його забули передати.
+        sku: mapped?.sku || slug || String(item?.product_id || '') || 'designer-request',
         ...(mapped?.offer_id ? { offer_id: mapped.offer_id } : {}),
         name: String(item?.product_name || 'Товар'),
         price: itemUnitPrice(item),
@@ -742,6 +745,38 @@ export async function pushOrderToKeycrm(
 }
 
 /**
+ * Чи є тут взагалі що продавати?
+ *
+ * Досі відповідь була «тотал більший за нуль», і пояснювалося це тим, що
+ * замовлення на нуль — це кошик, який так і не отримав товару. У коментарі
+ * стояли два приклади, TM-001212 і TM-001163, і саме вони це спростували:
+ * у першому двадцять три фото і заповнений slug, у другому двадцять шість фото.
+ * Порожніми вони ніколи не були.
+ *
+ * Що це насправді за замовлення: людина прийшла в потік «з дизайнером»
+ * без конфігурації товару, тож ціни ще немає — її має поставити менеджерка
+ * після розмови. Але фото вже завантажені, телефон і доставка є, побажання
+ * записане — це рівно та робота, заради якої CRM і існує. Відсів за тоталом
+ * викидав саме їх: TM-001320 (Юлія Джулай, 19 фото), TM-001241 (25 фото),
+ * TM-001212 (23), TM-001163 (26), TM-001048 (11). Чотири з п'яти досі висять
+ * у статусі «нове», а Юлія через дві доби написала в директ сама
+ * (Діана, 17.09.2026).
+ *
+ * Справжні нульові рядки — це дзеркалені копії з самої CRM (CRM-14545,
+ * CRM-14190 і так далі), і їх тримає окрема умова про MIRROR_SOURCE, а не ця.
+ * Тобто відсів за тоталом не ловив жодного рядка, заради якого його писали.
+ *
+ * Це також друга половина готчі 13: умова стоїть і в запиті (через .or),
+ * і тут як страхування — вибірка обмежена лімітом.
+ */
+export function hasSomethingToSell(order: any): boolean {
+    if ((Number(order?.total) || 0) > 0) return true;
+    // Замовлення з дизайнером без ціни — це заявка, яку ще треба порахувати,
+    // а не порожній кошик. Саме вона найбільше й потребує людини в CRM.
+    return Boolean(order?.with_designer);
+}
+
+/**
  * Orders that still need to go to the CRM, newest first.
  *
  * Payment is not a condition (Diana, 2026-08-19). Every order goes over — paid,
@@ -775,7 +810,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
     const supabase = getAdminClient();
     const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, source, customer_name, customer_phone, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at')
+        .select('id, order_number, source, customer_name, customer_phone, custom_attributes, paid_at, created_at, order_status, payment_status, payment_type, total, prepaid_amount, cod_amount, cod_received_at, with_designer')
         // Dated on creation, not on payment: a cash-on-delivery order may never
         // get a paid_at at all, and filtering on it would hide those orders from
         // the sweep entirely.
@@ -791,7 +826,8 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // клієнту. Ті самі умови лишилися і в JS нижче, але вже як страховка.
         .neq('source', MIRROR_SOURCE)
         .is('custom_attributes->keycrm->>order_id', null)
-        .gt('total', 0)
+        // Нуль гривень НЕ означає порожній кошик — див. hasSomethingToSell.
+        .or('total.gt.0,with_designer.is.true')
         .order('created_at', { ascending: false })
         .limit(params.limit * 4);
 
@@ -840,10 +876,7 @@ export async function findUnsyncedOrders(params: { windowDays: number; limit: nu
         // Test personas («Киця Кицюня») place orders only to check that the
         // site works. They are never real sales and never go to the CRM.
         .filter(o => !isTestOrder(o))
-        // An order of 0 ₴ is not an unpaid order, it is an empty one — a cart
-        // that never got a product. Diana asked for unpaid orders in the CRM,
-        // not for empty rows (TM-001212, TM-001163 are both 0 ₴).
-        .filter(o => (Number(o.total) || 0) > 0)
+        .filter(hasSomethingToSell)
         .filter(o => !isSupersededAttempt(o, twinPool))
         .filter(shouldPushToCrm)
         .slice(0, params.limit);

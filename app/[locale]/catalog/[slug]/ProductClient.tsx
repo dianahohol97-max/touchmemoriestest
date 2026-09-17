@@ -1787,14 +1787,16 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                     // Without this the designer page had no product
                                                     // context (the bug Diana hit: 94 photos, no
                                                     // limits, no cover block).
+                                                    const designerSlug = product.slug || resolvedParams.slug;
+                                                    // Те саме прибирання суперечливих опцій, що й у
+                                                    // кошику: у замовлення з дизайнером конфігурація
+                                                    // їде як є, тож чистимо її тут (TM-001296).
+                                                    const designerConfig = cleanItemOptions(customProductOptions);
                                                     try {
                                                         sessionStorage.setItem('designerOrderConfig', JSON.stringify({
-                                                            slug: product.slug || resolvedParams.slug,
+                                                            slug: designerSlug,
                                                             productName: product.name || '',
-                                                            // Те саме прибирання суперечливих опцій, що й у
-                                                            // кошику: у замовлення з дизайнером конфігурація
-                                                            // їде як є, тож чистимо її тут (TM-001296).
-                                                            config: cleanItemOptions(customProductOptions),
+                                                            config: designerConfig,
                                                             // The price the customer is looking at right now (base +
                                                             // page/lamination/urgency surcharges, or photobook matrix).
                                                             // Carried into the designer order so it lands with the SAME
@@ -1802,7 +1804,27 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                                                             price: finalPrice,
                                                         }));
                                                     } catch {}
-                                                    router.push('/order');
+                                                    /**
+                                                     * Те саме й в адресі, а не тільки в sessionStorage.
+                                                     *
+                                                     * sessionStorage живе в одній вкладці і вміє просто
+                                                     * не спрацювати — у вбудованому браузері Інстаграма, в
+                                                     * приватному режимі, після «відкрити в Safari» або коли
+                                                     * людина відкриває посилання в новій вкладці. Тоді /order
+                                                     * відкривався зовсім без товару, і замовлення приїздило
+                                                     * на нуль гривень і без назви товару, а таке замовлення
+                                                     * не йшло в CRM і ніхто його не бачив (TM-001320, Юлія
+                                                     * Джулай, 19 фото, дві доби тиші). Адреса переживає все це.
+                                                     */
+                                                    const designerParams = new URLSearchParams({ product: designerSlug });
+                                                    if (finalPrice > 0) designerParams.set('price', String(Math.round(finalPrice)));
+                                                    if (product.name) designerParams.set('name', product.name);
+                                                    try {
+                                                        if (designerConfig && Object.keys(designerConfig).length) {
+                                                            designerParams.set('opts', JSON.stringify(designerConfig));
+                                                        }
+                                                    } catch {}
+                                                    router.push(`/order?${designerParams.toString()}`);
                                                 },
                                                 'Щоб замовити з дизайнером — увійдіть в акаунт'
                                             )}
