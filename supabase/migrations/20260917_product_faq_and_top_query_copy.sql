@@ -38,8 +38,13 @@ comment on column public.products.faq is
 -- Опис до цієї міграції був виробничим завданням для друку: самі міліметри
 -- обкладинки, поля під загин і поля під обріз. Людина, яка шукає «фотоальбом
 -- для вклеювання фото», з такого тексту не дізнається ні що це за річ, ні
--- навіщо вона їй. Розміри лишаються — просто після тексту й підписані як
--- технічні, а не замість тексту.
+-- навіщо вона їй.
+--
+-- Міліметри не викинуті — вони переїхали у specs, тобто у вкладку
+-- «Характеристики», де такі речі й шукають. Опис тепер розповідає, що це за
+-- альбом, а таблиця поруч відповідає на питання про макет. Формат specs той
+-- самий, що в інших товарів: масив {label, value} з перекладами в
+-- label_{locale} / value_{locale} (див. components/product/ProductDetailsTabs.tsx).
 --
 -- meta_title тепер починається з «Фотоальбом для вклеювання фото»: це і є
 -- запит на 1 191 показ, а коротший «альбом для вклеювання фото» на 861 показ
@@ -53,8 +58,57 @@ update public.products set
     '<p>Альбом для вклеювання фото — це той випадок, коли знімки не ховаються у файлики, а лягають на сторінку так, як ви самі захочете. Фотографії тримаються на кутиках або на двосторонньому скотчі, поруч лишається місце для дати й кількох речень, а між ними можна вкласти квиток, листівку чи засушену квітку. Виходить не перелік знімків, а історія, яку приємно гортати вголос.</p>'
     || '<p>Обкладинка тверда, обтягнута тканиною, з персоналізованим написом — іменами, датою або короткою фразою. Усередині тридцять дві щільні сторінки, які тримають вагу фотографій і не хвилюються від клею. Такий фотоальбом для вклеювання фото однаково доречний на весілля, на річницю стосунків, у подарунок батькам і як книга про одну довгу подорож.</p>'
     || '<p>Розмірів три, і обирати варто за тим, які саме знімки вклеюватимете. Вертикальний 20×30 см зручний для портретів і для більшості кадрів із телефона. Квадратний 23×23 см добре тримає композицію, коли поруч лежать фотографії різних форматів. Горизонтальний 30×20 см беруть під панорами, пейзажі та групові кадри.</p>'
-    || '<p>Кутики для фото, двосторонній скотч і білі маркери для підписів лежать у розділі аксесуарів, тож усе для одного вечора зі знімками приїде в одній посилці.</p>'
-    || '<p>Технічні розміри під макет. Формат 20×30 вертикальний: обкладинка 470×328 мм, поля під загин 18 мм зверху й знизу та 20 мм з боків; розворот 450×228 мм, поля під обріз 4.5 мм зверху й знизу та 6 мм з боків. Формат 23×23: обкладинка 496×260 мм, поля під загин 18 мм зверху й знизу та 20 мм з боків. Формат 30×20 горизонтальний: обкладинка 646×330 мм, поля під загин 20 мм зверху й знизу та 18 мм з боків; розворот 594×297 мм, поля під обріз 5 мм з кожного боку.</p>',
+    || '<p>Кутики для фото, двосторонній скотч і білі маркери для підписів лежать у розділі аксесуарів, тож усе для одного вечора зі знімками приїде в одній посилці.</p>',
+  specs = '[
+    {
+      "label": "Обкладинка",
+      "value": "Тверда, обтягнута тканиною, з персоналізованим написом",
+      "label_en": "Cover", "value_en": "Hard, fabric-covered, with a personalised inscription",
+      "label_pl": "Okładka", "value_pl": "Twarda, obciągnięta tkaniną, z personalizowanym napisem",
+      "label_de": "Einband", "value_de": "Hart, stoffbezogen, mit personalisierter Beschriftung",
+      "label_ro": "Copertă", "value_ro": "Tare, îmbrăcată în material textil, cu inscripție personalizată"
+    },
+    {
+      "label": "Сторінки",
+      "value": "32 щільні сторінки під вклеювання",
+      "label_en": "Pages", "value_en": "32 thick pages for glueing photos in",
+      "label_pl": "Strony", "value_pl": "32 grube strony do wklejania",
+      "label_de": "Seiten", "value_de": "32 feste Seiten zum Einkleben",
+      "label_ro": "Pagini", "value_ro": "32 de pagini groase pentru lipit"
+    },
+    {
+      "label": "Розміри",
+      "value": "20×30 см вертикальний, 23×23 см квадратний, 30×20 см горизонтальний",
+      "label_en": "Sizes", "value_en": "20×30 cm portrait, 23×23 cm square, 30×20 cm landscape",
+      "label_pl": "Rozmiary", "value_pl": "20×30 cm pionowy, 23×23 cm kwadratowy, 30×20 cm poziomy",
+      "label_de": "Formate", "value_de": "20×30 cm hoch, 23×23 cm quadratisch, 30×20 cm quer",
+      "label_ro": "Dimensiuni", "value_ro": "20×30 cm vertical, 23×23 cm pătrat, 30×20 cm orizontal"
+    },
+    {
+      "label": "Макет 20×30",
+      "value": "Обкладинка 470×328 мм, поля під загин 18 мм зверху й знизу та 20 мм з боків. Розворот 450×228 мм, поля під обріз 4.5 мм зверху й знизу та 6 мм з боків",
+      "label_en": "Artwork 20×30", "value_en": "Cover 470×328 mm, fold margins 18 mm top and bottom, 20 mm sides. Spread 450×228 mm, bleed 4.5 mm top and bottom, 6 mm sides",
+      "label_pl": "Makieta 20×30", "value_pl": "Okładka 470×328 mm, marginesy na zagięcie 18 mm góra i dół, 20 mm boki. Rozkładówka 450×228 mm, spady 4.5 mm góra i dół, 6 mm boki",
+      "label_de": "Druckvorlage 20×30", "value_de": "Einband 470×328 mm, Falzzugabe 18 mm oben und unten, 20 mm seitlich. Doppelseite 450×228 mm, Beschnitt 4,5 mm oben und unten, 6 mm seitlich",
+      "label_ro": "Machetă 20×30", "value_ro": "Copertă 470×328 mm, margini de pliere 18 mm sus și jos, 20 mm lateral. Pagină dublă 450×228 mm, bleed 4.5 mm sus și jos, 6 mm lateral"
+    },
+    {
+      "label": "Макет 23×23",
+      "value": "Обкладинка 496×260 мм, поля під загин 18 мм зверху й знизу та 20 мм з боків",
+      "label_en": "Artwork 23×23", "value_en": "Cover 496×260 mm, fold margins 18 mm top and bottom, 20 mm sides",
+      "label_pl": "Makieta 23×23", "value_pl": "Okładka 496×260 mm, marginesy na zagięcie 18 mm góra i dół, 20 mm boki",
+      "label_de": "Druckvorlage 23×23", "value_de": "Einband 496×260 mm, Falzzugabe 18 mm oben und unten, 20 mm seitlich",
+      "label_ro": "Machetă 23×23", "value_ro": "Copertă 496×260 mm, margini de pliere 18 mm sus și jos, 20 mm lateral"
+    },
+    {
+      "label": "Макет 30×20",
+      "value": "Обкладинка 646×330 мм, поля під загин 20 мм зверху й знизу та 18 мм з боків. Розворот 594×297 мм, поля під обріз 5 мм з кожного боку",
+      "label_en": "Artwork 30×20", "value_en": "Cover 646×330 mm, fold margins 20 mm top and bottom, 18 mm sides. Spread 594×297 mm, bleed 5 mm on every side",
+      "label_pl": "Makieta 30×20", "value_pl": "Okładka 646×330 mm, marginesy na zagięcie 20 mm góra i dół, 18 mm boki. Rozkładówka 594×297 mm, spady 5 mm z każdej strony",
+      "label_de": "Druckvorlage 30×20", "value_de": "Einband 646×330 mm, Falzzugabe 20 mm oben und unten, 18 mm seitlich. Doppelseite 594×297 mm, Beschnitt 5 mm an jeder Seite",
+      "label_ro": "Machetă 30×20", "value_ro": "Copertă 646×330 mm, margini de pliere 20 mm sus și jos, 18 mm lateral. Pagină dublă 594×297 mm, bleed 5 mm pe fiecare latură"
+    }
+  ]'::jsonb,
   faq = '[
     {
       "q": "Чим фотоальбом для вклеювання фото відрізняється від файликового?",
