@@ -6,6 +6,7 @@ import { getReplyTo } from '@/lib/email/brevo';
 import { escapeHtml } from '@/lib/email/escape';
 import { resolveActingStaff } from '@/lib/auth/guards';
 import { logOutgoingEmail, readSendOutcome, failedOutcome } from '@/lib/email/log-outgoing';
+import { MAX_ATTACHMENT_BYTES, formatBytes } from '@/lib/email/attachment-limits';
 
 export const dynamic = 'force-dynamic';
 /**
@@ -124,7 +125,9 @@ const ALLOWED_ATTACHMENT_CT = new Set([
   'application/pdf',
   'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
 ]);
-const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;   // на один файл
+// Межа на один файл живе в lib/email/attachment-limits разом із двома
+// сусідніми і розбором, чим вони одна від одної відрізняються. Друга копія
+// числа тут означала б, що браузер і сервер колись почнуть казати різне.
 /**
  * Скільки вкладень поміщається в сам лист.
  *
@@ -196,7 +199,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: `${f.name}: можна надсилати лише PDF та зображення` }, { status: 400 });
     }
     if (f.size > MAX_ATTACHMENT_BYTES) {
-      return NextResponse.json({ error: `${f.name}: файл більший за 25 МБ` }, { status: 413 });
+      return NextResponse.json({ error: `${f.name}: файл важить ${formatBytes(f.size)}, а в лист можна взяти до ${formatBytes(MAX_ATTACHMENT_BYTES)}` }, { status: 413 });
     }
   }
 

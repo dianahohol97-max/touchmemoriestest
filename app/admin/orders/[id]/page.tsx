@@ -60,6 +60,7 @@ import {
 import { toast } from 'sonner';
 import { resolvePaymentBadge } from '@/lib/orders/payment-state';
 import { describeMailRow } from '@/lib/email/delivery-events';
+import { rejectAttachment } from '@/lib/email/attachment-limits';
 import {
     CANCELLATION_REASONS,
     NOTE_MAX_LENGTH,
@@ -3699,7 +3700,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                     accept="application/pdf,image/*"
                                     onChange={e => {
                                         const picked = Array.from(e.target.files || []);
-                                        setEmailFiles(prev => [...prev, ...picked].slice(0, 10));
+                                        // Заважкий файл відсіюється ОДРАЗУ, а не після завантаження.
+                                        //
+                                        // Досі перевірки тут не було зовсім, тож макет на 128,9 МБ їхав у
+                                        // сховище цілком і тільки в кінці отримував англійське «The object
+                                        // exceeded the maximum allowed size» (TM-001309, Діана,
+                                        // 17.09.2026). Межа була відома заздалегідь — гнати сто
+                                        // двадцять вісім мегабайтів заради відмови не було потреби.
+                                        const tooBig = picked.map(rejectAttachment).filter(Boolean) as string[];
+                                        for (const why of tooBig) toast.error(why, { duration: 12000 });
+                                        const ok = picked.filter(f => !rejectAttachment(f));
+                                        if (ok.length) setEmailFiles(prev => [...prev, ...ok].slice(0, 10));
                                         if (emailFileInputRef.current) emailFileInputRef.current.value = '';
                                     }}
                                     style={{ display: 'none' }}
