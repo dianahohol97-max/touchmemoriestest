@@ -3195,6 +3195,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                 try {
                                                     let offset = 0, fixed = 0, failed = 0, total = 0, guardCount = 0;
                                                     const problems: string[] = [];
+                                                    // Причини пропуску рахуються окремо. «Не знайдено» раніше
+                                                    // означало і «файл чистий», і «біле є, але ширше за виліт» —
+                                                    // два різні діагнози під одним текстом, через що TM-001254
+                                                    // виглядало полагодженим, поки лінії лишались на місці.
+                                                    const verdicts: Record<string, number> = {};
+                                                    let geometry = '';
                                                     for (;;) {
                                                         if (++guardCount > 200) { toast.error('Забагато партій — зупиняюсь'); break; }
                                                         const r = await fetch(`/api/admin/orders/${id}/fix-white-edges?offset=${offset}&limit=3`, { method: 'POST' });
@@ -3205,14 +3211,32 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         }
                                                         fixed += j.fixed || 0; failed += j.failed || 0;
                                                         total = j.total || total;
+                                                        if (j.size) geometry = `${j.size}, аркуш ${j.sheetMm} мм, виліт ${j.bleedMm} мм`;
                                                         for (const it of (j.report || [])) {
                                                             if (it.status === 'error') problems.push(`${it.file}: ${it.reason}`);
+                                                            if (it.status === 'skipped' && it.verdict) verdicts[it.verdict] = (verdicts[it.verdict] || 0) + 1;
                                                         }
                                                         offset = j.nextOffset ?? (offset + 3);
                                                         if (j.done) {
-                                                            toast.success(fixed > 0
-                                                                ? `Смужку прибрано на ${fixed} файлах, помилок ${failed}. Перевірте макет перед друком.`
-                                                                : 'Білої смужки не знайдено — файли лишились без змін.');
+                                                            if (fixed > 0) {
+                                                                toast.success(`Смужку прибрано на ${fixed} файлах, помилок ${failed}. Перевірте макет перед друком.`);
+                                                            } else if (verdicts['wider-than-bleed']) {
+                                                                // Це не «все добре»: біле по краю є, але воно ширше
+                                                                // за виліт, тобто або макет справді такий, або лінії
+                                                                // взагалі не з краю і шукати треба в іншому місці.
+                                                                toast.warning(
+                                                                    `Файли не змінено: на ${verdicts['wider-than-bleed']} з них біле тягнеться далі за виліт, `
+                                                                    + `тому я їх не чіпаю${geometry ? ` (${geometry})` : ''}. `
+                                                                    + 'Якщо лінії видно не з самого краю, ця кнопка їх не прибере, бо це інший дефект.',
+                                                                    { duration: 12000 },
+                                                                );
+                                                            } else {
+                                                                toast.info(
+                                                                    `Край аркуша чистий на всіх ${total} файлах, білої смужки немає${geometry ? ` (${geometry})` : ''}. `
+                                                                    + 'Якщо лінії все одно видно, вони не з краю, і причина в іншому.',
+                                                                    { duration: 12000 },
+                                                                );
+                                                            }
                                                             break;
                                                         }
                                                         toast.info(`Опрацьовую… ${Math.min(offset, total)} з ${total}`, { id: 'white-edge-progress' });

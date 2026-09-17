@@ -46,7 +46,10 @@ export function extractEmails(html: string): string[] {
     if (raw.includes('@')) found.add(raw);
   }
 
-  (html.match(EMAIL_RE) || []).forEach(e => found.add(e.trim().toLowerCase()));
+  // Окремою змінною, а не `(html.match(...) || [])`: у такому виразі TypeScript
+  // згортає тип до never[], і звернення до елемента перестає компілюватися.
+  const scanned = html.match(EMAIL_RE);
+  if (scanned) scanned.forEach(e => found.add(e.trim().toLowerCase()));
 
   return [...found].filter(isPlausibleEmail);
 }

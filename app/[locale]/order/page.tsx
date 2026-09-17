@@ -16,6 +16,7 @@ import { describeItemOptions, resolveDecoration } from '@/lib/orders/item-option
 import { parseDecoVariantMm, type DecoVariantDims } from '@/lib/print/deco-variant'
 import { readAttributableReferralCode } from '@/lib/referral/pending-code'
 import { orderFlowMarker } from '@/lib/orders/server-order-flow'
+import { readDesignerConfig, nameFromSlug } from '@/lib/orders/designer-config'
 
 interface UploadedFile {
   id: string
@@ -889,17 +890,11 @@ function OrderForm() {
   })
 
   useEffect(() => {
-    // Load configuration from sessionStorage
-    const configJson = sessionStorage.getItem('designerOrderConfig')
-    if (configJson) {
-      try {
-        const config = JSON.parse(configJson)
-        setSavedConfig(config)
-      } catch (e) {
-        console.error('Failed to parse saved configuration:', e)
-      }
-    }
-  }, [])
+    // Сховище вкладки головне, адреса затуляє дірки — див. readDesignerConfig.
+    let stored: string | null = null
+    try { stored = sessionStorage.getItem('designerOrderConfig') } catch { /* приватний режим */ }
+    setSavedConfig(readDesignerConfig(stored, searchParams))
+  }, [searchParams])
 
   const update = (field: string, value: any) => setFormData(prev => ({ ...prev, [field]: value }))
 
@@ -1013,7 +1008,7 @@ function OrderForm() {
 
       const productSlug = savedConfig?.slug || searchParams.get('product') || ''
       const productName = savedConfig?.productName
-        || (productSlug ? productSlug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'Замовлення з дизайнером')
+        || (productSlug ? nameFromSlug(productSlug) : 'Замовлення з дизайнером')
 
       // Price the customer saw on the product page (carried from the constructor
       // price calc). If present, the designer order lands with that price instead
@@ -1172,6 +1167,29 @@ function OrderForm() {
           }
         } catch { /* fall through to success screen */ }
       }
+
+      /**
+       * Сюди потрапляє замовлення, за яке ніхто не попросив грошей.
+       *
+       * Лист про оформлення досі слав тільки роут рахунку, тож без рахунку
+       * людина не отримувала від нас жодного слова: екран «Замовлення
+       * відправлено» і тиша. Саме так дві доби пролежало TM-001320, поки
+       * клієнтка не написала в директ сама (Діана, 17.09.2026).
+       *
+       * На шляху з рахунком цього виклику немає навмисно — там лист йде з
+       * кнопкою оплати, і він корисніший. Сервер усе одно вміє відрізняти
+       * повтор, тож два листи за одне замовлення не підуть.
+       */
+      if (order) {
+        try {
+          await fetch('/api/orders/designer-placed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id }),
+          })
+        } catch { /* лист не має ламати оформлення */ }
+      }
+
       setSubmitted(true)
     } catch (e: any) {
       console.error('designer order submit error:', e)

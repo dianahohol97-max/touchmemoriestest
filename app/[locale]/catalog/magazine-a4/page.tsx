@@ -82,8 +82,16 @@ export default function MagazineA4Page() {
     requireAuth(() => router.push(url), 'Щоб відкрити конструктор та зберегти ваш дизайн — увійдіть в акаунт');
   };
 
+  /** Розмір і кількість сторінок їдуть із собою — див. той самий коментар у photobook. */
   const handleDesigner = () => {
-    requireAuth(() => router.push('/order'), 'Щоб замовити з дизайнером — увійдіть в акаунт');
+    const params = new URLSearchParams({ name: 'Глянцевий журнал A4' });
+    params.set('opts', JSON.stringify({
+      'Формат': 'A4',
+      'Кількість сторінок': String(pages),
+      'Тип обкладинки': 'М\'яка',
+    }));
+    if (basePrice > 0) params.set('price', String(Math.round(basePrice)));
+    requireAuth(() => router.push(`/order?${params.toString()}`), 'Щоб замовити з дизайнером — увійдіть в акаунт');
   };
 
   return (

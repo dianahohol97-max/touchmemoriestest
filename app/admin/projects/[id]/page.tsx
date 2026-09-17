@@ -39,9 +39,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         const map: Record<string, string> = {};
         await Promise.all(Object.entries(byBucket).map(async ([bucket, list]) => {
           try {
-            const { data: signed } = await supabase.storage.from(bucket)
-              .createSignedUrls(list.map((x: any) => x.file_path), 60 * 60);
-            (signed || []).forEach((s: any, i: number) => { if (s?.signedUrl) map[list[i].id] = s.signedUrl; });
+            // Підписує сервер, а не браузер: політики storage.objects дають
+            // читання власнику теки або is_admin(), тож менеджер і дизайнер
+            // не отримували підпису взагалі й бачили порожні прямокутники.
+            const res = await fetch('/api/admin/storage-signed-url', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ bucket, paths: list.map((x: any) => x.file_path) }),
+            });
+            if (!res.ok) throw new Error(`sign failed: ${res.status}`);
+            const { urls } = await res.json() as { urls: Record<string, string> };
+            list.forEach((x: any) => { const u = urls?.[x.file_path]; if (u) map[x.id] = u; });
           } catch (e) { console.error('sign error', bucket, e); }
         }));
         setSignedUrls(map);
@@ -52,6 +60,44 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   const getFileUrl = (f: any) => {
     return signedUrls[f.id] || '';
+  };
+
+  /**
+   * Завантаження бере свій підпис у момент кліку.
+   *
+   * Стрілка «завантажити» була звичайним <a href> на те саме посилання, яким
+   * малюється прев'ю, тобто на підпис, узятий при відкритті сторінки. Картка,
+   * що провисіла довше строку підпису, віддавала на клік
+   * {"statusCode":"400","error":"InvalidJWT","message":"\"exp\" claim timestamp check failed"}
+   * замість файлу — те саме, що Діана впіймала на TM-001254.
+   */
+  const downloadFile = async (f: any) => {
+    try {
+      const params = new URLSearchParams({
+        bucket: f.bucket_name || 'photobook-uploads',
+        path: f.file_path,
+      });
+      const res = await fetch(`/api/admin/storage-signed-url?${params}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `Не вдалося підписати посилання (${res.status})`);
+      }
+      const { url } = await res.json() as { url: string };
+      const blobRes = await fetch(url);
+      if (!blobRes.ok) throw new Error(`Сховище відповіло ${blobRes.status}`);
+      const blob = await blobRes.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = f.file_name || 'file';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (e: any) {
+      console.error('download error', e);
+      alert(e?.message ? `Не вдалося завантажити: ${e.message}` : 'Помилка завантаження файлу');
+    }
   };
 
   if (loading) return <div style={{ padding: 40, color: '#94a3b8' }}>Завантаження...</div>;
@@ -165,10 +211,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         <span style={{ fontSize: 10, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                           {f.file_name || `Файл ${i + 1}`}
                         </span>
-                        <a href={url} download={f.file_name} onClick={e => e.stopPropagation()}
-                          style={{ color: '#94a3b8', flexShrink: 0 }}>
+                        <button type="button" title="Завантажити"
+                          onClick={e => { e.stopPropagation(); downloadFile(f); }}
+                          style={{ color: '#94a3b8', flexShrink: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
                           <Download size={11} />
-                        </a>
+                        </button>
                       </div>
                     </div>
                   );

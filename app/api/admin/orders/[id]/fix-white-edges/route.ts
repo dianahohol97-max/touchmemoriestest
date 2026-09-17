@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import Jimp from 'jimp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireStaff } from '@/lib/auth/guards';
-import { hasWhiteEdges, measureWhiteEdges } from '@/lib/print/white-edge';
+import { inspectWhiteEdges } from '@/lib/print/white-edge';
+import { deriveGeometry, normalizeSizeKey, type SizeRow } from '@/lib/print/geometry';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -62,6 +63,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { data: order } = await admin.from('orders').select('id, order_number').eq('id', id).maybeSingle();
     if (!order) return NextResponse.json({ error: 'Замовлення не знайдено' }, { status: 404 });
 
+    /*
+     * Межа пошуку береться з вильоту САМЕ ЦЬОГО розміру, і по кожній осі
+     * окремо. Раніше тут не було геометрії взагалі, а вимірювач мав усередині
+     * 2% на обидві осі — і на 20×30, де виліт 2.38% ширини, смужка на всю
+     * ширину вильоту не вкладалась у запобіжник. Файл лишався недоторканим, а
+     * відповідь була «білої смужки немає». TM-001254 — це саме 20×30, і саме
+     * тому кожен прогін виглядав успішним, поки лінії лишались на місці.
+     *
+     * Запас у чверть вильоту — на округлення в пікселі й на те, що рендер
+     * інколи лишає смужку на пів пікселя ширшою за розрахункову. Далі за виліт
+     * не пускаємо: там починається макет, і затирати його не можна.
+     */
+    const { data: projects } = await admin
+        .from('projects')
+        .select('product_type, format, overlays_data')
+        .eq('order_id', id)
+        .order('updated_at', { ascending: false });
+    const proj = (projects || [])[0] as any;
+    const config = proj?.overlays_data?.config || {};
+    const PRODUCT_SIZE: Record<string, string> = { travelbook: '20x30' };
+    const sizeKey = normalizeSizeKey(String(
+        config.selectedSize || proj?.format || PRODUCT_SIZE[String(proj?.product_type || '')] || ''
+    ));
+    const { data: sizeRows } = await admin
+        .from('photobook_sizes')
+        .select('name, width_cm, height_cm, spread_width_mm, spread_height_mm, cover_width_mm, cover_height_mm, bleed_top_mm, bleed_bottom_mm, bleed_left_mm, bleed_right_mm, cover_fold_margin_mm');
+    const sizeRow = ((sizeRows || []) as SizeRow[])
+        .find(r => normalizeSizeKey(String(r.name || '')) === sizeKey) || null;
+    const geo = sizeKey ? deriveGeometry(sizeKey, sizeRow) : null;
+
+    const BLEED_HEADROOM = 1.25;
+    const fractionFor = (bleedMm: number, sheetMm: number): number | undefined => {
+        if (!(bleedMm > 0) || !(sheetMm > 0)) return undefined;
+        return (bleedMm / sheetMm) * BLEED_HEADROOM;
+    };
+    const maxFractionX = geo ? fractionFor(geo.overhang.x, geo.sheet.w) : undefined;
+    const maxFractionY = geo ? fractionFor(geo.overhang.y, geo.sheet.h) : undefined;
+
     const { data: files } = await admin
         .from('order_files')
         .select('id, file_path, file_name, bucket_name, file_type')
@@ -105,9 +144,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                 return true;
             };
 
-            const edges = measureWhiteEdges({ width: W, height: H, lineIsWhite });
-            if (!hasWhiteEdges(edges)) {
-                report.push({ file: f.file_name, status: 'skipped', reason: 'білої смужки немає', size: `${W}×${H}` });
+            const reading = inspectWhiteEdges({ width: W, height: H, lineIsWhite, maxFractionX, maxFractionY });
+            const edges = reading.edges;
+            if (reading.verdict !== 'found') {
+                // Причина називається вголос. «Смужки немає» і «біле тягнеться
+                // далі за виліт» — різні діагнози: перший означає, що файл уже
+                // чистий, другий — що біле є, але воно завелике, щоб бути
+                // вильотом, і дивитись треба на макет.
+                const REASON: Record<string, string> = {
+                    clean: 'край аркуша не білий, смужки немає',
+                    'wider-than-bleed': `біле тягнеться далі за виліт (межа ${reading.caps.x}×${reading.caps.y} пкс) — це вже макет, не чіпаю`,
+                    degenerate: 'не вдалося прочитати розмір зображення',
+                };
+                report.push({
+                    file: f.file_name,
+                    status: 'skipped',
+                    verdict: reading.verdict,
+                    reason: REASON[reading.verdict] || reading.verdict,
+                    size: `${W}×${H}`,
+                });
                 continue;
             }
             if (dryRun) {
@@ -152,6 +207,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({
         ok: failed === 0,
         orderNumber: order.order_number,
+        // Без цього неможливо відрізнити «на цьому розмірі нема чого шукати»
+        // від «розмір не визначився, і межа впала на запасні 2%».
+        size: sizeKey || null,
+        sheetMm: geo ? `${geo.sheet.w}×${geo.sheet.h}` : null,
+        bleedMm: geo ? `${geo.overhang.x}×${geo.overhang.y}` : null,
         total: targets.length,
         nextOffset,
         done: nextOffset >= targets.length,

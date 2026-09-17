@@ -19,8 +19,23 @@
  *
  * ЗАПОБІЖНИК. Біла сторінка макета — теж біла з краю, і «полагодити» її
  * означало б розтягнути по ній випадковий піксель. Тому шукаємо смужку лише в
- * межах кількох відсотків від сторони: усе, що ширше, вважаємо задумом автора
- * і файл не чіпаємо.
+ * межах вильоту: усе, що ширше за виліт, вважаємо задумом автора і файл не
+ * чіпаємо.
+ *
+ * МЕЖУ ТРЕБА ПЕРЕДАВАТИ, І ПО КОЖНІЙ ОСІ ОКРЕМО (TM-001254, 17.09.2026). Тут
+ * стояло 2% на обидві осі, бо на більшості розмірів виліт саме такий. На 20×30
+ * він не такий: аркуш 420 мм проти готових 400, тобто 10 мм з боку, або 2.38%
+ * ширини — БІЛЬШЕ за той запобіжник. Смужка на всю ширину вильоту вилітала за
+ * межу, функція чесно відповідала «не знаю такої картинки», а маршрут друкував
+ * «білої смужки немає» і не чіпав файл. Тобто на єдиному розмірі, де ця біда і
+ * трапилась, інструмент був сліпий, і виглядало це як успішний прогін.
+ *
+ * Перевірено по всій таблиці розмірів: 20×20 дає 0.62%, 25×25 нуль, 30×30 і
+ * 30×20 по 0.82%, і лише 20×30 дає 2.38%. Одне число на всіх не налазить, бо
+ * виліт у різних розмірів різний — тому його треба рахувати, а не вгадувати.
+ *
+ * І ще: осі різні навіть в одному розмірі. У того ж 20×30 по вертикалі виліт
+ * 0.82%, тобто вчетверо менший за горизонтальний.
  */
 
 /** Скільки білих ліній знайдено з кожного боку. */
@@ -46,8 +61,38 @@ export interface MeasureOptions {
     /**
      * Найбільша частка сторони, яку ще вважаємо смужкою вильоту. Більше —
      * це вже білий елемент макета, і чіпати його не можна.
+     *
+     * Лишається як запасне значення для викликів без геометрії. Там, де розмір
+     * книги відомий, треба передавати maxFractionX і maxFractionY — див.
+     * пояснення у шапці файлу.
      */
     maxFraction?: number;
+    /** Межа по горизонталі, часткою ширини. Перекриває maxFraction. */
+    maxFractionX?: number;
+    /** Межа по вертикалі, часткою висоти. Перекриває maxFraction. */
+    maxFractionY?: number;
+}
+
+/**
+ * Чому вимірювання нічого не дало. Без цього «смужки немає» і «смужка ширша за
+ * виліт» зливались в одну відповідь, і саме через це TM-001254 два тижні
+ * виглядало як полагоджене.
+ */
+export type WhiteEdgeVerdict =
+    /** Смужка знайдена і вкладається у виліт. */
+    | 'found'
+    /** Смужки немає: край аркуша не білий. */
+    | 'clean'
+    /** Біле тягнеться далі за виліт — це вже макет, не чіпаємо. */
+    | 'wider-than-bleed'
+    /** Розмір зображення безглуздий. */
+    | 'degenerate';
+
+export interface WhiteEdgeReading {
+    edges: WhiteEdges;
+    verdict: WhiteEdgeVerdict;
+    /** Межі, за якими міряли, у лініях — щоб маршрут міг їх показати. */
+    caps: { x: number; y: number };
 }
 
 /**
@@ -57,12 +102,24 @@ export interface MeasureOptions {
  * у другому випадку рішення «не чіпати» краще за здогад.
  */
 export function measureWhiteEdges(opts: MeasureOptions): WhiteEdges {
-    const { width, height, lineIsWhite } = opts;
-    const maxFraction = opts.maxFraction ?? 0.02;
-    if (!(width > 0) || !(height > 0)) return { ...NO_EDGES };
+    return inspectWhiteEdges(opts).edges;
+}
 
-    const capX = Math.max(1, Math.floor(width * maxFraction));
-    const capY = Math.max(1, Math.floor(height * maxFraction));
+/**
+ * Те саме вимірювання, але з поясненням, чому вийшло саме так.
+ */
+export function inspectWhiteEdges(opts: MeasureOptions): WhiteEdgeReading {
+    const { width, height, lineIsWhite } = opts;
+    const fallback = opts.maxFraction ?? 0.02;
+    const fractionX = opts.maxFractionX ?? fallback;
+    const fractionY = opts.maxFractionY ?? fallback;
+    if (!(width > 0) || !(height > 0)) {
+        return { edges: { ...NO_EDGES }, verdict: 'degenerate', caps: { x: 0, y: 0 } };
+    }
+
+    const capX = Math.max(1, Math.floor(width * fractionX));
+    const capY = Math.max(1, Math.floor(height * fractionY));
+    const caps = { x: capX, y: capY };
 
     const run = (
         axis: 'col' | 'row',
@@ -85,10 +142,15 @@ export function measureWhiteEdges(opts: MeasureOptions): WhiteEdges {
 
     // Досить одного боку, що вийшов за межі, щоб не чіпати файл: така
     // картинка нам просто незнайома.
-    if (left === null || right === null || top === null || bottom === null) return { ...NO_EDGES };
+    if (left === null || right === null || top === null || bottom === null) {
+        return { edges: { ...NO_EDGES }, verdict: 'wider-than-bleed', caps };
+    }
 
     // Смужка з обох боків не може з'їсти всю сторону.
-    if (left + right >= width || top + bottom >= height) return { ...NO_EDGES };
+    if (left + right >= width || top + bottom >= height) {
+        return { edges: { ...NO_EDGES }, verdict: 'wider-than-bleed', caps };
+    }
 
-    return { left, right, top, bottom };
+    const edges = { left, right, top, bottom };
+    return { edges, verdict: hasWhiteEdges(edges) ? 'found' : 'clean', caps };
 }

@@ -127,8 +127,24 @@ export default function PhotobookPage() {
     requireAuth(() => router.push(url), 'Щоб відкрити конструктор та зберегти ваш дизайн — увійдіть в акаунт');
   };
 
+  /**
+   * Те саме, що й для конструктора, має доїхати й до дизайнера.
+   *
+   * Тут стояло голе router.push('/order'), хоча розмір, кількість сторінок,
+   * тип обкладинки і ціна вже обрані людиною на цій же сторінці і лежать
+   * рядком вище. Кнопка конструктора передає їх усі, кнопка дизайнера не
+   * передавала жодного. Звідси заявки на нуль гривень без жодної характеристики.
+   */
   const handleDesigner = () => {
-    requireAuth(() => router.push('/order'), 'Щоб замовити з дизайнером — увійдіть в акаунт');
+    const coverTypeLabel = COVER_TYPES.find(c => c.key === coverType)?.name || '';
+    const params = new URLSearchParams({ name: `Фотокнига ${size}` });
+    params.set('opts', JSON.stringify({
+      'Розмір': size,
+      'Кількість сторінок': String(pages),
+      ...(coverTypeLabel ? { 'Тип обкладинки': coverTypeLabel } : {}),
+    }));
+    if (basePrice > 0) params.set('price', String(Math.round(basePrice)));
+    requireAuth(() => router.push(`/order?${params.toString()}`), 'Щоб замовити з дизайнером — увійдіть в акаунт');
   };
 
   return (
