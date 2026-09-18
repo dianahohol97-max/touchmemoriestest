@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
+import { RENDER_BUILD_KEY } from '@/lib/print/render-build';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -73,6 +74,31 @@ export async function POST(req: NextRequest) {
       await admin.from('orders').update({ notes: cleaned || null }).eq('id', project.order_id);
     }
   } catch { /* cosmetic — never fail the callback on it */ }
+
+  /**
+   * Яка збірка сервісу це зробила — у settings, а не лише в консоль.
+   *
+   * Пуш у main розкочує Vercel, але НЕ Railway, тож виправлення в
+   * render-service може лежати в репозиторії і не працювати в продакшні.
+   * Консольний рядок про це знав, але його ніхто не читає — і TM-001254
+   * три дні чекало на «перегенеруйте макет», поки ніхто не бачив, що
+   * останній рендер був дев'ятого вересня.
+   *
+   * Пишеться без await і з повним ковтанням помилок: це діагностика, і
+   * вона не має права зіпсувати колбек, який щойно зареєстрував макет.
+   */
+  try {
+    void admin.from('settings').upsert({
+      key: RENDER_BUILD_KEY,
+      value: {
+        commit: String(body?.serviceCommit || 'unknown'),
+        at: new Date().toISOString(),
+        projectId,
+        files: uploaded.length,
+      },
+      updated_at: new Date().toISOString(),
+    }).then(() => {}, () => {});
+  } catch { /* діагностика ніколи не ламає рендер */ }
 
   console.log('[render-complete] indexed', {
     projectId,

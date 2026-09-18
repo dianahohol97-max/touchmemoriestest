@@ -463,6 +463,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [attachingOriginals, setAttachingOriginals] = useState(false);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
     const [rerendering, setRerendering] = useState(false);
+    /**
+     * Яка збірка сервісу рендеру крутиться на Railway і коли вона останній
+     * раз щось зробила. Стоїть поруч із кнопкою перегенерації, бо це єдине
+     * місце, де воно потрібне: пуш у main розкочує Vercel, але не Railway, і сервіс
+     * зі старим кодом нічим себе не виявляє (TM-001254).
+     */
+    const [renderBuild, setRenderBuild] = useState<string>('');
+    useEffect(() => {
+        let alive = true;
+        fetch('/api/admin/render-build')
+            .then(r => r.ok ? r.json() : null)
+            .then(j => { if (alive && j?.summary) setRenderBuild(String(j.summary)); })
+            .catch(() => { /* діагностика не має ламати картку */ });
+        return () => { alive = false; };
+    }, []);
     const [strippingBleed, setStrippingBleed] = useState(false);
     const [rebuildingPoster, setRebuildingPoster] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
@@ -3128,6 +3143,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                             {rerendering ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                                             {rerendering ? 'Рендериться…' : 'Перегенерувати макет (Railway)'}
                                         </button>
+                                        {renderBuild && (
+                                            <div style={{ fontSize: 11, color: '#94a3b8', width: '100%', marginTop: 2 }}>
+                                                {renderBuild}
+                                            </div>
+                                        )}
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
