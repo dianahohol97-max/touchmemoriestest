@@ -465,9 +465,10 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     const [rerendering, setRerendering] = useState(false);
     /**
      * Яка збірка сервісу рендеру крутиться на Railway і коли вона останній
-     * раз щось зробила. Стоїть поруч із кнопкою перегенерації, бо це єдине
-     * місце, де воно потрібне: пуш у main розкочує Vercel, але не Railway, і сервіс
-     * зі старим кодом нічим себе не виявляє (TM-001254).
+     * раз щось зробила. Стоїть поруч із кнопкою перегенерації, бо саме тут це
+     * і потрібно: виправлення в рендері змінює те, що він виробляє, і не чіпає
+     * файлів, які вже лежать у сховищі. «Останній рендер девʼять днів тому»
+     * одразу каже, що тиснути треба саме цю кнопку (TM-001254).
      */
     const [renderBuild, setRenderBuild] = useState<string>('');
     useEffect(() => {
@@ -539,6 +540,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         customer_telegram: '', customer_instagram: '', city: '', branch: '',
     });
     const [showTTNModal, setShowTTNModal] = useState(false);
+    /**
+     * Чи взагалі можна створювати накладні з сайту. Заборона стоїть на
+     * сервері (обидва маршрути створення), а тут лише не показуємо кнопку,
+     * яка однаково відмовить. Див. lib/shipping/ttn-switch.
+     */
+    const [ttnAllowed, setTtnAllowed] = useState<boolean | null>(null);
+    const [ttnBlockedWhy, setTtnBlockedWhy] = useState<string>('');
+    useEffect(() => {
+        let alive = true;
+        fetch('/api/admin/ttn-switch')
+            .then(r => r.ok ? r.json() : null)
+            .then(j => {
+                if (!alive || !j) return;
+                setTtnAllowed(Boolean(j.enabled));
+                setTtnBlockedWhy(String(j.message || ''));
+            })
+            .catch(() => { /* не знаємо — кнопку не показуємо, сервер все одно відмовить */ });
+        return () => { alive = false; };
+    }, []);
     const [creatingTTN, setCreatingTTN] = useState(false);
     const [trackingTTN, setTrackingTTN] = useState(false);
     const [trackingInfo, setTrackingInfo] = useState<any>(null);
@@ -2023,7 +2043,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                         <div style={cardStyle}>
                             <div style={cardHeaderStyle}>
                                 <h3 style={cardTitleStyle}><Truck size={20} /> Доставка</h3>
-                                {!(order.tracking_number || order.ttn) && !isIntl && (
+                                {!(order.tracking_number || order.ttn) && !isIntl && ttnAllowed === false && (
+                                    <span
+                                        title={ttnBlockedWhy}
+                                        style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                        ТТН — у KeyCRM
+                                    </span>
+                                )}
+                                {!(order.tracking_number || order.ttn) && !isIntl && ttnAllowed === true && (
                                     <button
                                         onClick={openTTNModal}
                                         style={{
