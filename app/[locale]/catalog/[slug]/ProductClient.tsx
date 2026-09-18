@@ -210,7 +210,7 @@ function counterValueLabel(opt: any, n: number): string {
   return `${count} ${unit} (+${price} грн)`;
 }
 
-export default function ProductPage({ params, initialProduct, initialReviews }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[] }) {
+export default function ProductPage({ params, initialProduct, initialReviews, children }: { params: Promise<{ slug: string }>; initialProduct?: any; initialReviews?: any[]; children?: React.ReactNode }) {
   const t = useT();
     const locale = useLocale();
     const b2b = useB2b();
@@ -2270,6 +2270,12 @@ export default function ProductPage({ params, initialProduct, initialReviews }: 
                     </div>
                 </div>
                 )}
+
+                {/* Серверна врізка зі сторінки: секція «Часті питання». Вона
+                    приходить сюди як children, бо <main> і <Footer> малює саме
+                    цей компонент — дописана в page.tsx після <ProductClient>,
+                    вона опинилася б під підвалом. */}
+                {children}
 
             </main>
 

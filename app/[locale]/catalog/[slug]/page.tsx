@@ -7,6 +7,7 @@ import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { toMetaText } from '@/lib/seo/text';
 import { getServerT } from '@/lib/i18n/server';
+import ProductFaq, { pickFaq } from '@/components/seo/ProductFaq';
 
 interface Props {
   params: Promise<{ slug: string; locale: string }>;
@@ -23,7 +24,7 @@ const PRODUCT_PUBLIC_FIELDS =
   'is_personalized, has_designer_option, designer_service_price, max_free_revisions, is_popular, ' +
   'popular_order, options, specs, price_from, sale_price, og_image, video_url, variants, ' +
   'custom_attributes, attribute_price_modifiers, tags, characteristics, sku, status, updated_at, ' +
-  'is_partially_personalized, product_type, translations, features, payment_mode, production_time, shipping_info, payment_info, fulfillment_type, ' +
+  'is_partially_personalized, product_type, translations, features, payment_mode, production_time, shipping_info, payment_info, fulfillment_type, faq, ' +
   // Availability (not sensitive): whether we track stock and how many are free
   // to sell right now. stock_available is generated = stock_quantity - reserved.
   'track_inventory, stock_available';
@@ -281,6 +282,25 @@ export default async function ProductPage({ params }: Props) {
     };
   }
 
+  // «Часті питання» — той самий формат, що вже працює на сторінках
+  // landing_pages: масив {q, a} у колонці faq, переклади в
+  // translations.{locale}.faq. Схема FAQPage будується рівно з тих самих
+  // рядків, які видно на сторінці: розмітка, що обіцяє питання, якого людина
+  // на сторінці не знайде, — привід для ручних санкцій, а не для сніпета.
+  const faqItems = pickFaq(product, locale);
+  const jsonLdFaq = faqItems.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        '@id': `${productUrl}#faq`,
+        mainEntity: faqItems.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      }
+    : null;
+
   return (
     <>
       {jsonLdProduct && (
@@ -289,11 +309,16 @@ export default async function ProductPage({ params }: Props) {
       {jsonLdBreadcrumb && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdBreadcrumb) }} />
       )}
+      {jsonLdFaq && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdFaq) }} />
+      )}
       {productMeta &&
         Object.entries(productMeta).map(([property, content]) =>
           content ? <meta key={property} property={property} content={content} /> : null
         )}
-      <ProductClient params={Promise.resolve({ slug, locale })} initialProduct={product || undefined} initialReviews={productReviews} />
+      <ProductClient params={Promise.resolve({ slug, locale })} initialProduct={product || undefined} initialReviews={productReviews}>
+        <ProductFaq items={faqItems} locale={locale} />
+      </ProductClient>
     </>
   );
 }
