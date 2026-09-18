@@ -3,6 +3,7 @@ import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 
 import { useState, useRef, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
+import { dpiLevel } from '@/lib/print/dpi';
 
 export type SlotShape = 'rect' | 'square' | 'circle' | 'rounded';
 
@@ -66,10 +67,10 @@ function checkPhotoDpi(
   const dpi = Math.min(dpiW, dpiH); // worst axis
   // Diana's call: show DPI badge only when it actually matters for print.
   // Below 91 DPI is when softness becomes visible on a printed page; above
-  // that the warning was just noise on every other photo.
-  if (dpi >= 91) return { level: 'ok', dpi: Math.round(dpi) };
-  if (dpi >= 70) return { level: 'warn', dpi: Math.round(dpi) };
-  return { level: 'bad', dpi: Math.round(dpi) };
+  // that the warning was just noise on every other photo. Самі межі живуть
+  // у lib/print/dpi — вони спільні для редактора, фотодруку і заявки.
+  const level = dpiLevel(dpi);
+  return level ? { level, dpi: Math.round(dpi) } : { level: 'bad' as const, dpi: 0 };
 }
 
 export { checkPhotoDpi };

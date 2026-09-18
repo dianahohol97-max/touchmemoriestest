@@ -11,6 +11,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useB2b } from '@/lib/b2b/useB2b';
 import { toast } from 'sonner';
 import { setJpegDpi300, embedSRGBProfile } from '@/lib/jpeg-print-utils';
+import { DPI_BAD, DPI_WARN, dpiLevel } from '@/lib/print/dpi';
 import { coverScaleForRotation, fitBoxForRotation } from '@/lib/print/photo-rotation';
 
 // ─── Size definitions ─────────────────────────────────────────────────────────
@@ -192,8 +193,9 @@ function getSizeKey(label: string): string {
  * it stays until she picks (CLAUDE.md: «Diana picked this number specifically —
  * don't round it»).
  */
-const DPI_WARN = 91;   // below this: soft
-const DPI_BAD = 70;    // below this: visibly bad
+// Межі живуть у lib/print/dpi — вони стояли окремими числами в трьох місцях,
+// а розходження тут означало б, що одне й те саме фото на одній сторінці
+// «нормальне», а на іншій «мʼяке».
 
 function checkPrintDpi(
   imgW?: number, imgH?: number, areaWcm?: number, areaHcm?: number, zoom?: number,
@@ -202,9 +204,8 @@ function checkPrintDpi(
   const z = Math.max(0.1, zoom || 1);
   const dpi = Math.min(imgW / (areaWcm / 2.54), imgH / (areaHcm / 2.54)) / z;
   if (!Number.isFinite(dpi) || dpi <= 0) return null;
-  if (dpi >= DPI_WARN) return { level: 'ok', dpi: Math.round(dpi) };
-  if (dpi >= DPI_BAD) return { level: 'warn', dpi: Math.round(dpi) };
-  return { level: 'bad', dpi: Math.round(dpi) };
+  const level = dpiLevel(dpi);
+  return level ? { level, dpi: Math.round(dpi) } : null;
 }
 
 /** The badge itself — shown only when there is something to warn about. */
