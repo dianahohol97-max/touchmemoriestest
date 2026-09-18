@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
 import { getRuntimeBaseUrl } from '@/lib/runtimeUrl';
+import { TTN_DISABLED_MESSAGE, readTtnSwitch } from '@/lib/shipping/ttn-switch';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,13 @@ export async function POST(
 ) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
+
+    // Цей маршрут кнопка в адмінці не кличе, але він відкритий, і залишити
+    // його без замка означало б замкнути двері й лишити відчинене вікно.
+    const ttnSwitch = await readTtnSwitch(getAdminClient());
+    if (!ttnSwitch.enabled) {
+        return NextResponse.json({ error: TTN_DISABLED_MESSAGE, disabled: true }, { status: 409 });
+    }
 
     const supabase = getAdminClient();
     try {

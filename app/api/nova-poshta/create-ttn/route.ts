@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
+import { TTN_DISABLED_MESSAGE, readTtnSwitch } from '@/lib/shipping/ttn-switch';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,13 @@ const NOVA_POSHTA_API_URL = 'https://api.novaposhta.ua/v2.0/json/';
 export async function POST(req: Request) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
+
+    // Заборона стоїть на СЕРВЕРІ, а не лише на кнопці: схована кнопка
+    // зупиняє лише того, хто дивиться на екран. Див. lib/shipping/ttn-switch.
+    const ttnSwitch = await readTtnSwitch(getAdminClient());
+    if (!ttnSwitch.enabled) {
+        return NextResponse.json({ error: TTN_DISABLED_MESSAGE, disabled: true }, { status: 409 });
+    }
 
     try {
         const body = await req.json();
