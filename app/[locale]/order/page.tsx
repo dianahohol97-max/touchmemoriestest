@@ -17,6 +17,7 @@ import { parseDecoVariantMm, type DecoVariantDims } from '@/lib/print/deco-varia
 import { readAttributableReferralCode } from '@/lib/referral/pending-code'
 import { orderFlowMarker } from '@/lib/orders/server-order-flow'
 import { readDesignerConfig, nameFromSlug } from '@/lib/orders/designer-config'
+import { checkPhotoForPage, describePhoto, orderedPageMm, summarisePhotos } from '@/lib/orders/photo-resolution'
 
 interface UploadedFile {
   id: string
@@ -24,6 +25,9 @@ interface UploadedFile {
   size: number
   preview?: string
   file: File
+  /** Розміри в пікселях — для перевірки роздільності. Немає — браузер не зміг розібрати (HEIC). */
+  width?: number
+  height?: number
 }
 
 interface OrderFormData {
@@ -77,7 +81,13 @@ function StepIndicator({ current }: { current: number }) {
   )
 }
 
-function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], onChange: (files: UploadedFile[]) => void, pageCount?: number }) {
+function PhotoUploadStep({ data, onChange, pageCount, pageMm }: {
+  data: UploadedFile[],
+  onChange: (files: UploadedFile[]) => void,
+  pageCount?: number,
+  /** Сторінка замовленого виробу в міліметрах, якщо розмір відомий. */
+  pageMm?: { w: number; h: number } | null,
+}) {
   const [dragging, setDragging] = useState(false)
   // Compression status: shows a spinner + "стискаємо N з M" while we shrink
   // oversized photos to keep the upload under Vercel's body-size limit.
@@ -114,12 +124,23 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
       // compressImageFile passes through small files and non-images (HEIC,
       // ZIP) untouched, so this is safe to call on everything.
       const { file: finalFile } = await compressImageFile(file)
+      const preview = finalFile.type.startsWith('image/') ? URL.createObjectURL(finalFile) : undefined
+      // Розміри беремо в ТОГО файла, який справді піде в друк, а не в оригінала
+      // до стиснення: клієнтці треба знати правду про те, що ми отримаємо.
+      // HEIC браузер не декодує — тоді розмірів просто немає, і ми мовчимо.
+      const dims = preview ? await new Promise<{ width: number; height: number } | null>(resolve => {
+        const img = new window.Image()
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        img.onerror = () => resolve(null)
+        img.src = preview
+      }) : null
       processed.push({
         id: Math.random().toString(36).slice(2),
         name: finalFile.name,
         size: finalFile.size,
         file: finalFile,
-        preview: finalFile.type.startsWith('image/') ? URL.createObjectURL(finalFile) : undefined,
+        preview,
+        ...(dims || {}),
       })
       setCompressing({ done: i + 1, total: incoming.length })
     }
@@ -191,7 +212,28 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
       {data.length > 0 && (
         <div className="mt-5 space-y-3">
           <p className="text-sm font-semibold text-gray-600">Завантажено: {data.length} файл(ів)</p>
-          {data.map(f => (
+
+          {/*
+            Підсумок про замалі фото. Окремі підписи під кожним кадром легко
+            прогортати, а «12 фото з 44 замалі» читається одразу. Саме цього й бракувало
+            на TM-001336, де сорок чотири фейсбукові копії приїхали на книгу 30×30.
+          */}
+          {(() => {
+            if (!pageMm) return null
+            const line = summarisePhotos(data.map(f => checkPhotoForPage(f, pageMm)), pageMm)
+            if (!line) return null
+            return (
+              <div className="border border-[#fbbf24] bg-[#fffbeb] rounded-lg p-4">
+                <p className="text-sm font-bold text-[#b45309]">Частина фото замала для друку</p>
+                <p className="text-xs text-[#92400e] mt-2 leading-relaxed">{line}</p>
+              </div>
+            )
+          })()}
+
+          {data.map(f => {
+            const check = pageMm ? checkPhotoForPage(f, pageMm) : null
+            const note = describePhoto(check)
+            return (
             <div key={f.id} className="flex items-center gap-3 bg-[#f0f2f8] rounded-lg p-3">
               {f.preview
                 ? <img src={f.preview} alt={f.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
@@ -199,11 +241,19 @@ function PhotoUploadStep({ data, onChange, pageCount }: { data: UploadedFile[], 
               }
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{f.name}</p>
-                <p className="text-xs text-gray-400">{fmt(f.size)}</p>
+                <p className="text-xs text-gray-400">
+                  {fmt(f.size)}{f.width && f.height ? ` · ${f.width}×${f.height}` : ''}
+                </p>
+                {note && (
+                  <p className={`text-xs font-semibold mt-1 ${check?.level === 'bad' ? 'text-[#b91c1c]' : 'text-[#b45309]'}`}>
+                    {note}
+                  </p>
+                )}
               </div>
               <button onClick={() => removeFile(f.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0"><X className="w-5 h-5" /></button>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
       {data.length === 0 && <p className="text-center text-sm text-gray-400 mt-4">Ще не завантажено жодного фото</p>}
@@ -1289,7 +1339,7 @@ function OrderForm() {
 
         <StepIndicator current={step} />
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} pageCount={(() => {
+          {step === 1 && <PhotoUploadStep data={formData.files} onChange={files => update('files', files)} pageMm={orderedPageMm(savedConfig?.config)} pageCount={(() => {
             // Pull the page count out of the saved product config (if any)
             // so the photo step can recommend a count and cap uploads.
             const slug = (savedConfig?.slug || '').toLowerCase();
