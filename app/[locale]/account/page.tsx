@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { buildRepeatCartItem } from '@/lib/orders/repeat-order';
 import { createClient } from '@/lib/supabase/client';
 import { designThumbPath } from '@/lib/editor/design-thumb';
+import { countPhotosNeedingVariants } from '@/lib/editor/photo-variant-paths';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
@@ -198,7 +199,33 @@ export default function AccountPage() {
             if (error || !row) { toast.error('Не вдалося відкрити дизайн'); return; }
             const cp: any = row.cart_payload || {};
             const ov: any = row.overlays_data || {};
-            const photosMeta: any[] = Array.isArray(row.uploaded_photos) ? row.uploaded_photos : [];
+            let photosMeta: any[] = Array.isArray(row.uploaded_photos) ? row.uploaded_photos : [];
+
+            // Макети, збережені до появи зменшених копій, копій не мають, і
+            // зробити їх у браузері можна тільки завантаживши оригінали — тобто
+            // рівно ті тринадцять хвилин, від яких ми тікаємо. Тому їх ріже
+            // сервер, а людина бачить, що відбувається. Сорок фото на прохід,
+            // тож великий макет забирає два-три виклики.
+            const pending = countPhotosNeedingVariants(photosMeta);
+            if (pending > 0) {
+                const prep = toast.loading(
+                    `Готуємо ${pending} фото до швидкого відкриття, це займе трохи часу.`,
+                );
+                try {
+                    for (let pass = 0; pass < 6; pass++) {
+                        const res = await fetch(`/api/projects/${row.id}/photo-variants`, { method: 'POST' });
+                        if (!res.ok) break;
+                        const info = await res.json().catch(() => null);
+                        if (!info?.ok) break;
+                        if (Array.isArray(info.photos)) photosMeta = info.photos;
+                        if (!info.remaining || !info.made) break;
+                    }
+                } catch {
+                    // Не вийшло — відкриваємо з оригіналів, як відкривалося досі.
+                } finally {
+                    toast.dismiss(prep);
+                }
+            }
 
             // Prefer the exact saved config; otherwise reconstruct the essentials.
             const config = ov.config || {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { displayPathFor, thumbPathFor, shouldDownscale, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variants';
+import { displayPathFor, thumbPathFor, shouldDownscale, photoNeedsVariants, countPhotosNeedingVariants, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variant-paths';
 
 /**
  * Шляхи зменшених копій мусять лежати поруч із оригіналом і НЕ збігатися з
@@ -45,5 +45,38 @@ describe('shouldDownscale', () => {
     it('безглузді числа не дають копії', () => {
         expect(shouldDownscale(0, DISPLAY_MAX_EDGE)).toBe(false);
         expect(shouldDownscale(Number.NaN, DISPLAY_MAX_EDGE)).toBe(false);
+    });
+});
+
+/**
+ * Черга серверної догонки. Помилка тут коштує або зайвої роботи функції на
+ * тому, що вже зроблено, або мовчазного пропуску фото, яке так і лишиться
+ * важким.
+ */
+describe('черга фото на зменшені копії', () => {
+    it('бере фото зі шляхом і без копій', () => {
+        expect(photoNeedsVariants({ path: 'drafts/u/d/a.jpg' })).toBe(true);
+    });
+
+    it('не бере фото, яке взагалі не доїхало у сховище', () => {
+        expect(photoNeedsVariants({ name: 'a.jpg' })).toBe(false);
+        expect(photoNeedsVariants({ path: '' })).toBe(false);
+        expect(photoNeedsVariants(null)).toBe(false);
+    });
+
+    it('не бере фото, для якого копія вже є', () => {
+        expect(photoNeedsVariants({ path: 'a.jpg', previewPath: 'a_display.jpg' })).toBe(false);
+        expect(photoNeedsVariants({ path: 'a.jpg', thumbPath: 'a_thumb.jpg' })).toBe(false);
+    });
+
+    it('рахує лише ті, які справді чекають', () => {
+        expect(countPhotosNeedingVariants([
+            { path: 'a.jpg' },
+            { path: 'b.jpg', previewPath: 'b_display.jpg', thumbPath: 'b_thumb.jpg' },
+            { name: 'c.jpg' },
+            { path: 'd.jpg' },
+        ])).toBe(2);
+        expect(countPhotosNeedingVariants(null)).toBe(0);
+        expect(countPhotosNeedingVariants([])).toBe(0);
     });
 });

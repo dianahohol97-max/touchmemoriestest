@@ -1,5 +1,16 @@
 'use client';
 
+import {
+    DISPLAY_MAX_EDGE,
+    DISPLAY_QUALITY,
+    THUMB_MAX_EDGE,
+    THUMB_QUALITY,
+    displayPathFor,
+    thumbPathFor,
+    shouldDownscale,
+    type PhotoVariantPaths,
+} from './photo-variant-paths';
+
 /**
  * Дві зменшені копії кожного фото, щоб відкритий макет не тягнув оригінали.
  *
@@ -26,42 +37,16 @@
  * де зображення ніколи не більше за сотню пікселів.
  */
 
-/** Довга сторона копії, яку конструктор показує на полотні. */
-export const DISPLAY_MAX_EDGE = 1600;
-export const DISPLAY_QUALITY = 0.82;
-
-/** Довга сторона копії для стрічки, навігатора сторінок і карток кабінету. */
-export const THUMB_MAX_EDGE = 360;
-export const THUMB_QUALITY = 0.72;
-
-export type PhotoVariantPaths = { previewPath?: string; thumbPath?: string };
-
-/** `drafts/u/d/abc.jpg` + `_display` → `drafts/u/d/abc_display.jpg`. */
-function withSuffix(path: string, suffix: string): string {
-    const slash = path.lastIndexOf('/');
-    const dot = path.lastIndexOf('.');
-    if (dot > slash && dot > 0) return `${path.slice(0, dot)}${suffix}${path.slice(dot)}`;
-    return `${path}${suffix}.jpg`;
-}
-
-export function displayPathFor(originalPath: string): string {
-    return withSuffix(originalPath, '_display');
-}
-
-export function thumbPathFor(originalPath: string): string {
-    return withSuffix(originalPath, '_thumb');
-}
-
-/**
- * Чи варто взагалі робити копію такого розміру.
- *
- * Оригінал, який і так менший за межу, переживає повторне кодування тільки
- * гірше: ваги це не зменшить, а різкості відбере. Тоді копії просто немає, і
- * читач відкочується на оригінал — він у цьому разі й так легкий.
- */
-export function shouldDownscale(longestEdge: number, maxEdge: number): boolean {
-    return Number.isFinite(longestEdge) && longestEdge > maxEdge;
-}
+export {
+    DISPLAY_MAX_EDGE,
+    DISPLAY_QUALITY,
+    THUMB_MAX_EDGE,
+    THUMB_QUALITY,
+    displayPathFor,
+    thumbPathFor,
+    shouldDownscale,
+} from './photo-variant-paths';
+export type { PhotoVariantPaths } from './photo-variant-paths';
 
 type VariantSpec = { key: 'display' | 'thumb'; maxEdge: number; quality: number };
 
