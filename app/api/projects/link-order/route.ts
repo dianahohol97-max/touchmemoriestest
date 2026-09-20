@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { recoverPrintFilesForItem } from '@/lib/print/recover-print-folder';
 
 /**
  * Link pre-payment projects to their order.
@@ -235,5 +236,46 @@ export async function POST(request: NextRequest) {
     if (!(await attachDesignFiles(admin, orderId, proj))) withoutFiles++;
   }
 
-  return NextResponse.json({ ok: true, linked, cloned, withoutFiles });
+  // ДОЗБИРАННЯ ВІДБИТКІВ ФОТОДРУКУ.
+  //
+  // Усе вище спирається на рядок у `projects`. Конструктор фотодруку такого
+  // рядка не робить узагалі: перелік його відбитків живе тільки в сховищі
+  // вкладки під ключем `export_{cartItemId}`, і за три доби в кошику він зникає
+  // разом із сесією. Саме так TM-001347 приїхало оплаченим на 1008 ₴ і зовсім
+  // порожнім, хоча всі 126 відбитків лежали у сховищі цілі.
+  //
+  // Тут ми шукаємо їх без того ключа — за часом позиції, кількістю відбитків і
+  // тим, що теку ще не забрало інше замовлення. Повний розбір і межі суворості
+  // у lib/print/recover-print-folder.ts. Робота йде лише для позицій, у яких
+  // файлів досі немає, тож звичайне оформлення сюди не заходить.
+  let recovered = 0;
+  try {
+    const { data: ord } = await admin
+      .from('orders')
+      .select('items, customer_id')
+      .eq('id', orderId)
+      .maybeSingle();
+    const items: any[] = Array.isArray(ord?.items) ? ord!.items : [];
+    if (items.length) {
+      const { data: haveFiles } = await admin
+        .from('order_files')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('file_type', 'export')
+        .limit(1);
+      if (!(haveFiles || []).length) {
+        const owners = ['anon', String(ord?.customer_id || '')].filter(Boolean);
+        for (const item of items) {
+          const slug = String(item?.slug || '').toLowerCase();
+          if (!/photoprint|polaroid|photomagnets/.test(slug)) continue;
+          recovered += await recoverPrintFilesForItem(admin as any, orderId, item, owners);
+        }
+      }
+    }
+  } catch (e: any) {
+    // Дозбирання — страховка. Її збій не має права завалити оформлення.
+    console.error('[link-order] recover print files failed', { orderId, error: e?.message });
+  }
+
+  return NextResponse.json({ ok: true, linked, cloned, withoutFiles, recovered });
 }
