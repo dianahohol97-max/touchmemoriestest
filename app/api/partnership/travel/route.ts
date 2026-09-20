@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { clientIp, createRateLimiter } from '@/lib/security/guess-rate-limit';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { sendBrevoEmail, getBrevoApiKey } from '@/lib/email/brevo';
 import { applicationGate, PARTNER_CABINET_URL } from '@/lib/partners/application-gate';
@@ -34,20 +35,7 @@ function esc(value: unknown): string {
  * два листи через Brevo. Пʼять заявок на годину з адреси — стеля, до якої жодна
  * жива агенція не дійде.
  */
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 60 * 60_000;
-
-function overRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const entry = rateLimitMap.get(ip);
-    if (!entry || now >= entry.resetAt) {
-        rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-        return false;
-    }
-    entry.count++;
-    return entry.count > RATE_LIMIT;
-}
+const GUESSES = createRateLimiter({ limit: 5, windowMs: 60 * 60_000 });
 
 const MODEL_LABEL: Record<string, string> = {
     gift_certificates: 'Оптові подарункові сертифікати',
@@ -58,8 +46,7 @@ const MODEL_LABEL: Record<string, string> = {
 
 export async function POST(request: Request) {
     try {
-        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
-        if (overRateLimit(ip)) {
+        if (GUESSES.over(clientIp(request))) {
             return NextResponse.json(
                 { error: 'Забагато заявок. Спробуйте за годину або напишіть нам на пошту.' },
                 { status: 429 },

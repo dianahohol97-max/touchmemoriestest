@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { certReservationCutoffISO } from '@/lib/certificates/redeemCertificate';
+import { clientIp, createRateLimiter } from '@/lib/security/guess-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+/*
+ * Перебір коду тут коштує дорожче, ніж у промокодів, бо код сертифіката — це
+ * гроші на пред'явника, а відповідь чесно каже і «дійсний», і на яку суму.
+ *
+ * Поки всі коди були 12-символьні випадкові, перебір був безнадійний. Із
+ * друкованими сертифікатами в обіг зайшли короткі числові номери (13795 —
+ * п'ять цифр, тобто сто тисяч комбінацій), і без обмеження весь діапазон
+ * простукується за хвилини, після чого лишається піти на checkout і витратити
+ * знайдене. Двадцять спроб на хвилину — це стеля, якої жодна жива людина з
+ * папірцем у руках не дістане, а перебір стає марним.
+ *
+ * Лічильник у памʼяті інстансу, тож це подорожчання перебору, а не строга
+ * квота — див. коментар у lib/security/guess-rate-limit.ts.
+ */
+const GUESSES = createRateLimiter({ limit: 20, windowMs: 60_000 });
+
 export async function POST(req: NextRequest) {
+  if (GUESSES.over(clientIp(req))) {
+    return NextResponse.json(
+      { valid: false, reason: 'rate_limited' },
+      { status: 429 },
+    );
+  }
+
   let body: { code?: string };
   try { body = await req.json(); }
   catch { return NextResponse.json({ valid: false, reason: 'invalid_request' }, { status: 400 }); }
