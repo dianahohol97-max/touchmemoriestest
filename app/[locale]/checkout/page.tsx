@@ -1,5 +1,6 @@
 'use client';
 import type React from 'react';
+import { checkDesignOwnership } from '@/lib/orders/design-ownership';
 import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -765,6 +766,17 @@ export default function CheckoutPage() {
             if (!designRaw) continue;
             try {
                 const design = JSON.parse(designRaw);
+                // Макет, що належить іншому рядку кошика, під цей рядок не
+                // кладеться. Позиція без макета видна і сторожу, і перевірці
+                // файлів перед друком, а позиція з ЧУЖИМ макетом виглядає
+                // справною рівно до друку — так на TM-001342 ледь не поїхали
+                // дві копії однієї книги замість двох різних.
+                if (checkDesignOwnership(design, itemId) === 'foreign') {
+                    console.error('[design-snapshot] чужий макет під ключем позиції', {
+                        itemId, owner: (design as any)?.cartItemId,
+                    });
+                    continue;
+                }
                 const cfg = design.config || {};
                 const slug = (cfg.productSlug || '').toLowerCase();
                 const isRailwayProduct =
@@ -900,6 +912,19 @@ export default function CheckoutPage() {
                         unit_price: it.price,
                         total_price: it.price * it.qty,
                         slug: it.slug,
+                        // Ідентифікатор рядка кошика — єдине, що звʼязує позицію
+                        // замовлення з її макетом.
+                        //
+                        // Макет зберігається під цим ключем (design_{id} і
+                        // projects.cart_payload->>id), а в саме замовлення ключ
+                        // не клав ніхто: за 30 днів 579 замовлень і в жодному
+                        // його немає. Через це позицію та її макет доводилося
+                        // зіставляти на око, і на TM-001342 це не спрацювало —
+                        // у замовленні дві різні тревелбуки, макет привʼязано
+                        // один, і друк поїхав би двома копіями однієї книги.
+                        // Сервер кладе items у JSONB як є, тож досить перестати
+                        // губити ключ тут.
+                        ...(it.id ? { cart_item_id: String(it.id) } : {}),
                         options: it.options || {},
                         price_breakdown: it.price_breakdown || undefined,
                         // Персоналізація позиції — те, що клієнтка написала або

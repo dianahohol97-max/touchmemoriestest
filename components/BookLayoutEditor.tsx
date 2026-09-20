@@ -5495,6 +5495,10 @@ export default function BookLayoutEditor() {
       }
 
       const designSnapshot = {
+        // Позначка «чий це макет». Далі оформлення і save-design звіряють її з
+        // ключем, під який макет кладуть, і не дають одному рядку кошика
+        // забрати макет іншого — див. lib/orders/design-ownership.ts.
+        cartItemId: cartPayload.id,
         pages, coverState, pageStickers, pageShapes, pageBgs,
         freeSlots, qrOverlays, generatedQRCount, config,
         uploadedPhotos: uploadedPhotosMeta,

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
     CRM_STALE_HOURS,
     EMAIL_GRACE_HOURS,
+    LAYOUT_GRACE_HOURS,
     MAX_PER_PASS,
+    bookLinesWithoutLayout,
     decideLostSignals,
     findLostOrderSignals,
     formatLostSignals,
@@ -204,5 +206,103 @@ describe('повідомлення в чат', () => {
 
     it('номер замовлення видно одразу, без нього сигнал марний', () => {
         expect(formatLostSignals([many[0]])).toContain('TM-000');
+    });
+});
+
+/**
+ * Пʼята ознака: книга, за якою немає макета.
+ *
+ * Історія TM-001342. Клієнтка зібрала дві РІЗНІ тревелбуки в одному
+ * конструкторі, жодного спільного фото між ними, і оплатила обидві одним
+ * замовленням на 2052 ₴. До замовлення привʼязався один макет, і якби ніхто
+ * не звірив картку руками, у друк поїхали б дві копії однієї книги, а другої
+ * клієнтка не отримала б узагалі. Дізналися ми про це від менеджерки, а не
+ * від жодної перевірки.
+ *
+ * Тридцятиденний прохід по живій базі, перш ніж це писати, дав чотири
+ * замовлення, у яких макетів МЕНШЕ, ніж книг, і жодне з них не було поломкою:
+ * два з дизайнером, одне з готовими файлами, одне з поясненням людини в
+ * примітці. Тому звірка тут не по лічильнику, а по ідентифікатору рядка.
+ */
+describe('книга без макета', () => {
+    const bookOrder = (extra: Partial<OrderRow> = {}): OrderRow => ({
+        id: 'o-1342',
+        order_number: 'TM-001342',
+        created_at: ago(3),
+        with_designer: false,
+        total: 2052,
+        customer_email: null,
+        source: 'site',
+        items: [
+            { slug: 'travelbook-20x30', product_name: 'Travel Book', cart_item_id: 'pb-1' },
+            { slug: 'travelbook-20x30', product_name: 'Travel Book', cart_item_id: 'pb-2' },
+        ],
+        ...extra,
+    });
+
+    const run = (order: OrderRow, known: string[]) => findLostOrderSignals({
+        orders: [order],
+        emailedOrderIds: new Set([order.id]),
+        crmCandidateSince: new Map(),
+        layoutCartIds: new Set(known),
+        now: NOW,
+    }).filter(s => s.kind === 'no_layout');
+
+    it('ловить рядок, за яким макета немає', () => {
+        const found = run(bookOrder(), ['pb-1']);
+        expect(found).toHaveLength(1);
+        expect(found[0].orderNumber).toBe('TM-001342');
+        expect(found[0].detail).toContain('Travel Book');
+    });
+
+    it('мовчить, коли макет є за кожним рядком', () => {
+        expect(run(bookOrder(), ['pb-1', 'pb-2'])).toHaveLength(0);
+    });
+
+    it('не чіпає заявки з дизайнером — макет там роблять пізніше', () => {
+        expect(run(bookOrder({ with_designer: true }), [])).toHaveLength(0);
+    });
+
+    it('мовчить перші хвилини, поки оформлення ще пише макет', () => {
+        const fresh = bookOrder({ created_at: ago(LAYOUT_GRACE_HOURS / 2) });
+        expect(run(fresh, [])).toHaveLength(0);
+    });
+
+    it('не чіпає товарів, у яких макета з конструктора не буває', () => {
+        const order = bookOrder({
+            items: [{ slug: 'photomagnets', product_name: 'Магніти', cart_item_id: 'pm-1' }],
+        });
+        expect(run(order, [])).toHaveLength(0);
+    });
+
+    /**
+     * Найдорожче тут — не пропустити поломку, а навчити не читати. Замовлення,
+     * оформлені до того, як ключ рядка почали зберігати, звірити нічим.
+     */
+    it('мовчить на старих замовленнях без ідентифікатора рядка', () => {
+        const legacy = bookOrder({
+            items: [
+                { slug: 'travelbook-20x30', product_name: 'Travel Book' },
+                { slug: 'travelbook-20x30', product_name: 'Travel Book' },
+            ],
+        });
+        expect(run(legacy, [])).toHaveLength(0);
+    });
+});
+
+describe('bookLinesWithoutLayout', () => {
+    it('повертає лише книги без макета', () => {
+        const items = [
+            { slug: 'photobook-printed', product_name: 'Фотокнига', cart_item_id: 'a' },
+            { slug: 'photobook-printed', product_name: 'Фотокнига', cart_item_id: 'b' },
+            { slug: 'photoprint-standard', product_name: 'Фотодрук', cart_item_id: 'c' },
+        ];
+        const out = bookLinesWithoutLayout(items, new Set(['a']));
+        expect(out.map(o => o.cartItemId)).toEqual(['b']);
+    });
+
+    it('переживає сміття замість позицій', () => {
+        expect(bookLinesWithoutLayout(null, new Set())).toEqual([]);
+        expect(bookLinesWithoutLayout([null, 'x', 7], new Set())).toEqual([]);
     });
 });
