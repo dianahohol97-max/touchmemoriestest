@@ -34,7 +34,7 @@ export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fo
  */
 const SERVER_GENERATED_COVER = /(^|\/)(cover(_bw)?|insert_photo)\.jpg$/i;
 
-export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[]) {
+export function exportRowsFromPaths(orderId: string, productType: string | null, uploaded: string[], projectId?: string | null) {
   // Найбільший номер серед плоских сторінок партії (01.jpg … 12.jpg). Потрібен,
   // щоб задній форзац отримав СВІЙ номер, а не заглушку — див. нижче.
   const lastFlatPage = uploaded.reduce((max, p) => {
@@ -76,6 +76,11 @@ export function exportRowsFromPaths(orderId: string, productType: string | null,
     }
     return {
       order_id: orderId,
+      // Явний звʼязок із макетом. Вгадувати його зі шляху не можна: гостьовий
+      // шлях `guest/{cartItemId}/print/` не містить id макета взагалі, і на
+      // TM-001342 через це сімнадцять готових аркушів другої книги лишилися
+      // нічиїми, а картка показувала один макет замість двох.
+      ...(projectId ? { project_id: projectId } : {}),
       file_path: path,
       file_name: fileName,
       file_type: 'export',
@@ -94,13 +99,73 @@ export function exportRowsFromPaths(orderId: string, productType: string | null,
  * paths, so without the sweep every re-render appended a duplicate row set —
  * TM-001108 carried 30 rows for 15 files).
  */
+/**
+ * Які з названих шляхів справді лежать у сховищі.
+ *
+ * ЧОМУ ЦЕ ТРЕБА ПЕРЕВІРЯТИ. Рядок у order_files — це обіцянка, що файл є.
+ * Сервіс рендеру називає свій набір сам, і коли частина завантажень падає, у
+ * списку вони однаково є: картка рахує вісімнадцять аркушів, виглядає це
+ * справно, а три з них при друці не відкриються. На TM-001342 так і вийшло —
+ * у наборі книги названо вісімнадцять сторінок, а у сховищі лежать пʼятнадцять.
+ *
+ * Читаємо по теці: один список замість запиту на кожен файл.
+ */
+export async function existingPaths(
+  admin: SupabaseClient,
+  bucket: string,
+  paths: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>();
+  const byFolder = new Map<string, string[]>();
+  for (const path of paths) {
+    const at = String(path).lastIndexOf('/');
+    const folder = at > 0 ? path.slice(0, at) : '';
+    if (!byFolder.has(folder)) byFolder.set(folder, []);
+    byFolder.get(folder)!.push(path);
+  }
+  for (const [folder, group] of byFolder) {
+    try {
+      const { data, error } = await admin.storage.from(bucket).list(folder, { limit: 1000 });
+      if (error || !data) {
+        // Не змогли прочитати — вважаємо, що все на місці. Відмовити тут
+        // означало б викинути справний набір через збій читання.
+        group.forEach(p => out.add(p));
+        continue;
+      }
+      const names = new Set((data as any[]).map(e => String(e?.name || '')));
+      for (const path of group) {
+        const name = path.slice(folder.length + 1);
+        if (names.has(name)) out.add(path);
+      }
+    } catch {
+      group.forEach(p => out.add(p));
+    }
+  }
+  return out;
+}
+
 export async function registerExportFiles(
   admin: SupabaseClient,
   orderId: string,
   productType: string | null,
   uploaded: string[],
+  projectId?: string | null,
 ): Promise<string | null> {
   if (!uploaded.length) return null;
+
+  // Реєструємо тільки те, що справді доїхало у сховище. Рядок на неіснуючий
+  // файл гірший за його відсутність: він мовчки добиває лічильник до
+  // правильного числа, і набір виглядає повним рівно до друку.
+  const present = await existingPaths(admin, 'photobook-uploads', uploaded);
+  const missing = uploaded.filter(p => !present.has(p));
+  if (missing.length) {
+    console.error('[register-export] сервіс назвав файли, яких у сховищі немає', {
+      orderId, projectId, missing: missing.slice(0, 10), total: missing.length,
+    });
+  }
+  const real = uploaded.filter(p => present.has(p));
+  if (!real.length) return `жоден із ${uploaded.length} названих файлів не знайдено у сховищі`;
+  uploaded = real;
   const { error: dupErr } = await admin
     .from('order_files')
     .delete()
@@ -109,7 +174,7 @@ export async function registerExportFiles(
     .in('file_path', uploaded);
   if (dupErr) console.error('[register-export] stale row cleanup failed', { orderId, error: dupErr.message });
 
-  const { error: ofErr } = await admin.from('order_files').insert(exportRowsFromPaths(orderId, productType, uploaded));
+  const { error: ofErr } = await admin.from('order_files').insert(exportRowsFromPaths(orderId, productType, uploaded, projectId));
   if (ofErr) {
     console.error('[register-export] order_files insert failed', { orderId, error: ofErr.message });
     return ofErr.message;

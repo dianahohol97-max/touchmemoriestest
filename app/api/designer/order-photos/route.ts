@@ -139,9 +139,20 @@ export async function GET(req: NextRequest) {
         });
     } catch { /* без списку книг картка просто не групуватиме */ }
     const bookIds = new Set(books.map(b => b.id));
-    /** id макета, до якого належить файл — шукається у шляху сховища. */
-    const bookOf = (path: string): string | null => {
-        for (const seg of String(path || '').split('/')) {
+    /**
+     * id макета, до якого належить файл.
+     *
+     * Спочатку читаємо те, що рендер записав ЯВНО в `project_id`. Пошук у
+     * шляху лишається запасним для рядків, зроблених до появи колонки, і він
+     * саме тому запасний: гостьовий шлях `guest/{cartItemId}/print/` id макета
+     * не містить взагалі. На TM-001342 друга книга відрендерилася повністю, усі
+     * сімнадцять аркушів лежали у сховищі, а картка показувала один макет — бо
+     * вгадати власника цих файлів було ні з чого.
+     */
+    const bookOf = (file: { file_path?: string | null; project_id?: string | null }): string | null => {
+        const explicit = String(file?.project_id || '').trim();
+        if (explicit && bookIds.has(explicit)) return explicit;
+        for (const seg of String(file?.file_path || '').split('/')) {
             if (bookIds.has(seg)) return seg;
         }
         return null;
@@ -162,7 +173,7 @@ export async function GET(req: NextRequest) {
 
     const { data: files, error } = await admin
         .from('order_files')
-        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type, file_size')
+        .select('id, file_path, file_name, file_category, bucket_name, page_number, mime_type, file_type, file_size, project_id')
         .eq('order_id', orderId)
         .in('file_type', ['upload', 'export'])
         .order('page_number', { ascending: true, nullsFirst: true })
@@ -235,7 +246,7 @@ export async function GET(req: NextRequest) {
                 page_number: f.page_number,
                 mime_type: f.mime_type,
                 product_id: null,
-                bookId: bookOf(f.file_path),
+                bookId: bookOf(f),
                 printBatch: printBatchOf(f.file_path),
                 path: f.file_path,
                 bucket,

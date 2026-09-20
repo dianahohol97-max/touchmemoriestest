@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
         if (complete) renderedProjectIds.push(String(project.id));
         // Shared with /api/print/render-complete (the service's completion
         // callback that covers renders outliving this route's maxDuration).
-        const ofErrMsg = await registerExportFiles(admin, orderId, project.product_type, uploaded);
+        const ofErrMsg = await registerExportFiles(admin, orderId, project.product_type, uploaded, project.id);
         if (ofErrMsg) {
           // The render itself succeeded; surface the indexing problem but don't
           // fail the whole call — files exist in storage and can be re-indexed.
