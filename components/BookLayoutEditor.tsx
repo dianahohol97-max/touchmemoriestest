@@ -49,6 +49,7 @@ import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import type { PhotoData, BookConfig, CoverDecoType, CoverState, LayoutType, SlotData, TextBlock, Page } from '@/lib/editor/types';
 import { SlotPhotoToolbar } from '@/components/editor/SlotPhotoToolbar';
 import { applySnap } from '@/lib/editor/snap';
+import { ensurePhotoVariants } from '@/lib/editor/photo-variants';
 import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
   generateQRDataUrl, looksLikeUrl,
@@ -1499,7 +1500,11 @@ export default function BookLayoutEditor() {
               try {
                 const { createClient: mkSb } = await import('@/lib/supabase/client');
                 const sbg = mkSb();
-                const paths = ghostsWithPath.map((p: PhotoData) => p.path as string);
+                // Підписуємо зменшену копію, якщо вона є: оживити стрічку
+                // мініатюр оригіналом на кілька мегабайтів коштує дорожче, ніж
+                // сама втрачена чернетка. Оригінал усе одно лишається в
+                // storagePath, бо друкувати треба з нього.
+                const paths = ghostsWithPath.map((p: PhotoData) => (p.previewPath || p.path) as string);
                 const { data: signed } = await sbg.storage
                   .from('photobook-uploads')
                   .createSignedUrls(paths, 60 * 60 * 24 * 7);
@@ -1508,8 +1513,9 @@ export default function BookLayoutEditor() {
                   signed.forEach((s, i) => { if (s?.signedUrl) urlByPath[paths[i]] = s.signedUrl; });
                   setPhotos(prev => prev.map(p => {
                     const path = p.path || p.storagePath;
-                    return (!p.preview && path && urlByPath[path])
-                      ? { ...p, preview: urlByPath[path], storagePath: path } as any
+                    const shownPath = p.previewPath || path;
+                    return (!p.preview && shownPath && urlByPath[shownPath])
+                      ? { ...p, preview: urlByPath[shownPath], storagePath: path } as any
                       : p;
                   }));
                 }
@@ -3828,6 +3834,11 @@ export default function BookLayoutEditor() {
   // Per-photo failed-upload counter: a photo whose upload failed 3 times stops
   // retrying for the session (each retry re-sent the full original every 3s).
   const photoUploadAttemptsRef = useRef<Record<string, number>>({});
+  // Фото, для яких зменшені копії вже пробували зробити. Автозбереження ходить
+  // раз на хвилину, і без цієї позначки невдала спроба повторювалася б на
+  // кожному колі: шість десятків розкодувань щохвилини вішають вкладку надійніше
+  // за будь-яке повільне відкриття, яке ці копії мали вилікувати.
+  const photoVariantTriedRef = useRef<Set<string>>(new Set());
   const persistDraft = async (): Promise<boolean> => {
     if (persistInFlightRef.current) { persistQueuedRef.current = true; return false; }
     persistInFlightRef.current = true;
@@ -3864,10 +3875,28 @@ export default function BookLayoutEditor() {
       // at once (27 photos = 27 parallel multi-MB uploads), which choked the
       // connection and the main thread. Three at a time keeps the editor
       // responsive while the backlog drains.
+      // Зменшені копії для показу. Вони не обовʼязкові й ніколи не заміняють
+      // оригінал — без них макет просто відкривається так само повільно, як до
+      // TM-001342. Робимо їх один раз на фото за сесію: повторне відкриття вже
+      // приносить готові шляхи в метаданих.
+      const ensureVariants = async (p: PhotoData, path: string, body?: Blob | File) => {
+        if (p.previewPath || p.thumbPath) {
+          return { previewPath: p.previewPath, thumbPath: p.thumbPath };
+        }
+        if (photoVariantTriedRef.current.has(p.id)) return {};
+        photoVariantTriedRef.current.add(p.id);
+        const source = body || (p.originalFile as File | undefined) || p.preview;
+        if (!source) return {};
+        const made = await ensurePhotoVariants(sb, 'photobook-uploads', path, source);
+        if (made.previewPath) p.previewPath = made.previewPath;
+        if (made.thumbPath) p.thumbPath = made.thumbPath;
+        return made;
+      };
       const uploadOne = async (p: PhotoData) => {
         const existingPath = p.storagePath as string | undefined;
         if (existingPath) {
-          return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath };
+          const v = await ensureVariants(p, existingPath);
+          return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath, ...v };
         }
         if ((photoUploadAttemptsRef.current[p.id] || 0) >= 3) {
           return { id: p.id, name: p.name, width: p.width, height: p.height };
@@ -3893,14 +3922,15 @@ export default function BookLayoutEditor() {
             return { id: p.id, name: p.name, width: p.width, height: p.height };
           }
           p.storagePath = path;
-          return { id: p.id, name: p.name, width: p.width, height: p.height, path };
+          const v = await ensureVariants(p, path, body);
+          return { id: p.id, name: p.name, width: p.width, height: p.height, path, ...v };
         } catch (e) {
           photoUploadAttemptsRef.current[p.id] = (photoUploadAttemptsRef.current[p.id] || 0) + 1;
           console.warn('[persistDraft] photo upload exception', p.id, e);
           return { id: p.id, name: p.name, width: p.width, height: p.height };
         }
       };
-      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> = new Array(photos.length);
+      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string; previewPath?: string; thumbPath?: string }> = new Array(photos.length);
       {
         let nextIdx = 0;
         const worker = async () => {
@@ -5413,7 +5443,7 @@ export default function BookLayoutEditor() {
     try {
       const { createClient: createAnonClient } = await import('@/lib/supabase/client');
       const sb = createAnonClient();
-      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string }> =
+      const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string; previewPath?: string; thumbPath?: string }> =
         photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
 
       for (let i = 0; i < photos.length; i++) {
@@ -5427,6 +5457,15 @@ export default function BookLayoutEditor() {
         const existingPath = (ph.storagePath || ph.path) as string | undefined;
         if (existingPath) {
           uploadedPhotosMeta[i].path = existingPath;
+          // Зменшені копії для показу: якщо фото приїхало зі старої чернетки,
+          // їх ще немає, і зробити їх треба тут — інакше це замовлення так і
+          // відкриватиметься з оригіналів. Друку це не стосується: Railway
+          // бере `path`.
+          const v = ph.previewPath || ph.thumbPath
+            ? { previewPath: ph.previewPath, thumbPath: ph.thumbPath }
+            : await ensurePhotoVariants(sb, 'photobook-uploads', existingPath, (ph.originalFile as File | undefined) || ph.preview);
+          if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
+          if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
           continue;
         }
         let body: Blob | undefined;
@@ -5444,7 +5483,13 @@ export default function BookLayoutEditor() {
           const { error: upErr } = await sb.storage
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
-          if (!upErr) { uploadedPhotosMeta[i].path = path; ph.storagePath = path; }
+          if (!upErr) {
+            uploadedPhotosMeta[i].path = path;
+            ph.storagePath = path;
+            const v = await ensurePhotoVariants(sb, 'photobook-uploads', path, body);
+            if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
+            if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
+          }
           else console.warn('[design-snapshot] photo upload error', ph.id, upErr.message);
         } catch (e) { console.warn('[design-snapshot] photo upload failed', ph.id, e); }
       }

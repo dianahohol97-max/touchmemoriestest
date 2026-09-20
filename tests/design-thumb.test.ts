@@ -42,3 +42,35 @@ describe('designThumbPath', () => {
         expect(designThumbPath({ photoId: 'p1' }, [{ id: 'p1', path: '' }])).toBeNull();
     });
 });
+
+/**
+ * Картка в списку менша за сотню пікселів, і тягнути в неї оригінал на три
+ * мегабайти немає за що. Коли копія на 360 px поруч уже лежить, картка бере її.
+ */
+describe('designThumbPath і зменшені копії', () => {
+    const withThumbs = [
+        { id: 'p1', name: 'first.jpg', path: 'drafts/u/d/p1.jpg', thumbPath: 'drafts/u/d/p1_thumb.jpg' },
+        { id: 'p2', name: 'cover.jpg', path: 'drafts/u/d/p2.jpg', thumbPath: 'drafts/u/d/p2_thumb.jpg' },
+    ];
+
+    it('бере копію обкладинки, коли вона є', () => {
+        expect(designThumbPath({ photoId: 'p2' }, withThumbs)).toBe('drafts/u/d/p2_thumb.jpg');
+    });
+
+    it('бере копію першого фото, коли обкладинка без знімка', () => {
+        expect(designThumbPath(null, withThumbs)).toBe('drafts/u/d/p1_thumb.jpg');
+    });
+
+    it('відкочується на оригінал у старих макетах без копій', () => {
+        expect(designThumbPath({ photoId: 'p2' }, photos)).toBe('drafts/u/d/p2.jpg');
+    });
+
+    it('відкочується на оригінал, коли копія є лише в частини фото', () => {
+        const mixed = [
+            { id: 'p1', name: 'first.jpg', path: 'drafts/u/d/p1.jpg' },
+            { id: 'p2', name: 'cover.jpg', path: 'drafts/u/d/p2.jpg', thumbPath: 'drafts/u/d/p2_thumb.jpg' },
+        ];
+        expect(designThumbPath(null, mixed)).toBe('drafts/u/d/p1.jpg');
+        expect(designThumbPath({ photoId: 'p2' }, mixed)).toBe('drafts/u/d/p2_thumb.jpg');
+    });
+});

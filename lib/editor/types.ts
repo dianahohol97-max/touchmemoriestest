@@ -30,6 +30,17 @@ export interface PhotoData { id: string; preview: string; thumb?: string; width:
    * cast to express itself.
    */
   path?: string;
+  /**
+   * Зменшені копії того самого фото у сховищі, поруч із оригіналом.
+   *
+   * `previewPath` (близько 1600 px) — те, що конструктор показує на полотні,
+   * `thumbPath` (близько 360 px) — стрічка, навігатор сторінок і картка в
+   * кабінеті. Оригінал у `path` не заміняється ніколи: макет для друку збирає
+   * Railway саме з нього. Чому копії взагалі зʼявилися — див. коментар у
+   * lib/editor/photo-variants.ts.
+   */
+  previewPath?: string;
+  thumbPath?: string;
 }
 
 export interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; selectedUrgency?: string | null; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }

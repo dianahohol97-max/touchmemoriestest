@@ -23,6 +23,8 @@ export interface UploadedPhotoMeta {
     id?: string | null;
     name?: string | null;
     path?: string | null;
+    /** Зменшена копія на ~360 px поруч із оригіналом, якщо вона вже є. */
+    thumbPath?: string | null;
 }
 
 /**
@@ -47,10 +49,19 @@ export function designThumbPath(
             ?? null)
         : null;
 
+    // Мініатюра в списку ніколи не більша за сотню пікселів, тож коли поруч
+    // із оригіналом лежить копія на 360 px, беремо її. Десяток карток по
+    // три мегабайти кожна — це той самий рахунок, який довів TM-001342 до
+    // тринадцяти хвилин очікування, просто в меншому масштабі.
+    const shown = (p: UploadedPhotoMeta) => p.thumbPath || p.path || null;
+
     if (coverPhotoId) {
         const hit = withPath.find(p => p.id === coverPhotoId);
-        if (hit?.path) return hit.path;
+        if (hit) {
+            const url = shown(hit);
+            if (url) return url;
+        }
     }
 
-    return withPath[0].path || null;
+    return shown(withPath[0]);
 }
