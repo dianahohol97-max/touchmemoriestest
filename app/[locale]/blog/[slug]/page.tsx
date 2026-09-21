@@ -9,6 +9,7 @@ import { Footer } from '@/components/ui/Footer';
 import MarkdownViewer from '@/components/ui/MarkdownViewer';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 
@@ -27,7 +28,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
     try {
         const admin = getAdminClient();
-        const { data: post, error } = await admin.from('blog_posts').select('*').eq('slug', slug).maybeSingle();
+        // Гейт той самий, що й на сторінці: інакше <title> назвав би статтю,
+        // яка ще не відкрилася за графіком, на сторінці, яка віддає 404.
+        const { data: post, error } = await onlyVisiblePosts(admin.from('blog_posts').select('*').eq('slug', slug)).maybeSingle();
 
         if (error || !post) {
             return { title: 'Статтю не знайдено | Touch.Memories' };
@@ -77,11 +80,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     let post: any = null;
 
     try {
-        const { data, error } = await supabase
+        const { data, error } = await onlyVisiblePosts(supabase
             .from('blog_posts')
             .select('*, blog_categories(*)')
-            .eq('slug', slug)
-            .eq('is_published', true)
+            .eq('slug', slug))
             .single();
 
         if (error || !data) {
@@ -111,12 +113,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     let similarPosts: any[] = [];
     if (post?.category_id) {
         try {
-            const { data } = await supabase
+            const { data } = await onlyVisiblePosts(supabase
                 .from('blog_posts')
                 .select('id, title, slug, cover_image, published_at')
                 .eq('category_id', post.category_id)
-                .neq('id', post.id)
-                .eq('is_published', true)
+                .neq('id', post.id))
                 .limit(3);
             if (data) similarPosts = data;
         } catch (error) {

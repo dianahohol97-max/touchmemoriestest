@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 
 export async function GET() {
     const supabase = createClient(
@@ -8,10 +9,9 @@ export async function GET() {
     );
     const domain = process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua';
 
-    const { data: posts } = await supabase
+    const { data: posts } = await onlyVisiblePosts(supabase
         .from('blog_posts')
-        .select('*')
-        .eq('is_published', true)
+        .select('*'))
         .order('published_at', { ascending: false })
         .limit(20);
 

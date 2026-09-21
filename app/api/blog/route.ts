@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,13 +11,12 @@ export async function GET(req: Request) {
     const featured = searchParams.get('featured');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let query = supabase
+    let query = onlyVisiblePosts(supabase
         .from('blog_posts')
         .select(`
             *,
             category:blog_categories(name, slug)
-        `)
-        .eq('is_published', true)
+        `))
         .order('published_at', { ascending: false });
 
     if (category) {

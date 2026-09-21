@@ -14,6 +14,7 @@ import { Footer } from '@/components/ui/Footer';
 import { TravelSection } from '@/components/ui/TravelSection';
 import { createClient } from '@supabase/supabase-js'
 import { SectionWrapper } from '@/components/ui/SectionWrapper';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import { DynamicText } from '@/components/ui/DynamicText';
 import { DynamicPromo } from '@/components/ui/DynamicPromo';
 import { PhotoPrintPromo } from '@/components/ui/PhotoPrintPromo';
@@ -95,11 +96,10 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
           .eq('is_active', true)
           .order('position', { ascending: true })
           .limit(2),
-        supabase
+        onlyVisiblePosts(supabase
           .from('blog_posts')
           .select('*, translations, category:blog_categories(name, slug)')
-          .eq('is_published', true)
-          .eq('is_featured', true)
+          .eq('is_featured', true))
           .order('published_at', { ascending: false })
           .limit(3),
         supabase

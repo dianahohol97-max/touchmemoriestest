@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, User, ArrowLeft, Hash } from 'lucide-react';
@@ -28,10 +29,9 @@ export default async function TagPage({ params, searchParams }: { params: Promis
     const offset = (currentPage - 1) * limit;
 
     // Supabase contains text array, we use contains operator @>
-    const { data: posts, count } = await supabase.from('blog_posts')
+    const { data: posts, count } = await onlyVisiblePosts(supabase.from('blog_posts')
         .select('*, blog_categories(name)', { count: 'exact' })
-        .contains('tags', [decodedTag])
-        .eq('is_published', true)
+        .contains('tags', [decodedTag]))
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
