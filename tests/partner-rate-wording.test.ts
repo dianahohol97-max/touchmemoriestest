@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildPartnerWelcomeEmail } from '@/lib/agency/welcome-email';
 import { getPartnerHub, getPartnerLanding, type PartnerLanding } from '@/lib/partners/landing-content';
@@ -96,6 +96,22 @@ describe('ставка 5% усюди названа разом із журнал
         // llms.txt читають ChatGPT, Perplexity і Claude, і цитують вони саме
         // цифри. Неправильна формула тут розходиться далі за будь-яку сторінку.
         expectMagazineNamed('public/llms.txt', readFileSync(resolve('public/llms.txt'), 'utf8'));
+    });
+
+    it('чернетки статей блогу, які ще лежать у репозиторії', () => {
+        // Пункт 9 у docs/pending-checks.md: залита стаття недосяжна ні для
+        // grep, ні для тесту — її доводиться перевіряти окремим SQL-запитом.
+        // Поки чернетка лежить у docs/blog, вона ще під перевіркою, і саме тут
+        // формула ставки коштує найдешевше.
+        const drafts = readdirSync(resolve('docs/blog')).filter(f => f.endsWith('.md'));
+        expect(drafts.length, 'черга спорожніла — перевірка перестала щось перевіряти').toBeGreaterThan(0);
+
+        for (const file of drafts) {
+            const text = readFileSync(resolve('docs/blog', file), 'utf8');
+            for (const sentence of rateSentences(text)) {
+                expect(MAGAZINE.test(sentence), `docs/blog/${file}: «${sentence}» обіцяє 5% лише з тревелбуків`).toBe(true);
+            }
+        }
     });
 
     it('підказка в адмінці над списком партнерів', () => {

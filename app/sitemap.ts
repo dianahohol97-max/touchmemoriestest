@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import { LOCALES, getCanonicalUrl, getAlternateLanguages, getSingleLocaleAlternates } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
@@ -112,10 +113,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  const { data: posts } = await admin
+  const { data: posts } = await onlyVisiblePosts(admin
     .from('blog_posts')
-    .select('slug, updated_at')
-    .eq('is_published', true);
+    .select('slug, updated_at'));
 
   for (const post of posts || []) {
     const path = `/blog/${post.slug}`;

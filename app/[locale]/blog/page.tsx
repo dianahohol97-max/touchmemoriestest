@@ -6,6 +6,7 @@ import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { getLocalized } from '@/lib/i18n/localize';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 const BLOG_META: Record<string, { title: string; description: string; h1: string; subtitle: string }> = {
@@ -94,9 +95,8 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
     const { data: categories } = await supabase.from('blog_categories').select('*').eq('is_active', true).order('sort_order');
 
     // Build Posts Query
-    let query = supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug)', { count: 'exact' })
-        .eq('is_published', true)
+    let query = onlyVisiblePosts(supabase.from('blog_posts')
+        .select('*, translations, blog_categories(name, slug)', { count: 'exact' }))
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -110,18 +110,16 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
     const { data: posts, count } = await query;
 
     // Fetch Featured Post (Hero)
-    const { data: featuredPost } = await supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug)')
-        .eq('is_published', true)
+    const { data: featuredPost } = await onlyVisiblePosts(supabase.from('blog_posts')
+        .select('*, translations, blog_categories(name, slug)'))
         .eq('is_featured', true)
         .order('published_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
     // Fetch Popular Posts
-    const { data: popularPosts } = await supabase.from('blog_posts')
-        .select('id, title, slug, cover_image, views_count, published_at, translations')
-        .eq('is_published', true)
+    const { data: popularPosts } = await onlyVisiblePosts(supabase.from('blog_posts')
+        .select('id, title, slug, cover_image, views_count, published_at, translations'))
         .order('views_count', { ascending: false })
         .limit(5);
 

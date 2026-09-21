@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { onlyVisiblePosts } from '@/lib/blog/published';
 import { notFound } from 'next/navigation';
 import { getLocalized } from '@/lib/i18n/localize';
 import Link from 'next/link';
@@ -48,10 +49,9 @@ export default async function CategoryPage({ params, searchParams }: { params: P
     const limit = 9;
     const offset = (currentPage - 1) * limit;
 
-    const { data: posts, count } = await supabase.from('blog_posts')
+    const { data: posts, count } = await onlyVisiblePosts(supabase.from('blog_posts')
         .select('*, blog_categories(name)', { count: 'exact' })
-        .eq('category_id', category.id)
-        .eq('is_published', true)
+        .eq('category_id', category.id))
         .order('published_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
