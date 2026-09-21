@@ -212,3 +212,4 @@ Do NOT continue making more frontend commits without confirming the previous one
 2. Check the most recent 5 commits in that file's history with `git log --oneline -5 -- <file>` — recent context tells you what was just changed
 3. Ask Diana before destructive operations (resetting state, dropping tables, force-pushing)
 4. If Antigravity broke something, the fix is usually `git revert <hash>` not manual reconstruction
+5. Check `docs/pending-checks.md` before asking Diana what is left — it holds the checks that are waiting on one action of hers, one query, or an answer from production, each with the query or the steps already written out
