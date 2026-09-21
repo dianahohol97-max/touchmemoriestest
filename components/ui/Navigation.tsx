@@ -177,8 +177,12 @@ export function Navigation() {
                       {activeDropdown === link.id && (
                         <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} transition={{ duration:0.2 }}
                           className="absolute top-full left-0 mt-6 w-56 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-primary/5 rounded-brand py-3 z-100">
+                          {/* localePath, як і у верхніх пунктів: адреси в
+                              navigation_links зберігаються без локалі, і без
+                              цього відвідувач із /de падав у редирект посеред
+                              переходу, а опинявся в українській версії. */}
                           {link.children.map((child: any) => (
-                            <Link key={child.href} href={child.href}
+                            <Link key={child.href} href={localePath(locale, child.href)}
                               className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors hover:bg-primary/5">
                               {child.name}
                             </Link>

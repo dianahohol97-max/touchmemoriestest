@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { LOCALES, getCanonicalUrl, getAlternateLanguages } from '@/lib/seo/locales';
+import { LOCALES, getCanonicalUrl, getAlternateLanguages, getSingleLocaleAlternates } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +28,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/cookies', priority: 0.3, changeFreq: 'yearly' as const },
     { path: '/refund', priority: 0.3, changeFreq: 'yearly' as const },
   ];
+
+  // Сторінки, які існують тільки українською, хоч і відкриваються за будь-якою
+  // локаллю: текст партнерських лендінгів не перекладається (Діана,
+  // 16.09.2026), тож у мапі вони стоять однією адресою з hreflang лише на uk.
+  // Перелічити їх пʼятьма локалями означало б самому здати Google пʼять дублів.
+  // Стара /travel-agencies сюди не потрапляє навмисно — вона тепер 308 на
+  // /partnery, а в sitemap адреса має відповідати кодом 200, без переходу.
+  const UK_ONLY_ROUTES = [
+    { path: '/partnery', priority: 0.7, changeFreq: 'monthly' as const },
+    { path: '/partnerska-programa-dlya-blogeriv', priority: 0.8, changeFreq: 'monthly' as const },
+    { path: '/partnerska-programa-dlya-turagentstv', priority: 0.8, changeFreq: 'monthly' as const },
+  ];
+
+  for (const route of UK_ONLY_ROUTES) {
+    entries.push({
+      url: getCanonicalUrl('uk', route.path),
+      changeFrequency: route.changeFreq,
+      priority: route.priority,
+      alternates: { languages: getSingleLocaleAlternates(route.path, 'uk') },
+    });
+  }
 
   for (const route of STATIC_ROUTES) {
     for (const locale of LOCALES) {

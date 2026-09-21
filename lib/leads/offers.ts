@@ -52,7 +52,7 @@ export const OFFERS: Record<LeadBusinessType, OfferContent> = {
     },
     travel_agency: {
         subject: 'Touch.Memories для тревел-агенцій — тревелбуки для ваших клієнтів',
-        landingPath: '/travel-agencies',
+        landingPath: '/partnery',
         body: ({ name }) =>
             `Вітаємо${name ? `, ${name}` : ''}!\n\n` +
             `Ми — Touch.Memories, робимо тревелбуки — книги спогадів про подорож. Пропонуємо тревел-агенціям кілька моделей співпраці: оптові подарункові сертифікати для клієнтів, реферальна винагорода, або co-branded тревелбуки під вашим брендом.\n\n` +

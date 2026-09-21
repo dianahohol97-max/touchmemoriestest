@@ -133,6 +133,37 @@ const nextConfig = {
         destination: '/:locale/pro-nas',
         permanent: true,
       },
+      // Партнерська програма переїхала: /travel-agencies була однією сторінкою
+      // на два різні запити (агенція шукала подарунок клієнту після туру,
+      // блогер — відсоток із замовлення), тепер це хаб /partnery і дві профільні
+      // сторінки. Адреса стара живе в пошуку й у листах партнерам, тож
+      // permanent: true — 308 передає вагу на нову і не лишає 404.
+      // Конкретніший /apply мусить стояти ПЕРЕД загальним правилом, інакше
+      // заявка поїде на хаб і форму ніхто не побачить.
+      {
+        source: '/:locale(uk|en|ro|pl|de)/travel-agencies/apply',
+        destination: '/:locale/partnery/apply',
+        permanent: true,
+      },
+      {
+        source: '/:locale(uk|en|ro|pl|de)/travel-agencies',
+        destination: '/:locale/partnery',
+        permanent: true,
+      },
+      // Те саме без локалі: посилання такого вигляду ходили в листах до того,
+      // як локаль зʼявилася в адресах. Без цих двох рядків вони потрапили б у
+      // редирект на локаль, а звідти в 404 — маршруту /travel-agencies більше
+      // немає взагалі.
+      {
+        source: '/travel-agencies/apply',
+        destination: '/uk/partnery/apply',
+        permanent: true,
+      },
+      {
+        source: '/travel-agencies',
+        destination: '/uk/partnery',
+        permanent: true,
+      },
       // «Випускні книги» — категорія вимкнена (is_active = false, нуль активних
       // товарів). Тут стояв редирект /category/vypuskni-knyhy →
       // /category/graduation-books, і це був нескінченний цикл: `vypuskni-knyhy`

@@ -3,52 +3,33 @@
 import { useState } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { Gift, Percent, Check, Loader2, Globe } from 'lucide-react';
-
-const MODELS = [
-    {
-        id: 'gift_certificates',
-        icon: Gift,
-        title: 'Подарункові сертифікати',
-        tagline: 'Дбайливий подарунок після туру',
-        description: 'Даруйте клієнтам сертифікат на тревелбук після подорожі — приємний бонус, який збереже спогади про їхню поїздку. Ви купуєте сертифікати зі знижкою 10% прямо у своєму партнерському кабінеті, а клієнти повертаються до вас із теплими емоціями. Сертифікати діють 3 місяці з моменту видачі.',
-        perks: ['Знижка 10% на тревелбуки', 'Сертифікати діють 3 місяці', 'Ваші клієнти отримують подарунок', 'Нічого не потрібно виробляти самим'],
-    },
-    {
-        id: 'referral',
-        icon: Percent,
-        title: 'Реферальна програма',
-        tagline: 'Заробляйте на рекомендаціях',
-        description: 'Ви (агенція чи блогер) отримуєте персональне реферальне посилання. Клієнт переходить за ним і бачить знижку 5% уже в кошику, вводити нічого не треба. З кожного оплаченого замовлення вам нараховується винагорода: 5% від вартості тревелбуків і 3% від вартості решти товарів. Це додатковий дохід без жодних витрат. Нарахування й виплати — у партнерському кабінеті (виплата від 500 грн).',
-        perks: ['Персональне реферальне посилання', 'Знижка клієнту застосовується сама', '5% за тревелбуки, 3% за інші товари', 'Оплата лише за реальні продажі'],
-    },
-    // Co-branded travelbooks — hidden for now (terms not finalised). Restore
-    // this block and the matching form <option> below to bring it back.
-    // {
-    //     id: 'cobranded',
-    //     icon: BookHeart,
-    //     title: 'Co-branded тревелбуки',
-    //     tagline: 'Преміум-сервіс під вашим брендом',
-    //     description: 'Тревелбуки з логотипом вашої агенції та підписом «Ваша подорож з [агенція]». Ідеальний подарунок для VIP-клієнтів після преміальних турів — ви стаєте частиною їхнього найкращого досвіду подорожі.',
-    //     perks: ['Ваш логотип у книзі', 'Підкреслює преміальність турів', 'Підсилює лояльність клієнтів'],
-    // },
-];
+import { Check, Loader2 } from 'lucide-react';
 
 /** Локалі сайту. Усе, що поза списком, читаємо як українську. */
 const LOCALES = ['uk', 'en', 'ro', 'pl', 'de'];
 
 /**
- * mode 'landing' — hero + models + the two-button chooser (увійти /
- * зареєструватися), same workflow as /photographers (Diana, 2026-08-04).
- * mode 'apply' — the application form alone, hosted at /travel-agencies/apply.
+ * Заявка на партнерство — форма і тільки форма.
  *
- * `locale` потрібна кнопкам. Усі посилання тут вели на /uk жорстко, тож
- * відвідувач, який зайшов на /de/travel-agencies, з першої ж кнопки провалювався
- * в українську частину сайту й губив свою мову. Сам текст сторінки поки
- * український на всіх локалях — це переклад, а не помилка коду, і він окремою
- * задачею.
+ * Раніше цей файл звався TravelAgenciesClient і тримав два режими: лендінг із
+ * описом моделей співпраці і саму форму. Лендінг переїхав на три серверні
+ * сторінки (/partnery і дві профільні), бо текст, який має ранжуватися, не
+ * повинен приїжджати клієнтським компонентом. Тут лишилося те, заради чого
+ * компонент і був клієнтським, — стан форми.
+ *
+ * `defaultKind` приходить з адреси: кнопка «Зареєструватися як блогер» на
+ * лендінгу веде на /partnery/apply?kind=blogger. Перемикач лишається видимим і
+ * змінюваним — людина, яка помилилася дверима, не мусить повертатися назад.
+ * Саме це значення їде в `partnership_requests.kind`, а звідти при схваленні
+ * стає `agency_partners.partner_kind`.
  */
-export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }: { mode?: 'landing' | 'apply'; locale?: string }) {
+export default function PartnerApplyClient({
+    locale = 'uk',
+    defaultKind = 'travel_agency',
+}: {
+    locale?: string;
+    defaultKind?: 'travel_agency' | 'travel_blogger';
+}) {
     const lang = LOCALES.includes(locale) ? locale : 'uk';
     const [agencyName, setAgencyName] = useState('');
     const [contactName, setContactName] = useState('');
@@ -66,7 +47,7 @@ export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }
     const [done, setDone] = useState(false);
     // Photographers have their own workflow at /photographers — removed from
     // this form per Diana («фотографів саме звідси треба забрати»).
-    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger'>('travel_agency');
+    const [kind, setKind] = useState<'travel_agency' | 'travel_blogger'>(defaultKind);
     const isBlogger = kind === 'travel_blogger';
 
     const submit = async (e: React.FormEvent) => {
@@ -105,78 +86,6 @@ export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
             <Navigation />
             <main style={{ flex: 1, paddingTop: 110, paddingBottom: 80 }}>
-                {/* Hero */}
-                {mode === 'landing' && (
-                <section style={{ background: 'linear-gradient(135deg, #263A99 0%, #1a2a73 100%)', padding: '64px 0 72px', color: '#fff' }}>
-                    <div className="container" style={{ maxWidth: 880, textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 20 }}>
-                            <Globe size={15} /> Партнерська програма
-                        </div>
-                        {/* explicit #fff — globals.css h1 { color: var(--primary) } beats inheritance */}
-                        <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: 44, fontWeight: 900, lineHeight: 1.05, color: '#fff', margin: '0 0 18px' }}>
-                            Співпраця для тревел-агенцій і блогерів
-                        </h1>
-                        <p style={{ fontSize: 17, lineHeight: 1.7, opacity: 0.9, maxWidth: 620, margin: '0 auto' }}>
-                            Ваші клієнти повертаються з подорожей із сотнями фото. Допоможіть їм зберегти ці спогади — і зробіть це частиною свого сервісу. Оберіть модель співпраці, яка підходить саме вам — для тревел-агенцій і блогерів.
-                        </p>
-                    </div>
-                </section>
-                )}
-
-                {/* Models */}
-                {mode === 'landing' && (
-                <section style={{ padding: '64px 0' }}>
-                    <div className="container" style={{ maxWidth: 1100 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-                            {MODELS.map(m => {
-                                const Icon = m.icon;
-                                return (
-                                    <div key={m.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '32px 28px', display: 'flex', flexDirection: 'column' }}>
-                                        <div style={{ width: 52, height: 52, borderRadius: 12, background: '#eef3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                                            <Icon size={26} color="#3d56d6" />
-                                        </div>
-                                        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d', margin: '0 0 4px' }}>{m.title}</h3>
-                                        <p style={{ fontSize: 13, fontWeight: 600, color: '#3d56d6', margin: '0 0 14px' }}>{m.tagline}</p>
-                                        <p style={{ fontSize: 14, lineHeight: 1.7, color: '#475569', margin: '0 0 18px', flex: 1 }}>{m.description}</p>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                                            {m.perks.map((p, i) => (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <Check size={15} color="#16a34a" style={{ flexShrink: 0 }} />
-                                                    <span style={{ fontSize: 13, color: '#374151' }}>{p}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </section>
-                )}
-
-                {/* Two-button chooser on the landing; the form lives at /apply */}
-                {mode === 'landing' && (
-                <section style={{ padding: '0 0 56px' }}>
-                    <div className="container" style={{ maxWidth: 620, textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <a href={`/${lang}/partner/cabinet`}
-                                style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#fff', color: '#1e2d7d', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
-                                Увійти в кабінет
-                            </a>
-                            <a href={`/${lang}/travel-agencies/apply`}
-                                style={{ display: 'inline-block', minWidth: 220, textAlign: 'center', padding: '16px 28px', background: '#1e2d7d', color: '#fff', border: '2px solid #1e2d7d', borderRadius: 12, fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
-                                Зареєструватися
-                            </a>
-                        </div>
-                        <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 14 }}>
-                            Реєстрація — це коротка заявка з посиланням на вашу роботу, яку ми розглядаємо вручну. Після схвалення ви отримаєте персональний промокод і кабінет партнера.
-                        </p>
-                    </div>
-                </section>
-                )}
-
-                {/* Form */}
-                {mode === 'apply' && (
                 <section style={{ padding: '40px 0 40px' }}>
                     <div className="container" style={{ maxWidth: 620 }}>
                         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '40px 36px', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
@@ -202,7 +111,7 @@ export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }
                                             )}
                                         </div>
                                     )}
-                                    <h2 style={{ fontSize: 24, fontWeight: 800, color: '#1e2d7d', marginBottom: 6, textAlign: 'center' }}>Хочемо співпрацювати</h2>
+                                    <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1e2d7d', marginBottom: 6, textAlign: 'center' }}>Хочемо співпрацювати</h1>
                                     <p style={{ fontSize: 14, color: '#94a3b8', marginBottom: 20, textAlign: 'center' }}>Залиште контакти — і ми обговоримо найкращі умови співпраці</p>
 
                                     <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -261,12 +170,15 @@ export default function TravelAgenciesClient({ mode = 'landing', locale = 'uk' }
                                     <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', margin: '16px 0 0' }}>
                                         Вже наш партнер? <a href={`/${lang}/partner/cabinet`} style={{ color: '#263A99', fontWeight: 700 }}>Увійти в кабінет →</a>
                                     </p>
+                                    <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', margin: '8px 0 0' }}>
+                                        Умови під ваш випадок: <a href={`/${lang}/partnerska-programa-dlya-blogeriv`} style={{ color: '#263A99', fontWeight: 700 }}>для блогерів</a>
+                                        {' '}або <a href={`/${lang}/partnerska-programa-dlya-turagentstv`} style={{ color: '#263A99', fontWeight: 700 }}>для турагентств</a>.
+                                    </p>
                                 </>
                             )}
                         </div>
                     </div>
                 </section>
-                )}
             </main>
             <Footer categories={[]} />
         </div>

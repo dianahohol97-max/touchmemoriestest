@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Two-button chooser mirroring /photographers and /travel-agencies: blue
+ * Two-button chooser mirroring /photographers and /partnery: blue
  * gradient hero (Diana's call — «зроби синій назад»), white cards on Soft White
  * below, Montserrat/Open Sans via the site font vars. The moderated
  * application form lives at /wedding-agencies/apply.

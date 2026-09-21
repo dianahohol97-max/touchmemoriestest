@@ -92,7 +92,7 @@ export default function PartnerFindClient() {
             <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 460, lineHeight: 1.55 }}>
                 Якщо у вас є акаунт на сайті на цю саму пошту, кабінет відкривається і без листа — просто
                 увійдіть і зайдіть на <a href={`/${lang}/partner/cabinet`} style={{ color: '#263A99', fontWeight: 700 }}>сторінку кабінету</a>.
-                Ще не партнер? <a href={`/${lang}/travel-agencies/apply`} style={{ color: '#263A99', fontWeight: 700 }}>Залиште заявку</a>.
+                Ще не партнер? <a href={`/${lang}/partnery/apply`} style={{ color: '#263A99', fontWeight: 700 }}>Залиште заявку</a>.
             </div>
         </div>
     );
