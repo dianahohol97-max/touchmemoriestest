@@ -1,6 +1,6 @@
 # TouchMemories — Architecture
 
-> **Last updated:** 2026-06-04 · **Maintained by:** Diana + Claude
+> **Last updated:** 2026-09-17 · **Maintained by:** Diana + Claude
 > **Production:** touchmemories1.vercel.app
 > **Repo:** github.com/dianahohol97-max/touchmemoriestest
 > **Read this first** before any feature work or debugging session. Update at the bottom of any major change.
@@ -55,6 +55,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Shipping (Nova Poshta etc.) | `lib/shipping/` | Carrier integrations |
 | Certificates (gift cards) | `lib/certificates/` + `app/admin/certificates/` | Code generation, validation |
 | Blog | `app/admin/blog/` + `app/[locale]/blog/` | MD editor in admin via @uiw/react-md-editor |
+| SEO (canonical, hreflang, redirects, sitemap, schema) | `lib/seo/` + `app/sitemap.ts` + `app/robots.ts` + `redirects()` in `next.config.ts` + `components/seo/` | See "SEO surface" below. Check redirects with `node scripts/redirect-chains.mjs` before committing |
 
 ---
 
@@ -356,6 +357,54 @@ Counting goes through `referral_visit_stats()` from the same migration, never a 
 
 ---
 
+## SEO surface (canonicals, redirects, sitemap, structured data)
+
+Updated 2026-09-17, after the September audit.
+
+### The four canonical page types
+
+| URL | Route | Structured data |
+|---|---|---|
+| `/{locale}/catalog/{slug}` | `app/[locale]/catalog/[slug]/page.tsx` | `Product` (+`AggregateOffer` when configurable, `AggregateRating`/`Review` when real reviews exist), `BreadcrumbList`, `FAQPage` when the product has FAQ |
+| `/{locale}/category/{ua-slug}` | `app/[locale]/category/[slug]/page.tsx` | `CollectionPage`, `BreadcrumbList`, `ItemList` |
+| `/{locale}/category/{ua-slug}/{occasion}` | `app/[locale]/category/[slug]/[occasion]/page.tsx` | same, plus `FAQPage`; content is DB-driven from `landing_pages` |
+| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | article metadata |
+
+Every one of them sets a self-referencing canonical and the full five-locale `hreflang` set via `getCanonicalUrl` / `getAlternateLanguages` in `lib/seo/locales.ts`. A page that exists in one language only uses `getSingleLocaleAlternates` instead — do not give it the full set, or we tell Google that five URLs with identical Ukrainian text are five translations.
+
+### Category slugs have two forms, and that is the usual source of redirect bugs
+
+`categories.slug` in the DB is the functional key (`photobooks`), used in 40+ places. The **public** slug is the Ukrainian keyword one (`fotoknygy`), and `lib/seo/categorySlugs.ts` maps between them. The `/category` route resolves the UA slug to the DB row, and answers a DB-slug URL with its own `permanentRedirect` to the UA slug.
+
+That page-level redirect is the trap: **any redirect in `next.config.ts` must point at the PUBLIC UA slug**, never at the DB slug — otherwise it is a two-hop chain, and if the rule happens to point the other way it is an infinite loop. Both existed until 2026-09-17 (`/category/vypuskni-knyhy` ↔ `/category/graduation-books` looped; ~20 rules chained).
+
+### Redirects
+
+All in `next.config.ts` → `redirects()`; `proxy.ts` only adds the locale prefix. Rules that matter:
+
+- **Order is everything.** Next.js applies the first matching rule. A blanket `/shop/:path*` sat near the top of the array and silently swallowed the entire ~60-row `/shop/ → /catalog/` mapping table 200 lines below it, so every old ranking URL landed on the generic catalog. The catch-all now lives at the very bottom, and the comment there says why nothing broad may go above it.
+- **Destinations carry `/uk`.** `proxy.ts` answers a locale-less path with another redirect, so `/about → /` → `/uk` was two hops.
+- **Query-param rules forward the query.** Next.js copies params the destination does not consume, so a rule whose destination equals its own source loops forever. This is how `/blog?category=…` → `/blog` became an infinite redirect.
+- **Check before committing:** `node scripts/redirect-chains.mjs` parses the rules, models both the query forwarding and the category page's own runtime redirect, and exits 1 on any chain, loop, or locale-less destination.
+
+### Sitemap
+
+`app/sitemap.ts`, ~785 URLs, regenerated hourly. It lists only canonical `/catalog/` and `/category/` URLs — **no `/shop/` has ever been in it**, and nothing in it may answer with a redirect. Two rules that already bit us: categories with zero active products are skipped (the page 301s them to `/catalog`), and category paths go through `toPublicCategorySlug`. When adding a redirect for a `/catalog/{slug}` that belongs to an **active** product, check the sitemap — `guestbook-kids` spent months being listed in the sitemap while answering 301.
+
+### Product FAQ
+
+`products.faq` is `jsonb`, an array of `{q, a}`, with translations in `translations.{locale}.faq` — the same convention `landing_pages` uses. `components/seo/ProductFaq.tsx` renders it, and `catalog/[slug]/page.tsx` emits the matching `FAQPage` schema from the same rows, so the markup can never promise a question the page does not show.
+
+Because `ProductClient` owns `<main>` and `<Footer>`, the FAQ is passed into it as `children` rather than appended after it — otherwise it renders below the footer.
+
+There is **no admin UI for product FAQ yet**; edit it in SQL. The admin PATCH route (`app/api/admin/products/[id]/route.ts`) uses a field allowlist that does not include `faq`, so panel edits cannot wipe it.
+
+### Internal linking
+
+`components/seo/LandingLinks.tsx` on the homepage links every active `landing_pages` row plus a short curated list of product pages from `lib/seo/keyPages.ts`. The curated list exists because anchor text is a ranking signal and a catalog card's anchor is the product *name* ("Полароїд"), not the query ("друк фото полароїд"). Keep that list short — if it grows into the whole catalog, every link weighs the same and the point is lost. Slugs are checked against active products at render time, so a renamed product drops out instead of becoming a link to a 404.
+
+---
+
 ## Data model — key tables
 
 (Authoritative shapes are in `lib/supabase/schema/*.sql` and `supabase/migrations/`. This list is for orientation only.)
@@ -466,8 +515,13 @@ These are the recurring "why is this still broken" issues. Update this list when
 6. **Cover templates breadth** — magazine and travel book templates are fewer than photobook. Expanding from Canva designs is ongoing.
 7. **Designer cabinet revision lifecycle gaps** — known but not yet documented in detail. Audit the flow when next touching `app/admin/designer/`.
 8. **Cart/checkout end-to-end audit** — region pricing is now implemented (2026-06-04): account routing from `bank_accounts`, +30% intl markup frozen on the order, UA/INTL ship-region selector, UAH/EUR switcher, INTL = full prepayment. Still open: (a) **international shipping is semi-manual** — Diana uses Nova Poshta's international service (no programmatic waybill API on her domestic contract). The admin order page has an international panel for `ship_region='INTL'` orders: transliterated recipient/address/description (`lib/shipping/transliterate.ts`, KMU-55 table) ready to paste into the NP international application, plus a field to save the resulting tracking number (stored on `orders.ttn` with `tracking_carrier='nova_poshta_intl'` + `tracking_url`). The domestic `sync-tracking` cron skips any order with a non-null `tracking_carrier` (domestic leaves it NULL). The admin panel also generates a **commercial invoice PDF** (`lib/export/invoice.ts`, English/customs-standard, values in EUR from the frozen `price_multiplier`+`exchange_rate`; seller details in `settings('seller_legal')` — fill `tax_id`/`iban` there). Auto-creation of waybills via an API (e.g. Nova Global Partners "Create IEW") is a future Phase B, gated on signing a Nova Global agreement + a separate Global API key. (Fixed 2026-06-04: `sync-tracking` previously read non-existent `tracking_number`/`delivery_status` columns — now reads the real `ttn`/`tracking_status`.) (b) **fiscalisation (Checkbox) is wired** (2026-06-04): on the first paid transition the Monobank webhook (and admin "mark paid") fire `/api/fiscalize` → `lib/fiscalize.ts`, which picks the cash register by `fiscal_accounts.region` matching `orders.payment_region` (ua → ФОП Коблик, international → ФОП Гоголь), checks `fiscal_rules` (full → sell receipt, split → prepayment receipt; gated by `is_enabled`), creates the receipt via the corrected `lib/checkbox.ts` client, and stores `fiscal_id`/`fiscal_url`/`fiscal_status` on the order (idempotent, non-throwing). For 50/50 split orders the online 50% fires a **prepayment** receipt (carrying a `relation_id`); when the order hits **delivered** (sync-tracking), `fiscalizePostpayment` closes the chain with a **postpayment** receipt for the remainder (NP COD), which Checkbox emails to the customer (gated by the `postpayment` rule; sets `fiscal_status='postpaid'`). The close-shift cron closes shifts for all active accounts. REMAINING: Diana must enter both ФОП Checkbox credentials (login/password/license_key/cashier_name + region) in admin → settings → fiscalization, enable the `full`/`prepayment` rules, and run a live test receipt; VAT/export treatment for INTL to confirm with the accountant. (c) `np_accounts` is empty (no internal NP account configured for live TTN); (d) a live end-to-end Monobank test (real invoice → webhook → `paid`) has not been run. A full customer-perspective walkthrough (promo + markup interaction, designer-service orders) still recommended.
-9. **47 markdown files in repo root** — historical implementation summaries. These should be moved into a `docs/archive/` folder once everything they cover is reflected in this ARCHITECTURE.md.
-10. **Schema drift between repo and prod Supabase** — production schema has been extended directly via the Supabase dashboard with no corresponding migrations. Two migrations bring the worst offenders back in line:
+9. **Old `/shop/` URLs with no exact equivalent in the catalog** (audit 2026-09-17). Every ranking `/shop/` URL now 301s one hop to a specific page, but four of them land on a *near* match rather than on the thing the visitor searched for. Each is a product decision for Diana, not a code fix:
+    - `/shop/albom-z-chornimi-storinkami-ta-fotoviknom` — «альбом з чорними сторінками та фотовікном». We sell no such thing: `scrapbook-white-pages` has **white** pages and **no** photo window, i.e. it differs on both attributes the person typed. Currently points at `/uk/category/albomy-dlya-vkleyky` (the narrowest page of the same intent). If a black-pages version is ever added, repoint this rule at it.
+    - `/shop/fotoalbom-na-200-foto-10x15`, `/shop/albom-dlya-fotografij-na-300-foto-1` and their variants — these were old **listing** pages, not single products, and we have a dozen albums per size. They point at the `landing_pages` size pages (`/uk/category/fotoalbomy/200-foto`, `/300-foto`), which is the honest one-to-one equivalent. No action needed unless those landing pages are removed.
+    - `/shop/cat/vypuskni` and `/category/vypuskni-knyhy` — the «Випускні книги» category is `is_active = false` with zero products, so both go to `/uk/catalog`. When Diana adds a product and enables the category, delete those two rules so `/category/vypuskni-knyhy` becomes the live public URL again.
+    - The bottom catch-all `/shop/:path*` → `/uk/catalog` covers everything else. It is a safety net, not an answer: any URL arriving there that has real impressions in Search Console should get its own row above it. Diana still owes a full Search Console export of indexed `/shop/*` URLs — the mapping table was built from the audit sample plus the pages already known to rank, not from a complete list.
+10. **47 markdown files in repo root** — historical implementation summaries. These should be moved into a `docs/archive/` folder once everything they cover is reflected in this ARCHITECTURE.md.
+11. **Schema drift between repo and prod Supabase** — production schema has been extended directly via the Supabase dashboard with no corresponding migrations. Two migrations bring the worst offenders back in line:
     - `20260429_sync_projects_schema_with_prod.sql` — covers `projects` (name, uploaded_photos, notified_*_at, relaxed CHECK constraints, consolidated RLS policy). **Applied to prod 2026-04-29.**
     - `20260429_create_missing_infrastructure_tables.sql` — creates 6 infra tables that code references but prod never had: `automation_settings`, `email_templates`, `notification_log`, `staff_shifts`, `qc_error_log`, `salary_calculations`. Also adds `is_recurring`, `recurring_interval`, `name`, `period_start`, `period_end`, `supplier`, `invoice_number` to `expenses` so the recurring-expenses cron can run. **Applied to prod 2026-04-29.**
 
@@ -476,7 +530,7 @@ These are the recurring "why is this still broken" issues. Update this list when
     - `lib/ai/claude-chat.ts` (and its schema reference `lib/supabase/schema/ai-chat.sql`) deleted — visitor-facing AI chatbot was never deployed and nothing imports it.
     - `db_backups` storage bucket created explicitly on prod (private, 100MB limit) so `backup-db` cron stops needing to lazy-create it.
 
-11. **Security hardening** — full audit on 2026-04-29 found 24 critical/high/medium issues across RLS, API auth, webhook verification, and dependency vulnerabilities. Three migrations + extensive code changes resolve them. **All applied to prod 2026-04-29.**
+12. **Security hardening** — full audit on 2026-04-29 found 24 critical/high/medium issues across RLS, API auth, webhook verification, and dependency vulnerabilities. Three migrations + extensive code changes resolve them. **All applied to prod 2026-04-29.**
     - `20260429_security_hardening.sql` — enable RLS on `magazine_briefs` (was off; PII questionnaires were anon-readable), drop public SELECT on `subscribers` / `wishlists` / `gift_certificates` / `inventory_movements`, drop `Free Designer Orders Read` (anon-leaked customer PII for designer-service orders), drop anon FOR ALL on `photobook_projects` / `recipes`, restrict `bank_accounts` / `fiscal_accounts` / `np_accounts` to admin only, drop `staff` "any authenticated reads" policy, drop `design_briefs` / `design_revisions` `USING (true)` policies, lock down orphan tables from sibling projects.
     - `20260429_security_hardening_admin_check_fix.sql` — fixes the previous migration's admin check. The first attempt used `EXISTS (admin_users WHERE id = auth.uid())` but `admin_users.id` is its own UUID, NOT `auth.users.id`. Replaced with the existing `is_admin()` DB function (matches via `auth.jwt()->>'email'`).
     - `20260429_close_customer_projects.sql` — `customer_projects` had a policy literally named "Admin full access" but with `USING (true)` and no role restriction; full table was anon-readable. Closed with admin/owner policies; the customer review link path now goes through `/api/review/[token]/[action]` with token-validated service-role access.
@@ -493,7 +547,7 @@ These are the recurring "why is this still broken" issues. Update this list when
 
 13. **A route with no caller is not automatically a dead route, and `docs/dead-routes.md` is where that distinction lives** (2026-09-14, revised 2026-09-16). Read that file BEFORE adding logic to a route you did not personally trace a call into, and before deleting one for being callerless. The gap exists because of a concrete miss on 2026-09-14: guest-order linking was written into `/api/auth/register`, which looked alive, was named exactly right and contained sensible code — and had zero callers, so it never ran once. `scripts/dead-routes.mjs` re-measures, but its output is raw: a mention in this doc or in a migration comment counts there as a call, which is why the list needs a human. On 2026-09-16 Diana had eight of them deleted — `/api/admin/analytics` (a duplicate of the analytics screen, proven dead by code search and by a day of Vercel logs), `/api/campaigns/new-product`, `/api/admin/cleanup-chat-notes`, `/api/photobook/upload-photos`, `/api/debug/keycrm-order`, `/api/admin/price-drop`, `/api/debug/horoscope`, `/api/admin/salary/qc`. Seven others stay ALIVE ON PURPOSE despite having no caller, and the file says why for each: `/api/admin/stock-sync` («Deliberately NOT a cron»), `/api/admin/keycrm/costs` (the manual cost sync the P&L depends on), `/api/reviews/request` (the executor the new review cron shares a module with), `/api/admin/keycrm/statuses`, `/api/admin/campaign/test-send`, `/api/coloring`, `/api/photographers/subscription/check`. `/api/photographers/booking/claim` stays too: nothing calls it, but the photographer cabinet renders the `payment_status = 'claimed'` state only this route can write. Four public-looking ones are still Diana's to check, and the two deliberate one-off backfills are ordinary manual passes.
 
-12. **Dashboard and analytics still report `total`, not money received** (open, 2026-09-14 — deliberately NOT part of the four-consumer fix in `1513a701`). `/api/admin/dashboard` computes `todayRevenue` as the sum of `total` over every order created today regardless of payment, and `awaitingPaymentSum` as the sum of `total` where `payment_status = 'pending'` — the full order value, not the outstanding balance. `/api/admin/analytics` reads `total` for revenue, the period-over-period change, the 30-day chart and the COGS match. So both pages answer «how much was ordered», while the payments page, client `total_spent`, the expenses P&L and photographer totals now answer «how much came in», and the two sets of numbers disagree on every partially-paid order. Moving them over means `receivedAmount()` in the routes AND the `get_daily_revenue` SQL function, which is a second copy of the rule living in the database — change one without the other and the 30-day chart silently keeps the old answer.
+14. **Dashboard and analytics still report `total`, not money received** (open, 2026-09-14 — deliberately NOT part of the four-consumer fix in `1513a701`). `/api/admin/dashboard` computes `todayRevenue` as the sum of `total` over every order created today regardless of payment, and `awaitingPaymentSum` as the sum of `total` where `payment_status = 'pending'` — the full order value, not the outstanding balance. `/api/admin/analytics` reads `total` for revenue, the period-over-period change, the 30-day chart and the COGS match. So both pages answer «how much was ordered», while the payments page, client `total_spent`, the expenses P&L and photographer totals now answer «how much came in», and the two sets of numbers disagree on every partially-paid order. Moving them over means `receivedAmount()` in the routes AND the `get_daily_revenue` SQL function, which is a second copy of the rule living in the database — change one without the other and the 30-day chart silently keeps the old answer.
 
 ---
 
