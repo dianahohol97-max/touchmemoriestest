@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
  *
  * The certificate itself keeps its FULL nominal value (the discount is the
  * partner's wholesale margin) and is the product type: «сертифікат на
- * тревелбук», valid 3 months — exactly the terms on the /travel-agencies page.
+ * тревелбук», valid 3 months — exactly the terms on the /partnery hub.
  */
 const PARTNER_CERT_DISCOUNT = 0.10;
 // Travelbook price points — a certificate maps to a book size the client picks.

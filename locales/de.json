@@ -2205,5 +2205,8 @@
     "copied": "Kopiert!",
     "add_to_design": "Zum Design hinzufügen",
     "note": "Der QR-Code kann heruntergeladen und als Bild in jeden Editor eingefügt werden"
+  },
+  "partners": {
+    "_todo": "TODO: переклад. Сторінки партнерської програми лишаються українськими на всіх локалях — getServerT бере відсутні ключі з uk.json. Це свідоме рішення (Діана, 16.09.2026): канонічне посилання цих сторінок теж українське, тож п'яти дублів в індексі не виникає. Перекладати можна ключ за ключем, нічого не ламаючи."
   }
 }

@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Two-button chooser mirroring /travel-agencies and /wedding-agencies: blue
+ * Two-button chooser mirroring /partnery and /wedding-agencies: blue
  * gradient hero (Diana's call — «зроби синій назад» after a cream version),
  * white cards on Soft White below, Montserrat headings + Open Sans body via
  * the site's --font-heading / --font-body vars.
@@ -190,7 +190,7 @@ export default async function PhotographersPage({ params }: { params: Promise<{ 
             <Navigation />
             <main style={{ flex: 1, paddingTop: 110 }}>
                 {/* Blue gradient hero — Diana's call («зроби синій назад»),
-                    matching the /travel-agencies hero exactly. */}
+                    matching the /partnery hero exactly. */}
                 <section style={{ background: 'linear-gradient(135deg, #263A99 0%, #1a2a73 100%)', padding: '64px 16px 72px', color: '#fff' }}>
                     <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }}>
                         <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', padding: '6px 16px', borderRadius: 20, fontFamily: 'var(--font-heading)', fontWeight: 600, fontSize: 13, marginBottom: 20 }}>
