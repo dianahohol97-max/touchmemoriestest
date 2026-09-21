@@ -299,7 +299,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                             і воно б'є успадкований від банера білий — заголовок ставав #263A99 на #263A99. */}
                         <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'white' }}>Готові створити свою фотокнигу?</h3>
                         <p style={{ fontSize: '16px', color: '#94a3b8', marginBottom: '32px', maxWidth: '400px' }}>Спробуйте наш зручний онлайн-конструктор та збережіть свої найкращі фото на сторінках преміум фотокниги.</p>
-                        <Link href="/constructor/photobook" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: '#263A99', color: 'white', borderRadius: '9999px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
+                        {/* Кнопка навмисно інверсна: банер уже #263A99, і кнопка того ж кольору
+                            на ньому зникала — лишався самий білий напис без жодної форми.
+                            Біла таблетка з брендовим написом — той самий приклад, що в блоці
+                            підписки на /blog і в кнопці на сторінці 404. */}
+                        <Link href="/constructor/photobook" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: 'white', color: '#263A99', borderRadius: '9999px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
                             Спробувати конструктор <ArrowRight size={20} />
                         </Link>
                     </div>
