@@ -476,11 +476,11 @@ button[class*="border-primary"][class*="px-"] {
 
 /* Blog layout — responsive grid */
 .blog-layout-grid {
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) 340px;
 }
 @media (max-width: 1024px) {
   .blog-layout-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 

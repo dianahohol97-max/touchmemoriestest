@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, Clock, ArrowRight, User } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, User, ImageIcon } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { getLocalized } from '@/lib/i18n/localize';
@@ -148,9 +148,15 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                 {/* Hero Featured Article */}
                 {!category && featuredPost && currentPage === 1 && (
                     <Link href={`/blog/${featuredPost.slug}`} style={{ display: 'block', textDecoration: 'none', marginBottom: '60px' }}>
-                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', background: featuredPost.cover_image ? '#e2e8f0' : 'linear-gradient(135deg, #263A99 0%, #4254b5 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
-                            {featuredPost.cover_image && (
+                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', background: featuredPost.cover_image ? '#e2e8f0' : 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
+                            {featuredPost.cover_image ? (
                                 <Image src={featuredPost.cover_image} alt={getLocalized(featuredPost, locale, "title")} fill style={{ objectFit: 'cover' }} priority />
+                            ) : (
+                                // Обкладинки ще немає — показуємо той самий знак, що й у картках сітки,
+                                // щоб місце під фото читалося як заготовка, а не як порожній прямокутник.
+                                <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '96px' }}>
+                                    <ImageIcon size={88} strokeWidth={1} color="rgba(255,255,255,0.32)" />
+                                </div>
                             )}
                             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(38, 58, 153, 0.9) 0%, rgba(38, 58, 153, 0.4) 50%, transparent 100%)' }} />
                             <div style={{ position: 'relative', padding: '48px', width: '100%', maxWidth: '800px', color: 'white' }}>
@@ -164,7 +170,9 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                         </span>
                                     )}
                                 </div>
-                                <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, lineHeight: 1.1, marginBottom: '16px' }}>
+                                {/* color обов'язковий: globals.css має правило h2 { color: var(--primary) },
+                                    і воно б'є успадкований від батька білий — заголовок ставав #263A99 на #263A99. */}
+                                <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, lineHeight: 1.1, marginBottom: '16px', color: 'white' }}>
                                     {getLocalized(featuredPost, locale, "title")}
                                 </h2>
                                 <p style={{ fontSize: '18px', color: '#cbd5e1', marginBottom: '24px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -180,7 +188,10 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                     </Link>
                 )}
 
-                <div className="blog-layout-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '48px', alignItems: 'start' }}>
+                {/* minmax(0, …) обов'язковий: у звичайного 1fr мінімум дорівнює min-content колонки,
+                    а рядок категорій розтягує його до власної ширини — колонка виходила на 1229px
+                    у сітці на 1152px, і третя картка ряду опинялася за межею екрана. */}
+                <div className="blog-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '48px', alignItems: 'start' }}>
 
                     {/* Main Content Area */}
                     <div>
@@ -206,8 +217,9 @@ export default async function BlogHomePage({ searchParams, params }: { searchPar
                                         {(post.cover_image || post.image) ? (
                                             <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />
                                         ) : (
-                                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px' }}>
-                                                <span style={{ fontFamily: 'var(--font-heading)', color: 'white', fontWeight: 800, fontSize: '22px', lineHeight: 1.25, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '28px' }}>
+                                                <ImageIcon aria-hidden size={32} strokeWidth={1.25} color="rgba(255,255,255,0.45)" />
+                                                <span style={{ fontFamily: 'var(--font-heading)', color: 'white', fontWeight: 800, fontSize: '20px', lineHeight: 1.25, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                     {getLocalized(post, locale, "title")}
                                                 </span>
                                             </div>
