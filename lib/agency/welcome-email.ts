@@ -53,7 +53,7 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
               <p style="font-size:14px;color:#334155;margin:0 0 16px">Ви стали партнером-${kindWord} touch.memories. Ось ваше персональне реферальне посилання — діліться ним із клієнтами:</p>
               <div style="text-align:center;margin:18px 0"><a href="${refLink}" style="display:inline-block;font-size:16px;font-weight:700;color:#1e2d7d;background:#eef2ff;border:1px dashed #a5b4fc;border-radius:10px;padding:12px 22px;text-decoration:none;word-break:break-all">${refLink}</a></div>
               <table style="width:100%;font-size:14px;border-collapse:collapse;margin:8px 0 16px">
-                <tr><td style="padding:6px 0;color:#6b7280">Комісія з тревелбуків:</td><td style="padding:6px 0;font-weight:700;text-align:right">${travelbookRate}%</td></tr>
+                <tr><td style="padding:6px 0;color:#6b7280">Комісія з тревелбуків і глянцевих журналів:</td><td style="padding:6px 0;font-weight:700;text-align:right">${travelbookRate}%</td></tr>
                 <tr><td style="padding:6px 0;color:#6b7280">Комісія з решти товарів:</td><td style="padding:6px 0;font-weight:700;text-align:right">${otherRate}%</td></tr>
                 <tr><td style="padding:6px 0;color:#6b7280">Знижка клієнту за посиланням:</td><td style="padding:6px 0;font-weight:700;text-align:right">${clientDiscount}%</td></tr>
               </table>
@@ -69,7 +69,7 @@ export function buildPartnerWelcomeEmail(input: PartnerWelcomeInput) {
   const text = [
     `Вітаємо, ${name}! Ви стали партнером-${kindWord} touch.memories.`,
     `Ваше персональне реферальне посилання: ${refLink}`,
-    `Знижка клієнту за посиланням ${clientDiscount}%, ваша комісія ${travelbookRate}% з тревелбуків і ${otherRate}% з решти товарів.`,
+    `Знижка клієнту за посиланням ${clientDiscount}%, ваша комісія ${travelbookRate}% з тревелбуків і глянцевих журналів та ${otherRate}% з решти товарів.`,
     `Клієнт, який хоч раз замовив за вашим посиланням, лишається за вами назавжди: кожна його наступна покупка приносить вам комісію. Знижка діє на перше замовлення, ваші відсотки — на всі.`,
     `Партнерський кабінет: ${cabinetLink}`,
   ].join('\n\n');

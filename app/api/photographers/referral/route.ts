@@ -45,7 +45,8 @@ async function creditManagerIfLeadExists(admin: SupabaseClient, photographer: an
  * The photographer's entry into the SAME referral program travel agencies use.
  * Resolves (and on first open lazily creates) the photographer's
  * agency_partners row — partner_kind 'photographer', same default terms as
- * agencies: client −5%, commission 5% travelbooks / 3% everything else — and
+ * agencies: client −5%, commission 5% travelbooks AND glossy magazines / 3%
+ * everything else — and
  * returns the partner cabinet token. The cabinet UI then talks to the existing
  * /api/partnership/partner API for the summary, payout account and payout
  * requests, so there is exactly ONE payout pipeline to maintain and the
