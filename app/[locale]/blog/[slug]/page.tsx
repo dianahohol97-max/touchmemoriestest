@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Calendar, Clock, User, ArrowRight, Facebook } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import MarkdownViewer from '@/components/ui/MarkdownViewer';
+import MarkdownContent from '@/components/ui/MarkdownContent';
 import BlogShareButton from '@/components/ui/BlogShareButton';
 import { getLocalized } from '@/lib/i18n/localize';
 import { onlyVisiblePosts } from '@/lib/blog/published';
@@ -259,7 +259,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
                     {/* Article Content */}
                     <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#263A99', marginBottom: '60px' }}>
-                        <MarkdownViewer source={getLocalized(post, locale, 'content') || ''} />
+                        <MarkdownContent source={getLocalized(post, locale, 'content') || ''} />
                     </div>
 
                     {/* Tags */}
