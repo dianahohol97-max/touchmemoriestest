@@ -21,6 +21,7 @@
  *   no_email    — замовленню більше кількох годин, а листів за ним нема жодного
  *   not_in_crm  — кандидат на перенесення висить кандидатом уже кілька годин,
  *                 тобто перенесення мовчки падає щопроходу
+ *   no_layout   — книга в замовленні, за якою немає жодного макета
  *
  * ЧОМУ НЕ БІЛЬШЕ. Сторож, який кричить вовк, вимикають, і тоді ми знову в
  * тиші — у цьому ж репозиторії вже довелося окремо вгамовувати сканер. Тому
@@ -62,7 +63,24 @@ export const CRM_STALE_HOURS = 6;
 /** Скільки сигналів показувати за один прохід. Решта порахована в підсумку. */
 export const MAX_PER_PASS = 5;
 
-export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm';
+/**
+ * Скільки годин дати книзі, перш ніж відсутність макета стає сигналом.
+ *
+ * Макет привʼязується під час оформлення, тобто в ті самі секунди. Година —
+ * це запас на повільну мережу і на вкладку, яку закрили посеред запису.
+ */
+export const LAYOUT_GRACE_HOURS = 1;
+
+/**
+ * Товари, у яких макет із конструктора мусить бути.
+ *
+ * Перелік навмисно той самий, що й у оформленні, коли воно вирішує, чи слати
+ * дизайн на рендер: розходження означало б, що сторож чекає макета там, де
+ * його ніхто й не мав зробити.
+ */
+export const BOOK_SLUG_RE = /(photobook|fotoknig|travel|magazine|zhurnal|journal|planner|wish|pobazhan)/;
+
+export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm' | 'no_layout';
 
 export type OrderRow = {
     id: string;
@@ -96,6 +114,41 @@ const num = (v: unknown): number => {
 const hoursSince = (iso: string | null, now: number): number =>
     iso ? (now - new Date(iso).getTime()) / 3600_000 : 0;
 
+/**
+ * Книги цього замовлення, за якими макета немає.
+ *
+ * ЧОМУ ПО ІДЕНТИФІКАТОРУ РЯДКА, А НЕ ПО ЛІЧИЛЬНИКУ. Спокуса була порахувати
+ * книги й макети і порівняти числа. Так робити не можна: на TM-001314 три
+ * книги оплачені в одному замовленні, а зібрані в інших, і лічильник кричав би
+ * на цілком справну картку. Тридцятиденний прохід по живій базі дав чотири
+ * таких замовлення, і жодне з них не було поломкою.
+ *
+ * Тому звірка точкова: кожен рядок кошика несе свій `cart_item_id`, і макет
+ * зберігається під тим самим ключем. Рядок без макета — це рядок, за яким
+ * друкувати нічого, і жодного здогаду тут не лишається.
+ *
+ * Рядки без `cart_item_id` пропускаються свідомо. Замовлення, оформлені до
+ * того, як ключ почали зберігати, звірити нічим, а сторож, який кричить на
+ * старе, вимикається разом із тим, заради чого його ставили.
+ */
+export function bookLinesWithoutLayout(
+    items: unknown,
+    knownCartIds: Set<string>,
+): { cartItemId: string; name: string }[] {
+    if (!Array.isArray(items)) return [];
+    const out: { cartItemId: string; name: string }[] = [];
+    for (const it of items) {
+        if (!it || typeof it !== 'object') continue;
+        const slug = String((it as any).slug || '').toLowerCase();
+        if (!slug || !BOOK_SLUG_RE.test(slug)) continue;
+        const cartItemId = String((it as any).cart_item_id || '').trim();
+        if (!cartItemId) continue;
+        if (knownCartIds.has(cartItemId)) continue;
+        out.push({ cartItemId, name: String((it as any).product_name || slug) });
+    }
+    return out;
+}
+
 /** Ключ, за яким та сама ознака того самого замовлення вважається тією самою. */
 export function signalKey(s: Pick<LostSignal, 'kind' | 'orderId'>): string {
     return `${s.kind}:${s.orderId}`;
@@ -113,9 +166,12 @@ export function findLostOrderSignals(input: {
     orders: OrderRow[];
     emailedOrderIds: Set<string>;
     crmCandidateSince: Map<string, string>;
+    /** Ідентифікатори рядків кошика, за якими макет у базі вже є. */
+    layoutCartIds?: Set<string>;
     now: number;
 }): LostSignal[] {
     const out: LostSignal[] = [];
+    const layoutCartIds = input.layoutCartIds || new Set<string>();
 
     for (const o of input.orders) {
         const orderNumber = o.order_number || '(без номера)';
@@ -166,6 +222,21 @@ export function findLostOrderSignals(input: {
                 kind: 'no_email',
                 detail: `${Math.floor(age)} год від оформлення, і за замовленням немає жодного листа`,
             });
+        }
+
+        // 5. Книга без макета. Саме так TM-001342 ледь не поїхало в друк
+        //    двома копіями однієї книги: у замовленні дві різні тревелбуки, а
+        //    привʼязаний макет був один, і дізналися ми про це від менеджерки,
+        //    яка звіряла картку руками.
+        if (!o.with_designer && age >= LAYOUT_GRACE_HOURS) {
+            const orphans = bookLinesWithoutLayout(o.items, layoutCartIds);
+            for (const line of orphans) {
+                out.push({
+                    ...base,
+                    kind: 'no_layout',
+                    detail: `«${line.name}» оплачено, а макета за цією позицією немає жодного`,
+                });
+            }
         }
 
         // 4. Висить кандидатом на перенесення. Крон пробує щопівгодини, тож
@@ -251,6 +322,7 @@ const TITLES: Record<SignalKind, string> = {
     no_product: 'Заявка без товару',
     no_email: 'Замовлення без жодного листа',
     not_in_crm: 'Замовлення не переноситься в CRM',
+    no_layout: 'Книга без макета',
 };
 
 function kyivTime(iso: string | null): string {
@@ -341,6 +413,34 @@ export async function checkLostOrderSignals(
         for (const row of logs || []) if (row?.order_id) emailedOrderIds.add(row.order_id);
     }
 
+    // За якими рядками кошика макет у базі вже є.
+    //
+    // Питаємо не «скільки макетів у замовлення», а «чи є макет саме за цим
+    // рядком»: ключ той самий, під яким його зберігає оформлення. Список
+    // ідентифікаторів рахується з уже прочитаних замовлень, тож окремої
+    // сторінки тут не треба (гоча 14) — він обмежений вікном на добу з гаком.
+    const wantedCartIds = new Set<string>();
+    for (const o of orders) {
+        if (!Array.isArray(o.items)) continue;
+        for (const it of o.items) {
+            const id = String((it as any)?.cart_item_id || '').trim();
+            const slug = String((it as any)?.slug || '').toLowerCase();
+            if (id && slug && BOOK_SLUG_RE.test(slug)) wantedCartIds.add(id);
+        }
+    }
+    const layoutCartIds = new Set<string>();
+    if (wantedCartIds.size) {
+        const { data: designed } = await supabase
+            .from('projects')
+            .select('cart_payload')
+            .in('cart_payload->>id', Array.from(wantedCartIds))
+            .limit(1000);
+        for (const row of designed || []) {
+            const id = String(row?.cart_payload?.id || '').trim();
+            if (id) layoutCartIds.add(id);
+        }
+    }
+
     // Черга на перенесення: коли кожного кандидата побачили вперше.
     const { data: queueRow } = await supabase
         .from('settings').select('value').eq('key', CRM_QUEUE_KEY).maybeSingle();
@@ -353,6 +453,7 @@ export async function checkLostOrderSignals(
         orders,
         emailedOrderIds,
         crmCandidateSince: new Map(Object.entries(queue)),
+        layoutCartIds,
         now,
     });
 

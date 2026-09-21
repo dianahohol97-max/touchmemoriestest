@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, note: 'project has no order' });
   }
 
-  const insertError = await registerExportFiles(admin, project.order_id, project.product_type, uploaded);
+  const insertError = await registerExportFiles(admin, project.order_id, project.product_type, uploaded, project.id);
   // Прибирати можна ТІЛЬКИ файли цього макета. Цей колбек приходить від сервісу
   // на кожен окремий виріб, і без обмеження він зносив макети сусідніх книг
   // того самого замовлення — саме так TM-001234 двічі втратило вже готову

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { buildRepeatCartItem } from '@/lib/orders/repeat-order';
 import { createClient } from '@/lib/supabase/client';
 import { designThumbPath } from '@/lib/editor/design-thumb';
+import { countPhotosNeedingVariants } from '@/lib/editor/photo-variant-paths';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import Link from 'next/link';
@@ -198,7 +199,33 @@ export default function AccountPage() {
             if (error || !row) { toast.error('Не вдалося відкрити дизайн'); return; }
             const cp: any = row.cart_payload || {};
             const ov: any = row.overlays_data || {};
-            const photosMeta: any[] = Array.isArray(row.uploaded_photos) ? row.uploaded_photos : [];
+            let photosMeta: any[] = Array.isArray(row.uploaded_photos) ? row.uploaded_photos : [];
+
+            // Макети, збережені до появи зменшених копій, копій не мають, і
+            // зробити їх у браузері можна тільки завантаживши оригінали — тобто
+            // рівно ті тринадцять хвилин, від яких ми тікаємо. Тому їх ріже
+            // сервер, а людина бачить, що відбувається. Сорок фото на прохід,
+            // тож великий макет забирає два-три виклики.
+            const pending = countPhotosNeedingVariants(photosMeta);
+            if (pending > 0) {
+                const prep = toast.loading(
+                    `Готуємо ${pending} фото до швидкого відкриття, це займе трохи часу.`,
+                );
+                try {
+                    for (let pass = 0; pass < 6; pass++) {
+                        const res = await fetch(`/api/projects/${row.id}/photo-variants`, { method: 'POST' });
+                        if (!res.ok) break;
+                        const info = await res.json().catch(() => null);
+                        if (!info?.ok) break;
+                        if (Array.isArray(info.photos)) photosMeta = info.photos;
+                        if (!info.remaining || !info.made) break;
+                    }
+                } catch {
+                    // Не вийшло — відкриваємо з оригіналів, як відкривалося досі.
+                } finally {
+                    toast.dismiss(prep);
+                }
+            }
 
             // Prefer the exact saved config; otherwise reconstruct the essentials.
             const config = ov.config || {
@@ -257,17 +284,60 @@ export default function AccountPage() {
             const failedPhotos: string[] = [];
             if (photosWithPaths.length > 0) {
                 try {
+                    // Підписуємо разом із оригіналом і його зменшені копії.
+                    //
+                    // Показувати оригінали було найдорожчою звичкою редактора:
+                    // TM-001342 це 68 знімків на 184 МБ, які браузер тягнув і
+                    // розкодовував заради стрічки мініатюр, і клієнтка чекала
+                    // тринадцять хвилин заради правки напису на обкладинці. На
+                    // полотно тепер іде копія на 1600 px, у стрічку — на 360,
+                    // а оригінал лишається там, де він справді потрібен, у
+                    // `path`: макет для друку збирає Railway саме з нього.
+                    //
+                    // Копій немає в чернетках, збережених до цієї зміни, тож
+                    // кожен рядок має відкат на оригінал, а не порожнечу.
                     const paths = photosWithPaths.map(p => p.path as string);
-                    const { data: signedUrls, error: signErr } = await supabase
-                        .storage.from('photobook-uploads')
-                        .createSignedUrls(paths, 60 * 60 * 24 * 7); // 7 days
+                    const previewPaths = photosWithPaths.map(p => (p.previewPath as string) || '');
+                    const thumbPaths = photosWithPaths.map(p => (p.thumbPath as string) || '');
+                    const extra = [...previewPaths, ...thumbPaths].filter(Boolean);
+                    const [{ data: signedUrls, error: signErr }, extraSigned] = await Promise.all([
+                        supabase.storage.from('photobook-uploads')
+                            .createSignedUrls(paths, 60 * 60 * 24 * 7), // 7 days
+                        extra.length
+                            ? supabase.storage.from('photobook-uploads')
+                                .createSignedUrls(extra, 60 * 60 * 24 * 7)
+                                .then(r => r.data || [], () => [])
+                            : Promise.resolve([] as any[]),
+                    ]);
+                    const urlByPath: Record<string, string> = {};
+                    (extraSigned || []).forEach((s: any, i: number) => {
+                        if (s?.signedUrl && extra[i]) urlByPath[extra[i]] = s.signedUrl;
+                    });
                     if (signErr) {
                         console.error('Failed to sign photo URLs:', signErr);
                         failedPhotos.push(...photosWithPaths.map(p => String(p.name || p.id)));
                     } else if (signedUrls) {
                         photosWithPaths.forEach((p, i) => {
                             const url = signedUrls[i]?.signedUrl || '';
-                            if (url) restoredPhotos.push({ id: p.id, name: p.name, width: p.width, height: p.height, preview: url });
+                            if (url) restoredPhotos.push({
+                                id: p.id,
+                                name: p.name,
+                                width: p.width,
+                                height: p.height,
+                                preview: urlByPath[previewPaths[i]] || url,
+                                ...(urlByPath[thumbPaths[i]] ? { thumb: urlByPath[thumbPaths[i]] } : {}),
+                                // Шлях до ОРИГІНАЛУ їде з фото далі.
+                                //
+                                // Без нього конструктор вважав відновлене фото
+                                // новим: на першому ж збереженні він качав усі
+                                // оригінали назад із хмари і заливав їх удруге
+                                // під новим шляхом. Для цього макета це 184 МБ
+                                // вниз і стільки ж угору, і точна копія кожного
+                                // файлу в сховищі після кожного відкриття.
+                                path: p.path,
+                                ...(p.previewPath ? { previewPath: p.previewPath } : {}),
+                                ...(p.thumbPath ? { thumbPath: p.thumbPath } : {}),
+                            });
                             else failedPhotos.push(String(p.name || p.id));
                         });
                     }

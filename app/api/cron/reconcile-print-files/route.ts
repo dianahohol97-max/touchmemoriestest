@@ -84,7 +84,7 @@ export async function GET(req: Request) {
       const missing = filePaths.filter((path) => !known.has(path));
       if (!missing.length) continue;
 
-      const insertErr = await registerExportFiles(admin, p.order_id, p.product_type, missing);
+      const insertErr = await registerExportFiles(admin, p.order_id, p.product_type, missing, p.id);
       results.push({ orderId: p.order_id, projectId: p.id, registered: missing.length, insertErr });
       console.log('[reconcile-print-files] registered', { orderId: p.order_id, projectId: p.id, files: missing.length });
     } catch (e: any) {

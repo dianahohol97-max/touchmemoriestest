@@ -3,26 +3,20 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { likeEscape } from '@/lib/auth/guards';
 import { findBinding } from '@/lib/agency/binding';
+import { clientIp, createRateLimiter } from '@/lib/security/guess-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-// Per-IP rate limit, same shape as /api/orders/track. Prefix scanning a code
-// space is only practical if guesses are free; 20/min leaves normal checkout
-// (a manual entry plus the ?promo= auto-apply) far below the ceiling.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 20;
-const RATE_WINDOW_MS = 60_000;
-
-function overRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const entry = rateLimitMap.get(ip);
-    if (!entry || now >= entry.resetAt) {
-        rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-        return false;
-    }
-    entry.count++;
-    return entry.count > RATE_LIMIT;
-}
+// Per-IP rate limit. Prefix scanning a code space is only practical if guesses
+// are free; 20/min leaves normal checkout (a manual entry plus the ?promo=
+// auto-apply) far below the ceiling.
+//
+// The counter used to be a local copy of the same Map, one of four identical
+// ones, and this comment pointed at /api/orders/track as the original. It now
+// comes from lib/security/guess-rate-limit, which also fixes what every copy
+// got wrong: x-forwarded-for is a LIST, and keying on the whole header handed
+// a fresh counter to anyone whose path added another proxy hop.
+const GUESSES = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 /**
  * Validate a promo (or referral) code before checkout.
@@ -48,8 +42,7 @@ function overRateLimit(ip: string): boolean {
 export async function POST(request: Request) {
     const supabase = getAdminClient();
     try {
-        const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
-        if (overRateLimit(ip)) {
+        if (GUESSES.over(clientIp(request))) {
             return NextResponse.json(
                 { valid: false, message: 'Забагато запитів. Спробуйте пізніше.' },
                 { status: 429 },

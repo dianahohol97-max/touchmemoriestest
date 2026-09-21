@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { clientIp, createRateLimiter } from '@/lib/security/guess-rate-limit';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { REFERRAL_FRIEND_REWARD, REFERRAL_MIN_ORDER } from '@/lib/referral/referral';
 
@@ -14,20 +15,7 @@ export const dynamic = 'force-dynamic';
  * запрошенням питає тут один раз на завантаження сторінки, тож тридцять
  * запитів на хвилину він не помітить ніколи.
  */
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30;
-const RATE_WINDOW_MS = 60_000;
-
-function overRateLimit(ip: string): boolean {
-    const now = Date.now();
-    const entry = rateLimitMap.get(ip);
-    if (!entry || now >= entry.resetAt) {
-        rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-        return false;
-    }
-    entry.count++;
-    return entry.count > RATE_LIMIT;
-}
+const GUESSES = createRateLimiter({ limit: 30, windowMs: 60_000 });
 
 /**
  * GET /api/referral/check?code=ABC12345 → { referral: boolean, ... }
@@ -43,8 +31,7 @@ function overRateLimit(ip: string): boolean {
  * — so this cannot be used to look up who owns a code.
  */
 export async function GET(request: Request) {
-    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
-    if (overRateLimit(ip)) {
+    if (GUESSES.over(clientIp(request))) {
         return NextResponse.json({ referral: false }, { status: 429 });
     }
 

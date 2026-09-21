@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { resolveMissingPhotoPaths } from '@/lib/print/resolve-photo-paths';
+import { checkDesignOwnership } from '@/lib/orders/design-ownership';
 
 /**
  * POST /api/projects/save-design
@@ -44,6 +45,17 @@ export async function POST(request: NextRequest) {
   // orderId (checkout) — either is enough.
   if (!design || (!orderId && !cartId)) {
     return NextResponse.json({ error: 'design and (orderId or cartId) required' }, { status: 400 });
+  }
+
+  // Той самий захист, що й в оформленні, але на сервері: браузер можна
+  // перезавантажити зі старим сховищем, а цей маршрут — остання точка, після
+  // якої чужий макет стає «макетом цієї позиції» назавжди. Макети без позначки
+  // (зібрані до її появи) проходять як раніше.
+  if (checkDesignOwnership(design, cartId) === 'foreign') {
+    console.error('[save-design] чужий макет під ключем позиції', {
+      cartId, owner: (design as any)?.cartItemId,
+    });
+    return NextResponse.json({ error: 'design belongs to another cart item' }, { status: 409 });
   }
 
   // Resolve the authenticated user if any (guests have no session → null).

@@ -1,5 +1,6 @@
 'use client';
 import type React from 'react';
+import { checkDesignOwnership } from '@/lib/orders/design-ownership';
 import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
 import { Navigation } from '@/components/ui/Navigation';
@@ -101,6 +102,12 @@ export default function CheckoutPage() {
     // Referral bonus redemption (up to 50% of order). bonusBalance loaded from
     // /api/referral/me; bonusToRedeem is what the user chose to spend.
     const [bonusBalance, setBonusBalance] = useState(0);
+    // Чи є в покупця акаунт. Потрібно НЕ для бонусів, а для чесності обіцянки
+    // про залишок сертифіката: redeemOrderCertificate зараховує його лише
+    // коли є customer_id, тож гостю залишок просто згорає разом із
+    // сертифікатом. Нуль на балансі таким сигналом бути не може — залогінений
+    // покупець теж починає з нуля, тому дивимось на успіх самого запиту.
+    const [signedIn, setSignedIn] = useState(false);
     const [useBonus, setUseBonus] = useState(false);
     const total = rawTotal - promoDiscount - dupDiscount;
 
@@ -136,7 +143,7 @@ export default function CheckoutPage() {
     useEffect(() => {
         let cancelled = false;
         fetch('/api/referral/me')
-            .then(r => r.ok ? r.json() : null)
+            .then(r => { if (!cancelled && r.ok) setSignedIn(true); return r.ok ? r.json() : null; })
             .then(d => { if (!cancelled && d && typeof d.bonusBalance === 'number') setBonusBalance(d.bonusBalance); })
             .catch(() => {});
         return () => { cancelled = true; };
@@ -229,6 +236,7 @@ export default function CheckoutPage() {
                     expired: 'Термін дії сертифіката минув',
                     invalid_format: 'Невірний формат коду',
                     reserved: 'Цей сертифікат уже застосовано до іншого замовлення, яке очікує на оплату',
+                    rate_limited: 'Забагато спроб поспіль. Зачекайте хвилину і спробуйте ще раз.',
                 };
                 setCertError(reasons[result.reason] || 'Сертифікат недійсний');
                 return;
@@ -758,6 +766,17 @@ export default function CheckoutPage() {
             if (!designRaw) continue;
             try {
                 const design = JSON.parse(designRaw);
+                // Макет, що належить іншому рядку кошика, під цей рядок не
+                // кладеться. Позиція без макета видна і сторожу, і перевірці
+                // файлів перед друком, а позиція з ЧУЖИМ макетом виглядає
+                // справною рівно до друку — так на TM-001342 ледь не поїхали
+                // дві копії однієї книги замість двох різних.
+                if (checkDesignOwnership(design, itemId) === 'foreign') {
+                    console.error('[design-snapshot] чужий макет під ключем позиції', {
+                        itemId, owner: (design as any)?.cartItemId,
+                    });
+                    continue;
+                }
                 const cfg = design.config || {};
                 const slug = (cfg.productSlug || '').toLowerCase();
                 const isRailwayProduct =
@@ -893,6 +912,19 @@ export default function CheckoutPage() {
                         unit_price: it.price,
                         total_price: it.price * it.qty,
                         slug: it.slug,
+                        // Ідентифікатор рядка кошика — єдине, що звʼязує позицію
+                        // замовлення з її макетом.
+                        //
+                        // Макет зберігається під цим ключем (design_{id} і
+                        // projects.cart_payload->>id), а в саме замовлення ключ
+                        // не клав ніхто: за 30 днів 579 замовлень і в жодному
+                        // його немає. Через це позицію та її макет доводилося
+                        // зіставляти на око, і на TM-001342 це не спрацювало —
+                        // у замовленні дві різні тревелбуки, макет привʼязано
+                        // один, і друк поїхав би двома копіями однієї книги.
+                        // Сервер кладе items у JSONB як є, тож досить перестати
+                        // губити ключ тут.
+                        ...(it.id ? { cart_item_id: String(it.id) } : {}),
                         options: it.options || {},
                         price_breakdown: it.price_breakdown || undefined,
                         // Персоналізація позиції — те, що клієнтка написала або
@@ -1584,9 +1616,20 @@ export default function CheckoutPage() {
                                                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>×</button>
                                             </div>
                                             {certAmount > orderTotalBeforeCredits && (
-                                                <div style={{ fontSize: 12, color: '#166534', marginTop: 4 }}>
-                                                    Залишок {certAmount - orderTotalBeforeCredits} ₴ буде зараховано на ваш бонусний рахунок
-                                                </div>
+                                                signedIn ? (
+                                                    <div style={{ fontSize: 12, color: '#166534', marginTop: 4 }}>
+                                                        Залишок {certAmount - orderTotalBeforeCredits} ₴ буде зараховано на ваш бонусний рахунок
+                                                    </div>
+                                                ) : (
+                                                    /* Гостю залишок не зараховується нікуди — сертифікат
+                                                       списується повністю. Обіцяти бонуси тут означало б
+                                                       пообіцяти те, чого оплата не зробить. */
+                                                    <div style={{ fontSize: 12, color: '#92400e', marginTop: 4 }}>
+                                                        Сертифікат більший за суму замовлення на {certAmount - orderTotalBeforeCredits} ₴.
+                                                        Щоб ця різниця збереглась на бонусному рахунку, увійдіть в акаунт перед оформленням —
+                                                        без входу сертифікат спишеться повністю, а залишок згорить.
+                                                    </div>
+                                                )
                                             )}
                                         </div>
                                     )}
