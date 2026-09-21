@@ -26,6 +26,14 @@ const SKIP_PREFIXES = [
     // among them, so without this every /tools/x.html was redirected to
     // /uk/tools/x.html — where no route exists and the site answered 404.
     '/tools',
+    // /llms.txt — картка сайту для ШІ-асистентів, яку стандарт llms.txt вимагає
+    // саме на корені домену. Файл лежить у public/ ще з літа, але сюди його не
+    // внесли, і локальний перехід відправляв запит на /uk/llms.txt, де маршруту
+    // немає взагалі: замість файлу асистент два місяці отримував 307 і слідом
+    // 404. Виявилося при перевірці адреси курлом (21.09.2026). Розширення .txt
+    // матчер нижче не виключає, тож будь-який новий кореневий текстовий файл
+    // (ads.txt, security.txt) доведеться дописувати сюди так само.
+    '/llms.txt',
 ];
 
 const PUBLIC_ADMIN_PATHS = new Set(['/admin/login', '/admin/no-access']);

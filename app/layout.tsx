@@ -83,30 +83,76 @@ export default function RootLayout({
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
 
   const site = getBaseUrl();
+  // Офіційні профілі бренду — рівно ті три, що стоять у футері
+  // (components/ui/Footer.tsx). Акаунт, якого немає в футері, сюди не
+  // додається: sameAs — це заява «це той самий суб'єкт», і посилання на чужий
+  // або покинутий профіль ламає звʼязку сильніше, ніж його відсутність.
   const SOCIALS = [
     'https://instagram.com/touch.memories',
     'https://t.me/touchmemories',
     'https://tiktok.com/@touch.memories',
   ];
+  // Назва бренду в структурованих даних пишеться так, як бренд пишеться
+  // насправді — з крапкою і малими літерами. SITE_INFO.name лишається
+  // 'Touch.Memories', бо він іде в заголовки сторінок і в десятки місць
+  // інтерфейсу; тут же ми називаємо сам суб'єкт, і саме це значення
+  // ШІ-асистенти цитують як імʼя компанії.
+  const BRAND_NAME = 'touch.memories';
+  // Опис для графа — рівно перелік того, що ми робимо і де. Без епітетів:
+  // «преміальний», «найкращий» і «з любовʼю до деталей» у структурованих
+  // даних не значать нічого, а місце, з якого асистент бере одне речення про
+  // компанію, займають.
+  const ORG_DESCRIPTION =
+    'Українська студія персоналізованих фотопродуктів: фотокниги, тревелбуки, '
+    + 'глянцеві журнали, гостьові книги, фотодрук, фотомагніти, постери, пазли '
+    + 'та календарі. Макет клієнт збирає в онлайн-конструкторі або замовляє '
+    + 'верстку в дизайнера студії. Виробництво в Тернополі, доставка по Україні '
+    + 'та за кордон.';
+  // Логотип віддає файлова конвенція App Router: app/icon.png доступний за
+  // адресою /icon.png. Він квадратний 512×512 — Google вимагає для
+  // Organization.logo саме растр, не SVG, і не менше 112 px по меншій стороні.
+  const LOGO = {
+    '@type': 'ImageObject',
+    '@id': `${site}/#logo`,
+    url: `${site}/icon.png`,
+    contentUrl: `${site}/icon.png`,
+    width: 512,
+    height: 512,
+    caption: BRAND_NAME,
+  };
   const globalJsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'Organization',
         '@id': `${site}/#organization`,
-        name: SITE_INFO.name,
+        name: BRAND_NAME,
+        alternateName: SITE_INFO.name,
         url: site,
+        logo: LOGO,
+        image: { '@id': `${site}/#logo` },
         email: 'touch.memories3@gmail.com',
-        description: SITE_INFO.description,
+        description: ORG_DESCRIPTION,
+        foundingLocation: {
+          '@type': 'Place',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Тернопіль',
+            addressCountry: 'UA',
+          },
+        },
+        areaServed: { '@type': 'Country', name: 'Україна' },
         sameAs: SOCIALS,
       },
       {
         '@type': 'LocalBusiness',
         '@id': `${site}/#localbusiness`,
-        name: SITE_INFO.name,
+        name: BRAND_NAME,
         url: site,
+        logo: { '@id': `${site}/#logo` },
+        image: { '@id': `${site}/#logo` },
         email: 'touch.memories3@gmail.com',
-        description: SITE_INFO.description,
+        description: ORG_DESCRIPTION,
         priceRange: '₴₴',
         currenciesAccepted: 'UAH',
         address: {
@@ -124,7 +170,7 @@ export default function RootLayout({
         '@type': 'WebSite',
         '@id': `${site}/#website`,
         url: site,
-        name: SITE_INFO.name,
+        name: BRAND_NAME,
         inLanguage: 'uk',
         publisher: { '@id': `${site}/#organization` },
       },
