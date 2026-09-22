@@ -1,5 +1,6 @@
 'use client';
 import type React from 'react';
+import { resolveProjectType } from '@/lib/orders/project-type';
 import { checkDesignOwnership } from '@/lib/orders/design-ownership';
 import { useState, useEffect, useRef } from 'react';
 import styles from './checkout.module.css';
@@ -786,11 +787,10 @@ export default function CheckoutPage() {
                     slug.includes('journal') || slug.includes('planner');
                 if (!isRailwayProduct) continue;
 
-                let productType = 'photobook';
-                if (slug.includes('travel')) productType = 'travelbook';
-                else if (slug.includes('magazine') || slug.includes('zhurnal') || slug.includes('fotozhurnal')) productType = 'magazine';
-                else if (slug.includes('journal')) productType = 'journal';
-                else if (slug.includes('planner')) productType = 'planner';
+                // Та сама функція, що й у конструкторі. Доти тут лежала друга
+                // копія відображення, і саме вона писала глянцевий журнал як
+                // «magazine», поки конструктор писав «journal».
+                const productType = resolveProjectType(slug);
 
                 await fetch('/api/projects/save-design', {
                     method: 'POST',

@@ -61,6 +61,7 @@ import {
 import { fitFontScale, textOverflowsAtMinScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx, TEXT_BOX_MIN_PCT, TEXT_BOX_MAX_PCT } from '@/lib/editor/text-fit';
 import { projectPalette } from '@/lib/editor/project-palette';
 import { plateBoxStyle, plateTextShadow, type TextPlate } from '@/lib/editor/text-plate';
+import { resolveProjectType } from '@/lib/orders/project-type';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -3992,14 +3993,12 @@ export default function BookLayoutEditor() {
         await Promise.all(Array.from({ length: Math.min(3, Math.max(1, photos.length)) }, worker));
       }
 
-      // Real product type, mirroring the save-design mapping. The hardcoded
-      // 'photobook' here made the print pipeline treat travel book drafts as
-      // fabric-cover photobooks and drop their printed (ready) covers.
-      const _ptSlug = (config?.productSlug || '').toLowerCase();
-      const productTypeForSave = _ptSlug.includes('travel') ? 'travelbook'
-        : (_ptSlug.includes('magazine') || _ptSlug.includes('zhurnal') || _ptSlug.includes('fotozhurnal') || _ptSlug.includes('journal')) ? 'journal'
-        : (_ptSlug.includes('wish') || _ptSlug.includes('pobazhan') || _ptSlug.includes('guest')) ? 'wishbook'
-        : 'photobook';
+      // Тип макета рахує resolveProjectType — ОДНА функція на весь проєкт.
+      // Тут і в оформленні стояли дві копії цього відображення, і вони
+      // розійшлися: глянцевий журнал звідси йшов як «journal», а з оформлення
+      // як «magazine». Через це «Поставити на замовлення» на TM-001352 не
+      // знайшла збігу і дописала другий виріб замість заміни.
+      const productTypeForSave = resolveProjectType(config?.productSlug);
       const row = {
         user_id: user.id,
         name,
