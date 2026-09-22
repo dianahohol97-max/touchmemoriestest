@@ -5890,7 +5890,14 @@ export default function BookLayoutEditor() {
   // page (config.enableEndpaper — TM-001135 lost these 100 ₴) or unlocked it
   // here in the editor. Only the in-editor unlock counts toward the «доплата»
   // badge — a pre-ordered форзац was already in the configurator's total.
-  const endpaperOrdered = !!config?.enableEndpaper;
+  // `endpaperPaid` тут читається РАЗОМ із `enableEndpaper`, бо обидва означають
+  // одне: за форзац уже заплачено раніше. Перший — це галочка конфігуратора,
+  // другий — розблокування, зроблене в редакторі й збережене з макетом (або
+  // відновлене з рядка кошика при відкритті старого макета). Без цієї другої
+  // половини повторне відкриття оплаченого макета показувало б «доплата 200 ₴»
+  // за те, що вже в ціні замовлення: `endpaperExtra` нижче однаково лишається
+  // рядком розбивки, а «доплатою» це бути перестає.
+  const endpaperOrdered = !!config?.enableEndpaper || !!config?.endpaperPaid;
   const endpaperExtra = (endpaperOrdered || endpaperUnlocked.first || endpaperUnlocked.last) ? endpaperSurcharge : 0;
   const endpaperDiff = (!endpaperOrdered && (endpaperUnlocked.first || endpaperUnlocked.last)) ? endpaperSurcharge : 0;
   // Cover inscription as a second decoration: flat +180 ₴ when at least one

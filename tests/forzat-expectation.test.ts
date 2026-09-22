@@ -6,6 +6,7 @@ import {
     isForzatPaid,
     missingForzatFiles,
     paidForzatSides,
+    resolveEndpaperPaid,
 } from '@/lib/print/forzat-expectation';
 
 /**
@@ -108,5 +109,59 @@ describe('речення для людини', () => {
 
     it('коли все на місці, казати нічого', () => {
         expect(forzatShortfallLine([])).toBe('');
+    });
+});
+
+
+/**
+ * Звідки конструктор дізнається про оплачений форзац при повторному відкритті.
+ *
+ * Поле `endpaperPaid` зʼявилося 22.09.2026 і є тільки в НОВИХ збереженнях, а
+ * форзац оплачений у десятках старих макетів. Прохід по живій базі того ж дня:
+ * із 62 макетів на замовленнях з оплаченим форзацом рядок кошика має 52, тобто
+ * 16 замовлень із 20. Решта шість несуть тонку позначку `{ id }` без опцій.
+ *
+ * Порядок джерел тут не косметика, і перевернути його коштує в обидва боки:
+ * рядок кошика, поставлений вище за збережене, мовчки розблокував би форзац,
+ * який людина свідомо лишила замкненим, а збережене, яке не вміє бути
+ * порожнім, лишило б замкненим оплачене — і видалення розвороту стерло б із
+ * нього фото як із неоплаченого.
+ */
+describe('звідки береться оплата форзаца при відкритті', () => {
+    const BOTH = { 'Друк на форзаці': 'Так (перший + останній)' };
+
+    it('збережене в макеті сильніше за рядок кошика', () => {
+        // Людина розблокувала лише початковий, хоча заплатила за обидва.
+        expect(resolveEndpaperPaid({ first: true, last: false }, BOTH))
+            .toEqual({ first: true, last: false });
+    });
+
+    it('збережене «обидва замкнені» НЕ перебивається кошиком', () => {
+        // Свідомо замкнений форзац лишається замкненим: інакше рядок кошика
+        // повертав би розблокування, яке людина зняла.
+        expect(resolveEndpaperPaid({ first: false, last: false }, BOTH))
+            .toEqual({ first: false, last: false });
+    });
+
+    it('старий макет без поля бере оплату з рядка кошика', () => {
+        expect(resolveEndpaperPaid(undefined, BOTH)).toEqual({ first: true, last: true });
+        expect(resolveEndpaperPaid(null, { 'Друк на форзаці': 'Так (останній)' }))
+            .toEqual({ first: false, last: true });
+    });
+
+    it('без оплати не каже нічого — конструктор лишається на своєму enableEndpaper', () => {
+        expect(resolveEndpaperPaid(undefined, { 'Друк на форзаці': 'Без друку' })).toBe(null);
+        expect(resolveEndpaperPaid(undefined, {})).toBe(null);
+        expect(resolveEndpaperPaid(undefined, undefined)).toBe(null);
+    });
+
+    it('тонка позначка кошика без опцій — це теж «нічого», а не відмова', () => {
+        // Саме такий cart_payload у шести замовлень: { id } без options.
+        expect(resolveEndpaperPaid(undefined, undefined)).toBe(null);
+    });
+
+    it('зіпсоване збережене поле не валить відкриття', () => {
+        expect(resolveEndpaperPaid('так', BOTH)).toEqual({ first: true, last: true });
+        expect(resolveEndpaperPaid({}, BOTH)).toEqual({ first: false, last: false });
     });
 });

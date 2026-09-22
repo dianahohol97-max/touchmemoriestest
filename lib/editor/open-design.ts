@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { countPhotosNeedingVariants } from '@/lib/editor/photo-variant-paths';
+import { resolveEndpaperPaid } from '@/lib/print/forzat-expectation';
 import { toast } from 'sonner';
 
 /**
@@ -75,6 +76,40 @@ export async function openDesignInConstructor(projectId: string): Promise<OpenDe
         totalPrice: cp.price,
     };
     const slug = String(config.productSlug || '').toLowerCase().trim();
+
+    /**
+     * ОПЛАЧЕНИЙ ФОРЗАЦ ДЛЯ МАКЕТІВ, ЗБЕРЕЖЕНИХ ДО ПОЯВИ `endpaperPaid`.
+     *
+     * Поле `endpaperPaid` зʼявляється лише в НОВИХ збереженнях, а форзац уже
+     * оплачений у десятках старих. Для них конструктор має єдине джерело —
+     * `enableEndpaper`, який для журналу з мʼякою обкладинкою не може бути
+     * нічим, окрім false, бо галочку в конфігураторі показує
+     * shouldShowEndpaperOption() тільки для тревелбука і твердої обкладинки.
+     * Тобто без цього відкату кожне відкриття такого макета замикало б форзац,
+     * за який людина заплатила, а видалення розвороту стирало б із нього фото
+     * як із неоплаченого — рівно те, від чого лікувалися.
+     *
+     * Джерело — рядок кошика, який лежить у самому проєкті. Читати `orders`
+     * звідси не можна: клієнтові їх не дає RLS, і саме тому запитувати треба
+     * не замовлення, а `cart_payload`, який оформлення зберігає разом із
+     * макетом. Дизайнерська копія його теж несе: clone-project-to-me копіює
+     * `cart_payload` дослівно.
+     *
+     * Прохід по живій базі (22.09.2026): із 62 макетів на замовленнях з
+     * оплаченим форзацом відкат бачить 52, тобто 16 замовлень із 20. Решта
+     * шість несуть тонку позначку `{ id }` без опцій — там форзац лишиться
+     * замкненим, як і був, а нестачу файлу однаково спіймає сторож.
+     *
+     * Це ЧИТАННЯ: у базу тут не пишеться нічого, жоден рядок живого замовлення
+     * не змінюється. Записатися нове поле може тільки тоді, коли людина сама
+     * збереже макет, і то вже в новому форматі.
+     *
+     * Порядок джерел — від сильнішого до слабшого: `endpaperPaid`, далі рядок
+     * кошика, далі `enableEndpaper`, далі замкнено. Жодне слабше джерело не
+     * може зняти оплату, яку назвало сильніше.
+     */
+    const endpaperPaid = resolveEndpaperPaid(config.endpaperPaid, cp.options);
+    if (endpaperPaid) config.endpaperPaid = endpaperPaid;
 
     // Structure draft — exactly the shape the editor's restore path reads.
     const draft = {

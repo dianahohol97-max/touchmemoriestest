@@ -68,6 +68,36 @@ export function paidForzatSides(options: unknown): ForzatSides {
     return { first, last };
 }
 
+/**
+ * Звідки береться «за які форзаци заплачено», коли макет відкривають заново.
+ *
+ * Джерел два, і вони НЕ рівні. `saved` — це `endpaperPaid` із самого макета,
+ * тобто те, що людина зробила в редакторі й що збереглося разом із макетом.
+ * `cartOptions` — рядок кошика, і він потрібен лише для макетів, збережених до
+ * появи `endpaperPaid`: у них поле порожнє, а форзац давно оплачений.
+ *
+ * Правило: збережене сильніше за рядок кошика, і слабше джерело НІКОЛИ не
+ * скасовує сильніше. Порядок тут не косметика. Перевернути його означало б,
+ * що рядок кошика з «Так (перший + останній)» мовчки повертає розблокування
+ * форзацу, який людина свідомо лишила замкненим, — а повернути ЗАМКНЕНИМ те,
+ * за що заплачено, означає стерти з нього фото при видаленні розвороту.
+ *
+ * Повертає null, коли казати нічого: тоді конструктор лишається на своєму
+ * власному `enableEndpaper`, тобто поводиться рівно так, як поводився досі.
+ */
+export function resolveEndpaperPaid(
+    saved: unknown,
+    cartOptions: unknown,
+): ForzatSides | null {
+    if (saved && typeof saved === 'object') {
+        const s = saved as Record<string, unknown>;
+        return { first: !!s.first, last: !!s.last };
+    }
+    const fromCart = paidForzatSides(cartOptions);
+    if (fromCart.first || fromCart.last) return fromCart;
+    return null;
+}
+
 /** Файл форзаца у наборі для друку: f1 — початковий, f2 — кінцевий. */
 export type ForzatFile = 'f1' | 'f2';
 
