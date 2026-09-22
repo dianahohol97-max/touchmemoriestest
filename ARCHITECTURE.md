@@ -54,7 +54,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Automation rules | `lib/automation/` + `app/admin/automations/` | Deadline calc, assignment, telegram + email notifications |
 | Shipping (Nova Poshta etc.) | `lib/shipping/` | Carrier integrations |
 | Certificates (gift cards) | `lib/certificates/` + `app/admin/certificates/` | Code generation, validation |
-| Blog | `app/admin/blog/` + `app/[locale]/blog/` | MD editor in admin via @uiw/react-md-editor |
+| Blog | `app/admin/blog/` + `app/[locale]/blog/` + `lib/blog/` | Posts live in Supabase `blog_posts`, not in files. MD editor in admin via @uiw/react-md-editor. Publishing is a queue driven by `/api/cron/blog-publish` — see "Blog" below |
 | SEO (canonical, hreflang, redirects, sitemap, schema) | `lib/seo/` + `app/sitemap.ts` + `app/robots.ts` + `redirects()` in `next.config.ts` + `components/seo/` | See "SEO surface" below. Check redirects with `node scripts/redirect-chains.mjs` before committing |
 
 ---
@@ -354,6 +354,34 @@ Counting goes through `referral_visit_stats()` from the same migration, never a 
 - Static labels: `locales/{locale}.json` files, accessed via the `useT()` hook
 - DB-driven content (product names, category names, footer sections etc.) uses a `translations` JSONB column with shape `{ uk: {...}, en: {...}, ro: {...}, pl: {...}, de: {...} }`
 - The `getLocalized(record, field, locale)` helper in `lib/i18n/localize.ts` reads `translations[locale].field || record.field` (fallback to base column)
+
+---
+
+## Blog (added 2026-09-22)
+
+Posts live in Supabase `blog_posts` (+ `blog_categories`), never in MDX or files. The base row is Ukrainian; other locales live in its `translations` JSONB, and `locale` names the base language.
+
+### Publishing is a queue, not a flag
+
+A post is in exactly one of three states, held in `blog_posts.status`:
+
+| status | Meaning | Visible? |
+|---|---|---|
+| `draft` | Being written | no |
+| `scheduled` | In the queue, carries `publish_at` | no — **only the cron opens it** |
+| `published` | Live, carries `published_at` | yes |
+
+`/api/cron/blog-publish` (Vercel cron, `0 5 * * *` = 07:00 Kyiv in winter, 08:00 in summer — Vercel schedules in UTC only) takes the single oldest `scheduled` post whose `publish_at` has passed, flips it to `published`, revalidates the article/list/category/home/sitemap paths, and pings IndexNow. **One post per run on purpose**: after an outage, opening every overdue post at once would dump three or four articles into the feed and the RSS in one morning.
+
+Three fields decide visibility together — `status`, `is_published`, `published_at` — and `lib/blog/published.ts` checks all three. A post with the flag but no `status` is invisible with no error anywhere, which is why every write goes through `lib/blog/queue.ts` (cron, admin buttons, generator) rather than a hand-written `update`. `lib/blog/queue.ts` is also the **only** file outside `/admin/` allowed to read `blog_posts` past that gate, and `tests/blog-schedule.test.ts` enforces that for the rest of the repo.
+
+Scheduling lives in `lib/blog/schedule.ts`: gaps alternate 2 and 3 days at 07:00 Kyiv, computed through `Intl` rather than a hardcoded offset, because Kyiv is UTC+2 in winter and UTC+3 in summer.
+
+### The queue going empty is silent, so it is watched
+
+Nothing breaks when the queue runs dry — the site works, articles just stop. The cron writes `settings.blog_queue_watch` on **every** run (a watchdog that is quiet and a watchdog nobody ran look identical), the admin list shows that row in its header via `/api/admin/blog/queue-status`, and an email goes to the shop inbox when the queue is at three or fewer, at most once a day. That email is to ourselves, so it goes through `sendEmail` and deliberately not through `sendLoggedEmail` (gotcha 20 in CLAUDE.md).
+
+New admin columns must also be added to the `blog_posts` allowlist in `lib/admin/content-tables.ts` — `/api/admin/content` rejects the whole request on an unlisted field rather than dropping it.
 
 ---
 

@@ -123,6 +123,13 @@ export const CONTENT_TABLES: Record<string, ContentTable> = {
             'tags', 'keywords', 'related_product_ids', 'content_images', 'translations',
             'meta_title', 'meta_description', 'og_title',
             'is_published', 'is_featured', 'published_at', 'updated_at',
+            // Черга автопублікації, з 22.09.2026. `status` тут обовʼязковий:
+            // гейт видимості перевіряє його разом із `is_published`, тож
+            // кнопка адмінки, яка не має права його писати, лишала б статтю
+            // невидимою після «Опублікувати». Роут не ігнорує зайве поле
+            // мовчки — він відмовляє всьому запиту, і саме тому перелік треба
+            // тримати в парі з тим, що пише `lib/blog/queue.ts`.
+            'status', 'publish_at', 'faq', 'internal_links', 'related_product_slugs', 'locale',
         ],
         allowDelete: true,
         orderBy: { column: 'created_at', ascending: false },

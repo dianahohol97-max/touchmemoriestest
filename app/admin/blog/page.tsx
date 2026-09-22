@@ -10,6 +10,7 @@ import {
     Eye,
     Globe,
     FileLock2,
+    CalendarClock,
     Search,
     Copy,
     Loader2
@@ -17,16 +18,66 @@ import {
 import { toast } from 'sonner';
 import Image from 'next/image';
 
+/**
+ * Черга блогу очима адміністратора.
+ *
+ * Стан статті тепер має три значення, а не два: `draft` пишеться, `scheduled`
+ * чекає своєї дати, `published` відкрита. Кнопки нижче пишуть `status` РАЗОМ з
+ * `is_published` і датою — гейт `lib/blog/published.ts` перевіряє всі три поля,
+ * тож стаття, якій проставили лише прапорець, просто не зʼявиться на сайті, і
+ * жодної помилки при цьому ніхто не побачить.
+ */
+type BlogStatus = 'draft' | 'scheduled' | 'published';
+
+/** Стан статті з її полів; старі рядки без `status` читаються за прапорцем. */
+function statusOf(post: any): BlogStatus {
+    if (post?.status === 'draft' || post?.status === 'scheduled' || post?.status === 'published') {
+        return post.status;
+    }
+    return post?.is_published ? 'published' : 'draft';
+}
+
+const STATUS_LABEL: Record<BlogStatus, string> = {
+    draft: 'Чернетка',
+    scheduled: 'У черзі',
+    published: 'Опубліковано',
+};
+
+/** Дата, яка щось означає для цього стану: намір для черги, факт для решти. */
+function statusDate(post: any): string {
+    const raw = statusOf(post) === 'scheduled' ? post.publish_at : (post.published_at || post.created_at);
+    return raw ? new Date(raw).toLocaleDateString('uk-UA') : '—';
+}
+
+/** Локальний час у полі `datetime-local`, з якого рахується перенесення. */
+function toLocalInput(iso: string | null): string {
+    const d = iso ? new Date(iso) : new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function AdminBlogPostsPage() {
     const supabase = createClient();
     const [posts, setPosts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState<'all' | 'published' | 'drafts'>('all');
+    const [filter, setFilter] = useState<'all' | 'published' | 'scheduled' | 'drafts'>('all');
+    const [watch, setWatch] = useState<any>(null);
 
     useEffect(() => {
         fetchPosts();
     }, [filter]);
+
+    // Сторож, який мовчить, і сторож, якого ніхто не запускав, виглядають
+    // однаково — тому стан крона видно рядком над списком, а не здогадкою.
+    // Читає його сервер: у `settings` політика відкриває рядок лише тим, хто є
+    // в `admin_users`, і прямий запит із браузера віддав би решті порожньо.
+    useEffect(() => {
+        fetch('/api/admin/blog/queue-status')
+            .then(r => (r.ok ? r.json() : null))
+            .then(j => setWatch(j?.watch || null))
+            .catch(() => setWatch(null));
+    }, []);
 
     // Читання лишається прямим: blog_posts мають публічну SELECT-політику, і
     // тут ще й join із blog_categories. А от запис закритий на is_admin_user()
@@ -40,9 +91,11 @@ export default function AdminBlogPostsPage() {
             .order('created_at', { ascending: false });
 
         if (filter === 'published') {
-            query = query.eq('is_published', true);
+            query = query.eq('status', 'published');
+        } else if (filter === 'scheduled') {
+            query = query.eq('status', 'scheduled');
         } else if (filter === 'drafts') {
-            query = query.eq('is_published', false);
+            query = query.eq('status', 'draft');
         }
 
         const { data, error } = await query;
@@ -54,13 +107,45 @@ export default function AdminBlogPostsPage() {
         setLoading(false);
     }
 
+    // «Опублікувати зараз» і «Зняти з публікації». Три поля пишуться разом:
+    // прапорець без `status` лишив би статтю невидимою, а `status` без дати —
+    // видимою з порожнім `published_at` у розмітці Article.
     const togglePublish = async (post: any) => {
+        const live = statusOf(post) === 'published';
+        try {
+            await contentUpdate('blog_posts', post.id, live
+                ? { status: 'draft', is_published: false, published_at: null }
+                : { status: 'published', is_published: true, published_at: new Date().toISOString() });
+            toast.success(live ? 'Знято з публікації' : 'Опубліковано');
+            fetchPosts();
+        } catch (error: any) {
+            toast.error(error.message);
+        }
+    };
+
+    // «Перенести»: стаття стає в чергу на вказаний час. Крон відкриє її сам,
+    // тож `is_published` навмисно гаситься — інакше гейт пустив би її на сайт
+    // тієї ж хвилини, коли дата настане, і крон уже нічого не вирішував би.
+    const reschedule = async (post: any) => {
+        const answer = prompt(
+            'Коли опублікувати? Формат РРРР-ММ-ДДТГГ:ХХ за вашим часом.',
+            toLocalInput(post.publish_at || post.published_at),
+        );
+        if (!answer) return;
+
+        const at = new Date(answer);
+        if (Number.isNaN(at.getTime())) {
+            toast.error('Не вдалося прочитати дату');
+            return;
+        }
+
         try {
             await contentUpdate('blog_posts', post.id, {
-                is_published: !post.is_published,
-                published_at: !post.is_published ? new Date().toISOString() : null,
+                status: 'scheduled',
+                is_published: false,
+                publish_at: at.toISOString(),
             });
-            toast.success(post.is_published ? 'Знято з публікації' : 'Опубліковано');
+            toast.success(`У черзі на ${at.toLocaleString('uk-UA')}`);
             fetchPosts();
         } catch (error: any) {
             toast.error(error.message);
@@ -81,6 +166,7 @@ export default function AdminBlogPostsPage() {
                 keywords: post.keywords || [],
                 content_images: post.content_images || [],
                 is_published: false,
+                status: 'draft',
             });
             toast.success('Статтю здубльовано');
             fetchPosts();
@@ -108,6 +194,11 @@ export default function AdminBlogPostsPage() {
                 <div>
                     <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, color: '#263A99', marginBottom: '8px' }}>Всі статті блогу</h1>
                     <p style={{ color: '#64748b' }}>Керуйте вмістом блогу, чернетками та публікаціями.</p>
+                    <p style={{ color: '#94a3b8', fontSize: '13px', marginTop: '6px' }}>
+                        {watch?.last_checked_at
+                            ? `Автопублікація перевіряла чергу ${new Date(watch.last_checked_at).toLocaleString('uk-UA')}, у черзі ${watch.queue_left ?? '—'}.`
+                            : 'Автопублікація ще жодного разу не відзвітувала — або крон не запускався, або змінна CRON_SECRET не задана.'}
+                    </p>
                 </div>
                 <Link href="/admin/blog/new" style={addBtnStyle}>
                     <Plus size={20} />
@@ -128,7 +219,7 @@ export default function AdminBlogPostsPage() {
                         />
                     </div>
                     <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f8fafc', padding: '4px', borderRadius: "3px", border: '1.5px solid #e2e8f0' }}>
-                        {(['all', 'published', 'drafts'] as const).map(f => (
+                        {(['all', 'published', 'scheduled', 'drafts'] as const).map(f => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
@@ -139,7 +230,7 @@ export default function AdminBlogPostsPage() {
                                     boxShadow: filter === f ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
                                 }}
                             >
-                                {f === 'all' ? 'Всі' : f === 'published' ? 'Опубліковані' : 'Чернетки'}
+                                {f === 'all' ? 'Всі' : f === 'published' ? 'Опубліковані' : f === 'scheduled' ? 'У черзі' : 'Чернетки'}
                             </button>
                         ))}
                     </div>
@@ -181,23 +272,23 @@ export default function AdminBlogPostsPage() {
                             </div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                                <div style={{ width: '100px', textAlign: 'center' }}>
-                                    {post.is_published ? (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981', fontSize: '12px', fontWeight: 700, backgroundColor: '#d1fae5', padding: '4px 8px', borderRadius: "3px" }}>
-                                            <Globe size={14} /> Опубліковано
-                                        </span>
-                                    ) : (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: "3px" }}>
-                                            <FileLock2 size={14} /> Чернетка
-                                        </span>
-                                    )}
+                                <div style={{ width: '120px', textAlign: 'center' }}>
+                                    <span style={{ ...statusBadgeStyle, ...STATUS_TONE[statusOf(post)] }}>
+                                        {statusOf(post) === 'published' ? <Globe size={14} />
+                                            : statusOf(post) === 'scheduled' ? <CalendarClock size={14} />
+                                            : <FileLock2 size={14} />}
+                                        {STATUS_LABEL[statusOf(post)]}
+                                    </span>
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#94a3b8', width: '90px', textAlign: 'right' }}>
-                                    {new Date(post.created_at).toLocaleDateString('uk-UA')}
+                                    {statusDate(post)}
                                 </div>
                                 <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button onClick={() => togglePublish(post)} title={post.is_published ? 'Зняти з публікації' : 'Опублікувати'} style={actionBtnStyle} >
-                                        {post.is_published ? <FileLock2 size={16} color="#f59e0b" /> : <Globe size={16} color="#10b981" />}
+                                    <button onClick={() => togglePublish(post)} title={statusOf(post) === 'published' ? 'Зняти з публікації' : 'Опублікувати зараз'} style={actionBtnStyle} >
+                                        {statusOf(post) === 'published' ? <FileLock2 size={16} color="#f59e0b" /> : <Globe size={16} color="#10b981" />}
+                                    </button>
+                                    <button onClick={() => reschedule(post)} title="Перенести" style={actionBtnStyle}>
+                                        <CalendarClock size={16} color="#6366f1" />
                                     </button>
                                     <button onClick={() => duplicatePost(post)} title="Дублювати" style={actionBtnStyle}>
                                         <Copy size={16} color="#64748b" />
@@ -217,6 +308,13 @@ export default function AdminBlogPostsPage() {
         </div>
     );
 }
+
+const statusBadgeStyle = { display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: "3px" };
+const STATUS_TONE: Record<BlogStatus, { color: string; backgroundColor: string }> = {
+    published: { color: '#10b981', backgroundColor: '#d1fae5' },
+    scheduled: { color: '#4f46e5', backgroundColor: '#e0e7ff' },
+    draft: { color: '#f59e0b', backgroundColor: '#fef3c7' },
+};
 
 const addBtnStyle = { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: '#263A99', color: 'white', borderRadius: "3px", border: 'none', fontWeight: 700, fontSize: '15px', cursor: 'pointer', textDecoration: 'none' };
 const postRowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'white', borderRadius: "3px", border: '1px solid #f1f5f9', transition: 'all 0.2s', ':hover': { borderColor: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' } };
