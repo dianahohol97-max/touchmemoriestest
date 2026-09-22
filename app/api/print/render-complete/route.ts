@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { RENDER_BUILD_KEY } from '@/lib/print/render-build';
+import { failedSpreadCount, isRenderComplete } from '@/lib/print/render-result';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -50,22 +51,49 @@ export async function POST(req: NextRequest) {
   }
 
   const insertError = await registerExportFiles(admin, project.order_id, project.product_type, uploaded, project.id);
-  // Прибирати можна ТІЛЬКИ файли цього макета. Цей колбек приходить від сервісу
-  // на кожен окремий виріб, і без обмеження він зносив макети сусідніх книг
-  // того самого замовлення — саме так TM-001234 двічі втратило вже готову
-  // книгу, поки перерендерювали іншу.
-  await pruneStaleExports(admin, project.order_id, uploaded, [String(project.id)]);
-  // Файли макетів, від'єднаних від замовлення — див. коментар до функції.
-  // Цей шлях так само буває останнім у сценарії виправлення дизайнером.
-  // Тільки коли новий набір справді приїхав: інакше знімемо старі рядки й
-  // лишимо замовлення без жодного файлу.
-  if (uploaded.length > 0) await pruneExportsOfDetachedProjects(admin, project.order_id);
+
+  /**
+   * Прибирати старі файли можна ТІЛЬКИ після повного макета.
+   *
+   * Умова та сама, що в /api/print/render-order, і саме її тут бракувало.
+   * Колбек читав лише `uploaded` і ніколи не дивився в `failed`, хоча сервіс
+   * шле обидва поля, тож частковий прогін приходив сюди як звичайний успіх:
+   * прибирання вважало застарілим усе, чого немає в неповному наборі, і
+   * зносило сторінки, які вже лежали цілі. TM-001342 (Diana, 22.09.2026) —
+   * дизайнер натиснув «перегенерувати» на книзі з двадцяти сторінок, прогін
+   * приніс частину, і в теці лишилося те, що привіз саме він. Клієнтці поїхав
+   * PDF із п'ятнадцяти сторінок замість двадцяти: обкладинка і сторінки з 06
+   * до 20, а перших п'яти не було взагалі. Помітили це аж тоді, коли друкарня
+   * сказала, що кількість сторінок непарна.
+   *
+   * Вартість помилки несиметрична рівно так само, як у render-order: зайвий
+   * старий файл прибирається руками за хвилину, а видалений треба рендерити
+   * наново, і поки цього ніхто не зробив, замовлення стоїть із діркою в
+   * макеті. Тому сумнів тлумачиться на користь «неповний».
+   */
+  const complete = isRenderComplete(body);
+  const failed = failedSpreadCount(body);
+  if (complete) {
+    // Прибирати можна ТІЛЬКИ файли цього макета. Цей колбек приходить від сервісу
+    // на кожен окремий виріб, і без обмеження він зносив макети сусідніх книг
+    // того самого замовлення — саме так TM-001234 двічі втратило вже готову
+    // книгу, поки перерендерювали іншу.
+    await pruneStaleExports(admin, project.order_id, uploaded, [String(project.id)]);
+    // Файли макетів, від'єднаних від замовлення — див. коментар до функції.
+    // Цей шлях так само буває останнім у сценарії виправлення дизайнером.
+    await pruneExportsOfDetachedProjects(admin, project.order_id);
+  } else {
+    console.error('[render-complete] неповний макет — старі файли лишаємо', {
+      projectId, orderId: project.order_id, uploaded: uploaded.length, failed,
+    });
+  }
 
   // A successful render supersedes any «РЕНДЕР НЕ ВДАВСЯ» note the timed-out
-  // path may have written on the order.
+  // path may have written on the order. Неповний прогін її НЕ знімає: він і є
+  // той випадок, про який вона попереджає.
   try {
     const { data: cur } = await admin.from('orders').select('notes').eq('id', project.order_id).maybeSingle();
-    if (cur?.notes && cur.notes.includes('РЕНДЕР НЕ ВДАВСЯ')) {
+    if (complete && cur?.notes && cur.notes.includes('РЕНДЕР НЕ ВДАВСЯ')) {
       const cleaned = cur.notes
         .split('\n\n')
         .filter((block: string) => !block.includes('РЕНДЕР НЕ ВДАВСЯ'))
@@ -96,6 +124,10 @@ export async function POST(req: NextRequest) {
         at: new Date().toISOString(),
         projectId,
         files: uploaded.length,
+        // Скільки аркушів не зібралося. Без цього числа «останній рендер
+        // сьогодні» в адмінці виглядає однаково і для цілого макета, і для
+        // того, що привіз половину.
+        failed,
       },
       updated_at: new Date().toISOString(),
     }).then(() => {}, () => {});
@@ -105,10 +137,12 @@ export async function POST(req: NextRequest) {
     projectId,
     orderId: project.order_id,
     files: uploaded.length,
+    failed,
+    complete,
     insertError,
     // Which service build produced the render — the fastest way to spot a
     // stale Railway deploy in the logs.
     serviceCommit: String(body?.serviceCommit || 'unknown'),
   });
-  return NextResponse.json({ ok: !insertError, files: uploaded.length, insertError });
+  return NextResponse.json({ ok: !insertError, files: uploaded.length, failed, complete, insertError });
 }
