@@ -1,4 +1,17 @@
-# touch.memories
+/**
+ * Незмінна частина `/llms.txt` — опис бренду, умови партнерської програми,
+ * категорії, основні сторінки й контакти.
+ *
+ * НАВІЩО ЦЕ ТЕПЕР ФАЙЛ КОДУ, А НЕ `public/llms.txt`. Перелік статей у цьому
+ * документі мусить оновлюватися сам: стаття виходить раз на два-три дні, і
+ * статичний файл застарівав би рівно на наступний день після кожної
+ * публікації. Статичний файл у `public/` перекриває маршрут із тим самим
+ * шляхом, тож зробити адресу динамічною можна тільки прибравши файл.
+ *
+ * Текст перенесено дослівно; змінився лише розділ «Корисні статті», який
+ * тепер збирається з бази.
+ */
+export const LLMS_HEAD = `# touch.memories
 
 > touch.memories (touchmemories.com.ua) — українська студія персоналізованих фотопродуктів: фотокниги, тревелбуки, глянцеві журнали про людину, гостьові книги (вішбуки), фотодрук, полароїд-картки, фотомагніти, постери, зіркові карти, пазли та персональні пісні. Клієнт створює макет самостійно в онлайн-конструкторі або замовляє верстку у дизайнера студії. Доставка по всій Україні (Нова Пошта) та за кордон. Оплата карткою (Monobank), Apple Pay / Google Pay. Сайт українською, англійською, румунською, польською та німецькою.
 
@@ -52,19 +65,11 @@
 - [Питання та відповіді](https://touchmemories.com.ua/uk/faq): доставка, оплата, терміни
 - [Блог](https://touchmemories.com.ua/uk/blog): гіди зі створення фотокниг, ідеї подарунків, поради
 - [Про нас](https://touchmemories.com.ua/uk/pro-nas): хто ми і як працюємо
-- [Контакти](https://touchmemories.com.ua/uk/kontakty)
+- [Контакти](https://touchmemories.com.ua/uk/kontakty)`;
 
-## Корисні статті
-
-- [Як вибрати фотокнигу: формати, обкладинки, сторінки](https://touchmemories.com.ua/uk/blog/yak-vybraty-fotoknyhu)
-- [Фотокнига першого року дитини](https://touchmemories.com.ua/uk/blog/fotoknyha-pershoho-roku-dytyny)
-- [Як зібрати весільну фотокнигу: покроковий план](https://touchmemories.com.ua/uk/blog/yak-zibraty-vesilnu-fotoknyhu)
-- [Що подарувати мамі](https://touchmemories.com.ua/uk/blog/shcho-podaruvaty-mami)
-- [100+ підписів до фото у фотокнизі](https://touchmemories.com.ua/uk/blog/pidpysy-do-foto-u-fotoknyzi)
-
-## Контакти
+export const LLMS_TAIL = `## Контакти
 
 - Instagram: https://instagram.com/touch.memories
 - Telegram: https://t.me/touchmemories
 - TikTok: https://tiktok.com/@touch.memories
-- Email: touch.memories3@gmail.com
+- Email: touch.memories3@gmail.com`;

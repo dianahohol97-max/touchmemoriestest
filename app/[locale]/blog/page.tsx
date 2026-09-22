@@ -1,364 +1,79 @@
 import type { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Calendar, Clock, ArrowRight, User, ImageIcon } from 'lucide-react';
+import { permanentRedirect } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { getLocalized } from '@/lib/i18n/localize';
+import BlogIndex from '@/components/blog/BlogIndex';
+import { listPath, prevNextLinks, totalPages } from '@/lib/blog/pagination';
+import { getAdminClient } from '@/lib/supabase/admin';
 import { onlyVisiblePosts } from '@/lib/blog/published';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
+import { BLOG_META } from '@/lib/blog/list-meta';
 
-const BLOG_META: Record<string, { title: string; description: string; h1: string; subtitle: string }> = {
-  uk: { title: 'Блог — ідеї та натхнення | Touch.Memories', description: 'Поради, ідеї та натхнення для створення ідеальної фотокниги та незабутніх подарунків.', h1: 'Блог TouchMemories', subtitle: 'Натхнення, ідеї для подарунків та поради щодо створення ідеальної фотокниги.' },
-  en: { title: 'Blog — Ideas & Inspiration | Touch.Memories', description: 'Tips, ideas and inspiration for creating the perfect photo book and unforgettable gifts.', h1: 'TouchMemories Blog', subtitle: 'Inspiration, gift ideas and tips for creating the perfect photo book.' },
-  pl: { title: 'Blog — pomysły i inspiracje | Touch.Memories', description: 'Porady, pomysły i inspiracje do tworzenia idealnej fotoksiążki i niezapomnianych prezentów.', h1: 'Blog TouchMemories', subtitle: 'Inspiracje, pomysły na prezenty i porady dotyczące tworzenia idealnej fotoksiążki.' },
-  de: { title: 'Blog — Ideen & Inspiration | Touch.Memories', description: 'Tipps, Ideen und Inspiration für das perfekte Fotobuch und unvergessliche Geschenke.', h1: 'TouchMemories Blog', subtitle: 'Inspiration, Geschenkideen und Tipps für das perfekte Fotobuch.' },
-  ro: { title: 'Blog — Idei și Inspirație | Touch.Memories', description: 'Sfaturi, idei și inspirație pentru a crea cartea foto perfectă și cadouri de neuitat.', h1: 'Blogul TouchMemories', subtitle: 'Inspirație, idei de cadouri și sfaturi pentru a crea cartea foto perfectă.' },
-};
+/**
+ * Перша сторінка блогу.
+ *
+ * СТАРІ АДРЕСИ З ПАРАМЕТРАМИ. `/blog?category=travel` і `/blog?page=2` лишалися
+ * в чужих посиланнях і в закладках, тож замість того, щоб мовчки показати
+ * першу сторінку, вони віддають 301 на справжні адреси. Переадресація стоїть
+ * тут, у коді сторінки, а НЕ в `next.config.ts`: правило з параметром у
+ * конфізі Next переносить параметр у призначення, і саме так `/blog?category=`
+ * колись зациклився сам на себе (гоча в ARCHITECTURE.md про redirects).
+ */
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
-  const { locale: rawLocale } = await params;
-  const locale = (rawLocale || 'uk') as Locale;
-  const m = BLOG_META[locale] || BLOG_META.uk;
-  return {
-    ...m,
-    alternates: {
-      canonical: getCanonicalUrl(locale, '/blog'),
-      languages: getAlternateLanguages('/blog'),
-    },
-    openGraph: {
-      title: m.title,
-      description: m.description,
-      url: getCanonicalUrl(locale, '/blog'),
-      siteName: 'Touch.Memories',
-      locale: OG_LOCALE_MAP[locale],
-      type: 'website',
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
-    },
-    twitter: { card: 'summary_large_image', title: m.title, description: m.description, images: ['/og-image.jpg'] },
-  };
-}
-
-// ISR — revalidate every hour (removed force-dynamic to prevent ISR conflict)
 export const revalidate = 3600;
 
-const stripEmoji = (text?: string) => {
-    if (!text) return '';
-    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
-};
+type Search = Promise<{ category?: string; page?: string }>;
 
-const ARTICLES = [
-  {
-    slug: 'iak-stvoryty-fotoknyhu',
-    category: 'Поради',
-    title: 'Як створити ідеальну фотокнигу: 7 порад від дизайнерів',
-    excerpt: 'Фотокнига — це розповідь, яка живе десятиліттями. Ось перевірені поради від наших дизайнерів.',
-    readTime: '8 хв читання',
-    image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80',
-    tag: 'photobooks',
-  },
-  {
-    slug: 'travelbook-vs-photoalbum',
-    category: 'Travel',
-    title: 'Тревел-бук vs фотоальбом: що обрати для спогадів про подорож?',
-    excerpt: 'Порівнюємо два популярні формати, щоб допомогти вам обрати ідеальний.',
-    readTime: '5 хв читання',
-    image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&q=80',
-    tag: 'travel',
-  },
-  {
-    slug: 'vesil-ni-podarunky',
-    category: 'Весілля',
-    title: 'Топ-5 ідей для весільного альбому, який захоплює подих',
-    excerpt: 'Весільний альбом — перша книга вашої сім\'ї. Ось як зробити його незабутнім.',
-    readTime: '6 хв читання',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80',
-    tag: 'wedding',
-  },
-];
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+    const { locale: rawLocale } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
+    const m = BLOG_META[locale] || BLOG_META.uk;
 
-export default async function BlogHomePage({ searchParams, params }: { searchParams: Promise<{ category?: string, page?: string }>, params: Promise<{ locale?: string }> }) {
-    const { locale: loc } = await params;
-    const locale = loc || 'uk';
-    const dateLocale: Record<string, string> = { uk: 'uk-UA', en: 'en-GB', ro: 'ro-RO', pl: 'pl-PL', de: 'de-DE' };
-    const dateFmt = dateLocale[locale] || 'uk-UA';
-    const todayLabel: Record<string, string> = { uk: 'Сьогодні', en: 'Today', ro: 'Astăzi', pl: 'Dziś', de: 'Heute' };
-    const today = todayLabel[locale] || 'Today';
-    const supabase = await createClient();
+    const { count } = await onlyVisiblePosts(
+        getAdminClient().from('blog_posts').select('id', { count: 'exact', head: true }),
+    );
+
+    return {
+        title: m.title,
+        description: m.description,
+        alternates: {
+            canonical: getCanonicalUrl(locale, '/blog'),
+            languages: getAlternateLanguages('/blog'),
+        },
+        pagination: prevNextLinks(locale, null, 1, totalPages(count)),
+        openGraph: {
+            title: m.title,
+            description: m.description,
+            url: getCanonicalUrl(locale, '/blog'),
+            siteName: 'Touch.Memories',
+            locale: OG_LOCALE_MAP[locale],
+            type: 'website',
+            images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+        },
+        twitter: { card: 'summary_large_image', title: m.title, description: m.description, images: ['/og-image.jpg'] },
+    };
+}
+
+export default async function BlogHomePage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Search }) {
+    const { locale: rawLocale } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
     const { category, page } = await searchParams;
-    const currentPage = parseInt(page || '1');
-    const limit = 9;
-    const offset = (currentPage - 1) * limit;
-
-    // Fetch Categories
-    const { data: categories } = await supabase.from('blog_categories').select('*').eq('is_active', true).order('sort_order');
-
-    // Build Posts Query
-    let query = onlyVisiblePosts(supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug)', { count: 'exact' }))
-        .order('published_at', { ascending: false })
-        .range(offset, offset + limit - 1);
 
     if (category && category !== 'all') {
-        const selectedCat = categories?.find(c => c.slug === category);
-        if (selectedCat) {
-            query = query.eq('category_id', selectedCat.id);
-        }
+        permanentRedirect(`/${locale}/blog/category/${category}`);
+    }
+    const asked = parseInt(page || '1', 10);
+    if (Number.isFinite(asked) && asked > 1) {
+        permanentRedirect(listPath(locale, null, asked));
     }
 
-    const { data: posts, count } = await query;
-
-    // Fetch Featured Post (Hero)
-    const { data: featuredPost } = await onlyVisiblePosts(supabase.from('blog_posts')
-        .select('*, translations, blog_categories(name, slug)'))
-        .eq('is_featured', true)
-        .order('published_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-    // Fetch Popular Posts
-    const { data: popularPosts } = await onlyVisiblePosts(supabase.from('blog_posts')
-        .select('id, title, slug, cover_image, views_count, published_at, translations'))
-        .order('views_count', { ascending: false })
-        .limit(5);
-
-    // Fetch 3 popular products (simplification, getting first 3 active products)
-    const { data: featuredProducts } = await supabase.from('products')
-        .select('id, name, slug, price, images')
-        .eq('is_active', true)
-        .limit(3);
-
-    const totalPages = Math.ceil((count || 0) / limit);
+    const m = BLOG_META[locale] || BLOG_META.uk;
 
     return (
         <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'var(--font-primary)', overflowX: 'hidden' }}>
             <Navigation />
-
-            <main style={{ paddingTop: '100px', paddingBottom: '80px', maxWidth: '1200px', margin: '0 auto', padding: '100px 24px 80px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-                        {(BLOG_META[loc || 'uk'] || BLOG_META.uk).h1}
-                    </h1>
-                    <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px', margin: '0 auto' }}>
-                        {(BLOG_META[loc || 'uk'] || BLOG_META.uk).subtitle}
-                    </p>
-                </div>
-
-                {/* Hero Featured Article */}
-                {!category && featuredPost && currentPage === 1 && (
-                    <Link href={`/blog/${featuredPost.slug}`} style={{ display: 'block', textDecoration: 'none', marginBottom: '60px' }}>
-                        <div style={{ position: 'relative', borderRadius: "12px", overflow: 'hidden', height: '500px', display: 'flex', alignItems: 'flex-end', background: featuredPost.cover_image ? '#e2e8f0' : 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }}>
-                            {featuredPost.cover_image ? (
-                                <Image src={featuredPost.cover_image} alt={getLocalized(featuredPost, locale, "title")} fill style={{ objectFit: 'cover' }} priority />
-                            ) : (
-                                // Обкладинки ще немає — показуємо той самий знак, що й у картках сітки,
-                                // щоб місце під фото читалося як заготовка, а не як порожній прямокутник.
-                                <div aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '96px' }}>
-                                    <ImageIcon size={88} strokeWidth={1} color="rgba(255,255,255,0.32)" />
-                                </div>
-                            )}
-                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(38, 58, 153, 0.9) 0%, rgba(38, 58, 153, 0.4) 50%, transparent 100%)' }} />
-                            <div style={{ position: 'relative', padding: '48px', width: '100%', maxWidth: '800px', color: 'white' }}>
-                                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                                    <span style={{ backgroundColor: '#263A99', color: 'white', padding: '4px 12px', borderRadius: "12px", fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        Featured
-                                    </span>
-                                    {featuredPost.blog_categories && (
-                                        <span style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 12px', borderRadius: "12px", fontSize: '13px', fontWeight: 600 }}>
-                                            {stripEmoji(getLocalized(featuredPost.blog_categories, locale, 'name'))}
-                                        </span>
-                                    )}
-                                </div>
-                                {/* color обов'язковий: globals.css має правило h2 { color: var(--primary) },
-                                    і воно б'є успадкований від батька білий — заголовок ставав #263A99 на #263A99. */}
-                                <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, lineHeight: 1.1, marginBottom: '16px', color: 'white' }}>
-                                    {getLocalized(featuredPost, locale, "title")}
-                                </h2>
-                                <p style={{ fontSize: '18px', color: '#cbd5e1', marginBottom: '24px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {getLocalized(featuredPost, locale, "excerpt")}
-                                </p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} /> {featuredPost.author_name}</span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={16} /> {new Date(featuredPost.published_at).toLocaleDateString(dateFmt)}</span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Clock size={16} /> {featuredPost.reading_time} хв читання</span>
-                                </div>
-                            </div>
-                        </div>
-                    </Link>
-                )}
-
-                {/* minmax(0, …) обов'язковий: у звичайного 1fr мінімум дорівнює min-content колонки,
-                    а рядок категорій розтягує його до власної ширини — колонка виходила на 1229px
-                    у сітці на 1152px, і третя картка ряду опинялася за межею екрана. */}
-                <div className="blog-layout-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '48px', alignItems: 'start' }}>
-
-                    {/* Main Content Area */}
-                    <div>
-                        {/* Categories Tabs */}
-                        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '16px', marginBottom: '32px', scrollbarWidth: 'none' }}>
-                            <Link href="/blog" style={{ ...tabStyle, backgroundColor: !category || category === 'all' ? '#263A99' : 'white', color: !category || category === 'all' ? 'white' : '#64748b' }}>Всі статті</Link>
-                            {categories?.map((cat) => (
-                                <Link
-                                    key={cat.id}
-                                    href={`/blog?category=${cat.slug}`}
-                                    style={{ ...tabStyle, backgroundColor: category === cat.slug ? '#263A99' : 'white', color: category === cat.slug ? 'white' : '#64748b' }}
-                                >
-                                    {stripEmoji(cat.name)}
-                                </Link>
-                            ))}
-                        </div>
-
-                        {/* Article Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '28px' }}>
-                            {(posts && posts.length > 0 ? posts : ARTICLES as any).map((post: any, index: number) => (
-                                <Link key={post.id || post.slug} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%', group: 'article' } as any}>
-                                    <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                        {(post.cover_image || post.image) ? (
-                                            <Image src={post.cover_image || post.image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />
-                                        ) : (
-                                            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, #263A99 0%, #4254b5 55%, #aeb8e8 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '28px' }}>
-                                                <ImageIcon aria-hidden size={32} strokeWidth={1.25} color="rgba(255,255,255,0.45)" />
-                                                <span style={{ fontFamily: 'var(--font-heading)', color: 'white', fontWeight: 800, fontSize: '20px', lineHeight: 1.25, textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                                    {getLocalized(post, locale, "title")}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {(post.blog_categories || post.category) && (
-                                            <div style={{ position: 'absolute', top: '16px', left: '16px', backgroundColor: 'white', padding: '6px 14px', borderRadius: "12px", fontSize: '12px', fontWeight: 800, color: '#263A99', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                                                {stripEmoji(getLocalized(post.blog_categories, locale, 'name') || post.category)}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
-                                            {getLocalized(post, locale, "title")}
-                                        </h3>
-                                        <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
-                                            {getLocalized(post, locale, "excerpt")}
-                                        </p>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                {post.author_avatar ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={post.author_avatar} alt="" style={{ width: '28px', height: '28px', borderRadius: "12px" }} />
-                                                ) : (
-                                                    <div style={{ width: '28px', height: '28px', borderRadius: "12px", backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                                                        <User size={14} />
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name || 'TouchMemories'}</div>
-                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{post.published_at ? new Date(post.published_at).toLocaleDateString(dateFmt) : today}</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                <Clock size={14} /> {post.reading_time || post.readTime}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-
-                        {/* Pagination */}
-                        {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '60px' }}>
-                                {Array.from({ length: totalPages }).map((_, i) => (
-                                    <Link
-                                        key={i}
-                                        href={`/blog?page=${i + 1}${category ? `&category=${category}` : ''}`}
-                                        style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "12px", fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
-                                    >
-                                        {i + 1}
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sidebar */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-                        {/* Newsletter */}
-                        <div style={{ backgroundColor: '#263A99', borderRadius: "12px", padding: '24px', color: 'white', textAlign: 'center' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Залишайся на зв'язку</h3>
-                            <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>Нові статті та ідеї — прямо на пошту.</p>
-                            <form style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} action="/api/newsletter" method="POST">
-                                <input
-                                    type="email"
-                                    placeholder="Ваш email"
-                                    required
-                                    style={{
-                                        width: '100%',
-                                        padding: '10px 14px',
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        backgroundColor: '#ffffff',
-                                        color: '#1e2d7d',
-                                        fontSize: '14px',
-                                        outline: 'none'
-                                    }}
-                                    className="placeholder:text-[#9ca3af]"
-                                />
-                                <button type="submit" style={{ width: '100%', padding: '8px 16px', borderRadius: '8px', backgroundColor: 'white', color: '#1e2d7d', border: 'none', fontWeight: 600, fontSize: '14px', cursor: 'pointer', transition: 'background 0.2s' } as any}>
-                                    Підписатися
-                                </button>
-                            </form>
-                        </div>
-
-                        {/* Popular Posts */}
-                        {popularPosts && popularPosts.length > 0 && (
-                            <div style={{ backgroundColor: 'white', borderRadius: "12px", padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Популярне</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                    {popularPosts.map((post, index) => (
-                                        <Link key={post.id} href={`/blog/${post.slug}`} style={{ display: 'flex', gap: '16px', textDecoration: 'none', color: 'inherit', alignItems: 'center' }}>
-                                            <div style={{ fontSize: '24px', fontWeight: 900, color: '#e2e8f0', fontFamily: 'var(--font-heading)' }}>
-                                                0{index + 1}
-                                            </div>
-                                            <div>
-                                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#263A99', marginBottom: '4px', lineHeight: 1.3 }}>{getLocalized(post, locale, "title")}</h4>
-                                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString(dateFmt)}</span>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Featured Products */}
-                        {featuredProducts && featuredProducts.length > 0 && (
-                            <div style={{ backgroundColor: 'white', borderRadius: "12px", padding: '24px', border: '1px solid #f1f5f9' }}>
-                                <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', fontWeight: 800, color: '#263A99', marginBottom: '20px' }}>Наші продукти</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                    {featuredProducts.map(product => (
-                                        <Link key={product.id} href={`/${loc || 'uk'}/catalog/${product.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                                            <div style={{ width: '80px', height: '80px', borderRadius: "12px", overflow: 'hidden', backgroundColor: '#f8fafc', position: 'relative', flexShrink: 0 }}>
-                                                {product.images && product.images[0] && (
-                                                    <Image src={product.images[0]} alt={product.name} fill style={{ objectFit: 'cover' }} />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#263A99', marginBottom: '4px' }}>{product.name}</h4>
-                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#263A99' }}>{product.price} ₴</div>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                    <Link href={`/${loc || 'uk'}/catalog`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 700, fontSize: '13px', textDecoration: 'none', marginTop: '8px' }}>
-                                        В каталог <ArrowRight size={16} />
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-
-                    </div>
-                </div>
-            </main>
-
+            <BlogIndex locale={locale} page={1} heading={m.h1} subtitle={m.subtitle} />
             <Footer />
         </div>
     );
 }
-
-const tabStyle = { padding: '8px 20px', borderRadius: '10px', fontWeight: 700, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' as any, border: '1px solid #e2e8f0', transition: 'all 0.2s' };

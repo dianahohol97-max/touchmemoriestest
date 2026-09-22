@@ -14,6 +14,17 @@ interface BlogPostEditorProps {
     isEditMode?: boolean;
 }
 
+/**
+ * Стан статті має три значення, а не два.
+ *
+ * `draft` пишеться і нікуди не поспішає, `scheduled` стоїть у черзі й чекає
+ * крона, `published` відкрита. Саме `status` вирішує видимість разом із
+ * прапорцем і датою: гейт `lib/blog/published.ts` питає всі три поля, тож
+ * форма зобовʼязана писати їх узгоджено. Найгірший випадок тут — не помилка, а
+ * мовчанка: стаття з прапорцем, але без `status`, просто не зʼявиться на сайті.
+ */
+type BlogStatus = 'draft' | 'scheduled' | 'published';
+
 export default function BlogPostEditor({ initialData, isEditMode = false }: BlogPostEditorProps) {
     const router = useRouter();
     const supabase = createClient();
@@ -39,7 +50,12 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
         is_featured: initialData?.is_featured || false,
         cover_image: initialData?.cover_image || '',
         author_name: initialData?.author_name || 'Команда магазину',
-        published_at: initialData?.published_at || new Date().toISOString()
+        published_at: initialData?.published_at || new Date().toISOString(),
+        // Стан статті, з 22.09.2026. Старі рядки без `status` читаються за
+        // прапорцем, щоб відкриття давньої статті не перекинуло її в чернетку.
+        status: (initialData?.status as BlogStatus)
+            || (initialData?.is_published ? 'published' : 'draft') as BlogStatus,
+        publish_at: initialData?.publish_at || initialData?.published_at || new Date().toISOString(),
     });
 
     const [tagInput, setTagInput] = useState('');
@@ -221,7 +237,22 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
         setLoading(true);
         try {
             const reading_time = Math.max(1, Math.ceil((form.content.split(' ').length) / 200));
-            const postData = { ...form, reading_time, content_images: articleMedia };
+
+            // Три поля видимості зводяться тут в одне ціле, а не лишаються на
+            // совісті того, хто клацав форму. Стаття в черзі навмисно має
+            // `is_published: false`: відкрити її мусить крон, інакше гейт
+            // пустив би її на сайт тієї ж хвилини, коли настане дата, і черга
+            // перестала б щось означати.
+            const status = form.status;
+            const postData = {
+                ...form,
+                reading_time,
+                content_images: articleMedia,
+                status,
+                is_published: status === 'published',
+                published_at: status === 'published' ? form.published_at : null,
+                publish_at: status === 'scheduled' ? form.publish_at : null,
+            };
 
             // Через /api/admin/content: blog_posts закриті політикою
             // is_admin_user(), тож прямий запис із браузера не проходив у всіх,
@@ -257,7 +288,7 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                     </h1>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    {isEditMode && form.is_published && (
+                    {isEditMode && form.status === 'published' && (
                         <Link href={`/blog/${form.slug}`} target="_blank" style={{ ...btnStyle, backgroundColor: '#f1f5f9', color: '#263A99' }}>
                             <Eye size={18} /> Переглянути
                         </Link>
@@ -370,11 +401,12 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: '#f8fafc', borderRadius: "3px", marginBottom: '16px' }}>
                             <span style={{ fontWeight: 600, fontSize: '14px', color: '#263A99' }}>Статус</span>
                             <select
-                                value={form.is_published ? 'published' : 'draft'}
-                                onChange={(e) => setForm(p => ({ ...p, is_published: e.target.value === 'published' }))}
+                                value={form.status}
+                                onChange={(e) => setForm(p => ({ ...p, status: e.target.value as BlogStatus }))}
                                 style={{ padding: '6px 12px', borderRadius: "3px", border: '1px solid #e2e8f0', fontSize: '13px', fontWeight: 600, outline: 'none', backgroundColor: 'white' }}
                             >
                                 <option value="draft">Чернетка</option>
+                                <option value="scheduled">У черзі</option>
                                 <option value="published">Опубліковано</option>
                             </select>
                         </div>
@@ -388,13 +420,29 @@ export default function BlogPostEditor({ initialData, isEditMode = false }: Blog
                             />
                             <label htmlFor="is_featured" style={{ fontSize: '14px', fontWeight: 600, color: '#263A99', cursor: 'pointer' }}>Показати на головній</label>
                         </div>
-                        <label style={labelStyle}>Дата публікації</label>
+                        {/* Дата означає різне в різних станах, тому підпис
+                            змінюється разом зі станом: у черзі це намір, який
+                            виконає крон, в опублікованій — факт, який бачить
+                            Google у розмітці Article. Одне поле з двома
+                            значеннями плутало б рівно там, де ціна помилки
+                            найвища. */}
+                        <label style={labelStyle}>
+                            {form.status === 'scheduled' ? 'Опублікувати о' : 'Дата публікації'}
+                        </label>
                         <input
                             type="datetime-local"
-                            value={new Date(form.published_at).toISOString().slice(0, 16)}
-                            onChange={(e) => setForm(p => ({ ...p, published_at: new Date(e.target.value).toISOString() }))}
+                            value={new Date(form.status === 'scheduled' ? form.publish_at : form.published_at).toISOString().slice(0, 16)}
+                            onChange={(e) => {
+                                const iso = new Date(e.target.value).toISOString();
+                                setForm(p => p.status === 'scheduled' ? { ...p, publish_at: iso } : { ...p, published_at: iso });
+                            }}
                             style={{ ...inputStyle, marginBottom: '0' }}
                         />
+                        {form.status === 'scheduled' && (
+                            <p style={{ fontSize: '12px', color: '#64748b', marginTop: '8px' }}>
+                                Статтю відкриє автопублікація о сьомій ранку того дня, коли настане ця дата.
+                            </p>
+                        )}
                     </div>
 
                     <div style={cardStyle}>

@@ -54,7 +54,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Automation rules | `lib/automation/` + `app/admin/automations/` | Deadline calc, assignment, telegram + email notifications |
 | Shipping (Nova Poshta etc.) | `lib/shipping/` | Carrier integrations |
 | Certificates (gift cards) | `lib/certificates/` + `app/admin/certificates/` | Code generation, validation |
-| Blog | `app/admin/blog/` + `app/[locale]/blog/` | MD editor in admin via @uiw/react-md-editor |
+| Blog | `app/admin/blog/` + `app/[locale]/blog/` + `lib/blog/` | Posts live in Supabase `blog_posts`, not in files. MD editor in admin via @uiw/react-md-editor. Publishing is a queue driven by `/api/cron/blog-publish` — see "Blog" below |
 | SEO (canonical, hreflang, redirects, sitemap, schema) | `lib/seo/` + `app/sitemap.ts` + `app/robots.ts` + `redirects()` in `next.config.ts` + `components/seo/` | See "SEO surface" below. Check redirects with `node scripts/redirect-chains.mjs` before committing |
 
 ---
@@ -357,6 +357,78 @@ Counting goes through `referral_visit_stats()` from the same migration, never a 
 
 ---
 
+## Blog (added 2026-09-22)
+
+Posts live in Supabase `blog_posts` (+ `blog_categories`), never in MDX or files. The base row is Ukrainian; other locales live in its `translations` JSONB, and `locale` names the base language.
+
+### Publishing is a queue, not a flag
+
+A post is in exactly one of three states, held in `blog_posts.status`:
+
+| status | Meaning | Visible? |
+|---|---|---|
+| `draft` | Being written | no |
+| `scheduled` | In the queue, carries `publish_at` | no — **only the cron opens it** |
+| `published` | Live, carries `published_at` | yes |
+
+`/api/cron/blog-publish` (Vercel cron, `0 5 * * *` = 07:00 Kyiv in winter, 08:00 in summer — Vercel schedules in UTC only) takes the single oldest `scheduled` post whose `publish_at` has passed, flips it to `published`, revalidates the article/list/category/home/sitemap paths, and pings IndexNow. **One post per run on purpose**: after an outage, opening every overdue post at once would dump three or four articles into the feed and the RSS in one morning.
+
+Three fields decide visibility together — `status`, `is_published`, `published_at` — and `lib/blog/published.ts` checks all three. A post with the flag but no `status` is invisible with no error anywhere, which is why every write goes through `lib/blog/queue.ts` (cron, admin buttons, generator) rather than a hand-written `update`. `lib/blog/queue.ts` is also the **only** file outside `/admin/` allowed to read `blog_posts` past that gate, and `tests/blog-schedule.test.ts` enforces that for the rest of the repo.
+
+Scheduling lives in `lib/blog/schedule.ts`: gaps alternate 2 and 3 days at 07:00 Kyiv, computed through `Intl` rather than a hardcoded offset, because Kyiv is UTC+2 in winter and UTC+3 in summer.
+
+### The queue going empty is silent, so it is watched
+
+Nothing breaks when the queue runs dry — the site works, articles just stop. The cron writes `settings.blog_queue_watch` on **every** run (a watchdog that is quiet and a watchdog nobody ran look identical), the admin list shows that row in its header via `/api/admin/blog/queue-status`, and an email goes to the shop inbox when the queue is at three or fewer, at most once a day. That email is to ourselves, so it goes through `sendEmail` and deliberately not through `sendLoggedEmail` (gotcha 20 in CLAUDE.md).
+
+New admin columns must also be added to the `blog_posts` allowlist in `lib/admin/content-tables.ts` — `/api/admin/content` rejects the whole request on an unlisted field rather than dropping it.
+
+### Routes
+
+| URL | Route | Notes |
+|---|---|---|
+| `/{locale}/blog` | `app/[locale]/blog/page.tsx` | page 1; `?category=` and `?page=` 301 to the real URLs |
+| `/{locale}/blog/storinka/{n}` | `app/[locale]/blog/storinka/[n]/` | pages 2+, self-canonical, `rel=prev/next` |
+| `/{locale}/blog/category/{slug}` | `app/[locale]/blog/category/[slug]/` | indexed, own title/description |
+| `/{locale}/blog/category/{slug}/storinka/{n}` | `…/storinka/[n]/` | same, paginated |
+| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | the article |
+| `/{locale}/blog/tag/{tag}` | `app/[locale]/blog/tag/[tag]/` | thin, `noindex`, linked `rel=nofollow` |
+| `/api/og/blog/{slug}` | Satori 1200×630 | cover + title + brand |
+| `/blog-sitemap.xml`, `/sitemap-index.xml`, `/llms.txt` | routes, not files | see below |
+
+All four list routes render through `components/blog/BlogIndex.tsx`. The list used to exist twice and the copies had already drifted — same failure mode as the editor's photo toolbar.
+
+**Pagination is real URLs, not `?page=`.** `robots.txt` disallows the query form on `/blog` (it duplicates the category pages), so while pagination lived there, every page but the first was closed to crawling. `lib/blog/pagination.ts` owns the URL shape; each page is self-canonical, because a canonical pointing at page 1 drops the articles only visible deeper.
+
+**`/llms.txt` is a route now**, not `public/llms.txt`. The article list in it has to refresh itself, and a static file in `public/` shadows a route at the same path. The unchanging prose lives in `lib/seo/llms-static.ts` (and `tests/partner-rate-wording.test.ts` checks the commission wording there).
+
+### Article page SEO
+
+Everything a search engine sees is built from the row, never written into the body: an editor-typed price or date goes stale silently. `lib/blog/post.ts` computes the meta title (≤60, word-boundary, brand suffix stripped once) and description (140–160, topped up from the body when the excerpt is short).
+
+**hreflang lists only the locales that exist.** `postLocales()` counts the base `locale` plus `translations` keys that have BOTH a title and a body — an empty translation object is created the moment someone opens a language tab — and `getSubsetAlternates()` in `lib/seo/locales.ts` renders that subset. The full five-locale set would tell Google that `/de/blog/…` is a German version of Ukrainian text.
+
+Structured data: `Article` (author and publisher both the `touch.memories` Organization — no invented human byline), `BreadcrumbList`, `FAQPage` built from the same `faq` rows the accordion renders, and `ItemList` for the product cards. Schema must never promise a question the page does not show.
+
+The minimum internal linking (3 catalog, 2 articles) is held by the page itself, not by the author: product cards give up to three catalog links, "Читайте також" three articles, breadcrumbs one category.
+
+Drafts and queued posts are viewable at `?preview=$BLOG_PREVIEW_SECRET` — `noindex`, no view counted, read through `lib/blog/queue.ts` like every other past-the-gate read.
+
+### Writing articles
+
+`npm run blog:generate -- --list` shows the topic registry; `npm run blog:generate -- <topic-id>` writes one article and queues it (`--dry` prints it without touching the database). **One command, one article, on purpose** — twelve generated at once is twelve nobody re-reads. It runs on plain node (`--experimental-strip-types`), so it imports only files with no path aliases; `ANTHROPIC_API_KEY` is read from `.env.local` and is deliberately **not** set on Vercel, because nothing in production generates articles.
+
+`lib/blog/topics.ts` is the registry. Each topic carries the target page the article links to and an `independent` flag (product mentioned only at the end, never in the title) — the two things the model must not invent, since a made-up catalog slug reads as a working link right up to the click. A topic with no live page carries `blocked` and a reason instead of being quietly pointed at a neighbour.
+
+Nothing is trusted on the model's word:
+
+- every target is checked against the database first — active product, category with products (an empty one 301s to `/catalog`), enabled landing;
+- `lib/blog/article-check.ts` then checks the article: 1200–1800 words, 5–8 H2, 3–5 whole FAQ entries, meta lengths, a Latin slug, the key query inside the first hundred words, at least three catalog links and two blog links, no banned mentions, and **no price anywhere** — a price written into prose goes stale in silence and is discovered in the cart. It has no imports (the script loads it under plain node) and `tests/blog-article-check.test.ts` covers it, because a check nobody checks eventually passes everything.
+
+Scheduling is `slotAfterQueue()` in `lib/blog/schedule.ts` — a pure function, so the cron, the admin and this script all compute the same queue instead of each holding a copy.
+
+---
+
 ## SEO surface (canonicals, redirects, sitemap, structured data)
 
 Updated 2026-09-17, after the September audit.
@@ -368,7 +440,7 @@ Updated 2026-09-17, after the September audit.
 | `/{locale}/catalog/{slug}` | `app/[locale]/catalog/[slug]/page.tsx` | `Product` (+`AggregateOffer` when configurable, `AggregateRating`/`Review` when real reviews exist), `BreadcrumbList`, `FAQPage` when the product has FAQ |
 | `/{locale}/category/{ua-slug}` | `app/[locale]/category/[slug]/page.tsx` | `CollectionPage`, `BreadcrumbList`, `ItemList` |
 | `/{locale}/category/{ua-slug}/{occasion}` | `app/[locale]/category/[slug]/[occasion]/page.tsx` | same, plus `FAQPage`; content is DB-driven from `landing_pages` |
-| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | article metadata |
+| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | `Article`, `BreadcrumbList`, `FAQPage`, `ItemList` — see "Blog" above |
 
 Every one of them sets a self-referencing canonical and the full five-locale `hreflang` set via `getCanonicalUrl` / `getAlternateLanguages` in `lib/seo/locales.ts`. A page that exists in one language only uses `getSingleLocaleAlternates` instead — do not give it the full set, or we tell Google that five URLs with identical Ukrainian text are five translations.
 
@@ -388,6 +460,8 @@ All in `next.config.ts` → `redirects()`; `proxy.ts` only adds the locale prefi
 - **Check before committing:** `node scripts/redirect-chains.mjs` parses the rules, models both the query forwarding and the category page's own runtime redirect, and exits 1 on any chain, loop, or locale-less destination.
 
 ### Sitemap
+
+There are two maps and an index. `app/sitemap.ts` holds the catalog, categories, landings and photographers (~785 URLs, hourly); `app/blog-sitemap.xml/route.ts` holds the articles and blog categories, with a real `lastmod` and a per-row `hreflang` set (hand-written XML, because `MetadataRoute.Sitemap` can only apply one alternates set to every row); `app/sitemap-index.xml/route.ts` lists both. `robots.txt` names all three — a robot is not obliged to expand an index, and a silently unexpanded one would read as a site with no blog.
 
 `app/sitemap.ts`, ~785 URLs, regenerated hourly. It lists only canonical `/catalog/` and `/category/` URLs — **no `/shop/` has ever been in it**, and nothing in it may answer with a redirect. Two rules that already bit us: categories with zero active products are skipped (the page 301s them to `/catalog`), and category paths go through `toPublicCategorySlug`. When adding a redirect for a `/catalog/{slug}` that belongs to an **active** product, check the sitemap — `guestbook-kids` spent months being listed in the sitemap while answering 301.
 

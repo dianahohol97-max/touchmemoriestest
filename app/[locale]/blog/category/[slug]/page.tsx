@@ -1,135 +1,90 @@
-import { createClient } from '@/lib/supabase/server';
-import { onlyVisiblePosts } from '@/lib/blog/published';
-import { notFound } from 'next/navigation';
-import { getLocalized } from '@/lib/i18n/localize';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Clock, User, ArrowLeft } from 'lucide-react';
+import type { Metadata } from 'next';
+import { permanentRedirect } from 'next/navigation';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { getCanonicalUrl, getAlternateLanguages, type Locale } from '@/lib/seo/locales';
+import BlogIndex from '@/components/blog/BlogIndex';
+import { getAdminClient } from '@/lib/supabase/admin';
+import { onlyVisiblePosts } from '@/lib/blog/published';
+import { listPath, prevNextLinks, totalPages } from '@/lib/blog/pagination';
+import { categoryDescription, categoryTitle, loadCategory } from '@/lib/blog/category-meta';
+import { getLocalized } from '@/lib/i18n/localize';
+import { getCanonicalUrl, getAlternateLanguages, withBrandSuffix, type Locale } from '@/lib/seo/locales';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
+
+/**
+ * Сторінка категорії блогу — самостійна індексована адреса.
+ *
+ * Це друга ланка ланцюжка «категорія каталогу → стаття → категорія»: саме сюди
+ * ведуть хлібні крихти зі статті й фільтр зі списку. Раніше фільтр вів на
+ * `/blog?category=`, а та форма закрита в `robots.txt`, тобто категорії
+ * існували, але робот до них не доходив.
+ */
 
 export const revalidate = 3600;
 
+type Params = Promise<{ locale: string; slug: string }>;
+type Search = Promise<{ page?: string }>;
+
 const stripEmoji = (text?: string) => {
     if (!text) return '';
-    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}❤️]/gu, '').replace(/\s+/g, ' ').trim();
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale?: string }> }) {
-    const { slug, locale: loc } = await params;
-    const locale = loc || 'uk';
-    const supabase = await createClient();
-    const { data: category } = await supabase.from('blog_categories').select('*').eq('slug', slug).single();
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+    const { locale: rawLocale, slug } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
+    const category = await loadCategory(slug);
+    if (!category) return { title: 'Категорію не знайдено | Touch.Memories' };
 
-    if (!category) {
-        return { title: 'Категорію не знайдено | TouchMemories Блог' };
-    }
+    const name = stripEmoji(getLocalized(category, locale, 'name'));
+    const path = `/blog/category/${slug}`;
+
+    const { count } = await onlyVisiblePosts(
+        getAdminClient().from('blog_posts').select('id', { count: 'exact', head: true }).eq('category_id', category.id),
+    );
 
     return {
-        title: `${stripEmoji(category.name)} | TouchMemories Блог`,
-        description: category.description || `Читайте статті в категорії ${stripEmoji(category.name)}`,
+        title: withBrandSuffix(categoryTitle(category, locale, name)),
+        description: categoryDescription(category, locale, name),
         alternates: {
-            canonical: getCanonicalUrl(locale as Locale, `/blog/category/${slug}`),
-            languages: getAlternateLanguages(`/blog/category/${slug}`),
+            canonical: getCanonicalUrl(locale, path),
+            // Назва категорії лежить у `translations` і перекладена всіма
+            // пʼятьма мовами, на відміну від тіла статей.
+            languages: getAlternateLanguages(path),
         },
+        pagination: prevNextLinks(locale, slug, 1, totalPages(count)),
     };
 }
 
-export default async function CategoryPage({ params, searchParams }: { params: Promise<{ slug: string; locale?: string }>, searchParams: Promise<{ page?: string }> }) {
-    const { slug, locale: loc } = await params;
-    const locale = loc || 'uk';
-    const { page } = await searchParams;
-    const supabase = await createClient();
+export default async function BlogCategoryPage({ params, searchParams }: { params: Params; searchParams: Search }) {
+    const { locale: rawLocale, slug } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
 
-    const { data: category } = await supabase.from('blog_categories').select('*').eq('slug', slug).single();
-    if (!category) notFound();
+    // Стара форма `/blog/category/travel?page=2` лишалася в закладках.
+    const asked = parseInt((await searchParams)?.page || '1', 10);
+    if (Number.isFinite(asked) && asked > 1) {
+        permanentRedirect(listPath(locale, slug, asked));
+    }
 
-    const currentPage = parseInt(page || '1');
-    const limit = 9;
-    const offset = (currentPage - 1) * limit;
+    const category = await loadCategory(slug);
+    const name = category ? stripEmoji(getLocalized(category, locale, 'name')) : '';
+    const description = category ? getLocalized(category, locale, 'description') : '';
 
-    const { data: posts, count } = await onlyVisiblePosts(supabase.from('blog_posts')
-        .select('*, blog_categories(name)', { count: 'exact' })
-        .eq('category_id', category.id))
-        .order('published_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-    const totalPages = Math.ceil((count || 0) / limit);
+    const jsonLd = category ? {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        'name': name,
+        'url': getCanonicalUrl(locale, `/blog/category/${slug}`),
+        'isPartOf': { '@type': 'Blog', 'name': 'touch.memories', 'url': getCanonicalUrl(locale, '/blog') },
+    } : null;
 
     return (
-        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'var(--font-primary)' }}>
+        <div style={{ backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: 'var(--font-primary)', overflowX: 'hidden' }}>
             <Navigation />
-
-            <main style={{ paddingTop: '140px', paddingBottom: '100px', maxWidth: '1200px', margin: '0 auto', paddingLeft: '24px', paddingRight: '24px' }}>
-                <Link href="/blog" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 600, fontSize: '14px', marginBottom: '32px', textDecoration: 'none' }}>
-                    <ArrowLeft size={16} /> До всіх статей
-                </Link>
-
-                <div style={{ marginBottom: '60px' }}>
-                    <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '40px', fontWeight: 900, color: '#263A99', marginBottom: '16px', letterSpacing: '-0.02em' }}>
-                        {stripEmoji(category.name)}
-                    </h1>
-                    {category.description && (
-                        <p style={{ fontSize: '18px', color: '#64748b', maxWidth: '600px' }}>
-                            {category.description}
-                        </p>
-                    )}
-                </div>
-
-                {posts && posts.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '32px' }}>
-                        {posts.map((post: any) => (
-                            <Link key={post.id} href={`/blog/${post.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' } as any}>
-                                <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                    {post.cover_image && <Image src={post.cover_image} alt={getLocalized(post, locale, "title")} fill style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }} className="hover:scale-105" />}
-                                </div>
-                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px', lineHeight: 1.3 }}>
-                                        {getLocalized(post, locale, "title")}
-                                    </h3>
-                                    <p style={{ color: '#64748b', fontSize: '15px', lineHeight: 1.6, marginBottom: '20px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
-                                        {getLocalized(post, locale, "excerpt")}
-                                    </p>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: "3px", backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-                                                <User size={14} />
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '12px', fontWeight: 700, color: '#263A99' }}>{post.author_name}</div>
-                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(post.published_at).toLocaleDateString('uk-UA')}</div>
-                                            </div>
-                                        </div>
-                                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <Clock size={14} /> {post.reading_time} хв
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                ) : (
-                    <div style={{ textAlign: 'center', padding: '60px', color: '#64748b', backgroundColor: 'white', borderRadius: "3px", border: '1px dashed #cbd5e1' }}>
-                        В цій категорії ще немає статей.
-                    </div>
-                )}
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '60px' }}>
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                            <Link
-                                key={i}
-                                href={`/blog/category/${category.slug}?page=${i + 1}`}
-                                style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: "3px", fontWeight: 700, fontSize: '15px', textDecoration: 'none', backgroundColor: currentPage === i + 1 ? '#263A99' : 'white', color: currentPage === i + 1 ? 'white' : '#64748b', border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0' }}
-                            >
-                                {i + 1}
-                            </Link>
-                        ))}
-                    </div>
-                )}
-            </main>
+            {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />}
+            {/* Невідомий слаг ловить сам BlogIndex і віддає 404 — так перевірка
+                стоїть в одному місці на всі чотири маршрути списку. */}
+            <BlogIndex locale={locale} categorySlug={slug} page={1} heading={name || slug} subtitle={description || null} />
             <Footer />
         </div>
     );

@@ -104,7 +104,14 @@ export default function robots(): MetadataRoute.Robots {
         disallow: DISALLOW,
       },
     ],
-    sitemap: `${base}/sitemap.xml`,
+    // Три адреси, а не одна. Покажчик зручний для Search Console, але робот
+    // не зобовʼязаний його розгортати, тож обидві мапи названі й напряму:
+    // мовчазно нерозгорнутий покажчик виглядав би як сайт без блогу.
+    sitemap: [
+      `${base}/sitemap-index.xml`,
+      `${base}/sitemap.xml`,
+      `${base}/blog-sitemap.xml`,
+    ],
     host: base,
   };
 }

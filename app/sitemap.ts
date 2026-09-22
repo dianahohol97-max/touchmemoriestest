@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { onlyVisiblePosts } from '@/lib/blog/published';
+
 import { LOCALES, getCanonicalUrl, getAlternateLanguages, getSingleLocaleAlternates } from '@/lib/seo/locales';
 import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 
@@ -113,23 +113,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
-  const { data: posts } = await onlyVisiblePosts(admin
-    .from('blog_posts')
-    .select('slug, updated_at'));
-
-  for (const post of posts || []) {
-    const path = `/blog/${post.slug}`;
-    const alternates = getAlternateLanguages(path);
-    for (const locale of LOCALES) {
-      entries.push({
-        url: getCanonicalUrl(locale, path),
-        lastModified: post.updated_at ? new Date(post.updated_at) : new Date(),
-        changeFrequency: 'monthly',
-        priority: 0.5,
-        alternates: { languages: alternates },
-      });
-    }
-  }
+  // Статті блогу ЗВІДСИ ПРИБРАНІ (22.09.2026) і живуть у /blog-sitemap.xml.
+  // Дві причини. Перша: вони єдині в цій мапі змінюються щодня — нова стаття
+  // виходить раз на два-три дні, — і окремий файл дає роботу побачити свіжий
+  // lastmod, не перечитуючи всі 785 адрес. Друга: стаття існує не всіма
+  // пʼятьма мовами, тож п'ять записів з одним hreflang-набором тут були
+  // неправдою, а порахувати справжній набір можна лише прочитавши
+  // `translations` — тобто там, де їх і читають.
 
   // Photographer catalog + public landing pages ("фотограф {місто}" queries)
   // and the service landing for photographers themselves.

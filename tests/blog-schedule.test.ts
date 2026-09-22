@@ -39,6 +39,7 @@ describe('гейт публікації за датою', () => {
         onlyVisiblePosts(builder, new Date('2026-09-28T06:00:00.000Z'));
 
         expect(calls).toEqual([
+            ['eq', 'status', 'published'],
             ['eq', 'is_published', true],
             ['or', 'published_at.is.null,published_at.lte.2026-09-28T06:00:00.000Z'],
         ]);
@@ -68,10 +69,15 @@ describe('гейт публікації за датою', () => {
 });
 
 /**
- * Те саме, що PostgREST зробить із рядком: `is_published` І умова з `or(...)`.
- * Потрібно, щоб перевірити гейт на справжній статті, а не лише на формі рядка.
+ * Те саме, що PostgREST зробить із рядком: `status`, `is_published` І умова з
+ * `or(...)`. Потрібно, щоб перевірити гейт на справжній статті, а не лише на
+ * формі рядка.
  */
-function postgrestWouldReturn(row: { is_published: boolean; published_at: string | null }, now: Date): boolean {
+function postgrestWouldReturn(
+    row: { is_published: boolean; published_at: string | null; status?: string },
+    now: Date,
+): boolean {
+    if ((row.status ?? 'published') !== 'published') return false;
     if (!row.is_published) return false;
     const [nullPart, datePart] = publishedAtFilter(now).split(',');
     expect(nullPart).toBe('published_at.is.null');
@@ -105,11 +111,25 @@ describe('перша стаття черги справді не видна до
         const legacy = { is_published: true, published_at: null };
         expect(postgrestWouldReturn(legacy, new Date('2026-09-21T00:00:00Z'))).toBe(true);
     });
+
+    it('стаття в черзі лишається схованою, навіть коли її час уже минув', () => {
+        // Відкриває її крон, а не годинник: поки він не переписав `status`,
+        // стаття не показується жодним із восьми читань. Так «вийшла за
+        // розкладом» і «вийшла, бо дата збіглася» перестають бути одним і тим
+        // самим — а різницю між ними видно рядком у базі.
+        const queued = { is_published: false, published_at: row.published_at, status: 'scheduled' };
+        const afterDate = new Date(new Date(`${scheduled}T06:00:00Z`).getTime() + 3_600_000);
+        expect(postgrestWouldReturn(queued, afterDate)).toBe(false);
+    });
 });
 
 /** Усі файли репозиторію, які читають `blog_posts` не для адмінки. */
 function publicReadSites(): Array<{ file: string; line: number; context: string }> {
-    const roots = ['app', 'lib'].map(r => resolve(r));
+    // `components` доданий 22.09.2026: список статей переїхав у
+    // `components/blog/BlogIndex.tsx`, і поки перевірка дивилася лише в `app`
+    // та `lib`, найбільше читання постів на сайті лишилося поза наглядом. Без
+    // гейта воно показало б чергу на першій же сторінці блогу.
+    const roots = ['app', 'lib', 'components'].map(r => resolve(r));
     const found: Array<{ file: string; line: number; context: string }> = [];
 
     const walk = (dir: string) => {
@@ -124,6 +144,11 @@ function publicReadSites(): Array<{ file: string; line: number; context: string 
             // Адмінка навмисно бачить і заплановані пости — інакше Діана не
             // змогла б відкрити чернетку, яка ще не вийшла.
             if (full.includes(`${'/'}admin${'/'}`)) continue;
+            // `lib/blog/queue.ts` — це сама черга: вона читає рівно те, що ще
+            // НЕ опубліковане, тож гейт видимості відсік би їй усі рядки до
+            // єдиного. Крон і кнопки адмінки ходять у базу тільки через неї,
+            // і це єдиний файл поза `/admin/`, якому так можна.
+            if (full.endsWith(`${'/'}lib${'/'}blog${'/'}queue.ts`)) continue;
 
             const lines = readFileSync(full, 'utf8').split('\n');
             lines.forEach((line, i) => {

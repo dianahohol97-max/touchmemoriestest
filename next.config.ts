@@ -466,6 +466,21 @@ const nextConfig = {
       { source: '/shop/druk-foto-polaroid',                   destination: '/uk/catalog/polaroid-print', permanent: true },
       { source: '/shop/druk-na-polotni-holsti',               destination: '/uk/catalog/druk-na-polotni', permanent: true },
 
+      // Три статті блогу існували двічі: захардкодженою сторінкою під одним
+      // слагом і рядком у `blog_posts` під іншим. Тобто два URL з тим самим
+      // текстом, з яких у sitemap потрапляв лише другий, а посилання зі
+      // списку вели на перший. Сторінки видалено 22.09.2026, а слаги ведуть
+      // на версію з бази — саме ту, яку індексує Google.
+      //
+      // Правила стоять ВИЩЕ за `/blog/:slug*`: Next застосовує перше, що
+      // збіглося, і загальне правило проковтнуло б їх усі три.
+      { source: '/:locale(uk|en|ro|pl|de)/blog/iak-stvoryty-fotoknyhu', destination: '/:locale/blog/yak-stvoryty-idealnu-fotoknyhu', permanent: true },
+      { source: '/:locale(uk|en|ro|pl|de)/blog/travelbook-vs-photoalbum', destination: '/:locale/blog/travelbook-vs-fotoalbom', permanent: true },
+      { source: '/:locale(uk|en|ro|pl|de)/blog/vesil-ni-podarunky', destination: '/:locale/blog/top-5-idej-vesilnoho-albomy', permanent: true },
+      { source: '/blog/iak-stvoryty-fotoknyhu',   destination: '/uk/blog/yak-stvoryty-idealnu-fotoknyhu', permanent: true },
+      { source: '/blog/travelbook-vs-photoalbum', destination: '/uk/blog/travelbook-vs-fotoalbom',        permanent: true },
+      { source: '/blog/vesil-ni-podarunky',       destination: '/uk/blog/top-5-idej-vesilnoho-albomy',    permanent: true },
+
       // /blog, /catalog, /category without locale → /uk/...
       { source: '/blog',          destination: '/uk/blog',           permanent: true },
       { source: '/blog/:slug*',   destination: '/uk/blog/:slug*',    permanent: true },
