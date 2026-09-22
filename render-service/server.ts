@@ -340,7 +340,7 @@ app.post('/render', async (req, res) => {
           const url = `${APP_BASE_URL}/uk/print/${projectId}?token=${encodeURIComponent(PRINT_RENDER_TOKEN)}&page=${i}&w=${pxW}`;
           await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
           await page.waitForSelector(selector, { timeout: 30000 });
-          await page.evaluate(async () => {
+          const imgReport = await page.evaluate(async () => {
             await (document as any).fonts?.ready;
             const imgs = Array.from(document.images);
             // Bound image waiting so a single stalled/empty <img> can't hang the
@@ -352,7 +352,17 @@ app.post('/render', async (req, res) => {
                   img.onload = done; img.onerror = done;
                   setTimeout(done, 8000);
                 })));
+            return { total: imgs.length, broken: imgs.filter(img => !(img.complete && img.naturalWidth > 0)).length };
           });
+          // Same rule as the book path below: a photo the browser could not
+          // read means this month would print with a blank frame, and a blank
+          // frame that says «готово» is worse than a missing file.
+          if (imgReport.broken > 0) {
+            throw new Error(
+              `page ${i}: ${imgReport.broken} of ${imgReport.total} photos could not be decoded by the browser ` +
+              `— the page would print with blank slots, so it was not exported`,
+            );
+          }
           await page.waitForTimeout(300);
           const el = await page.$(selector);
           if (!el) throw new Error(`no print page element for page ${i}`);
@@ -539,8 +549,24 @@ app.post('/render', async (req, res) => {
           const broken = imgs.filter(img => !(img.complete && img.naturalWidth > 0)).length;
           return { total: imgs.length, broken };
         });
+        // A photo the browser could not read is a BLANK SLOT on a sheet that
+        // otherwise looks finished, so this is an error, not a warning.
+        //
+        // It used to be a console.warn and the file was uploaded anyway:
+        // TM-001343 and TM-001244 (same customer) shipped eleven and twelve
+        // blank sheets each, registered as good exports, and were noticed only
+        // because someone opened the folder and looked. Her photos were HEIC
+        // named `.jpg` — Chromium decodes nothing of the sort, and
+        // `naturalWidth` stays 0, which is exactly what `broken` counts.
+        //
+        // Failing the spread costs its two page files and puts the spread in
+        // `failedSpreads`; a hole in the макет is visible, a blank sheet that
+        // says «готово» is not.
         if (imgReport.broken > 0) {
-          console.warn(`[render] spread ${spread}: ${imgReport.broken}/${imgReport.total} photos failed to load — the file may have blank slots`);
+          throw new Error(
+            `spread ${spread}: ${imgReport.broken} of ${imgReport.total} photos could not be decoded by the browser ` +
+            `— the page would print with blank slots, so it was not exported`,
+          );
         }
         await page.waitForTimeout(300); // settle
 
