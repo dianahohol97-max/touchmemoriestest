@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     // кожен рендер.
     const font = await loadOgFont('Montserrat', `${title}${category}touch.memories`);
 
-    return new ImageResponse(
+    const image = new ImageResponse(
         (
             <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', backgroundColor: BRAND, position: 'relative' }}>
                 {cover && (
@@ -90,21 +90,35 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
             width: W,
             height: H,
             fonts: font ? [{ name: 'Montserrat', data: font, weight: 700 as const, style: 'normal' as const }] : [],
-            // `export const revalidate` тут не діє: маршрут читає базу і
-            // лишається динамічним, тож без цього заголовка Vercel віддавав
-            // `max-age=0, must-revalidate` і КОЖЕН запит перемальовував
-            // картинку — з походом у сховище по обкладинку і до Google по
-            // шрифт. Перевірено на проді 22.09.2026, відповідь важить близько
-            // мегабайта, а по неї ходять усі соцмережі й пошуковики разом.
-            //
-            // Доба на краю і тиждень у фоні: заголовок статті після виходу вже
-            // не змінюється, а якщо його виправлять, картинка наздожене за
-            // добу — це не та річ, заради якої варто тримати кеш холодним.
-            headers: {
-                'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
-            },
         },
     );
+
+    /**
+     * Заголовок кешування ставиться на власній відповіді, а не параметром
+     * `ImageResponse`.
+     *
+     * ІСТОРІЯ, ПЕРЕВІРЕНА НА ПРОДІ 22.09.2026. Спершу тут стояв
+     * `export const revalidate`, і він не подіяв узагалі: маршрут читає базу,
+     * лишається динамічним, і Vercel віддавав `max-age=0, must-revalidate` —
+     * тобто КОЖЕН запит перемальовував картинку заново, з походом у сховище по
+     * обкладинку і до Google по шрифт, і все це заради мегабайтного PNG, по
+     * який ходять усі соцмережі й пошуковики разом.
+     *
+     * Другою спробою був `headers` усередині `ImageResponse`. Він теж не
+     * спрацював як треба: `max-age` дійшов, а `s-maxage` дорогою зник, і край
+     * Vercel далі відповідав `MISS` на повторний запит. Без `s-maxage` кешує
+     * лише браузер, а краю однаково доводиться малювати щоразу.
+     *
+     * Тому відповідь збирається руками з потоку: так заголовок доходить цілим.
+     * Доба на краю і тиждень у фоні — заголовок статті після виходу вже не
+     * змінюється, а якщо його виправлять, картинка наздожене за добу.
+     */
+    return new Response(image.body, {
+        headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+        },
+    });
 }
 
 function clamp(text: string, max: number): string {
