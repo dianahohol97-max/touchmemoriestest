@@ -1,6 +1,7 @@
 'use client';
 import { useT, useLocale } from '@/lib/i18n/context';
 import { getLocalized } from '@/lib/i18n/localize';
+import { productImageAlt } from '@/lib/seo/productAlt';
 import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { localePath } from '@/lib/i18n/path';
@@ -904,7 +905,7 @@ export default function ProductPage({ params, initialProduct, initialReviews, ch
                                 <video src={mainVideo} controls autoPlay muted playsInline
                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             ) : mainImage ? (
-                                <Image src={imgProduct(mainImage)} alt={getLocalized(product, locale, 'name')} fill
+                                <Image src={imgProduct(mainImage)} alt={productImageAlt(product, locale, product.images?.indexOf(mainImage) ?? 0, t('product_page.photo_alt'))} fill
                                     priority
                                     fetchPriority="high"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 55vw, 600px"
@@ -963,9 +964,10 @@ export default function ProductPage({ params, initialProduct, initialReviews, ch
                                             border: mainImage === src && !mainVideo ? '2.5px solid #1e2d7d' : '2px solid #e2e8f0',
                                             cursor: 'pointer', background: '#f8fafc', padding: 0, transition: 'border-color 0.15s',
                                         }}>
-                                        {/* Alt carries the product name, not a bare "фото 2" — image
-                                            search indexes these and the generic form matched nothing. */}
-                                        <Image src={imgThumbnail(src)} alt={`${getLocalized(product, locale, 'name')} — ${t('product_page.photo_alt')} ${idx + 1}`} fill
+                                        {/* Alt carries the product name AND its cover type, not a
+                                            bare "фото 2" — see lib/seo/productAlt.ts for why it
+                                            describes the product and never the photograph. */}
+                                        <Image src={imgThumbnail(src)} alt={productImageAlt(product, locale, idx, t('product_page.photo_alt'))} fill
                                             sizes="72px"
                                             quality={60}
                                             style={{ objectFit: 'cover' }} />
@@ -1010,8 +1012,17 @@ export default function ProductPage({ params, initialProduct, initialReviews, ch
                             ProductCard so the state is consistent between
                             list and detail views. */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: '16px' }}>
+                            {/* h1 is products.h1 when set, otherwise the name —
+                                the two are deliberately different things. `name`
+                                is the label the cart, the order card, KeyCRM and
+                                the Facebook catalogue feed all print, so it stays
+                                short and stable («Travel Book»). The heading is
+                                allowed to be the sentence the page is trying to
+                                rank for («Тревелбук 20×30 — книга про одну твою
+                                подорож»). Products with no h1 render exactly as
+                                before. */}
                             <h1 className={styles.productTitleMain} style={{ fontFamily: 'var(--font-heading)', fontSize: '36px', fontWeight: 900, marginBottom: 0, lineHeight: 1.2, flex: 1, minWidth: 0, overflowWrap: 'break-word' }}>
-                                {getLocalized(product, locale, "name")}
+                                {getLocalized(product, locale, "h1") || product.h1 || getLocalized(product, locale, "name")}
                             </h1>
                             <div style={{ flexShrink: 0, marginTop: 4 }}>
                                 <WishlistButton productId={product.id} />
@@ -1215,6 +1226,10 @@ export default function ProductPage({ params, initialProduct, initialReviews, ch
                                             setDynamicPrice(calculatedPrice ?? null);
                                         }}
                                         onColorImage={(url) => { if (url) { setMainImage(url); setMainVideo(''); } }}
+                                        // The «Стандартна (…)» lead time is restated from this
+                                        // one field instead of the selector's own hardcode —
+                                        // the same value the delivery line further down prints.
+                                        productionTime={product.production_time}
                                     />
 
                                     {/* DB-only options not rendered by ProductOptionsSelector */}

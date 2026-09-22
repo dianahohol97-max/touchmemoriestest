@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import CatalogClient from './CatalogClient';
+import { CatalogSeoGrid } from './CatalogSeoGrid';
 import { getAdminClient } from '@/lib/supabase/admin';
+import { getLocalized } from '@/lib/i18n/localize';
+import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 
 export const revalidate = 60;
@@ -37,7 +40,9 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
-export default async function CatalogPage() {
+export default async function CatalogPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale: rawLocale } = await params;
+  const locale = (rawLocale || 'uk') as Locale;
   // Prefetch server-side so client gets instant first paint
   let initialProducts: any[] = [];
   let initialCategories: any[] = [];
@@ -57,5 +62,35 @@ export default async function CatalogPage() {
     }
   } catch {}
 
-  return <CatalogClient initialProducts={initialProducts} initialCategories={initialCategories} />;
+  // ItemList so the catalog itself says what it holds, in the same order the
+  // page shows. Only the fields Google reads for a list page — a full Product
+  // per row would duplicate what each product page already declares, and two
+  // sources for one price is how a mismatch gets reported.
+  const jsonLd = initialProducts.length
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        '@id': `${getCanonicalUrl(locale, '/catalog')}#items`,
+        numberOfItems: initialProducts.length,
+        itemListElement: initialProducts.map((p: any, i: number) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          url: getCanonicalUrl(locale, `/catalog/${p.slug}`),
+          name: getLocalized(p, locale, 'name') || p.name,
+        })),
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }} />
+      )}
+      <CatalogClient
+        initialProducts={initialProducts}
+        initialCategories={initialCategories}
+        seoGrid={<CatalogSeoGrid products={initialProducts} locale={locale} />}
+      />
+    </>
+  );
 }

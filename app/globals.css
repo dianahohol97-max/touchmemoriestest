@@ -613,3 +613,17 @@ button[class*="border-primary"][class*="px-"] {
   .md-body h3 { font-size: 20px; }
   .md-body table { font-size: 15px; }
 }
+
+/* Category long-form copy (categories.body) — rendered as raw HTML under the
+   product grid, so the h2/p inside it get no utility classes and need real
+   element styles here. Scoped to .category-body so nothing else is affected. */
+.category-body h2 {
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  font-weight: 800;
+  color: #1e2d7d;
+  margin: 32px 0 12px;
+  line-height: 1.25;
+}
+.category-body h2:first-child { margin-top: 0; }
+.category-body p { margin: 0 0 14px; }
+.category-body p:last-child { margin-bottom: 0; }

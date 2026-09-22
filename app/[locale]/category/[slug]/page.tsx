@@ -8,19 +8,22 @@ import {
   getAlternateLanguages,
   getBaseUrl,
   OG_LOCALE_MAP,
+  withBrandSuffix,
   type Locale,
 } from '@/lib/seo/locales';
+import { toMetaText } from '@/lib/seo/text';
 import { getLocalized } from '@/lib/i18n/localize';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { toDbCategorySlug, toPublicCategorySlug, DB_TO_UA_CATEGORY } from '@/lib/seo/categorySlugs';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { permanentRedirect } from 'next/navigation';
+import ProductFaq, { pickFaq } from '@/components/seo/ProductFaq';
 
 // Category data changes rarely — ISR keeps it fast and crawlable.
 export const revalidate = 300;
 
-const CAT_FIELDS = 'id, name, slug, description, cover_image, translations, is_active';
+const CAT_FIELDS = 'id, name, slug, description, cover_image, translations, is_active, meta_title, meta_description, body, faq';
 
 async function getCategory(slug: string) {
   const supabase = getAdminClient();
@@ -91,11 +94,23 @@ export async function generateMetadata({
   if (!cat) return { title: 'Категорія | Touch.Memories' };
 
   const name = getLocalized(cat, locale, 'name') || cat.name;
-  const rawDesc = (getLocalized(cat, locale, 'description') || cat.description || '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const description = rawDesc ? rawDesc.slice(0, 160) : `${name} — Touch.Memories, Тернопіль.`;
-  const title = `${name} | Touch.Memories`;
+
+  // Categories gained meta_title/meta_description on 2026-09-22. Until then
+  // the description was the page's own body paragraph cut with slice(0, 160)
+  // — a hard cut that landed mid-word («…обирай м'яку або тверду обкладин»)
+  // and was what Diana saw truncated in the SERP. Two changes: an explicit
+  // override wins when it exists, and the fallback now cuts on a word
+  // boundary via toMetaText, at 155 rather than 160 so Google has room for
+  // the ellipsis it adds itself.
+  const rawDesc =
+    getLocalized(cat, locale, 'meta_description') || cat.meta_description ||
+    getLocalized(cat, locale, 'description') || cat.description || '';
+  const description = toMetaText(rawDesc, 155) || `${name} — Touch.Memories, Тернопіль.`;
+
+  // withBrandSuffix, not a hand-built template: an override that already ends
+  // in « | Touch.Memories» would otherwise print the brand twice.
+  const rawTitle = getLocalized(cat, locale, 'meta_title') || cat.meta_title || name;
+  const title = withBrandSuffix(String(rawTitle));
   const path = `/category/${toPublicCategorySlug(cat.slug)}`;
 
   return {
@@ -147,6 +162,11 @@ export default async function CategoryPage({
 
   const name = getLocalized(cat, locale, 'name') || cat.name;
   const description = (getLocalized(cat, locale, 'description') || cat.description || '').trim();
+  // Long-form copy under the grid, and the FAQ rows that feed BOTH the visible
+  // section and the FAQPage markup below — one source, so the two can never
+  // drift apart.
+  const body = String(getLocalized(cat, locale, 'body') || cat.body || '').trim();
+  const faqItems = pickFaq(cat, locale);
 
   const site = getBaseUrl();
   const catUrl = getCanonicalUrl(locale, `/category/${toPublicCategorySlug(cat.slug)}`);
@@ -171,6 +191,19 @@ export default async function CategoryPage({
           { '@type': 'ListItem', position: 3, name, item: catUrl },
         ],
       },
+      ...(faqItems.length
+        ? [
+            {
+              '@type': 'FAQPage',
+              '@id': `${catUrl}#faq`,
+              mainEntity: faqItems.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+              })),
+            },
+          ]
+        : []),
       ...(products.length
         ? [
             {
@@ -256,6 +289,20 @@ export default async function CategoryPage({
             ))}
           </div>
         )}
+
+        {/* Category copy sits BELOW the grid on purpose: the products are what
+            the visitor came for, and a wall of text above them pushes the
+            first row off the screen on a phone. Search engines read the whole
+            document, so nothing is lost by putting it here. */}
+        {body && (
+          <section
+            style={{ marginTop: 56, maxWidth: 820, fontSize: 16, lineHeight: 1.75, color: '#475569' }}
+            className="category-body"
+            dangerouslySetInnerHTML={{ __html: body }}
+          />
+        )}
+
+        <ProductFaq items={faqItems} locale={locale} />
       </main>
 
       <Footer categories={[]} />

@@ -407,7 +407,7 @@ function CatalogContent({ initialProducts = [], initialCategories = [] }: { init
     );
 }
 
-export default function CatalogPage({ initialProducts = [], initialCategories = [] }: { initialProducts?: any[]; initialCategories?: any[] }) {
+export default function CatalogPage({ initialProducts = [], initialCategories = [], seoGrid }: { initialProducts?: any[]; initialCategories?: any[]; seoGrid?: React.ReactNode }) {
     const t = useT();
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#fcfcfc', display: 'flex', flexDirection: 'column' }}>
@@ -427,7 +427,16 @@ export default function CatalogPage({ initialProducts = [], initialCategories = 
                     </h1>
                 </header>
             </div>
-            <Suspense fallback={<div className="flex-1 flex justify-center items-center"><Loader2 size={40} className="animate-spin text-slate-300" /></div>}>
+            {/* The fallback is the server-rendered grid (CatalogSeoGrid), not a
+                spinner. CatalogContent reads useSearchParams(), so the server
+                emits this fallback and NOTHING else for the whole subtree —
+                which is why the catalog's HTML used to carry a spinner where
+                its 34 product names, prices and links should have been. Passing
+                the real list here puts them in the initial HTML without a
+                second grid to hide afterwards. The spinner stays as the
+                last resort for the case where the server fetch came back
+                empty. */}
+            <Suspense fallback={seoGrid ?? <div className="flex-1 flex justify-center items-center"><Loader2 size={40} className="animate-spin text-slate-300" /></div>}>
                 <CatalogContent initialProducts={initialProducts} initialCategories={initialCategories} />
             </Suspense>
             <Footer categories={[]} />

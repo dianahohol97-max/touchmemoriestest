@@ -3,6 +3,7 @@ import { useT, useLocale } from '@/lib/i18n/context';
 import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { getLocalized } from '@/lib/i18n/localize';
+import { localePath } from '@/lib/i18n/path';
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from './ProductCard.module.css';
@@ -50,7 +51,7 @@ export function ProductCard({ product, primaryAction = 'details' }: ProductCardP
             transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
             className="group flex flex-col h-full bg-white rounded-[3px] shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-all duration-500 overflow-hidden border border-gray-100"
         >
-            <Link href={`/catalog/${product.slug}`} className="no-underline text-inherit flex flex-col h-full">
+            <Link href={localePath(locale, `/catalog/${product.slug}`)} className="no-underline text-inherit flex flex-col h-full">
                 <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-50 border-b border-gray-100">
                     {product.images?.[0] ? (
                         <Image

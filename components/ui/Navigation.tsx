@@ -10,6 +10,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { localePath } from '@/lib/i18n/path';
+import { toPublicCategorySlug } from '@/lib/seo/categorySlugs';
 import { cn } from '@/lib/utils';
 import { useT, useTranslation, LOCALES, Locale } from '@/lib/i18n/context';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -76,11 +77,14 @@ export function Navigation() {
   // Single cached fetch for all nav data
   useEffect(() => {
     fetchNavData().then(({ links, categories }) => {
+      // Shown only when /api/navigation fails. Canonical category pages, to
+      // match the navigation_links rows — the faceted /catalog?category= form
+      // self-canonicalises to /catalog and is not the category's page.
       const fallback = [
-        { id: '1', link_text: t('nav.photobooks'), link_url: '/catalog?category=photobooks', translations: {}, children: [] },
-        { id: '2', link_text: t('nav.magazines'),  link_url: '/catalog?category=hlyantsevi-zhurnaly', translations: {}, children: [] },
-        { id: '3', link_text: 'Travelbook',        link_url: '/catalog?category=travelbooks', translations: {}, children: [] },
-        { id: '4', link_text: t('nav.prints'),     link_url: '/catalog?category=prints', translations: {}, children: [] },
+        { id: '1', link_text: t('nav.photobooks'), link_url: '/category/fotoknygy', translations: {}, children: [] },
+        { id: '2', link_text: t('nav.magazines'),  link_url: '/category/hlyantsevi-zhurnaly', translations: {}, children: [] },
+        { id: '3', link_text: 'Travelbook',        link_url: '/category/trevel-buky', translations: {}, children: [] },
+        { id: '4', link_text: t('nav.prints'),     link_url: '/category/druk-foto', translations: {}, children: [] },
       ];
 
       const localize = (item: any) =>
@@ -223,7 +227,14 @@ export function Navigation() {
                     <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} transition={{ duration:0.2 }}
                       className="absolute top-full left-0 mt-6 w-56 bg-white shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-primary/5 rounded-brand py-3 z-100">
                       {otherCategories.map((cat: any) => (
-                        <Link key={cat.id} href={`/catalog?category=${cat.slug}`}
+                        // The canonical page for a category is
+                        // /{locale}/category/{ua-slug}, not the faceted catalog
+                        // filter: the filter self-canonicalises to /catalog, so
+                        // every one of these links used to pass its weight to a
+                        // page that is not about the category at all. The nav API
+                        // already drops categories with no active products, so
+                        // this never lands on the /catalog redirect.
+                        <Link key={cat.id} href={localePath(locale, `/category/${toPublicCategorySlug(cat.slug)}`)}
                           className="block px-6 py-3 text-primary no-underline text-[13px] font-bold tracking-tight transition-colors hover:bg-primary/5">
                           {cat.localName}
                         </Link>
@@ -393,7 +404,7 @@ export function Navigation() {
                 {!searchLoading && searchResults.length > 0 && (
                   <div className="space-y-3">
                     {searchResults.map(product => (
-                      <Link key={product.id} href={`/catalog/${product.slug}`}
+                      <Link key={product.id} href={localePath(locale, `/catalog/${product.slug}`)}
                         onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
                         className="flex gap-4 p-4 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200">
                         {product.images?.[0] ? (

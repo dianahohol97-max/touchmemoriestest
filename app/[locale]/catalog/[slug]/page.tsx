@@ -19,7 +19,7 @@ export const revalidate = 60;
 // for SSR, so cost_price / stock / margin columns are intentionally excluded —
 // the object is serialized into the page HTML.
 const PRODUCT_PUBLIC_FIELDS =
-  'id, category_id, name, slug, description, short_description, price, min_pages, max_pages, ' +
+  'id, category_id, name, slug, h1, description, short_description, price, min_pages, max_pages, ' +
   'cover_options, format_options, images, is_active, meta_title, meta_description, created_at, ' +
   'is_personalized, has_designer_option, designer_service_price, max_free_revisions, is_popular, ' +
   'popular_order, options, specs, price_from, sale_price, og_image, video_url, variants, ' +
@@ -54,8 +54,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const rawDesc = tr.meta_description || (isUk ? product.meta_description : '') || getLocalized(product, locale, 'short_description') || product.short_description || product.description || '';
   // The last two fallbacks are rich text from the DB — a meta description that
   // still contains "<p>" is printed literally in the SERP snippet. Strip markup
-  // and cut on a word boundary rather than mid-word.
-  const description = toMetaText(rawDesc, 160);
+  // and cut on a word boundary rather than mid-word. 155, not 160: Google
+  // truncates around there and appends its own ellipsis, so the extra five
+  // characters were only ever spent on a word nobody read (Diana, 2026-09-22).
+  const description = toMetaText(rawDesc, 155);
   const ogImage = product.og_image || (product.images && product.images[0]) || `${getBaseUrl()}/og-image.jpg`;
   const path = `/catalog/${slug}`;
 
@@ -112,11 +114,19 @@ export default async function ProductPage({ params }: Props) {
   let productReviews: any[] = [];
   let reviewLd: any[] = [];
   if (product) {
+    // Two gates, not one. `is_active` is Diana's visibility switch; `status`
+    // is the moderation state and defaults to 'approved' only for the rows we
+    // insert ourselves — anything arriving from a customer starts 'pending'.
+    // Filtering on is_active alone would have put an unmoderated review into
+    // the Review/AggregateRating markup the moment a submission form exists,
+    // and a star rating in the SERP is exactly the thing that must never be
+    // published before a human has read it.
     const { data: revs } = await supabase
       .from('reviews')
       .select('id, image_url, video_url, media_type, author, caption, rating, created_at')
       .eq('product_id', (product as any).id)
       .eq('is_active', true)
+      .eq('status', 'approved')
       .order('sort_order', { ascending: true });
     productReviews = revs || [];
     const rated = productReviews.filter((r: any) => Number(r.rating) > 0);

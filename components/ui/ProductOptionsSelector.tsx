@@ -462,17 +462,60 @@ export function detectProductType(slug: string): string | null {
   return null;
 }
 
+/**
+ * Restate the «Стандартна (…)» urgency label from products.production_time.
+ *
+ * Returns the option list untouched when the product has no production_time,
+ * when it has no urgency group, or when the string does not look like a lead
+ * time — an unparsable value must leave the published promise alone rather
+ * than print something worse than the hardcode it replaced.
+ *
+ * production_time is written by hand in the admin panel («8–10 робочих днів»,
+ * «до 3 робочих днів»), so only the days part is taken and the word «робочих»
+ * is dropped: the label has to stay short enough for the toggle it renders in.
+ */
+export function withProductionTime(
+  options: ProductOption[],
+  productionTime?: string | null,
+): ProductOption[] {
+  // Guarded although the index signature says otherwise: PRODUCT_OPTIONS is
+  // keyed by a detectProductType() string, so a product type added there
+  // without a matching option list would reach this as undefined at runtime.
+  if (!Array.isArray(options)) return options;
+  const raw = String(productionTime || '').trim();
+  if (!raw) return options;
+
+  // «8–10 робочих днів» → «8–10 днів» · «до 3 робочих днів» → «до 3 днів».
+  // Both dash forms appear in the DB (en dash and hyphen), hence the class.
+  const m = raw.match(/(до\s*)?(\d+\s*(?:[–—-]\s*\d+)?)/);
+  if (!m) return options;
+  const label = `Стандартна (${m[1] ? 'до ' : ''}${m[2].replace(/\s+/g, '')} днів)`;
+
+  let changed = false;
+  const next = options.map((o) => {
+    if (o.name !== 'Терміновість' || !Array.isArray(o.values)) return o;
+    const values = o.values.map((v) =>
+      typeof v === 'string' && v.startsWith('Стандартна') ? (changed = true, label) : v,
+    );
+    return changed ? { ...o, values } : o;
+  });
+  return changed ? next : options;
+}
+
 interface ProductOptionsSelectorProps {
   slug: string;
   selectedOptions: Record<string, string | number>;
   onChange: (options: Record<string, string | number>, calculatedPrice?: number) => void;
   productOptions?: any[];
+  /** products.production_time — the single source of truth for the standard
+   *  lead time shown in the «Терміновість» toggle. See withProductionTime. */
+  productionTime?: string | null;
   /** Fired when a cover colour with an uploaded photo is selected, so the
    *  parent can show that fabric photo in the main product gallery. */
   onColorImage?: (photoUrl: string | null) => void;
 }
 
-export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColorImage }: ProductOptionsSelectorProps) {
+export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColorImage, productionTime }: ProductOptionsSelectorProps) {
   const t = useT();
   const optLabel = (name: string) => { const k = t('option_labels.' + name); return k !== 'option_labels.' + name ? k : name; };
   const optValueLabel = (val: string | number) => {
@@ -641,7 +684,23 @@ export function ProductOptionsSelector({ slug, selectedOptions, onChange, onColo
 
   if (!productType) return null;
 
-  const options = PRODUCT_OPTIONS[productType];
+  // The standard-delivery label is the ONE place the page used to invent its
+  // own production time. PRODUCT_OPTIONS below hardcodes «Стандартна (5–8
+  // днів)» for every product type it knows, and line 644 lets that hardcode
+  // win over the DB — so the Travel Book card promised 5–8 days while
+  // products.production_time (and the footer line, and the country landing
+  // FAQ) all said 8–10. The customer read one number and the deadline was
+  // computed from another.
+  //
+  // production_time is the single source of truth. The rush choice is NOT
+  // derived — it is a real commercial promise with its own surcharge and it
+  // lives in the DB option — only the standard one, which is just this
+  // product's ordinary lead time restated.
+  //
+  // Safe to reword: isUrgentOption() (lib/products.ts) decides urgency on the
+  // word «стандартна», never on the digits, so a relabelled standard option
+  // still reads as non-urgent and still carries no surcharge.
+  const options = withProductionTime(PRODUCT_OPTIONS[productType], productionTime);
 
   const calculatePrice = (opts: Record<string, string | number>): number | null => {
     // Фотокниги - check if velour for 3D pricing, otherwise use simple size pricing

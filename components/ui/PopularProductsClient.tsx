@@ -4,6 +4,7 @@ import { detectCurrency } from '@/lib/i18n/currency';
 import { formatDisplayPrice } from '@/lib/payment/pricing-region';
 import { getLocalized } from '@/lib/i18n/localize';
 import Link from 'next/link';
+import { localePath } from '@/lib/i18n/path';
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -104,7 +105,7 @@ export function PopularProductsClient({ products, sectionContent }: PopularProdu
             {products.map((product) => (
               <Link
                 key={product.id}
-                href={`/catalog/${product.slug}`}
+                href={localePath(locale, `/catalog/${product.slug}`)}
                 style={{
                   flexShrink: 0, width: `${CARD_WIDTH}px`,
                   background: '#ffffff', borderRadius: '12px', overflow: 'hidden',

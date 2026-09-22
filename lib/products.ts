@@ -257,7 +257,12 @@ export const TRAVEL_BOOK: TravelBookProduct = {
   description: 'Hard cover, 170g glossy coated paper.',
   format: 'A4 (21×29.7 cm)',
   canvasDimensions: '2480×3508 px',
-  productionTime: 'до 10 робочих днів',
+  // products.production_time is the published promise and says 8–10; this
+  // constant said «до 10», the hard journal said 5–7 and the soft one 4–8.
+  // Nothing user-facing reads these (only the admin theme editor has its own
+  // field), but a wrong number in a shared constants file is how the next
+  // copy of it gets made.
+  productionTime: '8–10 робочих днів',
   pagesAvailable: [
     12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48,
     50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80,
@@ -330,7 +335,7 @@ export const PHOTO_JOURNAL_SOFT: PhotoJournalProduct = {
   description: '115g glossy inner pages, soft cover.',
   format: 'A4',
   canvasDimensions: '2480×3508 px',
-  productionTime: '4–8 business days',
+  productionTime: '5–8 business days',
   binding: 'staple ≤44 pages · glue/perfect binding >44 pages',
   pagesAvailable: [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80, 92, 100],
   prices: {
@@ -364,7 +369,7 @@ export const PHOTO_JOURNAL_HARD: PhotoJournalProduct = {
   description: 'Glossy coated paper, hard cover.',
   format: 'A4',
   canvasDimensions: '2480×3508 px',
-  productionTime: '5–7 business days',
+  productionTime: '7–10 business days',
   // The hard journal is sold in two-page steps, exactly like the Travel Book
   // (Diana, 2026-08-19). Both lists and both scales are now READ off
   // TRAVEL_BOOK rather than retyped beside it.

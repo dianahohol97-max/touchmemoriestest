@@ -24,38 +24,19 @@ interface Review {
     rating?: number | null;
 }
 
-const fallbackReviews = [
-    {
-        id: '1',
-        author: '@maybe_natasha',
-        image_url: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600",
-        category: 'wedding_book'
-    },
-    {
-        id: '2',
-        author: '@nasstya.ss',
-        image_url: "https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=600",
-        category: 'Travel Book'
-    },
-    {
-        id: '3',
-        author: '@ann_surovtseva',
-        image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600",
-        category: 'Family Album'
-    },
-    {
-        id: '4',
-        author: '@shcherbakova_mladshaya',
-        image_url: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=600",
-        category: 'Design Service'
-    },
-    {
-        id: '5',
-        author: '@nataplushcheva',
-        image_url: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?w=600",
-        category: 'Photo Print'
-    }
-];
+// There is no placeholder review set any more.
+//
+// What used to sit here: five objects pairing a REAL Instagram handle
+// (@maybe_natasha, @nasstya.ss, …) with a stock Unsplash photograph, used as
+// the initial useState value. Because it was the initial state and not an
+// error path, every single visitor was served those five stock images in the
+// HTML and saw them until the fetch resolved — a stranger's stock photo
+// published under a real customer's name, in the block titled «Ваші відгуки».
+//
+// The DB has had eight genuine reviews in our own storage since well before
+// this was noticed, so the placeholders were never needed; they were simply
+// never removed. Starting from an empty list means the block renders nothing
+// until real rows arrive, and hides itself entirely if there are none.
 
 export function SocialProof() {
     const { ref, inView } = useInView({
@@ -68,7 +49,7 @@ export function SocialProof() {
     const style = block?.style_metadata || {};
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const [reviews, setReviews] = useState<Review[]>(fallbackReviews);
+    const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -102,6 +83,12 @@ export function SocialProof() {
             scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
         }
     };
+
+    // Nothing to show → render nothing. A heading reading «Ваші відгуки» above
+    // an empty rail is worse than no section, and it is also the state a
+    // crawler would index if the fetch ever failed. `loading` keeps the block
+    // out of the first paint rather than flashing an empty rail on the way in.
+    if (loading || reviews.length === 0) return null;
 
     return (
         <section ref={ref} className="section-padding bg-white overflow-hidden relative">
@@ -163,7 +150,7 @@ export function SocialProof() {
                                 ) : (
                                     <img
                                         src={review.image_url}
-                                        alt={`Customer photo by ${review.author || 'customer'}`}
+                                        alt={review.author ? `Фото клієнта touch.memories, ${review.author}` : 'Фото клієнта touch.memories'}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                     />
                                 )}

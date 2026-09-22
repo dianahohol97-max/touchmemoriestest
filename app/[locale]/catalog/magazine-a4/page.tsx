@@ -544,7 +544,11 @@ export default function MagazineA4Page() {
             <div style={{ background: '#dcfce7', padding: '6px', borderRadius: '6px' }}>
               <CheckCircle2 size={16} color="#16a34a" />
             </div>
-            Термін виготовлення: 4–8 робочих днів (або 1–2 з терміновим виготовленням)
+            {/* 5–8 / 1–3 is what products.production_time and the urgency
+                option on personalized-glossy-magazine actually say. This line
+                used to read «4–8 … або 1–2» and was a fifth number on a page
+                that already disagreed with itself. */}
+            Термін виготовлення: 5–8 робочих днів (або 1–3 з терміновим виготовленням)
           </div>
         </div>
       </main>
