@@ -80,6 +80,32 @@ export function getSingleLocaleAlternates(
   };
 }
 
+/**
+ * Сторінка існує кількома мовами, але не всіма пʼятьма.
+ *
+ * Саме такий випадок у блозі: український текст пишеться завжди, переклади
+ * зʼявляються вибірково і не для кожної статті. Повний набір із пʼяти
+ * посилань сказав би Google, що /de/blog/… — німецька версія, тоді як за тією
+ * адресою лежить той самий український текст. Це не «запасний варіант», це
+ * пʼять дублів, про які ми повідомили самі.
+ *
+ * `x-default` веде на базову мову статті, а не на `uk` наосліп: стаття,
+ * написана англійською і не перекладена, має віддавати англійську.
+ */
+export function getSubsetAlternates(
+  path: string,
+  locales: readonly Locale[],
+  base: Locale = DEFAULT_LOCALE,
+): Record<string, string> {
+  const unique = Array.from(new Set(locales.length ? locales : [base]));
+  const result: Record<string, string> = {};
+  for (const loc of unique) {
+    result[HREFLANG_MAP[loc]] = getCanonicalUrl(loc, path);
+  }
+  result['x-default'] = getCanonicalUrl(unique.includes(base) ? base : unique[0], path);
+  return result;
+}
+
 export function getAlternateLanguages(path: string = ''): Record<string, string> {
   const result: Record<string, string> = {};
   for (const loc of LOCALES) {

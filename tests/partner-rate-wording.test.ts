@@ -95,7 +95,16 @@ describe('ставка 5% усюди названа разом із журнал
     it('картка сайту для ШІ-асистентів', () => {
         // llms.txt читають ChatGPT, Perplexity і Claude, і цитують вони саме
         // цифри. Неправильна формула тут розходиться далі за будь-яку сторінку.
-        expectMagazineNamed('public/llms.txt', readFileSync(resolve('public/llms.txt'), 'utf8'));
+        //
+        // З 22.09.2026 текст лежить у `lib/seo/llms-static.ts`, а не в
+        // `public/llms.txt`: перелік статей у цьому документі мусить
+        // оновлюватися сам, а статичний файл у `public/` перекриває маршрут із
+        // тим самим шляхом. Умови партнерської програми лишилися дослівно там
+        // само, у незмінній частині документа.
+        expectMagazineNamed(
+            'lib/seo/llms-static.ts',
+            readFileSync(resolve('lib/seo/llms-static.ts'), 'utf8'),
+        );
     });
 
     it('чернетки статей блогу, які ще лежать у репозиторії', () => {

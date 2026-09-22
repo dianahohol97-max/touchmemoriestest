@@ -125,7 +125,11 @@ describe('перша стаття черги справді не видна до
 
 /** Усі файли репозиторію, які читають `blog_posts` не для адмінки. */
 function publicReadSites(): Array<{ file: string; line: number; context: string }> {
-    const roots = ['app', 'lib'].map(r => resolve(r));
+    // `components` доданий 22.09.2026: список статей переїхав у
+    // `components/blog/BlogIndex.tsx`, і поки перевірка дивилася лише в `app`
+    // та `lib`, найбільше читання постів на сайті лишилося поза наглядом. Без
+    // гейта воно показало б чергу на першій же сторінці блогу.
+    const roots = ['app', 'lib', 'components'].map(r => resolve(r));
     const found: Array<{ file: string; line: number; context: string }> = [];
 
     const walk = (dir: string) => {

@@ -1,62 +1,110 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Clock, User, ArrowRight, Facebook } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, Facebook, RefreshCw } from 'lucide-react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import MarkdownContent from '@/components/ui/MarkdownContent';
 import BlogShareButton from '@/components/ui/BlogShareButton';
+import TableOfContents from '@/components/blog/TableOfContents';
+import ArticleFaq, { parseFaq } from '@/components/blog/ArticleFaq';
+import ProductCards from '@/components/blog/ProductCards';
+import ReadAlso from '@/components/blog/ReadAlso';
 import { getLocalized } from '@/lib/i18n/localize';
 import { onlyVisiblePosts } from '@/lib/blog/published';
-import { getCanonicalUrl, getAlternateLanguages, getBaseUrl, OG_LOCALE_MAP, withBrandSuffix, stripBrandSuffix, type Locale } from '@/lib/seo/locales';
+import { readPostForPreview } from '@/lib/blog/queue';
+import { extractToc } from '@/lib/blog/markdown';
+import {
+    isPreviewToken, loadProductCards, metaDescription, metaTitle, postLocales,
+} from '@/lib/blog/post';
+import {
+    getCanonicalUrl, getSubsetAlternates, getBaseUrl, OG_LOCALE_MAP,
+    withBrandSuffix, type Locale,
+} from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 
-// ISR: revalidate every 2 hours — blog posts rarely change
+/**
+ * Сторінка статті блогу.
+ *
+ * ЩО ТУТ РОБИТЬ SEO, А ЩО — ТЕКСТ. Усе, що видно пошуковику, збирається з
+ * полів рядка, а не пишеться в тілі статті: заголовок, опис, хлібні крихти,
+ * зміст, питання й відповіді, картки товарів із цінами. Причина одна —
+ * написане в тілі застаріває мовчки. Ціна, названа в тексті, не падає і не
+ * світиться, вона просто виявляється неправдою в момент, коли людина з неї
+ * приходить у кошик.
+ *
+ * HREFLANG ТІЛЬКИ ТУДИ, ДЕ Є ТЕКСТ. Стаття існує українською і зрідка
+ * перекладається. Повний набір із пʼяти мов сказав би Google, що /de/blog/… —
+ * німецька версія, тоді як там лежить той самий український текст. Набір
+ * рахує `postLocales`, і він дивиться не на наявність ключа мови, а на
+ * наявність у ньому заголовка й тіла: порожній обʼєкт перекладу заводиться
+ * сам, щойно хтось відкрив вкладку мови.
+ *
+ * ПРО ВНУТРІШНІ ПОСИЛАННЯ. Мінімум із технічного завдання — три на каталог і
+ * два на статті — тримає САМА сторінка, а не сумлінність автора: блок товарів
+ * дає до трьох посилань у каталог, «Читайте також» — три на статті, хлібні
+ * крихти — одне на категорію. Тіло статті додає своє зверху.
+ *
+ * ПРО ПРЕВ'Ю. Чернетку і статтю з черги видно за `?preview=<BLOG_PREVIEW_SECRET>`.
+ * Така відповідь несе `noindex`, не кешується і не рахує перегляд.
+ */
+
 export const revalidate = 7200;
 
 const stripEmoji = (text?: string) => {
     if (!text) return '';
-    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2764\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+    return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}❤️]/gu, '').replace(/\s+/g, ' ').trim();
 };
 
+type Params = Promise<{ slug: string; locale: string }>;
+type Search = Promise<{ preview?: string }>;
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string; locale: string }> }) {
+/** Стаття для відвідувача або, за секретом, чернетка. */
+async function loadPost(db: any, slug: string, preview: boolean) {
+    if (preview) return readPostForPreview(db, slug);
+
+    const { data } = await onlyVisiblePosts(
+        db.from('blog_posts').select('*, blog_categories(*)').eq('slug', slug),
+    ).maybeSingle();
+    return data || null;
+}
+
+export async function generateMetadata({ params, searchParams }: { params: Params; searchParams: Search }): Promise<Metadata> {
     const { slug, locale: rawLocale } = await params;
     const locale = (rawLocale || 'uk') as Locale;
+    const preview = isPreviewToken((await searchParams)?.preview);
 
     try {
-        const admin = getAdminClient();
         // Гейт той самий, що й на сторінці: інакше <title> назвав би статтю,
         // яка ще не відкрилася за графіком, на сторінці, яка віддає 404.
-        const { data: post, error } = await onlyVisiblePosts(admin.from('blog_posts').select('*').eq('slug', slug)).maybeSingle();
+        const post = await loadPost(getAdminClient(), slug, preview);
+        if (!post) return { title: 'Статтю не знайдено | Touch.Memories' };
 
-        if (error || !post) {
-            return { title: 'Статтю не знайдено | Touch.Memories' };
-        }
-
-        const tr = ((post.translations as any) || {})[locale] || {};
-        // DB meta_title may already contain "| Touch.Memories" — strip it so the
-        // suffix is appended exactly once (was rendering doubled in the SERP).
-        const title = stripBrandSuffix(String(tr.meta_title || tr.title || post.meta_title || getLocalized(post, locale, 'title') || 'Article'));
-        const description = (tr.meta_description || tr.excerpt || post.meta_description || getLocalized(post, locale, 'excerpt') || '').toString().slice(0, 160);
+        const title = metaTitle(post, locale);
+        const description = metaDescription(post, locale);
         const path = `/blog/${slug}`;
+        const ogImage = `${getBaseUrl()}/api/og/blog/${slug}?locale=${locale}`;
 
         return {
             title: withBrandSuffix(title),
             description,
+            // Чернетка не має потрапити в індекс навіть випадково: посилання на
+            // прев'ю переживає листування і рано чи пізно десь публікується.
+            ...(preview ? { robots: { index: false, follow: false } } : {}),
             alternates: {
                 canonical: getCanonicalUrl(locale, path),
-                languages: getAlternateLanguages(path),
+                languages: getSubsetAlternates(path, postLocales(post), (post.locale || 'uk') as Locale),
             },
             openGraph: {
                 title: post.og_title || title,
-                description: description.slice(0, 200),
-                images: post.cover_image ? [{ url: post.cover_image, width: 1200, height: 630 }] : [],
+                description,
+                images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
                 type: 'article',
-                publishedTime: post.published_at,
-                authors: post.author_name ? [post.author_name] : [],
+                publishedTime: post.published_at || undefined,
+                modifiedTime: post.updated_at || post.published_at || undefined,
                 locale: OG_LOCALE_MAP[locale],
                 url: getCanonicalUrl(locale, path),
                 siteName: 'Touch.Memories',
@@ -64,8 +112,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
             twitter: {
                 card: 'summary_large_image',
                 title,
-                description: description.slice(0, 200),
-                images: post.cover_image ? [post.cover_image] : [],
+                description,
+                images: [ogImage],
             },
         };
     } catch {
@@ -73,104 +121,95 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     }
 }
 
-export default async function BlogPostPage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
-    const { slug, locale } = await params;
-    const supabase = await createClient();
+export default async function BlogPostPage({ params, searchParams }: { params: Params; searchParams: Search }) {
+    const { slug, locale: rawLocale } = await params;
+    const locale = (rawLocale || 'uk') as Locale;
+    const preview = isPreviewToken((await searchParams)?.preview);
 
-    let post: any = null;
-
-    try {
-        const { data, error } = await onlyVisiblePosts(supabase
-            .from('blog_posts')
-            .select('*, blog_categories(*)')
-            .eq('slug', slug))
-            .single();
-
-        if (error || !data) {
-            notFound();
-        }
-
-        post = data;
-    } catch (error) {
-        notFound();
-    }
-
+    // Прев'ю читає сервісним ключем: чернетка закрита політикою, і звичайний
+    // клієнт віддав би порожньо — тобто 404 замість перегляду.
+    const supabase = preview ? getAdminClient() : await createClient();
+    const post = await loadPost(supabase, slug, preview);
     if (!post) notFound();
 
-    // Try finding related products
-    let relatedProducts: any[] = [];
-    if (post?.related_product_ids && Array.isArray(post.related_product_ids) && post.related_product_ids.length > 0) {
-        try {
-            const { data } = await supabase.from('products').select('*').in('id', post.related_product_ids);
-            if (data) relatedProducts = data;
-        } catch (error) {
-            // Silently fail for related products
-            relatedProducts = [];
-        }
-    }
+    const productCards = await loadProductCards(supabase, post, 3);
 
-    // Try finding 3 similar articles
-    let similarPosts: any[] = [];
-    if (post?.category_id) {
-        try {
-            const { data } = await onlyVisiblePosts(supabase
-                .from('blog_posts')
-                .select('id, title, slug, cover_image, published_at')
-                .eq('category_id', post.category_id)
-                .neq('id', post.id))
-                .limit(3);
-            if (data) similarPosts = data;
-        } catch (error) {
-            // Silently fail for similar posts
-            similarPosts = [];
-        }
-    }
+    // Три сусіди з тієї ж категорії, а якщо їх менше — найсвіжіші з решти
+    // блогу. Порожній блок «Читайте також» читається як поломка сторінки.
+    const readAlso = await loadReadAlso(supabase, post);
 
-    // Canonical (locale-prefixed) URL of this post — used for share buttons and
-    // breadcrumb JSON-LD. Non-prefixed ${domain}/blog/... URLs only exist as
-    // 308 redirects, so structured data must not reference them.
-    const loc = (locale || 'uk') as Locale;
-    const currentUrl = getCanonicalUrl(loc, `/blog/${post?.slug || slug}`);
+    const currentUrl = getCanonicalUrl(locale, `/blog/${post.slug}`);
+    const content = getLocalized(post, locale, 'content') || '';
+    const title = getLocalized(post, locale, 'title') || '';
+    const toc = extractToc(content);
+    const faq = parseFaq(post.faq);
+    const categorySlug = post.blog_categories?.slug || null;
+    const categoryName = stripEmoji(post.blog_categories ? getLocalized(post.blog_categories, locale, 'name') : '') || 'Стаття';
+    const categoryUrl = categorySlug
+        ? getCanonicalUrl(locale, `/blog/category/${categorySlug}`)
+        : getCanonicalUrl(locale, '/blog');
+
+    const published = post.published_at ? new Date(post.published_at) : null;
+    const updated = post.updated_at ? new Date(post.updated_at) : null;
+    // «Оновлено» показується лише коли це правда: дата, яка щодня дорівнює
+    // даті публікації, знецінює сам напис.
+    const showUpdated = !!(published && updated && updated.getTime() - published.getTime() > 86_400_000);
 
     const jsonLdArticle = {
         '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
+        '@type': 'Article',
         'mainEntityOfPage': { '@type': 'WebPage', '@id': currentUrl },
-        'headline': getLocalized(post, locale, 'title') || '',
-        'image': post?.cover_image ? [post.cover_image] : [],
-        'author': {
-            '@type': 'Person',
-            'name': post?.author_name || 'TouchMemories'
-        },
+        'headline': title,
+        'image': post.cover_image ? [post.cover_image] : [`${getBaseUrl()}/api/og/blog/${post.slug}`],
+        // Автор — організація, а не вигадана людина. Підписувати статті іменем,
+        // за яким нікого немає, означає обіцяти експертність, яку неможливо
+        // підтвердити ні сторінкою автора, ні чимось іще.
+        'author': { '@type': 'Organization', 'name': 'touch.memories', 'url': getBaseUrl() },
         'publisher': {
             '@type': 'Organization',
-            'name': 'TouchMemories',
-            // Article rich results require publisher.logo as an ImageObject. We
-            // don't ship a dedicated logo asset, so reuse the OG banner image.
+            'name': 'touch.memories',
             'logo': { '@type': 'ImageObject', 'url': `${getBaseUrl()}/og-image.jpg`, 'width': 1200, 'height': 630 },
         },
-        'datePublished': post?.published_at || new Date().toISOString(),
-        'dateModified': post?.updated_at || post?.published_at || new Date().toISOString(),
-        'description': post?.meta_description || post?.excerpt || ''
+        'datePublished': post.published_at || undefined,
+        'dateModified': post.updated_at || post.published_at || undefined,
+        'description': metaDescription(post, locale),
+        'inLanguage': locale,
     };
 
     const jsonLdBreadcrumb = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         'itemListElement': [
-            { '@type': 'ListItem', 'position': 1, 'name': 'Головна', 'item': getCanonicalUrl(loc) },
-            { '@type': 'ListItem', 'position': 2, 'name': 'Блог', 'item': getCanonicalUrl(loc, '/blog') },
-            {
-                '@type': 'ListItem',
-                'position': 3,
-                'name': stripEmoji(post?.blog_categories?.name || 'Стаття'),
-                // Point at the crawlable category page, not /blog?category= (that
-                // query form is disallowed in robots.txt).
-                'item': post?.blog_categories ? getCanonicalUrl(loc, `/blog/category/${post.blog_categories.slug}`) : getCanonicalUrl(loc, '/blog')
-            },
-            { '@type': 'ListItem', 'position': 4, 'name': getLocalized(post, locale, 'title') || '' }
-        ]
+            { '@type': 'ListItem', 'position': 1, 'name': 'Головна', 'item': getCanonicalUrl(locale) },
+            { '@type': 'ListItem', 'position': 2, 'name': 'Блог', 'item': getCanonicalUrl(locale, '/blog') },
+            { '@type': 'ListItem', 'position': 3, 'name': categoryName, 'item': categoryUrl },
+            { '@type': 'ListItem', 'position': 4, 'name': title },
+        ],
     };
+
+    // Схема будується з ТИХ САМИХ рядків, які показує акордеон нижче: питання,
+    // якого немає на сторінці, — порушення рекомендацій Google, і карається
+    // воно тихим зникненням сніпета, а не помилкою.
+    const jsonLdFaq = faq.length ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        'mainEntity': faq.map(item => ({
+            '@type': 'Question',
+            'name': item.q,
+            'acceptedAnswer': { '@type': 'Answer', 'text': item.a },
+        })),
+    } : null;
+
+    const jsonLdProducts = productCards.length ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'itemListElement': productCards.map((card, i) => ({
+            '@type': 'ListItem',
+            'position': i + 1,
+            'name': card.name,
+            'url': getCanonicalUrl(locale, `/catalog/${card.slug}`),
+        })),
+    } : null;
 
     return (
         <div style={{ backgroundColor: 'white', minHeight: '100vh', fontFamily: 'var(--font-primary)' }}>
@@ -178,71 +217,81 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdArticle) }} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdBreadcrumb) }} />
+            {jsonLdFaq && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdFaq) }} />}
+            {jsonLdProducts && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLdProducts) }} />}
 
-            {/* View Counter Trigger */}
-            <script dangerouslySetInnerHTML={{
-                __html: `
-                    fetch('/api/blog/${post?.slug || slug}/view', { method: 'POST', keepalive: true }).catch(console.error);
-                `
-            }} />
+            {/* Лічильник переглядів не чіпає чернетку: прев'ю дивиться Діана, і
+                статистика статті, яка ще не вийшла, — це шум у цифрах. */}
+            {!preview && (
+                <script dangerouslySetInnerHTML={{
+                    __html: `fetch('/api/blog/${post.slug}/view', { method: 'POST', keepalive: true }).catch(function(){});`,
+                }} />
+            )}
 
             <main style={{ paddingTop: '100px', paddingBottom: '100px' }}>
                 <article style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px' }}>
 
-                    {/* Breadcrumbs */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8', marginBottom: '32px', paddingTop: '40px' }}>
-                        <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Головна</Link>
-                        <span>→</span>
-                        <Link href="/blog" style={{ color: 'inherit', textDecoration: 'none' }}>Блог</Link>
-                        <span>→</span>
-                        {post?.blog_categories && (
+                    {preview && (
+                        <div style={{ backgroundColor: '#fef3c7', border: '1px solid #f59e0b', color: '#92400e', borderRadius: '3px', padding: '12px 16px', marginTop: '40px', fontSize: '14px', fontWeight: 600 }}>
+                            Прев&apos;ю: статтю ще не опубліковано, у пошук вона не потрапляє. Стан — {post.status === 'scheduled' ? 'у черзі' : 'чернетка'}.
+                        </div>
+                    )}
+
+                    <nav aria-label="Хлібні крихти" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8', marginBottom: '32px', paddingTop: preview ? '24px' : '40px', flexWrap: 'wrap' }}>
+                        <Link href={`/${locale}`} style={{ color: 'inherit', textDecoration: 'none' }}>Головна</Link>
+                        <span aria-hidden>→</span>
+                        <Link href={`/${locale}/blog`} style={{ color: 'inherit', textDecoration: 'none' }}>Блог</Link>
+                        {categorySlug && (
                             <>
-                                <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{stripEmoji(post.blog_categories.name)}</Link>
-                                <span>→</span>
+                                <span aria-hidden>→</span>
+                                {/* Посилання веде на індексовану сторінку категорії,
+                                    а не на /blog?category= — та форма закрита в
+                                    robots.txt, і хлібні крихти вели б у заборонене. */}
+                                <Link href={`/${locale}/blog/category/${categorySlug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                                    {categoryName}
+                                </Link>
                             </>
                         )}
-                        <span style={{ color: '#263A99', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{getLocalized(post, locale, 'title') || ''}</span>
-                    </div>
+                        <span aria-hidden>→</span>
+                        <span style={{ color: '#263A99' }}>{title}</span>
+                    </nav>
 
-                    {/* Header */}
                     <header style={{ marginBottom: '40px' }}>
-                        {post?.blog_categories && (
-                            <Link href={`/blog?category=${post.blog_categories.slug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: "3px", fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
-                                {stripEmoji(post.blog_categories.name)}
+                        {categorySlug && (
+                            <Link href={`/${locale}/blog/category/${categorySlug}`} style={{ display: 'inline-block', backgroundColor: '#f1f5f9', color: '#263A99', padding: '6px 16px', borderRadius: '3px', fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '24px', textDecoration: 'none' }}>
+                                {categoryName}
                             </Link>
                         )}
+                        {/* Єдиний H1 на сторінці. У тілі статті найвищий рівень —
+                            другий: рендер markdown піднімає `#` до H2 саме для
+                            того, щоб другий H1 не зʼявився. */}
                         <h1 style={{ fontFamily: 'var(--font-heading)', fontSize: '48px', fontWeight: 900, color: '#263A99', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>
-                            {post?.title || ''}
+                            {title}
                         </h1>
                         <p style={{ fontSize: '20px', color: '#64748b', lineHeight: 1.6, marginBottom: '32px' }}>
-                            {post?.excerpt || ''}
+                            {getLocalized(post, locale, 'excerpt') || ''}
                         </p>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '20px 0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                {post?.author_avatar ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={post.author_avatar} alt={post?.author_name || 'Author'} style={{ width: '48px', height: '48px', borderRadius: "3px" }} />
-                                ) : (
-                                    <div style={{ width: '48px', height: '48px', borderRadius: "3px", backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                                        <User size={24} />
-                                    </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', padding: '20px 0', gap: '16px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '14px', color: '#94a3b8' }}>
+                                <span style={{ fontWeight: 800, color: '#263A99', fontSize: '15px' }}>touch.memories</span>
+                                {published && (
+                                    <time dateTime={published.toISOString()} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Calendar size={14} /> {published.toLocaleDateString('uk-UA')}
+                                    </time>
                                 )}
-                                <div>
-                                    <div style={{ fontWeight: 800, color: '#263A99', fontSize: '16px' }}>{post?.author_name || 'TouchMemories'}</div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#94a3b8', marginTop: '4px' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> {post?.published_at ? new Date(post.published_at).toLocaleDateString('uk-UA') : ''}</span>
-                                        <span>•</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> {post?.reading_time || 5} хв</span>
-                                        <span>•</span>
-                                        <span>{(post?.views_count || 0) + 1} переглядів</span>
-                                    </div>
-                                </div>
+                                {showUpdated && updated && (
+                                    <time dateTime={updated.toISOString()} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <RefreshCw size={14} /> оновлено {updated.toLocaleDateString('uk-UA')}
+                                    </time>
+                                )}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Clock size={14} /> {post.reading_time || 5} хв читання
+                                </span>
                             </div>
 
-                            {/* Share Buttons */}
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer" style={shareBtnStyle}>
+                                <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(currentUrl)}`} target="_blank" rel="noreferrer" aria-label="Поділитися у Facebook" style={shareBtnStyle}>
                                     <Facebook size={18} />
                                 </a>
                                 <BlogShareButton url={currentUrl} />
@@ -250,87 +299,60 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                         </div>
                     </header>
 
-                    {/* Cover Image */}
-                    {post?.cover_image && (
-                        <div style={{ width: '100%', height: '500px', position: 'relative', borderRadius: "3px", overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
-                            <Image src={post.cover_image} alt={post?.cover_image_alt || getLocalized(post, locale, 'title') || 'Cover image'} fill style={{ objectFit: 'cover' }} priority />
+                    {post.cover_image && (
+                        <div style={{ width: '100%', aspectRatio: '16/9', position: 'relative', borderRadius: '3px', overflow: 'hidden', marginBottom: '48px', backgroundColor: '#f8fafc' }}>
+                            {/* Обкладинка — це LCP сторінки, тож вона єдина йде з
+                                priority. Решта зображень лінькуваті. */}
+                            <Image
+                                src={post.cover_image}
+                                alt={post.cover_image_alt || title}
+                                fill
+                                priority
+                                sizes="(max-width: 850px) 100vw, 800px"
+                                style={{ objectFit: 'cover' }}
+                            />
                         </div>
                     )}
 
-                    {/* Article Content */}
+                    <TableOfContents entries={toc} />
+
                     <div style={{ fontSize: '18px', lineHeight: 1.8, color: '#263A99', marginBottom: '60px' }}>
-                        <MarkdownContent source={getLocalized(post, locale, 'content') || ''} />
+                        <MarkdownContent source={content} />
                     </div>
 
-                    {/* Tags */}
-                    {post?.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+                    <ArticleFaq items={faq} />
+
+                    <ProductCards cards={productCards} locale={locale} />
+
+                    {Array.isArray(post.tags) && post.tags.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '48px' }}>
                             {post.tags.map((tag: string) => (
-                                <Link key={tag} href={`/blog/tag/${tag}`} style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: "3px", fontSize: '14px', fontWeight: 600, textDecoration: 'none', transition: 'background 0.2s', ':hover': { backgroundColor: '#e2e8f0' } } as any}>
+                                <Link key={tag} href={`/${locale}/blog/tag/${tag}`} rel="nofollow" style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: '3px', fontSize: '14px', fontWeight: 600, textDecoration: 'none' }}>
                                     #{tag}
                                 </Link>
                             ))}
                         </div>
                     )}
 
-                    {/* Related Products */}
-                    {relatedProducts.length > 0 && (
-                        <div style={{ borderTop: '2px dashed #f1f5f9', paddingTop: '40px', marginBottom: '60px' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '24px', fontWeight: 900, color: '#263A99', marginBottom: '24px' }}>
-                                Згадані товари
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
-                                {relatedProducts.map((p: any) => (
-                                    <Link key={p?.id} href={`/${locale}/catalog/${p?.slug || ''}`} style={{ border: '1px solid #f1f5f9', borderRadius: "3px", padding: '16px', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', transition: 'border-color 0.2s', ':hover': { borderColor: '#cbd5e1' } } as any}>
-                                        <div style={{ width: '100%', aspectRatio: '1/1', position: 'relative', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#f8fafc', marginBottom: '16px' }}>
-                                            {p?.images && Array.isArray(p.images) && p.images[0] && <Image src={p.images[0]} alt={p?.name || 'Product'} fill style={{ objectFit: 'cover' }} />}
-                                        </div>
-                                        <h4 style={{ fontWeight: 800, fontSize: '15px', color: '#263A99', marginBottom: '8px' }}>{p?.name || ''}</h4>
-                                        <div style={{ color: '#263A99', fontWeight: 700, fontSize: '14px', marginTop: 'auto' }}>{p?.price || 0} ₴</div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* CTA Banner */}
-                    <div style={{ backgroundColor: '#263A99', borderRadius: "3px", padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        {/* color обов'язковий: globals.css має правило h3 { color: var(--primary) },
+                    <div style={{ backgroundColor: '#263A99', borderRadius: '3px', padding: '40px', color: 'white', textAlign: 'center', marginBottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {/* color обов'язковий: globals.css має правило h2 { color: var(--primary) },
                             і воно б'є успадкований від банера білий — заголовок ставав #263A99 на #263A99. */}
-                        <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'white' }}>Готові створити свою фотокнигу?</h3>
-                        <p style={{ fontSize: '16px', color: '#94a3b8', marginBottom: '32px', maxWidth: '400px' }}>Спробуйте наш зручний онлайн-конструктор та збережіть свої найкращі фото на сторінках преміум фотокниги.</p>
+                        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'white' }}>
+                            Зберемо це разом з вами
+                        </h2>
+                        <p style={{ fontSize: '16px', color: '#cbd5e1', marginBottom: '32px', maxWidth: '460px' }}>
+                            Оберіть формат у каталозі або зберіть макет самостійно в конструкторі. Якщо не хочеться верстати, це зробить дизайнерка студії.
+                        </p>
                         {/* Кнопка навмисно інверсна: банер уже #263A99, і кнопка того ж кольору
-                            на ньому зникала — лишався самий білий напис без жодної форми.
-                            Біла таблетка з брендовим написом — той самий приклад, що в блоці
-                            підписки на /blog і в кнопці на сторінці 404. */}
-                        <Link href="/constructor/photobook" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: 'white', color: '#263A99', borderRadius: '9999px', fontWeight: 800, fontSize: '16px', textDecoration: 'none', transition: 'transform 0.2s', ':hover': { transform: 'scale(1.05)' } } as any}>
-                            Спробувати конструктор <ArrowRight size={20} />
+                            на ньому зникала — лишався самий білий напис без жодної форми. */}
+                        <Link href={`/${locale}/catalog`} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '16px 32px', backgroundColor: 'white', color: '#263A99', borderRadius: '9999px', fontWeight: 800, fontSize: '16px', textDecoration: 'none' }}>
+                            Перейти в каталог <ArrowRight size={20} />
                         </Link>
                     </div>
 
                 </article>
 
-                {/* Similar Posts */}
-                {similarPosts.length > 0 && (
-                    <div style={{ backgroundColor: '#f8fafc', padding: '80px 24px' }}>
-                        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                            <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '32px', fontWeight: 900, color: '#263A99', marginBottom: '40px', textAlign: 'center' }}>
-                                Читайте також
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
-                                {similarPosts.map(sp => (
-                                    <Link key={sp?.id} href={`/blog/${sp?.slug || ''}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                                        <div style={{ position: 'relative', width: '100%', paddingTop: '65%', borderRadius: "3px", overflow: 'hidden', backgroundColor: '#e2e8f0', marginBottom: '20px' }}>
-                                            {sp?.cover_image && <Image src={sp.cover_image} alt={sp?.title || 'Article'} fill style={{ objectFit: 'cover' }} />}
-                                        </div>
-                                        <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '20px', fontWeight: 800, color: '#263A99', marginBottom: '12px' }}>{getLocalized(sp, locale, 'title') || ''}</h4>
-                                        <div style={{ fontSize: '13px', color: '#94a3b8' }}>{sp?.published_at ? new Date(sp.published_at).toLocaleDateString('uk-UA') : ''}</div>
-                                    </Link>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <ReadAlso posts={readAlso} locale={locale} />
             </main>
 
             <Footer />
@@ -338,4 +360,35 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     );
 }
 
-const shareBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: "3px", backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };
+/** Три сусідні статті: спершу з тієї ж категорії, потім найсвіжіші з блогу. */
+async function loadReadAlso(db: any, post: any): Promise<any[]> {
+    const fields = 'id, title, slug, cover_image, cover_image_alt, published_at, translations';
+    const picked: any[] = [];
+    const seen = new Set<string>([post.id]);
+
+    if (post.category_id) {
+        const { data } = await onlyVisiblePosts(
+            db.from('blog_posts').select(fields).eq('category_id', post.category_id).neq('id', post.id),
+        ).order('published_at', { ascending: false }).limit(3);
+        for (const row of data || []) {
+            if (seen.has(row.id)) continue;
+            seen.add(row.id);
+            picked.push(row);
+        }
+    }
+
+    if (picked.length < 3) {
+        const { data } = await onlyVisiblePosts(
+            db.from('blog_posts').select(fields).neq('id', post.id),
+        ).order('published_at', { ascending: false }).limit(6);
+        for (const row of data || []) {
+            if (picked.length >= 3 || seen.has(row.id)) continue;
+            seen.add(row.id);
+            picked.push(row);
+        }
+    }
+
+    return picked.slice(0, 3);
+}
+
+const shareBtnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', borderRadius: '3px', backgroundColor: '#f1f5f9', color: '#64748b', border: 'none', cursor: 'pointer', transition: 'all 0.2s' };

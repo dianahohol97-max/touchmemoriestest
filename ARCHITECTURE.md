@@ -383,6 +383,37 @@ Nothing breaks when the queue runs dry — the site works, articles just stop. T
 
 New admin columns must also be added to the `blog_posts` allowlist in `lib/admin/content-tables.ts` — `/api/admin/content` rejects the whole request on an unlisted field rather than dropping it.
 
+### Routes
+
+| URL | Route | Notes |
+|---|---|---|
+| `/{locale}/blog` | `app/[locale]/blog/page.tsx` | page 1; `?category=` and `?page=` 301 to the real URLs |
+| `/{locale}/blog/storinka/{n}` | `app/[locale]/blog/storinka/[n]/` | pages 2+, self-canonical, `rel=prev/next` |
+| `/{locale}/blog/category/{slug}` | `app/[locale]/blog/category/[slug]/` | indexed, own title/description |
+| `/{locale}/blog/category/{slug}/storinka/{n}` | `…/storinka/[n]/` | same, paginated |
+| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | the article |
+| `/{locale}/blog/tag/{tag}` | `app/[locale]/blog/tag/[tag]/` | thin, `noindex`, linked `rel=nofollow` |
+| `/api/og/blog/{slug}` | Satori 1200×630 | cover + title + brand |
+| `/blog-sitemap.xml`, `/sitemap-index.xml`, `/llms.txt` | routes, not files | see below |
+
+All four list routes render through `components/blog/BlogIndex.tsx`. The list used to exist twice and the copies had already drifted — same failure mode as the editor's photo toolbar.
+
+**Pagination is real URLs, not `?page=`.** `robots.txt` disallows the query form on `/blog` (it duplicates the category pages), so while pagination lived there, every page but the first was closed to crawling. `lib/blog/pagination.ts` owns the URL shape; each page is self-canonical, because a canonical pointing at page 1 drops the articles only visible deeper.
+
+**`/llms.txt` is a route now**, not `public/llms.txt`. The article list in it has to refresh itself, and a static file in `public/` shadows a route at the same path. The unchanging prose lives in `lib/seo/llms-static.ts` (and `tests/partner-rate-wording.test.ts` checks the commission wording there).
+
+### Article page SEO
+
+Everything a search engine sees is built from the row, never written into the body: an editor-typed price or date goes stale silently. `lib/blog/post.ts` computes the meta title (≤60, word-boundary, brand suffix stripped once) and description (140–160, topped up from the body when the excerpt is short).
+
+**hreflang lists only the locales that exist.** `postLocales()` counts the base `locale` plus `translations` keys that have BOTH a title and a body — an empty translation object is created the moment someone opens a language tab — and `getSubsetAlternates()` in `lib/seo/locales.ts` renders that subset. The full five-locale set would tell Google that `/de/blog/…` is a German version of Ukrainian text.
+
+Structured data: `Article` (author and publisher both the `touch.memories` Organization — no invented human byline), `BreadcrumbList`, `FAQPage` built from the same `faq` rows the accordion renders, and `ItemList` for the product cards. Schema must never promise a question the page does not show.
+
+The minimum internal linking (3 catalog, 2 articles) is held by the page itself, not by the author: product cards give up to three catalog links, "Читайте також" three articles, breadcrumbs one category.
+
+Drafts and queued posts are viewable at `?preview=$BLOG_PREVIEW_SECRET` — `noindex`, no view counted, read through `lib/blog/queue.ts` like every other past-the-gate read.
+
 ---
 
 ## SEO surface (canonicals, redirects, sitemap, structured data)
@@ -396,7 +427,7 @@ Updated 2026-09-17, after the September audit.
 | `/{locale}/catalog/{slug}` | `app/[locale]/catalog/[slug]/page.tsx` | `Product` (+`AggregateOffer` when configurable, `AggregateRating`/`Review` when real reviews exist), `BreadcrumbList`, `FAQPage` when the product has FAQ |
 | `/{locale}/category/{ua-slug}` | `app/[locale]/category/[slug]/page.tsx` | `CollectionPage`, `BreadcrumbList`, `ItemList` |
 | `/{locale}/category/{ua-slug}/{occasion}` | `app/[locale]/category/[slug]/[occasion]/page.tsx` | same, plus `FAQPage`; content is DB-driven from `landing_pages` |
-| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | article metadata |
+| `/{locale}/blog/{slug}` | `app/[locale]/blog/[slug]/` | `Article`, `BreadcrumbList`, `FAQPage`, `ItemList` — see "Blog" above |
 
 Every one of them sets a self-referencing canonical and the full five-locale `hreflang` set via `getCanonicalUrl` / `getAlternateLanguages` in `lib/seo/locales.ts`. A page that exists in one language only uses `getSingleLocaleAlternates` instead — do not give it the full set, or we tell Google that five URLs with identical Ukrainian text are five translations.
 
@@ -416,6 +447,8 @@ All in `next.config.ts` → `redirects()`; `proxy.ts` only adds the locale prefi
 - **Check before committing:** `node scripts/redirect-chains.mjs` parses the rules, models both the query forwarding and the category page's own runtime redirect, and exits 1 on any chain, loop, or locale-less destination.
 
 ### Sitemap
+
+There are two maps and an index. `app/sitemap.ts` holds the catalog, categories, landings and photographers (~785 URLs, hourly); `app/blog-sitemap.xml/route.ts` holds the articles and blog categories, with a real `lastmod` and a per-row `hreflang` set (hand-written XML, because `MetadataRoute.Sitemap` can only apply one alternates set to every row); `app/sitemap-index.xml/route.ts` lists both. `robots.txt` names all three — a robot is not obliged to expand an index, and a silently unexpanded one would read as a site with no blog.
 
 `app/sitemap.ts`, ~785 URLs, regenerated hourly. It lists only canonical `/catalog/` and `/category/` URLs — **no `/shop/` has ever been in it**, and nothing in it may answer with a redirect. Two rules that already bit us: categories with zero active products are skipped (the page 301s them to `/catalog`), and category paths go through `toPublicCategorySlug`. When adding a redirect for a `/catalog/{slug}` that belongs to an **active** product, check the sitemap — `guestbook-kids` spent months being listed in the sitemap while answering 301.
 

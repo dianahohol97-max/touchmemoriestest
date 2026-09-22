@@ -12,8 +12,15 @@ export async function generateMetadata({ params }: { params: Promise<{ tag: stri
     const { tag } = await params;
     const decodedTag = decodeURIComponent(tag);
     return {
-        title: `Тема: ${decodedTag} | TouchMemories Блог`,
+        title: `Тема: ${decodedTag} | Touch.Memories`,
         description: `Статті за темою: ${decodedTag}`,
+        // Сторінки тем тонкі за змістом — це той самий перелік статей, який
+        // уже є в категорії, тільки нарізаний інакше. `robots.txt` їх не
+        // обходить, але заборона обходу НЕ заважає адресі потрапити в індекс
+        // із чужого посилання: робот, якому не можна зайти, просто не побачить
+        // тут нічого й покаже адресу без опису. Тому тут ще й noindex, а
+        // посилання на теми зі статті йдуть із rel="nofollow".
+        robots: { index: false, follow: true },
     };
 }
 

@@ -66,6 +66,26 @@ export async function readDuePost(db: Db, now: Date = new Date()): Promise<Queue
 }
 
 /**
+ * Стаття за слагом БЕЗ гейта видимості — для прев'ю чернетки.
+ *
+ * Дозволяє себе кликати тільки той, хто вже звірив секрет прев'ю: перевірка
+ * живе в `isPreviewToken` (`lib/blog/post.ts`), а сторінка ставить таким
+ * відповідям `noindex` і забороняє кешування. Читання лежить тут, а не поруч
+ * зі сторінкою, з тієї ж причини, що й решта в цьому файлі: гейт відсік би
+ * чернетку, тож запит мусить бути прямим, а прямі запити поза адмінкою
+ * дозволені рівно в одному місці.
+ */
+export async function readPostForPreview(db: Db, slug: string) {
+    const { data } = await db
+        .from('blog_posts')
+        .select('*, blog_categories(*)')
+        .eq('slug', slug)
+        .maybeSingle();
+
+    return data || null;
+}
+
+/**
  * Усе, що потрібно знати про статтю ПІСЛЯ публікації: які адреси скидати з
  * кешу і які надсилати в IndexNow.
  *
