@@ -115,13 +115,16 @@ function ctx(): CanvasRenderingContext2D | null {
   return measureCtx;
 }
 
+const fontSpec = (fontPx: number, fontFamily: string, bold: boolean, italic: boolean) =>
+  `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${fontPx}px ${fontFamily || 'serif'}`;
+
 /** Greedy wrap, matching `whiteSpace: pre-wrap` + `wordBreak: break-word`:
  *  explicit newlines are kept, and long words are allowed to overflow rather
  *  than being split (splitting would only ever make the count smaller). */
 function countLines(text: string, fontPx: number, fontFamily: string, bold: boolean, italic: boolean, maxWidthPx: number): number {
   const c = ctx();
   if (!c || maxWidthPx <= 0) return Math.max(1, String(text || '').split('\n').length);
-  c.font = `${italic ? 'italic ' : ''}${bold ? '700 ' : '400 '}${fontPx}px ${fontFamily || 'serif'}`;
+  c.font = fontSpec(fontPx, fontFamily, bold, italic);
   let lines = 0;
   for (const paragraph of String(text || '').split('\n')) {
     if (!paragraph) { lines += 1; continue; }
@@ -141,6 +144,88 @@ function countLines(text: string, fontPx: number, fontFamily: string, bold: bool
     lines += used;
   }
   return Math.max(1, lines);
+}
+
+/**
+ * Найширший рядок ДО перенесення — те, що CSS називає `max-content`.
+ *
+ * Блок без збереженої ширини має саме `width: max-content`, тож його коробка
+ * дорівнює найдовшому абзацу, а вже потім її підрізає `max-width: 90%`. Це
+ * зовсім не те саме, що ширина після перенесення: перенесений текст майже
+ * ніколи не заповнює рядок до кінця, і рахувати коробку по ньому означало б
+ * робити її вужчою за намальовану.
+ */
+function maxContentWidthPx(text: string, fontPx: number, fontFamily: string, bold: boolean, italic: boolean): number | null {
+  const c = ctx();
+  if (!c) return null;
+  c.font = fontSpec(fontPx, fontFamily, bold, italic);
+  let widest = 0;
+  for (const paragraph of String(text || '').split('\n')) {
+    const w = c.measureText(paragraph).width;
+    if (w > widest) widest = w;
+  }
+  return widest;
+}
+
+/** Розмір намальованої коробки блока — те, що треба, коли питання про межі. */
+export interface BoxInput {
+  text: string;
+  /** Кегль, уже переведений у пікселі цього полотна (fontSize × cH/700). */
+  fontPx: number;
+  fontFamily: string;
+  bold?: boolean;
+  italic?: boolean;
+  /** Ширина КОНТЕЙНЕРА, проти якого блок позиціонується, px. */
+  containerPx: number;
+  /** Збережена ширина блока у відсотках контейнера; порожньо — коробка по тексту. */
+  w?: number | null;
+  /** Поля коробки, px — ті самі 8 і 4, помножені на pageTextScale. */
+  padXPx: number;
+  padYPx: number;
+  /** Множник автозменшення, який рендер уже застосував (fitFontScale). */
+  scale?: number;
+}
+
+/**
+ * Розмір коробки текстового блока в пікселях, разом із полями.
+ *
+ * Навіщо це тут, а не на місці виклику: коробку доводиться рахувати двом
+ * різним речам — перевірці меж і позначці на полотні, — і рахувати вони мусять
+ * ОДНАКОВО, бо інакше попередження і підсвітка сперечаються між собою.
+ *
+ * Модель повторює те, що робить браузер, і тільки те:
+ *   · `box-sizing: border-box` стоїть глобально (`* { box-sizing: border-box }`
+ *     у globals.css), тож і задана ширина, і `max-width: 90%` включають поля;
+ *   · без збереженої ширини коробка це `max-content`, підрізаний тими 90 %;
+ *   · висота — кількість рядків після перенесення × кегль × TEXT_LINE_HEIGHT.
+ *
+ * Повертає null там, де немає canvas (сервер, тести): вигадана ширина гірша за
+ * відсутню, бо на ній будується попередження клієнтові.
+ */
+export function measureTextBoxPx(input: BoxInput): { widthPx: number; heightPx: number } | null {
+  const { text, fontFamily, bold, italic, containerPx, w, padXPx, padYPx } = input;
+  if (!(containerPx > 0)) return null;
+  const fontPx = input.fontPx * (input.scale ?? 1);
+  if (!(fontPx > 0)) return null;
+
+  const capPx = (TEXT_BOX_MAX_PCT / 100) * containerPx;
+  const storedPct = textBoxPct(w);
+
+  let widthPx: number;
+  if (storedPct !== null) {
+    widthPx = (storedPct / 100) * containerPx;
+  } else {
+    const content = maxContentWidthPx(text, fontPx, fontFamily, !!bold, !!italic);
+    if (content === null) return null;
+    widthPx = Math.min(content + padXPx * 2, capPx);
+  }
+  widthPx = Math.min(widthPx, capPx);
+
+  const innerPx = Math.max(1, widthPx - padXPx * 2);
+  const lines = countLines(text, fontPx, fontFamily, !!bold, !!italic, innerPx);
+  const heightPx = lines * fontPx * TEXT_LINE_HEIGHT + padYPx * 2;
+
+  return { widthPx, heightPx };
 }
 
 export interface FitInput {

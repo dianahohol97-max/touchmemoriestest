@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check, AlertTriangle } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
@@ -42,7 +42,10 @@ import { pageTextScale, kalkaTextScale, EDITOR_BASE_CANVAS_H } from '@/lib/print
 import { getMagazinePrice, getTravelBookPrice, LAMINATION_PRICE_PER_PAGE, isPageLaminationSelected } from '@/lib/products';
 import { engravingAllowedOn } from '@/lib/products/decoration-rules';
 import { buildTrimGuides } from '@/lib/print/trim-guides';
-import { findSafeZoneViolations, describeViolations } from '@/lib/editor/safe-zone';
+import {
+  findSafeZoneViolations, describeViolation, measureBoxPct,
+  type SafeZoneViolation,
+} from '@/lib/editor/safe-zone';
 import type { SizeGeometry } from '@/lib/print/geometry';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
@@ -575,6 +578,47 @@ const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
   // partner's checker rejects anything else — Diana, 2026-08-06).
   'travelbook': { w: 210, h: 297 },
 };
+
+/** Кольори позначки блока, що дістає до лінії. Червоне — ріже, бурштин — ризик. */
+const SAFE_ZONE_TONE = {
+  trim: { color: '#dc2626', label: 'За лінією обрізу' },
+  safety: { color: '#d97706', label: 'У безпечній зоні' },
+} as const;
+
+const SAFE_ZONE_SIDE_WORD: Record<'top' | 'bottom' | 'left' | 'right', string> = {
+  top: 'згори', bottom: 'знизу', left: 'ліворуч', right: 'праворуч',
+};
+
+/**
+ * Позначка на блоці, який дістає до лінії обрізу або до безпечної зони.
+ *
+ * Стоїть ПІД блоком, а не над ним: зверху вже живе бейдж «Текст не
+ * вміщається», і два бейджі в одному кутку перекривали б один одного саме на
+ * тому блоці, з яким не так одразу дві речі.
+ *
+ * Одна розмітка на обидва режими полотна — розворотний і посторінковий. Копію
+ * такої позначки в двох місцях довелося б міняти двічі, а тулбар фотослота вже
+ * показав, чим це закінчується: копії розходяться.
+ */
+function SafeZoneBadge({ violation }: { violation: SafeZoneViolation }) {
+  const tone = SAFE_ZONE_TONE[violation.level];
+  const worst = violation.sides
+    .filter(s => s.level === violation.level)
+    .sort((a, b) => b.overshootMm - a.overshootMm)[0];
+  const mm = worst ? (worst.overshootMm >= 10 ? Math.round(worst.overshootMm) : Number(worst.overshootMm.toFixed(1))) : 0;
+  const where = worst ? `${SAFE_ZONE_SIDE_WORD[worst.side]} на ${String(mm).replace('.', ',')} мм` : '';
+  return (
+    <div data-html2canvas-ignore="true" data-export-ignore="true"
+      title={violation.level === 'trim'
+        ? `Блок виходить за лінію обрізу ${where}. Ніж друкарні проходить по краю сторінки, тож цю частину зріже. Посуньте блок або звузьте його.`
+        : `Блок заходить у безпечну зону ${where}. До ножа ще є запас, але різак працює з похибкою і може зачепити цей край.`}
+      style={{ position:'absolute', bottom:-9, right:-6, zIndex:30, pointerEvents:'none', background:tone.color,
+        color:'#fff', fontSize:8, fontWeight:800, lineHeight:1.4, padding:'1px 5px', borderRadius:4,
+        whiteSpace:'nowrap', boxShadow:'0 1px 4px rgba(0,0,0,0.25)' }}>
+      {tone.label}{where ? ` · ${where}` : ''}
+    </div>
+  );
+}
 
 /**
  * Real bleed margins from our print partner (May 2026), measured in mm from
@@ -2449,6 +2493,129 @@ export default function BookLayoutEditor() {
     if (z != null) setZoom(z);
   };
 
+  // ── ТЕКСТ БІЛЯ ЛІНІЇ ОБРІЗУ ───────────────────────────────────────────────
+  //
+  // Одне обчислення на два вживання: підсвітка блока просто на полотні і
+  // перелік перед оформленням. Розійтись їм не можна — попередження про блок,
+  // який на полотні виглядає цілком нормально, це і є поломка TM-001352.
+  //
+  // Коробку МІРЯЄМО тими самими числами, якими її малює рендер нижче: той
+  // самий pageTextScale, ті самі поля 8/4, той самий fitFontScale. Оцінювати
+  // її «згори» не можна: блок без збереженої ширини тулиться до тексту, а
+  // стара оцінка давала йому всі дозволені 90 % сторінки і через це кричала на
+  // кожен блок, зсунутий убік від центру.
+  const szContainerPx = isSpreadMode ? cW : pageW;
+  const szContainerMm = React.useMemo(() => {
+    const g = printGeometry?.[sizeKey];
+    const p = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
+    const page = g ? { w: g.page.w, h: g.page.h } : { w: p.w, h: p.h };
+    return isSpreadMode ? { w: page.w * 2, h: page.h } : page;
+  }, [printGeometry, sizeKey, isSpreadMode]);
+
+  const measureTextBlockBox = (block: any, pageIdx: number) => {
+    const pg = pages[pageIdx];
+    if (!pg || !block) return null;
+    const anchors = (pg.textBlocks || []).map((b: any) => b.y);
+    const basePx = (block.fontSize || 0) * pageTextScale(cH);
+    const padX = 8 * pageTextScale(cH);
+    const padY = 4 * pageTextScale(cH);
+    const scale = fitFontScale({
+      text: block.text,
+      fontPx: basePx,
+      fontFamily: block.fontFamily,
+      bold: block.bold,
+      italic: block.italic,
+      maxWidthPx: textBoxMaxWidthPx(szContainerPx, padX, block.w),
+      availableHeightPx: (availableHeightPct(block.y, anchors) / 100) * cH,
+    });
+    return measureBoxPct({
+      text: block.text,
+      fontPx: basePx,
+      fontFamily: block.fontFamily,
+      bold: block.bold,
+      italic: block.italic,
+      scale,
+      containerPx: szContainerPx,
+      w: block.w,
+      padXPx: padX,
+      padYPx: padY,
+    }, cH);
+  };
+
+  const safeZoneViolations = React.useMemo(() => {
+    try {
+      return findSafeZoneViolations(pages as any, bleed as any, {
+        measure: (b, pi) => measureTextBlockBox(b, pi),
+        containerMm: szContainerMm,
+        spreadContainer: isSpreadMode,
+        // Обкладинка живе за іншими правилами: у неї лінія ЗАГИНУ (coverBleed,
+        // 18–20 мм), а не безпечна зона сторінки. Міряти її цією геометрією
+        // означало б видавати чуже число за своє.
+        skipPage: (i) => i === 0,
+      });
+    } catch (e) {
+      // Перевірка ніколи не має заважати роботі: не порахувалось — мовчимо.
+      console.warn('[safe-zone] check skipped', e);
+      return [];
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, cH, szContainerPx, szContainerMm, isSpreadMode,
+      bleed.top, bleed.bottom, bleed.left, bleed.right]);
+
+  /** Порушення за ключем «індекс сторінки:id блока» — для підсвітки на полотні. */
+  const safeZoneByBlock = React.useMemo(() => {
+    const m = new Map<string, SafeZoneViolation>();
+    for (const v of safeZoneViolations) m.set(`${v.pageIndex}:${v.blockId}`, v);
+    return m;
+  }, [safeZoneViolations]);
+
+  /** Підпис сторінки для переліку — той самий, який клієнт бачить у редакторі. */
+  const safeZonePageLabel = (pageIdx: number): string => {
+    if (pageIdx === 0) return t('constructor.cover');
+    const label = pageDisplayLabel(pageIdx);
+    return /^\d+$/.test(label) ? `Сторінка ${label}` : label;
+  };
+
+  /** Перевести перегляд на сторінку з блоком і виділити сам блок. */
+  const goToTextBlock = (pageIdx: number, blockId: string) => {
+    if (pageIdx <= 0) {
+      setCurrentIdx(0);
+      setLeftTab('cover');
+    } else {
+      setCurrentIdx(Math.floor((pageIdx - 1) / 2) + 1);
+      // У режимі сторінок розворот показує дві сторінки поруч, і активна з них
+      // одна: без цього перехід відкривав правильний розворот, але виділення
+      // лишалося на сусідній сторінці.
+      if (!isSpreadMode) setActiveSide(((pageIdx - 1) % 2) as 0 | 1);
+    }
+    setSelectedTextId(blockId);
+    setSelectedTextPageIdx(pageIdx);
+    setEditingTextId(null);
+  };
+
+  // ── Панель «перед оформленням» ────────────────────────────────────────────
+  //
+  // Заміна системного confirm(). Обіцянка повертає вибір клієнта, тож
+  // addToCart читається так само послідовно, як читався раніше.
+  type PrintIssue = {
+    kind: 'trim' | 'safety' | 'clipped';
+    pageIndex: number;
+    blockId: string;
+    text: string;
+  };
+  const [printIssues, setPrintIssues] = useState<PrintIssue[] | null>(null);
+  const printIssuesAnswer = React.useRef<((ok: boolean) => void) | null>(null);
+  const askAboutPrintIssues = (issues: PrintIssue[]) => new Promise<boolean>(resolve => {
+    printIssuesAnswer.current = resolve;
+    setPrintIssues(issues);
+  });
+  const answerPrintIssues = (ok: boolean) => {
+    setPrintIssues(null);
+    const resolve = printIssuesAnswer.current;
+    printIssuesAnswer.current = null;
+    resolve?.(ok);
+  };
+
   // ── One-time migration: legacy custom slot geometry (raw px) → percent ──
   // Manually-resized slots used to be stored as raw editor-canvas px, which are
   // resolution-dependent: they render fine on the big editor canvas but drift
@@ -4275,8 +4442,16 @@ export default function BookLayoutEditor() {
     // і забороняти його означало б зупинити оформлення без виходу. Тому
     // перелік проблемних сторінок і явне підтвердження — тобто рішення
     // приймається, а не проґавлюється.
+    //
+    // Показуємо це ВЛАСНОЮ панеллю, а не системним confirm(). Вікно браузера
+    // не вміє трьох речей, без яких перелік майже нічого не вартий: воно не
+    // вміє відвести на потрібну сторінку, не вміє показати, ПРО ЯКИЙ саме блок
+    // мова, і виглядає як помилка сайту, а не як порада конструктора. На
+    // TM-001352 клієнтка побачила голий текст про сторінки 3, 5 і 6, відкрила
+    // саме їх і нічого там не знайшла — номери були індексами в масиві разом з
+    // обкладинкою і форзацом, а не тими номерами, які підписані в редакторі.
     try {
-      const violations = findSafeZoneViolations(pages as any, bleed as any);
+      const violations = safeZoneViolations;
 
       // ТЕКСТ, ЯКИЙ НЕ ВМІЩАЄТЬСЯ І ТОМУ ОБРІЗАЄТЬСЯ.
       //
@@ -4288,8 +4463,9 @@ export default function BookLayoutEditor() {
       // Тому те, що не влізло навіть так, потрапляє в той самий перелік перед
       // оформленням — поруч із текстом за лінією обрізу, одним діалогом, а не
       // двома підряд.
-      const clipped: string[] = [];
+      const clipped: PrintIssue[] = [];
       pages.forEach((pg: any, pi: number) => {
+        if (pi === 0) return; // обкладинка має власний редактор і власні межі
         const anchors = (pg?.textBlocks || []).map((b: any) => b.y);
         for (const tb of pg?.textBlocks || []) {
           const fits = {
@@ -4298,30 +4474,33 @@ export default function BookLayoutEditor() {
             fontFamily: tb.fontFamily,
             bold: tb.bold,
             italic: tb.italic,
-            maxWidthPx: textBoxMaxWidthPx(pageW, 8 * pageTextScale(cH), tb.w),
+            maxWidthPx: textBoxMaxWidthPx(szContainerPx, 8 * pageTextScale(cH), tb.w),
             availableHeightPx: (availableHeightPct(tb.y, anchors) / 100) * cH,
           };
           if (textOverflowsAtMinScale(fits)) {
             const flat = String(tb.text || '').replace(/\s+/g, ' ').trim();
-            clipped.push(`Сторінка ${pi + 1}: «${flat.length > 40 ? `${flat.slice(0, 39)}…` : flat}» не вміщається — частину слів зріже.`);
+            clipped.push({
+              kind: 'clipped',
+              pageIndex: pi,
+              blockId: tb.id,
+              text: `${safeZonePageLabel(pi)}: «${flat.length > 40 ? `${flat.slice(0, 39)}…` : flat}» не вміщається — частину слів зріже.`,
+            });
           }
         }
       });
 
-      if (violations.length > 0 || clipped.length > 0) {
-        const parts: string[] = [];
-        if (violations.length > 0) {
-          parts.push('Текст виходить за лінію обрізу — на друці ці рядки може зрізати.\n' + describeViolations(violations));
-        }
-        if (clipped.length > 0) {
-          parts.push('Текст не вміщається у відведене місце — частина слів не надрукується.\n'
-            + clipped.slice(0, 5).join('\n')
-            + (clipped.length > 5 ? `\nЩе таких блоків: ${clipped.length - 5}.` : ''));
-        }
-        const ok = confirm(
-          parts.join('\n\n')
-          + '\n\nПоверніться й виправте, або натисніть OK, щоб залишити як є.',
-        );
+      const issues: PrintIssue[] = [
+        ...violations.map((v): PrintIssue => ({
+          kind: v.level === 'trim' ? 'trim' : 'safety',
+          pageIndex: v.pageIndex,
+          blockId: v.blockId,
+          text: describeViolation(v, safeZonePageLabel),
+        })),
+        ...clipped,
+      ];
+
+      if (issues.length > 0) {
+        const ok = await askAboutPrintIssues(issues);
         if (!ok) return;
       }
     } catch (e) {
@@ -9159,6 +9338,10 @@ export default function BookLayoutEditor() {
                       // Навіть найменший дозволений кегль не вміщається — далі
                       // блок просто ріжеться краєм сторінки, і робив це мовчки.
                       const txtOverflows = !isEd && textOverflowsAtMinScale(txtFit);
+                      // Блок дістає до лінії обрізу або до безпечної зони.
+                      // Перелік перед оформленням і ця рамка читають ОДИН
+                      // розрахунок, тож сказане в переліку видно на полотні.
+                      const txtSafeZone = isEd ? undefined : safeZoneByBlock.get(`${spreadPageIdx}:${tb.id}`);
                       return (
                         <div key={tb.id}
                           onPointerDown={e => {
@@ -9178,7 +9361,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), ...plateBoxStyle((tb as any).plate), background: (tb as any).plate ? plateBoxStyle((tb as any).plate).background : (isSel ? 'rgba(59,130,246,0.05)' : 'transparent'), ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : txtSafeZone ? `2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}` : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), ...plateBoxStyle((tb as any).plate), background: (tb as any).plate ? plateBoxStyle((tb as any).plate).background : (isSel ? 'rgba(59,130,246,0.05)' : 'transparent'), ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
                             {txtOverflows && (
                               <div data-html2canvas-ignore="true"
                                 title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
@@ -9186,6 +9369,7 @@ export default function BookLayoutEditor() {
                                 Текст не вміщається
                               </div>
                             )}
+                            {txtSafeZone && <SafeZoneBadge violation={txtSafeZone}/>}
                           <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined} onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, spreadPageIdx); setEditingTextId(null); }}
                             /* Scaled by the SAME cH/700 factor the print page uses.
                                Raw px here meant the canvas shrank with zoom while the text did
@@ -9913,6 +10097,8 @@ export default function BookLayoutEditor() {
                         };
                         const txtScale = isEd ? 1 : fitFontScale(txtFit);
                         const txtOverflows = !isEd && textOverflowsAtMinScale(txtFit);
+                        // Та сама перевірка, що й у розворотному режимі.
+                        const txtSafeZone = isEd ? undefined : safeZoneByBlock.get(`${pageIdx}:${tb.id}`);
                         return (
                           <div key={tb.id}
                             onPointerDown={e => {
@@ -9928,7 +10114,7 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:txtOverflows?'2px solid #dc2626':(isSel?'2px solid #3b82f6':'none'),borderRadius:3,
+                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:txtOverflows?'2px solid #dc2626':txtSafeZone?`2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}`:(isSel?'2px solid #3b82f6':'none'),borderRadius:3,
                               /* Scaled 4/8 like the spread branch and the print
                                  page — this padding eats into the 90% max width,
                                  so raw '2px 4px' put the wrap point a few px away
@@ -9942,6 +10128,7 @@ export default function BookLayoutEditor() {
                                 Текст не вміщається
                               </div>
                             )}
+                            {txtSafeZone && <SafeZoneBadge violation={txtSafeZone}/>}
                             {isSel && !isEd && (
                               <ZOrderToolbar
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
@@ -12212,6 +12399,60 @@ export default function BookLayoutEditor() {
                   : t('constructor.files_saved')}
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Перед оформленням: що на макеті може постраждати на друці.
+          Раніше тут стояв системний confirm() — голий текст без переходу до
+          проблемної сторінки і без підказки, ПРО ЯКИЙ блок мова. */}
+      {printIssues && printIssues.length > 0 && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.55)', zIndex:10000,
+          display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
+          onClick={() => answerPrintIssues(false)}>
+          <div style={{ background:'#fff', borderRadius:16, padding:'22px 22px 18px', maxWidth:560, width:'100%',
+            maxHeight:'82vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
+              <AlertTriangle size={20} style={{ color:'#b45309', flexShrink:0 }}/>
+              <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>Перевірте макет перед друком</div>
+            </div>
+            <p style={{ fontSize:12.5, color:'#64748b', lineHeight:1.55, margin:'0 0 12px' }}>
+              Натисніть рядок, щоб перейти до цього тексту в конструкторі — там він підсвічений рамкою.
+              Якщо так і задумано, оформлення можна продовжити.
+            </p>
+            <div style={{ overflowY:'auto', display:'flex', flexDirection:'column', gap:8, margin:'0 -4px', padding:'0 4px' }}>
+              {printIssues.map((issue, i) => {
+                const tone = issue.kind === 'trim'
+                  ? { border:'#fecaca', bg:'#fff5f5', dot:'#dc2626', label:'Зріже' }
+                  : issue.kind === 'safety'
+                    ? { border:'#fde68a', bg:'#fffbeb', dot:'#d97706', label:'Ризик' }
+                    : { border:'#e2e8f0', bg:'#f8fafc', dot:'#64748b', label:'Не вміщається' };
+                return (
+                  <button key={`${issue.pageIndex}-${issue.blockId}-${i}`}
+                    onClick={() => { goToTextBlock(issue.pageIndex, issue.blockId); answerPrintIssues(false); }}
+                    style={{ display:'flex', alignItems:'flex-start', gap:10, textAlign:'left', width:'100%',
+                      padding:'10px 12px', borderRadius:10, border:`1px solid ${tone.border}`, background:tone.bg,
+                      cursor:'pointer', fontSize:12.5, lineHeight:1.5, color:'#334155' }}>
+                    <span style={{ flexShrink:0, marginTop:1, padding:'1px 7px', borderRadius:999, background:tone.dot,
+                      color:'#fff', fontSize:9.5, fontWeight:800, whiteSpace:'nowrap' }}>{tone.label}</span>
+                    <span>{issue.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display:'flex', gap:10, marginTop:16 }}>
+              <button onClick={() => answerPrintIssues(false)}
+                style={{ flex:1, padding:'11px 12px', borderRadius:10, border:'none', background:'#1e2d7d',
+                  color:'#fff', fontWeight:800, fontSize:13, cursor:'pointer' }}>
+                Повернутись і виправити
+              </button>
+              <button onClick={() => answerPrintIssues(true)}
+                style={{ flex:1, padding:'11px 12px', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff',
+                  color:'#64748b', fontWeight:700, fontSize:13, cursor:'pointer' }}>
+                Залишити як є
+              </button>
+            </div>
           </div>
         </div>
       )}
