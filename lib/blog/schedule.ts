@@ -99,3 +99,33 @@ export function nextSlot(anchor: Date | null, queuedAfter: number, now: Date = n
     }
     return slot;
 }
+
+/**
+ * Слот для нової статті за наявною чергою — без жодного звернення до бази.
+ *
+ * НАВІЩО ЧИСТА ФУНКЦІЯ. Розклад потрібен двом дуже різним місцям: серверному
+ * коду через `lib/blog/queue.ts` і скрипту генерації, який запускається голим
+ * node і не бачить ні псевдонімів шляхів, ні клієнта Supabase. Поки логіка
+ * жила всередині запиту, другому місцю довелося б її переписати — а дві копії
+ * розкладу означають дві різні черги, які розійдуться мовчки.
+ *
+ * @param queuedAt      час усіх уже запланованих статей, у будь-якому порядку
+ * @param lastPublished час останньої опублікованої — якір, коли черга порожня
+ */
+export function slotAfterQueue(
+    queuedAt: Array<string | Date | null>,
+    lastPublished: string | Date | null,
+    now: Date = new Date(),
+): Date {
+    const times = queuedAt
+        .map(v => (v ? new Date(v) : null))
+        .filter((d): d is Date => !!d && !Number.isNaN(d.getTime()))
+        .sort((a, b) => a.getTime() - b.getTime());
+
+    if (times.length) {
+        return nextSlot(times[times.length - 1], times.length, now);
+    }
+
+    const anchor = lastPublished ? new Date(lastPublished) : null;
+    return nextSlot(anchor && !Number.isNaN(anchor.getTime()) ? anchor : null, 0, now);
+}

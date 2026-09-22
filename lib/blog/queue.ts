@@ -1,4 +1,4 @@
-import { nextSlot } from './schedule';
+import { slotAfterQueue } from './schedule';
 
 /**
  * Черга публікацій блогу — читання і два записи, якими живе автопублікація.
@@ -159,10 +159,6 @@ export async function reschedule(db: Db, id: string, at: Date) {
  */
 export async function nextFreeSlot(db: Db, now: Date = new Date()): Promise<Date> {
     const queue = await readQueue(db);
-    if (queue.length) {
-        const last = queue[queue.length - 1];
-        return nextSlot(last.publish_at ? new Date(last.publish_at) : null, queue.length, now);
-    }
 
     const { data } = await db
         .from('blog_posts')
@@ -172,6 +168,7 @@ export async function nextFreeSlot(db: Db, now: Date = new Date()): Promise<Date
         .limit(1)
         .maybeSingle();
 
-    const anchor = data?.published_at ? new Date(data.published_at) : null;
-    return nextSlot(anchor, 0, now);
+    // Сам розрахунок — чиста функція в `schedule.ts`: її кличе і цей код, і
+    // скрипт генерації, який запускається голим node без псевдонімів шляхів.
+    return slotAfterQueue(queue.map(p => p.publish_at), data?.published_at ?? null, now);
 }

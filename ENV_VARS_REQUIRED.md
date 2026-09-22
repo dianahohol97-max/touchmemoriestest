@@ -38,7 +38,9 @@ Add these in Vercel Dashboard → Settings → Environment Variables
 
 | Variable | Description |
 |---|---|
-| `ANTHROPIC_API_KEY` | Claude AI for chatbot |
+| `ANTHROPIC_API_KEY` | Claude AI for chatbot. Also read by `npm run blog:generate`, which runs **locally only** — do not set it on Vercel, nothing in production needs it |
+| `INDEXNOW_KEY` | Any random string. Served at `/indexnow-key.txt` and sent with every auto-published article so Bing and Yandex crawl it the same day. Without it `/api/cron/blog-publish` still publishes and says `indexnow: skipped` |
+| `BLOG_PREVIEW_SECRET` | Opens drafts and queued articles at `/{locale}/blog/{slug}?preview=<value>`, with `noindex` and no view counted. Unset means no preview link works at all — an empty secret never matches |
 | `TELEGRAM_PUBLIC_BOT_TOKEN` | Telegram notifications + the public chatbot (Софія) + Telegram Business monitoring of Diana's client dialogs |
 | `TELEGRAM_WEBHOOK_SECRET` | Secret token passed to Telegram setWebhook; the chatbot webhook refuses unsigned updates in production without it. Re-register via `POST /api/chatbot/telegram/setup` after changing |
 | `TELEGRAM_DESIGNER_CHAT_ID` | Designer chat ID |

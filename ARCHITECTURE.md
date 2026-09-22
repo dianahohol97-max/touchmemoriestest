@@ -414,6 +414,19 @@ The minimum internal linking (3 catalog, 2 articles) is held by the page itself,
 
 Drafts and queued posts are viewable at `?preview=$BLOG_PREVIEW_SECRET` — `noindex`, no view counted, read through `lib/blog/queue.ts` like every other past-the-gate read.
 
+### Writing articles
+
+`npm run blog:generate -- --list` shows the topic registry; `npm run blog:generate -- <topic-id>` writes one article and queues it (`--dry` prints it without touching the database). **One command, one article, on purpose** — twelve generated at once is twelve nobody re-reads. It runs on plain node (`--experimental-strip-types`), so it imports only files with no path aliases; `ANTHROPIC_API_KEY` is read from `.env.local` and is deliberately **not** set on Vercel, because nothing in production generates articles.
+
+`lib/blog/topics.ts` is the registry. Each topic carries the target page the article links to and an `independent` flag (product mentioned only at the end, never in the title) — the two things the model must not invent, since a made-up catalog slug reads as a working link right up to the click. A topic with no live page carries `blocked` and a reason instead of being quietly pointed at a neighbour.
+
+Nothing is trusted on the model's word:
+
+- every target is checked against the database first — active product, category with products (an empty one 301s to `/catalog`), enabled landing;
+- `lib/blog/article-check.ts` then checks the article: 1200–1800 words, 5–8 H2, 3–5 whole FAQ entries, meta lengths, a Latin slug, the key query inside the first hundred words, at least three catalog links and two blog links, no banned mentions, and **no price anywhere** — a price written into prose goes stale in silence and is discovered in the cart. It has no imports (the script loads it under plain node) and `tests/blog-article-check.test.ts` covers it, because a check nobody checks eventually passes everything.
+
+Scheduling is `slotAfterQueue()` in `lib/blog/schedule.ts` — a pure function, so the cron, the admin and this script all compute the same queue instead of each holding a copy.
+
 ---
 
 ## SEO surface (canonicals, redirects, sitemap, structured data)
