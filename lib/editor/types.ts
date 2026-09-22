@@ -43,7 +43,7 @@ export interface PhotoData { id: string; preview: string; thumb?: string; width:
   thumbPath?: string;
 }
 
-export interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; selectedUrgency?: string | null; enableKalka?: boolean; enableEndpaper?: boolean; minPageCount?: number; productImage?: string; }
+export interface BookConfig { productSlug: string; productId?: string; productName: string; selectedSize?: string; selectedCoverType?: string; selectedCoverColor?: string; selectedPageColor?: string; selectedDecoration?: string; selectedDecorationType?: string; selectedDecorationVariant?: string; selectedDecorationSize?: string; selectedDecorationColor?: string; selectedPageCount: string; selectedCopies?: string; decorationSurcharge?: number; totalPrice: number; selectedLamination?: string; selectedPageLamination?: string; selectedUrgency?: string | null; enableKalka?: boolean; enableEndpaper?: boolean; /** За які форзаци людина заплатила. Окреме від enableEndpaper: той — відповідь конфігуратора на своє питання, це — факт оплати в редакторі. */ endpaperPaid?: { first: boolean; last: boolean }; minPageCount?: number; productImage?: string; }
 
 export type CoverDecoType = 'none'|'acryl'|'photovstavka'|'flex'|'metal'|'graviruvannya';
 

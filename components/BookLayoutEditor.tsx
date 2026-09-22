@@ -1725,6 +1725,12 @@ export default function BookLayoutEditor() {
             }
             if (d.qrOverlays) setQrOverlays(d.qrOverlays);
             if (typeof d.generatedQRCount === 'number') setGeneratedQRCount(d.generatedQRCount);
+            // Оплачений форзац переживає перезавантаження вкладки. Без цього
+            // рядка звичайний F5 замикав його назад, і сторінка, за друк якої
+            // уже заплачено, ставала заглушкою.
+            if (d.endpaperUnlocked && typeof d.endpaperUnlocked === 'object') {
+              setEndpaperUnlocked({ first: !!d.endpaperUnlocked.first, last: !!d.endpaperUnlocked.last });
+            }
           }
         }
       } catch {}
@@ -1845,7 +1851,10 @@ export default function BookLayoutEditor() {
         // kalkaState теж у чернетці: без нього все, що людина написала чи
         // поклала на кальку, живе лише в памʼяті вкладки й зникає при
         // перезавантаженні — див. коментар біля overlays_data нижче.
-        const draft = { productSlug: slug, pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount, kalkaState };
+        // endpaperUnlocked теж у чернетці: інакше звичайне перезавантаження
+        // вкладки замикає форзац, за який уже заплачено, і сторінка з фото
+        // стає заглушкою на очах у людини.
+        const draft = { productSlug: slug, pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount, kalkaState, endpaperUnlocked };
         sessionStorage.setItem(draftKey, JSON.stringify(draft));
         setSaveStatus('saved');
         // Reset to idle after 3 seconds
@@ -1855,6 +1864,13 @@ export default function BookLayoutEditor() {
       }
     }, 1500); // debounce 1500ms — wait for user to stop editing
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+    // endpaperUnlocked свідомо НЕ в залежностях: він оголошений нижче за цей
+    // ефект, і в масиві залежностей, який рахується під час рендера, це вже
+    // помилка часу виконання (усередині колбека — ні, бо той біжить пізніше).
+    // Втрати тут немає: форзац розблоковують РАДИ ТОГО, щоб одразу щось на
+    // нього покласти, а ця правка і перезапускає збереження чернетки. Надійні
+    // копії — та, що йде в базу, і знімок для оформлення — беруть configForSave
+    // у момент виклику, тож вони завжди свіжі.
   }, [pages, freeSlots, pageStickers, pageShapes, pageBgs, coverState, qrOverlays, generatedQRCount]);
 
   // Auto-switch to cover tab on page 0
@@ -2329,12 +2345,46 @@ export default function BookLayoutEditor() {
   // total included the форзац print. A pre-ordered форзац starts unlocked:
   // the customer designs the pages they already paid for, and the pricing
   // block below counts the surcharge without listing it as a «доплата».
+  //
+  // ОПЛАЧЕНЕ РОЗБЛОКУВАННЯ ЖИЛО ТІЛЬКИ В ПАМʼЯТІ ВКЛАДКИ, і це окрема поломка.
+  // `endpaperUnlocked` — звичайний стан React, який ніде не зберігався, а
+  // відновлювався єдиним шляхом, із `config.enableEndpaper`. Для журналу з
+  // МʼЯКОЮ обкладинкою той прапорець не може бути нічим, окрім false:
+  // галочку в конфігураторі показує shouldShowEndpaperOption(), і тільки для
+  // тревелбука та журналу з твердою обкладинкою. Тобто людина розблоковувала
+  // форзаци тут, платила за них (TM-001352 — 200 ₴, опція «Так (перший +
+  // останній)»), а на будь-якому повторному відкритті — свому з «Мої дизайни»
+  // чи дизайнерському переекспорті — обидва форзаци поверталися ЗАМКНЕНИМИ.
+  // Замкнений форзац малюється заглушкою, а clearShifted() у видаленні
+  // розвороту стирає з нього фото й текст як із неоплаченого.
+  //
+  // Тому оплата тепер зберігається СВОЇМ полем `endpaperPaid`, поруч із
+  // конфігом і разом із ним у кожному зі шляхів збереження. `enableEndpaper`
+  // не чіпаємо: це відповідь конфігуратора на своє питання, і вона лишається
+  // чесною відповіддю «цей товар такої галочки не мав».
   useEffect(() => {
+    const paid = config?.endpaperPaid;
+    if (hasEndpaper && paid && typeof paid === 'object') {
+      setEndpaperUnlocked({ first: !!paid.first, last: !!paid.last });
+      return;
+    }
     if (config?.enableEndpaper && hasEndpaper) {
       setEndpaperUnlocked({ first: true, last: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config?.enableEndpaper, hasEndpaper]);
+  }, [config?.enableEndpaper, config?.endpaperPaid, hasEndpaper]);
+
+  /**
+   * Конфіг у тому вигляді, у якому він ЗБЕРІГАЄТЬСЯ.
+   *
+   * Один на всі три шляхи збереження — чернетку в базі, знімок для оформлення
+   * і локальну чернетку вкладки. Якби кожен збирав його сам, вони б розійшлися
+   * рівно так, як свого часу розійшлися дві копії панелі фото.
+   */
+  const configForSave = React.useMemo(
+    () => (config ? { ...config, endpaperPaid: { ...endpaperUnlocked } } : config),
+    [config, endpaperUnlocked],
+  );
 
   // Printer geometry, fetched once. /api/print/geometry reads photobook_sizes
   // and derives sheet, finished spread, real overhang and keep-clear margins —
@@ -3967,7 +4017,10 @@ export default function BookLayoutEditor() {
         // напис, картинка, календарик — існував лише в памʼяті відкритої
         // вкладки. Тому в TM-001243 калька в замовленні є, а файлу, схожого
         // на кальку, у макеті немає: зберігати було нічого.
-        overlays_data: { pageStickers, pageShapes, pageBgs, freeSlots, qrOverlays, generatedQRCount, kalkaState, config },
+        // config їде через configForSave — він несе `endpaperPaid`, тобто те,
+        // за які форзаци людина заплатила. Без цього поля наступне відкриття
+        // макета замикає оплачений форзац назад.
+        overlays_data: { pageStickers, pageShapes, pageBgs, freeSlots, qrOverlays, generatedQRCount, kalkaState, config: configForSave },
         uploaded_photos: uploadedPhotosMeta,
         updated_at: new Date().toISOString(),
       };
@@ -5500,7 +5553,10 @@ export default function BookLayoutEditor() {
         // забрати макет іншого — див. lib/orders/design-ownership.ts.
         cartItemId: cartPayload.id,
         pages, coverState, pageStickers, pageShapes, pageBgs,
-        freeSlots, qrOverlays, generatedQRCount, config,
+        freeSlots, qrOverlays, generatedQRCount,
+        // Саме configForSave, а не config: у ньому лежить `endpaperPaid`, і
+        // без нього макет, збережений оформленням, забуває оплачений форзац.
+        config: configForSave,
         uploadedPhotos: uploadedPhotosMeta,
       };
       // Keyed by cartPayload.id — checkout forwards `design_<itemId>` to the
