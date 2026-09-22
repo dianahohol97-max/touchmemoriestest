@@ -1923,7 +1923,21 @@ export default function BookLayoutEditor() {
           // worse trade than telling them. Keep it and say so. A draft that is
           // short by more than that really is from another configuration and
           // still gets rebuilt, exactly as before.
-          const isOldForzatShape = draftHasEndpaper && draftContent === total;
+          //
+          // This protection only applies when REOPENING a design the customer
+          // actually saved (isReopen) — TM-001354, 2026-09-22. The draft key is
+          // `bookEditorDraft_${productSlug}`, shared by every cart item of that
+          // slug, not scoped per cart item. All four Travel Book positions in
+          // that order landed in the old shape (2 forzats carved out of the
+          // ordered count) despite being brand-new builds, because a leftover
+          // old-shape draft under the shared key got preserved-and-warned
+          // instead of rebuilt. Гоча про "isOldForzatShape" existed to protect
+          // real customer work on reopen, not to freeze a fresh build onto
+          // whatever stale draft happens to sit under that slug's key — so a
+          // fresh (non-reopened) session now falls through to the normal
+          // freshness check below, which already discards a short/stale draft
+          // and rebuilds in the correct new (forzats-as-extra-pages) shape.
+          const isOldForzatShape = isReopen && draftHasEndpaper && draftContent === total;
           if (isOldForzatShape && !pageCountWarnedRef.current) {
             pageCountWarnedRef.current = true;
             setTimeout(() => {
