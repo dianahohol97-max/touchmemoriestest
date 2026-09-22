@@ -3332,7 +3332,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                             {d.name || d.id}
                                                             {d.format ? <span style={{ color: '#64748b' }}> · {d.format}</span> : null}
                                                         </span>
-                                                        <a href={`/uk/editor/${d.id}`} target="_blank" rel="noopener noreferrer"
+                                                        {/* /editor/open/… — місток, який передає макет у СПРАВЖНІЙ
+                                                            конструктор. Доти тут стояло /editor/{id}: інший,
+                                                            недобудований редактор, який читає pages_data як власний
+                                                            формат, падає на page.background.type і показує порожнє
+                                                            полотно, а його «Скачати PDF» віддає обкладинку плюс чисті
+                                                            аркуші. */}
+                                                        <a href={`/uk/editor/open/${d.id}`} target="_blank" rel="noopener noreferrer"
                                                             style={{ padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
                                                             Відкрити в редакторі
                                                         </a>

@@ -12,7 +12,11 @@ export function buildLifecycleEmail(
     siteUrl: string,
 ): { subject: string; html: string } {
     const accountUrl = `${siteUrl}/uk/account`;
-    const editorUrl = `${siteUrl}/uk/editor/${projectId}`;
+    // /editor/open/… — місток, який передає макет у СПРАВЖНІЙ конструктор.
+    // Доти лист вів на /editor/{id}: інший, недобудований редактор, який читає
+    // pages_data як власний формат і показує порожнє полотно. Людина,
+    // запрошена «продовжити оформлення», бачила свій макет порожнім.
+    const editorUrl = `${siteUrl}/uk/editor/open/${projectId}`;
 
     const configs = {
         '24h': {

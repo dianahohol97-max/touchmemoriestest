@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, ChevronLeft, ChevronRight, Download, AlertCircle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 import * as fabric from 'fabric'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -352,14 +352,25 @@ export default function PreviewModal({ project, onClose }: PreviewModalProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white rounded-lg transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            {isExporting ? 'Експорт...' : 'Скачати PDF'}
-          </button>
+          {/* «Скачати PDF» прибрано з екрана, а не полагоджено.
+
+              Кнопка віддавала ОБКЛАДИНКУ ПЛЮС ЧИСТІ АРКУШІ: у handleExportPDF
+              нижче цикл по сторінках робить pdf.addPage() і більше нічого —
+              рядки рендеру так і лишилися коментарями. Саме це видно на відео
+              Діани від 22.09.2026, де в завантаженому PDF «форзаців не видно
+              взагалі»: там не видно нічого, крім обкладинки.
+
+              Полагодити її не можна, не полагодивши весь цей редактор: він
+              читає pages_data конструктора як власний формат і падає на
+              page.background.type ще до того, як хтось натисне експорт. Обидва
+              живі посилання сюди — картка замовлення і лист-нагадування —
+              переведені на місток /editor/open/[projectId], тож екран лишився
+              без входу. Кнопка, яка віддає порожній файл, гірша за її
+              відсутність: людина думає, що має макет.
+
+              Повний PDF макета збирає адмінка («PDF» поруч із ZIP) із файлів,
+              які зробив сервіс рендеру. handleExportPDF лишається на місці як
+              заготовка — доти, доки цей редактор або доростуть, або приберуть. */}
 
           <button
             onClick={() => router.push('/order')}
