@@ -1,6 +1,7 @@
 import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
+import { checkEndpapers, itemForProject } from '@/lib/print/endpaper-files';
 
 /**
  * Чи можна це друкувати — перевірка самих файлів, а не їхньої наявності.
@@ -18,7 +19,7 @@ import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type S
  * ловляться за секунду, якщо просто відкрити картинку й подивитися на розмір і
  * на те, чи є в ній хоч щось.
  *
- * Тут рівно дві перевірки, обидві без здогадів:
+ * Тут три перевірки, усі без здогадів:
  *
  *   1. РОЗМІР — тільки для розворотів і посторінкових файлів, де друкарня
  *      вимагає точне число. Обкладинки не міряються: книга побажань малюється
@@ -26,6 +27,16 @@ import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type S
  *      менша за 300 DPI, і міряти її означало б скаржитись на кожну.
  *   2. ПОРОЖНЕЧА — файл однієї суцільної заливки, без жодного вмісту. Це і
  *      бежевий прямокутник, і білий аркуш від рендера, який не дочекався фото.
+ *   3. ФОРЗАЦИ — єдиний аркуш, якого в наборі може законно не бути. Рендер
+ *      мовчки пропускає порожній форзац, тож «пропущено навмисне» і
+ *      «загубилося» виглядають однаково: файлу просто немає. TM-001352 —
+ *      журнал із купленим друком на обох форзацах приїхав з одним, і це
+ *      побачили аж тоді, коли перерахували аркуші руками.
+ *
+ * Третя перевірка дивиться не в байти, а в набір, тож вона не потребує
+ * завантаження файлів і не має власної ціни. Вона ж каже, чи має сенс радити
+ * перегенерацію: порожній форзац перегенерацією не лікується, там потрібне
+ * рішення людини.
  *
  * Чого тут навмисно немає: жодних «схоже на» і жодних припущень про красу
  * макета. Помилкова тривога змусить дівчат ігнорувати попередження, і тоді
@@ -42,6 +53,15 @@ const MAX_FILES_PER_ORDER = 4;
 export interface PrintQualityReport {
     checked: number;
     problems: string[];
+    /**
+     * Чи лікується знайдене перегенерацією.
+     *
+     * Порада «не в друк, поки не перегенеруєте» правильна для кривого розміру
+     * й порожнього аркуша і неправильна для форзаца, якого клієнтка не
+     * заповнила: там рендер щоразу чесно віддасть те саме. Порада, яка не
+     * працює, вчить не читати попереджень.
+     */
+    needsRerender: boolean;
 }
 
 // Клас файлу беремо з file_category, а не з імені. Імена різні в різних
@@ -68,6 +88,8 @@ export async function auditOrderPrintQuality(orderId: string): Promise<PrintQual
     const admin = getAdminClient();
     const problems: string[] = [];
     let checked = 0;
+    /** Скільки проблем знайдено в самих файлах — саме вони лікуються рендером. */
+    let fileProblems = 0;
 
     const { data: files } = await admin
         .from('order_files')
@@ -78,19 +100,37 @@ export async function auditOrderPrintQuality(orderId: string): Promise<PrintQual
         .order('file_name', { ascending: true });
 
     const rows = files || [];
-    if (!rows.length) return { checked: 0, problems: [] };
+    if (!rows.length) return { checked: 0, problems: [], needsRerender: false };
+
+    // Макети замовлення читаються один раз на всі перевірки: геометрію беремо
+    // з найсвіжішого, а форзаци звіряємо в КОЖНОМУ — у замовленні з кількома
+    // книгами порожній форзац може бути лише в одній.
+    const { data: projs } = await admin
+        .from('projects')
+        .select('id, product_type, format, pages_data, overlays_data, cart_payload, updated_at')
+        .eq('order_id', orderId)
+        .order('updated_at', { ascending: false });
+    const projects = (projs || []) as any[];
+
+    if (projects.length) {
+        const { data: ord } = await admin
+            .from('orders').select('items').eq('id', orderId).maybeSingle();
+        for (const proj of projects) {
+            const mine = rows.filter(f => String(f.file_path || '').includes(String(proj.id)));
+            // Файл без теки макета зіставити ні з чим: єдиний виріб забирає
+            // весь набір, кілька виробів — нічого, бо приписати чужий аркуш
+            // гірше, ніж промовчати.
+            const names = (mine.length ? mine : (projects.length === 1 ? rows : []))
+                .map(f => String(f.file_name || ''));
+            problems.push(...checkEndpapers(proj, itemForProject((ord as any)?.items, proj), names).problems);
+        }
+    }
 
     // Геометрія потрібна лише для розворотів і сторінок. Якщо розміру визначити
     // не вдалося — міряти нічого, але порожнечу перевіряємо все одно.
     let geo: ReturnType<typeof deriveGeometry> = null;
     try {
-        const { data: projs } = await admin
-            .from('projects')
-            .select('product_type, format, overlays_data')
-            .eq('order_id', orderId)
-            .order('updated_at', { ascending: false })
-            .limit(1);
-        const proj: any = (projs || [])[0];
+        const proj: any = projects[0];
         if (proj) {
             const sizeKey = resolveProjectSizeKey({
                 product_type: proj.product_type,
@@ -130,6 +170,7 @@ export async function auditOrderPrintQuality(orderId: string): Promise<PrintQual
                 && (stats.channels || []).every(c => (c.stdev ?? 0) < FLAT_STDEV);
             if (flat) {
                 problems.push(`${f.file_name} — суцільна заливка без вмісту`);
+                fileProblems++;
                 continue; // розмір такого файлу вже не має значення
             }
 
@@ -148,11 +189,12 @@ export async function auditOrderPrintQuality(orderId: string): Promise<PrintQual
                 problems.push(
                     `${f.file_name} — ${mmW}×${mmH} мм замість ${wantMm.w}×${wantMm.h}`,
                 );
+                fileProblems++;
             }
         } catch {
             // Один нечитаний файл не має зупиняти перевірку решти.
         }
     }
 
-    return { checked, problems };
+    return { checked, problems, needsRerender: fileProblems > 0 };
 }

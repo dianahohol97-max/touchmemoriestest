@@ -222,7 +222,14 @@ export async function GET(request: Request) {
             const report = await auditOrderPrintQuality(order.id);
             if (report.checked > 0) stats.qualityChecked++;
             if (report.problems.length) {
-              const warn = `⚠️ Перевірте макет: ${report.problems.join('; ')}. Не в друк, поки не перегенеруєте.`;
+              // Порада мусить відповідати знахідці. «Перегенеруйте» лікує
+              // кривий розмір і порожній аркуш, але не форзац, якого клієнтка
+              // не заповнила: там рендер щоразу віддасть те саме, і порада, яка
+              // не працює, вчить не читати попереджень узагалі.
+              const tail = report.needsRerender
+                ? 'Не в друк, поки не перегенеруєте.'
+                : 'Не в друк, поки не розберетеся з цим.';
+              const warn = `⚠️ Перевірте макет: ${report.problems.join('; ')}. ${tail}`;
               const { data: cur } = await admin.from('orders').select('notes').eq('id', order.id).maybeSingle();
               const prev = (cur?.notes || '').trim();
               await admin.from('orders')

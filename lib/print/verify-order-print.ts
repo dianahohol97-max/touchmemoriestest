@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
 import { referencedPhotoIds } from '@/lib/print/resolve-photo-paths';
+import { checkEndpapers, itemForProject } from '@/lib/print/endpaper-files';
 
 /**
  * Чи відповідає надрукований комплект тому, що склала клієнтка.
@@ -71,11 +72,11 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
     const admin = getAdminClient();
 
     const { data: order } = await admin
-        .from('orders').select('order_number').eq('id', orderId).maybeSingle();
+        .from('orders').select('order_number, items').eq('id', orderId).maybeSingle();
 
     const { data: projects } = await admin
         .from('projects')
-        .select('id, product_type, format, total_pages, pages_data, cover_data, overlays_data, uploaded_photos, created_at')
+        .select('id, product_type, format, total_pages, pages_data, cover_data, overlays_data, uploaded_photos, cart_payload, created_at')
         .eq('order_id', orderId)
         .order('created_at', { ascending: true });
 
@@ -200,11 +201,23 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
                 problems.push('задня обкладинка порожня — лише заливка, без фото і без тексту');
             }
         }
+        /**
+         * Форзаци рахуються окремо, бо вони — єдині сторінки, яких у наборі
+         * може законно не бути: порожній форзац рендер навмисне не вантажить.
+         * Доти порівняння йшло просто «файлів проти сторінок макета», і кожна
+         * книга з порожніми форзацами отримувала «рендер не дійшов до кінця»
+         * при цілому комплекті. Помилкова тривога дорожча за відсутню: після
+         * неї на попередження перестають дивитися взагалі.
+         */
+        const endpapers = checkEndpapers(proj, itemForProject((order as any)?.items, proj), mine.map(f => String(f.file_name || '')));
+        const expectedPages = Math.max(0, designPages - endpapers.skipped);
+
         if (!referenced.size) problems.push('у макеті не розставлено жодного фото — це порожня чернетка');
         if (!hasCover) problems.push('немає файлу обкладинки');
         if (pageFiles.length === 0) problems.push('немає жодного файлу сторінок');
-        else if (pageFiles.length < designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — рендер не дійшов до кінця`);
-        else if (pageFiles.length > designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — лишилися файли попереднього макета`);
+        else if (pageFiles.length < expectedPages) problems.push(`сторінок у файлах ${pageFiles.length}, а мало бути ${expectedPages} — рендер не дійшов до кінця`);
+        else if (pageFiles.length > expectedPages) problems.push(`сторінок у файлах ${pageFiles.length}, а мало бути ${expectedPages} — лишилися файли попереднього макета`);
+        problems.push(...endpapers.problems);
         if (photosWithoutFile > 0) problems.push(`${photosWithoutFile} поставлених фото не мають файлу у сховищі — на папері буде порожньо`);
         if (blank.length) problems.push(`порожні аркуші: ${blank.slice(0, 8).join(', ')}${blank.length > 8 ? ` і ще ${blank.length - 8}` : ''}`);
         if (wrongSize.length) problems.push(`не той розмір: ${wrongSize.slice(0, 4).join('; ')}${wrongSize.length > 4 ? ` і ще ${wrongSize.length - 4}` : ''}`);
