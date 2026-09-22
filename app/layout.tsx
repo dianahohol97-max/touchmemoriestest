@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
-import { Montserrat, Open_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import { AnalyticsProvider } from '@/components/providers/AnalyticsProvider';
@@ -21,19 +21,33 @@ import InAppBrowserBanner from '@/components/InAppBrowserBanner';
 import { SITE_INFO } from '@/lib/seoContent';
 import { getBaseUrl } from '@/lib/seo/locales';
 
-const montserrat = Montserrat({
+// Both fonts come from files in app/fonts/ instead of next/font/google. That
+// loader downloads from fonts.googleapis.com DURING THE BUILD, and on
+// 2026-09-22 one such download failed: deploy c222c889 went ERROR on a
+// module-not-found inside the generated font CSS, on a commit that touched only
+// lib/ and tests/, and the identical code built green on the next try. This
+// layout is the root one, so its fonts were pulled by every single build.
+//
+// The files are variable fonts — which is also what Google was serving, the
+// same file URL for every weight — so one file covers the whole axis and the
+// weight range below is what the browser interpolates from. Weights actually
+// used are unchanged: 700 for body and 900 for headings on Montserrat, 400 and
+// 600 on Open Sans. Subsets are unchanged too (latin + cyrillic).
+const montserrat = localFont({
+  src: "./fonts/Montserrat-Variable.woff2",
   variable: "--font-montserrat",
-  subsets: ["latin", "cyrillic"],
-  weight: ['700', '900'],          // reduced from ['600','700','800','900'] — 700 for body, 900 for headings
+  weight: '100 900',
+  style: 'normal',
   display: 'swap',
   preload: true,
   fallback: ['Arial', 'Helvetica', 'sans-serif'],  // instant fallback while font loads
 });
 
-const openSans = Open_Sans({
+const openSans = localFont({
+  src: "./fonts/OpenSans-Variable.woff2",
   variable: "--font-open-sans",
-  subsets: ["latin", "cyrillic"],
-  weight: ['400', '600'],          // reduced from ['400','500','600','700']
+  weight: '300 800',
+  style: 'normal',
   display: 'swap',
   preload: false, // secondary font — don't block LCP
 });

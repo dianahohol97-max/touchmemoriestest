@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Cormorant_Garamond, Caveat } from 'next/font/google';
+import localFont from 'next/font/local';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getBaseUrl } from '@/lib/seo/locales';
 import GalleryClient from './GalleryClient';
@@ -9,23 +9,38 @@ export const dynamic = 'force-dynamic';
 // Display fonts the photographer can pick in the gallery design constructor.
 // Cyrillic subsets are required — gallery titles are Ukrainian. Montserrat is
 // NOT loaded here: the root layout already provides it as --font-heading.
-const serif = Playfair_Display({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
+//
+// The files live in app/fonts/ instead of coming from next/font/google, which
+// downloads them over the network at build time. This page is the one that
+// actually broke it: deploy c222c889 on 2026-09-22 went ERROR with a
+// module-not-found in the generated playfair_display CSS on a commit that had
+// nothing to do with fonts. See app/fonts/README.md.
+//
+// Same three families, same weights, same styles, same subsets as before. Each
+// file is a variable font — Google was serving variable files here too — so the
+// weight range covers 400/500/600 and the browser interpolates the exact one.
+const serif = localFont({
+  src: [
+    { path: '../../../fonts/PlayfairDisplay-Variable.woff2', weight: '400 900', style: 'normal' },
+    { path: '../../../fonts/PlayfairDisplay-Italic-Variable.woff2', weight: '400 900', style: 'italic' },
+  ],
   variable: '--font-gallery-serif',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600'],
-  style: ['normal', 'italic'],
+const cormorant = localFont({
+  src: [
+    { path: '../../../fonts/CormorantGaramond-Variable.woff2', weight: '300 700', style: 'normal' },
+    { path: '../../../fonts/CormorantGaramond-Italic-Variable.woff2', weight: '300 700', style: 'italic' },
+  ],
   variable: '--font-gallery-cormorant',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
-const caveat = Caveat({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '600'],
+const caveat = localFont({
+  src: '../../../fonts/Caveat-Variable.woff2',
+  weight: '400 700',
+  style: 'normal',
   variable: '--font-gallery-caveat',
   display: 'swap',
 });

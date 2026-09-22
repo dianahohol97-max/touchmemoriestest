@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Cormorant_Garamond } from 'next/font/google';
+import localFont from 'next/font/local';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
   ALBUM_BATCH_SIZE,
@@ -27,11 +27,16 @@ export const dynamic = 'force-dynamic';
 // «album» заборонений перевіркою в базі, щоб подія колись не заступила цю
 // сторінку — статичний сегмент у Next.js завжди виграє в динамічного.
 
-const display = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600'],
+// Шрифт той самий, що й на гостьовій сторінці, і з тієї ж причини береться з
+// файлу в app/fonts/, а не з next/font/google: той ходить по мережу під час
+// збірки. Подробиці — app/fonts/README.md.
+const display = localFont({
+  src: '../../../fonts/CormorantGaramond-Variable.woff2',
+  weight: '300 700',
+  style: 'normal',
   variable: '--font-wedding-display',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
 
 interface Props {

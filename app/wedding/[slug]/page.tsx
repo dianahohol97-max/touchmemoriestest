@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Cormorant_Garamond } from 'next/font/google';
+import localFont from 'next/font/local';
 import { getAdminClient } from '@/lib/supabase/admin';
 import type { WeddingEvent } from '@/lib/wedding/config';
 import WeddingPageClient from './WeddingPageClient';
@@ -14,11 +14,19 @@ export const dynamic = 'force-dynamic';
 // Написи на цій сторінці — не інтерфейс магазину, а підпис до фотографії, тож
 // і шрифт тут інший. Cormorant уже завантажується в клієнтських галереях, тобто
 // нової залежності не додає.
-const display = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600'],
+//
+// Файл лежить у app/fonts/, а не тягнеться через next/font/google: той
+// завантажує шрифт по мережі В МОМЕНТ ЗБІРКИ, і 22.09.2026 збірка від цього
+// впала на комміті, який шрифтів не чіпав. Подробиці — app/fonts/README.md.
+// Накреслення, ваги і підмножини ті самі; файл змінний, тож 400, 500 і 600
+// беруться з одного діапазону.
+const display = localFont({
+  src: '../../fonts/CormorantGaramond-Variable.woff2',
+  weight: '300 700',
+  style: 'normal',
   variable: '--font-wedding-display',
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 });
 
 interface Props {

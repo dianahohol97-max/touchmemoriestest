@@ -56,6 +56,7 @@ The 47 markdown files in the repo root are historical (per-feature implementatio
 | Certificates (gift cards) | `lib/certificates/` + `app/admin/certificates/` | Code generation, validation |
 | Blog | `app/admin/blog/` + `app/[locale]/blog/` + `lib/blog/` | Posts live in Supabase `blog_posts`, not in files. MD editor in admin via @uiw/react-md-editor. Publishing is a queue driven by `/api/cron/blog-publish` — see "Blog" below |
 | SEO (canonical, hreflang, redirects, sitemap, schema) | `lib/seo/` + `app/sitemap.ts` + `app/robots.ts` + `redirects()` in `next.config.ts` + `components/seo/` | See "SEO surface" below. Check redirects with `node scripts/redirect-chains.mjs` before committing |
+| Site UI fonts | `app/fonts/*.woff2` + `next/font/local` in `app/layout.tsx`, the gallery page and the two wedding pages | **Never `next/font/google`** — it downloads over the network at build time and a failed download marks the whole deploy ERROR (this happened on `c222c889`, 22.09.2026). Rebuild the files with `python3 scripts/build-local-fonts.py`; rationale and the per-file weight table in `app/fonts/README.md`. Editor fonts are a separate thing — those are 98 runtime-loaded fonts from `lib/editor/constants.ts` |
 
 ---
 
