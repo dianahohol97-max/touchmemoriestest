@@ -71,9 +71,25 @@ export async function POST(req: NextRequest) {
    * наново, і поки цього ніхто не зробив, замовлення стоїть із діркою в
    * макеті. Тому сумнів тлумачиться на користь «неповний».
    */
-  const complete = isRenderComplete(body);
+  /**
+   * ДОКАТ окремих аркушів прибирати не має права взагалі.
+   *
+   * Коли /api/print/render-order повторює обірваний прогін, він просить сервіс
+   * саме про ті аркуші, що впали (`only: [2, 7]`), і сервіс позначає такий
+   * прогін `subset: true`. Файлів у ньому за визначенням мало — два з двадцяти,
+   * — а `failed` порожній, бо ці два зібралися. Без окремої умови колбек
+   * прочитав би це як повний успішний рендер і зніс усе, чого немає в наборі з
+   * двох файлів: рівно та поломка, від якої лікували TM-001342, тільки причина
+   * інша. Реєстрація при цьому потрібна й відбувається вище — файли справжні.
+   */
+  const subset = (body as any)?.subset === true;
+  const complete = !subset && isRenderComplete(body);
   const failed = failedSpreadCount(body);
-  if (complete) {
+  if (subset) {
+    console.log('[render-complete] докат аркушів — файли зареєстровано, прибирання не чіпаємо', {
+      projectId, orderId: project.order_id, uploaded: uploaded.length, failed,
+    });
+  } else if (complete) {
     // Прибирати можна ТІЛЬКИ файли цього макета. Цей колбек приходить від сервісу
     // на кожен окремий виріб, і без обмеження він зносив макети сусідніх книг
     // того самого замовлення — саме так TM-001234 двічі втратило вже готову
@@ -128,6 +144,9 @@ export async function POST(req: NextRequest) {
         // сьогодні» в адмінці виглядає однаково і для цілого макета, і для
         // того, що привіз половину.
         failed,
+        // Докат кількох аркушів — це не «останній рендер макета». Без цього
+        // поля рядок «files: 2» читався б як катастрофа на книзі з двадцяти.
+        subset,
       },
       updated_at: new Date().toISOString(),
     }).then(() => {}, () => {});
@@ -139,10 +158,11 @@ export async function POST(req: NextRequest) {
     files: uploaded.length,
     failed,
     complete,
+    subset,
     insertError,
     // Which service build produced the render — the fastest way to spot a
     // stale Railway deploy in the logs.
     serviceCommit: String(body?.serviceCommit || 'unknown'),
   });
-  return NextResponse.json({ ok: !insertError, files: uploaded.length, failed, complete, insertError });
+  return NextResponse.json({ ok: !insertError, files: uploaded.length, failed, complete, subset, insertError });
 }

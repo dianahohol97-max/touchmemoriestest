@@ -45,6 +45,7 @@ async function reportRenderComplete(
   projectId: string,
   uploaded: string[],
   failed: { spread: number; error: string }[] = [],
+  subset = false,
 ): Promise<void> {
   if (!uploaded.length) return;
   try {
@@ -54,10 +55,14 @@ async function reportRenderComplete(
       // app's own logs. Without it the only record of which pages died lived in
       // Railway's console, and by the time anyone noticed the missing files it
       // had rotated away.
+      //
+      // `subset` каже, що прогін був доКАТОМ названих аркушів, а не цілим
+      // макетом. Без нього колбек про два докочені аркуші виглядає як успішний
+      // рендер із двох файлів, і прибирання на тому боці знесе решту.
       headers: { 'Content-Type': 'application/json', 'x-render-token': PRINT_RENDER_TOKEN },
-      body: JSON.stringify({ projectId, uploaded, failed, serviceCommit: SERVICE_COMMIT }),
+      body: JSON.stringify({ projectId, uploaded, failed, subset, serviceCommit: SERVICE_COMMIT }),
     });
-    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files${failed.length ? `, ${failed.length} failed` : ''})`);
+    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files${failed.length ? `, ${failed.length} failed` : ''}${subset ? ', subset' : ''})`);
   } catch (e: any) {
     console.error('[render] completion callback failed:', e?.message || e);
   }
@@ -197,8 +202,33 @@ app.post('/render', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const { projectId } = req.body || {};
+  const { projectId, only, subset } = req.body || {};
   if (!projectId) return res.status(400).json({ error: 'projectId required' });
+
+  /**
+   * ДОКАТ ОКРЕМИХ АРКУШІВ.
+   *
+   * `only: [2, 7]` просить перерендерити саме ці аркуші (номер той самий, що
+   * сервіс віддає у `failed[].spread` / `failed[].page`), решту пропустити.
+   * Так /api/print/render-order повторює прогін, обірваний підміною контейнера
+   * на Railway, не ганяючи заново всю книгу: на двадцятисторінковому макеті це
+   * різниця між двома хвилинами і п'ятнадцятьма секундами, і саме вона
+   * вирішує, чи встигне маршрут у свої 300 секунд.
+   *
+   * `subset: true` каже, що це саме докат, а не повний прогін. Прапорець їде у
+   * колбек завершення, і /api/print/render-complete через нього НЕ вважає
+   * неназвані файли застарілими. Без нього докат двох аркушів виглядав би як
+   * успішний прогін, який приніс два файли, і прибирання знесло б решту
+   * макета — та сама поломка, від якої лікували TM-001342, тільки з іншого
+   * боку.
+   */
+  const onlyIdx: Set<number> | null = Array.isArray(only)
+    ? new Set(only.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0))
+    : null;
+  const isSubset = subset === true && !!onlyIdx && onlyIdx.size > 0;
+  if (onlyIdx) {
+    console.log(`[render] ${projectId}: докат аркушів ${[...onlyIdx].sort((a, b) => a - b).join(', ')}${isSubset ? ' (subset)' : ''}`);
+  }
 
   try {
     // 1. Learn the project's size + spread count from the app's print API.
@@ -329,6 +359,7 @@ app.post('/render', async (req, res) => {
       const selector = printSpec.selector || '[data-print-page]';
       const failed: { page: number; error: string }[] = [];
       for (let i = 0; i < printSpec.pages.length; i++) {
+        if (onlyIdx && !onlyIdx.has(i)) continue;
         const mm = printSpec.pages[i];
         const pxW = mmToPx(mm.w);
         const pxH = mmToPx(mm.h);
@@ -381,8 +412,13 @@ app.post('/render', async (req, res) => {
           await recycleBrowserIfNeeded(pxW * pxH);
         }
       }
-      await reportRenderComplete(projectId, uploaded);
-      return res.json({ ok: true, projectId, pages: printSpec.pages.length, uploaded, failed });
+      // `failed` мусить їхати в колбек, і раніше тут його не було: колбек читав
+      // лише `uploaded`, тож календар, у якому впали три сторінки з дванадцяти,
+      // приходив у /api/print/render-complete як звичайний успіх — і прибирання
+      // вважало застарілим усе, чого немає в неповному наборі. Книжкова гілка
+      // нижче передавала його з самого початку; ця відставала.
+      await reportRenderComplete(projectId, uploaded, failed.map(f => ({ spread: f.page, error: f.error })), isSubset);
+      return res.json({ ok: failed.length === 0, projectId, pages: printSpec.pages.length, uploaded, failed });
     }
 
     // ── Book path (spreads) ─────────────────────────────────────────────────
@@ -482,6 +518,7 @@ app.post('/render', async (req, res) => {
     // page files were missing from the макет with nothing in the app to say so.
     const failedSpreads: { spread: number; error: string }[] = [];
     for (let spread = 0; spread < spreadCount; spread++) {
+      if (onlyIdx && !onlyIdx.has(spread)) continue;
       const isCover = spread === 0;
       const mm = isCover ? dims.cover : dims.spread;
       // Content is always two whole pages (2 × pagePxW — rounding the spread
@@ -834,7 +871,7 @@ app.post('/render', async (req, res) => {
       );
     }
 
-    await reportRenderComplete(projectId, uploaded, failedSpreads);
+    await reportRenderComplete(projectId, uploaded, failedSpreads, isSubset);
     // ok says whether the whole book rendered, and the caller uses it to decide
     // whether the previous export may be pruned. A partial run must never look
     // complete: replacing yesterday's whole макет with five of its files is a

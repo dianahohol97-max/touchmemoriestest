@@ -4,6 +4,17 @@ import { hasPrintWarning, isDesignerInFlight, printWarningLine, stripPrintWarnin
 import { registerExportFiles, pruneStaleExports, pruneExportsOfDetachedProjects } from '@/lib/print/register-export-files';
 import { resolveMissingPhotoPaths, countUnprintablePhotos } from '@/lib/print/resolve-photo-paths';
 import { isRenderComplete } from '@/lib/print/render-result';
+import {
+  MAX_RENDER_ATTEMPTS,
+  RENDER_RETRY_BUDGET_MS,
+  failedEntries,
+  failedIndexOf,
+  isTransientRenderFailure,
+  isTransientRenderStatus,
+  renderRetryDelayMs,
+  transientFailedIndexes,
+  type FailedEntry,
+} from '@/lib/print/render-retry';
 
 export const dynamic = 'force-dynamic';
 // The Railway render of every spread can take 1–2 min for a large book; give the
@@ -200,7 +211,197 @@ async function flagMissingPhotos(admin: ReturnType<typeof getAdminClient>, order
   }
 }
 
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/** Що сталося на одній спробі — йде і в журнал, і у відповідь маршруту. */
+type RenderAttempt = {
+  attempt: number;
+  scope: 'весь макет' | string;
+  status: number | null;
+  uploaded: number;
+  failed: number;
+  outcome: string;
+};
+
+type RenderOutcome = {
+  /** Усі шляхи, які принесли ВСІ спроби разом. */
+  uploaded: string[];
+  /** Аркуші, які так і не зібралися. Порожньо — макет повний. */
+  failed: FailedEntry[];
+  /** Чи макет зібрався цілком. */
+  complete: boolean;
+  /** Тіло останньої відповіді сервісу — його читає нотатка «РЕНДЕР НЕ ВДАВСЯ». */
+  lastDetail: any;
+  attempts: RenderAttempt[];
+};
+
+/**
+ * Попросити сервіс про макет, і попросити ще раз, якщо прогін ОБІРВАЛО.
+ *
+ * Це лікування того, через що макети приїжджали в друк неповними: сервіс
+ * рендеру перезбирався на кожен пуш у main, підміна контейнера вбивала
+ * Chromium посеред прогону, і сторінка падала з «Target page, context or
+ * browser has been closed», а цілий виклик — із 502 «Application failed to
+ * respond». Перша половина лікування (render-service/railway.json) прибирає
+ * саму причину; ця друга лишається на те, що причина не одна — OOM-killer на
+ * важкій книзі виглядає точнісінько так само, а Railway перезапускає сервіс і
+ * сам по собі.
+ *
+ * Правила навмисно вузькі:
+ *
+ *   • Повторюється ТІЛЬКИ обрив (див. lib/print/render-retry.ts). Аркуш, який
+ *     впав через власний вміст, від другої спроби кращим не стане.
+ *   • Повторюються ТІЛЬКИ ті аркуші, що впали, а не весь макет — окрім
+ *     випадку, коли сервіс не відповів узагалі й невідомо, що саме впало.
+ *   • Кожна спроба йде в журнал окремим рядком: «мовчазний повтор» нічим не
+ *     відрізняється від мовчазної поломки, а саме з цього все й почалося.
+ *   • Спроб щонайбільше MAX_RENDER_ATTEMPTS, і нова не починається, якщо на
+ *     неї не лишилося часу функції. Якщо всі провалилися, макет лишається
+ *     ПОЗНАЧЕНИМ як неповний (complete=false): прибирання старих файлів по
+ *     ньому не запускається, а маршрут віддає ok=false, з якого кнопка
+ *     «Перегенерувати» пише на замовленні «РЕНДЕР НЕ ВДАВСЯ».
+ */
+async function renderProjectWithRetry(opts: {
+  renderUrl: string;
+  renderToken: string;
+  orderId: string;
+  projectId: string;
+  /** Момент (Date.now()), після якого нову спробу починати вже пізно. */
+  deadline: number;
+}): Promise<RenderOutcome> {
+  const { renderUrl, renderToken, orderId, projectId, deadline } = opts;
+
+  const uploaded = new Set<string>();
+  /** Аркуші, які ЗАРАЗ вважаються невдалими, за номером. Повний прогін цю мапу замінює, частковий — оновлює тільки свої номери. */
+  const stillFailed = new Map<number, FailedEntry>();
+  /** Невдачі без номера: повторити їх неможливо, але й забути не можна. */
+  let unnumbered: FailedEntry[] = [];
+  /** Які аркуші просимо наступного разу. null — весь макет. */
+  let only: number[] | null = null;
+  let lastDetail: any = null;
+  let lastCallOk = false;
+  const attempts: RenderAttempt[] = [];
+
+  for (let attempt = 1; attempt <= MAX_RENDER_ATTEMPTS; attempt++) {
+    if (attempt > 1) {
+      const delay = renderRetryDelayMs(attempt);
+      if (Date.now() + delay >= deadline) {
+        attempts.push({
+          attempt, scope: only ? `аркуші ${only.join(', ')}` : 'весь макет',
+          status: null, uploaded: 0, failed: stillFailed.size,
+          outcome: 'пропущено — не лишилося часу функції на ще одну спробу',
+        });
+        console.error('[render-order] повтор пропущено — вичерпано час функції', {
+          orderId, projectId, attempt, pending: only,
+        });
+        break;
+      }
+      console.warn('[render-order] чекаємо перед повтором', { orderId, projectId, attempt, delayMs: delay });
+      await sleep(delay);
+    }
+
+    const scope = only ? `аркуші ${only.join(', ')}` : 'весь макет';
+    console.log('[render-order] спроба рендеру', { orderId, projectId, attempt, of: MAX_RENDER_ATTEMPTS, scope });
+
+    let res: Response;
+    let detail: any;
+    try {
+      res = await fetch(`${renderUrl.replace(/\/$/, '')}/render`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-render-token': renderToken },
+        // `only` + `subset` розуміє сервіс: він рендерить лише названі аркуші
+        // і НЕ дає колбеку прибирати чужі файли. Старіша збірка сервісу обидва
+        // поля просто ігнорує і перерендерює весь макет — це повільніше, але
+        // не ламає нічого.
+        body: JSON.stringify(only ? { projectId, only, subset: true } : { projectId }),
+      });
+      detail = await res.json().catch(() => ({}));
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      lastCallOk = false;
+      const transient = isTransientRenderFailure(msg);
+      attempts.push({
+        attempt, scope, status: null, uploaded: 0, failed: stillFailed.size,
+        outcome: `запит не дійшов: ${msg.slice(0, 200)}`,
+      });
+      console.error('[render-order] запит до сервісу впав', { orderId, projectId, attempt, error: msg, transient });
+      lastDetail = { error: msg };
+      if (!transient) break;
+      continue; // `only` лишається як був — невідомо, що саме встигло зібратися
+    }
+
+    lastDetail = detail;
+    lastCallOk = res.ok;
+    const got: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
+    for (const p of got) if (typeof p === 'string' && p) uploaded.add(p);
+
+    if (!res.ok) {
+      const transient = isTransientRenderStatus(res.status, detail);
+      attempts.push({
+        attempt, scope, status: res.status, uploaded: got.length, failed: stillFailed.size,
+        outcome: transient ? 'обрив — пробуємо ще раз' : 'відмова сервісу, повтор не допоможе',
+      });
+      console.error('[render-order] render failed', { orderId, projectId, attempt, status: res.status, detail, transient });
+      if (!transient) break;
+      // `only` не чіпаємо: якщо ми вже просили конкретні аркуші, то просимо
+      // саме їх і далі, а якщо просили весь макет — відповіді про те, що
+      // встигло зібратися, немає, тож весь і лишається.
+      continue;
+    }
+
+    // Відповідь 200. Оновлюємо картину невдач: повний прогін її замінює,
+    // частковий знімає ті номери, про які саме питали, і кладе свої.
+    const entries = failedEntries(detail);
+    if (only) {
+      for (const idx of only) stillFailed.delete(idx);
+    } else {
+      stillFailed.clear();
+      unnumbered = [];
+    }
+    for (const e of entries) {
+      const idx = failedIndexOf(e);
+      if (idx === null) unnumbered.push(e);
+      else stillFailed.set(idx, e);
+    }
+
+    const outstanding = [...stillFailed.values()];
+    if (outstanding.length === 0 && unnumbered.length === 0 && detail?.ok !== false) {
+      attempts.push({ attempt, scope, status: res.status, uploaded: got.length, failed: 0, outcome: 'макет зібрано повністю' });
+      console.log('[render-order] макет зібрано', { orderId, projectId, attempt, uploaded: uploaded.size });
+      break;
+    }
+
+    const retryable = transientFailedIndexes(outstanding);
+    attempts.push({
+      attempt, scope, status: res.status, uploaded: got.length, failed: outstanding.length + unnumbered.length,
+      outcome: retryable.length
+        ? `обірвано аркушів ${retryable.length} — пробуємо саме їх`
+        : 'невдачі не через обрив — повтор не допоможе',
+    });
+    console.error('[render-order] partial render — макет неповний, старі файли лишаємо', {
+      orderId, projectId, attempt, uploaded: uploaded.size,
+      failed: [...outstanding, ...unnumbered], retryable,
+    });
+    if (retryable.length === 0) break;
+    only = retryable;
+  }
+
+  const failed = [...stillFailed.values(), ...unnumbered];
+  return {
+    uploaded: [...uploaded],
+    failed,
+    complete: lastCallOk && failed.length === 0 && isRenderComplete(lastDetail),
+    lastDetail,
+    attempts,
+  };
+}
+
 export async function POST(request: NextRequest) {
+  // Від цієї мітки рахується бюджет повторів: маршрут живе 300 секунд, і нова
+  // спроба має право початися тільки тоді, коли після неї лишиться час
+  // зареєструвати файли. Одна на весь запит, а не на кожен виріб — замовлення
+  // з п'ятьма книгами ділить той самий час функції.
+  const startedAt = Date.now();
   // Internal auth — same secret the webhook uses for fiscalize / email.
   const secret = request.headers.get('x-cron-secret');
   if (!secret || secret !== (process.env.CRON_SECRET || '')) {
@@ -329,18 +530,36 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const res = await fetch(`${renderUrl.replace(/\/$/, '')}/render`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-render-token': renderToken,
-        },
-        body: JSON.stringify({ projectId: project.id }),
+      // Обірваний прогін просимо ще раз — див. renderProjectWithRetry. Усе, що
+      // нижче, дивиться вже на ЗІБРАНИЙ результат усіх спроб: uploaded — це
+      // об'єднання того, що принесла кожна, а complete каже, чи лишився хоч
+      // один аркуш невідрендереним після останньої.
+      const outcome = await renderProjectWithRetry({
+        renderUrl, renderToken, orderId,
+        projectId: String(project.id),
+        deadline: startedAt + RENDER_RETRY_BUDGET_MS,
       });
-      const detail = await res.json().catch(() => ({}));
-      results.push({ projectId: project.id, ok: res.ok, detail });
-      if (!res.ok) {
-        console.error('[render-order] render failed', { orderId, projectId: project.id, status: res.status, detail });
+      const detail = outcome.lastDetail;
+      const uploaded = outcome.uploaded;
+      const failedSpreads = outcome.failed;
+      const complete = outcome.complete;
+      results.push({
+        projectId: project.id,
+        ok: complete,
+        // Спроби їдуть у відповідь разом із тілом останньої: кнопка
+        // «Перегенерувати» пише причину на замовлення саме звідси, і «впало
+        // тричі поспіль» має читатися інакше, ніж «впало один раз».
+        detail: complete
+          ? { ...(detail && typeof detail === 'object' ? detail : {}), attempts: outcome.attempts }
+          : {
+              ...(detail && typeof detail === 'object' ? detail : { error: detail }),
+              attempts: outcome.attempts,
+              note: `неповний макет: ${failedSpreads.length} аркушів не відрендерилось після ${outcome.attempts.length} спроб(и)`,
+            },
+      });
+      if (!uploaded.length && !complete) {
+        // Жодного файлу за всі спроби — реєструвати нічого, прибирати тим
+        // паче. Макет лишається позначеним як неповний через ok=false вище.
         continue;
       }
 
@@ -349,26 +568,6 @@ export async function POST(request: NextRequest) {
       // of the old html2canvas snapshots. The render service uploads to the
       // photobook-uploads bucket; we record that bucket + path here (variant A:
       // keep the files where the service put them, just index them in the DB).
-      const uploaded: string[] = Array.isArray(detail?.uploaded) ? detail.uploaded : [];
-      // Частковий рендер. Сервіс більше не вмирає на першій невдалій сторінці,
-      // а пропускає її й іде далі, тож відповідь 200 уже НЕ означає, що макет
-      // зібрався весь: detail.ok каже, чи дійшов він до кінця, а detail.failed
-      // перелічує, що впало. Такий набір реєструємо (файли є, виробництву вони
-      // потрібні), але перерендереним не рахуємо — прибирання нижче знесло б
-      // учорашній цілий макет заради сьогоднішніх пʼяти аркушів.
-      const failedSpreads: Array<{ spread?: number; error?: string }> =
-        Array.isArray(detail?.failed) ? detail.failed : [];
-      const complete = isRenderComplete(detail);
-      if (!complete) {
-        console.error('[render-order] partial render — макет неповний, старі файли лишаємо', {
-          orderId, projectId: project.id, uploaded: uploaded.length, failed: failedSpreads,
-        });
-        results[results.length - 1] = {
-          projectId: project.id,
-          ok: false,
-          detail: { ...detail, note: `неповний макет: ${failedSpreads.length} аркушів не відрендерилось` },
-        };
-      }
       if (uploaded.length) {
         allUploaded.push(...uploaded);
         // Тільки тепер цей макет вважається перерендереним — і тільки його старі
