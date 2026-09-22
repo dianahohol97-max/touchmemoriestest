@@ -15,13 +15,14 @@
  * коли хтось відкриє сторінку або напише нам, а мовчазний рядок у журналі не
  * приходить нікому.
  *
- * ЩО САМЕ ВІН ДИВИТЬСЯ. Чотири ознаки, кожна з яких уже ставалася:
+ * ЩО САМЕ ВІН ДИВИТЬСЯ. Шість ознак, кожна з яких уже ставалася:
  *   photos      — фото не доїхали (photos_attached менше за photos_submitted)
  *   no_product  — заявка з дизайнером без товару і без ціни
  *   no_email    — замовленню більше кількох годин, а листів за ним нема жодного
  *   not_in_crm  — кандидат на перенесення висить кандидатом уже кілька годин,
  *                 тобто перенесення мовчки падає щопроходу
  *   no_layout   — книга в замовленні, за якою немає жодного макета
+ *   no_forzat   — оплачено друк на форзаці, а файлу форзаца в наборі немає
  *
  * ЧОМУ НЕ БІЛЬШЕ. Сторож, який кричить вовк, вимикають, і тоді ми знову в
  * тиші — у цьому ж репозиторії вже довелося окремо вгамовувати сканер. Тому
@@ -32,6 +33,8 @@
  * сторожі відкату брифа. Сторож, який помиляється саме тут, або мовчить про
  * поломку, або дзвонить щопроходу.
  */
+
+import { forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
 
 /** Памʼять про вже надіслані сигнали: ключ ознаки → коли сказали. */
 export const LOST_SIGNALS_KEY = 'lost_order_signals_state';
@@ -80,7 +83,16 @@ export const LAYOUT_GRACE_HOURS = 1;
  */
 export const BOOK_SLUG_RE = /(photobook|fotoknig|travel|magazine|zhurnal|journal|planner|wish|pobazhan)/;
 
-export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm' | 'no_layout';
+export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm' | 'no_layout' | 'no_forzat';
+
+/**
+ * Скільки годин дати замовленню, перш ніж відсутність оплаченого форзаца стає
+ * сигналом.
+ *
+ * Рендер іде за хвилину-дві після оплати, тож три години — це свідомо багато:
+ * ловимо «форзаца немає і не буде», а не «ще рендериться».
+ */
+export const FORZAT_GRACE_HOURS = 3;
 
 export type OrderRow = {
     id: string;
@@ -168,10 +180,13 @@ export function findLostOrderSignals(input: {
     crmCandidateSince: Map<string, string>;
     /** Ідентифікатори рядків кошика, за якими макет у базі вже є. */
     layoutCartIds?: Set<string>;
+    /** Імена експортованих файлів кожного замовлення — для перевірки форзаца. */
+    exportNamesByOrder?: Map<string, string[]>;
     now: number;
 }): LostSignal[] {
     const out: LostSignal[] = [];
     const layoutCartIds = input.layoutCartIds || new Set<string>();
+    const exportNamesByOrder = input.exportNamesByOrder || new Map<string, string[]>();
 
     for (const o of input.orders) {
         const orderNumber = o.order_number || '(без номера)';
@@ -236,6 +251,36 @@ export function findLostOrderSignals(input: {
                     kind: 'no_layout',
                     detail: `«${line.name}» оплачено, а макета за цією позицією немає жодного`,
                 });
+            }
+        }
+
+        // 6. Оплачений форзац без файлу.
+        //
+        //    Сервіс рендеру навмисно не вантажить ПОРОЖНІЙ форзац: друкарня
+        //    просила не отримувати чистих аркушів. Коли за форзац заплатили,
+        //    той самий пропуск стає тихою втратою — у теці просто немає f1, а
+        //    рядок про це лишається в консолі Railway, куди ніхто не дивиться.
+        //    Шістдесятиденний прохід по живій базі дав два замовлення,
+        //    TM-001352 і TM-001349, обидва вже в статусі confirmed.
+        //
+        //    Сигнал мовчить, поки в замовленні НЕМАЄ жодного експорту: макет,
+        //    який ще не відрендерився або не відрендерився взагалі, — це
+        //    ознака no_layout, і кричати про нього двічі означає навчити не
+        //    читати.
+        const exportNames = exportNamesByOrder.get(o.id);
+        if (exportNames && exportNames.length && age >= FORZAT_GRACE_HOURS && Array.isArray(o.items)) {
+            for (const it of o.items) {
+                const missing = missingForzatFiles(paidForzatSides((it as any)?.options), exportNames);
+                if (!missing.length) continue;
+                out.push({
+                    ...base,
+                    kind: 'no_forzat',
+                    detail: forzatShortfallLine(missing),
+                });
+                // Одна скарга на замовлення. Форзац оплачують раз, а позицій у
+                // кошику буває кілька, і два однакові рядки поспіль читаються
+                // як помилка сторожа, а не як дві втрати.
+                break;
             }
         }
 
@@ -323,6 +368,7 @@ const TITLES: Record<SignalKind, string> = {
     no_email: 'Замовлення без жодного листа',
     not_in_crm: 'Замовлення не переноситься в CRM',
     no_layout: 'Книга без макета',
+    no_forzat: 'Оплачений форзац без файлу',
 };
 
 function kyivTime(iso: string | null): string {
@@ -441,6 +487,26 @@ export async function checkLostOrderSignals(
         }
     }
 
+    // Імена експортованих файлів — щоб побачити, чи є f1/f2 там, де за форзац
+    // заплатили. Читаємо тільки ім'я і замовлення: розмір, шлях і решта тут ні
+    // до чого, а на добовому вікні це десятки рядків.
+    const exportNamesByOrder = new Map<string, string[]>();
+    if (orders.length) {
+        const { data: exports } = await supabase
+            .from('order_files')
+            .select('order_id, file_name')
+            .eq('file_type', 'export')
+            .in('order_id', orders.map(o => o.id))
+            .limit(1000);
+        for (const row of exports || []) {
+            const oid = String(row?.order_id || '');
+            if (!oid) continue;
+            const list = exportNamesByOrder.get(oid) || [];
+            list.push(String(row?.file_name || ''));
+            exportNamesByOrder.set(oid, list);
+        }
+    }
+
     // Черга на перенесення: коли кожного кандидата побачили вперше.
     const { data: queueRow } = await supabase
         .from('settings').select('value').eq('key', CRM_QUEUE_KEY).maybeSingle();
@@ -454,6 +520,7 @@ export async function checkLostOrderSignals(
         emailedOrderIds,
         crmCandidateSince: new Map(Object.entries(queue)),
         layoutCartIds,
+        exportNamesByOrder,
         now,
     });
 

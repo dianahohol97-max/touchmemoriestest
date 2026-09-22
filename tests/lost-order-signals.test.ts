@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     CRM_STALE_HOURS,
     EMAIL_GRACE_HOURS,
+    FORZAT_GRACE_HOURS,
     LAYOUT_GRACE_HOURS,
     MAX_PER_PASS,
     bookLinesWithoutLayout,
@@ -40,11 +41,15 @@ const order = (o: Partial<OrderRow> = {}): OrderRow => ({
     ...o,
 });
 
-const find = (orders: OrderRow[], opts: { emailed?: string[]; queue?: Record<string, string> } = {}) =>
+const find = (
+    orders: OrderRow[],
+    opts: { emailed?: string[]; queue?: Record<string, string>; exports?: Record<string, string[]> } = {},
+) =>
     findLostOrderSignals({
         orders,
         emailedOrderIds: new Set(opts.emailed || []),
         crmCandidateSince: new Map(Object.entries(opts.queue || {})),
+        exportNamesByOrder: new Map(Object.entries(opts.exports || {})),
         now: NOW,
     });
 
@@ -304,5 +309,92 @@ describe('bookLinesWithoutLayout', () => {
     it('переживає сміття замість позицій', () => {
         expect(bookLinesWithoutLayout(null, new Set())).toEqual([]);
         expect(bookLinesWithoutLayout([null, 'x', 7], new Set())).toEqual([]);
+    });
+});
+
+
+/**
+ * Шоста ознака: оплачений форзац, якого немає у файлах.
+ *
+ * Сервіс рендеру навмисно НЕ вантажить порожній форзац — друкарня просила не
+ * отримувати чистих аркушів. Правило добре доти, доки форзац нікому не
+ * потрібен. Коли за нього заплатили, той самий пропуск стає тихою втратою: у
+ * теці просто немає f1, а рядок про це лишається в консолі Railway.
+ *
+ * Прохід по живій базі за шістдесят днів (22.09.2026) дав два замовлення,
+ * обидва вже в статусі confirmed: TM-001352 оплатило обидва форзаци й
+ * отримало тільки f2, TM-001349 оплатило обидва й не отримало жодного. Два —
+ * це ознака, а не шум.
+ */
+describe('оплачений форзац без файлу', () => {
+    const paidOrder = (id: string, number: string): OrderRow => ({
+        id,
+        order_number: number,
+        created_at: ago(FORZAT_GRACE_HOURS + 1),
+        customer_email: null,
+        source: 'site',
+        items: [{
+            cart_item_id: 'pb-1',
+            product_name: 'Глянцевий журнал',
+            slug: 'personalized-glossy-magazine',
+            options: { 'Друк на форзаці': 'Так (перший + останній)' },
+        }],
+    });
+
+    it('TM-001352: є f2, немає f1 — сигнал', () => {
+        const got = find([paidOrder('o-1352', 'TM-001352')], {
+            exports: { 'o-1352': ['00_cover_front.jpg', '01.jpg', '08.jpg', 'f2.jpg'] },
+        });
+        const s = got.filter(x => x.kind === 'no_forzat');
+        expect(s).toHaveLength(1);
+        expect(s[0].orderNumber).toBe('TM-001352');
+        expect(s[0].detail).toContain('початковий');
+    });
+
+    it('TM-001349: немає жодного форзаца — сигнал про обидва', () => {
+        const got = find([paidOrder('o-1349', 'TM-001349')], {
+            exports: { 'o-1349': ['cover.jpg', '01.jpg', '20.jpg'] },
+        });
+        const s = got.filter(x => x.kind === 'no_forzat');
+        expect(s).toHaveLength(1);
+        expect(s[0].detail).toContain('обох');
+    });
+
+    it('повний набір мовчить', () => {
+        const got = find([paidOrder('o-ok', 'TM-000999')], {
+            exports: { 'o-ok': ['cover.jpg', 'f1.jpg', '01.jpg', 'f2.jpg'] },
+        });
+        expect(got.filter(x => x.kind === 'no_forzat')).toHaveLength(0);
+    });
+
+    it('неоплачений форзац не вимагається', () => {
+        const o = paidOrder('o-free', 'TM-000998');
+        (o.items as any)[0].options = { 'Друк на форзаці': 'Без друку' };
+        const got = find([o], { exports: { 'o-free': ['cover.jpg', '01.jpg'] } });
+        expect(got.filter(x => x.kind === 'no_forzat')).toHaveLength(0);
+    });
+
+    it('поки експортів немає взагалі, це ознака no_layout, а не ця', () => {
+        const got = find([paidOrder('o-none', 'TM-000997')], { exports: {} });
+        expect(got.filter(x => x.kind === 'no_forzat')).toHaveLength(0);
+    });
+
+    it('свіже замовлення чекає, поки рендер добіжить', () => {
+        const o = paidOrder('o-fresh', 'TM-000996');
+        o.created_at = ago(FORZAT_GRACE_HOURS - 1);
+        const got = find([o], { exports: { 'o-fresh': ['cover.jpg', '01.jpg'] } });
+        expect(got.filter(x => x.kind === 'no_forzat')).toHaveLength(0);
+    });
+
+    it('дві позиції з форзацом дають ОДНУ скаргу, а не дві', () => {
+        const o = paidOrder('o-two', 'TM-000995');
+        (o.items as any).push({
+            cart_item_id: 'pb-2',
+            product_name: 'Ще один журнал',
+            slug: 'personalized-glossy-magazine',
+            options: { 'Друк на форзаці': 'Так (перший + останній)' },
+        });
+        const got = find([o], { exports: { 'o-two': ['cover.jpg', '01.jpg'] } });
+        expect(got.filter(x => x.kind === 'no_forzat')).toHaveLength(1);
     });
 });

@@ -2,6 +2,7 @@ import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
 import { referencedPhotoIds } from '@/lib/print/resolve-photo-paths';
+import { forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
 
 /**
  * Чи відповідає надрукований комплект тому, що склала клієнтка.
@@ -70,14 +71,26 @@ const catOf = (f: { file_category?: string | null; file_name?: string | null }) 
 export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdict> {
     const admin = getAdminClient();
 
+    // `items` їде сюди заради однієї перевірки — оплаченого форзаца. Опція
+    // живе в рядку кошика, а не в макеті, тож без неї відповісти на питання
+    // «за що людина заплатила» нізвідки.
     const { data: order } = await admin
-        .from('orders').select('order_number').eq('id', orderId).maybeSingle();
+        .from('orders').select('order_number, items').eq('id', orderId).maybeSingle();
 
+    // cart_payload потрібен, щоб звести виріб із рядком кошика ПО КЛЮЧУ, а не
+    // по порядку: на замовленні з кількома книгами порядок макетів і порядок
+    // позицій збігаються не завжди (гоча 18).
     const { data: projects } = await admin
         .from('projects')
-        .select('id, product_type, format, total_pages, pages_data, cover_data, overlays_data, uploaded_photos, created_at')
+        .select('id, product_type, format, total_pages, pages_data, cover_data, overlays_data, uploaded_photos, cart_payload, created_at')
         .eq('order_id', orderId)
         .order('created_at', { ascending: true });
+
+    const itemsByCartId = new Map<string, any>();
+    for (const it of (Array.isArray((order as any)?.items) ? (order as any).items : [])) {
+        const id = String(it?.cart_item_id || '').trim();
+        if (id) itemsByCartId.set(id, it);
+    }
 
     const { data: files } = await admin
         .from('order_files')
@@ -206,6 +219,24 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         else if (pageFiles.length < designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — рендер не дійшов до кінця`);
         else if (pageFiles.length > designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — лишилися файли попереднього макета`);
         if (photosWithoutFile > 0) problems.push(`${photosWithoutFile} поставлених фото не мають файлу у сховищі — на папері буде порожньо`);
+        // ОПЛАЧЕНИЙ ФОРЗАЦ БЕЗ ФАЙЛУ.
+        //
+        // Сервіс рендеру навмисно не вантажить порожній форзац — друкарня
+        // просила не отримувати чистих аркушів. Коли за форзац заплатили, той
+        // самий пропуск стає тихою втратою: у теці просто немає f1, у консолі
+        // Railway лишається рядок про виключений порожній форзац, і не
+        // дізнається про це ніхто. TM-001352 оплатило обидва форзаци й
+        // отримало тільки f2, TM-001349 оплатило обидва й не отримало жодного,
+        // і обидва вже стояли в статусі confirmed.
+        //
+        // Це рядок у звіті, а не заборона: чи друкувати порожній форзац, чи
+        // спитати клієнта, вирішує людина, яка віддає макет у роботу.
+        const line = itemsByCartId.get(String(proj?.cart_payload?.id || '').trim());
+        const missingForzats = missingForzatFiles(
+            paidForzatSides(line?.options),
+            mine.map(f => String(f.file_name || '')),
+        );
+        if (missingForzats.length) problems.push(forzatShortfallLine(missingForzats));
         if (blank.length) problems.push(`порожні аркуші: ${blank.slice(0, 8).join(', ')}${blank.length > 8 ? ` і ще ${blank.length - 8}` : ''}`);
         if (wrongSize.length) problems.push(`не той розмір: ${wrongSize.slice(0, 4).join('; ')}${wrongSize.length > 4 ? ` і ще ${wrongSize.length - 4}` : ''}`);
         if (unchecked > 0) problems.push(`${unchecked} файлів не вдалося перевірити — перевірте вручну`);
