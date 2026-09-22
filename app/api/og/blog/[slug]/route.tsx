@@ -90,6 +90,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
             width: W,
             height: H,
             fonts: font ? [{ name: 'Montserrat', data: font, weight: 700 as const, style: 'normal' as const }] : [],
+            // `export const revalidate` тут не діє: маршрут читає базу і
+            // лишається динамічним, тож без цього заголовка Vercel віддавав
+            // `max-age=0, must-revalidate` і КОЖЕН запит перемальовував
+            // картинку — з походом у сховище по обкладинку і до Google по
+            // шрифт. Перевірено на проді 22.09.2026, відповідь важить близько
+            // мегабайта, а по неї ходять усі соцмережі й пошуковики разом.
+            //
+            // Доба на краю і тиждень у фоні: заголовок статті після виходу вже
+            // не змінюється, а якщо його виправлять, картинка наздожене за
+            // добу — це не та річ, заради якої варто тримати кеш холодним.
+            headers: {
+                'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800',
+            },
         },
     );
 }
