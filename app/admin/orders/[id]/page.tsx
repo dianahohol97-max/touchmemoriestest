@@ -3331,6 +3331,24 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                         <span style={{ flex: 1, minWidth: 180, fontSize: 12.5, color: '#0c4a6e' }}>
                                                             {d.name || d.id}
                                                             {d.format ? <span style={{ color: '#64748b' }}> · {d.format}</span> : null}
+                                                            {/* ЧИСЛО І ЧАС, А НЕ САМА НАЗВА.
+                                                                З назви не було видно двох речей, від яких залежить
+                                                                рішення. Перша — чи цей макет узагалі рендерився:
+                                                                чернетка з нулем файлів не помилка, але поставити її
+                                                                означає лишити замовлення без файлів до перегенерації.
+                                                                Друга — коли його зроблено: на TM-001352 кандидат був
+                                                                від 11:36, а макет на замовленні від 15:39, тобто
+                                                                натискання відкотило б чотири години роботи. */}
+                                                            <span style={{ color: typeof d.exportFiles === 'number' && d.exportFiles === 0 ? '#b45309' : '#64748b' }}>
+                                                                {typeof d.exportFiles === 'number'
+                                                                    ? ` · ${d.exportFiles === 0 ? 'без файлів макета' : `файлів ${d.exportFiles}`}`
+                                                                    : ''}
+                                                            </span>
+                                                            {d.created_at ? (
+                                                                <span style={{ color: '#64748b' }} title={new Date(d.created_at).toLocaleString('uk-UA')}>
+                                                                    {` · створено ${new Date(d.created_at).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                                                                </span>
+                                                            ) : null}
                                                         </span>
                                                         {/* /editor/open/… — місток, який передає макет у СПРАВЖНІЙ
                                                             конструктор. Доти тут стояло /editor/{id}: інший,
@@ -3347,12 +3365,29 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                                 if (!confirm('Поставити цей макет на замовлення замість макета клієнта? Оригінал клієнта залишиться в його акаунті, заміна запишеться в історію замовлення.')) return;
                                                                 setReplacingLayout(d.id);
                                                                 try {
-                                                                    const r = await fetch(`/api/admin/orders/${id}/replace-layout`, {
+                                                                    const put = (confirmOlder: boolean) => fetch(`/api/admin/orders/${id}/replace-layout`, {
                                                                         method: 'POST',
                                                                         headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ projectId: d.id }),
+                                                                        body: JSON.stringify({ projectId: d.id, ...(confirmOlder ? { confirmOlder: true } : {}) }),
                                                                     });
-                                                                    const j = await r.json();
+                                                                    let r = await put(false);
+                                                                    let j = await r.json();
+                                                                    // 409 needs_confirm — на замовленні стоїть макет,
+                                                                    // зроблений ПІЗНІШЕ за цей. Маршрут не забороняє
+                                                                    // заміну, а вимагає свідомого «так»: буває, що
+                                                                    // пізніший і треба відкотити.
+                                                                    if (r.status === 409 && j?.needsConfirm) {
+                                                                        const when = (v: any) => v ? new Date(v).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'невідомо коли';
+                                                                        const ok = confirm(
+                                                                            `Увага: ви ставите СТАРІШУ версію.\n\n`
+                                                                            + `Цей макет зроблено ${when(j?.draft?.createdAt)}.\n`
+                                                                            + `На замовленні зараз стоїть макет, зроблений пізніше — ${(j?.newer || []).map((n: any) => when(n.createdAt)).join(', ')}.\n\n`
+                                                                            + `Замінити все одно?`,
+                                                                        );
+                                                                        if (!ok) return;
+                                                                        r = await put(true);
+                                                                        j = await r.json();
+                                                                    }
                                                                     if (!r.ok) { toast.error(j?.error || 'Не вдалося замінити макет'); return; }
                                                                     // Одразу женемо рендер — інакше в друк пішов би старий файл.
                                                                     await fetch(`/api/admin/orders/${id}/rerender?project=${d.id}`, { method: 'POST' }).catch(() => {});
