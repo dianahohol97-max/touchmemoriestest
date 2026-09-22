@@ -49,6 +49,25 @@ describe('isRenderComplete', () => {
         expect(isRenderComplete(undefined)).toBe(false);
     });
 
+    /**
+     * Тіло колбека сервісу — це НЕ те саме, що відповідь на /render.
+     *
+     * Сервіс шле в /api/print/render-complete `{ projectId, uploaded, failed,
+     * serviceCommit }` і поля `ok` там немає взагалі. Колбек довго читав лише
+     * `uploaded`, тож частковий прогін приходив як звичайний успіх і запускав
+     * прибирання: воно зносило сторінки, яких не було в неповному наборі.
+     * TM-001342 — книга на двадцять сторінок, у теці лишилося п'ятнадцять,
+     * клієнтці поїхав PDF без перших п'яти сторінок.
+     */
+    it('тіло колбека без ok: перелік невдалих аркушів вирішує все — TM-001342', () => {
+        const callbackBody = {
+            uploaded: ['…/print/cover.jpg', '…/print/06.jpg', '…/print/07.jpg'],
+            failed: [{ spread: 1, error: 'Timeout 60000ms exceeded' }, { spread: 2, error: 'Timeout 60000ms exceeded' }],
+        };
+        expect(isRenderComplete(callbackBody)).toBe(false);
+        expect(failedSpreadCount(callbackBody)).toBe(2);
+    });
+
     it('failed не масив — рахується як нуль, а не як помилка', () => {
         expect(failedSpreadCount({ failed: 'нема' as unknown })).toBe(0);
         expect(isRenderComplete({ ok: true, failed: null })).toBe(true);
