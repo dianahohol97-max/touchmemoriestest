@@ -289,12 +289,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['Без ламінації', 'З ламінацією (+7 ₴/стор)'],
       required: false,
     },
-    {
-      name: 'Терміновість',
-      values: ['Стандартна (5–8 днів)', 'Термінова до 5 робочих днів (+30%)'],
-      required: false,
-      note: 'Пришвидшене виробництво — +30% до вартості'
-    },
+    // Терміновість (rush production) removed site-wide for this product
+    // (Diana, 2026-09-22) — hardcover journal orders no longer offer an
+    // urgent tier. isUrgentSelected()/URGENT_MULTIPLIER paths downstream
+    // (BookConstructorConfig, calcTravelBookTotal) simply see no 'urgent'
+    // value now and price as standard, so nothing else needed changing.
   ],
   travelbook: [
     { name: 'Розмір', values: ['A4'], type: 'text', required: false },
@@ -322,12 +321,11 @@ const PRODUCT_OPTIONS: ProductOptionsConfig = {
       values: ['Без друку', 'З друком (+100 ₴)'],
       required: false,
     },
-    {
-      name: 'Терміновість',
-      values: ['Стандартна (5–8 днів)', 'Термінова до 5 робочих днів (+30%)'],
-      required: false,
-      note: 'Пришвидшене виробництво — +30% до вартості'
-    },
+    // Терміновість (rush production) removed site-wide for this product
+    // (Diana, 2026-09-22) — travel book orders no longer offer an urgent
+    // tier. isUrgentSelected()/URGENT_MULTIPLIER paths downstream
+    // (BookConstructorConfig, calcTravelBookTotal) simply see no 'urgent'
+    // value now and price as standard, so nothing else needed changing.
   ],
   wishbook: [
     {
