@@ -340,7 +340,7 @@ app.post('/render', async (req, res) => {
           const url = `${APP_BASE_URL}/uk/print/${projectId}?token=${encodeURIComponent(PRINT_RENDER_TOKEN)}&page=${i}&w=${pxW}`;
           await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
           await page.waitForSelector(selector, { timeout: 30000 });
-          await page.evaluate(async () => {
+          const imgReport = await page.evaluate(async () => {
             await (document as any).fonts?.ready;
             const imgs = Array.from(document.images);
             // Bound image waiting so a single stalled/empty <img> can't hang the
@@ -352,7 +352,18 @@ app.post('/render', async (req, res) => {
                   img.onload = done; img.onerror = done;
                   setTimeout(done, 8000);
                 })));
+            const broken = imgs.filter(img => !(img.complete && img.naturalWidth > 0)).length;
+            return { total: imgs.length, broken };
           });
+          // Те саме правило, що й у книжковому циклі нижче: аркуш із порожнім
+          // слотом не експортується. Раніше цей evaluate не повертав нічого,
+          // тож календар із нечитабельним фото вивантажувався як готовий.
+          if (imgReport.broken > 0) {
+            throw new Error(
+              `${imgReport.broken}/${imgReport.total} photos failed to load — `
+              + 'the sheet would print with empty slots, so it was NOT exported',
+            );
+          }
           await page.waitForTimeout(300);
           const el = await page.$(selector);
           if (!el) throw new Error(`no print page element for page ${i}`);
@@ -539,8 +550,21 @@ app.post('/render', async (req, res) => {
           const broken = imgs.filter(img => !(img.complete && img.naturalWidth > 0)).length;
           return { total: imgs.length, broken };
         });
+        // Порожній слот — це не попередження, це брак.
+        //
+        // Донедавна тут стояв console.warn, аркуш вивантажувався як успішний
+        // експорт, і order_files казав «макет готовий». Так поїхали в друк
+        // TM-001343 (одинадцять порожніх аркушів із чотирнадцяти) і TM-001244
+        // (дванадцять із п'ятнадцяти): знімки були HEIC під іменем `.jpg`,
+        // headless Chromium їх не читає, і рендер це БАЧИВ — він їх порахував.
+        // Тепер розворот падає в failedSpreads, його файли не вивантажуються,
+        // і ok: false доходить до виклику. Дірка в макеті видна, а порожній
+        // аркуш із написом «готово» не видно ніколи.
         if (imgReport.broken > 0) {
-          console.warn(`[render] spread ${spread}: ${imgReport.broken}/${imgReport.total} photos failed to load — the file may have blank slots`);
+          throw new Error(
+            `${imgReport.broken}/${imgReport.total} photos failed to load — `
+            + 'the sheet would print with empty slots, so it was NOT exported',
+          );
         }
         await page.waitForTimeout(300); // settle
 

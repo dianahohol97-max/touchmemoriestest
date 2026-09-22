@@ -78,7 +78,7 @@ const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Ubuntu', value:'Ubuntu', style:'sans' },
 ];
 import { PageBackground, DEFAULT_BG, BackgroundLayer, BackgroundControls } from './BackgroundLayer';
-import { normalizeImageFile, isHeic } from '@/lib/heic-to-jpeg';
+import { normalizeImageFile, readImageSignature, needsHeicConversion } from '@/lib/heic-to-jpeg';
 import { Shape, ShapeType, ShapesLayer, ShapeControls } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, FrameLayer, FrameControls } from './FramesLayer';
 
@@ -3302,8 +3302,11 @@ export default function BookLayoutEditor() {
     toast.success(`Книгу зібрано! ${Math.ceil(result.pages.length / (isSpreadMode ? 2 : 1))} розворотів, ${photos.length} фото`, { duration: 3000 });
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const allFiles = Array.from(e.target.files || []);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Тут є await (читання перших байтів кожного файлу), а після нього
+    // звертатися до e.target уже ненадійно — беремо елемент один раз.
+    const input = e.target;
+    const allFiles = Array.from(input.files || []);
     if (!allFiles.length) return;
 
     // Guard against files too large to decode in the browser (RAW dumps,
@@ -3320,7 +3323,7 @@ export default function BookLayoutEditor() {
         { duration: 8000 }
       );
     }
-    if (!files.length) { e.target.value = ''; return; }
+    if (!files.length) { input.value = ''; return; }
     const total = files.length;
     // Use a stable counter per upload batch to guarantee unique IDs
     const batchId = Date.now();
@@ -3330,7 +3333,13 @@ export default function BookLayoutEditor() {
     // HEIC (iPhone) files are converted via libheif, which can take a second or
     // two each — show a converting toast so the batch doesn't look frozen, and
     // clear it once every file has been normalized (not waited on full decode).
-    const heicCount = files.filter(f => isHeic(f)).length;
+    //
+    // Лічба йде ЗА БАЙТАМИ, тією самою умовою, що й сама конвертація
+    // (needsHeicConversion). Поки вона йшла за розширенням, набір HEIC під
+    // іменем `.jpg` конвертувався хвилину-дві без жодного тоста, і одну
+    // поломку ми виміняли б на іншу.
+    const signatures = await Promise.all(files.map(f => readImageSignature(f)));
+    const heicCount = files.filter((f, i) => needsHeicConversion(f, signatures[i])).length;
     const convToastId = heicCount > 0
       ? toast.loading(heicCount === 1 ? t('constructor.converting_iphone') : `Конвертую ${heicCount} фото з iPhone…`)
       : undefined;
@@ -3483,7 +3492,7 @@ export default function BookLayoutEditor() {
       processOne(files[i], i);
     };
     for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) startNext();
-    e.target.value = '';
+    input.value = '';
   };
 
   // Safety net for the stuck blue dashed slot highlight: native drag-and-drop
