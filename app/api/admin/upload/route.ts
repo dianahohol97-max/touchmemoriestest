@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/auth/guards';
-import { createClient } from '@/lib/supabase/server';
+import { requireAdmin } from '@/lib/auth/guards';
 import { getAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -17,23 +16,22 @@ const ALLOWED_BUCKETS = new Set([
 // Uploads a file to Supabase Storage using the service-role key. Going through
 // the server avoids the client-side RLS / session ambiguity that left homepage
 // photo and video uploads silently failing. The caller must be a logged-in
-// admin (verified via their session cookie against admin_users).
+// admin.
+//
+// Gate is requireAdmin() (Diana, 2026-09-22) — this used to be requireStaff()
+// plus a hand-rolled re-check against ONLY admin_users, which is a strict
+// SUBSET of what requireAdmin() already checks (admin_users OR staff with
+// role admin/owner). Аліна логіниться як mozgovayaaa18@gmail.com — вона є в
+// `staff` з роллю owner (тобто по суті повний адмін), але не має власного
+// рядка в admin_users, тож стара перевірка мовчки відмовляла їй у завантаженні
+// фото ("Forbidden") на сторінці кольорів велюру. requireAdmin() — та сама
+// функція, якою вже перевіряється доступ в інших чутливих admin-роутах, —
+// коректно визнає staff.role IN ('admin','owner') повним адміном.
 export async function POST(req: Request) {
-    const guard = await requireStaff();
+    const guard = await requireAdmin();
     if (!guard.ok) return guard.response;
 
-  const cookieClient = await createClient();
-  const { data: { user } } = await cookieClient.auth.getUser();
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
   const admin = getAdminClient();
-  const { data: adminRow } = await admin
-    .from('admin_users')
-    .select('id')
-    .eq('email', user.email.toLowerCase())
-    .maybeSingle();
-  if (!adminRow) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
   let form: FormData;
   try {
     form = await req.formData();
