@@ -408,6 +408,8 @@ Everything a search engine sees is built from the row, never written into the bo
 
 **hreflang lists only the locales that exist.** `postLocales()` counts the base `locale` plus `translations` keys that have BOTH a title and a body — an empty translation object is created the moment someone opens a language tab — and `getSubsetAlternates()` in `lib/seo/locales.ts` renders that subset. The full five-locale set would tell Google that `/de/blog/…` is a German version of Ukrainian text.
 
+**Known limit — the OG image is not cached at the edge.** `/api/og/blog/[slug]` answers `public, max-age=86400`, so browsers hold it for a day, but `s-maxage` is stripped somewhere in the Next/Vercel layer and `x-vercel-cache` reads `MISS` on every request. Three ways of setting the header (route `revalidate`, `ImageResponse`'s `headers`, a hand-built `Response`) all produced the same result on 2026-09-22 — don't spend a fourth. If edge rendering ever becomes a real cost, render the PNG once when the cron publishes the article and store it, rather than fighting the header.
+
 Structured data: `Article` (author and publisher both the `touch.memories` Organization — no invented human byline), `BreadcrumbList`, `FAQPage` built from the same `faq` rows the accordion renders, and `ItemList` for the product cards. Schema must never promise a question the page does not show.
 
 The minimum internal linking (3 catalog, 2 articles) is held by the page itself, not by the author: product cards give up to three catalog links, "Читайте також" three articles, breadcrumbs one category.
