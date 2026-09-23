@@ -7,6 +7,8 @@ import {
     displayPathFor,
     thumbPathFor,
     photoNeedsVariants,
+    missingVariantsOf,
+    type VariantField,
 } from './photo-variant-paths';
 
 /**
@@ -90,7 +92,12 @@ async function uploadVariant(admin: Admin, path: string, body: Buffer): Promise<
  * цього копія лягла б боком там, де оригінал стоїть рівно, бо браузер читає
  * EXIF, а полотно вже ні.
  */
-async function variantsForOne(admin: Admin, original: string): Promise<{ previewPath?: string; thumbPath?: string } | null> {
+async function variantsForOne(
+    admin: Admin,
+    original: string,
+    missing: VariantField[],
+): Promise<{ previewPath?: string; thumbPath?: string } | null> {
+    if (missing.length === 0) return {};
     const buf = await downloadOriginal(admin, original);
     if (!buf) return null;
 
@@ -100,7 +107,10 @@ async function variantsForOne(admin: Admin, original: string): Promise<{ preview
         ['thumbPath', THUMB_MAX_EDGE, THUMB_QUALITY, thumbPathFor],
     ];
 
-    for (const [field, maxEdge, quality, pathFor] of specs) {
+    // Тільки те, чого бракує. Переробляти копію, яка вже лежить у сховищі,
+    // означало б перезаливати той самий файл: робота оплачена двічі, користі
+    // нуль. Саме так у браузері за тиждень набігла 231 зайва копія з 1593.
+    for (const [field, maxEdge, quality, pathFor] of specs.filter(s => missing.includes(s[0]))) {
         try {
             const body = await sharp(buf)
                 .rotate()
@@ -152,7 +162,7 @@ export async function buildMissingVariants(
             if (Date.now() > deadline) return;
             const i = take[next++];
             const photo = list[i];
-            const res = await variantsForOne(admin, String(photo.path));
+            const res = await variantsForOne(admin, String(photo.path), missingVariantsOf(photo));
             if (!res || (!res.previewPath && !res.thumbPath)) { failed++; continue; }
             if (res.previewPath) photo.previewPath = res.previewPath;
             if (res.thumbPath) photo.thumbPath = res.thumbPath;

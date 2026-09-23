@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { displayPathFor, thumbPathFor, shouldDownscale, photoNeedsVariants, countPhotosNeedingVariants, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variant-paths';
+import { displayPathFor, thumbPathFor, shouldDownscale, photoNeedsVariants, countPhotosNeedingVariants, missingVariantsOf, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variant-paths';
 
 /**
  * Шляхи зменшених копій мусять лежати поруч із оригіналом і НЕ збігатися з
@@ -64,9 +64,26 @@ describe('черга фото на зменшені копії', () => {
         expect(photoNeedsVariants(null)).toBe(false);
     });
 
-    it('не бере фото, для якого копія вже є', () => {
-        expect(photoNeedsVariants({ path: 'a.jpg', previewPath: 'a_display.jpg' })).toBe(false);
-        expect(photoNeedsVariants({ path: 'a.jpg', thumbPath: 'a_thumb.jpg' })).toBe(false);
+    it('не бере фото, для якого є ОБИДВІ копії', () => {
+        expect(photoNeedsVariants({ path: 'a.jpg', previewPath: 'a_display.jpg', thumbPath: 'a_thumb.jpg' })).toBe(false);
+    });
+
+    /**
+     * Раніше тут стояло протилежне: наявність БУДЬ-ЯКОЇ копії знімала фото з
+     * черги назавжди. Через це 201 фото у сімнадцяти макетах зависло зі
+     * стрічковою копією і без копії на полотно — маршрут їх не брав, бо
+     * формально щось уже було, і догнати їх не міг ніхто.
+     */
+    it('бере фото, у якого є лише одна з двох копій', () => {
+        expect(photoNeedsVariants({ path: 'a.jpg', thumbPath: 'a_thumb.jpg' })).toBe(true);
+        expect(photoNeedsVariants({ path: 'a.jpg', previewPath: 'a_display.jpg' })).toBe(true);
+    });
+
+    it('каже саме те, чого бракує', () => {
+        expect(missingVariantsOf({ path: 'a.jpg', thumbPath: 'a_thumb.jpg' })).toEqual(['previewPath']);
+        expect(missingVariantsOf({ path: 'a.jpg', previewPath: 'a_display.jpg' })).toEqual(['thumbPath']);
+        expect(missingVariantsOf({ path: 'a.jpg' })).toEqual(['previewPath', 'thumbPath']);
+        expect(missingVariantsOf({ path: 'a.jpg', previewPath: 'x', thumbPath: 'y' })).toEqual([]);
     });
 
     it('рахує лише ті, які справді чекають', () => {

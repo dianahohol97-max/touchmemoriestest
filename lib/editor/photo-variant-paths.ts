@@ -48,16 +48,38 @@ export function shouldDownscale(longestEdge: number, maxEdge: number): boolean {
     return Number.isFinite(longestEdge) && longestEdge > maxEdge;
 }
 
+export type VariantField = 'previewPath' | 'thumbPath';
+
+/**
+ * Яких саме копій бракує цьому фото.
+ *
+ * ЧОМУ НЕ «ОБОХ АБО ЖОДНОЇ». Довго перевірка стояла так: копії потрібні, лише
+ * якщо немає ОБОХ. Через це фото, у якого вийшла одна копія, а друга ні,
+ * назавжди випадало з черги — маршрут його не брав, бо формально щось уже є.
+ * Станом на 23.09.2026 таких було 201 у сімнадцяти макетах: усі мали `thumbPath`
+ * без `previewPath`, тобто відкривалися з оригіналу на полотні, і догнати їх
+ * не міг ніхто. Беруться вони звідти, що в браузері джерелом була копія на
+ * 1600 px, і копія на 1600 px із неї не проходила перевірку «легша за джерело»,
+ * а стрічкова на 360 px проходила.
+ */
+export function missingVariantsOf(p: Record<string, unknown> | null | undefined): VariantField[] {
+    if (!p || typeof p !== 'object') return [];
+    const out: VariantField[] = [];
+    if (!p.previewPath) out.push('previewPath');
+    if (!p.thumbPath) out.push('thumbPath');
+    return out;
+}
+
 /**
  * Чи має сенс доганяти це фото серверною генерацією.
  *
- * Без шляху до оригіналу генерувати нічого, а коли копія вже записана,
+ * Без шляху до оригіналу генерувати нічого, а коли обидві копії вже записані,
  * повторний прохід лише витратить час функції.
  */
 export function photoNeedsVariants(p: Record<string, unknown> | null | undefined): boolean {
     if (!p || typeof p !== 'object') return false;
     if (!p.path || typeof p.path !== 'string') return false;
-    return !p.previewPath && !p.thumbPath;
+    return missingVariantsOf(p).length > 0;
 }
 
 /** Скільки фото макета ще чекають на копії. */
