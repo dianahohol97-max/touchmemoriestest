@@ -31,11 +31,30 @@ strings in the page code declare that range to the browser.
 Each file is subset to the union of Google's own `latin` and `cyrillic`
 unicode-ranges — exactly the two subsets the pages were declaring before.
 
-One thing that union does **not** contain is the hryvnia sign `₴` (U+20B4):
-Google files it under `cyrillic-ext`, which was never requested, so `₴` was
-already rendering in a system fallback font before this change and still does.
-Adding `cyrillic-ext` would fix that, but it is a visible change to every price
-on the site, so it needs a deliberate decision rather than a silent widening.
+## The hryvnia sign
+
+Google files `₴` (U+20B4) under `cyrillic-ext`, a subset these pages never
+requested, so until 23.09.2026 every price on the site drew its `₴` from
+whatever system font the browser reached for — a different shape, a different
+stroke weight and a different width than the digits standing next to it, and
+different again on another operating system.
+
+**Montserrat carries it now.** The `EXTRA_CODEPOINTS` map in
+`scripts/build-local-fonts.py` adds the single codepoint on top of the two
+subsets, which costs 236 bytes; pulling in the whole of `cyrillic-ext` for one
+glyph would cost far more. So anywhere the theme sets text in Montserrat — the
+headings, and the price blocks that follow them — the sign is ours.
+
+**Open Sans cannot carry it, and that is not an oversight.** Open Sans has no
+hryvnia glyph at all: U+20B4 is missing from the upstream
+`OpenSans[wdth,wght].ttf` in google/fonts, and missing from the file Google
+itself serves for Open Sans `cyrillic-ext`, whose `unicode-range` merely claims
+the codepoint. So wherever the theme sets body text in Open Sans, `₴` keeps
+coming from a system fallback. No subsetting option changes that — only drawing
+the glyph would, and nobody has asked for that.
+
+The display fonts are deliberately out of it too: Playfair, Cormorant and
+Caveat are used for gallery and wedding headings, where no price appears.
 
 ## Rebuilding
 
