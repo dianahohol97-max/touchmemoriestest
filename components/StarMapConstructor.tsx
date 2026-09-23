@@ -10,7 +10,7 @@ import StarMapPreview from './StarMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
 import ExportProgressModal from './ExportProgressModal';
 import { uploadOrderFile } from '@/lib/export-utils';
-import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { FONT_GROUPS, EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 
@@ -546,11 +546,11 @@ export default function StarMapConstructor() {
 // Step 1: Moment
 function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
     const t = useT();
-    // Load Google Fonts
+    // Шрифти підбірки — з нашого походження, не з мережі.
     useEffect(() => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = GOOGLE_FONTS_URL;
+        link.href = EDITOR_FONTS_CSS_URL;
         document.head.appendChild(link);
         return () => { try { document.head.removeChild(link); } catch {} };
     }, []);
@@ -616,11 +616,11 @@ function Step1Moment({ config, setConfig }: { config: StarMapConfig; setConfig: 
 // Step 2: Personalize
 function Step2Personalize({ config, setConfig }: { config: StarMapConfig; setConfig: React.Dispatch<React.SetStateAction<StarMapConfig>> }) {
     const t = useT();
-    // Load Google Fonts
+    // Шрифти підбірки — з нашого походження, не з мережі.
     useEffect(() => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = GOOGLE_FONTS_URL;
+        link.href = EDITOR_FONTS_CSS_URL;
         document.head.appendChild(link);
         return () => { try { document.head.removeChild(link); } catch {} };
     }, []);
@@ -707,11 +707,11 @@ function Step3Design({ config, setConfig }: { config: StarMapConfig; setConfig: 
 
     // Full font list from photobook editor (FONT_GROUPS)
 
-    // Load Google Fonts
+    // Шрифти підбірки — з нашого походження, не з мережі.
     useEffect(() => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = GOOGLE_FONTS_URL;
+        link.href = EDITOR_FONTS_CSS_URL;
         document.head.appendChild(link);
         return () => { try { document.head.removeChild(link); } catch {} };
     }, []);
@@ -937,11 +937,11 @@ function Step4SizeProduct({ config, setConfig, product }: { config: StarMapConfi
         setConfig(prev => ({ ...prev, price: basePrice + modifier }));
     }, [config.size, config.productType]);
 
-    // Load Google Fonts
+    // Шрифти підбірки — з нашого походження, не з мережі.
     useEffect(() => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = GOOGLE_FONTS_URL;
+        link.href = EDITOR_FONTS_CSS_URL;
         document.head.appendChild(link);
         return () => { try { document.head.removeChild(link); } catch {} };
     }, []);

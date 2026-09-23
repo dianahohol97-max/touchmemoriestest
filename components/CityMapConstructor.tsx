@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
 import CityMapPreview from './CityMapPreview';
 import GooglePlacesAutocomplete from './GooglePlacesAutocomplete';
-import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { FONT_GROUPS, EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import { useT } from '@/lib/i18n/context';
 import { uploadCustomerFile } from '@/lib/upload-customer-file';
 
@@ -515,11 +515,11 @@ function Step3Design({ config, setConfig }: { config: CityMapConfig; setConfig: 
 
     // Full font list from photobook editor
 
-    // Load Google Fonts
+    // Шрифти підбірки — з нашого походження, не з мережі.
     useEffect(() => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = GOOGLE_FONTS_URL;
+        link.href = EDITOR_FONTS_CSS_URL;
         document.head.appendChild(link);
         return () => { try { document.head.removeChild(link); } catch {} };
     }, []);

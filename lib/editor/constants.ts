@@ -224,37 +224,35 @@ export const FONT_GROUPS = FONT_GROUPS_ALL
   .map(g => ({ ...g, fonts: g.fonts.filter(f => _cyrFontNames.has(f)) }))
   .filter(g => g.fonts.length > 0);
 
-// Google Fonts URL (single source — loaded once).
-// IMPORTANT: request bare `family=Name` with NO :ital,wght axes. Google Fonts
-// CSS2 returns 400 for the ENTIRE request if any requested family lacks a
-// requested variant — and ~a third of these fonts are single-weight with no
-// italic (Bebas Neue, Lobster, Pacifico, Marmelad, Great Vibes, Press Start 2P…).
-// The old `:ital,wght@0,400;0,700;1,400` therefore loaded ZERO fonts and made the
-// font picker do nothing. Bare families always resolve (regular; bold is
-// synthesised by the browser). Cyrillic is served automatically via unicode-range.
-export const GOOGLE_FONTS_URL = (() => {
-  const families = FONT_DATA
-    .filter(f => !FONTS_NOT_ON_GOOGLE.has(f.name))
-    .map(f => `family=${f.name.replace(/ /g, '+')}`)
-    .join('&');
-  return `https://fonts.googleapis.com/css2?${families}&display=swap`;
-})();
-
 /**
- * Локальна копія тих самих шрифтів, що віддає css2, з нашого ж походження.
+ * Звідки береться вся підбірка шрифтів — і в конструкторі, і в макеті для друку.
  *
- * `/print` бере ЦЕЙ файл, а не `GOOGLE_FONTS_URL`. Причина в тому, що макет для
- * друку знімає headless Chromium на Railway, і шрифти качає він сам: невдалий
- * запит до fonts.googleapis.com там нічим себе не виявляє — `document.fonts.ready`
- * резолвиться і в цьому випадку, — тож знімок виходив у підставленому накресленні
- * і йшов у друк таким. Вимірювання в тому самому Chromium: із заблокованою
- * таблицею стилів жодної грані немає, а `document.fonts.check()` усе одно
- * відповідає `true`, тобто очевидна перевірка теж нічого не ловить.
+ * Це локальна копія рівно тих файлів, які віддає Google css2, з нашого ж
+ * походження. Файли і дескриптори збігаються один в один (`font-weight: 400`,
+ * `font-style: normal`, ті самі `unicode-range`), тому перехід не змінив нічого
+ * на вигляд: піксельне порівняння того самого рядка в Chromium дає однаковий
+ * хеш знімка в кожній родині.
  *
- * Файли і дескриптори в цьому CSS збігаються з гуглівськими один в один
- * (`font-weight: 400`, `font-style: normal`, ті самі `unicode-range`), тому
- * перехід нічого не змінює на вигляд. Збирає пакет `scripts/build-editor-fonts.py`,
- * а `tests/editor-fonts-pack.test.ts` не дає додати шрифт у підбірку без файлів.
+ * Чому мережі тут більше немає. Макет для друку знімає headless Chromium на
+ * Railway, і шрифти качав він сам, а невдалий запит нічим себе не виявляв:
+ * `document.fonts.ready` резолвиться і тоді, коли файл упав. Виміряно в тому
+ * самому Chromium — із заблокованою таблицею стилів жодної грані немає, а
+ * `document.fonts.check()` для будь-якої родини відповідає `true`, тобто й
+ * найочевидніша наступна перевірка сліпа. Знімок виходив у підставленому
+ * накресленні й ішов у друк таким.
+ *
+ * Екран тепер бере ті самі файли, що й друк, тож розійтися їм більше ні на чому.
+ * Колишня `GOOGLE_FONTS_URL` прибрана навмисне: доки вона існувала, повернути
+ * мережу в цей шлях можна було одним рядком. Збирає пакет
+ * `scripts/build-editor-fonts.py`, а `tests/editor-fonts-pack.test.ts` не дає
+ * додати шрифт у підбірку без файлів і не дає з'явитися новому посиланню на
+ * fonts.googleapis.com у конструкторі чи в друці.
+ *
+ * Що НЕ переведено і лишається на мережі, бо просить родини поза цією підбіркою:
+ * `components/CoverEditor.tsx` (Pinyon Script, Alex Brush, Italianno),
+ * `components/PhotoPrintConstructor.tsx`, `components/ui/InscriptionDesigner.tsx`,
+ * `app/admin/orders/[id]/page.tsx` і два конструктори з `@import` у CSS —
+ * guestbook і photoalbum.
  */
 export const EDITOR_FONTS_CSS_URL = '/editor-fonts/fonts.css';
 

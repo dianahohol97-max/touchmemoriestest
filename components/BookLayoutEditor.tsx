@@ -30,7 +30,7 @@ import { haptic, startPointerDrag, useLongPress } from '@/lib/hooks/useMobileInt
 import {
   ACRYLIC_VARIANTS, PHOTO_INSERT_VARIANTS,
   METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS, VELOUR_COLORS,
-  FONT_GROUPS, GOOGLE_FONTS_URL,
+  FONT_GROUPS, EDITOR_FONTS_CSS_URL,
 } from '@/lib/editor/constants';
 import { collectCyrillicFallbacks, describeCyrillicFallback } from '@/lib/editor/cyrillic-fonts';
 import {
@@ -1509,7 +1509,7 @@ export default function BookLayoutEditor() {
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = GOOGLE_FONTS_URL;
+    link.href = EDITOR_FONTS_CSS_URL;
     document.head.appendChild(link);
     return () => { try { document.head.removeChild(link); } catch{} };
   }, []);

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
+import { execSync } from 'child_process';
 import { join } from 'path';
 import { FONT_DATA, FONTS_NOT_ON_GOOGLE, EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import { FONTS_WITH_CYRILLIC } from '@/lib/editor/font-scripts';
@@ -101,5 +102,48 @@ describe('локальний пакет шрифтів конструктора'
     expect(printPage).toContain('EDITOR_FONTS_CSS_URL');
     // Друкований макет НЕ ходить у мережу по шрифти — у цьому вся зміна.
     expect(printPage).not.toContain('GOOGLE_FONTS_URL');
+  });
+
+  it('конструктори беруть шрифти з того самого файлу, що й друк', () => {
+    // Екран і друк мусять читати ОДНЕ джерело: доти, доки конструктор ходив у
+    // Google, а `/print` у нас, розійтися їм було на чому — і саме це
+    // розходження коштувало б надрукованої книжки не тим шрифтом.
+    for (const file of [
+      ['components', 'BookLayoutEditor.tsx'],
+      ['components', 'StarMapConstructor.tsx'],
+      ['components', 'CityMapConstructor.tsx'],
+      ['components', 'PosterConstructor.tsx'],
+      ['components', 'DeskCalendarConstructor.tsx'],
+      ['components', 'CalendarPrintPage.tsx'],
+    ]) {
+      const src = readFileSync(join(process.cwd(), ...file), 'utf8');
+      expect(src, file.join('/')).toContain('EDITOR_FONTS_CSS_URL');
+      expect(src, file.join('/')).not.toContain('https://fonts.googleapis.com');
+    }
+  });
+
+  it('нових посилань на Google Fonts не з’являється', () => {
+    // Сторож тієї самої породи, що й порожній пошук `api.brevo.com` поза
+    // `lib/email/brevo.ts`: перелік нижче — це те, що лишилося НЕ переведеним, і
+    // він мусить лише коротшати. Кожен із цих файлів просить родини поза
+    // підбіркою (CoverEditor — Pinyon Script, Alex Brush, Italianno) або тягне
+    // сам файл шрифта для Satori з параметром `&text=`, що наш пакет не
+    // замінює. Новий рядок тут означає, що хтось повернув мережу в шлях, з
+    // якого її прибрали.
+    const allowed = [
+      'app/[locale]/constructor/guestbook/GuestbookConstructor.tsx',
+      'app/[locale]/constructor/photoalbum/PhotoalbumConstructor.tsx',
+      'app/admin/orders/[id]/page.tsx',
+      'components/CoverEditor.tsx',
+      'components/PhotoPrintConstructor.tsx',
+      'components/ui/InscriptionDesigner.tsx',
+      'lib/print/wishbook-cover.tsx',   // Satori тягне сам файл, не таблицю стилів
+      'lib/seo/og-font.ts',             // те саме для картинок OG
+    ].sort();
+    const found = execSync(
+      "grep -rl 'https://fonts.googleapis.com' --include=*.ts --include=*.tsx app components lib || true",
+      { cwd: process.cwd(), encoding: 'utf8' },
+    ).split('\n').filter(Boolean).sort();
+    expect(found).toEqual(allowed);
   });
 });

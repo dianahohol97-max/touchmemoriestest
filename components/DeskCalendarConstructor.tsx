@@ -6,7 +6,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, ShoppingCart } from 'lucide-react';
-import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
 import { useT } from '@/lib/i18n/context';
 import { uploadCustomerFile } from '@/lib/upload-customer-file';
@@ -239,7 +239,7 @@ export default function DeskCalendarConstructor(){
   const coverFileRef=useRef<HTMLInputElement>(null);
   const coverBgFileRef=useRef<HTMLInputElement>(null);
   const PW=260,PH=Math.round(260*(21/15));
-  useEffect(()=>{const l=document.createElement('link');l.rel='stylesheet';l.href=GOOGLE_FONTS_URL;document.head.appendChild(l);return()=>{try{document.head.removeChild(l);}catch{}};},[]);
+  useEffect(()=>{const l=document.createElement('link');l.rel='stylesheet';l.href=EDITOR_FONTS_CSS_URL;document.head.appendChild(l);return()=>{try{document.head.removeChild(l);}catch{}};},[]);
   const setMonthSlotFile=(m:number,s:number,f:File)=>{if(!f||!f.type.startsWith('image/'))return;const url=URL.createObjectURL(f);setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={url,zoom:1,cropX:50,cropY:50};return n;});};
   const handleUpload=(e:React.ChangeEvent<HTMLInputElement>)=>{const f=e.target.files?.[0];if(!f)return;const{m,s}=upTarget.current;setMonthSlotFile(m,s,f);if(fileRef.current)fileRef.current.value='';};
   const updateSlot=(m:number,s:number,patch:Partial<PhotoSlot>)=>setMonthPhotos(prev=>{const n=prev.map(x=>x.map(p=>({...p})));n[m][s]={...n[m][s],...patch};return n;});

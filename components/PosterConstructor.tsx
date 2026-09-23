@@ -7,7 +7,7 @@ import { useCartStore } from '@/store/cart-store';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload, Plus, Trash2, Type, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw, Move, AlignCenter, AlignLeft, AlignRight } from 'lucide-react';
-import { FONT_GROUPS, GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { FONT_GROUPS, EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import PixarPortraitGenerator, { AI_PORTRAIT_PRICE } from './PixarPortraitGenerator';
 import { uploadOrderFile } from '@/lib/export-utils';
 import { QRCodeGenerator } from '@/components/ui/QRCodeGenerator';
@@ -673,11 +673,11 @@ export default function PosterConstructor() {
   const layout = LAYOUTS.find(l => l.id === config.layoutId) || LAYOUTS[0];
   const sizeObj = SIZES.find(s => s.id === config.size) || SIZES[0];
 
-  // Load Google Fonts
+  // Шрифти підбірки — з нашого походження, не з мережі.
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = GOOGLE_FONTS_URL;
+    link.href = EDITOR_FONTS_CSS_URL;
     document.head.appendChild(link);
     return () => { try { document.head.removeChild(link); } catch {} };
   }, []);
