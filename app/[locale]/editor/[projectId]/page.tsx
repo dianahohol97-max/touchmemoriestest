@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEditorStore } from '@/lib/editor-store'
 import type { EditorProject, ProductType, Format } from '@/lib/editor-types'
 import { createClient } from '@/lib/supabase/client'
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants'
 
 // Import editor components
 import EditorToolbar from '@/components/editor/EditorToolbar'
@@ -22,6 +23,29 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
   const [loading, setLoading] = useState(true)
 
   const { project, setProject, isDirty, currentPageIndex, setCurrentPage, selectedElementId, removeElement } = useEditorStore()
+
+  /**
+   * Шрифти для полотна і для панелі властивостей.
+   *
+   * Ця сторінка не підключала ЖОДНОЇ таблиці шрифтів — ні нашої, ні
+   * гуглівської. Тобто всі шість варіантів у списку «Шрифт» малювалися тим, що
+   * в документі вже було, а було там тільки те, що ставить `app/layout.tsx`
+   * через `next/font`, і то під власними хешованими назвами. Працювала на
+   * практиці одна Georgia, і то лише на Windows та на Mac, де вона є в
+   * системі; 23.09.2026 її звідти прибрали як системну, і без цього рядка
+   * список перестав би працювати зовсім.
+   *
+   * Файл той самий, що бере конструктор фотокниг і макет для друку, тож
+   * обраний тут шрифт і надрукований — одне накреслення.
+   */
+  useEffect(() => {
+    if (document.querySelector('link[data-tm-editor-fonts]')) return
+    const link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = EDITOR_FONTS_CSS_URL
+    link.setAttribute('data-tm-editor-fonts', '1')
+    document.head.appendChild(link)
+  }, [])
 
   // Auto-save every 30 seconds
   useEffect(() => {
