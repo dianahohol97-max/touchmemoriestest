@@ -16,7 +16,7 @@ import { findMonoCoverItem } from '@/lib/print/cover-eligibility';
 import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/orders/item-options';
 import { repeatSourceOf } from '@/lib/orders/repeat-order';
 import { engravedInscriptions, orderMentionsEngraving } from '@/lib/print/engravable-text';
-import { pageSizeMm, sortPagesForPdf } from '@/lib/export/layout-pdf';
+import { buildPdfSheets, isNumberedPage, pageSizeMm } from '@/lib/export/layout-pdf';
 import {
     ArrowLeft,
     User,
@@ -276,47 +276,99 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
    * Послідовно, а не паралельно. Сторінка розвороту при 300 DPI важить кілька
    * мегабайтів, і на журналі в сорок сторінок паралельне завантаження тримало
    * б у памʼяті все одразу — ту саму помилку вже виправляли в ZIP вище.
+   *
+   * ПОРЯДОК АРКУШІВ РАХУЄ `buildPdfSheets`, а не сортування за назвою. Для
+   * журналу з м'якою обкладинкою він дає порядок друкарні — передня
+   * обкладинка, форзац 1, сторінки, форзац 2, задня обкладинка — і ставить
+   * білий аркуш там, де файлу форзаца немає, щоб сторінки не зсунулися.
+   * Рішення живе в `lib/export/layout-pdf.ts`, разом із поясненням; тут
+   * лишається саме складання.
    */
   const downloadLayoutPdf = async (subset: any[], label: string) => {
-    const files = sortPagesForPdf((subset || []).filter((f: any) => f?.url));
-    if (!files.length || buildingPdf) return;
+    const sheets = buildPdfSheets((subset || []).filter((f: any) => f?.url));
+    if (!sheets.length || buildingPdf) return;
     setBuildingPdf(true);
     try {
       const { default: jsPDF } = await import('jspdf');
       let doc: any = null;
       let added = 0;
       const skipped: string[] = [];
+      const total = sheets.length;
 
-      for (let i = 0; i < files.length; i++) {
-        const f: any = files[i];
+      // Завантажений аркуш, виміряний і готовий лягти на сторінку. Тримаємо в
+      // мапі рівно заради одного випадку — білого аркуша, заради якого сторінку
+      // журналу доводиться виміряти НАПЕРЕД, — і одразу після використання
+      // викидаємо. Більш нічого тут паралельно в памʼяті не лежить.
+      const loaded = new Map<string, { dataUrl: string; page: ReturnType<typeof pageSizeMm> }>();
+      const measure = async (f: any) => {
+        const cached = loaded.get(f.url);
+        if (cached) return cached;
+        const resp = await fetch(f.url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const blob = await resp.blob();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result || ''));
+          fr.onerror = () => reject(new Error('read failed'));
+          fr.readAsDataURL(blob);
+        });
+        const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+          const img = new window.Image();
+          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+          img.onerror = () => reject(new Error('decode failed'));
+          img.src = dataUrl;
+        });
+        const entry = { dataUrl, page: pageSizeMm(dims.w, dims.h) };
+        loaded.set(f.url, entry);
+        return entry;
+      };
+
+      // РОЗМІР БІЛОГО АРКУША БЕРЕТЬСЯ В СТОРІНКИ, А НЕ ВИГАДУЄТЬСЯ.
+      //
+      // Форзац — це аркуш журналу того самого формату, що й решта сторінок.
+      // Поставити на його місце A4 «за замовчуванням» означало б віддати в
+      // друк брошуру, де один аркуш іншого розміру, і помітили б це вже на
+      // папері. Міряємо наперед саме тому, що в порядку друку форзац 1 стоїть
+      // ПЕРЕД першою сторінкою: коли черга дійде до нього, вимірювати буде ще
+      // нічого. Перша сторінка, яка піддалася вимірюванню, лишається в памʼяті
+      // і вдруге не качається.
+      let blankPage: ReturnType<typeof pageSizeMm> | null = null;
+      if (sheets.some((s: any) => s.kind === 'blank')) {
+        for (const s of sheets as any[]) {
+          if (s.kind !== 'file' || !isNumberedPage(s.file)) continue;
+          try { blankPage = (await measure(s.file)).page; break; } catch { /* спробуємо наступну */ }
+        }
+      }
+
+      const startPage = (page: ReturnType<typeof pageSizeMm>) => {
+        if (!doc) {
+          doc = new jsPDF({ unit: 'mm', format: [page.w, page.h], orientation: page.orientation, compress: false });
+        } else {
+          doc.addPage([page.w, page.h], page.orientation);
+        }
+      };
+
+      for (let i = 0; i < sheets.length; i++) {
+        const sheet: any = sheets[i];
+        if (sheet.kind === 'blank') {
+          // Порожнє місце форзаца. Нічого не малюємо — сторінка лишається
+          // білою, і це саме те, що має піти в друк.
+          if (!blankPage) { skipped.push(`форзац ${sheet.label}`); continue; }
+          startPage(blankPage);
+          added++;
+          continue;
+        }
+        const f: any = sheet.file;
         try {
-          const resp = await fetch(f.url);
-          if (!resp.ok) { skipped.push(f.name || `файл ${i + 1}`); continue; }
-          const blob = await resp.blob();
-          const dataUrl: string = await new Promise((resolve, reject) => {
-            const fr = new FileReader();
-            fr.onload = () => resolve(String(fr.result || ''));
-            fr.onerror = () => reject(new Error('read failed'));
-            fr.readAsDataURL(blob);
-          });
-          const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
-            const img = new window.Image();
-            img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-            img.onerror = () => reject(new Error('decode failed'));
-            img.src = dataUrl;
-          });
-          const page = pageSizeMm(dims.w, dims.h);
-          if (!doc) {
-            doc = new jsPDF({ unit: 'mm', format: [page.w, page.h], orientation: page.orientation, compress: false });
-          } else {
-            doc.addPage([page.w, page.h], page.orientation);
-          }
+          const { dataUrl, page } = await measure(f);
+          loaded.delete(f.url);
+          startPage(page);
           // 'NONE' — не перестискати. Сторінки вже відрендерені у 300 DPI з
           // потрібною якістю, і повторне стискання лише зіпсувало б їх.
           doc.addImage(dataUrl, 'JPEG', 0, 0, page.w, page.h, undefined, 'NONE');
           added++;
-          if (files.length > 8) {
-            toast.info(`Збираю PDF… ${added} з ${files.length}`, { id: 'pdf-progress' });
+          if (total > 8) {
+            toast.info(`Збираю PDF… ${added} з ${total}`, { id: 'pdf-progress' });
           }
         } catch {
           skipped.push(f.name || `файл ${i + 1}`);
@@ -329,7 +381,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         // Неповний PDF гірший за жодного: у друк може піти макет без
         // сторінки, і помітять це вже на папері. Тому пропущене називаємо
         // поіменно, а не ховаємо за «готово».
-        toast.error(`PDF зібрано на ${added} з ${files.length} сторінок. Не вдалося: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? ` та ще ${skipped.length - 5}` : ''}. Перевірте перед друком.`, { duration: 12000 });
+        toast.error(`PDF зібрано на ${added} з ${total} сторінок. Не вдалося: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? ` та ще ${skipped.length - 5}` : ''}. Перевірте перед друком.`, { duration: 12000 });
       } else {
         toast.success(`PDF готовий: ${added} сторінок`);
       }
