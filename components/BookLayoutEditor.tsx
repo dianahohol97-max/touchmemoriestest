@@ -55,6 +55,7 @@ import { SlotPhotoToolbar } from '@/components/editor/SlotPhotoToolbar';
 import { applySnap } from '@/lib/editor/snap';
 import { ensurePhotoVariants } from '@/lib/editor/photo-variants';
 import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
+import { readyCoverLayout, READY_COVER_FIT_NEW } from '@/lib/editor/ready-cover-fit';
 import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
   generateQRDataUrl, looksLikeUrl,
@@ -1017,8 +1018,16 @@ export default function BookLayoutEditor() {
             // у базі мають сірий задник при кольоровій передній обкладинці.
             // Якщо кольору немає, його підставить ефект нижче, порахувавши
             // підказку з самої картинки.
+            // Обкладинка, обрана на кроці конфігурації, отримує той самий
+            // режим вкладання, що й обрана в редакторі. Це початкове значення
+            // НОВОГО макета: збережена чернетка нижче перекриває стан цілком,
+            // тож уже оформлені замовлення сюди не потрапляють.
+            readyCoverFit: READY_COVER_FIT_NEW,
             ...(/^#[0-9a-fA-F]{3,8}$/.test(String(c.selectedCover?.background_color || '').trim())
-              ? { backCoverBgColor: String(c.selectedCover.background_color).trim() }
+              ? {
+                  backCoverBgColor: String(c.selectedCover.background_color).trim(),
+                  readyCoverFitBg: String(c.selectedCover.background_color).trim(),
+                }
               : {}),
           };
         }
@@ -1043,7 +1052,7 @@ export default function BookLayoutEditor() {
     sampleCoverBackgroundColor(coverState.printedBgImage).then(hex => {
       if (cancelled || !hex) return;
       setCoverState(p => (p.readyCoverId === coverId && !p.backCoverBgColor)
-        ? { ...p, backCoverBgColor: hex }
+        ? { ...p, backCoverBgColor: hex, ...(p.readyCoverFitBg ? {} : { readyCoverFitBg: hex }) }
         : p);
     });
     return () => { cancelled = true; };
@@ -7159,6 +7168,12 @@ export default function BookLayoutEditor() {
                           // file list, shown on cart thumbnails.
                           photoId: null,
                           printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
+                          // Нова обкладинка вписується у видиму площину цілком.
+                          // Режим фіксується тут і більше не міняється: макети,
+                          // зроблені до цієї зміни, поля не мають і лишаються
+                          // заповненими з обрізанням, бо саме такими їх
+                          // погодили клієнтки.
+                          readyCoverFit: READY_COVER_FIT_NEW,
                         }));
                         // Задня обкладинка заливається кольором тла передньої,
                         // щоб половинки збігалися без пошуків піпетки. Клієнтка
@@ -7174,11 +7189,13 @@ export default function BookLayoutEditor() {
                         // б свіжий вибір.
                         const catalogColor = (cover.background_color || '').trim();
                         if (/^#[0-9a-fA-F]{3,8}$/.test(catalogColor)) {
-                          setCoverState(p => ({ ...p, backCoverBgColor: catalogColor }));
+                          setCoverState(p => ({ ...p, backCoverBgColor: catalogColor, readyCoverFitBg: catalogColor }));
                         } else {
                           sampleCoverBackgroundColor(cover.image_url).then(hex => {
                             if (!hex) return;
-                            setCoverState(p => p.readyCoverId === cover.id ? { ...p, backCoverBgColor: hex } : p);
+                            setCoverState(p => p.readyCoverId === cover.id
+                              ? { ...p, backCoverBgColor: hex, readyCoverFitBg: hex }
+                              : p);
                           });
                         }
                       }}
@@ -9091,6 +9108,7 @@ export default function BookLayoutEditor() {
                     canvasW={pageW}
                     canvasH={cH}
                     sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                    coverSizeKey={sizeKey}
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
@@ -9169,6 +9187,7 @@ export default function BookLayoutEditor() {
                     canvasW={pageW}
                     canvasH={cH}
                     sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
+                    coverSizeKey={sizeKey}
                     config={buildCoverEditorProps(config, coverState, effectiveCoverColor)}
                     photos={photos}
                     hidePhotoSlot={isHardCoverJournal}
@@ -10998,9 +11017,14 @@ export default function BookLayoutEditor() {
                     {/* Front cover (right) */}
                     <div style={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', background: isPrinted ? (coverState.printedBgColor || '#ffffff') : resolveCoverColor(config?.selectedCoverType || '', effectiveCoverColor) }}>
                       {/* Ready-made cover background (travel book) — full bleed */}
-                      {coverState.printedBgImage && (
-                        <img src={coverState.printedBgImage} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
-                      )}
+                      {coverState.printedBgImage && (() => {
+                        const layout = readyCoverLayout(coverState.readyCoverFit, sizeKey, coverState.readyCoverFitBg || coverState.backCoverBgColor);
+                        return (
+                          <div style={layout.wrap}>
+                            <img src={coverState.printedBgImage} alt="" style={layout.image} draggable={false}/>
+                          </div>
+                        );
+                      })()}
                       {isPrinted && frontPhoto && (
                         <div style={{ position: 'absolute', left: `${ps.x}%`, top: `${ps.y}%`, width: `${ps.w}%`, height: `${ps.h}%`, overflow: 'hidden', borderRadius: psRadius }}>
                           <img src={frontPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false}/>
@@ -12814,6 +12838,7 @@ export default function BookLayoutEditor() {
           trimInset={bleed}
           freeSlots={freeSlots}
           coverState={coverState}
+          coverSizeKey={sizeKey}
           isPrinted={isPrinted}
           selectedCoverType={config?.selectedCoverType || ''}
           effectiveCoverColor={effectiveCoverColor}

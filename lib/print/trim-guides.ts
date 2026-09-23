@@ -123,7 +123,7 @@ const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
  * 23×23 в специфікації немає — конструктор показує їй 6% аркуша, і адмінка
  * чесно показує ті самі 6%, а не вигадані міліметри.
  */
-const COVER_FOLD_MM: Record<string, { tb: number; lr: number }> = {
+export const COVER_FOLD_MM: Record<string, { tb: number; lr: number }> = {
     '20x20': { tb: 18, lr: 18 },
     '25x25': { tb: 18, lr: 20 },
     '20x30': { tb: 18, lr: 20 },

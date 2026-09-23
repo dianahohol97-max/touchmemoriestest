@@ -418,6 +418,7 @@ export default function PrintPage() {
           printPageW={idx === 0 && coverGuides ? guidesCoverW : printPageW}
           printPageH={idx === 0 ? (coverGuides ? guidesCoverH : coverPrintH) : undefined}
           printCoverMm={idx === 0 ? (coverGuides ? coverGuides.cover : coverMm) : undefined}
+          coverSizeKey={sizeKey}
           printOverlay={
             idx === 0
               ? (coverGuides ? <CoverGuidesOverlay spec={coverGuides} /> : undefined)

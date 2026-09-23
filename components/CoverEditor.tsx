@@ -7,6 +7,7 @@ import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { parseDecoVariantMm } from '@/lib/print/deco-variant';
 import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
 import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
+import { readyCoverLayout, type ReadyCoverFit } from '@/lib/editor/ready-cover-fit';
 import { toast } from 'sonner';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -122,6 +123,10 @@ export interface CoverConfig {
   printedBgColor?: string;
   // Ready-made full-cover background image (travel book ready covers).
   printedBgImage?: string | null;
+  /** Як ця картинка лягає на аркуш — див. lib/editor/ready-cover-fit.ts. */
+  readyCoverFit?: ReadyCoverFit;
+  /** Чим заливається аркуш навколо вписаної картинки. */
+  readyCoverFitBg?: string;
   // Free, draggable + resizable photos placed anywhere on the cover (works on
   // any material — printed or soft). Independent of the template photo slots.
   // x/y/w/h are percentages of the cover (0–100) so they scale identically in
@@ -132,6 +137,15 @@ export interface CoverConfig {
 interface CoverEditorProps {
   canvasW: number; canvasH: number;
   sizeValue: string;
+  /**
+   * Ключ розміру ВИРОБУ, а не рядок, який обрала клієнтка.
+   *
+   * `sizeValue` вище для тревелбука дає «20x20»: у його конфізі selectedSize
+   * порожній, бо розмір у цього товару один і не обирається, а виклик підставляє
+   * дефолт. Геометрія аркуша обкладинки за таким ключем була б чужою, тож режим
+   * вкладання рахується від справжнього ключа.
+   */
+  coverSizeKey?: string;
   config: CoverConfig;
   photos: { id: string; preview: string }[];
   onChange: (patch: Partial<CoverConfig>) => void;
@@ -359,7 +373,7 @@ function ClampedTextWrapper({
   );
 }
 
-export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
+export function CoverEditor({ canvasW, canvasH, sizeValue, coverSizeKey, config, photos, onChange, hidePhotoSlot = false }: CoverEditorProps) {
   const t = useT();
   const [dragOver, setDragOver] = useState(false);
   // Snap guide lines — {x?: number, y?: number} in % (0-100), shown while dragging
@@ -598,12 +612,20 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
           everything. Only for printed covers: a soft material cover (velour /
           leatherette / fabric) must never show a printed background image, even
           if one lingers in stale state. */}
-      {!isSoft && config.printedBgImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={config.printedBgImage} alt=""
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}
-          draggable={false}/>
-      )}
+      {!isSoft && config.printedBgImage && (() => {
+        // Режим вкладання приходить із макета, а не вибирається тут: старі
+        // обкладинки лишаються заповненими з обрізанням, бо саме такими їх
+        // погодили клієнтки, нові вписуються у видиму площину цілком.
+        const layout = readyCoverLayout(config.readyCoverFit, coverSizeKey || sizeValue, config.readyCoverFitBg);
+        return (
+          <div style={{ ...layout.wrap, zIndex: 0, pointerEvents: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={config.printedBgImage} alt=""
+              style={{ ...layout.image, pointerEvents: 'none' }}
+              draggable={false}/>
+          </div>
+        );
+      })()}
       {isSoft && <div style={{ position:'absolute', inset:0, backgroundImage:texture, pointerEvents:'none', zIndex:1 }}/>}
 
       {/* Snap guide lines overlay — shown while dragging */}

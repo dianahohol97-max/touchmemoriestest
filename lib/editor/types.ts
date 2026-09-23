@@ -96,6 +96,17 @@ export interface CoverState {
   // picker inside the editor.
   readyCoverId?: string | null;
   readyCoverName?: string | null;
+  /**
+   * Як картинка готової обкладинки лягає на передню половину аркуша.
+   *
+   * Поле зʼявляється в мить вибору обкладинки і більше не міняється. Порожнє
+   * значення означає макет, зроблений до появи режимів, і читається як
+   * `cover` — саме так ті обкладинки погодили клієнтки, і перерендер мусить
+   * дати їм те саме. Розбір і арифметика — lib/editor/ready-cover-fit.ts.
+   */
+  readyCoverFit?: 'cover' | 'contain';
+  /** Колір, яким заливається аркуш навколо вписаної картинки в режимі contain. */
+  readyCoverFitBg?: string;
   backCoverBgColor?: string;
   backCoverPhotoId?: string | null;
   backCoverCropX?: number;

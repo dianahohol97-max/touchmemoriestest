@@ -9,6 +9,7 @@ import type { Shape } from './ShapesLayer';
 import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from './FramesLayer';
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
+import { readyCoverLayout } from '@/lib/editor/ready-cover-fit';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
 import { plateBoxStyle, plateTextShadow } from '@/lib/editor/text-plate';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
@@ -174,6 +175,14 @@ interface BookPreviewProps {
    *  printed. Only the caller knows it, and the cover inscription needs it to
    *  convert the editor's stored size into print pixels. */
   printCoverMm?: { w: number; h: number } | null;
+  /**
+   * Ключ розміру виробу — потрібен обкладинці, щоб знати геометрію свого аркуша.
+   *
+   * Без нього режим вкладання готової обкладинки нема від чого рахувати:
+   * пропорції сторінки (propW/propH) не кажуть нічого ні про поле загину, ні
+   * про корінець.
+   */
+  coverSizeKey?: string;
   /** Overlay rendered absolutely over the print spread (trim/safety guides for
    *  the admin's human review on /print?guides=1). NEVER passed by the render
    *  service — its screenshots must stay guide-free, so /print only sets this
@@ -190,7 +199,7 @@ export function BookPreviewModal({
   pageBgs = {}, pageFrames = {}, pageShapes = {}, pageStickers = {}, qrOverlays = {},
   slotGap = 4, pageGap = 0, pageBorder = { width: 0, color: '#e2e8f0' },
   kalkaState, isSpreadMode = true, hasKalka = false,
-  printSpreadIndex, printPageW, printPageH, printCoverMm, printOverlay,
+  printSpreadIndex, printPageW, printPageH, printCoverMm, printOverlay, coverSizeKey,
   trimInset,
 }: BookPreviewProps) {
 
@@ -675,10 +684,21 @@ export function BookPreviewModal({
             the editor draws this as the base layer (printedBgImage); the
             preview used to SKIP it, so template covers showed as a bare
             colour with floating text blocks («ваш текст» / «2019»). */}
-        {(coverState as any)?.printedBgImage && (
-          <img src={(coverState as any).printedBgImage} alt="" draggable={false}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
+        {(coverState as any)?.printedBgImage && (() => {
+          // Та сама арифметика, що й у конструкторі. Режим лежить у макеті, тож
+          // уже оформлене замовлення при перерендері дає рівно те, що клієнтка
+          // погодила, а новий макет вписує картинку у видиму площину цілком.
+          const layout = readyCoverLayout(
+            (coverState as any).readyCoverFit,
+            coverSizeKey || '',
+            (coverState as any).readyCoverFitBg || (coverState as any).backCoverBgColor,
+          );
+          return (
+            <div style={layout.wrap}>
+              <img src={(coverState as any).printedBgImage} alt="" draggable={false} style={layout.image} />
+            </div>
+          );
+        })()}
         {/* Main photo slot — absent entirely when the slot was explicitly removed */}
         {slot && (
           <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>

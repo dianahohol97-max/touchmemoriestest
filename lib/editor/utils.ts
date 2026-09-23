@@ -315,6 +315,11 @@ export function buildCoverEditorProps(
     printedOverlay: coverState.printedOverlay,
     printedBgColor: coverState.printedBgColor,
     printedBgImage: (coverState as any).printedBgImage,
+    // Режим вкладання готової обкладинки їде разом із картинкою. Без нього
+    // CoverEditor малював би її по-своєму, і конструктор розійшовся б із
+    // прев'ю та друком — три копії однієї арифметики це вже проходили.
+    readyCoverFit: coverState.readyCoverFit,
+    readyCoverFitBg: coverState.readyCoverFitBg || coverState.backCoverBgColor,
     printedPhotoSlots: (coverState as any).printedPhotoSlots,
     coverPhotos: (coverState as any).coverPhotos,
   };
