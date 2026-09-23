@@ -68,16 +68,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   // Обкладинка цього макета. Тревелбуки й журнали звуть її cover.jpg,
   // фотокниги — 00_cover.jpg; обидві назви реєструються як book-cover.
+  //
+  // Належність макетові стоїть У ЗАПИТІ, а не у відсіві після нього: замовлення
+  // на пʼять книг несе понад триста файлів, і «взяти перші N, а тоді відсіяти»
+  // — це лотерея, на якій уже спинялася звірка з KeyCRM (гоча 13 у CLAUDE.md).
   const { data: files } = await admin
     .from('order_files')
     .select('file_name, file_path, bucket_name, file_category')
     .eq('order_id', id)
     .eq('file_type', 'export')
-    .limit(500);
+    .like('file_path', `%${projectId}%`)
+    .limit(50);
 
   const cover = (files || []).find((f: any) =>
-    String(f.file_path || '').includes(projectId)
-    && (String(f.file_category || '') === 'book-cover' || /cover/i.test(String(f.file_name || ''))));
+    String(f.file_category || '') === 'book-cover' || /cover/i.test(String(f.file_name || '')));
   if (!cover) {
     return NextResponse.json({ error: 'У цього виробу ще немає файлу обкладинки — перегенеруйте макет' }, { status: 404 });
   }
