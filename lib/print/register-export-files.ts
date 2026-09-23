@@ -279,6 +279,50 @@ export async function pruneExportsOfDetachedProjects(
  * new set — from storage AND the DB. Self-composed exports (poster/map/magnet)
  * and unknown product types are never touched.
  */
+/** Рядок `order_files`, у тому обсязі, який потрібен прибиранню. */
+export interface ExportRow {
+    id?: unknown;
+    file_path?: string | null;
+    bucket_name?: string | null;
+    product_type?: string | null;
+    file_category?: string | null;
+}
+
+/**
+ * ЯКІ РЯДКИ ПРИБИРАННЯ ВВАЖАЄ ЗАСТАРІЛИМИ.
+ *
+ * Вийнято з `pruneStaleExports` у чисту функцію заради одного: тут ухвалюється
+ * рішення видалити готові файли, і перевіряти таке рішення треба тестом, а не
+ * читанням. Обидва випадки, на яких воно колись помилилося, коштували готових
+ * макетів — TM-001234 втратило так 32 сторінки однієї книги і 12 іншої.
+ *
+ * `scopeToProjectIds` має ТРИ різні стани, і плутати їх не можна:
+ *   · `undefined` — область не задана, прибираємо по всьому замовленню; так
+ *     робить лише той, хто рендерить усе замовлення одним махом;
+ *   · непорожній список — прибираємо тільки файли названих макетів;
+ *   · ПОРОЖНІЙ список — жоден макет не дійшов до кінця, не прибираємо нічого.
+ *
+ * Третій стан і є виправленням. Раніше він читався як перший, тобто невдалий
+ * рендер отримував найширші повноваження саме тоді, коли заслуговував на
+ * найвужчі.
+ */
+export function staleExportRows(
+    oldFiles: ExportRow[],
+    keepPaths: string[],
+    scopeToProjectIds?: string[],
+): ExportRow[] {
+    if (!keepPaths.length) return [];
+    const scopes = (scopeToProjectIds || []).filter(Boolean);
+    if (scopeToProjectIds && scopes.length === 0) return [];
+    const newSet = new Set(keepPaths);
+    return (oldFiles || []).filter((f) =>
+        !newSet.has(String(f.file_path || '')) &&
+        (!scopes.length || scopes.some(id => String(f.file_path || '').includes(id))) &&
+        !SERVER_GENERATED_COVER.test(String(f.file_path || '')) &&
+        RAILWAY_RENDERABLE.test(String(f.product_type || '')),
+    );
+}
+
 export async function pruneStaleExports(
   admin: SupabaseClient,
   orderId: string,
@@ -302,25 +346,34 @@ export async function pruneStaleExports(
    * ньому просто не всі.
    *
    * Тому прибирання обмежене списком макетів, які в цьому запуску дійшли до
-   * кінця. Порожній або відсутній список означає старý поведінку — усе
+   * кінця. Відсутній список (`undefined`) означає старý поведінку — усе
    * замовлення, — і використовується лише там, де рендер справді один на все.
+   *
+   * ПОРОЖНІЙ СПИСОК — ЦЕ НЕ «БЕЗ ОБМЕЖЕНЬ», А «ЖОДЕН НЕ ДІЙШОВ».
+   *
+   * Тут була діра рівно того розміру, який ця область мала закрити. Порожній
+   * масив читався так само, як його відсутність, тобто область мовчки
+   * розширювалася на все замовлення — саме тоді, коли жодна книга не
+   * відрендерилася до кінця і довіряти новому набору найменше підстав.
+   * Наслідок протилежний задуму: невдалий рендер зносив ГОТОВІ файли тих
+   * книг, яких цього разу навіть не чіпали.
+   *
+   * Жива ілюстрація — TM-001354 (перевірено 23.09.2026). Чотири тревелбуки, з
+   * них одна книга зібрана повністю (сімнадцять файлів), а три неповні: одна
+   * має саму обкладинку, друга чотири аркуші з дванадцяти, третя без аркушів
+   * 09 і 10. Розвороти там падають цілими, тож `complete` не стає true в
+   * жодної, `renderedProjectIds` лишається порожнім — і прибирання за старим
+   * читанням забрало б сімнадцять файлів тієї книги, що ціла.
    */
   scopeToProjectIds?: string[],
 ): Promise<void> {
   if (!keepPaths.length) return;
-  const newSet = new Set(keepPaths);
-  const scopes = (scopeToProjectIds || []).filter(Boolean);
   const { data: oldFiles } = await admin
     .from('order_files')
     .select('id, file_path, bucket_name, product_type, file_category')
     .eq('order_id', orderId)
     .eq('file_type', 'export');
-  const stale = (oldFiles || []).filter((f: any) =>
-    !newSet.has(f.file_path) &&
-    (!scopes.length || scopes.some(id => String(f.file_path || '').includes(id))) &&
-    !SERVER_GENERATED_COVER.test(String(f.file_path || '')) &&
-    RAILWAY_RENDERABLE.test(String(f.product_type || '')),
-  );
+  const stale = staleExportRows(oldFiles || [], keepPaths, scopeToProjectIds);
   if (!stale.length) return;
   const byBucket = new Map<string, string[]>();
   for (const f of stale as any[]) {
