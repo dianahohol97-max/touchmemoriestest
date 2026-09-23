@@ -4237,7 +4237,17 @@ export default function BookLayoutEditor() {
         photoVariantTriedRef.current.add(p.id);
         const source = body || (p.originalFile as File | undefined) || p.preview;
         if (!source) return {};
-        const made = await ensurePhotoVariants(sb, 'photobook-uploads', path, source);
+        // Копії, які імпорт уже зробив із того самого розкодування: `preview`
+        // це рівно 1600 px, `thumb` це рівно 360 px. Без них цей рядок
+        // розкодовував оригінал на 12 Мп удруге — 117 мс на фото рівно тоді,
+        // коли людина щойно відпустила мишу.
+        const made = await ensurePhotoVariants(sb, 'photobook-uploads', path, source, {
+          display: p.preview,
+          thumb: p.thumb,
+          originalWidth: p.width,
+          originalHeight: p.height,
+          originalBytes: (p.originalFile as File | undefined)?.size || (body instanceof Blob ? body.size : undefined),
+        });
         if (made.previewPath) p.previewPath = made.previewPath;
         if (made.thumbPath) p.thumbPath = made.thumbPath;
         return made;
@@ -5874,7 +5884,13 @@ export default function BookLayoutEditor() {
           // бере `path`.
           const v = ph.previewPath || ph.thumbPath
             ? { previewPath: ph.previewPath, thumbPath: ph.thumbPath }
-            : await ensurePhotoVariants(sb, 'photobook-uploads', existingPath, (ph.originalFile as File | undefined) || ph.preview);
+            : await ensurePhotoVariants(sb, 'photobook-uploads', existingPath, (ph.originalFile as File | undefined) || ph.preview, {
+                display: ph.preview,
+                thumb: ph.thumb,
+                originalWidth: ph.width,
+                originalHeight: ph.height,
+                originalBytes: (ph.originalFile as File | undefined)?.size,
+              });
           if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
           if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
           continue;
@@ -5897,7 +5913,13 @@ export default function BookLayoutEditor() {
           if (!upErr) {
             uploadedPhotosMeta[i].path = path;
             ph.storagePath = path;
-            const v = await ensurePhotoVariants(sb, 'photobook-uploads', path, body);
+            const v = await ensurePhotoVariants(sb, 'photobook-uploads', path, body, {
+              display: ph.preview,
+              thumb: ph.thumb,
+              originalWidth: ph.width,
+              originalHeight: ph.height,
+              originalBytes: body.size,
+            });
             if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
             if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
           }
