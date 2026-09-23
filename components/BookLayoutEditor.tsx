@@ -601,6 +601,36 @@ const SAFE_ZONE_SIDE_WORD: Record<'top' | 'bottom' | 'left' | 'right', string> =
  * такої позначки в двох місцях довелося б міняти двічі, а тулбар фотослота вже
  * показав, чим це закінчується: копії розходяться.
  */
+/**
+ * ПОРОЖНІЙ ТЕКСТОВИЙ БЛОК ВИДНО.
+ *
+ * Блок без жодного символу малювався абсолютно нічим: фон прозорий, рамка
+ * `1px solid transparent`, усередині порожній рядок. Виділити його можна було
+ * тільки випадково влучивши в кілька пікселів відступу, а не виділивши — не
+ * можна було й видалити, бо хрестик зʼявляється лише на виділеному блоці. Саме
+ * такий блок лежить на другій сторінці макета TM-001352, шириною майже третину
+ * сторінки, і клієнтка написала про нього рівно те, що було: прибрати не
+ * вдається.
+ *
+ * Підказка займає справжнє місце, тобто дає блокові розмір, за який його можна
+ * взяти. Зникає вона щойно людина щось напише.
+ *
+ * ТІЛЬКИ РЕДАКТОР. У друк цей елемент не потрапляє в принципі: сторінка
+ * `/print/[projectId]` малює макет через BookPreviewModal, окремий компонент,
+ * який про цю підказку не знає. Атрибути `data-export-ignore` і
+ * `data-html2canvas-ignore` стоять як другий замок на той випадок, якщо колись
+ * повернуть знімок екрана на клієнті.
+ */
+function EmptyTextGhost({ fontPx }: { fontPx: number }) {
+  return (
+    <span data-export-ignore="true" data-html2canvas-ignore="true"
+      style={{ display: 'block', fontSize: Math.max(9, Math.min(13, fontPx)), lineHeight: TEXT_LINE_HEIGHT,
+        fontStyle: 'italic', color: '#94a3b8', whiteSpace: 'nowrap', userSelect: 'none' }}>
+      порожній підпис
+    </span>
+  );
+}
+
 function SafeZoneBadge({ violation }: { violation: SafeZoneViolation }) {
   const tone = SAFE_ZONE_TONE[violation.level];
   const worst = violation.sides
@@ -8999,7 +9029,7 @@ export default function BookLayoutEditor() {
                       }
                     }}
                     onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
-                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(`spread-${spreadPageIdx}-`)) || (!!editSlotKey && editSlotKey.startsWith(`spread-${spreadPageIdx}-`))) ? 'visible' : 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
+                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(`spread-${spreadPageIdx}-`)) || (!!editSlotKey && editSlotKey.startsWith(`spread-${spreadPageIdx}-`)) || (!!selectedTextId && selectedTextPageIdx === spreadPageIdx)) ? 'visible' : 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
                     {/* Center spine line — always visible fold indicator */}
@@ -9433,6 +9463,8 @@ export default function BookLayoutEditor() {
                       // Перелік перед оформленням і ця рамка читають ОДИН
                       // розрахунок, тож сказане в переліку видно на полотні.
                       const txtSafeZone = isEd ? undefined : safeZoneByBlock.get(`${spreadPageIdx}:${tb.id}`);
+                      // Порожній блок інакше неможливо ні взяти, ні видалити.
+                      const txtEmpty = !String(tb.text || '').trim();
                       return (
                         <div key={tb.id}
                           onPointerDown={e => {
@@ -9452,7 +9484,7 @@ export default function BookLayoutEditor() {
                           }}
                           onClick={e => { e.stopPropagation(); if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;} if(isSel && !isEd) { setEditingTextId(tb.id); } }}
                           onDoubleClick={e => { e.stopPropagation(); setEditingTextId(tb.id); setSelectedTextId(tb.id); setSelectedTextPageIdx(spreadPageIdx); }}
-                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : txtSafeZone ? `2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}` : (isSel ? '2px solid #3b82f6' : '1px solid transparent'), ...plateBoxStyle((tb as any).plate), background: (tb as any).plate ? plateBoxStyle((tb as any).plate).background : (isSel ? 'rgba(59,130,246,0.05)' : 'transparent'), ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
+                          style={{ position:'absolute', left:`${tb.x}%`, top:`${tb.y}%`, transform:'translate(-50%,-50%)', cursor: isEd ? 'text' : (isSel ? 'pointer' : 'move'), zIndex: zIndexFor(tb.zOrder), padding:`${4*pageTextScale(cH)}px ${8*pageTextScale(cH)}px`, borderRadius:4, border: txtOverflows ? '2px solid #dc2626' : txtSafeZone ? `2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}` : (isSel ? '2px solid #3b82f6' : txtEmpty ? '1px dashed #cbd5e1' : '1px solid transparent'), ...plateBoxStyle((tb as any).plate), background: (tb as any).plate ? plateBoxStyle((tb as any).plate).background : (isSel ? 'rgba(59,130,246,0.05)' : 'transparent'), ...textBoxWidthStyle(tb.w), minWidth:20, touchAction:'none' }}>
                             {txtOverflows && (
                               <div data-html2canvas-ignore="true"
                                 title="Текст не вміщається у блок. Збільште блок, скоротіть текст або зменште кегль — інакше частину слів зріже краєм сторінки."
@@ -9470,8 +9502,10 @@ export default function BookLayoutEditor() {
                             style={{ fontSize: txtBasePx * txtScale, fontFamily:tb.fontFamily, color:tb.color, fontWeight:tb.bold?'bold':'normal', fontStyle:tb.italic?'italic':'normal', lineHeight: TEXT_LINE_HEIGHT, outline:'none', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:'100%', textShadow: plateTextShadow((tb as any).plate), userSelect: isEd ? 'text' : 'none' }}>
                             {tb.text}
                           </div>
+                          {txtEmpty && !isEd && <EmptyTextGhost fontPx={txtBasePx * txtScale}/>}
                           {isSel && !isEd && (
                             <ZOrderToolbar
+                              vertical
                               onBringForward={() => zOrderAction('text', tb.id, spreadPageIdx, 'forward')}
                               onSendBackward={() => zOrderAction('text', tb.id, spreadPageIdx, 'backward')}
                               onBringToFront={() => zOrderAction('text', tb.id, spreadPageIdx, 'front')}
@@ -9856,7 +9890,7 @@ export default function BookLayoutEditor() {
                         setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newSlot] }));
                         toast.success(t('constructor.photo_added'));
                       }}
-                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-'))) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
+                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-')) || (!!selectedTextId && selectedTextPageIdx === pageIdx)) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
@@ -10226,6 +10260,8 @@ export default function BookLayoutEditor() {
                         const txtOverflows = !isEd && textOverflowsAtMinScale(txtFit);
                         // Та сама перевірка, що й у розворотному режимі.
                         const txtSafeZone = isEd ? undefined : safeZoneByBlock.get(`${pageIdx}:${tb.id}`);
+                        // Порожній блок інакше неможливо ні взяти, ні видалити.
+                        const txtEmpty = !String(tb.text || '').trim();
                         return (
                           <div key={tb.id}
                             onPointerDown={e => {
@@ -10241,7 +10277,7 @@ export default function BookLayoutEditor() {
                             onClick={e=>{e.stopPropagation();if(txtDragMovedRef.current){txtDragMovedRef.current=false;return;}if(isSel&&!isEd){setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}}
                             onContextMenu={e=>{e.preventDefault();setCtxMenu({x:e.clientX,y:e.clientY,type:'text',id:tb.id,pageIdx});}}
                             onDoubleClick={e=>{e.stopPropagation();setEditingTextId(tb.id);setSelectedTextId(tb.id);setSelectedTextPageIdx(pageIdx);setTFontSize(tb.fontSize||28);setTFontFamily(tb.fontFamily||'Open Sans');setTColor(tb.color||'#000');setTBold(!!tb.bold);setTItalic(!!tb.italic);}}
-                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:txtOverflows?'2px solid #dc2626':txtSafeZone?`2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}`:(isSel?'2px solid #3b82f6':'none'),borderRadius:3,
+                            style={{position:'absolute',left:tb.x+'%',top:tb.y+'%',transform:'translate(-50%,-50%)',zIndex: zIndexFor(tb.zOrder),cursor:isEd?'text':'move',outline:txtOverflows?'2px solid #dc2626':txtSafeZone?`2px dashed ${SAFE_ZONE_TONE[txtSafeZone.level].color}`:(isSel?'2px solid #3b82f6':txtEmpty?'1px dashed #cbd5e1':'none'),borderRadius:3,
                               /* Scaled 4/8 like the spread branch and the print
                                  page — this padding eats into the 90% max width,
                                  so raw '2px 4px' put the wrap point a few px away
@@ -10258,6 +10294,7 @@ export default function BookLayoutEditor() {
                             {txtSafeZone && <SafeZoneBadge violation={txtSafeZone}/>}
                             {isSel && !isEd && (
                               <ZOrderToolbar
+                                vertical
                                 onBringForward={() => zOrderAction('text', tb.id, pageIdx, 'forward')}
                                 onSendBackward={() => zOrderAction('text', tb.id, pageIdx, 'backward')}
                                 onBringToFront={() => zOrderAction('text', tb.id, pageIdx, 'front')}
@@ -10278,6 +10315,7 @@ export default function BookLayoutEditor() {
                             ):(
                               <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:plateTextShadow((tb as any).plate)}}>{tb.text}</span>
                             )}
+                            {txtEmpty && !isEd && <EmptyTextGhost fontPx={txtBasePx * txtScale}/>}
                             {isSel && !isEd && (['l','r'] as const).map(side => (
                               <div key={side} data-export-ignore="true" data-html2canvas-ignore="true"
                                 onPointerDown={e => startTxtResize(e, tb.id, side, pageW, pageIdx)}

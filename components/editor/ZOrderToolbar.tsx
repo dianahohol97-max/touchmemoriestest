@@ -9,6 +9,21 @@ interface ZOrderToolbarProps {
     // Optional positioning offset relative to the selected overlay.
     // Default: floats above the overlay (top: -36).
     style?: React.CSSProperties;
+    /**
+     * Вертикальна смужка збоку від об'єкта замість горизонтальної над ним.
+     *
+     * Над об'єктом ця панель стоїть на 36 px вище його верхнього краю, і для
+     * фотографій та наліпок це нормально: вони великі й рідко стоять щільно
+     * одна над одною. Для ТЕКСТУ це не працює. Підписи стоять стовпчиком, і в
+     * журналі TM-001352 сусідні блоки розділяють приблизно пʼятдесят пікселів
+     * при висоті блока близько двадцяти пʼяти — тобто панель виділеного блока
+     * лягала рівно на текст блока над ним, з z-index 9999 поверх усього.
+     *
+     * Збоку вона нікому не заважає, бо ліворуч і праворуч від підпису зазвичай
+     * порожньо. Ручки ширини сидять на самому краю коробки (±6 px), тож смужка
+     * відсунута далі, на 16 px, і їх не перекриває.
+     */
+    vertical?: boolean;
 }
 
 // Floating mini-toolbar with 4 z-order buttons. Rendered as a sibling of
@@ -25,7 +40,7 @@ interface ZOrderToolbarProps {
 // Click handlers stopPropagation so the action doesn't bubble up to the
 // canvas (which would deselect the overlay before we get to operate on it).
 export function ZOrderToolbar({
-    onBringForward, onSendBackward, onBringToFront, onSendToBack, style,
+    onBringForward, onSendBackward, onBringToFront, onSendToBack, style, vertical,
 }: ZOrderToolbarProps) {
     const btnStyle: React.CSSProperties = {
         width: 26, height: 26, borderRadius: 4, border: 'none', background: 'transparent',
@@ -40,9 +55,9 @@ export function ZOrderToolbar({
             onClick={stop}
             style={{
                 position: 'absolute',
-                top: -36,
-                left: '50%',
-                transform: 'translateX(-50%)',
+                ...(vertical
+                    ? { top: '50%', left: '100%', marginLeft: 16, transform: 'translateY(-50%)', flexDirection: 'column' as const }
+                    : { top: -36, left: '50%', transform: 'translateX(-50%)' }),
                 display: 'flex',
                 gap: 1,
                 background: 'rgba(30, 45, 125, 0.92)',
