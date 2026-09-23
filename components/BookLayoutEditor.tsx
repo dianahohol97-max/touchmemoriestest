@@ -2652,15 +2652,50 @@ export default function BookLayoutEditor() {
     setEditingTextId(null);
   };
 
+  /**
+   * Перевести перегляд на сторінку зі слотом і відкрити сам слот.
+   *
+   * Дзеркало goToTextBlock для фотографій. Рядок переліку без переходу майже
+   * нічого не вартий: у TM-001352 клієнтка вже отримала голий перелік номерів
+   * сторінок, відкрила саме їх і нічого там не знайшла.
+   */
+  const goToSlot = (pageIdx: number, slotIdx: number) => {
+    if (pageIdx <= 0) { setCurrentIdx(0); setLeftTab('cover'); return; }
+    setCurrentIdx(Math.floor((pageIdx - 1) / 2) + 1);
+    if (!isSpreadMode) setActiveSide(((pageIdx - 1) % 2) as 0 | 1);
+    setSelectedTextId(null);
+    setEditingTextId(null);
+    setEditSlotKey(null);
+    setSelectedFreeSlotId(null);
+    setPhotoEditSlot(isSpreadMode ? `spread-${pageIdx}-${slotIdx}` : `${pageIdx}-${slotIdx}`);
+  };
+
+  /** Те саме для вільного слота — там виділення живе в іншому стані. */
+  const goToFreeSlot = (pageIdx: number, freeSlotId: string) => {
+    if (pageIdx <= 0) { setCurrentIdx(0); setLeftTab('cover'); return; }
+    setCurrentIdx(Math.floor((pageIdx - 1) / 2) + 1);
+    if (!isSpreadMode) setActiveSide(((pageIdx - 1) % 2) as 0 | 1);
+    setSelectedTextId(null);
+    setEditingTextId(null);
+    setPhotoEditSlot(null);
+    setEditSlotKey(null);
+    setSelectedFreeSlotId(freeSlotId);
+  };
+
   // ── Панель «перед оформленням» ────────────────────────────────────────────
   //
   // Заміна системного confirm(). Обіцянка повертає вибір клієнта, тож
   // addToCart читається так само послідовно, як читався раніше.
   type PrintIssue = {
-    kind: 'trim' | 'safety' | 'clipped';
+    kind: 'trim' | 'safety' | 'clipped' | 'gap';
     pageIndex: number;
+    /** Ідентифікатор текстового блока, або ключ слота для `gap`. */
     blockId: string;
     text: string;
+    /** Для `gap` у шаблонному слоті — його номер у розкладці сторінки. */
+    slotIdx?: number;
+    /** Для `gap` у вільному слоті — його власний ідентифікатор. */
+    freeSlotId?: string;
   };
   const [printIssues, setPrintIssues] = useState<PrintIssue[] | null>(null);
   const printIssuesAnswer = React.useRef<((ok: boolean) => void) | null>(null);
@@ -4586,6 +4621,53 @@ export default function BookLayoutEditor() {
         }
       });
 
+      // ФОТО, ЯКЕ НЕ ЗАКРИВАЄ СВОЮ РАМКУ.
+      //
+      // Знімок у слоті малюється як `objectFit: cover` на всю рамку, а далі до
+      // нього застосовується `transform: scale(zoom)`. При одиниці він закриває
+      // рамку рівно, тож усе, що менше за одиницю, лишає по краях білий папір —
+      // і на екрані це видно погано, бо полотно саме по собі біле.
+      //
+      // У TM-001352 таких слотів вісім із пʼятнадцяти заповнених, зі значеннями
+      // 0,9, 0,8 і 0,7000000000000001. Кроки рівно по 0,1 — це підпис кнопки «−»
+      // в панелі; колесо крокує по 0,05 і лишило б інший слід із плаваючої коми.
+      // Тобто клієнтка тиснула «−», шукаючи «зменшити», і робила собі поля.
+      //
+      // Кнопка більше не пускає масштаб нижче межі, але ВЖЕ ЗБЕРЕЖЕНІ макети
+      // ніхто не чіпає: мовчки переписати чужу роботу гірше, ніж сказати про неї.
+      // Тому старі слоти просто потрапляють у цей перелік, із переходом до
+      // потрібного слота, як це вже зроблено для тексту.
+      //
+      // «Без обрізки» (`fit: 'contain'`) сюди не йде: там поля є тим, чого
+      // людина просила, і попереджати про них означало б сперечатися з її
+      // власним вибором.
+      const gaps: PrintIssue[] = [];
+      pages.forEach((pg: any, pi: number) => {
+        if (pi === 0) return; // обкладинка має власний редактор
+        (pg?.slots || []).forEach((sl: any, si: number) => {
+          if (!sl?.photoId || sl?.fit === 'contain') return;
+          if (!((sl?.zoom ?? 1) < 0.999)) return;
+          gaps.push({
+            kind: 'gap',
+            pageIndex: pi,
+            blockId: `slot-${pi}-${si}`,
+            slotIdx: si,
+            text: `${safeZonePageLabel(pi)}, фото ${si + 1}: знімок зменшено до ${Math.round((sl.zoom ?? 1) * 100)} % і він не заповнює рамку — по краях залишиться білий папір.`,
+          });
+        });
+        (freeSlots[pi] || []).forEach((fs: any) => {
+          if (!fs?.photoId) return;
+          if (!((fs?.zoom ?? 1) < 0.999)) return;
+          gaps.push({
+            kind: 'gap',
+            pageIndex: pi,
+            blockId: `free-${fs.id}`,
+            freeSlotId: fs.id,
+            text: `${safeZonePageLabel(pi)}, вільний слот: знімок зменшено до ${Math.round((fs.zoom ?? 1) * 100)} % і він не заповнює рамку — по краях залишиться білий папір.`,
+          });
+        });
+      });
+
       const issues: PrintIssue[] = [
         ...violations.map((v): PrintIssue => ({
           kind: v.level === 'trim' ? 'trim' : 'safety',
@@ -4594,6 +4676,7 @@ export default function BookLayoutEditor() {
           text: describeViolation(v, safeZonePageLabel),
         })),
         ...clipped,
+        ...gaps,
       ];
 
       if (issues.length > 0) {
@@ -12634,7 +12717,7 @@ export default function BookLayoutEditor() {
               <div style={{ fontSize:16, fontWeight:800, color:'#1e2d7d' }}>Перевірте макет перед друком</div>
             </div>
             <p style={{ fontSize:12.5, color:'#64748b', lineHeight:1.55, margin:'0 0 12px' }}>
-              Натисніть рядок, щоб перейти до цього тексту в конструкторі — там він підсвічений рамкою.
+              Натисніть рядок, щоб перейти до цього місця в конструкторі — там воно підсвічене рамкою.
               Якщо так і задумано, оформлення можна продовжити.
             </p>
             <div style={{ overflowY:'auto', display:'flex', flexDirection:'column', gap:8, margin:'0 -4px', padding:'0 4px' }}>
@@ -12643,10 +12726,21 @@ export default function BookLayoutEditor() {
                   ? { border:'#fecaca', bg:'#fff5f5', dot:'#dc2626', label:'Зріже' }
                   : issue.kind === 'safety'
                     ? { border:'#fde68a', bg:'#fffbeb', dot:'#d97706', label:'Ризик' }
-                    : { border:'#e2e8f0', bg:'#f8fafc', dot:'#64748b', label:'Не вміщається' };
+                    : issue.kind === 'gap'
+                      ? { border:'#bfdbfe', bg:'#eff6ff', dot:'#2563eb', label:'Білі поля' }
+                      : { border:'#e2e8f0', bg:'#f8fafc', dot:'#64748b', label:'Не вміщається' };
                 return (
                   <button key={`${issue.pageIndex}-${issue.blockId}-${i}`}
-                    onClick={() => { goToTextBlock(issue.pageIndex, issue.blockId); answerPrintIssues(false); }}
+                    onClick={() => {
+                      // Рядок про фото веде до слота, рядок про текст — до блока.
+                      if (issue.kind === 'gap') {
+                        if (issue.freeSlotId) goToFreeSlot(issue.pageIndex, issue.freeSlotId);
+                        else if (issue.slotIdx !== undefined) goToSlot(issue.pageIndex, issue.slotIdx);
+                      } else {
+                        goToTextBlock(issue.pageIndex, issue.blockId);
+                      }
+                      answerPrintIssues(false);
+                    }}
                     style={{ display:'flex', alignItems:'flex-start', gap:10, textAlign:'left', width:'100%',
                       padding:'10px 12px', borderRadius:10, border:`1px solid ${tone.border}`, background:tone.bg,
                       cursor:'pointer', fontSize:12.5, lineHeight:1.5, color:'#334155' }}>
