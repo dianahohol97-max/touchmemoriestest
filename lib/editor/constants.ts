@@ -173,6 +173,19 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Marmelad', cyr: true }, { name: 'Ledger', cyr: true },
 ];
 
+/**
+ * Родини, яких Google Fonts не віддає взагалі.
+ *
+ * Окремий запит на `Kyiv Type Sans` повертає «400: Font family not found», а в
+ * спільному запиті на всі 98 родин Google просто мовчки викидає цю назву й
+ * віддає 97 інших — тобто збірка не падає, помилки немає, і дізнатися можна
+ * тільки перелічивши родини у відповіді. Назва лишається в `FONT_DATA` навмисне:
+ * прибрати її звідси означало б, що збережений макет із нею втратить шрифт ще й
+ * на відкритті. Натомість її не просять ні в css2, ні в локальному пакеті, і
+ * `tests/editor-fonts-pack.test.ts` не вимагає для неї файлів.
+ */
+export const FONTS_NOT_ON_GOOGLE = new Set<string>(['Kyiv Type Sans']);
+
 const FONT_GROUPS_ALL = [
   { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope','Roboto','Fira Sans','Source Sans 3','Noto Sans','Outfit','DM Sans','Plus Jakarta Sans'] },
   { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif','Crimson Text','Cormorant','Old Standard TT','Literata','Bitter','Vollkorn'] },
@@ -198,9 +211,30 @@ export const FONT_GROUPS = FONT_GROUPS_ALL
 // font picker do nothing. Bare families always resolve (regular; bold is
 // synthesised by the browser). Cyrillic is served automatically via unicode-range.
 export const GOOGLE_FONTS_URL = (() => {
-  const families = FONT_DATA.map(f => `family=${f.name.replace(/ /g, '+')}`).join('&');
+  const families = FONT_DATA
+    .filter(f => !FONTS_NOT_ON_GOOGLE.has(f.name))
+    .map(f => `family=${f.name.replace(/ /g, '+')}`)
+    .join('&');
   return `https://fonts.googleapis.com/css2?${families}&display=swap`;
 })();
+
+/**
+ * Локальна копія тих самих шрифтів, що віддає css2, з нашого ж походження.
+ *
+ * `/print` бере ЦЕЙ файл, а не `GOOGLE_FONTS_URL`. Причина в тому, що макет для
+ * друку знімає headless Chromium на Railway, і шрифти качає він сам: невдалий
+ * запит до fonts.googleapis.com там нічим себе не виявляє — `document.fonts.ready`
+ * резолвиться і в цьому випадку, — тож знімок виходив у підставленому накресленні
+ * і йшов у друк таким. Вимірювання в тому самому Chromium: із заблокованою
+ * таблицею стилів жодної грані немає, а `document.fonts.check()` усе одно
+ * відповідає `true`, тобто очевидна перевірка теж нічого не ловить.
+ *
+ * Файли і дескриптори в цьому CSS збігаються з гуглівськими один в один
+ * (`font-weight: 400`, `font-style: normal`, ті самі `unicode-range`), тому
+ * перехід нічого не змінює на вигляд. Збирає пакет `scripts/build-editor-fonts.py`,
+ * а `tests/editor-fonts-pack.test.ts` не дає додати шрифт у підбірку без файлів.
+ */
+export const EDITOR_FONTS_CSS_URL = '/editor-fonts/fonts.css';
 
 //  Printed cover background presets 
 

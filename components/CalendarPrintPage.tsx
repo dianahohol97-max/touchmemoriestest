@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 
 /**
  * Static, controls-free wall-calendar renderer for the print pipeline.
@@ -310,16 +310,23 @@ export default function CalendarPrintPage({
   const pages: MonthPage[] = Array.isArray(config?.pages) ? config.pages : [];
   const markedDates: Record<string, Mark[]> = config?.markedDates || {};
 
-  // Cover text uses webfonts (Playfair Display etc.) — load the same Google
-  // Fonts stylesheet the editor uses, once per document. The render service
-  // waits for document fonts before screenshotting.
+  // Cover text uses webfonts (Playfair Display etc.) — load the same stylesheet
+  // the editor picker draws from, once per document. The render service waits
+  // for document fonts before screenshotting.
+  //
+  // Ця сторінка знімається тим самим Chromium на Railway, що й розвороти книжок,
+  // тож шрифти для неї беруться з нашого походження (/editor-fonts/fonts.css), а
+  // не з fonts.googleapis.com. Файли й дескриптори ті самі, що віддає css2, тож
+  // календарі виглядають як виглядали; зникла тільки можливість мовчки надрукувати
+  // обкладинку чужим накресленням, якщо запит до Google не пройде.
   useEffect(() => {
     const id = 'tm-print-fonts';
     if (document.getElementById(id)) return;
     const link = document.createElement('link');
     link.id = id;
     link.rel = 'stylesheet';
-    link.href = GOOGLE_FONTS_URL;
+    link.href = EDITOR_FONTS_CSS_URL;
+    link.setAttribute('data-tm-editor-fonts', '1');
     document.head.appendChild(link);
   }, []);
 

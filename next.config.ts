@@ -535,6 +535,19 @@ const nextConfig = {
         ],
       },
       {
+        // Шрифти конструктора. Імʼя кожного файлу несе версію Google і хеш
+        // вмісту (`montserrat-v31-JTUHjIg1….woff2`), тож той самий шлях завжди
+        // означає той самий байт — можна кешувати назавжди. Перезбірка пакета
+        // пише НОВІ імена, а не переписує старі, тому вічний кеш не може віддати
+        // застаріле накреслення. `fonts.css` сюди НЕ потрапляє навмисне: він
+        // лишається на типовому для public/ must-revalidate, бо саме він каже,
+        // які файли зараз актуальні.
+        source: '/editor-fonts/files/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
         // Standalone tools are single files that change with every fix, and a
         // browser holding an old copy looks exactly like a deploy that did not
         // happen. Revalidate on each visit so what you see is what was shipped.

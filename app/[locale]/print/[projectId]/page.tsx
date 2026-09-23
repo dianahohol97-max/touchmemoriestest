@@ -6,7 +6,7 @@ import { BookPreviewModal } from '@/components/BookPreviewModal';
 import CalendarPrintPage from '@/components/CalendarPrintPage';
 import { resolveProjectSizeKey, pageMm, deriveGeometry } from '@/lib/print/geometry';
 import { buildTrimGuides, buildCoverGuides, type TrimGuideSpec, type CoverGuideSpec } from '@/lib/print/trim-guides';
-import { GOOGLE_FONTS_URL } from '@/lib/editor/constants';
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 
 /**
  * /print/[projectId] — clean, controls-free render of a saved book design.
@@ -85,17 +85,26 @@ export default function PrintPage() {
   // proportion is its own (470×328) and not two pages side by side.
   const [geometry, setGeometry] = useState<any>(null);
 
-  // The editor injects the Google Fonts stylesheet itself; this page never
-  // did, so every custom font the customer picked fell back to a system face
-  // on the print render — text came out in the wrong font and looked bold
-  // when the editor showed it regular (Diana, 2026-08-05). The render service
-  // awaits document.fonts.ready, so declaring the fonts here is sufficient
-  // for the screenshot to wait for them.
+  // The editor injects the fonts stylesheet itself; this page never did, so
+  // every custom font the customer picked fell back to a system face on the
+  // print render — text came out in the wrong font and looked bold when the
+  // editor showed it regular (Diana, 2026-08-05). The render service awaits
+  // document.fonts.ready, so declaring the fonts here is what makes the
+  // screenshot wait for them.
+  //
+  // Стилі беруться З НАШОГО ПОХОДЖЕННЯ, а не з fonts.googleapis.com. Знімок
+  // робить Chromium на Railway, і шрифти качав він сам: невдалий запит до
+  // Google там не видно нічим, бо `document.fonts.ready` резолвиться і тоді,
+  // і аркуш ішов у друк у підставленому накресленні. Файли й дескриптори в
+  // /editor-fonts/fonts.css — ті самі, що віддає css2, тож на вигляд не
+  // змінилося нічого; змінилося тільки те, чи може сторонній збій вирішити,
+  // яким шрифтом надрукована книжка. Сторож у render-service дивиться, що
+  // кожна родина аркуша справді завантажилась, і не дає тихого фолбеку.
   useEffect(() => {
     if (document.querySelector('link[data-tm-editor-fonts]')) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = GOOGLE_FONTS_URL;
+    link.href = EDITOR_FONTS_CSS_URL;
     link.setAttribute('data-tm-editor-fonts', '1');
     document.head.appendChild(link);
   }, []);
