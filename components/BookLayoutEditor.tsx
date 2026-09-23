@@ -47,7 +47,7 @@ import {
   findSafeZoneViolations, describeViolation, measureBoxPct,
   type SafeZoneViolation,
 } from '@/lib/editor/safe-zone';
-import type { SizeGeometry } from '@/lib/print/geometry';
+import { deriveGeometry, type SizeGeometry } from '@/lib/print/geometry';
 import { getWishbookPrice } from '@/components/ui/ProductOptionsSelector';
 import { usePhotobookPrices } from '@/lib/editor/usePrices';
 import type { PhotoData, BookConfig, CoverDecoType, CoverState, LayoutType, SlotData, TextBlock, Page } from '@/lib/editor/types';
@@ -2545,6 +2545,28 @@ export default function BookLayoutEditor() {
   const cW = baseW * zoom / 100; // full spread width
   const cH = baseH * zoom / 100;
   const pageW = cW / 2; // single page width
+  /**
+   * ПОЛОТНО ОБКЛАДИНКИ МАЄ ПРОПОРЦІЮ ДРУКАРСЬКОГО АРКУША.
+   *
+   * Обкладинка малювалася в пропорції РОЗВОРОТУ СТОРІНОК, і для тревелбука це
+   * 420×297 замість 470×328. Дві речі через це брехали клієнтці. Зріз готової
+   * обкладинки виглядав меншим, ніж буде: у пропорції сторінок objectFit
+   * забирає 2,87 % висоти з кожного боку, у пропорції аркуша — 3,49 %. А рамка
+   * «Зона загину» рахується частками АРКУША (COVER_BLEED_MARGINS), тож на
+   * полотні іншої пропорції вона стояла не там, де ріже виробництво.
+   *
+   * Висота полотна не міняється: вона лишається baseH, і саме від неї
+   * рахуються розміри написів (EDITOR_BASE_CANVAS_H у CoverEditor). Ширшає
+   * тільки ширина, тобто нещодавня робота над масштабом тексту не зачеплена.
+   */
+  const coverSheetMm = React.useMemo(() => {
+    const fromDb = printGeometry?.[sizeKey]?.cover;
+    if (fromDb && fromDb.w > 0 && fromDb.h > 0) return fromDb;
+    const derived = deriveGeometry(sizeKey)?.cover;
+    return derived && derived.w > 0 && derived.h > 0 ? derived : null;
+  }, [printGeometry, sizeKey]);
+  const coverCW = coverSheetMm ? cH * coverSheetMm.w / coverSheetMm.h : cW;
+  const coverPageW = coverCW / 2;
   // Keep the latest spread dims for the auto-fit effect; expose a Fit handler.
   dimsRef.current = { baseW, baseH };
   const fitToView = () => {
@@ -8892,7 +8914,7 @@ export default function BookLayoutEditor() {
             але людина цього не знала.
           */}
           {currentIdx === 0 ? (
-            <div data-spread-snapshot="root" translate="no" className="notranslate" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+            <div data-spread-snapshot="root" translate="no" className="notranslate" style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — editable */}
                 {(() => {
                   const backBg = isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
@@ -8901,13 +8923,13 @@ export default function BookLayoutEditor() {
                   const bCropY = coverState.backCoverCropY ?? 50;
                   const bZoom = coverState.backCoverZoom ?? 1;
                   const bSlot = coverState.backCoverSlot ?? { x: 0, y: 0, w: 100, h: 100, shape: 'rect' as const };
-                  const bSlotPx = { x: bSlot.x/100*pageW, y: bSlot.y/100*cH, w: bSlot.w/100*pageW, h: bSlot.h/100*cH };
+                  const bSlotPx = { x: bSlot.x/100*coverPageW, y: bSlot.y/100*cH, w: bSlot.w/100*coverPageW, h: bSlot.h/100*cH };
                   const bBr = bSlot.shape === 'circle' ? '50%' : bSlot.shape === 'rounded' ? '12px' : '0px';
                   const startBackSlotDrag = (e2: React.PointerEvent, type: string) => {
                     e2.stopPropagation(); e2.preventDefault();
                     const orig = { ...bSlot };
                     startPointerDrag(e2, (dx: number, dy: number) => {
-                      const ddx = dx/pageW*100, ddy = dy/cH*100;
+                      const ddx = dx/coverPageW*100, ddy = dy/cH*100;
                       if (type==='move') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,x:Math.max(0,Math.min(100-orig.w,orig.x+ddx)),y:Math.max(0,Math.min(100-orig.h,orig.y+ddy))}}));
                       else if (type==='se') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,w:Math.max(10,orig.w+ddx),h:Math.max(10,orig.h+ddy)}}));
                       else if (type==='sw') setCoverState((p: any)=>({...p,backCoverSlot:{...orig,x:orig.x+ddx,w:Math.max(10,orig.w-ddx),h:Math.max(10,orig.h+ddy)}}));
@@ -8916,7 +8938,7 @@ export default function BookLayoutEditor() {
                     });
                   };
                   return (
-                    <div style={{ width: pageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
+                    <div style={{ width: coverPageW, height: cH, flexShrink: 0, position: 'relative', background: backBg, borderRight: '2px solid rgba(0,0,0,0.12)' }}
                       onDragOver={e=>{e.preventDefault();}}
                       onDrop={e=>{e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id&&isPrinted)setCoverState(p=>({...p,backCoverEnabled:true, backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}>
                       {/* Back cover photo slot — hidden by default, shown only when user opted in */}
@@ -9066,7 +9088,7 @@ export default function BookLayoutEditor() {
                               pushHistory();
                               const sx = bt.x ?? 50, sy = bt.y ?? 50;
                               startPointerDrag(e, (dx: number, dy: number) => editBt({
-                                x: Math.max(4, Math.min(96, sx + dx / pageW * 100)),
+                                x: Math.max(4, Math.min(96, sx + dx / coverPageW * 100)),
                                 y: Math.max(4, Math.min(96, sy + dy / cH * 100)),
                               }));
                             }}
@@ -9103,9 +9125,9 @@ export default function BookLayoutEditor() {
                   );
                 })()}
                 {/* Front cover with decoration + shapes overlay */}
-                <div style={{ position:'relative', width: pageW, height: cH, flexShrink:0 }}>
+                <div style={{ position:'relative', width: coverPageW, height: cH, flexShrink:0 }}>
                   <CoverEditor
-                    canvasW={pageW}
+                    canvasW={coverPageW}
                     canvasH={cH}
                     sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                     coverSizeKey={sizeKey}
@@ -9120,12 +9142,12 @@ export default function BookLayoutEditor() {
                       <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'none' }}>
                         <ShapesLayer
                           shapes={getCurShapes(0)}
-                          canvasW={pageW} canvasH={cH}
+                          canvasW={coverPageW} canvasH={cH}
                           onChange={newShapes => setPageShapes(prev=>({...prev,[0]:newShapes}))}
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={coverPageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -9133,10 +9155,10 @@ export default function BookLayoutEditor() {
                               haptic.light();
                               const origX=stk.x, origY=stk.y;
                               startPointerDrag(e, (dx,dy) =>
-                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
+                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/coverPageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                               );
                             }}>
-                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(coverPageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                             <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
@@ -9150,14 +9172,14 @@ export default function BookLayoutEditor() {
                     be visible from the front. Customers should keep important content INSIDE this line.
                     Margins from COVER_BLEED_MARGINS by sizeKey (partner-supplied values). */}
                 <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
-                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
-                    <rect x={cW*coverBleed.left}
+                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${coverCW} ${cH}`} preserveAspectRatio="none">
+                    <rect x={coverCW*coverBleed.left}
                           y={cH*coverBleed.top}
-                          width={cW*(1 - coverBleed.left - coverBleed.right)}
+                          width={coverCW*(1 - coverBleed.left - coverBleed.right)}
                           height={cH*(1 - coverBleed.top - coverBleed.bottom)}
                           fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
                     {/* Spine marker — vertical line at the middle (where the book folds) */}
-                    <line x1={cW/2} y1={cH*coverBleed.top} x2={cW/2} y2={cH*(1 - coverBleed.bottom)}
+                    <line x1={coverCW/2} y1={cH*coverBleed.top} x2={coverCW/2} y2={cH*(1 - coverBleed.bottom)}
                           stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                   </svg>
                   <div style={{position:'absolute',top:6,left:6,background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>
@@ -9168,13 +9190,13 @@ export default function BookLayoutEditor() {
           ) : (
           <div
             data-spread-snapshot="root"
-            style={{ position: 'relative', width: cW, height: cH, display: 'flex', flexShrink: 0 }}
+            style={{ position: 'relative', width: currentIdx === 0 ? coverCW : cW, height: cH, display: 'flex', flexShrink: 0 }}
           >
             {currentIdx === 0 ? (
               /* Cover: left=back spine(grey), right=front cover with deco */
-              <div translate="no" className="notranslate" style={{ width: cW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+              <div translate="no" className="notranslate" style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
                 {/* Back cover — plain */}
-                <div style={{ width: pageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
+                <div style={{ width: coverPageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     <span data-export-ignore="true" style={{ color:'rgba(255,255,255,0.15)', fontSize:9, fontWeight:600, letterSpacing:'0.1em', textTransform:'uppercase', writingMode:'vertical-rl' }}>ЗАДНЯ ОБКЛАДИНКА</span>
                   </div>
@@ -9182,9 +9204,9 @@ export default function BookLayoutEditor() {
                   <div style={{ position:'absolute', right:0, top:0, width:2, height:'100%', background:'rgba(0,0,0,0.15)' }}/>
                 </div>
                 {/* Front cover — with deco + shapes overlay */}
-                <div style={{ position:'relative', width: pageW, height: cH, flexShrink:0 }}>
+                <div style={{ position:'relative', width: coverPageW, height: cH, flexShrink:0 }}>
                   <CoverEditor
-                    canvasW={pageW}
+                    canvasW={coverPageW}
                     canvasH={cH}
                     sizeValue={(config.selectedSize || '20x20').replace(/[×х]/g,'x').replace(/\s*см/,'')}
                     coverSizeKey={sizeKey}
@@ -9198,12 +9220,12 @@ export default function BookLayoutEditor() {
                       <div style={{ position:'relative', width:'100%', height:'100%', pointerEvents:'none' }}>
                         <ShapesLayer
                           shapes={getCurShapes(0)}
-                          canvasW={pageW} canvasH={cH}
+                          canvasW={coverPageW} canvasH={cH}
                           onChange={newShapes => setPageShapes(prev=>({...prev,[0]:newShapes}))}
                           selectedId={selectedShapeId}
                           onSelectId={id => { setSelectedShapeId(id); if (id) { setLeftTab('shapes'); if (isMobile) setMobilePanel(true); } }}
                         />
-                        <FrameLayer frame={getCurFrame(0)} canvasW={pageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
+                        <FrameLayer frame={getCurFrame(0)} canvasW={coverPageW} canvasH={cH} interactive={leftTab === 'frames'} onChange={f => setPageFrames(prev=>({...prev,[0]:f}))}/>
                         {(pageStickers[0]||[]).map(stk => (
                           <div key={stk.id} style={{ position:'absolute', left:stk.x+'%', top:stk.y+'%', width:stk.w, height:stk.h, cursor:'move', userSelect:'none', zIndex:40, touchAction:'none', pointerEvents:'auto' }}
                             onPointerDown={e => {
@@ -9211,10 +9233,10 @@ export default function BookLayoutEditor() {
                               haptic.light();
                               const origX=stk.x, origY=stk.y;
                               startPointerDrag(e, (dx,dy) =>
-                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/pageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
+                                setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).map(s=>s.id===stk.id?{...s,x:Math.max(0,Math.min(90,origX+dx/coverPageW*100)),y:Math.max(0,Math.min(90,origY+dy/cH*100))}:s)}))
                               );
                             }}>
-                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(pageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
+                            {stk.emoji ? <span style={{ fontSize: typeof stk.w === 'string' && stk.w.endsWith('%') ? Math.round(coverPageW * parseFloat(stk.w) / 100 * 0.7) : Math.min(parseInt(stk.w as string)||48, 48), lineHeight:1, pointerEvents:'none', userSelect:'none', display:'block', textAlign:'center' }}>{stk.emoji}</span> : <img src={stk.url} style={{ width:'100%', height:'100%', objectFit:'contain', pointerEvents:'none' }} draggable={false}/>}
                             <button data-export-ignore="true" onClick={e=>{e.stopPropagation();setPageStickers(prev=>({...prev,[0]:(prev[0]||[]).filter(s=>s.id!==stk.id)}));}}
                               style={{ position:'absolute',top:-6,right:-6,width:16,height:16,borderRadius:'50%',background:'#ef4444',color:'#fff',border:'none',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>x</button>
                           </div>
@@ -9225,13 +9247,13 @@ export default function BookLayoutEditor() {
                 </div>
                 {/* Cover fold-in (turn-in) margins — see comment in first cover render */}
                 <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:20}}>
-                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${cW} ${cH}`} preserveAspectRatio="none">
-                    <rect x={cW*coverBleed.left}
+                  <svg style={{position:'absolute',inset:0,width:'100%',height:'100%'}} viewBox={`0 0 ${coverCW} ${cH}`} preserveAspectRatio="none">
+                    <rect x={coverCW*coverBleed.left}
                           y={cH*coverBleed.top}
-                          width={cW*(1 - coverBleed.left - coverBleed.right)}
+                          width={coverCW*(1 - coverBleed.left - coverBleed.right)}
                           height={cH*(1 - coverBleed.top - coverBleed.bottom)}
                           fill="none" stroke="rgba(239,68,68,0.55)" strokeWidth="1.5" strokeDasharray="6 4"/>
-                    <line x1={cW/2} y1={cH*coverBleed.top} x2={cW/2} y2={cH*(1 - coverBleed.bottom)}
+                    <line x1={coverCW/2} y1={cH*coverBleed.top} x2={coverCW/2} y2={cH*(1 - coverBleed.bottom)}
                           stroke="rgba(239,68,68,0.3)" strokeWidth="1" strokeDasharray="3 3"/>
                   </svg>
                   <div style={{position:'absolute',top:6,left:6,background:'rgba(239,68,68,0.85)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:6,letterSpacing:0.3,boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}>

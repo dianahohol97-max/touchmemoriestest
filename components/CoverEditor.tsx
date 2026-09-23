@@ -8,6 +8,7 @@ import { parseDecoVariantMm } from '@/lib/print/deco-variant';
 import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
 import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
 import { readyCoverLayout, type ReadyCoverFit } from '@/lib/editor/ready-cover-fit';
+import { deriveGeometry } from '@/lib/print/geometry';
 import { toast } from 'sonner';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -508,13 +509,26 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, coverSizeKey, config,
     ? 'repeating-linear-gradient(90deg,rgba(255,255,255,0.06) 0px,rgba(255,255,255,0.06) 1px,transparent 1px,transparent 4px),repeating-linear-gradient(0deg,rgba(0,0,0,0.04) 0px,rgba(0,0,0,0.04) 1px,transparent 1px,transparent 4px)'
     : 'none';
 
-  // Cover width in mm. Sizes are stored in cm (e.g. "25x25" → 250 mm). Guard
-  // against a malformed or mm-form size (e.g. "250x250") that would otherwise
-  // make `scale` ~10× too small and shrink the decoration plate to a dot.
-  let pageWidthCm = parseInt(sizeValue.split('x')[0]);
-  if (!Number.isFinite(pageWidthCm) || pageWidthCm < 15 || pageWidthCm > 40) pageWidthCm = 20;
-  const pageWidthMM = pageWidthCm * 10;
-  const scale = canvasW / pageWidthMM;
+  // Скільки міліметрів показує це полотно.
+  //
+  // Полотно — це ПОЛОВИНА друкарського аркуша обкладинки, а не сторінка: у
+  // тревелбука 235 мм проти 210. Відколи полотно малюється в пропорції аркуша,
+  // рахувати масштаб від ширини сторінки означало б малювати металеву
+  // пластину більшою, ніж вона вийде: саме на різницю аркуша і сторінки, для
+  // 20×20 це вісімнадцять відсотків. Друк уже рахує від аркуша
+  // (coverPxPerMm у BookPreviewModal), тож тут тепер те саме число.
+  //
+  // Стара оцінка з `sizeValue` лишається запасною для розміру, якого геометрія
+  // не знає. Вона ж пояснює захист від неправильного рядка: «250x250» замість
+  // «25x25» зменшило б пластину до крапки.
+  const halfSheetMm = (() => {
+    const cover = coverSizeKey ? deriveGeometry(coverSizeKey)?.cover : null;
+    if (cover && cover.w > 0) return cover.w / 2;
+    let pageWidthCm = parseInt(sizeValue.split('x')[0]);
+    if (!Number.isFinite(pageWidthCm) || pageWidthCm < 15 || pageWidthCm > 40) pageWidthCm = 20;
+    return pageWidthCm * 10;
+  })();
+  const scale = canvasW / halfSheetMm;
 
   const dims = parseVariantDims(config.decoVariant || '100×100 мм');
   let boxW = dims.w * scale;

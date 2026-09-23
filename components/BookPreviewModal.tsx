@@ -10,6 +10,7 @@ import { FrameConfig, DEFAULT_FRAME, PNG_FRAMES, FRAMES, PNG_FRAME_FILTER } from
 import type { QROverlay } from '@/lib/editor/qrOverlay';
 import { zIndexFor } from '@/lib/editor/zOrder';
 import { readyCoverLayout } from '@/lib/editor/ready-cover-fit';
+import { deriveGeometry } from '@/lib/print/geometry';
 import { fitFontScale, availableHeightPct, TEXT_LINE_HEIGHT, textBoxWidthStyle, textBoxMaxWidthPx } from '@/lib/editor/text-fit';
 import { plateBoxStyle, plateTextShadow } from '@/lib/editor/text-plate';
 import { coverTextScale, pageTextScale, kalkaTextScale } from '@/lib/print/text-scale';
@@ -246,6 +247,25 @@ export function BookPreviewModal({
   // passes printCoverMm. Everything physical on the cover — text sizes and the
   // decoration plate alike — is derived from this one number.
   const pageHmm = Math.max(1, propH) * 10;
+  /**
+   * Аркуш обкладинки в ПРОПОРЦІЇ АРКУША, а не розвороту сторінок.
+   *
+   * У друці це вже так: /print передає printPageH, порахований з coverMm. У
+   * звичайному прев'ю обкладинка бралася в пропорції сторінок, тобто 420×297
+   * замість 470×328 для тревелбука, і показувала клієнтці менший зріз, ніж
+   * буде насправді. Тепер обидва шляхи рахують від одного числа.
+   */
+  const coverSheetMm = React.useMemo(() => {
+    if (printCoverMm?.w && printCoverMm?.h) return printCoverMm;
+    const derived = coverSizeKey ? deriveGeometry(coverSizeKey)?.cover : null;
+    return derived && derived.w > 0 && derived.h > 0 ? derived : null;
+  }, [printCoverMm, coverSizeKey]);
+  const coverH = isPrint
+    ? pageH
+    : (coverSheetMm ? Math.round(pageW * 2 * coverSheetMm.h / coverSheetMm.w) : pageH);
+  // coverPxPerMm НЕ чіпаємо: від нього залежать розміри збережених написів, а
+  // база таких перерахунків історична і змінювати її не можна — інакше кожен
+  // уже збережений макет мовчки змінить розмір тексту (див. lib/print/text-scale.ts).
   const coverPxPerMm = isPrint && printCoverMm?.h ? (pageH / printCoverMm.h) : (pageH / pageHmm);
   const coverScale = coverTextScale(coverPxPerMm, pageHmm);
   // Decorative spine / gutter bands are a PREVIEW illusion (they mimic a
@@ -506,9 +526,9 @@ export function BookPreviewModal({
     const backSlot = coverState?.backCoverSlot;
     const backTexts: any[] = isPrinted ? ((coverState as any)?.backCoverTexts || []) : [];
     return (
-      <div style={{ width: pageW, height: pageH, background: backBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: pageW, height: coverH, background: backBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
         {backPhoto && backSlot ? (
-          <div style={{ position: 'absolute', left: `${backSlot.x / 100 * pageW}px`, top: `${backSlot.y / 100 * pageH}px`, width: `${backSlot.w / 100 * pageW}px`, height: `${backSlot.h / 100 * pageH}px`, borderRadius: backSlot.shape === 'circle' ? '50%' : backSlot.shape === 'rounded' ? 12 : 0, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: `${backSlot.x / 100 * pageW}px`, top: `${backSlot.y / 100 * coverH}px`, width: `${backSlot.w / 100 * pageW}px`, height: `${backSlot.h / 100 * coverH}px`, borderRadius: backSlot.shape === 'circle' ? '50%' : backSlot.shape === 'rounded' ? 12 : 0, overflow: 'hidden' }}>
             <img src={backPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
           </div>
         ) : backPhoto ? (
@@ -557,7 +577,7 @@ export function BookPreviewModal({
     if (!isPrinted) {
       const bg = resolveCoverColor(selectedCoverType || '', effectiveCoverColor || '');
       return (
-        <div style={{ width: pageW, height: pageH, background: bg, flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: pageW, height: coverH, background: bg, flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {(() => {
             const decoType = coverState?.decoType;
             const decoText = coverState?.decoText || '';
@@ -581,7 +601,7 @@ export function BookPreviewModal({
                 : 'linear-gradient(135deg,#9A7000 0%,#FFD700 40%,#D4AF37 55%,#8B6000 100%)';
               const fs = Math.max(7, Math.min(plateW / 7, plateH * 0.5));
               return (
-                <div style={{ position: 'absolute', left: (pageW - plateW) / 2, top: (pageH - plateH) / 2, width: plateW, height: plateH, borderRadius: dims.round ? '50%' : 3, background: grad, boxShadow: '0 3px 14px rgba(0,0,0,0.4),inset 0 1px 1px rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', left: (pageW - plateW) / 2, top: (coverH - plateH) / 2, width: plateW, height: plateH, borderRadius: dims.round ? '50%' : 3, background: grad, boxShadow: '0 3px 14px rgba(0,0,0,0.4),inset 0 1px 1px rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', pointerEvents: 'none' }}>
                   <span style={{ color: isSilver ? '#1A1A1A' : '#3D2800', fontSize: fs, fontFamily: (coverState?.textFontFamily || 'Montserrat') + ',sans-serif', fontWeight: 700, letterSpacing: '0.05em', textAlign: 'center', padding: '0 6px', maxWidth: '90%', wordBreak: 'break-word', lineHeight: 1.1 }}>{decoText}</span>
                 </div>
               );
@@ -591,14 +611,14 @@ export function BookPreviewModal({
               const dims = parseDims(coverState?.decoVariant || '100×100 мм');
               const scale = coverPxPerMm;
               let bW = dims.w * scale, bH = dims.h * scale;
-              const minW = pageW * 0.12, maxW = pageW * 0.96, maxH = pageH * 0.96;
+              const minW = pageW * 0.12, maxW = pageW * 0.96, maxH = coverH * 0.96;
               let k = 1;
               if (bW > maxW || bH > maxH) k = Math.min(maxW / bW, maxH / bH);
               else if (bW > 0 && bW < minW) k = minW / bW;
               bW *= k; bH *= k;
               const acrylPhoto = coverState?.photoId ? getPhoto(coverState.photoId) : null;
               return (
-                <div style={{ position: 'absolute', left: (pageW - bW) / 2, top: (pageH - bH) / 2, width: bW, height: bH, borderRadius: dims.round ? '50%' : 5, overflow: 'hidden', pointerEvents: 'none', boxShadow: '0 2px 16px rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.5)' }}>
+                <div style={{ position: 'absolute', left: (pageW - bW) / 2, top: (coverH - bH) / 2, width: bW, height: bH, borderRadius: dims.round ? '50%' : 5, overflow: 'hidden', pointerEvents: 'none', boxShadow: '0 2px 16px rgba(0,0,0,0.25)', border: '2px solid rgba(255,255,255,0.5)' }}>
                   {acrylPhoto
                     ? <img src={acrylPhoto.preview} draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${coverState?.photoCropX ?? 50}% ${coverState?.photoCropY ?? 50}%`, transform: `scale(${coverState?.photoZoom ?? 1}) rotate(${coverState?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} />
                     : <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.15)' }} />}
@@ -609,7 +629,7 @@ export function BookPreviewModal({
               // The cover inscription does NOT follow the 700px page-text
               // convention: CoverEditor stores it as px on the cover canvas,
               // EDITOR_BASE_CANVAS_H px tall, standing for the PAGE height. The
-              // old `* (pageH / 700)` mixed both mistakes at once — the wrong
+              // old `* (coverH / 700)` mixed both mistakes at once — the wrong
               // base, and a pixel ratio taken against the cover SHEET (page plus
               // fold-in), which is taller than the page. Together they printed
               // the напис about a quarter smaller than the customer set it, on
@@ -656,7 +676,7 @@ export function BookPreviewModal({
               </div>
             );
           })}
-          {renderFrame(getFrame(0), pageW, pageH)}
+          {renderFrame(getFrame(0), pageW, coverH)}
           {renderShapes(pageShapes[0] || [])}
           {renderStickers(pageStickers[0], pageW)}
         </div>
@@ -679,7 +699,7 @@ export function BookPreviewModal({
     const br = slot ? (slot.shape === 'circle' ? '50%' : slot.shape === 'rounded' ? '12px' : slot.shape === 'heart' ? '50%' : '0px') : '0px';
 
     return (
-      <div style={{ width: pageW, height: pageH, background: frontBg, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ width: pageW, height: coverH, background: frontBg, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         {/* Cover template artwork (travelbook templates: Paris art etc.) —
             the editor draws this as the base layer (printedBgImage); the
             preview used to SKIP it, so template covers showed as a bare
@@ -701,7 +721,7 @@ export function BookPreviewModal({
         })()}
         {/* Main photo slot — absent entirely when the slot was explicitly removed */}
         {slot && (
-          <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * pageH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * pageH}px`, borderRadius: br, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', left: `${slot.x / 100 * pageW}px`, top: `${slot.y / 100 * coverH}px`, width: `${slot.w / 100 * pageW}px`, height: `${slot.h / 100 * coverH}px`, borderRadius: br, overflow: 'hidden' }}>
             {mainPhoto && <img src={mainPhoto.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(coverState as any)?.photoCropX ?? 50}% ${(coverState as any)?.photoCropY ?? 50}%`, transform: `scale(${(coverState as any)?.photoZoom ?? 1}) rotate(${(coverState as any)?.photoRotation ?? 0}deg)`, transformOrigin: 'center' }} draggable={false} />}
           </div>
         )}
@@ -711,7 +731,7 @@ export function BookPreviewModal({
           const ph = ps.photoId ? getPhoto(ps.photoId) : null;
           if (!ph) return null;
           return (
-            <div key={idx} style={{ position: 'absolute', left: `${ps.x / 100 * pageW}px`, top: `${ps.y / 100 * pageH}px`, width: `${ps.w / 100 * pageW}px`, height: `${ps.h / 100 * pageH}px`, borderRadius: ps.shape === 'circle' ? '50%' : ps.shape === 'rounded' ? '12px' : '0px', overflow: 'hidden' }}>
+            <div key={idx} style={{ position: 'absolute', left: `${ps.x / 100 * pageW}px`, top: `${ps.y / 100 * coverH}px`, width: `${ps.w / 100 * pageW}px`, height: `${ps.h / 100 * coverH}px`, borderRadius: ps.shape === 'circle' ? '50%' : ps.shape === 'rounded' ? '12px' : '0px', overflow: 'hidden' }}>
               <img src={ph.preview} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${ps.cropX ?? 50}% ${ps.cropY ?? 50}%`, transform: `scale(${ps.zoom ?? 1})`, transformOrigin: `${ps.cropX ?? 50}% ${ps.cropY ?? 50}%` }} draggable={false} />
             </div>
           );
@@ -744,7 +764,7 @@ export function BookPreviewModal({
           );
         })}
 
-        {renderFrame(getFrame(0), pageW, pageH)}
+        {renderFrame(getFrame(0), pageW, coverH)}
         {renderShapes(pageShapes[0] || [])}
         {renderStickers(pageStickers[0], pageW)}
       </div>
@@ -755,9 +775,9 @@ export function BookPreviewModal({
   const renderSpread = (spreadIdx: number) => {
     if (spreadIdx === 0) {
       return (
-        <div style={{ display: 'flex', width: spreadW + spineW, height: pageH }}>
+        <div style={{ display: 'flex', width: spreadW + spineW, height: coverH }}>
           {renderCoverBack()}
-          <div style={{ width: spineW, height: pageH, flexShrink: 0, background: 'linear-gradient(to right, #a08b6e, #c4b49a, #a08b6e)', boxShadow: '0 0 6px rgba(0,0,0,0.1)' }} />
+          <div style={{ width: spineW, height: coverH, flexShrink: 0, background: 'linear-gradient(to right, #a08b6e, #c4b49a, #a08b6e)', boxShadow: '0 0 6px rgba(0,0,0,0.1)' }} />
           {renderCoverFront()}
         </div>
       );
