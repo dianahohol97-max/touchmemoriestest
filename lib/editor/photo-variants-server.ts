@@ -8,6 +8,7 @@ import {
     thumbPathFor,
     photoNeedsVariants,
     missingVariantsOf,
+    variantTriesOf,
     type VariantField,
 } from './photo-variant-paths';
 
@@ -46,6 +47,14 @@ export type PhotoMeta = {
     path?: string;
     previewPath?: string;
     thumbPath?: string;
+    /**
+     * Скільки разів копії для цього фото вже пробували зробити і не змогли, і
+     * коли була остання спроба. Разом вони не дають фото, для якого копія не
+     * робиться в принципі, вічно повертатися в чергу — див. VARIANT_MAX_TRIES
+     * у photo-variant-paths.ts.
+     */
+    variantTries?: number;
+    variantTriedAt?: string;
     [k: string]: unknown;
 };
 
@@ -163,9 +172,20 @@ export async function buildMissingVariants(
             const i = take[next++];
             const photo = list[i];
             const res = await variantsForOne(admin, String(photo.path), missingVariantsOf(photo));
+            if (res?.previewPath) photo.previewPath = res.previewPath;
+            if (res?.thumbPath) photo.thumbPath = res.thumbPath;
+            // Позначку ставимо за тим, чи лишилося ще чого бракувати, а не за
+            // тим, чи щось вийшло цього разу. Фото, у якого одна копія вийшла,
+            // а друга ні, інакше поверталося б у чергу на кожному відкритті.
+            if (missingVariantsOf(photo).length > 0) {
+                photo.variantTries = variantTriesOf(photo) + 1;
+                photo.variantTriedAt = new Date().toISOString();
+            } else {
+                // Усе на місці — сліди спроб більше ні на що не впливають.
+                delete photo.variantTries;
+                delete photo.variantTriedAt;
+            }
             if (!res || (!res.previewPath && !res.thumbPath)) { failed++; continue; }
-            if (res.previewPath) photo.previewPath = res.previewPath;
-            if (res.thumbPath) photo.thumbPath = res.thumbPath;
             made++;
         }
     };

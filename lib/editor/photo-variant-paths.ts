@@ -71,19 +71,65 @@ export function missingVariantsOf(p: Record<string, unknown> | null | undefined)
 }
 
 /**
+ * Скільки разів пробувати зробити копію, яка не виходить, і скільки чекати
+ * між спробами.
+ *
+ * ЧОМУ БЕЗ ЦЬОГО НЕ МОЖНА. Відколи черга рахується з того, чого БРАКУЄ, фото,
+ * для якого копія не робиться в принципі, лишалося б у черзі назавжди. А таке
+ * фото буває: побитий файл, формат, якого не бере sharp, або оригінал, легший
+ * за власну копію (тоді перевірка «копія має бути меншою» відкидає її щоразу, і
+ * щоразу справедливо). Кабінет на КОЖНОМУ відкритті писав би «Готуємо N фото до
+ * швидкого відкриття», чекав на маршрут і відкривався повільніше — тобто рівно
+ * те очікування, заради усунення якого копії й зʼявилися, тільки тепер вічне.
+ *
+ * Три спроби з добою між ними дають місце тимчасовій біді (сховище не
+ * відповіло, функція обірвалася на межі часу) і не дають вічного циклу.
+ */
+export const VARIANT_MAX_TRIES = 3;
+export const VARIANT_RETRY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+/** Скільки разів для цього фото вже пробували зробити копії й не змогли. */
+export function variantTriesOf(p: Record<string, unknown> | null | undefined): number {
+    const n = p && typeof p === 'object' ? (p as Record<string, unknown>).variantTries : undefined;
+    return typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/**
+ * Чи вичерпані спроби для цього фото: або їх було досить, або остання надто
+ * свіжа, щоб пробувати знову.
+ */
+export function variantRetryExhausted(
+    p: Record<string, unknown> | null | undefined,
+    now: number = Date.now(),
+): boolean {
+    if (variantTriesOf(p) >= VARIANT_MAX_TRIES) return true;
+    const raw = p && typeof p === 'object' ? (p as Record<string, unknown>).variantTriedAt : undefined;
+    const triedAt = typeof raw === 'string' ? Date.parse(raw) : Number.NaN;
+    if (!Number.isFinite(triedAt)) return false;
+    // Позначка з майбутнього — зіпсовані дані, а не причина мовчати назавжди.
+    if (triedAt > now) return false;
+    return now - triedAt < VARIANT_RETRY_COOLDOWN_MS;
+}
+
+/**
  * Чи має сенс доганяти це фото серверною генерацією.
  *
- * Без шляху до оригіналу генерувати нічого, а коли обидві копії вже записані,
- * повторний прохід лише витратить час функції.
+ * Без шляху до оригіналу генерувати нічого; коли обидві копії вже записані,
+ * повторний прохід лише витратить час функції; а коли попередні спроби нічого
+ * не дали, чекаємо добу і здаємося після третьої.
  */
-export function photoNeedsVariants(p: Record<string, unknown> | null | undefined): boolean {
+export function photoNeedsVariants(
+    p: Record<string, unknown> | null | undefined,
+    now: number = Date.now(),
+): boolean {
     if (!p || typeof p !== 'object') return false;
     if (!p.path || typeof p.path !== 'string') return false;
-    return missingVariantsOf(p).length > 0;
+    if (missingVariantsOf(p).length === 0) return false;
+    return !variantRetryExhausted(p, now);
 }
 
 /** Скільки фото макета ще чекають на копії. */
-export function countPhotosNeedingVariants(photos: unknown): number {
+export function countPhotosNeedingVariants(photos: unknown, now: number = Date.now()): number {
     if (!Array.isArray(photos)) return 0;
-    return photos.filter(photoNeedsVariants).length;
+    return photos.filter(p => photoNeedsVariants(p, now)).length;
 }

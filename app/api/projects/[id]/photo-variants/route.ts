@@ -8,29 +8,6 @@ import { countPhotosNeedingVariants } from '@/lib/editor/photo-variant-paths';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-/**
- * POST /api/projects/[id]/photo-variants — догнати зменшені копії макета.
- *
- * Конструктор робить копії під час збереження, тож усе, збережене після цієї
- * зміни, приходить із ними. Старі макети копій не мають, і зробити їх у
- * браузері можна тільки завантаживши оригінали — тобто рівно ту роботу, через
- * яку TM-001342 відкривалося тринадцять хвилин. Тому їх ріже сервер, який бере
- * ті самі файли по внутрішньому каналу, а кабінет чекає секунд тридцять із
- * чесним написом замість мовчазного очікування.
- *
- * Маршрут ТІЛЬКИ ДОДАЄ поля `previewPath` і `thumbPath`. Оригінал у `path` не
- * переписується ніде: макет для друку збирає Railway саме з нього, і копія не
- * має права опинитися на його місці.
- *
- * Записує він їх ЗЛИТТЯМ у поточну версію рядка, а не перезаписом того масиву,
- * який прочитав на початку — див. `storeVariantPaths`. Нарізка триває до
- * чотирьох хвилин, і все, що людина збереже за цей час, мусить вціліти.
- *
- * Доступ має власник макета, і окремо адміністратор: Діані буває треба
- * підготувати макет наперед, щоб не просити клієнта чекати вдруге. Чужий
- * `uploaded_photos` стороння людина тут не зачепить — інакше будь-хто з
- * посиланням змушував би нас різати чужі фото.
- */
 /** Скільки разів перечитати рядок, якщо хтось устиг зберегтися між читанням і записом. */
 const MERGE_ATTEMPTS = 4;
 
@@ -61,14 +38,26 @@ const MERGE_ATTEMPTS = 4;
 async function storeVariantPaths(
     admin: any,
     id: string,
-    made: Array<{ id?: string; path?: string; previewPath?: string; thumbPath?: string }>,
-): Promise<{ ok: true; photos: any[] } | { ok: false; error: string }> {
-    const byId = new Map<string, { path?: string; previewPath?: string; thumbPath?: string }>();
+    made: Array<{ id?: string; path?: string; previewPath?: string; thumbPath?: string; variantTries?: number; variantTriedAt?: string }>,
+): Promise<{ ok: true; photos: any[] | null } | { ok: false; error: string }> {
+    const byId = new Map<string, { path?: string; previewPath?: string; thumbPath?: string; variantTries?: number; variantTriedAt?: string }>();
     for (const p of made) {
-        if (!p?.id || (!p.previewPath && !p.thumbPath)) continue;
-        byId.set(String(p.id), { path: p.path, previewPath: p.previewPath, thumbPath: p.thumbPath });
+        if (!p?.id) continue;
+        // Беремо і шляхи копій, і позначку невдалої спроби: без другої лічильник
+        // не збережеться, і фото, для якого копія не робиться в принципі,
+        // проситиметься в чергу на кожному відкритті — те, від чого тут і
+        // стоїть межа у три спроби.
+        if (!p.previewPath && !p.thumbPath && !p.variantTriedAt) continue;
+        byId.set(String(p.id), {
+            path: p.path,
+            previewPath: p.previewPath,
+            thumbPath: p.thumbPath,
+            variantTries: p.variantTries,
+            variantTriedAt: p.variantTriedAt,
+        });
     }
-    if (byId.size === 0) return { ok: true, photos: [] };
+    // Нема чого писати — і нема чого підміняти у відповіді.
+    if (byId.size === 0) return { ok: true, photos: null };
 
     let lastError = 'merge failed';
     for (let attempt = 0; attempt < MERGE_ATTEMPTS; attempt++) {
@@ -92,12 +81,30 @@ async function storeVariantPaths(
             if (add.path && p.path && String(p.path) !== String(add.path)) return p;
             // Тільки те, чого в поточній версії ще немає: якщо людина тим часом
             // зберегла власну копію, її шлях головніший за наш.
-            const patch: Record<string, string> = {};
+            const patch: Record<string, unknown> = {};
             if (add.previewPath && !p.previewPath) patch.previewPath = add.previewPath;
             if (add.thumbPath && !p.thumbPath) patch.thumbPath = add.thumbPath;
-            if (Object.keys(patch).length === 0) return p;
+            // Позначка спроби: ставимо, коли після злиття однієї з копій усе ще
+            // бракуватиме, і прибираємо, коли обидві на місці.
+            const willHavePreview = patch.previewPath || p.previewPath;
+            const willHaveThumb = patch.thumbPath || p.thumbPath;
+            if (!willHavePreview || !willHaveThumb) {
+                if (add.variantTriedAt) {
+                    patch.variantTries = add.variantTries;
+                    patch.variantTriedAt = add.variantTriedAt;
+                }
+            } else if (p.variantTriedAt || p.variantTries) {
+                patch.variantTries = undefined;
+                patch.variantTriedAt = undefined;
+            }
+            const keys = Object.keys(patch);
+            if (keys.length === 0) return p;
+            if (keys.every(k => (p as any)[k] === patch[k])) return p;
             changed++;
-            return { ...p, ...patch };
+            const next = { ...p, ...patch };
+            if ('variantTries' in patch && patch.variantTries === undefined) delete next.variantTries;
+            if ('variantTriedAt' in patch && patch.variantTriedAt === undefined) delete next.variantTriedAt;
+            return next;
         });
         if (changed === 0) return { ok: true, photos: current };
 
@@ -116,6 +123,29 @@ async function storeVariantPaths(
     return { ok: false, error: lastError };
 }
 
+/**
+ * POST /api/projects/[id]/photo-variants — догнати зменшені копії макета.
+ *
+ * Конструктор робить копії під час збереження, тож усе, збережене після цієї
+ * зміни, приходить із ними. Старі макети копій не мають, і зробити їх у
+ * браузері можна тільки завантаживши оригінали — тобто рівно ту роботу, через
+ * яку TM-001342 відкривалося тринадцять хвилин. Тому їх ріже сервер, який бере
+ * ті самі файли по внутрішньому каналу, а кабінет чекає секунд тридцять із
+ * чесним написом замість мовчазного очікування.
+ *
+ * Маршрут ТІЛЬКИ ДОДАЄ поля `previewPath` і `thumbPath`. Оригінал у `path` не
+ * переписується ніде: макет для друку збирає Railway саме з нього, і копія не
+ * має права опинитися на його місці.
+ *
+ * Записує він їх ЗЛИТТЯМ у поточну версію рядка, а не перезаписом того масиву,
+ * який прочитав на початку — див. `storeVariantPaths`. Нарізка триває до
+ * чотирьох хвилин, і все, що людина збереже за цей час, мусить вціліти.
+ *
+ * Доступ має власник макета, і окремо адміністратор: Діані буває треба
+ * підготувати макет наперед, щоб не просити клієнта чекати вдруге. Чужий
+ * `uploaded_photos` стороння людина тут не зачепить — інакше будь-хто з
+ * посиланням змушував би нас різати чужі фото.
+ */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
     const { id } = await ctx.params;
     if (!id) return NextResponse.json({ error: 'project id required' }, { status: 400 });
@@ -153,7 +183,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         deadline,
     });
 
-    if (result.made > 0) {
+    // Записуємо і тоді, коли не вийшло НІЧОГО: разом зі шляхами копій лягає
+    // позначка невдалої спроби, а без неї лічильник не збережеться і фото,
+    // для якого копія не робиться в принципі, проситиметься в чергу на кожному
+    // відкритті. Саме така порожня відповідь і має лишати слід.
+    if (result.made > 0 || result.failed > 0) {
         const stored = await storeVariantPaths(admin, id, result.photos);
         if (!stored.ok) {
             console.error('[photo-variants] failed to store paths', { id, error: stored.error });
@@ -162,7 +196,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         // Віддаємо те, що СПРАВДІ лежить у рядку після злиття, а не наш
         // знімок: кабінет підписує посилання саме з цієї відповіді, і різниця
         // між нею і базою означала б посилання на фото, якого там уже немає.
-        result.photos = stored.photos;
+        if (stored.photos) result.photos = stored.photos;
     }
 
     console.log('[photo-variants] done', {

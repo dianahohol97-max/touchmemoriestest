@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { displayPathFor, thumbPathFor, shouldDownscale, photoNeedsVariants, countPhotosNeedingVariants, missingVariantsOf, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variant-paths';
+import { displayPathFor, thumbPathFor, shouldDownscale, photoNeedsVariants, countPhotosNeedingVariants, missingVariantsOf, variantTriesOf, variantRetryExhausted, DISPLAY_MAX_EDGE, THUMB_MAX_EDGE } from '@/lib/editor/photo-variant-paths';
 
 /**
  * Шляхи зменшених копій мусять лежати поруч із оригіналом і НЕ збігатися з
@@ -95,5 +95,60 @@ describe('черга фото на зменшені копії', () => {
         ])).toBe(2);
         expect(countPhotosNeedingVariants(null)).toBe(0);
         expect(countPhotosNeedingVariants([])).toBe(0);
+    });
+});
+
+/**
+ * Межа на повтори. Без неї фото, для якого копія не робиться в принципі,
+ * лишалося б у черзі вічно, і кабінет на КОЖНОМУ відкритті писав би «Готуємо
+ * N фото до швидкого відкриття» — тобто рівно те очікування, заради усунення
+ * якого копії й зʼявилися, тільки тепер назавжди.
+ */
+describe('межа на повторні спроби', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = Date.parse('2026-09-23T12:00:00.000Z');
+
+    it('свіжа невдала спроба не повторюється того ж дня', () => {
+        const p = { path: 'a.jpg', variantTries: 1, variantTriedAt: new Date(now - 60_000).toISOString() };
+        expect(photoNeedsVariants(p, now)).toBe(false);
+    });
+
+    it('через добу пробуємо знову', () => {
+        const p = { path: 'a.jpg', variantTries: 1, variantTriedAt: new Date(now - DAY - 1000).toISOString() };
+        expect(photoNeedsVariants(p, now)).toBe(true);
+    });
+
+    it('після третьої спроби здаємося назавжди', () => {
+        const p = { path: 'a.jpg', variantTries: 3, variantTriedAt: new Date(now - 30 * DAY).toISOString() };
+        expect(photoNeedsVariants(p, now)).toBe(false);
+        expect(variantRetryExhausted(p, now)).toBe(true);
+    });
+
+    it('позначка з майбутнього не замикає фото назавжди', () => {
+        // Зіпсовані дані або розбіжність годинників не мають права стати
+        // вічною відмовою: це причина спробувати, а не мовчати.
+        const p = { path: 'a.jpg', variantTries: 1, variantTriedAt: new Date(now + 10 * DAY).toISOString() };
+        expect(photoNeedsVariants(p, now)).toBe(true);
+    });
+
+    it('сміття в полях не рахується за спробу', () => {
+        expect(variantTriesOf({ variantTries: -5 })).toBe(0);
+        expect(variantTriesOf({ variantTries: Number.NaN })).toBe(0);
+        expect(variantTriesOf({ variantTries: 'три' as unknown as number })).toBe(0);
+        expect(photoNeedsVariants({ path: 'a.jpg', variantTriedAt: 'позавчора' }, now)).toBe(true);
+    });
+
+    it('фото з обома копіями не чекає жодної доби', () => {
+        const p = { path: 'a.jpg', previewPath: 'x', thumbPath: 'y', variantTries: 1, variantTriedAt: new Date(now).toISOString() };
+        expect(photoNeedsVariants(p, now)).toBe(false);
+    });
+
+    it('кабінет не рахує фото, які в паузі', () => {
+        const photos = [
+            { path: 'a.jpg' },
+            { path: 'b.jpg', variantTries: 1, variantTriedAt: new Date(now - 60_000).toISOString() },
+            { path: 'c.jpg', variantTries: 3 },
+        ];
+        expect(countPhotosNeedingVariants(photos, now)).toBe(1);
     });
 });
