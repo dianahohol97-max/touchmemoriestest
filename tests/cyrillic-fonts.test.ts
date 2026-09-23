@@ -26,9 +26,10 @@ import { FONTS_WITH_CYRILLIC } from '@/lib/editor/font-scripts';
 
 describe('прапорець кирилиці', () => {
   it('cyr: true в FONT_DATA не буває без кириличних файлів', () => {
-    // Односторонньо навмисне. Зворотний бік — `cyr: false` при наявній
-    // кирилиці — це Great Vibes, Dela Gothic One і El Messiri: вони кирилицю
-    // мають, але з підбірки прибрані, і повертати їх туди — рішення про товар.
+    // Односторонньо навмисне: прибрати шрифт із підбірки — рішення про товар,
+    // і воно може бути будь-яким. Сьогодні обидві сторони все одно збігаються,
+    // бо три останні розбіжності (Great Vibes, Dela Gothic One, El Messiri)
+    // виправлені після перевірки в Chromium — див. тест нижче.
     const lying = FONT_DATA.filter(f => f.cyr && !FONTS_WITH_CYRILLIC.has(f.name)).map(f => f.name);
     expect(lying, 'ці шрифти обіцяють кирилицю, якої в їхніх файлах немає').toEqual([]);
   });
@@ -43,6 +44,17 @@ describe('прапорець кирилиці', () => {
   it('назви з переліку не прибрані — старий макет має відкриватися', () => {
     for (const name of ['Lato', 'Poppins', 'Schibsted Grotesk']) {
       expect(FONT_DATA.some(f => f.name === name), name).toBe(true);
+    }
+  });
+
+  it('три родини, які кирилицю мають, повернуті в підбірку', () => {
+    // Перевірено в Chromium на рядку без латиниці й пробілів: ширина не
+    // збігається з `serif`, тобто малюють вони ВЛАСНИМИ гліфами, а не фолбеком.
+    // Контроль у тому ж прогоні — Lato і Poppins дали ширину `serif` до
+    // десятої пікселя, тобто метод відрізняє одне від одного.
+    for (const name of ['Great Vibes', 'Dela Gothic One', 'El Messiri']) {
+      expect(FONTS_WITH_CYRILLIC.has(name), name).toBe(true);
+      expect(FONT_DATA.find(f => f.name === name)?.cyr, name).toBe(true);
     }
   });
 

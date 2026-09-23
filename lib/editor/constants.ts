@@ -137,9 +137,12 @@ export const CYRILLIC_DECORATIVE_FONTS = [
  *
  * Факт береться з файлів (`FONTS_WITH_CYRILLIC` у `lib/editor/font-scripts.ts`),
  * і `tests/editor-fonts-pack.test.ts` не дає `cyr: true` розійтися з ним знову.
- * Зворотний бік — `cyr: false` при наявній кирилиці — тест пропускає навмисне:
- * Great Vibes, Dela Gothic One і El Messiri кирилицю мають, але з підбірки
- * прибрані, і повертати їх туди — окреме рішення про товар, а не про код.
+ * Зворотний бік — `cyr: false` при наявній кирилиці — тест і далі пропускає
+ * навмисне: прибрати шрифт із підбірки це рішення про товар, і воно може бути
+ * будь-яким. Три такі випадки виправлені 23.09.2026 після перевірки в Chromium:
+ * Great Vibes, Dela Gothic One і El Messiri малюють українську ВЛАСНИМИ
+ * гліфами, а стояли з `cyr: false` і в підбірку не потрапляли. Great Vibes при
+ * цьому вже в сорока двох збережених макетах, тобто колись вона там була.
  */
 export const FONT_DATA: { name: string; cyr: boolean }[] = [
   // Сучасні (20)
@@ -159,7 +162,7 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Old Standard TT', cyr: true }, { name: 'Literata', cyr: true },
   { name: 'Bitter', cyr: true }, { name: 'Vollkorn', cyr: true },
   // Рукописні (22)
-  { name: 'Dancing Script', cyr: false }, { name: 'Great Vibes', cyr: false },
+  { name: 'Dancing Script', cyr: false }, { name: 'Great Vibes', cyr: true },
   { name: 'Pacifico', cyr: true }, { name: 'Sacramento', cyr: false },
   { name: 'Satisfy', cyr: false }, { name: 'Caveat', cyr: true },
   { name: 'Marck Script', cyr: true }, { name: 'Bad Script', cyr: true },
@@ -178,7 +181,7 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   // Декоративні (30)
   { name: 'Abril Fatface', cyr: false }, { name: 'Cinzel', cyr: false },
   { name: 'Bebas Neue', cyr: false }, { name: 'Righteous', cyr: false },
-  { name: 'Cormorant SC', cyr: true }, { name: 'Dela Gothic One', cyr: false },
+  { name: 'Cormorant SC', cyr: true }, { name: 'Dela Gothic One', cyr: true },
   { name: 'Unbounded', cyr: true }, { name: 'Kelly Slab', cyr: true },
   { name: 'Philosopher', cyr: true }, { name: 'Russo One', cyr: true },
   { name: 'Comfortaa', cyr: true }, { name: 'Lobster', cyr: true },
@@ -192,7 +195,7 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   { name: 'Playfair Display SC', cyr: true }, { name: 'Prosto One', cyr: true },
   { name: 'Stalinist One', cyr: true }, { name: 'Underdog', cyr: true },
   { name: 'Gabriela', cyr: true }, { name: 'Cormorant Infant', cyr: true },
-  { name: 'Cinzel Decorative', cyr: false }, { name: 'El Messiri', cyr: false },
+  { name: 'Cinzel Decorative', cyr: false }, { name: 'El Messiri', cyr: true },
   { name: 'Marmelad', cyr: true }, { name: 'Ledger', cyr: true },
 ];
 
