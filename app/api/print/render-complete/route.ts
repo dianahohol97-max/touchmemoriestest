@@ -85,6 +85,24 @@ export async function POST(req: NextRequest) {
   const subset = (body as any)?.subset === true;
   const complete = !subset && isRenderComplete(body);
   const failed = failedSpreadCount(body);
+  /**
+   * Підміни шрифта, які НЕ зупиняють аркуш.
+   *
+   * Сторож у render-service зупиняє знімок лише тоді, коли повтор може
+   * допомогти: наш CSS не доїхав або не доїхав файл підмножини. Випадки, яких
+   * повтор не лікує ніколи — родина поза нашим набором (Georgia зі старої
+   * панелі) і відсутні гліфи (кирилиця в Lato), — не роблять макет невдалим,
+   * інакше шістнадцять збережених макетів стали б недрукованими назавжди. Але
+   * мовчати про них теж не можна: частина тексту таки надрукується іншим
+   * накресленням. Тому вони їдуть сюди і осідають у рядку «останній рендер»
+   * разом із коммітом — там, де адмінка вже дивиться.
+   */
+  const fontNotes: string[] = Array.isArray((body as any)?.fontNotes)
+    ? (body as any).fontNotes.filter((n: unknown) => typeof n === 'string' && n.length > 0).slice(0, 20)
+    : [];
+  if (fontNotes.length) {
+    console.warn('[render-complete] шрифти підмінилися на частині тексту', { projectId, orderId: project.order_id, fontNotes });
+  }
   if (subset) {
     console.log('[render-complete] докат аркушів — файли зареєстровано, прибирання не чіпаємо', {
       projectId, orderId: project.order_id, uploaded: uploaded.length, failed,
@@ -147,6 +165,8 @@ export async function POST(req: NextRequest) {
         // Докат кількох аркушів — це не «останній рендер макета». Без цього
         // поля рядок «files: 2» читався б як катастрофа на книзі з двадцяти.
         subset,
+        // Текст, який надрукується не тим шрифтом, хоча аркуш зібрався.
+        fontNotes,
       },
       updated_at: new Date().toISOString(),
     }).then(() => {}, () => {});
@@ -163,6 +183,7 @@ export async function POST(req: NextRequest) {
     // Which service build produced the render — the fastest way to spot a
     // stale Railway deploy in the logs.
     serviceCommit: String(body?.serviceCommit || 'unknown'),
+    fontNotes: fontNotes.length,
   });
-  return NextResponse.json({ ok: !insertError, files: uploaded.length, failed, complete, subset, insertError });
+  return NextResponse.json({ ok: !insertError, files: uploaded.length, failed, complete, subset, fontNotes, insertError });
 }

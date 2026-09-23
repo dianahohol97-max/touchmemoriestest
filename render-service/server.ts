@@ -46,6 +46,7 @@ async function reportRenderComplete(
   uploaded: string[],
   failed: { spread: number; error: string }[] = [],
   subset = false,
+  fontNotes: string[] = [],
 ): Promise<void> {
   if (!uploaded.length) return;
   try {
@@ -60,9 +61,13 @@ async function reportRenderComplete(
       // макетом. Без нього колбек про два докочені аркуші виглядає як успішний
       // рендер із двох файлів, і прибирання на тому боці знесе решту.
       headers: { 'Content-Type': 'application/json', 'x-render-token': PRINT_RENDER_TOKEN },
-      body: JSON.stringify({ projectId, uploaded, failed, subset, serviceCommit: SERVICE_COMMIT }),
+      // `fontNotes` — підміни шрифта, які НЕ зупиняють аркуш і тому інакше
+      // ніде не проявилися б: родина поза нашим набором, відсутні гліфи. Вони
+      // не роблять макет невдалим, але означають, що частина тексту надрукується
+      // не тим накресленням, і дізнатися про це має бути звідки.
+      body: JSON.stringify({ projectId, uploaded, failed, subset, fontNotes, serviceCommit: SERVICE_COMMIT }),
     });
-    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files${failed.length ? `, ${failed.length} failed` : ''}${subset ? ', subset' : ''})`);
+    console.log(`[render] completion callback: ${res.status} (${uploaded.length} files${failed.length ? `, ${failed.length} failed` : ''}${subset ? ', subset' : ''}${fontNotes.length ? `, ${fontNotes.length} font notes` : ''})`);
   } catch (e: any) {
     console.error('[render] completion callback failed:', e?.message || e);
   }
@@ -194,6 +199,267 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const SERVICE_COMMIT = process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown';
 const SERVICE_STARTED = new Date().toISOString();
 app.get('/health', (_req, res) => res.json({ ok: true, commit: SERVICE_COMMIT, started: SERVICE_STARTED }));
+
+/* ────────────────────────── СТОРОЖ ШРИФТІВ ──────────────────────────────
+ *
+ * Навіщо. Аркуш знімає Chromium у цьому контейнері, і шрифти качає він сам.
+ * Єдиною перевіркою перед знімком було `await document.fonts.ready`, а вона не
+ * означає «шрифти на місці»: вона означає «завантаження, яке йшло, скінчилося»,
+ * і резолвиться однаково — і коли файл приїхав, і коли він упав. Виміряно в
+ * цьому самому Chromium: із заблокованою таблицею стилів `document.fonts`
+ * порожній, а `document.fonts.check()` для будь-якої родини відповідає `true`,
+ * бо фолбек-шрифт «завантажений». У другому досліді впала САМЕ кирилична
+ * підмножина при живій латинській: одна грань `error`, сусідня `loaded`, і
+ * аркуш виходить наполовину авторським, наполовину системним. Ні клієнт, ні ми
+ * не побачили б цього до самої друкарні.
+ *
+ * ЦЕ ДЗЕРКАЛО `lib/print/font-audit.ts`. Скопійоване воно не з ліні: цей сервіс
+ * збирається окремим Docker-образом, який копіює тільки `server.ts` і
+ * `tsconfig.json`, тож імпортувати з `lib/` не може. Той самий візерунок, що
+ * вже стоїть на `pageHasContent`. Обидві копії пиняє `tests/font-audit.test.ts`:
+ * міняючи тут, міняй і там.
+ *
+ * Правило дивиться не на родини, а на СИМВОЛИ: для кожного знака аркуша питає,
+ * чи є грань тієї родини, яка його покриває, і чи вона справді `loaded`.
+ * Чотири висновки, зупиняють аркуш перші два:
+ *   • 'css-missing'    — родина є в нашому пакеті, граней у документі немає
+ *                        (наш CSS не доїхав) — повтор це лікує;
+ *   • 'not-loaded'     — грань є, покриває ці символи, але не `loaded` — теж;
+ *   • 'unknown-family' — родини в пакеті немає взагалі (Georgia зі старої
+ *                        панелі) — повтор не допоможе ніколи, тож це звіт;
+ *   • 'no-glyphs'      — родина наша, але гліфів для цих знаків немає ніде
+ *                        (кирилиця в Lato, емодзі) — теж звіт.
+ */
+
+type FaceStatus = 'unloaded' | 'loading' | 'loaded' | 'error';
+type DeclaredFace = { family: string; status: FaceStatus; unicodeRange: string };
+type UsedFont = { family: string; text: string };
+type FontProblemKind = 'css-missing' | 'not-loaded' | 'unknown-family' | 'no-glyphs';
+type FontProblem = { kind: FontProblemKind; family: string; chars: string };
+
+const GENERIC_FAMILIES = new Set([
+  'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
+  'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'math', 'emoji',
+  'fangsong', 'inherit', 'initial', 'revert', 'unset', '',
+]);
+
+function normalizeFamily(name: string): string {
+  return String(name ?? '').trim().replace(/^['"]|['"]$/g, '').replace(/\s+/g, ' ').toLowerCase();
+}
+
+function isGenericFamily(name: string): boolean {
+  return GENERIC_FAMILIES.has(normalizeFamily(name));
+}
+
+function parseUnicodeRange(spec: string): Array<[number, number]> {
+  const text = String(spec ?? '').trim();
+  // Грань без діапазону покриває все — і саме тому перекриває решту підмножин
+  // тієї ж родини.
+  if (!text) return [[0, 0x10ffff]];
+  const out: Array<[number, number]> = [];
+  for (const piece of text.split(',')) {
+    const token = piece.trim().replace(/^u\+/i, '');
+    if (!token) continue;
+    if (token.includes('-')) {
+      const [a, b] = token.split('-');
+      const lo = parseInt(a, 16); const hi = parseInt(b, 16);
+      if (Number.isFinite(lo) && Number.isFinite(hi)) out.push([lo, hi]);
+      continue;
+    }
+    if (token.includes('?')) {
+      const lo = parseInt(token.replace(/\?/g, '0'), 16);
+      const hi = parseInt(token.replace(/\?/g, 'F'), 16);
+      if (Number.isFinite(lo) && Number.isFinite(hi)) out.push([lo, hi]);
+      continue;
+    }
+    const one = parseInt(token, 16);
+    if (Number.isFinite(one)) out.push([one, one]);
+  }
+  return out;
+}
+
+function rangesCover(ranges: Array<[number, number]>, cp: number): boolean {
+  for (const [lo, hi] of ranges) if (cp >= lo && cp <= hi) return true;
+  return false;
+}
+
+// Пробіли і службові знаки малюються нічим — вимагати для них гліф означало б
+// валити аркуш через звичайний пробіл.
+function isIgnorableCodePoint(cp: number): boolean {
+  return cp === 0x20 || cp === 0x09 || cp === 0x0a || cp === 0x0d
+    || cp === 0xa0 || cp === 0xad || cp === 0x200b || cp === 0x200d
+    || cp === 0xfe0e || cp === 0xfe0f || cp === 0xfeff;
+}
+
+function isBlockingProblem(kind: FontProblemKind): boolean {
+  return kind === 'css-missing' || kind === 'not-loaded';
+}
+
+function auditSheetFonts(used: UsedFont[], declared: DeclaredFace[], packFamilies: string[]): FontProblem[] {
+  const pack = new Set(packFamilies.map(normalizeFamily));
+  const byFamily = new Map<string, Array<{ status: FaceStatus; ranges: Array<[number, number]> }>>();
+  for (const face of declared) {
+    const key = normalizeFamily(face.family);
+    if (!byFamily.has(key)) byFamily.set(key, []);
+    byFamily.get(key)!.push({ status: face.status, ranges: parseUnicodeRange(face.unicodeRange) });
+  }
+
+  const problems: FontProblem[] = [];
+  for (const item of used) {
+    const family = String(item.family ?? '').trim().replace(/^['"]|['"]$/g, '');
+    if (!family || isGenericFamily(family)) continue;
+    const key = normalizeFamily(family);
+    const faces = byFamily.get(key) || [];
+
+    const record = (kind: FontProblemKind, chars: string) => {
+      if (!chars) return;
+      const existing = problems.find(p => p.kind === kind && normalizeFamily(p.family) === key);
+      if (existing) { existing.chars = [...new Set([...existing.chars + chars])].join(''); return; }
+      problems.push({ kind, family, chars });
+    };
+
+    if (faces.length === 0) {
+      const seen = new Set<number>();
+      const chars: string[] = [];
+      for (const ch of String(item.text ?? '')) {
+        const cp = ch.codePointAt(0)!;
+        if (isIgnorableCodePoint(cp) || seen.has(cp)) continue;
+        seen.add(cp); chars.push(ch);
+      }
+      record(pack.has(key) ? 'css-missing' : 'unknown-family', chars.join(''));
+      continue;
+    }
+
+    const notLoaded: string[] = [];
+    const noGlyphs: string[] = [];
+    const checked = new Set<number>();
+    for (const ch of String(item.text ?? '')) {
+      const cp = ch.codePointAt(0)!;
+      if (isIgnorableCodePoint(cp) || checked.has(cp)) continue;
+      checked.add(cp);
+      let covered = false; let loaded = false;
+      for (const face of faces) {
+        if (!rangesCover(face.ranges, cp)) continue;
+        covered = true;
+        if (face.status === 'loaded') { loaded = true; break; }
+      }
+      if (loaded) continue;
+      if (covered) notLoaded.push(ch); else noGlyphs.push(ch);
+    }
+    record('not-loaded', notLoaded.join(''));
+    record('no-glyphs', noGlyphs.join(''));
+  }
+  return problems.sort((a, b) => Number(isBlockingProblem(b.kind)) - Number(isBlockingProblem(a.kind)));
+}
+
+function sampleOf(chars: string): string {
+  const list = [...chars];
+  const head = list.slice(0, 8).join('');
+  return list.length > 8 ? `«${head}…»` : `«${head}»`;
+}
+
+function describeFontProblem(problem: FontProblem): string {
+  switch (problem.kind) {
+    case 'css-missing':
+      return `шрифт не завантажився: ${problem.family} — сторінка не отримала жодної його грані`;
+    case 'not-loaded':
+      return `шрифт не завантажився: ${problem.family} — не приїхав файл для ${sampleOf(problem.chars)}`;
+    case 'unknown-family':
+      return `шрифт ${problem.family} не входить у наш набір — ${sampleOf(problem.chars)} надрукується системним шрифтом`;
+    case 'no-glyphs':
+      return `шрифт ${problem.family} не має гліфів для ${sampleOf(problem.chars)} — ці знаки надрукуються іншим шрифтом`;
+  }
+}
+
+function blockingFontReason(problems: FontProblem[]): string | null {
+  const blocking = problems.filter(p => isBlockingProblem(p.kind));
+  if (!blocking.length) return null;
+  return blocking.map(describeFontProblem).join('; ');
+}
+
+function reportedFontNotes(problems: FontProblem[]): string[] {
+  return problems.filter(p => !isBlockingProblem(p.kind)).map(describeFontProblem);
+}
+
+/**
+ * Родини, які ми зобов'язані віддати самі. Читається з того ж маніфесту, який
+ * пише `scripts/build-editor-fonts.py`, одним запитом на прогін.
+ *
+ * Саме цей перелік відрізняє «наш файл не доїхав» (повтор лікує) від «такої
+ * родини в нас ніколи не було» (повтор не лікує). Якщо маніфест не читається,
+ * перелік лишається порожнім, і сторож стає обережнішим, а не сліпим: усе, чого
+ * немає в документі, тоді рахується як 'unknown-family', тобто аркуш не
+ * зупиняється через нашу ж недоступність, але кожна така родина йде у звіт.
+ */
+async function fetchPackFamilies(): Promise<string[]> {
+  try {
+    const res = await fetch(`${APP_BASE_URL}/editor-fonts/manifest.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body: any = await res.json();
+    const names = Object.keys(body?.families || {});
+    if (!names.length) throw new Error('manifest has no families');
+    return names;
+  } catch (e: any) {
+    console.warn('[render] не вдалося прочитати /editor-fonts/manifest.json:', e?.message || e);
+    return [];
+  }
+}
+
+/**
+ * Що саме набрано на цьому аркуші і що з цього справді завантажилось.
+ *
+ * Збирає ДАНІ, не висновки: рішення ухвалює `auditSheetFonts` у Node, де його
+ * видно тестам. У сторінці лишається тільки те, що без DOM зробити неможливо.
+ *
+ * Спершу просимо браузер завантажити кожну вжиту родину під її ж текст —
+ * `document.fonts.load(spec, text)` бере лише ті грані, чий `unicode-range`
+ * покриває ці символи, тож зайвих підмножин це не тягне. Без цього кроку
+ * статус грані міг би означати «ще не починали», а не «не змогли».
+ */
+async function collectSheetFonts(page: any, rootSelector: string): Promise<{ used: UsedFont[]; declared: DeclaredFace[] }> {
+  return await page.evaluate(async (selector: string) => {
+    const root = document.querySelector(selector) || document.body;
+    const byFamily = new Map<string, { family: string; weight: string; style: string; parts: string[] }>();
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node.nodeValue || '';
+      if (!text.trim()) continue;
+      const el = (node.parentElement || null) as HTMLElement | null;
+      if (!el) continue;
+      const cs = getComputedStyle(el);
+      // Перша родина стека — це те, що обрала людина; решта стека і є фолбек,
+      // тобто рівно те, чого тут бути не повинно.
+      const first = (cs.fontFamily || '').split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+      if (!first) continue;
+      const key = first.toLowerCase();
+      if (!byFamily.has(key)) {
+        byFamily.set(key, { family: first, weight: cs.fontWeight || '400', style: cs.fontStyle || 'normal', parts: [] });
+      }
+      byFamily.get(key)!.parts.push(text);
+    }
+
+    const used = [...byFamily.values()].map(v => ({
+      family: v.family,
+      weight: v.weight,
+      style: v.style,
+      // Тільки різні символи: на форзаці з довгим текстом це різниця між
+      // кількома десятками знаків і кількома тисячами.
+      text: [...new Set([...v.parts.join('')])].join(''),
+    }));
+
+    for (const u of used) {
+      try { await (document as any).fonts.load(`${u.style} ${u.weight} 40px "${u.family}"`, u.text); } catch { /* грань могла впасти — це і є відповідь */ }
+    }
+    await (document as any).fonts.ready;
+
+    const declared: any[] = [];
+    (document as any).fonts.forEach((f: any) => {
+      declared.push({ family: String(f.family || '').replace(/^['"]|['"]$/g, ''), status: f.status, unicodeRange: f.unicodeRange || '' });
+    });
+    return { used: used.map(u => ({ family: u.family, text: u.text })), declared };
+  }, rootSelector);
+}
 
 app.post('/render', async (req, res) => {
   // --- auth: only the app may call this service ---
@@ -367,6 +633,15 @@ app.post('/render', async (req, res) => {
     await getBrowser(); // warm up; each page fetches a fresh handle (recycling)
     const uploaded: string[] = [];
 
+    // Родини, які ми зобов'язані віддати самі — один запит на прогін, не на
+    // аркуш. Порожній перелік (маніфест не прочитався) робить сторожа
+    // обережнішим, а не сліпим: див. коментар біля fetchPackFamilies.
+    const packFamilies = await fetchPackFamilies();
+    // Те, що не зупиняє аркуш, але мусить бути названим: родина поза нашим
+    // набором, відсутні гліфи. Мовчазний фолбек не помітить ніхто, тож він
+    // їде в журнал, у відповідь і в колбек завершення.
+    const fontNotes = new Set<string>();
+
     // Two render modes:
     //   • printSpec present (calendars, future products): one full page per
     //     [data-print-page], sized to printSpec.pages[i] mm, captured whole.
@@ -401,6 +676,22 @@ app.post('/render', async (req, res) => {
                 })));
           });
           await page.waitForTimeout(300);
+
+          // Сторож шрифтів: знімок не робиться, поки не видно, що кожна родина
+          // цієї сторінки справді завантажилась. Аркуш, який не пройшов, падає
+          // сюди ж, куди падає будь-яка інша невдача, — і його докотить наявний
+          // повтор, бо причина впізнається як зовнішній обрив.
+          {
+            const { used, declared } = await collectSheetFonts(page, selector);
+            const problems = auditSheetFonts(used, declared, packFamilies);
+            for (const note of reportedFontNotes(problems)) {
+              if (!fontNotes.has(note)) console.warn(`[render] page ${i}: ${note}`);
+              fontNotes.add(note);
+            }
+            const reason = blockingFontReason(problems);
+            if (reason) throw new Error(reason);
+          }
+
           const el = await page.$(selector);
           if (!el) throw new Error(`no print page element for page ${i}`);
           const raw = await el.screenshot({ type: 'png', animations: 'disabled', caret: 'hide' });
@@ -433,8 +724,8 @@ app.post('/render', async (req, res) => {
       // приходив у /api/print/render-complete як звичайний успіх — і прибирання
       // вважало застарілим усе, чого немає в неповному наборі. Книжкова гілка
       // нижче передавала його з самого початку; ця відставала.
-      await reportRenderComplete(projectId, uploaded, failed.map(f => ({ spread: f.page, error: f.error })), isSubset);
-      return res.json({ ok: failed.length === 0, projectId, pages: printSpec.pages.length, uploaded, failed });
+      await reportRenderComplete(projectId, uploaded, failed.map(f => ({ spread: f.page, error: f.error })), isSubset, [...fontNotes]);
+      return res.json({ ok: failed.length === 0, projectId, pages: printSpec.pages.length, uploaded, failed, fontNotes: [...fontNotes] });
     }
 
     // ── Book path (spreads) ─────────────────────────────────────────────────
@@ -596,6 +887,23 @@ app.post('/render', async (req, res) => {
           console.warn(`[render] spread ${spread}: ${imgReport.broken}/${imgReport.total} photos failed to load — the file may have blank slots`);
         }
         await page.waitForTimeout(300); // settle
+
+        // Сторож шрифтів. Фото ми вже дочекалися й розкодували; лишається те,
+        // чого не перевіряв ніхто: чи намальований текст справді тим шрифтом,
+        // який обрала людина. `document.fonts.ready` вище на це не відповідає —
+        // вона резолвиться і тоді, коли файл упав, — тож аркуш із підміненим
+        // накресленням доти виглядав як успішний. Невдалий аркуш іде туди ж,
+        // куди й будь-який інший, і його докотить наявний повтор.
+        {
+          const { used, declared } = await collectSheetFonts(page, '[data-print-spread]');
+          const problems = auditSheetFonts(used, declared, packFamilies);
+          for (const note of reportedFontNotes(problems)) {
+            if (!fontNotes.has(note)) console.warn(`[render] ${isCover ? 'cover' : `spread ${spread}`}: ${note}`);
+            fontNotes.add(note);
+          }
+          const reason = blockingFontReason(problems);
+          if (reason) throw new Error(reason);
+        }
 
         const el = await page.$('[data-print-spread]');
         if (!el) throw new Error(`no spread element for page ${spread}`);
@@ -887,7 +1195,7 @@ app.post('/render', async (req, res) => {
       );
     }
 
-    await reportRenderComplete(projectId, uploaded, failedSpreads, isSubset);
+    await reportRenderComplete(projectId, uploaded, failedSpreads, isSubset, [...fontNotes]);
     // ok says whether the whole book rendered, and the caller uses it to decide
     // whether the previous export may be pruned. A partial run must never look
     // complete: replacing yesterday's whole макет with five of its files is a
@@ -898,6 +1206,7 @@ app.post('/render', async (req, res) => {
       spreads: spreadCount,
       uploaded,
       failed: failedSpreads,
+      fontNotes: [...fontNotes],
     });
   } catch (e: any) {
     console.error('[render] failed', e);

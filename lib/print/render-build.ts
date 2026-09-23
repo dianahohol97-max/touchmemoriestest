@@ -26,6 +26,15 @@ export type RenderBuild = {
     at: string;
     projectId: string;
     files: number;
+    /**
+     * Текст, який надрукувався не тим шрифтом, хоча аркуш зібрався.
+     *
+     * Сторож у render-service зупиняє аркуш лише тоді, коли повтор може
+     * допомогти. Родина поза нашим набором і відсутні гліфи повтором не
+     * лікуються, тож вони не зупиняють рендер, а приїжджають сюди: мовчазна
+     * підміна накреслення не показує себе ніде, поки книжка не надрукована.
+     */
+    fontNotes?: string[];
 };
 
 /** Короткий вигляд комміта для інтерфейсу. */
@@ -55,5 +64,8 @@ export function describeRenderBuild(build: RenderBuild | null, now: Date = new D
         : age === 0 ? 'сьогодні'
         : age === 1 ? 'учора'
         : `${age} дн. тому`;
-    return `Railway: збірка ${shortCommit(build.commit)}, останній рендер ${when}.`;
+    const base = `Railway: збірка ${shortCommit(build.commit)}, останній рендер ${when}.`;
+    const notes = Array.isArray(build.fontNotes) ? build.fontNotes.filter(Boolean) : [];
+    if (!notes.length) return base;
+    return `${base} Шрифти підмінилися: ${notes.join('; ')}.`;
 }
