@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { exportRowsFromPaths, projectIdFromExportPath, staleExportRows, type ExportRow } from '@/lib/print/register-export-files';
+import { detachedExportRows, exportRowsFromPaths, projectIdFromExportPath, staleExportRows, type ExportRow } from '@/lib/print/register-export-files';
 
 /**
  * Розпізнавання макета за шляхом друкованого файлу.
@@ -157,5 +157,52 @@ describe('staleExportRows', () => {
             { id: 'insert', file_path: 'orders/x/insert_photo.jpg', product_type: 'travelbook' },
         ];
         expect(staleExportRows(rows, [p(A, '01.jpg')])).toEqual([]);
+    });
+});
+
+/**
+ * Прибирання файлів макета, відчепленого від замовлення.
+ *
+ * Сценарій: дизайнер копіює макет клієнта у свої чернетки (новий id), ставить
+ * копію на замовлення і запускає рендер. Файли старого макета лишаються
+ * привʼязані до замовлення, і в картці все двоїться.
+ */
+describe('detachedExportRows', () => {
+    const OLD = 'cccccccc-3333-4333-8333-cccccccccccc';
+    const NEW = 'dddddddd-4444-4444-8444-dddddddddddd';
+    const row = (proj: string, name: string, productType = 'travelbook'): ExportRow => ({
+        id: `${proj}:${name}`,
+        file_path: `drafts/u/${proj}/print/${name}`,
+        bucket_name: 'photobook-uploads',
+        product_type: productType,
+    });
+
+    it('прибирає і сторінки, і ОБКЛАДИНКУ відчепленого макета', () => {
+        const files = [row(OLD, '01.jpg'), row(OLD, 'cover.jpg'), row(NEW, '01.jpg'), row(NEW, 'cover.jpg')];
+        const gone = detachedExportRows(files, [NEW]).map(f => f.id);
+        // Обкладинка старого макета тут ОБОВʼЯЗКОВА: без неї в картці
+        // лишаються дві обкладинки, і одна з них — від макета, якого на
+        // замовленні вже немає.
+        expect(gone).toEqual([`${OLD}:01.jpg`, `${OLD}:cover.jpg`]);
+    });
+
+    it('не чіпає нерендерні вироби', () => {
+        const files = [row(OLD, 'cover.jpg', 'wishbook')];
+        expect(detachedExportRows(files, [NEW])).toEqual([]);
+    });
+
+    it('обкладинка, згенерована сервером, не має в шляху макета і не чіпається', () => {
+        const files: ExportRow[] = [{
+            id: 'server-cover',
+            file_path: 'user-key/order-id/cover.jpg',
+            bucket_name: 'photobook-uploads',
+            product_type: 'photobook',
+        }];
+        expect(detachedExportRows(files, [NEW])).toEqual([]);
+    });
+
+    it('порожній перелік чинних макетів не прибирає нічого', () => {
+        const files = [row(OLD, '01.jpg')];
+        expect(detachedExportRows(files, [])).toEqual([]);
     });
 });

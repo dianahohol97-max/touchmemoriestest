@@ -27,10 +27,19 @@ export const RAILWAY_RENDERABLE = /photobook|fotoknig|travel|magazine|zhurnal|fo
  * /api/orders/[id]/generate-wishbook-cover and /api/orders/[id]/generate-cover-bw,
  * NEVER by Railway, so they can never appear in a render's keepPaths — and
  * pruneStaleExports would therefore delete them on the next re-render. That is
- * exactly how TM-001138 lost its engraved cover. Railway's own cover is
- * `00_cover.jpg`, which does not match: the anchor requires the file name to
- * start at `cover`. `insert_photo.jpg` — the standalone фотовставка photo from
- * generate-cover-bw — is protected for the same reason.
+ * exactly how TM-001138 lost its engraved cover. `insert_photo.jpg` — the
+ * standalone фотовставка photo from generate-cover-bw — is protected for the
+ * same reason.
+ *
+ * ЩО ЦЕЙ ЗАХИСТ ЛОВИТЬ НАСПРАВДІ. Тут довго стояло, що власна обкладинка
+ * Railway зветься `00_cover.jpg` і під вираз не потрапляє. Це неправда:
+ * посторінкові вироби — тревелбуки і журнали — Railway називає рівно
+ * `cover.jpg` (render-service/server.ts, «the cover file is literally
+ * cover.jpg»), тож вони теж під захистом. Практичної шкоди немає, бо
+ * перерендер кладе обкладинку за тим самим шляхом і перезаписує її, а рядок
+ * order_files лишається чинним. Але вважати, що виняток стосується самих лише
+ * вишбуків, не можна — на цьому вже сплуталося прибирання відчеплених макетів,
+ * див. detachedExportRows нижче. Факт зафіксований у tests/export-paths.test.ts.
  */
 const SERVER_GENERATED_COVER = /(^|\/)(cover(_bw)?|insert_photo)\.jpg$/i;
 
@@ -223,6 +232,40 @@ export function projectIdFromExportPath(path: string): string | null {
  * шляху id не читається, теж не чіпаємо. Обкладинки, згенеровані сервером,
  * і нерендерні типи виробів захищені так само, як у прибиранні нижче.
  */
+/**
+ * ЯКІ РЯДКИ НАЛЕЖАТЬ МАКЕТУ, ВІДЧЕПЛЕНОМУ ВІД ЗАМОВЛЕННЯ.
+ *
+ * Вийнято в чисту функцію з тієї самої причини, що й staleExportRows нижче:
+ * тут ухвалюється рішення прибрати файл із замовлення, і перевіряти таке
+ * рішення треба тестом.
+ *
+ * ОБКЛАДИНКА ВІДЧЕПЛЕНОГО МАКЕТА ПРИБИРАЄТЬСЯ ТЕЖ. Раніше тут стояв той самий
+ * виняток SERVER_GENERATED_COVER, що й у staleExportRows, і писався він заради
+ * гравійованої обкладинки вишбука. Але тревелбук називає свою обкладинку так
+ * само — `cover.jpg`, — тож після заміни макета дизайнером обкладинка СТАРОГО,
+ * уже відчепленого макета лишалася в картці замовлення і їхала в архів для
+ * друкарні поруч із новою. Рівно та подвійність, заради якої це прибирання й
+ * писали, тільки на одному файлі, і саме на тому, який найважче помітити:
+ * сторінки в картці йдуть під номерами, а обкладинок просто дві.
+ *
+ * Обкладинкам, згенерованим сервером, це нічим не загрожує, і не через назву.
+ * Вони лежать за шляхом `{userKey}/{orderId}/cover.jpg`, без відрізка `print`,
+ * тож projectIdFromExportPath не читає з них жодного макета і вони не можуть
+ * стати відчепленими. А вишбук до того ж не входить у RAILWAY_RENDERABLE.
+ *
+ * Обережності лишаються: файл, з чийого шляху id макета не читається, не
+ * чіпається ніколи, і нерендерні типи виробів теж.
+ */
+export function detachedExportRows(files: ExportRow[], currentProjectIds: Set<string> | string[]): ExportRow[] {
+    const current = currentProjectIds instanceof Set ? currentProjectIds : new Set(currentProjectIds);
+    if (current.size === 0) return [];
+    return (files || []).filter((f) => {
+        if (!RAILWAY_RENDERABLE.test(String(f.product_type || ''))) return false;
+        const owner = projectIdFromExportPath(String(f.file_path || ''));
+        return !!owner && !current.has(owner);
+    });
+}
+
 export async function pruneExportsOfDetachedProjects(
     admin: SupabaseClient,
     orderId: string,
@@ -244,13 +287,7 @@ export async function pruneExportsOfDetachedProjects(
         .eq('order_id', orderId)
         .eq('file_type', 'export');
 
-    const orphans = (files || []).filter((f: any) => {
-        const path = String(f.file_path || '');
-        if (SERVER_GENERATED_COVER.test(path)) return false;
-        if (!RAILWAY_RENDERABLE.test(String(f.product_type || ''))) return false;
-        const owner = projectIdFromExportPath(path);
-        return !!owner && !current.has(owner);
-    });
+    const orphans = detachedExportRows((files || []) as ExportRow[], current);
     if (!orphans.length) return 0;
 
     // ЗНІМАЄМО РЯДКИ, ФАЙЛИ У СХОВИЩІ ЛИШАЄМО.

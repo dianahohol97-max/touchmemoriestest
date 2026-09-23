@@ -610,6 +610,50 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         setVerifying(false);
     };
 
+    /**
+     * Передня обкладинка одного виробу окремим файлом.
+     *
+     * Ріжеться з готового cover.jpg на сервері, тож це рівно ті пікселі, що
+     * поїдуть у друк, і працює воно для всіх уже відрендерених замовлень.
+     * Друкований набір і ZIP при цьому не змінюються — це просто ще одна
+     * кнопка скачування.
+     *
+     * `trimmed` — видима площина, те, як обкладинка виглядатиме в руках.
+     * `bleed` — уся права половина аркуша разом із полем загину, для звірки з
+     * друкарнею.
+     */
+    const [frontCoverBusy, setFrontCoverBusy] = useState<string | null>(null);
+    const downloadFrontCover = async (projectId: string, mode: 'trimmed' | 'bleed') => {
+        if (!order?.id) return;
+        setFrontCoverBusy(`${projectId}:${mode}`);
+        try {
+            const r = await fetch(`/api/admin/orders/${order.id}/front-cover?project=${encodeURIComponent(projectId)}&mode=${mode}`);
+            if (!r.ok) {
+                const j = await r.json().catch(() => ({}));
+                toast.error(j.error || 'Не вдалося вирізати передню обкладинку');
+                return;
+            }
+            const blob = await r.blob();
+            // Ім'я файлу приходить від сервера: він знає і номер замовлення, і
+            // порядковий номер книги в ньому.
+            const disp = r.headers.get('Content-Disposition') || '';
+            const m = disp.match(/filename\*=UTF-8''([^;]+)/i);
+            const name = m ? decodeURIComponent(m[1]) : 'передня-обкладинка.jpg';
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (e: any) {
+            toast.error(`Помилка: ${e?.message || e}`);
+        } finally {
+            setFrontCoverBusy(null);
+        }
+    };
+
     const rerenderBook = async (projectId: string, label: string) => {
         if (!order?.id) return;
         if (!confirm(`Перегенерувати макет: ${label}?\n\nРендериться лише цей виріб, решта замовлення не чіпається. Займе 1–2 хв.`)) return;
@@ -3473,6 +3517,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                                     Макет виробу {i + 1} (ZIP)
                                                                 </button>
                                                             )}
+                                                            {hasCover && (
+                                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                    <button onClick={() => downloadFrontCover(bk.id, 'trimmed')} disabled={frontCoverBusy !== null}
+                                                                        title="Тільки передня обкладинка цього виробу, без полів під загин — так вона виглядатиме в руках"
+                                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: frontCoverBusy ? 'default' : 'pointer' }}>
+                                                                        {frontCoverBusy === `${bk.id}:trimmed` ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                                                                        Передня обкладинка
+                                                                    </button>
+                                                                    <button onClick={() => downloadFrontCover(bk.id, 'bleed')} disabled={frontCoverBusy !== null}
+                                                                        title="Та сама передня обкладинка, але вся права половина аркуша разом із полем загину і половиною корінця — для звірки з друкарнею"
+                                                                        style={{ padding: '5px 7px', background: 'transparent', color: '#64748b', border: 'none', fontSize: 10.5, fontWeight: 700, textDecoration: 'underline', cursor: frontCoverBusy ? 'default' : 'pointer' }}>
+                                                                        {frontCoverBusy === `${bk.id}:bleed` ? 'ріжу…' : 'з полями'}
+                                                                    </button>
+                                                                </span>
+                                                            )}
                                                             {mine.length > 0 && (
                                                                 <button onClick={() => downloadLayoutPdf(mine, `виріб-${i + 1}`)} disabled={buildingPdf}
                                                                     title="Усі сторінки цього виробу одним PDF, по сторінці на аркуш"
@@ -3551,6 +3610,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                                                     {downloadingZip ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                                                     Тільки макет (ZIP)
                                                 </button>
+                                                {layoutBooks[0]?.id && exportBook.some((f: any) => f.isCover) && (
+                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                        <button onClick={() => downloadFrontCover(layoutBooks[0].id, 'trimmed')} disabled={frontCoverBusy !== null}
+                                                            title="Тільки передня обкладинка, без полів під загин — так вона виглядатиме в руках"
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#0369a1', border: '1.5px solid #0369a1', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: frontCoverBusy ? 'default' : 'pointer' }}>
+                                                            {frontCoverBusy === `${layoutBooks[0].id}:trimmed` ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
+                                                            Передня обкладинка
+                                                        </button>
+                                                        <button onClick={() => downloadFrontCover(layoutBooks[0].id, 'bleed')} disabled={frontCoverBusy !== null}
+                                                            title="Та сама передня обкладинка, але вся права половина аркуша разом із полем загину і половиною корінця — для звірки з друкарнею"
+                                                            style={{ padding: '5px 7px', background: 'transparent', color: '#64748b', border: 'none', fontSize: 10.5, fontWeight: 700, textDecoration: 'underline', cursor: frontCoverBusy ? 'default' : 'pointer' }}>
+                                                            {frontCoverBusy === `${layoutBooks[0].id}:bleed` ? 'ріжу…' : 'з полями'}
+                                                        </button>
+                                                    </span>
+                                                )}
                                                 <button onClick={() => downloadLayoutPdf(exportBook, 'макет')} disabled={buildingPdf}
                                                     title="Увесь макет одним PDF, по сторінці на аркуш — щоб не збирати його вручну"
                                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#fff', color: '#16a34a', border: '1.5px solid #16a34a', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: buildingPdf ? 'default' : 'pointer' }}>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { frontCoverInset, readyCoverLayout } from '@/lib/editor/ready-cover-fit';
+import { readyCoverLayout } from '@/lib/editor/ready-cover-fit';
+import { frontCoverInset } from '@/lib/print/cover-fold';
 
 /**
  * Геометрія передньої половини аркуша обкладинки.
