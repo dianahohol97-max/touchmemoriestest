@@ -8,6 +8,9 @@ export interface TravelCover {
   image_url: string;
   kind: 'city' | 'country';
   sort_order: number;
+  /** Колір тла з каталогу. Порожній — кольору ще ніхто не задав оком, і
+   *  конструктор порахує підказку сам. */
+  background_color?: string | null;
 }
 
 interface ReadyCoversPickerProps {

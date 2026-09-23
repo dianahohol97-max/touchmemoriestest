@@ -43,8 +43,16 @@ interface TravelBookCoverSelectorProps {
 }
 
 // Map an /api/travelbook-covers row onto the shape this component and its
-// consumer expect. The new table has no country/landmark/background_color, so
-// we fill sensible fallbacks (the English name doubles as the subtitle).
+// consumer expect. The new table carries no country/landmark, so the English
+// name doubles as the subtitle.
+//
+// `background_color` більше НЕ вигадується. Тут стояв зашитий сірий #e5e7eb,
+// однаковий для всіх ста обкладинок, і конструктор брав його на віру: у базі
+// одинадцять макетів із сірим задником при кольоровій передній обкладинці
+// (шість «Іспанія», два «Афіни», по одному «Єгипет», «Мілан» і «Париж»).
+// Тепер колір приходить із каталогу, де його задає Діана оком, а порожнє
+// значення чесно означає «не задано» — конструктор тоді рахує підказку з
+// картинки сам.
 function mapCover(row: any): TravelBookCover {
     const name = row.name || row.name_en || '';
     const nameEn = row.name_en || row.name || '';
@@ -61,7 +69,7 @@ function mapCover(row: any): TravelBookCover {
         city_name_en: nameEn,
         country: nameEn,
         landmark: '',
-        background_color: '#e5e7eb',
+        background_color: typeof row.background_color === 'string' ? row.background_color : '',
         group_type: kind,
     };
 }
@@ -280,7 +288,9 @@ function CoverCard({ cover, isSelected, onSelect }: CoverCardProps) {
                     // Fallback placeholder
                     <div
                         className="w-full h-full flex flex-col items-center justify-center p-4 text-center"
-                        style={{ backgroundColor: cover.background_color }}
+                        // Сірий тут доречний: це заглушка на випадок, коли
+                        // картинка не завантажилася, а не колір обкладинки.
+                        style={{ backgroundColor: cover.background_color || '#e5e7eb' }}
                     >
                         <p className="text-2xl font-bold text-gray-800 mb-2">
                             {(cover.name_en || cover.name).toUpperCase()}

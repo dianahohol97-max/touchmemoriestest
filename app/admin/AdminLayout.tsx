@@ -82,6 +82,7 @@ const menuItems = [
     { name: 'Подарункові колекції', href: '/admin/gift-collections', icon: <Gift size={20} />, section: 'catalog', group: 'catalog' },
     { name: 'Сертифікати', href: '/admin/certificates', icon: <CreditCard size={20} />, section: 'orders', group: 'catalog' },
     { name: 'Кольори велюру', href: '/admin/velour-colors', icon: <Palette size={20} />, section: 'catalog', group: 'catalog' },
+    { name: 'Обкладинки тревелбука', href: '/admin/travelbook-covers', icon: <Image size={20} />, section: 'catalog', group: 'catalog' },
     { name: 'Складський облік', href: '/admin/stock', icon: <Package size={20} />, section: 'production', group: 'catalog' },
     { name: 'Календар виробництва', href: '/admin/production-calendar', icon: <CalendarDays size={20} />, section: 'production', group: 'catalog' },
     { name: 'Важливо', href: '/admin/reprints', icon: <Recycle size={20} />, section: 'production', group: 'catalog' },

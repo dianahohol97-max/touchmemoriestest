@@ -54,6 +54,7 @@ import type { PhotoData, BookConfig, CoverDecoType, CoverState, LayoutType, Slot
 import { SlotPhotoToolbar } from '@/components/editor/SlotPhotoToolbar';
 import { applySnap } from '@/lib/editor/snap';
 import { ensurePhotoVariants } from '@/lib/editor/photo-variants';
+import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
 import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
   generateQRDataUrl, looksLikeUrl,
@@ -526,44 +527,6 @@ function releaseFocalSlot() {
 function enqueueFocal(job: () => void) {
   focalQueue.push(job);
   pumpFocalQueue();
-}
-
-/**
- * Average colour of a cover image's outer border ring. Used to auto-fill the
- * back cover so it matches a ready-made travel cover: the covers table has no
- * background-colour column, but the designs have a flat background at the
- * edges, so sampling the border of the artwork recovers it reliably.
- * Resolves null on CORS/decode failure — callers just skip the auto-fill.
- */
-function sampleCoverEdgeColor(url: string): Promise<string | null> {
-  return new Promise(resolve => {
-    try {
-      const img = new window.Image();
-      img.crossOrigin = 'anonymous';
-      img.onerror = () => resolve(null);
-      img.onload = () => {
-        try {
-          const S = 48, M = 5;
-          const c = document.createElement('canvas');
-          c.width = S; c.height = S;
-          const ctx = c.getContext('2d')!;
-          ctx.drawImage(img, 0, 0, S, S);
-          const d = ctx.getImageData(0, 0, S, S).data;
-          let r = 0, g = 0, b = 0, n = 0;
-          for (let y = 0; y < S; y++) {
-            for (let x = 0; x < S; x++) {
-              if (x >= M && x < S - M && y >= M && y < S - M) continue;
-              const i = (y * S + x) * 4;
-              r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
-            }
-          }
-          if (!n) return resolve(null);
-          resolve('#' + [r, g, b].map(v => Math.round(v / n).toString(16).padStart(2, '0')).join(''));
-        } catch { resolve(null); }
-      };
-      img.src = url;
-    } catch { resolve(null); }
-  });
 }
 
 const PAGE_PROPORTIONS: Record<string, { w: number; h: number }> = {
@@ -1048,8 +1011,14 @@ export default function BookLayoutEditor() {
             printedPhotoSlot: { x: 0, y: 0, w: 0, h: 0, shape: 'rect' as const },
             printedPhotoSlots: undefined,
             printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
-            ...(c.selectedCover?.background_color
-              ? { backCoverBgColor: String(c.selectedCover.background_color) }
+            // Колір тла з каталогу — тільки якщо він там справді заданий.
+            // Раніше сюди приходив зашитий у TravelBookCoverSelector сірий
+            // #e5e7eb, однаковий для всіх ста обкладинок, і одинадцять макетів
+            // у базі мають сірий задник при кольоровій передній обкладинці.
+            // Якщо кольору немає, його підставить ефект нижче, порахувавши
+            // підказку з самої картинки.
+            ...(/^#[0-9a-fA-F]{3,8}$/.test(String(c.selectedCover?.background_color || '').trim())
+              ? { backCoverBgColor: String(c.selectedCover.background_color).trim() }
               : {}),
           };
         }
@@ -1058,6 +1027,28 @@ export default function BookLayoutEditor() {
     } catch {}
     return { decoType: 'none', decoVariant: '', photoId: null, decoText: '', decoColor: '#D4AF37', textX: 50, textY: 85, textFontFamily: 'Marck Script', textFontSize: 14, extraTexts: [] };
   });
+  /**
+   * Готова обкладинка без кольору задника отримує підказку з картинки.
+   *
+   * Спрацьовує рівно там, де кольору немає ЗОВСІМ: обкладинка, обрана на кроці
+   * конфігурації до появи колонки `background_color` у каталозі, і старі
+   * чернетки, збережені тоді ж. Уже збережений колір не чіпається ніколи — це
+   * вибір клієнтки, навіть коли він дістався їй від старого розрахунку.
+   */
+  useEffect(() => {
+    if (!coverState.printedBgImage || !coverState.readyCoverId) return;
+    if (coverState.backCoverBgColor) return;
+    let cancelled = false;
+    const coverId = coverState.readyCoverId;
+    sampleCoverBackgroundColor(coverState.printedBgImage).then(hex => {
+      if (cancelled || !hex) return;
+      setCoverState(p => (p.readyCoverId === coverId && !p.backCoverBgColor)
+        ? { ...p, backCoverBgColor: hex }
+        : p);
+    });
+    return () => { cancelled = true; };
+  }, [coverState.printedBgImage, coverState.readyCoverId, coverState.backCoverBgColor]);
+
   /**
    * Напис оздоблення. Емодзі на гравіювання не йдуть — це правило майстерні
    * (Діана, 2026-09-07), а не технічне обмеження.
@@ -7169,13 +7160,27 @@ export default function BookLayoutEditor() {
                           photoId: null,
                           printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
                         }));
-                        // Fill the back cover in the same colour as the ready
-                        // cover's background, so front and back match without
-                        // hunting for the colour picker. The customer can still
-                        // override it in «Задня обкладинка → Колір фону».
-                        sampleCoverEdgeColor(cover.image_url).then(hex => {
-                          if (hex) setCoverState(p => ({ ...p, backCoverBgColor: hex }));
-                        });
+                        // Задня обкладинка заливається кольором тла передньої,
+                        // щоб половинки збігалися без пошуків піпетки. Клієнтка
+                        // все одно може перебити це в «Задня обкладинка → Колір
+                        // фону».
+                        //
+                        // Перше джерело — каталог: колір там заданий оком, і
+                        // ніякий розрахунок його не переб'є. Підказка рахується
+                        // лише для обкладинок, яким кольору ще не задали, і
+                        // приходить вона асинхронно, тож перевіряємо, що
+                        // клієнтка за цей час не обрала іншу обкладинку і не
+                        // поставила свій колір — інакше пізня відповідь затерла
+                        // б свіжий вибір.
+                        const catalogColor = (cover.background_color || '').trim();
+                        if (/^#[0-9a-fA-F]{3,8}$/.test(catalogColor)) {
+                          setCoverState(p => ({ ...p, backCoverBgColor: catalogColor }));
+                        } else {
+                          sampleCoverBackgroundColor(cover.image_url).then(hex => {
+                            if (!hex) return;
+                            setCoverState(p => p.readyCoverId === cover.id ? { ...p, backCoverBgColor: hex } : p);
+                          });
+                        }
                       }}
                     />
                     <div style={{ height: 1, background: '#e2e8f0', margin: '4px 0' }} />

@@ -14,7 +14,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('travelbook_covers')
-      .select('id, name, name_en, image_url, kind, sort_order')
+      .select('id, name, name_en, image_url, kind, sort_order, background_color')
       .eq('active', true)
       .order('kind', { ascending: true })
       .order('sort_order', { ascending: true });
