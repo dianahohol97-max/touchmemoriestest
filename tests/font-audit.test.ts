@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
   auditSheetFonts,
+  describeFontProblem,
   blockingFontReason,
   reportedFontNotes,
   parseUnicodeRange,
@@ -151,6 +152,21 @@ describe('сторож шрифтів аркуша', () => {
     ], declared, PACK);
     expect(problems).toHaveLength(1);
     expect([...problems[0].chars].sort().join('')).toBe([...new Set('Привітсвітще')].sort().join(''));
+  });
+
+  it('причина називає писемність, а не набір літер', () => {
+    // Перша спроба друкувала сам набір різних символів, і «Привіт світ» ставало
+    // «Пвітср» — на вигляд одруківка, а не діагноз.
+    const declared = faces([['Marck Script', LATIN, 'loaded'], ['Marck Script', CYRILLIC, 'error']]);
+    const [problem] = auditSheetFonts([{ family: 'Marck Script', text: 'Привіт світ Hello' }], declared, PACK);
+    expect(describeFontProblem(problem))
+      .toBe('шрифт не завантажився: Marck Script — не приїхав файл, у якому кирилиця');
+  });
+
+  it('мішанину писемностей показує символами, бо інакше доведеться дивитися очима', () => {
+    const declared = faces([['Montserrat', LATIN, 'loaded']]);
+    const [problem] = auditSheetFonts([{ family: 'Montserrat', text: 'Привіт Ωμέγα' }], declared, PACK);
+    expect(describeFontProblem(problem)).toContain('символи');
   });
 
   it('те, що зупиняє, стоїть у переліку першим', () => {

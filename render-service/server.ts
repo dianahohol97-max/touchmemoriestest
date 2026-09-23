@@ -358,16 +358,39 @@ function sampleOf(chars: string): string {
   return list.length > 8 ? `«${head}…»` : `«${head}»`;
 }
 
+/**
+ * Як назвати символи, яких бракує.
+ *
+ * Перша спроба друкувала сам набір різних символів, і виходило «Старпнел…» —
+ * на вигляд одруківка, а не діагноз. Майже завжди це ціла писемність, тож її і
+ * називаємо; мішанину показуємо як є, бо тоді доведеться дивитися очима.
+ */
+function describeChars(chars: string): string {
+  const list = [...chars];
+  if (!list.length) return 'частина тексту';
+  const isCyr = (c: string) => /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]/.test(c);
+  const isLat = (c: string) => /[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]/.test(c);
+  // Дивимося тільки на ЛІТЕРИ: цифри, розділові знаки і пробіли є в кожній
+  // підмножині й нічого не кажуть про писемність. Літера, яка не належить до
+  // жодної з двох — грецька, іврит, ієрогліф — одразу повертає нас до
+  // переліку символів, бо назвати таку мішанину одним словом чесно не вийде.
+  const letters = list.filter(c => /\p{L}/u.test(c));
+  if (!letters.length) return `символи ${sampleOf(chars)}`;
+  if (letters.every(isCyr)) return 'кирилиця';
+  if (letters.every(isLat)) return 'латиниця';
+  return `символи ${sampleOf(chars)}`;
+}
+
 function describeFontProblem(problem: FontProblem): string {
   switch (problem.kind) {
     case 'css-missing':
       return `шрифт не завантажився: ${problem.family} — сторінка не отримала жодної його грані`;
     case 'not-loaded':
-      return `шрифт не завантажився: ${problem.family} — не приїхав файл для ${sampleOf(problem.chars)}`;
+      return `шрифт не завантажився: ${problem.family} — не приїхав файл, у якому ${describeChars(problem.chars)}`;
     case 'unknown-family':
-      return `шрифт ${problem.family} не входить у наш набір — ${sampleOf(problem.chars)} надрукується системним шрифтом`;
+      return `шрифт ${problem.family} не входить у наш набір — ${describeChars(problem.chars)} надрукується системним шрифтом`;
     case 'no-glyphs':
-      return `шрифт ${problem.family} не має гліфів для ${sampleOf(problem.chars)} — ці знаки надрукуються іншим шрифтом`;
+      return `шрифт ${problem.family} не має гліфів — ${describeChars(problem.chars)} надрукується іншим шрифтом`;
   }
 }
 
