@@ -416,8 +416,9 @@ async function fetchPackFamilies(): Promise<string[]> {
  * покриває ці символи, тож зайвих підмножин це не тягне. Без цього кроку
  * статус грані міг би означати «ще не починали», а не «не змогли».
  */
-async function collectSheetFonts(page: any, rootSelector: string): Promise<{ used: UsedFont[]; declared: DeclaredFace[] }> {
+async function collectSheetFonts(page: any, rootSelector: string): Promise<{ used: UsedFont[]; declared: DeclaredFace[]; error?: string }> {
   return await page.evaluate(async (selector: string) => {
+   try {
     const root = document.querySelector(selector) || document.body;
     const byFamily = new Map<string, { family: string; weight: string; style: string; parts: string[] }>();
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -458,6 +459,14 @@ async function collectSheetFonts(page: any, rootSelector: string): Promise<{ use
       declared.push({ family: String(f.family || '').replace(/^['"]|['"]$/g, ''), status: f.status, unicodeRange: f.unicodeRange || '' });
     });
     return { used: used.map(u => ({ family: u.family, text: u.text })), declared };
+   } catch (e: any) {
+    // Помилка САМОГО сторожа — не те саме, що невдалий шрифт. Зупиняти через
+    // неї аркуш означало б, що одна моя одруківка тут спиняє друк усіх
+    // замовлень. Тому збір віддає причину, а рішення нижче пропускає перевірку
+    // і каже про це вголос: сторож, який мовчки зламався, і сторож, який
+    // мовчить, бо все гаразд, виглядають однаково, а це різні речі.
+    return { used: [], declared: [], error: String(e?.message || e) };
+   }
   }, rootSelector);
 }
 
@@ -682,14 +691,20 @@ app.post('/render', async (req, res) => {
           // сюди ж, куди падає будь-яка інша невдача, — і його докотить наявний
           // повтор, бо причина впізнається як зовнішній обрив.
           {
-            const { used, declared } = await collectSheetFonts(page, selector);
-            const problems = auditSheetFonts(used, declared, packFamilies);
-            for (const note of reportedFontNotes(problems)) {
-              if (!fontNotes.has(note)) console.warn(`[render] page ${i}: ${note}`);
+            const { used, declared, error: auditError } = await collectSheetFonts(page, selector);
+            if (auditError) {
+              const note = `перевірку шрифтів не вдалося виконати: ${auditError}`;
+              if (!fontNotes.has(note)) console.error(`[render] page ${i}: ${note}`);
               fontNotes.add(note);
+            } else {
+              const problems = auditSheetFonts(used, declared, packFamilies);
+              for (const note of reportedFontNotes(problems)) {
+                if (!fontNotes.has(note)) console.warn(`[render] page ${i}: ${note}`);
+                fontNotes.add(note);
+              }
+              const reason = blockingFontReason(problems);
+              if (reason) throw new Error(reason);
             }
-            const reason = blockingFontReason(problems);
-            if (reason) throw new Error(reason);
           }
 
           const el = await page.$(selector);
@@ -895,14 +910,23 @@ app.post('/render', async (req, res) => {
         // накресленням доти виглядав як успішний. Невдалий аркуш іде туди ж,
         // куди й будь-який інший, і його докотить наявний повтор.
         {
-          const { used, declared } = await collectSheetFonts(page, '[data-print-spread]');
-          const problems = auditSheetFonts(used, declared, packFamilies);
-          for (const note of reportedFontNotes(problems)) {
-            if (!fontNotes.has(note)) console.warn(`[render] ${isCover ? 'cover' : `spread ${spread}`}: ${note}`);
+          const { used, declared, error: auditError } = await collectSheetFonts(page, '[data-print-spread]');
+          const where = isCover ? 'cover' : `spread ${spread}`;
+          if (auditError) {
+            // Див. коментар у collectSheetFonts: власна поломка сторожа аркуш
+            // не зупиняє, але й не лишається тільки в консолі Railway.
+            const note = `перевірку шрифтів не вдалося виконати: ${auditError}`;
+            if (!fontNotes.has(note)) console.error(`[render] ${where}: ${note}`);
             fontNotes.add(note);
+          } else {
+            const problems = auditSheetFonts(used, declared, packFamilies);
+            for (const note of reportedFontNotes(problems)) {
+              if (!fontNotes.has(note)) console.warn(`[render] ${where}: ${note}`);
+              fontNotes.add(note);
+            }
+            const reason = blockingFontReason(problems);
+            if (reason) throw new Error(reason);
           }
-          const reason = blockingFontReason(problems);
-          if (reason) throw new Error(reason);
         }
 
         const el = await page.$('[data-print-spread]');
