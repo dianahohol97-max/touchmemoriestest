@@ -66,11 +66,34 @@ FAMILIES = [
      "Caveat-Variable", {}),
 ]
 
-# The two subsets the pages declared before the move to local files. Adding
-# `cyrillic-ext` here would also pull in the hryvnia sign U+20B4, which Google
-# puts in that subset — that is a visible change, not a no-op, so it stays out
-# until it is asked for deliberately.
+# The two subsets the pages declared before the move to local files. The rest
+# of Google's subsets (cyrillic-ext, latin-ext, vietnamese) stay out: they are
+# weight nobody on this site reads.
 SUBSETS = ("latin", "cyrillic")
+
+# Codepoints added on top of those subsets, per file.
+#
+# U+20B4 is the hryvnia sign. Google files it under `cyrillic-ext`, which these
+# pages never requested, so until 23.09.2026 every price on the site drew its ₴
+# from whatever system font the browser reached for — a different shape, a
+# different weight and a different width than the digits standing next to it.
+# Naming the one codepoint is cheaper than pulling in the whole of cyrillic-ext
+# for the sake of it.
+#
+# Open Sans is NOT in this list, and that is not an oversight. Open Sans has no
+# hryvnia glyph at all: U+20B4 is absent from the upstream OpenSans[wdth,wght]
+# in google/fonts, and absent from the file Google itself serves for the
+# cyrillic-ext subset, whose unicode-range merely claims the codepoint. So
+# wherever the theme renders text in Open Sans, ₴ keeps coming from a system
+# fallback, and no subsetting option changes that — only drawing the glyph
+# would. Montserrat has it, so headings and anything set in Montserrat are
+# right.
+#
+# The display fonts are deliberately out too: Playfair, Cormorant and Caveat
+# are used for gallery and wedding headings, where no price appears.
+EXTRA_CODEPOINTS = {
+    "Montserrat-Variable": ["20B4"],
+}
 
 
 def fetch(url: str) -> bytes:
@@ -101,6 +124,7 @@ def main() -> None:
                 if subset not in ranges:
                     sys.exit(f"{base}: google css2 has no {subset} subset")
                 codepoints += [p.strip().replace("U+", "") for p in ranges[subset].split(",")]
+            codepoints += EXTRA_CODEPOINTS.get(base, [])
 
             src = os.path.join(tmp, base + ".ttf")
             with open(src, "wb") as handle:
