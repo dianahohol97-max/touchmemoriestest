@@ -67,9 +67,14 @@ UA = (
 # Families css2 answers with «400: Font family not found». Google silently drops
 # such a name from a multi-family request rather than failing the whole answer,
 # so it looks like nothing is wrong until someone picks the font and gets a
-# fallback. Keep the list here rather than dropping the name from FONT_DATA:
-# layouts saved with it must still open.
-NOT_ON_GOOGLE = {"Kyiv Type Sans"}
+# fallback — that is how «Kyiv Type Sans» sat in the picker unnoticed until
+# 23.09.2026, when it was dropped from FONT_DATA because no saved layout used it.
+#
+# Empty on purpose, and kept because it was needed once. When css2 refuses a
+# name again, main() stops and says to add it here; the name then stays in
+# FONT_DATA so layouts saved with it still open, but is asked of neither Google
+# nor the pack. Mirror it in FONTS_NOT_ON_GOOGLE in lib/editor/constants.ts.
+NOT_ON_GOOGLE: set[str] = set()
 
 # One request per chunk. css2 takes many families at once and the answer is
 # identical to the concatenation of the parts, but a single 1.8 KB URL for all

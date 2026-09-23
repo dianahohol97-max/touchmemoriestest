@@ -121,10 +121,11 @@ export const CYRILLIC_DECORATIVE_FONTS = [
  * Кожен шрифт: назва і прапорець кирилиці.
  *
  * `cyr` вирішує, чи пропонувати шрифт у підбірці (`FONT_GROUPS` нижче фільтрує
- * ним), і він МУСИТЬ збігатися з фактом про файли. Чотири родини стояли з
- * `cyr: true` без жодного кириличного гліфа: Lato, Poppins і Schibsted Grotesk
+ * ним), і він МУСИТЬ збігатися з фактом про файли. Три родини стояли з
+ * `cyr: true` без жодного кириличного гліфа — Lato, Poppins і Schibsted Grotesk
  * (Google не віддає для них кириличної підмножини, і в апстрімі google/fonts її
- * теж немає) та Kyiv Type Sans, якої Google не віддає взагалі. Український
+ * теж немає), а четверта, Kyiv Type Sans, не існувала на Google зовсім і
+ * прибрана з переліку, бо в жодному макеті її не було. Український
  * текст у них весь цей час малювався системним шрифтом — на кожній машині
  * своїм, а в друці третім. Lato стоїть у дванадцяти збережених макетах,
  * Poppins у чотирьох.
@@ -172,7 +173,7 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   // NEW cyrillic handwriting
   { name: 'Cormorant Unicase', cyr: true }, { name: 'Podkova', cyr: true },
   { name: 'Seymour One', cyr: true }, { name: 'Shantell Sans', cyr: true },
-  { name: 'Comforter Brush', cyr: true }, { name: 'Kyiv Type Sans', cyr: false },
+  { name: 'Comforter Brush', cyr: true },
   { name: 'Wix Madefor Text', cyr: true }, { name: 'Schibsted Grotesk', cyr: false },
   // Декоративні (30)
   { name: 'Abril Fatface', cyr: false }, { name: 'Cinzel', cyr: false },
@@ -198,20 +199,24 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
 /**
  * Родини, яких Google Fonts не віддає взагалі.
  *
- * Окремий запит на `Kyiv Type Sans` повертає «400: Font family not found», а в
- * спільному запиті на всі 98 родин Google просто мовчки викидає цю назву й
- * віддає 97 інших — тобто збірка не падає, помилки немає, і дізнатися можна
- * тільки перелічивши родини у відповіді. Назва лишається в `FONT_DATA` навмисне:
- * прибрати її звідси означало б, що збережений макет із нею втратить шрифт ще й
- * на відкритті. Натомість її не просять ні в css2, ні в локальному пакеті, і
- * `tests/editor-fonts-pack.test.ts` не вимагає для неї файлів.
+ * Зараз порожньо, і механізм лишається саме тому, що одного разу він знадобився.
+ * `Kyiv Type Sans` простояла тут у підбірці невідомо скільки: окремий запит на
+ * неї повертає «400: Font family not found», а в спільному запиті на всі родини
+ * Google просто мовчки викидає цю назву і віддає решту — тобто збірка не падає,
+ * помилки немає, і дізнатися можна лише перелічивши родини у відповіді. Вона
+ * прибрана з `FONT_DATA` 23.09.2026, бо в жодному збереженому макеті її не було.
+ *
+ * Якщо таке трапиться знову, `scripts/build-editor-fonts.py` зупиниться з
+ * переліком назв, яких css2 не віддав, і скаже додати їх сюди. Тоді назва
+ * лишається в `FONT_DATA` (щоб макет із нею відкривався), але не просять її ні
+ * в Google, ні в локальному пакеті, і тест не вимагає для неї файлів.
  */
-export const FONTS_NOT_ON_GOOGLE = new Set<string>(['Kyiv Type Sans']);
+export const FONTS_NOT_ON_GOOGLE = new Set<string>([]);
 
 const FONT_GROUPS_ALL = [
   { group: 'Сучасні', fonts: ['Montserrat','Inter','Lato','Raleway','Nunito','Poppins','Oswald','Josefin Sans','Rubik','Ubuntu','Exo 2','Jost','Manrope','Roboto','Fira Sans','Source Sans 3','Noto Sans','Outfit','DM Sans','Plus Jakarta Sans'] },
   { group: 'Класичні', fonts: ['Playfair Display','Cormorant Garamond','EB Garamond','Libre Baskerville','Lora','Merriweather','PT Serif','Noto Serif','Crimson Text','Cormorant','Old Standard TT','Literata','Bitter','Vollkorn'] },
-  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand','Shadows Into Light','Permanent Marker','Handlee','Architects Daughter','Reenie Beanie','Comforter','Tektur','Cormorant Unicase','Podkova','Seymour One','Shantell Sans','Comforter Brush','Kyiv Type Sans','Wix Madefor Text','Schibsted Grotesk'] },
+  { group: 'Рукописні', fonts: ['Dancing Script','Great Vibes','Pacifico','Sacramento','Satisfy','Caveat','Marck Script','Bad Script','Neucha','Pangolin','Ruslan Display','Amatic SC','Indie Flower','Kalam','Patrick Hand','Shadows Into Light','Permanent Marker','Handlee','Architects Daughter','Reenie Beanie','Comforter','Tektur','Cormorant Unicase','Podkova','Seymour One','Shantell Sans','Comforter Brush','Wix Madefor Text','Schibsted Grotesk'] },
   { group: 'Декоративні', fonts: ['Abril Fatface','Cinzel','Bebas Neue','Righteous','Cormorant SC','Dela Gothic One','Unbounded','Kelly Slab','Philosopher','Russo One','Comfortaa','Lobster','Poiret One','Yeseva One','Alegreya','Alegreya SC','Press Start 2P','Spectral','Kurale','Tenor Sans','Forum','Oranienbaum','Bellota','Playfair Display SC','Prosto One','Stalinist One','Underdog','Gabriela','Cormorant Infant','Cinzel Decorative','El Messiri','Marmelad','Ledger'] },
 ];
 

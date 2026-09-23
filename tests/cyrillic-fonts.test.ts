@@ -15,7 +15,7 @@ import { FONTS_WITH_CYRILLIC } from '@/lib/editor/font-scripts';
 /**
  * Шрифт без кирилиці під українським текстом.
  *
- * Lato, Poppins, Schibsted Grotesk і Kyiv Type Sans стояли в підбірці з
+ * Lato, Poppins і Schibsted Grotesk стояли в підбірці з
  * прапорцем кирилиці, не маючи жодного кириличного гліфа. Дванадцять
  * збережених макетів несуть Lato, чотири Poppins, і весь цей час український
  * текст у них малювався системним шрифтом — на екрані одним, у друці іншим.
@@ -33,17 +33,26 @@ describe('прапорець кирилиці', () => {
     expect(lying, 'ці шрифти обіцяють кирилицю, якої в їхніх файлах немає').toEqual([]);
   });
 
-  it('чотири родини, через які це почалося, кирилиці справді не мають', () => {
-    for (const name of ['Lato', 'Poppins', 'Schibsted Grotesk', 'Kyiv Type Sans']) {
+  it('три родини, через які це почалося, кирилиці справді не мають', () => {
+    for (const name of ['Lato', 'Poppins', 'Schibsted Grotesk']) {
       expect(FONTS_WITH_CYRILLIC.has(name), name).toBe(false);
       expect(FONT_DATA.find(f => f.name === name)?.cyr, name).toBe(false);
     }
   });
 
   it('назви з переліку не прибрані — старий макет має відкриватися', () => {
-    for (const name of ['Lato', 'Poppins', 'Schibsted Grotesk', 'Kyiv Type Sans']) {
+    for (const name of ['Lato', 'Poppins', 'Schibsted Grotesk']) {
       expect(FONT_DATA.some(f => f.name === name), name).toBe(true);
     }
+  });
+
+  it('Kyiv Type Sans прибрана зовсім — її не існує на Google і немає в жодному макеті', () => {
+    // Решта трьох лишається, бо їхні файли є і збережені макети на них стоять.
+    // Ця ж не мала файлів ніколи: окремий запит на неї віддає «400: Font family
+    // not found», а в спільному Google мовчки викидав назву і віддавав 97
+    // родин замість 98.
+    expect(FONT_DATA.some(f => f.name === 'Kyiv Type Sans')).toBe(false);
+    expect(FONTS_WITH_CYRILLIC.has('Kyiv Type Sans')).toBe(false);
   });
 });
 
