@@ -10435,20 +10435,26 @@ export default function BookLayoutEditor() {
                                 onSendToBack={() => zOrderAction('text', tb.id, pageIdx, 'back')}
                               />
                             )}
-                            {isEd?(
-                              <textarea
-                autoFocus
-                value={tb.text}
-                onBlur={e=>{setEditingTextId(null);}}
-                onChange={e=>{updateTxtForPage(tb.id,{text:e.target.value},pageIdx);}}
-                onClick={e=>e.stopPropagation()}
-                onMouseDown={e=>e.stopPropagation()}
-                style={{background:'transparent',border:'none',outline:'1px dashed rgba(59,130,246,0.5)',fontSize:txtBasePx+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',resize:'none',minWidth:80,width:'100%',display:'block',padding:'2px'}}
-                rows={2}
-              />
-                            ):(
-                              <span style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:'none',textShadow:plateTextShadow((tb as any).plate)}}>{tb.text}</span>
-                            )}
+                            {/* РЕДАГУВАННЯ НА МІСЦІ, ЯК У РЕЖИМІ РОЗВОРОТУ.
+                                Тут стояла `<textarea>`, і через неї клік по підпису
+                                «витягував» блок: поле мало власний кегль (без
+                                `txtScale`), власні `width: 100%`, `minWidth: 80` і
+                                жорсткі `rows={2}`. Блок прив'язаний до свого центра,
+                                тож коробка мінялася НАВКОЛО якоря, і текст стрибав
+                                убік у ту саму мить, коли людина його торкнулася.
+                                Однорядковий заголовок при цьому розсувався на два
+                                рядки, а трирядковий підпис навпаки стискався.
+
+                                Режим розвороту давно редагує на місці через
+                                contentEditable, і там нічого не стрибає. Журнал —
+                                це режим сторінки, тому бачили це саме в ньому.
+                                Тепер обидві гілки роблять однаково: та сама розмітка,
+                                той самий кегль, те саме збереження на `blur`. */}
+                            <div contentEditable={isEd} suppressContentEditableWarning data-tm-editing={isEd ? 'true' : undefined}
+                              onBlur={e => { updateTxtForPage(tb.id, { text: e.currentTarget.textContent || '' }, pageIdx); setEditingTextId(null); }}
+                              style={{fontSize:(txtBasePx*txtScale)+'px',lineHeight:TEXT_LINE_HEIGHT,fontFamily:tb.fontFamily,color:tb.color,fontWeight:tb.bold?700:400,fontStyle:tb.italic?'italic':'normal',outline:'none',display:'block',whiteSpace:'pre-wrap',wordBreak:'break-word',maxWidth:'100%',userSelect:isEd?'text':'none',textShadow:plateTextShadow((tb as any).plate)}}>
+                              {tb.text}
+                            </div>
                             {txtEmpty && !isEd && <EmptyTextGhost fontPx={txtBasePx * txtScale}/>}
                             {isSel && !isEd && (['l','r'] as const).map(side => (
                               <div key={side} data-export-ignore="true" data-html2canvas-ignore="true"
