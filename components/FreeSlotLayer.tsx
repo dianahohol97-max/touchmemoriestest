@@ -167,10 +167,14 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const startDrag = (e: React.PointerEvent, id: string, type: 'move' | Handle | 'crop') => {
+  /** Наскільки треба зрушити вказівник, щоб це вважалося перетягуванням кадру. */
+  const PAN_THRESHOLD_PX = 4;
+
+  const startDrag = (e: React.PointerEvent, id: string, type: 'move' | Handle | 'crop', deferred = false) => {
     e.stopPropagation();
-    e.preventDefault();
-    haptic.light();
+    // З мертвою зоною подію НЕ гасимо на pointerdown: поки не ясно, клік це чи
+    // перетягування, натискання мусить дійти до обробників вибору.
+    if (!deferred) { e.preventDefault(); haptic.light(); }
     const slot = slots.find(s => s.id === id)!;
     const origSlot = { ...slot };
     startPointerDrag(e, (dx, dy) => {
@@ -221,7 +225,8 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
         if (origSlot.shape==='square'||origSlot.shape==='circle') { const sz=Math.max(w,h); w=sz; h=sz; }
         update(id, { x:Math.max(0,x), y:Math.max(0,y), w, h });
       }
-    }, () => { dragRef.current = null; setGuides({ x: [], y: [] }); });
+    }, () => { dragRef.current = null; setGuides({ x: [], y: [] }); },
+      deferred ? { threshold: PAN_THRESHOLD_PX, onDragStart: () => haptic.light() } : undefined);
   };
 
   // КОЛЕСО НАД ВІЛЬНИМ СЛОТОМ. Спільний прив'язувач із lib/editor/wheel-zoom,
@@ -251,8 +256,15 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
               if (inCrop) return;
               // Don't start drag if tap-to-place is active — let onClick handle it
               if (tapPhotoId && !slot.photoId) return;
+              // НАТИСКАННЯ НА РАМКУ БІЛЬШЕ НЕ РУХАЄ ЇЇ.
+              //
+              // Тут стояло `startDrag(e, slot.id, 'move')`, тобто будь-яке
+              // перетягування всередині рамки возило саму рамку, а кадр
+              // усередині неї ховався за подвійним кліком. У шаблонних слотах
+              // це вже не так, і дві половини одного конструктора поводилися
+              // по-різному. Тепер однаково: тягнеш знімок — їде кадр, тягнеш
+              // смужку вгорі — їде рамка, тягнеш кут — міняється розмір.
               setSelectedId(slot.id);
-              startDrag(e, slot.id, 'move');
             }}
             onClick={e => {
               e.stopPropagation();
@@ -314,6 +326,25 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
               touchAction: 'none',
             }}
           >
+            {/* СМУЖКА ПЕРЕМІЩЕННЯ РАМКИ.
+                Раніше рамку возило перетягування будь-де всередині неї, і саме
+                тому кадр усередині був недоступний без подвійного кліку. Тепер
+                у переміщення є власне місце — та сама смужка вгорі, що в
+                шаблонних слотах у режимі «Слот». Вона поверх знімка, але вузька
+                і зʼявляється лише на виділеному слоті. */}
+            {sel && !inCrop && (
+              <div
+                onPointerDown={e => { e.stopPropagation(); startDrag(e, slot.id, 'move'); }}
+                onClick={e => e.stopPropagation()}
+                title="Потягніть, щоб пересунути рамку"
+                style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)',
+                  width:'60%', maxWidth:120, height:20, cursor:'move', zIndex:60,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  borderRadius:'0 0 8px 8px', background:'rgba(59,130,246,0.92)',
+                  touchAction:'none' }}>
+                <div style={{ width:26, height:3, borderRadius:2, background:'#fff' }}/>
+              </div>
+            )}
             {/* Clip container */}
             <div style={{ position:'absolute', inset:0, borderRadius: br, overflow:'hidden', background: photo ? ((slot.padding||0) > 0 ? '#ffffff' : 'transparent') : 'rgba(99,102,241,0.06)', padding: (slot.padding||0) > 0 ? slot.padding : 0, boxSizing:'border-box' }}>
               {photo ? (
@@ -322,8 +353,13 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                   <img
                     src={photo.preview}
                     onPointerDown={e => {
-                      if (inCrop) { e.stopPropagation(); startDrag(e, slot.id, 'crop'); return; }
-                      if (!sel) { e.stopPropagation(); setSelectedId(slot.id); }
+                      e.stopPropagation();
+                      if (inCrop) { startDrag(e, slot.id, 'crop'); return; }
+                      // Перетягування всередині рамки возить КАДР, з мертвою
+                      // зоною в кілька пікселів, щоб звичайний клік нічого не
+                      // зрушив. Так само, як у шаблонних слотах.
+                      if (!sel) setSelectedId(slot.id);
+                      startDrag(e, slot.id, 'crop', true);
                     }}
                     onDoubleClick={e => { e.stopPropagation(); if (sel) setCropModeId(slot.id); }}
                     onTouchStart={e => {
@@ -372,6 +408,9 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
                       transform: 'translate(-50%,-50%)',
                       filter: slot.filter || 'none',
                     }}
+                    /* Перенесення знімка в інший слот лишається рідним
+                       перетягуванням, але тільки поки слот НЕ виділено: у
+                       виділеному тягнути знімок означає возити кадр. */
                     draggable={!inCrop && !sel}
                     onDragStart={e => {
                       if (inCrop || sel) { e.preventDefault(); return; }
@@ -532,13 +571,29 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
 
       {/* Resize handles */}
       {slots.filter(s => s.id === selectedId && s.id !== cropModeId).map(slot => {
-        const handlesToShow = isMobile
-          ? (['se', 'sw', 'ne', 'nw'] as Handle[])  // only 4 corner handles on mobile, bigger
-          : HANDLES;
+        // ЛИШЕ КУТИ, як у шаблонних слотах.
+        //
+        // На великому екрані тут було вісім ручок: чотири кути і чотири
+        // серединки сторін. Серединки давали зміну однієї сторони, але вони ж
+        // обліплювали рамку по всьому периметру, і влучити повз них у сам
+        // знімок було важко. Телефон уже показував тільки кути; тепер так
+        // скрізь, і дві половини конструктора нарешті виглядають однаково.
+        const handlesToShow = ['se', 'sw', 'ne', 'nw'] as Handle[];
 
         return handlesToShow.map(h => {
           const pos = getHandlePos(h, slot.x, slot.y, slot.w, slot.h);
-          const sz = isMobile ? 28 : (h.length === 2 ? 18 : 16);
+          // Той самий розмір, що в шаблонних слотах: двадцять пікселів на
+          // мишу, двадцять вісім на палець.
+          const sz = isMobile ? 28 : 20;
+          // РУЧКА СТОЇТЬ ЦІЛКОМ ЗА МЕЖАМИ РАМКИ.
+          //
+          // Досі вона центрувалася на куті (`pos.left - sz/2`), тобто рівно
+          // половина її площі лежала на знімку, та ще й із zIndex 65 поверх
+          // усього. Перетягування від кута через це міняло розмір рамки саме
+          // тоді, коли людина хотіла посунути кадр. Тепер ручка починається
+          // там, де рамка закінчується, і на знімок не заходить зовсім.
+          const offLeft = h.includes('w') ? -sz : 0;
+          const offTop = h.includes('n') ? -sz : 0;
 
           const startTouchResize = (e: React.TouchEvent) => {
             e.stopPropagation(); e.preventDefault();
@@ -549,12 +604,13 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
           return (
             <div key={h}
               onPointerDown={e => { e.stopPropagation(); startDrag(e, slot.id, h); }}
+              title="Потягніть, щоб змінити розмір рамки"
               style={{
                 position: 'absolute',
-                left: pos.left - sz / 2,
-                top: pos.top - sz / 2,
+                left: pos.left + offLeft,
+                top: pos.top + offTop,
                 width: sz, height: sz,
-                borderRadius: isMobile ? 6 : (h.length === 2 ? 4 : '50%'),
+                borderRadius: isMobile ? 6 : '50%',
                 background: '#fff',
                 border: isMobile ? '2.5px solid #3b82f6' : '2px solid #3b82f6',
                 cursor: handleCursor(h),

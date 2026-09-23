@@ -9124,7 +9124,7 @@ export default function BookLayoutEditor() {
                       }
                     }}
                     onClick={(e) => { setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool && spreadPage) onCanvasClickForPage(e, spreadPageIdx); }}
-                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(`spread-${spreadPageIdx}-`)) || (!!editSlotKey && editSlotKey.startsWith(`spread-${spreadPageIdx}-`)) || (!!selectedTextId && selectedTextPageIdx === spreadPageIdx)) ? 'visible' : 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
+                    style={{ width: spreadW, height: cH, position: 'relative', background: '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(`spread-${spreadPageIdx}-`)) || (!!editSlotKey && editSlotKey.startsWith(`spread-${spreadPageIdx}-`)) || (!!selectedTextId && selectedTextPageIdx === spreadPageIdx) || (!!selectedFreeSlotId && (freeSlots[spreadPageIdx] || []).some((fs: any) => fs?.id === selectedFreeSlotId))) ? 'visible' : 'hidden', borderRadius: 4, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', cursor: textTool ? 'crosshair' : 'default' }}
                   >
                     <BackgroundLayer bg={getCurBg(spreadPageIdx)} canvasW={spreadW} canvasH={cH}/>
                     {/* Center spine line — always visible fold indicator */}
@@ -10004,7 +10004,7 @@ export default function BookLayoutEditor() {
                         setFreeSlots(prev => ({ ...prev, [pageIdx]: [...(prev[pageIdx]||[]), newSlot] }));
                         toast.success(t('constructor.photo_added'));
                       }}
-                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-')) || (!!selectedTextId && selectedTextPageIdx === pageIdx)) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
+                      style={{ width: pageW, height: cH, position: 'relative', background: dragPhotoId ? '#fafafa' : '#fff', overflow: ((!!photoEditSlot && photoEditSlot.startsWith(pageIdx + '-')) || (!!editSlotKey && editSlotKey.startsWith(pageIdx + '-')) || (!!selectedTextId && selectedTextPageIdx === pageIdx) || (!!selectedFreeSlotId && (freeSlots[pageIdx] || []).some((fs: any) => fs?.id === selectedFreeSlotId))) ? 'visible' : 'hidden', borderRadius: side === 0 ? '4px 0 0 4px' : '0 4px 4px 0', boxShadow: side === 0 ? 'inset -1px 0 3px rgba(0,0,0,0.08)' : 'inset 1px 0 3px rgba(0,0,0,0.08)', cursor: textTool ? 'crosshair' : 'default', outline: activeSide === side && currentIdx !== 0 ? '2px solid rgba(30,45,125,0.3)' : 'none' }}
                       onClick={(e) => { setActiveSide(side as 0|1); setSelectedFreeSlotId(null); setSelectedTextId(null); setSelectedStickerId(null); setSelectedQrId(null); if (textTool) onCanvasClickForPage(e, pageIdx); }}
                     >
                       {/* Background layer — MUST be first so it's below slots */}
