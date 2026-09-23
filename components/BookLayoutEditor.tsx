@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check, AlertTriangle, Move } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
@@ -3854,10 +3854,16 @@ export default function BookLayoutEditor() {
     setPages(prev => prev.map((p, i) => i !== pi ? p : { ...p, slots: p.slots.map((sl, j) => j !== si ? sl : { ...sl, photoId: null }) }));
   };
 
+  /** Наскільки треба зрушити вказівник, щоб це вважалося перетягуванням кадру. */
+  const PHOTO_PAN_THRESHOLD_PX = 4;
+
   // Crop via Pointer Events — works on mouse, touch, stylus
-  const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number) => {
-    e.preventDefault(); e.stopPropagation();
-    haptic.light();
+  const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number, options?: { threshold?: number; onDragStart?: () => void }) => {
+    // З мертвою зоною подію НЕ гасимо на pointerdown: поки не ясно, клік це чи
+    // перетягування, браузер мусить мати змогу довести клік до кінця. Гасіння
+    // переїжджає в момент, коли перетягування справді почалося.
+    if (!options?.threshold) { e.preventDefault(); haptic.light(); }
+    e.stopPropagation();
     // Key format: "pageIdx-slotIdx" or "spread-pageIdx-slotIdx"
     const parts = key.split('-');
     const pi = parts[0] === 'spread' ? Number(parts[1]) : Number(parts[0]);
@@ -3872,7 +3878,11 @@ export default function BookLayoutEditor() {
           ...sl, cropX: Math.max(0,Math.min(100, cx - dx/sensitivity)),
                 cropY: Math.max(0,Math.min(100, cy - dy/sensitivity))
         })
-      })); }
+      })); },
+      undefined,
+      options?.threshold
+        ? { threshold: options.threshold, onDragStart: () => { haptic.light(); options.onDragStart?.(); } }
+        : undefined,
     );
   };
   // Keep legacy aliases so existing JSX doesn't break
@@ -9129,10 +9139,44 @@ export default function BookLayoutEditor() {
                                 }}
                                 ref={wheelZoom(key, { enabled: photoEditSlot === key, onZoom: delta => { const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); } })}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
-                                  onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
-                                  onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                  style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>  
+                                {/* ПЕРЕТЯГУВАННЯ ВСЕРЕДИНІ РАМКИ ВОЗИТЬ КАДР.
+                                    Досі знімок у слоті був `draggable`, тобто спроба трохи
+                                    зсунути фото вгору починала рідне перетягування браузера і,
+                                    якщо людина відпускала над сусіднім слотом, фотографії
+                                    мінялися місцями. З боку це виглядало так, ніби фото
+                                    «зіскакує» саме по собі. Перенесення в інший слот тепер має
+                                    власну ручку в кутку, а тягнути сам знімок означає рівно одне
+                                    — возити кадр.
+                                    Мишею і стилусом це працює завжди, із мертвою зоною в кілька
+                                    пікселів, щоб звичайний клік нічого не зрушив. ПАЛЬЦЕМ — лише
+                                    у відкритому режимі кадрування: на телефоні полотно гортають
+                                    саме пальцем по фотографії, і відібрати цей жест означало б
+                                    зробити довгий макет непрокручуваним. */}
+                                  <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={false}
+                                  onPointerDown={e => {
+                                    if (photoEditSlot === key) { startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); return; }
+                                    if (e.pointerType === 'touch') return;
+                                    startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50, { threshold: PHOTO_PAN_THRESHOLD_PX, onDragStart: () => setPhotoEditSlot(key) });
+                                  }}
+                                  style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:'grab', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                {/* ПЕРЕНЕСТИ ФОТО В ІНШИЙ СЛОТ — ОКРЕМА РУЧКА.
+                                    Раніше цю роль грав сам знімок: він був `draggable`, і будь-яке
+                                    перетягування фото було перенесенням. Тепер тягнути знімок означає
+                                    возити кадр, а перенесення живе тут. Ручка тільки для миші: рідне
+                                    перетягування HTML5 на дотику не працює взагалі, тож на телефоні
+                                    показувати її означало б показати кнопку, яка нічого не робить. */}
+                                {!isTouch && (
+                                  <div data-export-ignore="true" data-html2canvas-ignore="true" className="tm-slot-grip" draggable
+                                    title="Перетягніть, щоб перенести фото в інший слот"
+                                    onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
+                                    onPointerDown={e=>e.stopPropagation()}
+                                    onClick={e=>e.stopPropagation()}
+                                    style={{position:'absolute',left:6,bottom:6,width:26,height:26,borderRadius:8,background:'rgba(17,24,39,0.72)',border:'1.5px solid rgba(255,255,255,0.85)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'grab',zIndex:22,boxShadow:'0 2px 6px rgba(0,0,0,0.35)'}}>
+                                    <Move size={13}/>
+                                  </div>
+                                )}
+                                <style>{`.tm-slot-grip{opacity:0.4;transition:opacity 0.15s}div:hover>.tm-slot-grip{opacity:1}`}</style>
+
                                 {/* Zoom hint + badge */}
                                 {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                   <div data-export-ignore="true" style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>
@@ -9965,9 +10009,44 @@ export default function BookLayoutEditor() {
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
                                   ref={wheelZoom(key, { enabled: photoEditSlot === key, onZoom: delta => { const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); } })}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
-                                  <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
-                                    onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}
-                                    style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:photoEditSlot===key?'grab':'default', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                  {/* ПЕРЕТЯГУВАННЯ ВСЕРЕДИНІ РАМКИ ВОЗИТЬ КАДР.
+                                    Досі знімок у слоті був `draggable`, тобто спроба трохи
+                                    зсунути фото вгору починала рідне перетягування браузера і,
+                                    якщо людина відпускала над сусіднім слотом, фотографії
+                                    мінялися місцями. З боку це виглядало так, ніби фото
+                                    «зіскакує» саме по собі. Перенесення в інший слот тепер має
+                                    власну ручку в кутку, а тягнути сам знімок означає рівно одне
+                                    — возити кадр.
+                                    Мишею і стилусом це працює завжди, із мертвою зоною в кілька
+                                    пікселів, щоб звичайний клік нічого не зрушив. ПАЛЬЦЕМ — лише
+                                    у відкритому режимі кадрування: на телефоні полотно гортають
+                                    саме пальцем по фотографії, і відібрати цей жест означало б
+                                    зробити довгий макет непрокручуваним. */}
+                                  <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={false} alt=""
+                                    onPointerDown={e => {
+                                      if (photoEditSlot === key) { startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); return; }
+                                      if (e.pointerType === 'touch') return;
+                                      startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50, { threshold: PHOTO_PAN_THRESHOLD_PX, onDragStart: () => setPhotoEditSlot(key) });
+                                    }}
+                                    style={{ width:'100%', height:'100%', objectFit:(slot!.fit||'cover'), objectPosition:`${slot!.cropX??50}% ${slot!.cropY??50}%`, position:'absolute', top:0, left:0, transform:`scale(${slot!.zoom||1}) rotate(${slot!.rotation||0}deg)`, transformOrigin:'center', userSelect:'none', cursor:'grab', display:'block', touchAction: photoEditSlot===key ? 'none' : 'auto' }}/>
+                                  {/* ПЕРЕНЕСТИ ФОТО В ІНШИЙ СЛОТ — ОКРЕМА РУЧКА.
+                                      Раніше цю роль грав сам знімок: він був `draggable`, і будь-яке
+                                      перетягування фото було перенесенням. Тепер тягнути знімок означає
+                                      возити кадр, а перенесення живе тут. Ручка тільки для миші: рідне
+                                      перетягування HTML5 на дотику не працює взагалі, тож на телефоні
+                                      показувати її означало б показати кнопку, яка нічого не робить. */}
+                                  {!isTouch && (
+                                    <div data-export-ignore="true" data-html2canvas-ignore="true" className="tm-slot-grip" draggable
+                                      title="Перетягніть, щоб перенести фото в інший слот"
+                                      onDragStart={e=>{e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
+                                      onPointerDown={e=>e.stopPropagation()}
+                                      onClick={e=>e.stopPropagation()}
+                                      style={{position:'absolute',left:6,bottom:6,width:26,height:26,borderRadius:8,background:'rgba(17,24,39,0.72)',border:'1.5px solid rgba(255,255,255,0.85)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',cursor:'grab',zIndex:22,boxShadow:'0 2px 6px rgba(0,0,0,0.35)'}}>
+                                      <Move size={13}/>
+                                    </div>
+                                  )}
+                                  <style>{`.tm-slot-grip{opacity:0.4;transition:opacity 0.15s}div:hover>.tm-slot-grip{opacity:1}`}</style>
+
                                   {/* Zoom hint — always visible when zoomed, full controls in crop mode */}
                                   {photoEditSlot !== key && (slot!.zoom||1) !== 1 && (
                                     <div data-export-ignore="true" style={{position:'absolute',bottom:4,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,0.55)',borderRadius:10,padding:'2px 8px',zIndex:30,pointerEvents:'none'}}>

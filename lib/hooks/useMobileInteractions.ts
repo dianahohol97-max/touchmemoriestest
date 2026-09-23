@@ -10,27 +10,63 @@ export const haptic = {
   error:   () => { try { if ('vibrate' in navigator) navigator.vibrate([30, 20, 30]); } catch {} },
 };
 
-//  Unified pointer drag (mouse + touch + stylus) 
+export interface PointerDragOptions {
+  /**
+   * МЕРТВА ЗОНА В ПІКСЕЛЯХ.
+   *
+   * Без неї перетягування починається з першого ж пікселя руху, тобто звичайний
+   * клік мишею, під час якого рука сіпнулась, уже зсуває об'єкт. У конструкторі
+   * це виглядало так, ніби клік по тексту «витягує» блок невідомо куди: людина
+   * хотіла виділити підпис, а він від'їжджав, та ще й прилипав до найближчої
+   * напрямної. Поки вказівник не відійшов далі за цю межу, нічого не рухається і
+   * подія не гаситься, тож клік доходить до обробника як звичайний клік.
+   *
+   * Нуль або нічого означає старий режим без мертвої зони, і він лишається
+   * усюди, де перетягування починається з ручки: за ручку хапають навмисно, і
+   * там затримка на кілька пікселів лише заважає.
+   */
+  threshold?: number;
+  /** Викликається один раз, коли перетягування справді почалося. */
+  onDragStart?: () => void;
+}
+
+//  Unified pointer drag (mouse + touch + stylus)
 export function startPointerDrag(
   e: React.PointerEvent,
   onMove: (dx: number, dy: number) => void,
   onEnd?: () => void,
+  options?: PointerDragOptions,
 ) {
   const startX = e.clientX;
   const startY = e.clientY;
+  const threshold = options?.threshold ?? 0;
+  let started = threshold <= 0;
   // Capture pointer so drag continues even if finger leaves element
   try { (e.target as Element).setPointerCapture(e.pointerId); } catch {}
-  // Flag the drag globally so the editor canvas doesn't also swipe/scroll the
-  // spread while an object (text, slot, handle) is being dragged on touch.
-  try { (window as any).__tmObjectDragging = true; } catch {}
   // Block native touch scrolling for the duration of the drag so the page
   // doesn't pan under the finger while moving/resizing an object. This is the
   // reliable cross-browser guard (touch-action on the handle alone is flaky on iOS).
   const blockTouch = (te: TouchEvent) => { try { te.preventDefault(); } catch {} };
-  window.addEventListener('touchmove', blockTouch, { passive: false });
+  const begin = () => {
+    started = true;
+    // Flag the drag globally so the editor canvas doesn't also swipe/scroll the
+    // spread while an object (text, slot, handle) is being dragged on touch.
+    try { (window as any).__tmObjectDragging = true; } catch {}
+    window.addEventListener('touchmove', blockTouch, { passive: false });
+    options?.onDragStart?.();
+  };
+  // Без мертвої зони все лишається як було: прапорець і блокування дотику
+  // ставляться одразу на pointerdown.
+  if (started) begin();
   const move = (pe: PointerEvent) => {
+    const dx = pe.clientX - startX;
+    const dy = pe.clientY - startY;
+    if (!started) {
+      if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
+      begin();
+    }
     pe.preventDefault(); // prevent iOS scroll during drag
-    onMove(pe.clientX - startX, pe.clientY - startY);
+    onMove(dx, dy);
   };
   const end = () => {
     window.removeEventListener('pointermove', move);
@@ -42,8 +78,14 @@ export function startPointerDrag(
     // cover photo's × delete button) can ignore that click. Without this delay
     // the flag is already false by the time the click handler runs, and
     // releasing a slot-move over the delete button wiped the photo.
-    try { (window as any).__tmJustDragged = true; } catch {}
-    setTimeout(() => { try { (window as any).__tmObjectDragging = false; (window as any).__tmJustDragged = false; } catch {} }, 50);
+    //
+    // Якщо перетягування так і не почалося (рух не вийшов за мертву зону), це
+    // був звичайний клік, і позначати його як перетягування не можна — інакше
+    // контроль під курсором проігнорує саме той клік, якого від нього чекали.
+    if (started) {
+      try { (window as any).__tmJustDragged = true; } catch {}
+      setTimeout(() => { try { (window as any).__tmObjectDragging = false; (window as any).__tmJustDragged = false; } catch {} }, 50);
+    }
     onEnd?.();
   };
   // passive:false required so preventDefault() works on iOS Safari
