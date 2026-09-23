@@ -236,7 +236,35 @@ def main() -> None:
         json.dump(manifest, fh, ensure_ascii=False, indent=1, sort_keys=True)
         fh.write("\n")
 
-    print(f"wrote {OUT}/fonts.css and manifest.json")
+    # Які родини справді несуть кирилицю — ФАКТ із файлів, не політика підбірки.
+    #
+    # `FONT_DATA[].cyr` відповідає на інше питання: чи пропонувати шрифт у
+    # підбірці. Ці дві речі розійшлися і мовчки: Lato і Poppins стояли з
+    # `cyr: true`, хоча кириличної підмножини для них Google не віддає ні тут,
+    # ні в апстрімі, і український текст у них малювався системним шрифтом.
+    # Тепер відповідь на «чи є в цьому файлі кирилиця» береться з самих файлів,
+    # а `cyr` лишається тим, чим був, і тест пиняє, щоб `cyr: true` без
+    # кирилиці більше не траплявся.
+    with_cyrillic = sorted({f["family"] for f in faces if f["subset"] == "cyrillic"})
+    scripts_ts = os.path.join(REPO, "lib", "editor", "font-scripts.ts")
+    with open(scripts_ts, "w", encoding="utf-8") as fh:
+        fh.write(
+            "/* ЗГЕНЕРОВАНО scripts/build-editor-fonts.py — руками не правити.\n"
+            " *\n"
+            " * Які з наших шрифтів справді мають кириличні гліфи. Це факт про\n"
+            " * файли в public/editor-fonts/, а не про те, що пропонує підбірка:\n"
+            " * FONT_DATA[].cyr відповідає на друге питання, і саме тому вони вже\n"
+            " * розходилися. Українським текстом у родині, якої тут немає, друк\n"
+            " * вийде системним шрифтом — про це попереджає перелік перед\n"
+            " * оформленням і перевірка макетів в адмінці.\n"
+            " */\n"
+            "export const FONTS_WITH_CYRILLIC: ReadonlySet<string> = new Set([\n"
+            + "".join(f"  '{name}',\n" for name in with_cyrillic)
+            + "]);\n"
+        )
+
+    print(f"wrote {OUT}/fonts.css, manifest.json and lib/editor/font-scripts.ts")
+    print(f"з кирилицею: {len(with_cyrillic)} родин із {len(served)}")
     if NOT_ON_GOOGLE:
         print(f"not served by Google, left out on purpose: {sorted(NOT_ON_GOOGLE)}")
 

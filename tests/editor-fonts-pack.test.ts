@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { FONT_DATA, FONTS_NOT_ON_GOOGLE, EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
+import { FONTS_WITH_CYRILLIC } from '@/lib/editor/font-scripts';
 
 /**
  * Локальний пакет шрифтів для друку мусить покривати всю підбірку конструктора.
@@ -77,6 +78,18 @@ describe('локальний пакет шрифтів конструктора'
     expect(faces.length).toBeGreaterThan(300);
     const withoutRange = faces.filter(face => !/unicode-range:/.test(face));
     expect(withoutRange).toEqual([]);
+  });
+
+  it('font-scripts.ts перелічує рівно ті родини, у яких у пакеті є кирилиця', () => {
+    // Згенерований файл і маніфест мусять казати одне й те саме: це та мапа,
+    // на яку спирається попередження «шрифт X не має кирилиці» і в конструкторі,
+    // і в адмінці. Розійдеться — попередження або замовкне, або почне кричати
+    // на справні макети.
+    const fromManifest = Object.entries(manifest.families)
+      .filter(([, faces]) => faces.some(f => f.subset === 'cyrillic'))
+      .map(([name]) => name)
+      .sort();
+    expect([...FONTS_WITH_CYRILLIC].sort()).toEqual(fromManifest);
   });
 
   it('сторінка друку підключає саме цей файл', () => {

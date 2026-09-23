@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
 import { referencedPhotoIds } from '@/lib/print/resolve-photo-paths';
 import { blankForzatLine, blankPaidForzats, forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
+import { collectCyrillicFallbacks, cyrillicFallbackLine } from '@/lib/editor/cyrillic-fonts';
 
 /**
  * Чи відповідає надрукований комплект тому, що склала клієнтка.
@@ -263,6 +264,23 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
             proj?.overlays_data?.config,
         );
         if (blankForzats.length) problems.push(blankForzatLine(blankForzats));
+        // НАПИС У ШРИФТІ, ЯКИЙ НЕ МАЄ КИРИЛИЦІ.
+        //
+        // Чотири родини стояли в підбірці конструктора з прапорцем кирилиці, не
+        // маючи жодного кириличного гліфа — Lato, Poppins, Schibsted Grotesk і
+        // Kyiv Type Sans. Підбірка їх більше не пропонує, але дванадцять
+        // збережених макетів несуть Lato і чотири Poppins, і український текст
+        // у них друкується системним шрифтом.
+        //
+        // Підставити нічого не можна: гліфів немає ні в Google, ні в апстрімі,
+        // тож і сторож у рендер-сервісі через це рендер не зупиняє. Полагодити
+        // такий макет можна лише іншим шрифтом у самому макеті, і вирішує це
+        // людина — тому рядок у звіті, а не заборона. Той самий обхід показує
+        // цей рядок клієнтці в переліку перед «Додати в кошик», щоб менеджерка
+        // і клієнтка бачили одне й те саме.
+        const wrongFont = collectCyrillicFallbacks(proj?.pages_data, proj?.cover_data);
+        const wrongFontLine = cyrillicFallbackLine(wrongFont);
+        if (wrongFontLine) problems.push(wrongFontLine);
         if (blank.length) problems.push(`порожні аркуші: ${blank.slice(0, 8).join(', ')}${blank.length > 8 ? ` і ще ${blank.length - 8}` : ''}`);
         if (wrongSize.length) problems.push(`не той розмір: ${wrongSize.slice(0, 4).join('; ')}${wrongSize.length > 4 ? ` і ще ${wrongSize.length - 4}` : ''}`);
         if (unchecked > 0) problems.push(`${unchecked} файлів не вдалося перевірити — перевірте вручну`);

@@ -32,6 +32,7 @@ import {
   METAL_VARIANTS, LEATHERETTE_COLORS, FABRIC_COLORS, VELOUR_COLORS,
   FONT_GROUPS, GOOGLE_FONTS_URL,
 } from '@/lib/editor/constants';
+import { collectCyrillicFallbacks, describeCyrillicFallback } from '@/lib/editor/cyrillic-fonts';
 import {
   buildCoverEditorProps, handleCoverChange, resolveCoverColor,
   detectDecoType, detectDecoColor, autoSelectVariant, normalizeSizeKey,
@@ -2687,7 +2688,7 @@ export default function BookLayoutEditor() {
   // Заміна системного confirm(). Обіцянка повертає вибір клієнта, тож
   // addToCart читається так само послідовно, як читався раніше.
   type PrintIssue = {
-    kind: 'trim' | 'safety' | 'clipped' | 'gap';
+    kind: 'trim' | 'safety' | 'clipped' | 'gap' | 'font';
     pageIndex: number;
     /** Ідентифікатор текстового блока, або ключ слота для `gap`. */
     blockId: string;
@@ -4734,6 +4735,30 @@ export default function BookLayoutEditor() {
         });
       });
 
+      // ТЕКСТ У ШРИФТІ, ЯКИЙ НЕ МАЄ КИРИЛИЦІ.
+      //
+      // Чотири родини в підбірці стояли з прапорцем кирилиці, не маючи жодного
+      // кириличного гліфа: Lato, Poppins, Schibsted Grotesk і Kyiv Type Sans.
+      // Підбірка їх більше не пропонує, але в дванадцяти збережених макетах
+      // стоїть Lato і в чотирьох Poppins, і український текст у них малюється
+      // системним шрифтом — на екрані одним, у друці іншим.
+      //
+      // Підставити тут нічого не можна: гліфів немає ні в Google, ні в
+      // апстрімі. Тому лікування розмовне — сказати про це, поки людина ще в
+      // конструкторі й може обрати інший шрифт. Сторож у рендер-сервісі бачить
+      // те саме вже на аркуші й теж НЕ зупиняє рендер: відмова зробила б ці
+      // макети недрукованими назавжди.
+      //
+      // Латинський підпис у тій самій родині сюди не потрапляє: він виходить
+      // рівно таким, яким його видно, і попереджати про нього означало б
+      // навчити клієнта не читати попереджень.
+      const wrongFont: PrintIssue[] = collectCyrillicFallbacks(pages, coverState).map((f): PrintIssue => ({
+        kind: 'font',
+        pageIndex: f.pageIndex,
+        blockId: f.blockId,
+        text: `${f.pageIndex === 0 ? 'Обкладинка' : safeZonePageLabel(f.pageIndex)}: ${describeCyrillicFallback(f.family, f.text)}.`,
+      }));
+
       const issues: PrintIssue[] = [
         ...violations.map((v): PrintIssue => ({
           kind: v.level === 'trim' ? 'trim' : 'safety',
@@ -4743,6 +4768,7 @@ export default function BookLayoutEditor() {
         })),
         ...clipped,
         ...gaps,
+        ...wrongFont,
       ];
 
       if (issues.length > 0) {
@@ -12840,7 +12866,9 @@ export default function BookLayoutEditor() {
                     ? { border:'#fde68a', bg:'#fffbeb', dot:'#d97706', label:'Ризик' }
                     : issue.kind === 'gap'
                       ? { border:'#bfdbfe', bg:'#eff6ff', dot:'#2563eb', label:'Білі поля' }
-                      : { border:'#e2e8f0', bg:'#f8fafc', dot:'#64748b', label:'Не вміщається' };
+                      : issue.kind === 'font'
+                        ? { border:'#ddd6fe', bg:'#f5f3ff', dot:'#7c3aed', label:'Інший шрифт' }
+                        : { border:'#e2e8f0', bg:'#f8fafc', dot:'#64748b', label:'Не вміщається' };
                 return (
                   <button key={`${issue.pageIndex}-${issue.blockId}-${i}`}
                     onClick={() => {

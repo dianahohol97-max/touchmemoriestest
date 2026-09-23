@@ -117,11 +117,33 @@ export const CYRILLIC_DECORATIVE_FONTS = [
   { label:'Ubuntu', value:'Ubuntu', style:'sans' },
 ];
 
-// Each font has: name, cyrillic support flag
+/**
+ * Кожен шрифт: назва і прапорець кирилиці.
+ *
+ * `cyr` вирішує, чи пропонувати шрифт у підбірці (`FONT_GROUPS` нижче фільтрує
+ * ним), і він МУСИТЬ збігатися з фактом про файли. Чотири родини стояли з
+ * `cyr: true` без жодного кириличного гліфа: Lato, Poppins і Schibsted Grotesk
+ * (Google не віддає для них кириличної підмножини, і в апстрімі google/fonts її
+ * теж немає) та Kyiv Type Sans, якої Google не віддає взагалі. Український
+ * текст у них весь цей час малювався системним шрифтом — на кожній машині
+ * своїм, а в друці третім. Lato стоїть у дванадцяти збережених макетах,
+ * Poppins у чотирьох.
+ *
+ * Самі назви з переліку НЕ прибрані: макет, збережений із таким шрифтом, має
+ * відкриватися й рендеритися далі. Змінилося те, що новий макет цього шрифту
+ * для українського тексту вже не отримає, а старий каже про себе — у переліку
+ * перед «Додати в кошик» і в перевірці макетів в адмінці.
+ *
+ * Факт береться з файлів (`FONTS_WITH_CYRILLIC` у `lib/editor/font-scripts.ts`),
+ * і `tests/editor-fonts-pack.test.ts` не дає `cyr: true` розійтися з ним знову.
+ * Зворотний бік — `cyr: false` при наявній кирилиці — тест пропускає навмисне:
+ * Great Vibes, Dela Gothic One і El Messiri кирилицю мають, але з підбірки
+ * прибрані, і повертати їх туди — окреме рішення про товар, а не про код.
+ */
 export const FONT_DATA: { name: string; cyr: boolean }[] = [
   // Сучасні (20)
-  { name: 'Montserrat', cyr: true }, { name: 'Inter', cyr: true }, { name: 'Lato', cyr: true },
-  { name: 'Raleway', cyr: true }, { name: 'Nunito', cyr: true }, { name: 'Poppins', cyr: true },
+  { name: 'Montserrat', cyr: true }, { name: 'Inter', cyr: true }, { name: 'Lato', cyr: false },
+  { name: 'Raleway', cyr: true }, { name: 'Nunito', cyr: true }, { name: 'Poppins', cyr: false },
   { name: 'Oswald', cyr: true }, { name: 'Josefin Sans', cyr: false }, { name: 'Rubik', cyr: true },
   { name: 'Ubuntu', cyr: true }, { name: 'Exo 2', cyr: true }, { name: 'Jost', cyr: true },
   { name: 'Manrope', cyr: true }, { name: 'Roboto', cyr: true }, { name: 'Fira Sans', cyr: true },
@@ -150,8 +172,8 @@ export const FONT_DATA: { name: string; cyr: boolean }[] = [
   // NEW cyrillic handwriting
   { name: 'Cormorant Unicase', cyr: true }, { name: 'Podkova', cyr: true },
   { name: 'Seymour One', cyr: true }, { name: 'Shantell Sans', cyr: true },
-  { name: 'Comforter Brush', cyr: true }, { name: 'Kyiv Type Sans', cyr: true },
-  { name: 'Wix Madefor Text', cyr: true }, { name: 'Schibsted Grotesk', cyr: true },
+  { name: 'Comforter Brush', cyr: true }, { name: 'Kyiv Type Sans', cyr: false },
+  { name: 'Wix Madefor Text', cyr: true }, { name: 'Schibsted Grotesk', cyr: false },
   // Декоративні (30)
   { name: 'Abril Fatface', cyr: false }, { name: 'Cinzel', cyr: false },
   { name: 'Bebas Neue', cyr: false }, { name: 'Righteous', cyr: false },
