@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
 import { referencedPhotoIds } from '@/lib/print/resolve-photo-paths';
-import { forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
+import { blankForzatLine, blankPaidForzats, forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
 
 /**
  * Чи відповідає надрукований комплект тому, що склала клієнтка.
@@ -232,11 +232,37 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         // Це рядок у звіті, а не заборона: чи друкувати порожній форзац, чи
         // спитати клієнта, вирішує людина, яка віддає макет у роботу.
         const line = itemsByCartId.get(String(proj?.cart_payload?.id || '').trim());
+        const paidSides = paidForzatSides(line?.options);
         const missingForzats = missingForzatFiles(
-            paidForzatSides(line?.options),
+            paidSides,
             mine.map(f => String(f.file_name || '')),
         );
         if (missingForzats.length) problems.push(forzatShortfallLine(missingForzats));
+        // ОПЛАЧЕНИЙ ФОРЗАЦ, НА ЯКОМУ НІЧОГО НЕМАЄ.
+        //
+        // Друга половина тієї самої звірки, і без неї перша половина сліпа на
+        // цілий клас випадків. «Файл є» ще не означає «є що друкувати»: аркуш
+        // буває порожнім, а сторож бачить лише ім'я у теці. Після виправлення
+        // рендеру порожній форзац файлу вже не дасть, але замовлення,
+        // відрендерені РАНІШЕ, так і лежать із чистим f1 — перерендерювати їх
+        // заради перевірки ніхто не буде, тож питаємо сам макет.
+        //
+        // Міряно по живій базі за шістдесят днів (23.09.2026): три замовлення
+        // взагалі мають форзацні сторінки, і у двох із них оплачений форзац
+        // порожній — TM-001352 має голий f1, TM-001349 голий f2. Два за два
+        // місяці — це ознака, а не шум, за тією самою мірою, що в гочі 15.
+        //
+        // Заливка сторінки вмістом РАХУЄТЬСЯ: кольоровий форзац замовляють
+        // свідомо, і кричати на нього означало б сперечатися з оплаченим
+        // вибором. Саме тому TM-001349 отримує рядок лише про f2.
+        const blankForzats = blankPaidForzats(
+            paidSides,
+            line?.slug || proj?.product_type,
+            proj?.pages_data,
+            proj?.overlays_data,
+            proj?.overlays_data?.config,
+        );
+        if (blankForzats.length) problems.push(blankForzatLine(blankForzats));
         if (blank.length) problems.push(`порожні аркуші: ${blank.slice(0, 8).join(', ')}${blank.length > 8 ? ` і ще ${blank.length - 8}` : ''}`);
         if (wrongSize.length) problems.push(`не той розмір: ${wrongSize.slice(0, 4).join('; ')}${wrongSize.length > 4 ? ` і ще ${wrongSize.length - 4}` : ''}`);
         if (unchecked > 0) problems.push(`${unchecked} файлів не вдалося перевірити — перевірте вручну`);

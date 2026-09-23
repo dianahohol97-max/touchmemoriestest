@@ -283,11 +283,27 @@ app.post('/render', async (req, res) => {
     const contentPageCount = Math.max(0, pagesData.length - 1);
     const orderedPages = parseInt(String(config?.selectedPageCount || '').match(/\d+/)?.[0] || '0', 10) || 0;
     const hasForzatExtra = splitToPages && orderedPages > 0 && contentPageCount >= orderedPages + 2;
+    /**
+     * ЦЕ ДЗЕРКАЛО `pageHasPrintableContent` із lib/print/forzat-expectation.ts.
+     *
+     * Скопійовано НЕ з ліні: цей сервіс — окремий збірник із власним
+     * package.json і tsconfig, у якому `include: ["server.ts"]`, а Dockerfile
+     * кладе в образ рівно два файли. Імпортувати звідси `lib/` фізично нічим.
+     * Дві копії тримає разом спільний перелік випадків у
+     * tests/forzat-expectation.test.ts — правлячи одну, правте другу.
+     */
     const pageHasContent = (idx: number) => {
       const p = pagesData[idx];
       if (!p) return false;
       if ((p.slots || []).some((s: any) => s?.photoId)) return true;
-      if ((p.textBlocks || []).length > 0) return true;
+      // ТЕКСТОВИЙ БЛОК БЕЗ ЖОДНОГО СИМВОЛУ — ЦЕ НЕ ВМІСТ.
+      //
+      // Тут стояло `.length > 0`, тобто блок рахувався за самим фактом свого
+      // існування. Порожній блок не малює нічого, тож форзац із ним їхав у
+      // друкарню чистим аркушем, а оплачений форзац виглядав відпрацьованим:
+      // файл є, сторож мовчить, людина заплатила за друк і отримала білий
+      // папір. У макеті TM-001352 такий блок лежить на другій сторінці.
+      if ((p.textBlocks || []).some((t: any) => String(t?.text ?? '').trim().length > 0)) return true;
       if (((overlaysData.freeSlots || {})[idx] || []).length > 0) return true;
       if (((overlaysData.pageStickers || {})[idx] || []).length > 0) return true;
       if (((overlaysData.pageShapes || {})[idx] || []).length > 0) return true;

@@ -7,6 +7,10 @@ import {
     missingForzatFiles,
     paidForzatSides,
     resolveEndpaperPaid,
+    pageHasPrintableContent,
+    forzatPageIndexes,
+    blankPaidForzats,
+    blankForzatLine,
 } from '@/lib/print/forzat-expectation';
 
 /**
@@ -163,5 +167,140 @@ describe('звідки береться оплата форзаца при ві�
     it('зіпсоване збережене поле не валить відкриття', () => {
         expect(resolveEndpaperPaid('так', BOTH)).toEqual({ first: true, last: true });
         expect(resolveEndpaperPaid({}, BOTH)).toEqual({ first: false, last: false });
+    });
+});
+
+/**
+ * СПІЛЬНИЙ ПЕРЕЛІК ВИПАДКІВ ДЛЯ ДВОХ КОПІЙ ОДНІЄЇ ПЕРЕВІРКИ.
+ *
+ * `pageHasPrintableContent` тут і `pageHasContent` у render-service/server.ts —
+ * це одна перевірка у двох файлах. Об'єднати їх неможливо: render-service
+ * збирається окремим Docker-образом, у який Dockerfile кладе рівно `tsconfig.json`
+ * і `server.ts`, тож імпортувати `lib/` звідти фізично нічим. Єдине, що тримає
+ * копії разом, — цей перелік. Правлячи одну копію, правте другу і додавайте
+ * сюди випадок.
+ */
+const PAGE_WITH_PHOTO = { slots: [{ photoId: 'p1' }], textBlocks: [] };
+const PAGE_EMPTY = { slots: [{ photoId: null }], textBlocks: [] };
+
+describe('що вважається вмістом сторінки', () => {
+    it('фото у слоті — це вміст', () => {
+        expect(pageHasPrintableContent([{}, PAGE_WITH_PHOTO], {}, 1)).toBe(true);
+    });
+
+    it('текст із символами — це вміст', () => {
+        const page = { slots: [], textBlocks: [{ text: 'З любов’ю' }] };
+        expect(pageHasPrintableContent([{}, page], {}, 1)).toBe(true);
+    });
+
+    it('ПОРОЖНІЙ текстовий блок вмістом НЕ є', () => {
+        // Саме через це форзац TM-001352 міг поїхати в друк чистим аркушем:
+        // блок існує, отже сторінка «має вміст», а на папері немає нічого.
+        const page = { slots: [], textBlocks: [{ text: '' }] };
+        expect(pageHasPrintableContent([{}, page], {}, 1)).toBe(false);
+    });
+
+    it('блок із самих пробілів і переносів вмістом НЕ є', () => {
+        const page = { slots: [], textBlocks: [{ text: '   \n\t  ' }] };
+        expect(pageHasPrintableContent([{}, page], {}, 1)).toBe(false);
+    });
+
+    it('блок без поля text вмістом НЕ є', () => {
+        const page = { slots: [], textBlocks: [{}, { text: null }] };
+        expect(pageHasPrintableContent([{}, page], {}, 1)).toBe(false);
+    });
+
+    it('один непорожній блок серед порожніх рятує сторінку', () => {
+        const page = { slots: [], textBlocks: [{ text: ' ' }, { text: 'Ера кайфу' }] };
+        expect(pageHasPrintableContent([{}, page], {}, 1)).toBe(true);
+    });
+
+    it('наліпки, фігури, QR, вільні слоти і заливка лишаються вмістом', () => {
+        expect(pageHasPrintableContent([{}, PAGE_EMPTY], { freeSlots: { 1: [{ id: 'a' }] } }, 1)).toBe(true);
+        expect(pageHasPrintableContent([{}, PAGE_EMPTY], { pageStickers: { 1: [{ id: 'a' }] } }, 1)).toBe(true);
+        expect(pageHasPrintableContent([{}, PAGE_EMPTY], { pageShapes: { 1: [{ id: 'a' }] } }, 1)).toBe(true);
+        expect(pageHasPrintableContent([{}, PAGE_EMPTY], { qrOverlays: { 1: [{ id: 'a' }] } }, 1)).toBe(true);
+        // Кольоровий форзац замовляють свідомо — це вміст, а не порожнеча.
+        expect(pageHasPrintableContent([{}, PAGE_EMPTY], { pageBgs: { 1: '#f0e6d2' } }, 1)).toBe(true);
+    });
+
+    it('сторінки, якої немає, вмістом теж немає', () => {
+        expect(pageHasPrintableContent([{}, PAGE_WITH_PHOTO], {}, 7)).toBe(false);
+        expect(pageHasPrintableContent(null, null, 1)).toBe(false);
+    });
+});
+
+describe('де саме лежать форзаци', () => {
+    // Тревелбуки і журнали несуть ДВІ зайві змістові сторінки під форзаци.
+    const cfg = (n: number) => ({ selectedPageCount: `${n} сторінок` });
+    const pages = (contentCount: number) => Array.from({ length: contentCount + 1 }, () => ({}));
+
+    it('знаходить першу і останню змістову', () => {
+        // Замовлено 8, у макеті 10 змістових → форзаци це 1 і 10.
+        expect(forzatPageIndexes('personalized-glossy-magazine', pages(10), cfg(8)))
+            .toEqual({ first: 1, last: 10 });
+    });
+
+    it('мовчить, коли зайвих сторінок немає', () => {
+        expect(forzatPageIndexes('personalized-glossy-magazine', pages(8), cfg(8))).toBeNull();
+    });
+
+    it('мовчить для виробів без посторінкового друку', () => {
+        // Фотокнига друкується розворотами і форзацних сторінок не має.
+        expect(forzatPageIndexes('photobook', pages(10), cfg(8))).toBeNull();
+    });
+
+    it('мовчить, коли кількість замовлених сторінок невідома', () => {
+        expect(forzatPageIndexes('travelbook', pages(10), {})).toBeNull();
+        expect(forzatPageIndexes('travelbook', pages(10), null)).toBeNull();
+    });
+});
+
+describe('оплачений форзац, на якому нічого немає', () => {
+    const both = { first: true, last: true };
+    const cfg = { selectedPageCount: '8 сторінок' };
+    /** Макет на 10 змістових сторінок: 1 і 10 — форзаци. */
+    const layout = (first: any, last: any) => {
+        const arr: any[] = Array.from({ length: 11 }, () => ({ slots: [], textBlocks: [] }));
+        arr[1] = first;
+        arr[10] = last;
+        return arr;
+    };
+
+    it('ловить форзац із самим лише порожнім блоком', () => {
+        const pages = layout({ slots: [], textBlocks: [{ text: '  ' }] }, PAGE_WITH_PHOTO);
+        expect(blankPaidForzats(both, 'personalized-glossy-magazine', pages, {}, cfg)).toEqual(['f1']);
+    });
+
+    it('ловить TM-001352: голий перший форзац при заповненому останньому', () => {
+        const pages = layout({ slots: [], textBlocks: [] }, PAGE_WITH_PHOTO);
+        expect(blankPaidForzats(both, 'personalized-glossy-magazine', pages, {}, cfg)).toEqual(['f1']);
+    });
+
+    it('ловить TM-001349: заливка на першому, порожнеча на останньому', () => {
+        const pages = layout({ slots: [], textBlocks: [] }, { slots: [], textBlocks: [] });
+        const overlays = { pageBgs: { 1: '#f0e6d2' } };
+        expect(blankPaidForzats(both, 'travelbook', pages, overlays, cfg)).toEqual(['f2']);
+    });
+
+    it('мовчить, коли на обох форзацах є фото', () => {
+        const pages = layout(PAGE_WITH_PHOTO, PAGE_WITH_PHOTO);
+        expect(blankPaidForzats(both, 'travelbook', pages, {}, cfg)).toEqual([]);
+    });
+
+    it('не чіпає неоплачений форзац', () => {
+        const pages = layout({ slots: [], textBlocks: [] }, { slots: [], textBlocks: [] });
+        expect(blankPaidForzats(NO_FORZAT, 'travelbook', pages, {}, cfg)).toEqual([]);
+        expect(blankPaidForzats({ first: true, last: false }, 'travelbook', pages, {}, cfg)).toEqual(['f1']);
+    });
+
+    it('мовчить там, де форзацних сторінок узагалі немає', () => {
+        expect(blankPaidForzats(both, 'photobook', layout(PAGE_EMPTY, PAGE_EMPTY), {}, cfg)).toEqual([]);
+    });
+
+    it('каже по-людськи, чого бракує', () => {
+        expect(blankForzatLine(['f1'])).toContain('початковому');
+        expect(blankForzatLine(['f1', 'f2'])).toContain('обох');
+        expect(blankForzatLine([])).toBe('');
     });
 });

@@ -130,3 +130,104 @@ export function forzatShortfallLine(missing: ForzatFile[]): string {
         ? `оплачено друк на обох форзацах, а файлів немає на жодному (${which})`
         : `оплачено друк на форзаці, а ${which} форзац приїхав без файлу`;
 }
+
+/**
+ * ЧИ Є НА СТОРІНЦІ ХОЧ ЩОСЬ, ЩО СПРАВДІ НАДРУКУЄТЬСЯ.
+ *
+ * Сервіс рендеру свідомо не вантажить порожній форзац, і це правило залежить
+ * від одного питання: що вважати порожнім. Досі текстовий блок рахувався
+ * вмістом за самим фактом свого існування — `textBlocks.length > 0`, без
+ * погляду всередину. Блок без жодного символу при цьому не малює нічого, тож
+ * форзац із таким блоком їхав у друкарню чистим аркушем, а оплачений форзац
+ * виглядав відпрацьованим: файл є, сторож мовчить, людина заплатила за друк і
+ * отримала білий папір. Такий блок не вигадка: у макеті TM-001352 він лежить
+ * на другій сторінці, шириною майже третину сторінки, і клієнтка не могла його
+ * ні виділити, ні видалити, поки редактор не почав його показувати.
+ *
+ * ЦЕ ДЗЕРКАЛО. Та сама перевірка живе в `render-service/server.ts` під іменем
+ * `pageHasContent`, і скопійована вона туди НЕ з ліні. `render-service` — це
+ * окремий збірник: власні `package.json` і `tsconfig` з `include: ["server.ts"]`,
+ * а Dockerfile копіює в образ рівно два файли, `tsconfig.json` і `server.ts`.
+ * Імпортувати звідти `lib/` фізично нічим. Дві копії тримає разом спільний
+ * перелік випадків у `tests/forzat-expectation.test.ts`: правлячи одну, правте
+ * другу і додавайте випадок туди.
+ *
+ * Порожній ВІЛЬНИЙ слот свідомо лишається вмістом, хоч і не малює нічого. Тут
+ * змінено рівно те, на що є жива поломка; чіпати сусіднє наосліп означало б
+ * міняти те, чого ніхто не міряв.
+ */
+export function pageHasPrintableContent(pagesData: unknown, overlaysData: unknown, idx: number): boolean {
+    const pages = Array.isArray(pagesData) ? pagesData : [];
+    const p: any = pages[idx];
+    if (!p) return false;
+    const ov: Record<string, any> = (overlaysData && typeof overlaysData === 'object')
+        ? overlaysData as Record<string, any> : {};
+    if ((p.slots || []).some((s: any) => s?.photoId)) return true;
+    // ↓ ЄДИНА відмінність від колишнього `textBlocks.length > 0`.
+    if ((p.textBlocks || []).some((t: any) => String(t?.text ?? '').trim().length > 0)) return true;
+    if (((ov.freeSlots || {})[idx] || []).length > 0) return true;
+    if (((ov.pageStickers || {})[idx] || []).length > 0) return true;
+    if (((ov.pageShapes || {})[idx] || []).length > 0) return true;
+    if (((ov.qrOverlays || {})[idx] || []).length > 0) return true;
+    if ((ov.pageBgs || {})[idx]) return true;
+    return false;
+}
+
+/**
+ * Які індекси в `pages_data` є форзацами, або null, якщо їх у цьому виробі немає.
+ *
+ * Друге дзеркало `render-service`: там це `hasForzatExtra` плюс пара
+ * `forzatFirstNo` / `forzatLastNo`. Тревелбуки і журнали несуть ДВІ зайві
+ * фізичні сторінки під форзаци — перша і остання зі змістових, — і впізнають їх
+ * за тим, що змістових рівно на дві більше, ніж замовлено.
+ */
+export function forzatPageIndexes(
+    productSlug: unknown,
+    pagesData: unknown,
+    config: unknown,
+): { first: number; last: number } | null {
+    const slug = String(productSlug ?? '').toLowerCase();
+    const splitToPages = ['travel', 'magazine', 'journal', 'zhurnal', 'fotozhurnal'].some(k => slug.includes(k));
+    if (!splitToPages) return null;
+    const pages = Array.isArray(pagesData) ? pagesData : [];
+    const contentPageCount = Math.max(0, pages.length - 1);
+    const cfg: Record<string, any> = (config && typeof config === 'object') ? config as Record<string, any> : {};
+    const ordered = parseInt(String(cfg.selectedPageCount ?? '').match(/\d+/)?.[0] || '0', 10) || 0;
+    if (!(ordered > 0) || contentPageCount < ordered + 2) return null;
+    return { first: 1, last: contentPageCount };
+}
+
+/**
+ * Оплачені форзаци, на яких НІЧОГО немає.
+ *
+ * Друга половина тієї самої звірки. `missingForzatFiles` питає «чи є файл», і
+ * після виправлення рендеру цього досить: порожній форзац файлу не дає, тож
+ * нестача видно одразу. Але замовлення, відрендерені ДО цього виправлення,
+ * несуть `f1.jpg`, який є чистим аркушем: файл на місці, сторож мовчить, а
+ * людина заплатила. Перерендерювати їх заради цього ніхто не буде, тож питаємо
+ * ще й сам макет.
+ */
+export function blankPaidForzats(
+    sides: ForzatSides,
+    productSlug: unknown,
+    pagesData: unknown,
+    overlaysData: unknown,
+    config: unknown,
+): ForzatFile[] {
+    const idx = forzatPageIndexes(productSlug, pagesData, config);
+    if (!idx) return [];
+    const out: ForzatFile[] = [];
+    if (sides.first && !pageHasPrintableContent(pagesData, overlaysData, idx.first)) out.push('f1');
+    if (sides.last && !pageHasPrintableContent(pagesData, overlaysData, idx.last)) out.push('f2');
+    return out;
+}
+
+/** Людське речення про оплачений, але порожній форзац. */
+export function blankForzatLine(blank: ForzatFile[]): string {
+    if (blank.length === 0) return '';
+    const name = (f: ForzatFile) => (f === 'f1' ? 'початковому' : 'кінцевому');
+    const which = blank.map(name).join(' і ');
+    return blank.length > 1
+        ? `оплачено друк на обох форзацах, а на них нічого не намальовано (${which})`
+        : `оплачено друк на форзаці, а на ${which} нічого не намальовано`;
+}
