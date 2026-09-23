@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check, AlertTriangle, Move } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ZoomIn, ZoomOut, ShoppingCart, Image as ImageIcon, Type, Trash2, LayoutGrid, Wand2, RotateCcw, Eye, Plus, HelpCircle, Shuffle, QrCode, Palette, Square, Sticker, Frame, BookOpen, Crop, Check, AlertTriangle, Move, Pipette } from 'lucide-react';
 import { QRCodeGenerator } from './ui/QRCodeGenerator';
 import { autoBuild } from '@/lib/editor/auto-build';
 import { saveCartEditSnapshot } from '@/lib/cart-edit-store';
@@ -56,6 +56,8 @@ import { applySnap } from '@/lib/editor/snap';
 import { ensurePhotoVariants } from '@/lib/editor/photo-variants';
 import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
 import { readyCoverLayout, READY_COVER_FIT_NEW } from '@/lib/editor/ready-cover-fit';
+import { pickColorAt } from '@/lib/editor/pick-pixel';
+import { BackCoverColorPicker } from '@/components/editor/BackCoverColorPicker';
 import {
   QROverlay, QR_PRICE_PER_GENERATION, QR_DEFAULT_SIZE, QR_MIN_SIZE, QR_MAX_SIZE,
   generateQRDataUrl, looksLikeUrl,
@@ -1059,6 +1061,38 @@ export default function BookLayoutEditor() {
   }, [coverState.printedBgImage, coverState.readyCoverId, coverState.backCoverBgColor]);
 
   /**
+   * ПІПЕТКА КОЛЬОРУ ЗАДНЬОЇ ОБКЛАДИНКИ.
+   *
+   * Клієнтка вмикає режим у панелі «Задня обкладинка», торкається передньої
+   * обкладинки, і колір із того місця лягає на задню. Працює однаково на
+   * телефоні і на комп'ютері, бо читає пікселі сама: вбудований EyeDropper є
+   * лише в Chrome і Edge на комп'ютері, та ще й бере колір з екрана, після
+   * колірного керування системи, тобто не те число, що лежить у файлі.
+   *
+   * Клік перехоплюється на СПУСКУ події (onPointerDownCapture) на корені
+   * полотна обкладинки. Так він приходить раніше за перетягування слотів і
+   * фото, і не потрібен ні прозорий шар зверху, ні гра із z-index.
+   */
+  const coverCanvasRef = useRef<HTMLDivElement | null>(null);
+  const [eyedropperOn, setEyedropperOn] = useState(false);
+
+  const startEyedropper = useCallback(() => {
+    // Обкладинку треба бачити, інакше брати колір нема звідки. На телефоні
+    // панель керування закриває полотно цілком, тож вона йде вниз.
+    setCurrentIdx(0);
+    if (isMobile) setMobilePanel(false);
+    setEyedropperOn(true);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!eyedropperOn) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setEyedropperOn(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [eyedropperOn]);
+
+
+  /**
    * Напис оздоблення. Емодзі на гравіювання не йдуть — це правило майстерні
    * (Діана, 2026-09-07), а не технічне обмеження.
    *
@@ -1140,6 +1174,28 @@ export default function BookLayoutEditor() {
       coverState: JSON.parse(JSON.stringify(coverState)),
     }]);
   };
+  const pickBackCoverColor = useCallback(async (e: React.PointerEvent) => {
+    if (!eyedropperOn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const x = e.clientX, y = e.clientY;
+    setEyedropperOn(false);
+    const res = await pickColorAt(coverCanvasRef.current, x, y);
+    if (res.ok) {
+      pushHistory();
+      setCoverState(p => ({ ...p, backCoverBgColor: res.hex }));
+      toast.success(`Колір ${res.hex} перенесено на задню обкладинку`);
+      return;
+    }
+    if (res.reason === 'unreadable') {
+      // Відмова краща за тихий неправильний колір: помітили б його аж на
+      // друкованій обкладинці, коли міняти вже пізно.
+      toast.error('Не вдалося прочитати колір із цієї картинки. Оберіть відтінок вручну поруч із піпеткою.');
+    } else {
+      toast.error('У цьому місці немає зображення. Торкніться самої обкладинки, там де видно картинку.');
+    }
+  }, [eyedropperOn, pushHistory]);
+
   // Coalesced snapshot for high-frequency edits (drag-pan a photo, zoom slider,
   // typing in a text block). Records ONE undo step per burst: the first call
   // after a >500ms idle window snapshots the pre-edit state; rapid follow-ups
@@ -7388,32 +7444,11 @@ export default function BookLayoutEditor() {
                   <div id="back-cover-color-block" style={{ display:'flex', flexDirection:'column', gap:10, borderTop:'1px solid #f1f5f9', paddingTop:10 }}>
                     <div>
                       <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6 }}>Задня обкладинка</div>
-                      <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:6 }}>
-                        <span style={{ fontSize:10, color:'#94a3b8', flexShrink:0 }}>Колір фону</span>
-                        <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
-                          onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                          style={{ width:30, height:24, border:'1px solid #e2e8f0', borderRadius:4, cursor:'pointer', padding:1 }}/>
-                        <input type="text" value={coverState.backCoverBgColor || '#f1f5f9'}
-                          onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                          onBlur={e=>{ let v=e.target.value.trim(); if(v && !v.startsWith('#')) v='#'+v; if(/^#[0-9a-fA-F]{3,8}$/.test(v)) setCoverState(p=>({...p,backCoverBgColor:v})); }}
-                          placeholder="#f1f5f9"
-                          style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
-                        <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
-                          style={{ padding:'2px 6px', border:'1px solid #e2e8f0', borderRadius:4, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
-                      </div>
-                      {/* One-click colour presets — fill the back cover instantly */}
-                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
-                        {['#ffffff','#f1f5f9','#e8deff','#fff8f0','#1e2d7d','#000000','#7b5fcc','#d4a373','#2d3748','#f8d7da'].map(c => (
-                          <button key={c} type="button" title={c}
-                            onClick={()=>setCoverState(p=>({...p,backCoverBgColor:c}))}
-                            style={{ width:24, height:24, borderRadius:'50%', background:c, cursor:'pointer',
-                              border: (coverState.backCoverBgColor||'#f1f5f9').toLowerCase()===c.toLowerCase() ? '3px solid #1e2d7d' : '1px solid #cbd5e1',
-                              boxShadow: (coverState.backCoverBgColor||'#f1f5f9').toLowerCase()===c.toLowerCase() ? '0 0 0 2px #fff inset' : 'none' }}/>
-                        ))}
-                      </div>
-                      <p style={{ fontSize:10, color:'#94a3b8', margin:'0 0 4px', lineHeight:1.4 }}>
-                        Оберіть колір вище або клікніть на кружечок палітри. Колір заллє всю задню обкладинку.
-                      </p>
+                      <BackCoverColorPicker compact
+                        value={coverState.backCoverBgColor}
+                        onChange={hex => setCoverState(p => ({ ...p, backCoverBgColor: hex }))}
+                        onStartEyedropper={startEyedropper}
+                        eyedropperActive={eyedropperOn} />
 
                       {/* Opt-in toggle for back cover photo */}
                       {!hasBackCoverContent ? (
@@ -7895,25 +7930,13 @@ export default function BookLayoutEditor() {
                 {currentIdx === 0 && isPrintedBack && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
-                    <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
-                      <span style={{ fontSize:11, color:'#475569', flexShrink:0 }}>Колір фону</span>
-                      <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
-                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                        style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
-                      <input type="text" value={coverState.backCoverBgColor || '#f1f5f9'}
-                        onChange={e => setCoverState(p => ({...p, backCoverBgColor: e.target.value}))}
-                        onBlur={e => {
-                          let v = e.target.value.trim();
-                          if (v && !v.startsWith('#')) v = '#' + v;
-                          if (/^#[0-9a-fA-F]{3,8}$/.test(v)) {
-                            setCoverState(p => ({...p, backCoverBgColor: v}));
-                          }
-                        }}
-                        placeholder="#f1f5f9"
-                        style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
-                      <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
-                        style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
-                    </div>
+                    <BackCoverColorPicker
+                      value={coverState.backCoverBgColor}
+                      onChange={hex => setCoverState(p => ({ ...p, backCoverBgColor: hex }))}
+                      onStartEyedropper={startEyedropper}
+                      eyedropperActive={eyedropperOn}
+                      showPresets={false}
+                      showHint={false} />
                     {coverState.backCoverPhotoId && (
                       <button onClick={()=>setCoverState(p=>({...p,backCoverPhotoId:null}))}
                         style={{ width:'100%', padding:'6px', fontSize:11, color:'#ef4444', background:'#fff7f7', border:'1px solid #fee2e2', borderRadius:6, cursor:'pointer' }}>
@@ -8914,7 +8937,9 @@ export default function BookLayoutEditor() {
             але людина цього не знала.
           */}
           {currentIdx === 0 ? (
-            <div data-spread-snapshot="root" translate="no" className="notranslate" style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+            <div data-spread-snapshot="root" translate="no" className="notranslate" ref={coverCanvasRef} onPointerDownCapture={pickBackCoverColor}
+              style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0,
+                cursor: eyedropperOn ? 'crosshair' : undefined, touchAction: eyedropperOn ? 'none' : undefined }}>
                 {/* Back cover — editable */}
                 {(() => {
                   const backBg = isPrintedBack ? (coverState.backCoverBgColor || '#f1f5f9') : resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor);
@@ -9194,7 +9219,9 @@ export default function BookLayoutEditor() {
           >
             {currentIdx === 0 ? (
               /* Cover: left=back spine(grey), right=front cover with deco */
-              <div translate="no" className="notranslate" style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0 }}>
+              <div translate="no" className="notranslate" ref={coverCanvasRef} onPointerDownCapture={pickBackCoverColor}
+              style={{ width: coverCW, height: cH, display: 'flex', borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', flexShrink: 0,
+                cursor: eyedropperOn ? 'crosshair' : undefined, touchAction: eyedropperOn ? 'none' : undefined }}>
                 {/* Back cover — plain */}
                 <div style={{ width: coverPageW, height: cH, background: resolveCoverColor(config.selectedCoverType || '', effectiveCoverColor), borderRight: '2px solid rgba(0,0,0,0.12)', position:'relative' }}>
                   <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -12242,16 +12269,11 @@ export default function BookLayoutEditor() {
                   {/* Back cover */}
                   <div id="back-cover-color-block-m">
                     <div style={{ fontSize:12, fontWeight:700, color:'#64748b', marginBottom:8 }}>Задня обкладинка — колір фону</div>
-                    <label style={{ display:'inline-flex', alignItems:'center', gap:10, cursor:'pointer', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'10px 14px', position:'relative', overflow:'hidden' }}>
-                      <div style={{ width:32, height:32, borderRadius:6, background: coverState.backCoverBgColor||'#f1f5f9', border:'1px solid rgba(0,0,0,0.15)', flexShrink:0 }}/>
-                      <div>
-                        <div style={{ fontSize:12, fontWeight:600, color:'#374151' }}>Обрати колір</div>
-                        <div style={{ fontSize:10, color:'#94a3b8' }}>{coverState.backCoverBgColor||'#f1f5f9'}</div>
-                      </div>
-                      <input type="color" value={coverState.backCoverBgColor||'#f1f5f9'}
-                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                        style={{ position:'absolute', inset:0, opacity:0.01, width:'100%', height:'100%', cursor:'pointer', border:'none', padding:0 }}/>
-                    </label>
+                    <BackCoverColorPicker
+                      value={coverState.backCoverBgColor}
+                      onChange={hex => setCoverState(p => ({ ...p, backCoverBgColor: hex }))}
+                      onStartEyedropper={startEyedropper}
+                      eyedropperActive={eyedropperOn} />
                   </div>
                 </div>
               );
@@ -12646,25 +12668,13 @@ export default function BookLayoutEditor() {
                 {currentIdx === 0 && isPrintedBack && (
                   <div style={{ borderTop:'1px solid #f1f5f9', paddingTop:12 }}>
                     <div style={{ fontSize:11, fontWeight:800, color:'#64748b', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>Задня обкладинка</div>
-                    <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
-                      <span style={{ fontSize:11, color:'#475569', flexShrink:0 }}>Колір фону</span>
-                      <input type="color" value={coverState.backCoverBgColor || '#f1f5f9'}
-                        onChange={e=>setCoverState(p=>({...p,backCoverBgColor:e.target.value}))}
-                        style={{ width:32, height:28, border:'1px solid #e2e8f0', borderRadius:5, cursor:'pointer', padding:2 }}/>
-                      <input type="text" value={coverState.backCoverBgColor || '#f1f5f9'}
-                        onChange={e => setCoverState(p => ({...p, backCoverBgColor: e.target.value}))}
-                        onBlur={e => {
-                          let v = e.target.value.trim();
-                          if (v && !v.startsWith('#')) v = '#' + v;
-                          if (/^#[0-9a-fA-F]{3,8}$/.test(v)) {
-                            setCoverState(p => ({...p, backCoverBgColor: v}));
-                          }
-                        }}
-                        placeholder="#f1f5f9"
-                        style={{ flex:1, padding:'4px 6px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:11, fontFamily:'monospace', color:'#374151', background:'#fff', outline:'none', minWidth:0 }}/>
-                      <button onClick={()=>setCoverState(p=>({...p,backCoverBgColor:'#f1f5f9'}))}
-                        style={{ padding:'3px 7px', border:'1px solid #e2e8f0', borderRadius:5, fontSize:10, cursor:'pointer', color:'#64748b', background:'#f8fafc' }}>↺</button>
-                    </div>
+                    <BackCoverColorPicker
+                      value={coverState.backCoverBgColor}
+                      onChange={hex => setCoverState(p => ({ ...p, backCoverBgColor: hex }))}
+                      onStartEyedropper={startEyedropper}
+                      eyedropperActive={eyedropperOn}
+                      showPresets={false}
+                      showHint={false} />
                     {!hasBackCoverContent ? (
                       <button onClick={() => setCoverState(p => ({ ...p, backCoverEnabled: true }))}
                         style={{ width:'100%', padding:'8px', border:'1px dashed #c7d2fe', borderRadius:8,
@@ -12877,6 +12887,24 @@ export default function BookLayoutEditor() {
           isSpreadMode={isSpreadMode}
           hasKalka={hasKalka}
         />
+      )}
+
+      {/* Піпетка чекає на дотик. Смужка стоїть зверху екрана, а не біля панелі:
+          на телефоні панель у цей момент уже закрита, а полотно займає все. */}
+      {eyedropperOn && (
+        <div style={{ position:'fixed', top:12, left:'50%', transform:'translateX(-50%)', zIndex:9999,
+          display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:12,
+          background:'#1e2d7d', color:'#fff', boxShadow:'0 6px 24px rgba(0,0,0,0.25)', maxWidth:'92vw' }}>
+          <Pipette size={16} />
+          <span style={{ fontSize:12.5, fontWeight:600, lineHeight:1.35 }}>
+            Торкніться передньої обкладинки там, звідки взяти колір для задньої.
+          </span>
+          <button onClick={() => setEyedropperOn(false)}
+            style={{ marginLeft:4, padding:'5px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,0.45)',
+              background:'transparent', color:'#fff', fontSize:11.5, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+            Скасувати
+          </button>
+        </div>
       )}
 
       {/* Exit confirmation modal */}
