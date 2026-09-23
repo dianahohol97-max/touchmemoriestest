@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Pipette, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { coverArtworkFit, type CoverArtworkFit } from '@/lib/print/cover-fold';
 import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
 
 /**
@@ -48,6 +49,34 @@ export default function TravelbookCoversPage() {
     name: '', name_en: '', kind: 'city', file: null,
   });
   const [uploading, setUploading] = useState(false);
+  /**
+   * Розміри обраного файлу і те, що з ним станеться на друці.
+   *
+   * Каталог обслуговує ЛИШЕ тревелбук, тож геометрія береться за його ключем —
+   * інших форматів готових обкладинок у нас немає.
+   */
+  const [fileFit, setFileFit] = useState<{ w: number; h: number; bytes: number; fit: CoverArtworkFit | null } | null>(null);
+
+  const readFile = useCallback((file: File | null) => {
+    setForm(f => ({ ...f, file }));
+    setFileFit(null);
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      setFileFit({ w, h, bytes: file.size, fit: coverArtworkFit('travelbook', w, h) });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      // Розміри прочитати не вдалося — це не привід не давати завантажити
+      // файл, але сказати про це треба, інакше блок просто не зʼявиться і
+      // виглядатиме як «усе гаразд».
+      setFileFit({ w: 0, h: 0, bytes: file.size, fit: null });
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -186,6 +215,7 @@ export default function TravelbookCoversPage() {
       if (!created.ok) throw new Error(c?.error || 'Не вдалося створити запис');
       setAdding(false);
       setForm({ name: '', name_en: '', kind: 'city', file: null });
+      setFileFit(null);
       await load();
     } catch (e: any) {
       setError(String(e?.message || e));
@@ -285,9 +315,59 @@ export default function TravelbookCoversPage() {
           </div>
           <div style={{ flex: '1 1 220px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>Файл обкладинки *</div>
-            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => setForm({ ...form, file: e.target.files?.[0] || null })}
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={e => readFile(e.target.files?.[0] || null)}
               style={{ width: '100%', fontSize: 12 }} />
           </div>
+          {fileFit && (() => {
+            const { w, h, bytes, fit } = fileFit;
+            if (!fit) {
+              return (
+                <div style={{ flexBasis: '100%', padding: '10px 12px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, lineHeight: 1.55 }}>
+                  Розміри цього файлу прочитати не вдалося, тож перевірити формат нема як. Завантажити його можна, але спершу переконайтеся, що це справді картинка обкладинки.
+                </div>
+              );
+            }
+            const ideal = `${fit.sheetPx.w}×${fit.sheetPx.h}`;
+            const perfect = fit.matchesSheet && fit.coversSheet;
+            const lowDpi = fit.dpi < 300;
+            const tone = perfect && !lowDpi ? 'ok' : 'warn';
+            return (
+              <div style={{
+                flexBasis: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.6,
+                background: tone === 'ok' ? '#f0fdf4' : '#fffbeb',
+                border: `1px solid ${tone === 'ok' ? '#bbf7d0' : '#fde68a'}`,
+                color: tone === 'ok' ? '#15803d' : '#92400e',
+              }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  Файл {w}×{h} пікселів, {(bytes / 1048576).toFixed(1)} МБ. Формат аркуша обкладинки — {ideal}.
+                </div>
+                {perfect && !lowDpi && (
+                  <div>Файл відповідає формату: він накриє весь аркуш разом із полем загину, нічого не зріжеться і не додасться.</div>
+                )}
+                {!perfect && (
+                  <>
+                    <div>
+                      Роздільність на друці вийде <b>{fit.dpi} DPI</b>{lowDpi ? ' замість 300 — на великих деталях це буде помітно' : ' — цього достатньо'}.
+                    </div>
+                    <div>
+                      Нова обкладинка вписується у видиму площину {Math.round(fit.faceMm.w)}×{Math.round(fit.faceMm.h)} мм ЦІЛКОМ, тож
+                      {fit.band
+                        ? ` нічого не зріжеться, але ${fit.band.axis === 'x' ? 'з боків' : 'згори і знизу'} лишиться смуга кольору тла по ${fit.band.mm.toFixed(1)} мм (${fit.band.pct.toFixed(1)} % ${fit.band.axis === 'x' ? 'ширини' : 'висоти'}).`
+                        : ' нічого не зріжеться і смуг не буде.'}
+                    </div>
+                    {fit.legacyCrop && (
+                      <div style={{ opacity: 0.85 }}>
+                        Для порівняння: якби обкладинка заповнювала аркуш повністю, як у макетах до 23.09, зрізалося б по {fit.legacyCrop.pctPerSide.toFixed(1)} % {fit.legacyCrop.axis === 'y' ? 'згори і знизу' : 'з боків'}.
+                      </div>
+                    )}
+                    <div style={{ marginTop: 4 }}>
+                      Завантажити можна як є — це попередження, а не заборона.
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
           <button onClick={addCover} disabled={uploading}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, border: 'none', background: uploading ? '#94a3b8' : '#16a34a', color: '#fff', cursor: uploading ? 'default' : 'pointer' }}>
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
