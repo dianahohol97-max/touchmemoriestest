@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readyCoverLayout } from '@/lib/editor/ready-cover-fit';
+import { readyCoverFitForArtwork, readyCoverLayout } from '@/lib/editor/ready-cover-fit';
 import { frontCoverInset } from '@/lib/print/cover-fold';
 
 /**
@@ -55,5 +55,35 @@ describe('readyCoverLayout', () => {
     it('без кольору заливка біла, а не прозора — прозорий аркуш друкарня не прийме', () => {
         const l = readyCoverLayout('contain', 'travelbook', undefined);
         expect(l.wrap.background).toBe('#ffffff');
+    });
+});
+
+/**
+ * Який режим дістає обкладинка залежно від самого файлу.
+ *
+ * Правило одне: збіглася пропорція з аркушем — заповнюємо, ні — вписуємо.
+ * Заповнення ріже рівно на розбіжність пропорцій, тож при збігу різати нема
+ * чого, і воно строго краще: картинка накриває і поле загину.
+ */
+describe('readyCoverFitForArtwork', () => {
+    it('файл рівно під аркуш заповнює аркуш', () => {
+        expect(readyCoverFitForArtwork('travelbook', 2776, 3874)).toBe('cover');
+    });
+
+    it('той самий аркуш у меншому масштабі теж заповнює — роздільність тут ні до чого', () => {
+        expect(readyCoverFitForArtwork('travelbook', 1388, 1937)).toBe('cover');
+    });
+
+    it('нинішні файли каталогу 2:3 вписуються, бо інакше зрізало б орнамент', () => {
+        expect(readyCoverFitForArtwork('travelbook', 1333, 2000)).toBe('contain');
+        expect(readyCoverFitForArtwork('travelbook', 1333, 1999)).toBe('contain');
+    });
+
+    it('файл під видиму площину вписується, а не заповнює', () => {
+        expect(readyCoverFitForArtwork('travelbook', 2480, 3402)).toBe('contain');
+    });
+
+    it('розміри, яких не буває, дають обережне вписування', () => {
+        expect(readyCoverFitForArtwork('travelbook', 0, 0)).toBe('contain');
     });
 });

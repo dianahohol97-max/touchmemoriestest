@@ -1,4 +1,4 @@
-import { frontCoverInset, type FrontCoverInset } from '@/lib/print/cover-fold';
+import { coverArtworkFit, frontCoverInset, type FrontCoverInset } from '@/lib/print/cover-fold';
 
 // Геометрія загину живе в lib/print, бо це специфікація друкарні, а не
 // редакторська дрібниця: на тих самих числах стоїть вирізання передньої
@@ -33,6 +33,52 @@ export type ReadyCoverFit = 'cover' | 'contain';
 export const READY_COVER_FIT_LEGACY: ReadyCoverFit = 'cover';
 /** Режим, який дістає кожна щойно обрана готова обкладинка. */
 export const READY_COVER_FIT_NEW: ReadyCoverFit = 'contain';
+
+/**
+ * Який режим дістає обкладинка, судячи з самого файлу.
+ *
+ * ПРАВИЛО ОДНЕ: збігається пропорція з аркушем — заповнюємо аркуш, не
+ * збігається — вписуємо у видиму площину.
+ *
+ * Чому так. Заповнення ріже рівно стільки, на скільки пропорція файлу
+ * розходиться з пропорцією аркуша. Коли вони збігаються, різати нема чого, і
+ * тоді заповнення строго краще за вписування: картинка накриває і поле загину,
+ * яке загортається на картон, замість лишати там рівну заливку. Коли ж
+ * пропорції різні — а такі всі сто нинішніх файлів каталогу, вони 2:3 проти
+ * 0,717 в аркуша, — заповнення зрізало б орнамент, і виграє вписування.
+ *
+ * Допуск у півпроцента лишає місце на округлення: 2776×3874 і будь-який файл,
+ * підготовлений під той самий аркуш у іншому масштабі, читаються однаково.
+ *
+ * Роздільність на рішення НЕ впливає. Малий файл із правильною пропорцією
+ * заповнить аркуш без жодного зрізу, просто нерізко, і вписування його
+ * різкішим не зробить — воно лише додасть смуг.
+ */
+export function readyCoverFitForArtwork(sizeKey: string, imageW: number, imageH: number): ReadyCoverFit {
+    const fit = coverArtworkFit(sizeKey, imageW, imageH);
+    return fit?.matchesSheet ? 'cover' : READY_COVER_FIT_NEW;
+}
+
+/**
+ * Те саме, але для картинки, яку ще треба виміряти.
+ *
+ * Розміри читаються з самого файлу, а не з бази: у каталозі їх немає, а
+ * картинка на цей момент уже в кеші браузера — її щойно показали в переліку
+ * обкладинок. Будь-яка невдача повертає вписування, бо воно не ріже нічого:
+ * помилитися в бік цілої картинки зі смугами дешевше, ніж у бік зрізаного
+ * орнаменту.
+ */
+export function resolveReadyCoverFit(imageUrl: string, sizeKey: string): Promise<ReadyCoverFit> {
+    return new Promise(resolve => {
+        if (typeof document === 'undefined' || !imageUrl) return resolve(READY_COVER_FIT_NEW);
+        try {
+            const img = new window.Image();
+            img.onload = () => resolve(readyCoverFitForArtwork(sizeKey, img.naturalWidth, img.naturalHeight));
+            img.onerror = () => resolve(READY_COVER_FIT_NEW);
+            img.src = imageUrl;
+        } catch { resolve(READY_COVER_FIT_NEW); }
+    });
+}
 
 /**
  * Готова розмітка картинки готової обкладинки на передній половині аркуша.

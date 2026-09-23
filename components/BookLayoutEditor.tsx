@@ -55,7 +55,7 @@ import { SlotPhotoToolbar } from '@/components/editor/SlotPhotoToolbar';
 import { applySnap } from '@/lib/editor/snap';
 import { ensurePhotoVariants } from '@/lib/editor/photo-variants';
 import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
-import { readyCoverLayout, READY_COVER_FIT_NEW } from '@/lib/editor/ready-cover-fit';
+import { readyCoverLayout, resolveReadyCoverFit, READY_COVER_FIT_NEW } from '@/lib/editor/ready-cover-fit';
 import { pickColorAt } from '@/lib/editor/pick-pixel';
 import { BackCoverColorPicker } from '@/components/editor/BackCoverColorPicker';
 import {
@@ -979,6 +979,24 @@ export default function BookLayoutEditor() {
     return base;
   });
   const [leftTab, setLeftTab] = useState<'photos'|'layouts'|'text'|'cover'|'bg'|'shapes'|'frames'|'stickers'|'options'|'qr'>('layouts');
+  /**
+   * Обкладинка, яку людина обрала на кроці конфігурації, ще до редактора.
+   *
+   * Потрібен, щоб режим вкладання дорахувався тільки для НОВОГО макета.
+   * Відновлена чернетка несе свій режим, і міняти його не можна: макет мають
+   * побачити таким, яким його погодили. Відновлення чернетки нижче обнуляє це
+   * поле, і дорахунок, який на той час уже пішов, просто не застосується.
+   */
+  const configPickedCoverRef = useRef<string | null>(null);
+  /**
+   * Ключ розміру виробу, доступний ефектам вище за місцем його обчислення.
+   *
+   * Сам `sizeKey` рахується нижче, разом із рештою геометрії полотна, а
+   * потрібен він ефекту, який стоїть тут. Писати сюди «travelbook» напряму не
+   * можна: готові обкладинки сьогодні лише в тревелбука, а завтра це вже буде
+   * неправда, і неправда мовчазна.
+   */
+  const sizeKeyRef = useRef<string>('travelbook');
   const [coverState, setCoverState] = useState<CoverState>(() => {
     // Synchronously read config to initialize cover state immediately
     try {
@@ -1006,6 +1024,7 @@ export default function BookLayoutEditor() {
         // його цілком, тож нічия вже зроблена робота не затирається.
         const ready = c?.selectedCover?.image_url;
         if (ready) {
+          configPickedCoverRef.current = c.selectedCover?.id ? String(c.selectedCover.id) : null;
           return {
             ...base,
             printedBgImage: String(ready),
@@ -1024,6 +1043,10 @@ export default function BookLayoutEditor() {
             // режим вкладання, що й обрана в редакторі. Це початкове значення
             // НОВОГО макета: збережена чернетка нижче перекриває стан цілком,
             // тож уже оформлені замовлення сюди не потрапляють.
+            //
+            // Вписування — обережне значення на перші миті. Ефект нижче виміряє
+            // картинку і підніме режим до заповнення, якщо її пропорція
+            // збігається з аркушем.
             readyCoverFit: READY_COVER_FIT_NEW,
             ...(/^#[0-9a-fA-F]{3,8}$/.test(String(c.selectedCover?.background_color || '').trim())
               ? {
@@ -1059,6 +1082,29 @@ export default function BookLayoutEditor() {
     });
     return () => { cancelled = true; };
   }, [coverState.printedBgImage, coverState.readyCoverId, coverState.backCoverBgColor]);
+
+  /**
+   * Режим вкладання для обкладинки, обраної ДО редактора.
+   *
+   * Вимірюється сама картинка: у каталозі її розмірів немає, а на цей момент
+   * вона вже в кеші браузера. Спрацьовує рівно один раз і тільки для того
+   * вибору, який прийшов із кроку конфігурації, тож відновлена чернетка
+   * лишається зі своїм режимом. Друга перевірка стоїть уже після вимірювання:
+   * відновлення чернетки могло статися, поки картинка вантажилася.
+   */
+  const fitAskedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const id = coverState.readyCoverId;
+    const url = coverState.printedBgImage;
+    if (!id || !url) return;
+    if (configPickedCoverRef.current !== id) return;
+    if (fitAskedRef.current === id) return;
+    fitAskedRef.current = id;
+    resolveReadyCoverFit(url, sizeKeyRef.current).then(fit => {
+      if (configPickedCoverRef.current !== id) return;
+      setCoverState(p => (p.readyCoverId === id ? { ...p, readyCoverFit: fit } : p));
+    });
+  }, [coverState.readyCoverId, coverState.printedBgImage]);
 
   /**
    * ПІПЕТКА КОЛЬОРУ ЗАДНЬОЇ ОБКЛАДИНКИ.
@@ -1855,6 +1901,9 @@ export default function BookLayoutEditor() {
             if (d.pageBgs) setPageBgs(d.pageBgs);
             if (d.kalkaState) setKalkaState(d.kalkaState);
             if (d.coverState) {
+              // Чернетка несе власний режим вкладання, і дораховувати його
+              // більше не можна — див. configPickedCoverRef.
+              configPickedCoverRef.current = null;
               if (isReopen) {
                 // Reopen: draft is authoritative — restore coverState as-is.
                 setCoverState(d.coverState);
@@ -2562,6 +2611,7 @@ export default function BookLayoutEditor() {
   const cur = pages[currentIdx];
 
   const sizeKey = getSizeKeyForProduct(config);
+  sizeKeyRef.current = sizeKey;
   const prop = PAGE_PROPORTIONS[sizeKey] ?? PAGE_PROPORTIONS['A4'];
   // The guide line comes from the printer's own numbers in photobook_sizes,
   // through the same geometry the render service and /print use
@@ -7246,13 +7296,22 @@ export default function BookLayoutEditor() {
                           // file list, shown on cart thumbnails.
                           photoId: null,
                           printedOverlay: { type: 'none', color: '#000000', opacity: 0, gradient: '' },
-                          // Нова обкладинка вписується у видиму площину цілком.
-                          // Режим фіксується тут і більше не міняється: макети,
-                          // зроблені до цієї зміни, поля не мають і лишаються
-                          // заповненими з обрізанням, бо саме такими їх
-                          // погодили клієнтки.
+                          // Вписування у видиму площину — обережне значення на
+                          // перші миті, поки не виміряна картинка. Режим
+                          // фіксується в момент вибору і більше не міняється:
+                          // макети, зроблені до цієї зміни, поля не мають і
+                          // лишаються заповненими з обрізанням, бо саме такими
+                          // їх погодили клієнтки.
                           readyCoverFit: READY_COVER_FIT_NEW,
                         }));
+                        // Файл, підготовлений рівно під аркуш, має накривати
+                        // його повністю: різати там нема чого, зате поле загину
+                        // несе картинку, а не рівну заливку. Вимірюємо і
+                        // піднімаємо режим, якщо пропорція збіглася.
+                        resolveReadyCoverFit(cover.image_url, sizeKey).then(fit => {
+                          if (fit === READY_COVER_FIT_NEW) return;
+                          setCoverState(p => p.readyCoverId === cover.id ? { ...p, readyCoverFit: fit } : p);
+                        });
                         // Задня обкладинка заливається кольором тла передньої,
                         // щоб половинки збігалися без пошуків піпетки. Клієнтка
                         // все одно може перебити це в «Задня обкладинка → Колір

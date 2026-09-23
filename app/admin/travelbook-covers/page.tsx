@@ -434,9 +434,13 @@ export default function TravelbookCoversPage() {
               );
             }
             const ideal = `${fit.sheetPx.w}×${fit.sheetPx.h}`;
-            const perfect = fit.matchesSheet && fit.coversSheet;
+            // Пропорція і тільки вона вирішує режим вкладання — те саме
+            // правило, за яким живе конструктор (lib/editor/ready-cover-fit.ts).
+            // Збіглася — обкладинка накриває аркуш повністю; не збіглася —
+            // вписується у видиму площину зі смугами кольору тла.
+            const fillsSheet = fit.matchesSheet;
             const lowDpi = fit.dpi < 300;
-            const tone = perfect && !lowDpi ? 'ok' : 'warn';
+            const tone = fillsSheet && !lowDpi ? 'ok' : 'warn';
             return (
               <div style={{
                 flexBasis: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 12, lineHeight: 1.6,
@@ -447,23 +451,33 @@ export default function TravelbookCoversPage() {
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>
                   Файл {w}×{h} пікселів, {(bytes / 1048576).toFixed(1)} МБ. Формат аркуша обкладинки — {ideal}.
                 </div>
-                {perfect && !lowDpi && (
-                  <div>Файл відповідає формату: він накриє весь аркуш разом із полем загину, нічого не зріжеться і не додасться.</div>
-                )}
-                {!perfect && (
+                {fillsSheet ? (
+                  <>
+                    <div>
+                      Пропорція збігається з аркушем: обкладинка накриє його ПОВНІСТЮ, разом із полем загину.
+                      Нічого не зріжеться, смуг кольору тла не буде.
+                    </div>
+                    <div>
+                      Роздільність на друці вийде <b>{fit.dpi} DPI</b>
+                      {lowDpi
+                        ? ` замість 300 — картинка розтягнеться, бо ${fit.coversSheet ? 'її сторони менші за потрібні' : `для аркуша потрібно ${ideal}`}.`
+                        : ' — цього достатньо.'}
+                    </div>
+                  </>
+                ) : (
                   <>
                     <div>
                       Роздільність на друці вийде <b>{fit.dpi} DPI</b>{lowDpi ? ' замість 300 — на великих деталях це буде помітно' : ' — цього достатньо'}.
                     </div>
                     <div>
-                      Нова обкладинка вписується у видиму площину {Math.round(fit.faceMm.w)}×{Math.round(fit.faceMm.h)} мм ЦІЛКОМ, тож
+                      Пропорція не збігається з аркушем, тож обкладинка вписується у видиму площину {Math.round(fit.faceMm.w)}×{Math.round(fit.faceMm.h)} мм ЦІЛКОМ:
                       {fit.band
                         ? ` нічого не зріжеться, але ${fit.band.axis === 'x' ? 'з боків' : 'згори і знизу'} лишиться смуга кольору тла по ${fit.band.mm.toFixed(1)} мм (${fit.band.pct.toFixed(1)} % ${fit.band.axis === 'x' ? 'ширини' : 'висоти'}).`
                         : ' нічого не зріжеться і смуг не буде.'}
                     </div>
                     {fit.legacyCrop && (
                       <div style={{ opacity: 0.85 }}>
-                        Для порівняння: якби обкладинка заповнювала аркуш повністю, як у макетах до 23.09, зрізалося б по {fit.legacyCrop.pctPerSide.toFixed(1)} % {fit.legacyCrop.axis === 'y' ? 'згори і знизу' : 'з боків'}.
+                        Якби ця картинка заповнювала аркуш, зрізалося б по {fit.legacyCrop.pctPerSide.toFixed(1)} % {fit.legacyCrop.axis === 'y' ? 'згори і знизу' : 'з боків'} — саме тому вона вписується, а не заповнює.
                       </div>
                     )}
                     <div style={{ marginTop: 4 }}>
