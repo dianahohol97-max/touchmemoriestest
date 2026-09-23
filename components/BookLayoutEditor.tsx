@@ -65,6 +65,7 @@ import { fitFontScale, textOverflowsAtMinScale, availableHeightPct, TEXT_LINE_HE
 import { projectPalette } from '@/lib/editor/project-palette';
 import { plateBoxStyle, plateTextShadow, type TextPlate } from '@/lib/editor/text-plate';
 import { resolveProjectType } from '@/lib/orders/project-type';
+import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
 import { ZOrderToolbar } from './editor/ZOrderToolbar';
 
 // Cyrillic decorative fonts
@@ -1178,6 +1179,34 @@ export default function BookLayoutEditor() {
   const [photoEditSlot, setPhotoEditSlot] = useState<string | null>(null);
   const [hoveredSpreadSlot, setHoveredSpreadSlot] = useState<number | null>(null);
   const [editSlotKey, setEditSlotKey] = useState<string | null>(null); // "spread-pageIdx-slotIdx" when editing slot size/position
+  // Колесо над фотографією. Див. lib/editor/wheel-zoom — там пояснено, чому
+  // React-обробник `onWheel` тут не годиться в принципі.
+  const wheelZoom = useWheelZoomBinder();
+  // РЕЖИМ КАДРУВАННЯ ЗНІМАЄТЬСЯ КЛІКОМ ПОВЗ, А НЕ ТІЛЬКИ КЛАВІШЕЮ ESCAPE.
+  //
+  // Досі `photoEditSlot` вмикався одним кліком по фотографії й не вимикався
+  // нічим, окрім Escape, повторного кліку по ТІЙ САМІЙ фотографії та кнопок
+  // «Видалити» і «Слот». Клік по слоту робить stopPropagation, тож канвасний
+  // обробник про нього не дізнавався. Наслідок бачили на TM-001352: людина
+  // клікнула знімок, пішла далі робити макет, а той знімок назавжди лишився
+  // в режимі кадрування і з'їдав колесо під курсором.
+  //
+  // Слухаємо pointerdown у фазі перехоплення, щоб устигнути до React-обробників
+  // слота: якщо натиснули поза елементом активного слота, режим знімається, а
+  // клік по самому слоту або по його панелі інструментів (вони лежать усередині
+  // того самого елемента з `data-tm-slot`) нічого не скидає.
+  useEffect(() => {
+    if (!photoEditSlot && !editSlotKey) return;
+    const onDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      const holder = target?.closest?.('[data-tm-slot]') as HTMLElement | null;
+      const key = holder?.getAttribute('data-tm-slot') || null;
+      if (photoEditSlot && key !== photoEditSlot) setPhotoEditSlot(null);
+      if (editSlotKey && key !== editSlotKey) setEditSlotKey(null);
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [photoEditSlot, editSlotKey]);
   // Tracks the last slot the user interacted with so Delete/Backspace can clear it.
   const activeSlotRef = useRef<{ pageIdx: number; slotIdx: number } | null>(null);
   // Active snap-to-align guide lines while a slot is being moved/resized.
@@ -8475,6 +8504,7 @@ export default function BookLayoutEditor() {
                       {/* Back cover photo slot — hidden by default, shown only when user opted in */}
                       {isPrinted && !isWishbook && hasBackCoverContent && (
                         <div
+                          data-tm-slot="backcover"
                           onPointerDown={e => { if (!backPhoto) return; startBackSlotDrag(e, 'move'); }}
                           onDragOver={e=>{e.preventDefault();}}
                           onDrop={e=>{e.stopPropagation();e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)setCoverState(p=>({...p,backCoverEnabled:true, backCoverPhotoId:id, backCoverCropX:50, backCoverCropY:50, backCoverZoom:1}));}}
@@ -8497,7 +8527,7 @@ export default function BookLayoutEditor() {
                                     }));
                                   });
                                 }}
-                                onWheel={e => { if (photoEditSlot !== 'backcover') return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.3, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })); }}>
+                                ref={wheelZoom('backcover', { enabled: photoEditSlot === 'backcover', onZoom: delta => setCoverState((p: any) => ({ ...p, backCoverZoom: Math.max(0.3, Math.min(4, (p.backCoverZoom ?? 1) + delta)) })) })}>
                                 <img onError={tmImgError} src={backPhoto.preview} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:`${bCropX}% ${bCropY}%`, position:'absolute', top:0, left:0, transform:`scale(${bZoom})`, transformOrigin:'center', userSelect:'none', pointerEvents:'none' }} draggable={false}/>
                               </div>
                               {/* Zoom controls */}
@@ -9014,6 +9044,7 @@ export default function BookLayoutEditor() {
                       return (
                         <React.Fragment key={i}>
                         <div
+                          data-tm-slot={key}
                           onMouseEnter={() => setHoveredSpreadSlot(i)}
                           onMouseLeave={() => setHoveredSpreadSlot(null)}
                           onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
@@ -9096,7 +9127,7 @@ export default function BookLayoutEditor() {
                                   pushHistory();
                                   setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((s2, si) => si !== i ? s2 : { ...s2, photoId: pid, ...getFocalCrop(pid) }) }));
                                 }}
-                                onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                ref={wheelZoom(key, { enabled: photoEditSlot === key, onZoom: delta => { const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==spreadPageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); } })}
                                 onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                 <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key}
                                   onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(spreadPageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}}
@@ -9227,7 +9258,7 @@ export default function BookLayoutEditor() {
                           const sl = slotStyle;
                           const lx = Number(sl.left)||0, ty = Number(sl.top)||0, sw = Number(sl.width)||100, sh = Number(sl.height)||100;
                           return (
-                            <div data-export-ignore="true" style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:15}}>
+                            <div data-export-ignore="true" data-tm-slot={key} style={{position:'absolute',inset:0,pointerEvents:'none',zIndex:15}}>
                               <>
                               {/* Blue selection border */}
                               <div style={{position:'absolute',left:lx-2,top:ty-2,width:sw+4,height:sh+4,border:'2px solid #3b82f6',borderRadius:4,zIndex:14,pointerEvents:'none'}}/>
@@ -9894,6 +9925,7 @@ export default function BookLayoutEditor() {
                         };
                         return (
                           <div key={i}
+                            data-tm-slot={key}
                             onDragOver={e => { e.preventDefault(); setDropTarget(key); }}
                             onDragLeave={() => setDropTarget(null)}
                             onDrop={e => onDrop(e, pageIdx, i)}
@@ -9931,7 +9963,7 @@ export default function BookLayoutEditor() {
                                   ) : null;
                                 })()}
                                 <div style={{ width: '100%', height: '100%', overflow: photoEditSlot === key ? 'visible' : 'hidden', position: 'relative', cursor: photoEditSlot === key ? 'crosshair' : 'default' }}
-                                  onWheel={e => { if (photoEditSlot !== key) return; e.preventDefault(); const delta = e.deltaY > 0 ? -0.05 : 0.05; const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); }}
+                                  ref={wheelZoom(key, { enabled: photoEditSlot === key, onZoom: delta => { const nz = Math.max(0.3, Math.min(4, (slot!.zoom||1)+delta)); pushHistoryCoalesced(); setPages(prev => prev.map((p,pi)=>pi!==pageIdx?p:{...p,slots:p.slots.map((sl,si)=>si!==i?sl:{...sl,zoom:nz})})); } })}
                                   onClick={() => setPhotoEditSlot(photoEditSlot === key ? null : key)}>
                                   <img onError={tmImgError} src={photo.noBgUrl || photo.preview} draggable={photoEditSlot !== key} onDragStart={e=>{if(photoEditSlot===key){e.preventDefault();return;}e.dataTransfer.setData('photoId',photo.id);e.dataTransfer.setData('text/plain',photo.id);e.dataTransfer.setData('sourceType','pageSlot');e.dataTransfer.setData('sourcePageIdx',String(pageIdx));e.dataTransfer.setData('sourceSlotIdx',String(i));}} alt=""
                                     onPointerDown={e => { if (photoEditSlot===key) startCrop(e, key, slot!.cropX ?? 50, slot!.cropY ?? 50); }}

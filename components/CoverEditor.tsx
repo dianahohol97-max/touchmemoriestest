@@ -6,6 +6,7 @@ import { ImageIcon, Move } from 'lucide-react';
 import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { parseDecoVariantMm } from '@/lib/print/deco-variant';
 import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
+import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
 import { toast } from 'sonner';
 
 export type CoverMaterial = 'velour' | 'leatherette' | 'fabric' | 'printed';
@@ -363,6 +364,13 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
   const [dragOver, setDragOver] = useState(false);
   // Snap guide lines — {x?: number, y?: number} in % (0-100), shown while dragging
   const [snapLines, setSnapLines] = useState<{ x?: number[]; y?: number[] }>({});
+  // КОЛЕСО НАД ФОТО НА ОБКЛАДИНЦІ. Те саме лихо, що й на розворотах, тільки без
+  // жодної умови: тут `onWheel` масштабував щоразу, коли у слоті є знімок.
+  // Явного режиму кадрування обкладинка не має — перетягування тут ЗАВЖДИ
+  // возить кадр, а масштаб має власні кнопки «−» і «+», які видно постійно.
+  // Тому `enabled: false`: колесо прокручує сторінку, а масштаб міняють кнопки
+  // або Ctrl/Cmd із колесом (він же щипок на трекпаді).
+  const wheelZoom = useWheelZoomBinder();
 
   // Snap threshold in % units
   const SNAP_THRESHOLD = 2.5;
@@ -678,13 +686,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         } as any);
                       });
                     }}
-                    onWheel={e => {
-                      if (!photo) return;
-                      e.preventDefault();
-                      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-                      const nz = Math.max(0.3, Math.min(4, (config.photoZoom ?? 1) + delta));
-                      onChange({ photoZoom: nz } as any);
-                    }}>
+                    ref={wheelZoom('cover-deco-photo', { enabled: false, onZoom: delta => { if (!photo) return; onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom ?? 1) + delta)) } as any); } })}>
                     <img src={photo.preview}
                       style={{
                         width: '100%', height: '100%',
@@ -879,7 +881,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    ref={wheelZoom('cover-insert-photo', { enabled: false, onZoom: delta => { if (!photo) return; onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + delta)) } as any); } })}>
                     <img src={photo.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg,rgba(255,255,255,0.18) 0%,transparent 50%)', pointerEvents:'none' }}/>
                 </div>
@@ -927,7 +929,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                         onChange({ photoCropX: Math.max(0, Math.min(100, cx - dx/sensitivity)), photoCropY: Math.max(0, Math.min(100, cy - dy/sensitivity)) } as any);
                       });
                     }}
-                    onWheel={e => { if (!photo) return; e.preventDefault(); onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + (e.deltaY>0?-0.05:0.05))) } as any); }}>
+                    ref={wheelZoom('cover-window-photo', { enabled: false, onZoom: delta => { if (!photo) return; onChange({ photoZoom: Math.max(0.3, Math.min(4, (config.photoZoom??1) + delta)) } as any); } })}>
                     <img src={photo.preview} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:`${config.photoCropX??50}% ${config.photoCropY??50}%`, transform:`scale(${config.photoZoom??1}) rotate(${(config as any).photoRotation??0}deg)`, transformOrigin:'center', userSelect:'none', pointerEvents:'none', touchAction:'manipulation' }} draggable={false}/>
                 </div>
                 {/* Zoom + rotation toolbar */}
@@ -1106,7 +1108,7 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, config, photos, onCha
                 });
               });
             }}
-            onWheel={e => { if(!ph) return; e.preventDefault(); updateCP({ zoom: Math.max(1, Math.min(4, (cp.zoom??1)+(e.deltaY>0?-0.05:0.05))) }); }}
+            ref={wheelZoom('cover-free-' + cp.id, { enabled: false, onZoom: delta => { if (!ph) return; updateCP({ zoom: Math.max(1, Math.min(4, (cp.zoom ?? 1) + delta)) }); } })}
             onDragOver={e=>{e.preventDefault();e.stopPropagation();}}
             onDrop={e=>{e.preventDefault();e.stopPropagation();const id=e.dataTransfer.getData('photoId')||e.dataTransfer.getData('text/plain');if(id)updateCP({photoId:id});}}
             onClick={()=>{ if(!ph && photos.length>0) updateCP({ photoId: photos[0].id }); }}

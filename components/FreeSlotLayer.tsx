@@ -4,6 +4,7 @@ import { haptic, startPointerDrag } from '@/lib/hooks/useMobileInteractions';
 import { useState, useRef, useEffect } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { dpiLevel } from '@/lib/print/dpi';
+import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
 
 export type SlotShape = 'rect' | 'square' | 'circle' | 'rounded';
 
@@ -223,18 +224,18 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
     }, () => { dragRef.current = null; setGuides({ x: [], y: [] }); });
   };
 
-  // Non-passive wheel for zoom — attach once per slot
-  const wheelAttached = useRef<Set<string>>(new Set());
-  const photoContainerRef = (el: HTMLDivElement | null, slotId: string) => {
-    if (!el || wheelAttached.current.has(slotId)) return;
-    wheelAttached.current.add(slotId);
-    el.addEventListener('wheel', (e: WheelEvent) => {
-      e.preventDefault(); e.stopPropagation();
-      const slot = slots.find(s => s.id === slotId);
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      update(slotId, { zoom: Math.max(0.5, Math.min(4, ((slot?.zoom)||1) + delta)) });
-    }, { passive: false });
-  };
+  // КОЛЕСО НАД ВІЛЬНИМ СЛОТОМ. Спільний прив'язувач із lib/editor/wheel-zoom,
+  // той самий, що і в шаблонних слотах, тож поведінка скрізь однакова: просте
+  // колесо прокручує полотно, масштабує лише режим кадрування або Ctrl/Cmd
+  // (він же щипок на трекпаді).
+  //
+  // Тут було ще й друге, окреме лихо. Слухач вішався РІВНО ОДИН раз на слот і
+  // замикав у собі `slots` та `update` з того рендера, коли слот уперше
+  // з'явився. Через кілька хвилин роботи це означало запис застарілого списку:
+  // `update` будує новий масив із замкненого `slots`, тож одне обертання колеса
+  // відкочувало все, що змінилося в СУСІДНІХ слотах після прив'язки. Мапа
+  // всередині прив'язувача читає свіжі значення в момент самої події.
+  const wheelZoom = useWheelZoomBinder();
 
   return (
     <>
@@ -316,7 +317,7 @@ export function FreeSlotLayer({ slots, photos, canvasW, canvasH, pageSizeMm, dra
             {/* Clip container */}
             <div style={{ position:'absolute', inset:0, borderRadius: br, overflow:'hidden', background: photo ? ((slot.padding||0) > 0 ? '#ffffff' : 'transparent') : 'rgba(99,102,241,0.06)', padding: (slot.padding||0) > 0 ? slot.padding : 0, boxSizing:'border-box' }}>
               {photo ? (
-                <div ref={el => photoContainerRef(el, slot.id)}
+                <div ref={wheelZoom(slot.id, { enabled: inCrop, onZoom: delta => update(slot.id, { zoom: Math.max(0.5, Math.min(4, (slot.zoom || 1) + delta)) }) })}
                   style={{ width:'100%', height:'100%', overflow:'hidden', position:'relative' }}>
                   <img
                     src={photo.preview}
