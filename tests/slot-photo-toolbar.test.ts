@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { zoomAfterRotate } from '@/components/editor/SlotPhotoToolbar';
+import { minZoomToCover, zoomAfterRotate } from '@/components/editor/SlotPhotoToolbar';
 
 /**
  * Rotation auto-zoom, pinned.
@@ -41,5 +41,42 @@ describe('zoomAfterRotate', () => {
         // code used `Number(...) || 100` and this keeps that behaviour.
         expect(zoomAfterRotate(90, { width: 0, height: 0 })).toBe(1);
         expect(zoomAfterRotate(90, { width: NaN, height: 200 })).toBe(2);
+    });
+});
+
+/**
+ * Межа зменшення знімка в рамці.
+ *
+ * Фото в слоті малюється як `objectFit: cover` на всю рамку, а далі до нього
+ * застосовується `transform: scale(zoom)`. При одиниці воно закриває рамку
+ * рівно, тож усе, що менше за одиницю, лишає по краях білий папір. Саме це
+ * сталося в TM-001352: вісім із пʼятнадцяти заповнених слотів мають масштаб
+ * менший за одиницю, і числа там кроками рівно по 0,1, тобто їх натиснули
+ * кнопкою «−», шукаючи спосіб зменшити зображення на сторінці.
+ *
+ * Режим «Без обрізки» свідомо лишається без межі: там поля є тим, чого людина
+ * просила.
+ */
+describe('minZoomToCover', () => {
+    it('не дає знімку відійти від країв рамки', () => {
+        expect(minZoomToCover({}, { width: 400, height: 300 })).toBe(1);
+        expect(minZoomToCover({ zoom: 0.7 }, { width: 400, height: 300 })).toBe(1);
+    });
+
+    it('тримає вищу межу для чвертьповороту', () => {
+        // Та сама арифметика, що і в zoomAfterRotate: інакше повернутий знімок
+        // не дістає до країв навіть на одиниці.
+        expect(minZoomToCover({ rotation: 90 }, { width: 400, height: 300 })).toBeCloseTo(4 / 3, 10);
+        expect(minZoomToCover({ rotation: 270 }, { width: 300, height: 400 })).toBeCloseTo(4 / 3, 10);
+    });
+
+    it('рахує поворот за модулем, а не за знаком', () => {
+        expect(minZoomToCover({ rotation: -90 }, { width: 400, height: 300 })).toBeCloseTo(4 / 3, 10);
+    });
+
+    it('не обмежує режим «Без обрізки»', () => {
+        // Тут поля є задумом, і забороняти їх означало б зламати саму кнопку.
+        expect(minZoomToCover({ fit: 'contain' }, { width: 400, height: 300 })).toBeLessThan(1);
+        expect(minZoomToCover({ fit: 'contain', rotation: 90 }, { width: 400, height: 300 })).toBeLessThan(1);
     });
 });

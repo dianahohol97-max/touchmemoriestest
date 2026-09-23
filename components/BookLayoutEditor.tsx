@@ -3886,6 +3886,18 @@ export default function BookLayoutEditor() {
 
   /** Наскільки треба зрушити вказівник, щоб це вважалося перетягуванням кадру. */
   const PHOTO_PAN_THRESHOLD_PX = 4;
+  /**
+   * РУЧКИ РОЗМІРУ СЛОТА.
+   *
+   * Було чотирнадцять пікселів із обводкою в два з половиною, тобто синій
+   * кружечок завбільшки з крапку над «і». На записі TM-001352 видно, як людина
+   * тричі промахується повз ручку і щоразу натомість зачіпає фотографію. Двадцять
+   * пікселів — це та сама межа, яку тримають усі інші дотикові цілі в
+   * конструкторі, і рівно стільки ж радить Apple для пальця.
+   */
+  const SLOT_HANDLE_PX = 20;
+  /** Смужка переміщення рамки. Була шістнадцять, і в неї теж не влучали. */
+  const SLOT_MOVE_BAR_PX = 20;
 
   // Crop via Pointer Events — works on mouse, touch, stylus
   const startCrop = (e: React.PointerEvent, key: string, cx: number, cy: number, options?: { threshold?: number; onDragStart?: () => void }) => {
@@ -9267,6 +9279,23 @@ export default function BookLayoutEditor() {
                                     }}
                                     onDelete={() => { clearSlot(spreadPageIdx, i); setPhotoEditSlot(null); }}
                                     onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
+                                    onScaleFrame={factor => {
+                                      // Той самий розрахунок, який пишуть кутові ручки: `customX/Y/W/H` у
+                                      // відсотках плюс `customPct`. Жодного нового поля в збережених даних —
+                                      // кнопка просто робить те саме, що ручка, тільки навколо центра рамки
+                                      // і без прицілювання.
+                                      pushHistoryCoalesced();
+                                      const curLeft = Number(slotStyle.left) || 0;
+                                      const curTop = Number(slotStyle.top) || 0;
+                                      const curW = Number(slotStyle.width) || 0;
+                                      const curH = Number(slotStyle.height) || 0;
+                                      if (!(curW > 0) || !(curH > 0)) return;
+                                      const nw = Math.max(40, Math.min(spreadW, curW * factor));
+                                      const nh = Math.max(40, Math.min(cH, curH * factor));
+                                      const nx = Math.max(0, Math.min(spreadW - nw, curLeft + (curW - nw) / 2));
+                                      const ny = Math.max(0, Math.min(cH - nh, curTop + (curH - nh) / 2));
+                                      setPages(prev => prev.map((p, pi) => pi !== spreadPageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: (nx/spreadW)*100, customY: (ny/cH)*100, customW: (nw/spreadW)*100, customH: (nh/cH)*100, customPct: true }) }));
+                                    }}
                                   />
                                   );
                                 })()}
@@ -9296,8 +9325,8 @@ export default function BookLayoutEditor() {
                               </div>
                               {/* Zoom hint on hover */}
                               {photoEditSlot !== key && (
-                                <div style={{position:'absolute',bottom:4,right:4,background:'rgba(0,0,0,0.4)',borderRadius:10,padding:'2px 6px',zIndex:30,opacity:0,transition:'opacity 0.15s'}} className="sp-zoom-hint">
-                                  <span style={{color:'#fff',fontSize:7,fontWeight:600}}>клік — кадрувати</span>
+                                <div style={{position:'absolute',bottom:6,right:6,background:'rgba(15,23,42,0.82)',borderRadius:10,padding:'3px 9px',zIndex:30,opacity:0,transition:'opacity 0.15s',pointerEvents:'none'}} className="sp-zoom-hint">
+                                  <span style={{color:'#fff',fontSize:10,fontWeight:600,whiteSpace:'nowrap'}}>Тягніть, щоб посунути кадр</span>
                                 </div>
                               )}
                               <style>{`.sp-zoom-hint{opacity:0!important}div:hover>.sp-zoom-hint{opacity:1!important}`}</style>
@@ -9305,8 +9334,9 @@ export default function BookLayoutEditor() {
                               {editSlotKey === key && (
                                 <div onPointerDown={e => { e.stopPropagation(); startSpreadSlotDrag(e, 'move'); }}
                                   onClick={e => e.stopPropagation()}
-                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'60%',height:16,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.8)'}}>
-                                  <div style={{width:20,height:3,borderRadius:2,background:'rgba(255,255,255,0.8)'}}/>
+                                  title="Потягніть, щоб пересунути рамку"
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'60%',maxWidth:120,height:SLOT_MOVE_BAR_PX,cursor:'move',zIndex:25,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 8px 8px',background:'rgba(59,130,246,0.92)',touchAction:'none'}}>
+                                  <div style={{width:26,height:3,borderRadius:2,background:'#fff'}}/>
                                 </div>
                               )}
                               {/* Delete button — always visible on touch, hover on desktop */}
@@ -9373,10 +9403,11 @@ export default function BookLayoutEditor() {
                                 const hy = (dir==='se'||dir==='sw') ? ty+sh : ty;
                                 return (
                                   <div key={`h-${i}-${dir}`} onPointerDown={e=>startSpreadSlotDrag(e,dir)}
-                                    style={{ position:'absolute', left:hx-7, top:hy-7, width:14, height:14,
-                                      borderRadius:'50%', background:'#3b82f6', border:'2.5px solid #fff',
-                                      cursor:`${dir}-resize`, zIndex:16, boxShadow:'0 1px 4px rgba(0,0,0,0.4)',
-                                      pointerEvents:'auto', touchAction:'manipulation' }}/>
+                                    title="Потягніть, щоб змінити розмір рамки"
+                                    style={{ position:'absolute', left:hx-SLOT_HANDLE_PX/2, top:hy-SLOT_HANDLE_PX/2, width:SLOT_HANDLE_PX, height:SLOT_HANDLE_PX,
+                                      borderRadius:'50%', background:'#3b82f6', border:'3px solid #fff',
+                                      cursor:`${dir}-resize`, zIndex:16, boxShadow:'0 2px 7px rgba(0,0,0,0.45)',
+                                      pointerEvents:'auto', touchAction:'none' }}/>
                                 );
                               })}
                               {/* Size info */}
@@ -10104,8 +10135,8 @@ export default function BookLayoutEditor() {
                                     </div>
                                   )}
                                   {photoEditSlot !== key && (
-                                    <div style={{position:'absolute',bottom:4,right:4,background:'rgba(0,0,0,0.4)',borderRadius:10,padding:'2px 6px',zIndex:30,opacity:0,transition:'opacity 0.15s'}} className="zoom-hint">
-                                      <span style={{color:'#fff',fontSize:7,fontWeight:600}}>клік — кадрувати</span>
+                                    <div style={{position:'absolute',bottom:6,right:6,background:'rgba(15,23,42,0.82)',borderRadius:10,padding:'3px 9px',zIndex:30,opacity:0,transition:'opacity 0.15s',pointerEvents:'none'}} className="zoom-hint">
+                                      <span style={{color:'#fff',fontSize:10,fontWeight:600,whiteSpace:'nowrap'}}>Тягніть, щоб посунути кадр</span>
                                     </div>
                                   )}
                                   <style>{`.zoom-hint{opacity:0!important}div:hover>.zoom-hint{opacity:1!important}`}</style>
@@ -10135,6 +10166,23 @@ export default function BookLayoutEditor() {
                                       }}
                                       onDelete={() => { clearSlot(pageIdx, i); setPhotoEditSlot(null); }}
                                       onOpenSlotEdit={() => { setEditSlotKey(editSlotKey === key ? null : key); setPhotoEditSlot(null); }}
+                                      onScaleFrame={factor => {
+                                        // Той самий розрахунок, який пишуть кутові ручки: `customX/Y/W/H` у
+                                        // відсотках плюс `customPct`. Жодного нового поля в збережених даних —
+                                        // кнопка просто робить те саме, що ручка, тільки навколо центра рамки
+                                        // і без прицілювання.
+                                        pushHistoryCoalesced();
+                                        const curLeft = Number(slotStyle.left) || 0;
+                                        const curTop = Number(slotStyle.top) || 0;
+                                        const curW = Number(slotStyle.width) || 0;
+                                        const curH = Number(slotStyle.height) || 0;
+                                        if (!(curW > 0) || !(curH > 0)) return;
+                                        const nw = Math.max(40, Math.min(pageW, curW * factor));
+                                        const nh = Math.max(40, Math.min(cH, curH * factor));
+                                        const nx = Math.max(0, Math.min(pageW - nw, curLeft + (curW - nw) / 2));
+                                        const ny = Math.max(0, Math.min(cH - nh, curTop + (curH - nh) / 2));
+                                        setPages(prev => prev.map((p, pi) => pi !== pageIdx ? p : { ...p, slots: p.slots.map((sl, si) => si !== i ? sl : { ...sl, customX: (nx/pageW)*100, customY: (ny/cH)*100, customW: (nw/pageW)*100, customH: (nh/cH)*100, customPct: true }) }));
+                                      }}
                                     />
                                   );
                                   })()}
@@ -10194,15 +10242,18 @@ export default function BookLayoutEditor() {
                                 {/* Move handle (top bar) */}
                                 <div onPointerDown={e=>{e.stopPropagation();startPageSlotDrag(e,'move');}}
                                   onClick={e=>e.stopPropagation()}
-                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:90,height:16,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 6px 6px',background:'rgba(59,130,246,0.9)',pointerEvents:'auto',touchAction:'none'}}>
-                                  <div style={{width:20,height:3,borderRadius:2,background:'#fff'}}/>
+                                  title="Потягніть, щоб пересунути рамку"
+                                  style={{position:'absolute',top:0,left:'50%',transform:'translateX(-50%)',width:'50%',maxWidth:120,height:SLOT_MOVE_BAR_PX,cursor:'move',zIndex:57,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'0 0 8px 8px',background:'rgba(59,130,246,0.92)',pointerEvents:'auto',touchAction:'none'}}>
+                                  <div style={{width:26,height:3,borderRadius:2,background:'#fff'}}/>
                                 </div>
                                 {/* Corner resize handles */}
                                 {(['nw','ne','se','sw'] as const).map(dir => {
-                                  const pos = dir==='nw'?{left:-7,top:-7}:dir==='ne'?{right:-7,top:-7}:dir==='se'?{right:-7,bottom:-7}:{left:-7,bottom:-7};
+                                  const off = -SLOT_HANDLE_PX / 2;
+                                  const pos = dir==='nw'?{left:off,top:off}:dir==='ne'?{right:off,top:off}:dir==='se'?{right:off,bottom:off}:{left:off,bottom:off};
                                   return (
                                     <div key={dir} onPointerDown={e=>startPageSlotDrag(e,dir)}
-                                      style={{position:'absolute',...pos,width:14,height:14,borderRadius:'50%',background:'#3b82f6',border:'2.5px solid #fff',cursor:`${dir}-resize`,zIndex:58,boxShadow:'0 1px 4px rgba(0,0,0,0.4)',pointerEvents:'auto',touchAction:'none'}}/>
+                                      title="Потягніть, щоб змінити розмір рамки"
+                                      style={{position:'absolute',...pos,width:SLOT_HANDLE_PX,height:SLOT_HANDLE_PX,borderRadius:'50%',background:'#3b82f6',border:'3px solid #fff',cursor:`${dir}-resize`,zIndex:58,boxShadow:'0 2px 7px rgba(0,0,0,0.45)',pointerEvents:'auto',touchAction:'none'}}/>
                                   );
                                 })}
                                 {/* Size readout */}

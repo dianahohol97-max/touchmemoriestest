@@ -76,6 +76,21 @@ export interface SlotPhotoToolbarProps<S extends ToolbarSlot> {
     onDelete: () => void;
     onOpenSlotEdit: () => void;
     /**
+     * Змінити розмір САМОЇ РАМКИ на заданий множник, навколо її центра.
+     *
+     * Розрахунок живе у викликача, бо тільки там відомі поточні координати
+     * слота і розміри полотна, проти яких їх треба обмежити. Сюди приходить
+     * лише намір.
+     *
+     * Кнопка існує тому, що людям потрібно було саме це, а в панелі такого не
+     * було. У TM-001352 вісім із пʼятнадцяти заповнених слотів мають масштаб
+     * менший за одиницю, причому рівно кроками по 0,1 — це підпис кнопки «−»,
+     * колесо крокує по 0,05 і лишило б інші числа. Тобто клієнтка тиснула «−»,
+     * бо це єдине, що схоже на «зменшити», і замість меншої рамки отримувала
+     * менший знімок у рамці того самого розміру, тобто білі поля.
+     */
+    onScaleFrame?: (factor: number) => void;
+    /**
      * Tooltip for the «Слот» button. A prop rather than a constant because the
      * two original copies disagreed — spread said «Змінити форму або розмір
      * слота», page said «Змінити розмір слота — тягни кути» — and picking one
@@ -102,6 +117,24 @@ export function zoomAfterRotate(rotation: number, box: { width: number; height: 
     return Math.max(w / h, h / w);
 }
 
+/**
+ * Найменший масштаб, за якого знімок ще закриває рамку.
+ *
+ * Фото в слоті малюється як `objectFit: cover` на всю рамку, а далі до нього
+ * застосовується `transform: scale(zoom)`. Тобто при одиниці воно закриває
+ * рамку рівно, а будь-яке значення менше за одиницю лишає по краях порожнечу.
+ * Для чвертьповороту межа вища, бо повернутий знімок міряється іншою стороною —
+ * це те саме число, що вже рахує zoomAfterRotate.
+ *
+ * Виняток один — режим «Без обрізки» (`fit: 'contain'`). Там поля є задумом:
+ * людина свідомо просить показати знімок цілком, хай і з полями. Обмежувати
+ * його означало б зламати саме ту дію, заради якої кнопку й додавали.
+ */
+export function minZoomToCover(slot: ToolbarSlot, box: { width: number; height: number }): number {
+    if (slot.fit === 'contain') return 0.1;
+    return zoomAfterRotate(((slot.rotation || 0) % 360 + 360) % 360, box);
+}
+
 export function SlotPhotoToolbar<S extends ToolbarSlot>({
     slot,
     slotBox,
@@ -111,9 +144,15 @@ export function SlotPhotoToolbar<S extends ToolbarSlot>({
     updateSlot,
     onDelete,
     onOpenSlotEdit,
+    onScaleFrame,
     slotEditTitle,
 }: SlotPhotoToolbarProps<S>) {
     const zoomPct = Math.round((slot.zoom || 1) * 100);
+    // Нижче цього масштабу знімок перестає закривати рамку, і навколо нього
+    // зʼявляються білі поля. Див. minZoomToCover — там пояснено, звідки береться
+    // число і чому «Без обрізки» виняток.
+    const minZoom = minZoomToCover(slot, slotBox);
+    const atMinZoom = (slot.zoom || 1) <= minZoom + 0.001;
 
     const rotateBy = (delta: 90 | -90) =>
         updateSlot(sl => {
@@ -148,10 +187,15 @@ export function SlotPhotoToolbar<S extends ToolbarSlot>({
         >
             {/* Row 1: zoom + rotate + delete */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: isMobile ? 'wrap' : 'nowrap', justifyContent: 'center' }}>
+                <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 700, paddingRight: 2 }}>Фото</span>
                 <button
                     onClick={stop}
-                    onPointerDown={e => { stop(e); updateSlot(sl => ({ ...sl, zoom: Math.max(0.1, (sl.zoom || 1) - 0.1) })); }}
-                    style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '2px 7px', borderRadius: 6, touchAction: 'manipulation', fontWeight: 700, minWidth: 28, textAlign: 'center' }}
+                    disabled={atMinZoom}
+                    title={atMinZoom
+                        ? 'Далі зменшувати нікуди: знімок перестане закривати рамку і по краях залишиться білий папір. Щоб зменшити саме зображення на сторінці, зменшіть рамку поруч; щоб побачити знімок цілком, увімкніть «Без обрізки».'
+                        : 'Зменшити знімок усередині рамки'}
+                    onPointerDown={e => { stop(e); updateSlot(sl => ({ ...sl, zoom: Math.max(minZoom, (sl.zoom || 1) - 0.1) })); }}
+                    style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: atMinZoom ? 'rgba(255,255,255,0.3)' : '#fff', cursor: atMinZoom ? 'not-allowed' : 'pointer', fontSize: 16, padding: '2px 7px', borderRadius: 6, touchAction: 'manipulation', fontWeight: 700, minWidth: 28, textAlign: 'center' }}
                 >−</button>
                 <span style={{ color: '#fff', fontSize: 9, fontWeight: 700, minWidth: 30, textAlign: 'center' }}>{zoomPct}%</span>
                 <button
@@ -159,6 +203,25 @@ export function SlotPhotoToolbar<S extends ToolbarSlot>({
                     onPointerDown={e => { stop(e); updateSlot(sl => ({ ...sl, zoom: Math.min(4, (sl.zoom || 1) + 0.1) })); }}
                     style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '2px 7px', borderRadius: 6, touchAction: 'manipulation', fontWeight: 700, minWidth: 28, textAlign: 'center' }}
                 >+</button>
+
+                {onScaleFrame && (
+                    <>
+                        {divider}
+                        <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 9, fontWeight: 700, paddingRight: 2 }}>Рамка</span>
+                        <button
+                            onClick={stop}
+                            title="Зменшити саму рамку на сторінці разом зі знімком"
+                            onPointerDown={e => { stop(e); onScaleFrame(1 / 1.1); }}
+                            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '2px 7px', borderRadius: 6, touchAction: 'manipulation', fontWeight: 700, minWidth: 28, textAlign: 'center' }}
+                        >−</button>
+                        <button
+                            onClick={stop}
+                            title="Збільшити саму рамку на сторінці разом зі знімком"
+                            onPointerDown={e => { stop(e); onScaleFrame(1.1); }}
+                            style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 16, padding: '2px 7px', borderRadius: 6, touchAction: 'manipulation', fontWeight: 700, minWidth: 28, textAlign: 'center' }}
+                        >+</button>
+                    </>
+                )}
 
                 {divider}
 
