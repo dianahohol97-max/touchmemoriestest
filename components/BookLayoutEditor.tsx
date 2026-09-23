@@ -3948,6 +3948,8 @@ export default function BookLayoutEditor() {
   // beyond a small threshold). Used to suppress the click-to-edit that would
   // otherwise fire when releasing after dragging a text onto a photo.
   const txtDragMovedRef = React.useRef(false);
+  /** Мертва зона перетягування текстового блока, у пікселях. */
+  const TEXT_DRAG_THRESHOLD_PX = 4;
   // Same idea for the kalka calendar: distinguish a tap on a day (circle it)
   // from a drag that moves the whole calendar.
   const calDragMovedRef = React.useRef(false);
@@ -3981,9 +3983,22 @@ export default function BookLayoutEditor() {
     const safeXPctRight = (isSpreadContainer ? bleed.right : bleed.right * 2) * 100;
     const safeYTopPct = bleed.top * 100;
     const safeYBottomPct = bleed.bottom * 100;
+    // МЕРТВА ЗОНА, щоб клік по підпису нічого не зсував.
+    //
+    // Досі перетягування починалося з ПЕРШОГО пікселя руху: людина клікала по
+    // тексту, щоб його виділити, рука при цьому природно сіпалась на піксель
+    // або два, і блок від'їжджав. Гірше того, він одразу потрапляв у прилипання
+    // нижче, а воно тягне на цілих два відсотки, тож клік по блоку, що стояв на
+    // 48,5 %, кидав його рівно на 50 %. Саме це в TM-001352 виглядало так, ніби
+    // клік «витягує» блок невідомо куди, і саме тому в збереженому макеті
+    // кілька блоків мають x або y рівно «50» — їх туди ніхто не ставив.
+    //
+    // Поріг узято той самий, що вже рахував `txtDragMovedRef`: чотири пікселі.
+    // Досі ця межа лише вирішувала, чи вважати жест перетягуванням ПІСЛЯ того,
+    // як блок уже поїхав; тепер вона вирішує, чи рухати його взагалі.
     startPointerDrag(e,
       (dx, dy) => {
-        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) txtDragMovedRef.current = true;
+        txtDragMovedRef.current = true;
         const SNAP = 2; // snap threshold in %
         // X must be divided by the SAME width the block is positioned against
         // (left:%). In spread mode that is the full spread width, not a single
@@ -4002,7 +4017,8 @@ export default function BookLayoutEditor() {
         setTextGuides({ x: gx, y: gy });
         updateTxtForPage(id, { x: nx, y: ny }, pageIdx);
       },
-      () => setTextGuides({ x: [], y: [] })
+      () => setTextGuides({ x: [], y: [] }),
+      { threshold: TEXT_DRAG_THRESHOLD_PX },
     );
   };
 
