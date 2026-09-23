@@ -4189,6 +4189,61 @@ export default function BookLayoutEditor() {
   // кожному колі: шість десятків розкодувань щохвилини вішають вкладку надійніше
   // за будь-яке повільне відкриття, яке ці копії мали вилікувати.
   const photoVariantTriedRef = useRef<Set<string>>(new Set());
+  /**
+   * Які копії фото вже існують — довідник, що переживає заміну масиву `photos`.
+   *
+   * ЧОМУ РЕФ, А НЕ САМ ЗНІМОК. Раніше єдиним слідом про зроблену копію було
+   * поле, яке `ensureVariants` дописував ПРЯМО в обʼєкт PhotoData повз
+   * setPhotos. Будь-яке перезбирання масиву (а воно трапляється на кожному
+   * видаленні, перестановці й на скиданні буфера фокуса) могло цей слід
+   * загубити, і тоді копія нарізалася вдруге поверх тієї самої, уже готової.
+   * У сховищі за сім днів таких повторів набралося 231 із 1593 копій: робота
+   * оплачена двічі, а користі з другого разу нуль, бо upsert кладе те саме.
+   *
+   * Довідник наповнюється з ДВОХ боків. Ефект нижче забирає шляхи з кожного
+   * знімка, який приходить із копіями, — так сюди потрапляє збережений макет,
+   * бо відкриття (`open-design.ts`) несе previewPath і thumbPath у самих фото.
+   * А `ensureVariants` записує сюди те, що щойно нарізав, бо мутація обʼєкта
+   * ефект не збудить: масив лишається тим самим.
+   */
+  const photoVariantPathsRef = useRef<Record<string, { previewPath?: string; thumbPath?: string }>>({});
+  useEffect(() => {
+    for (const p of photos) {
+      if (!p.previewPath && !p.thumbPath) continue;
+      const seen = photoVariantPathsRef.current[p.id];
+      if (seen?.previewPath === p.previewPath && seen?.thumbPath === p.thumbPath) continue;
+      photoVariantPathsRef.current[p.id] = {
+        previewPath: p.previewPath || seen?.previewPath,
+        thumbPath: p.thumbPath || seen?.thumbPath,
+      };
+    }
+  }, [photos]);
+  /**
+   * Копії, які для цього знімка вже є: у ньому самому або в довіднику.
+   *
+   * Знайдене повертається НАЗАД у знімок, щоб наступний читач побачив шляхи
+   * без довідника — інакше довелося б підмішувати його в кожному місці, де
+   * будується метадані фото.
+   */
+  const knownVariantsOf = (p: PhotoData) => {
+    const seen = photoVariantPathsRef.current[p.id];
+    const previewPath = p.previewPath || seen?.previewPath;
+    const thumbPath = p.thumbPath || seen?.thumbPath;
+    if (previewPath) p.previewPath = previewPath;
+    if (thumbPath) p.thumbPath = thumbPath;
+    return { previewPath, thumbPath };
+  };
+  /** Запамʼятати щойно зроблені копії так, щоб їх не загубила заміна масиву. */
+  const rememberVariants = (p: PhotoData, made: { previewPath?: string; thumbPath?: string }) => {
+    if (!made.previewPath && !made.thumbPath) return;
+    const seen = photoVariantPathsRef.current[p.id];
+    photoVariantPathsRef.current[p.id] = {
+      previewPath: made.previewPath || seen?.previewPath,
+      thumbPath: made.thumbPath || seen?.thumbPath,
+    };
+    if (made.previewPath) p.previewPath = made.previewPath;
+    if (made.thumbPath) p.thumbPath = made.thumbPath;
+  };
   const persistDraft = async (): Promise<boolean> => {
     if (persistInFlightRef.current) { persistQueuedRef.current = true; return false; }
     persistInFlightRef.current = true;
@@ -4230,9 +4285,11 @@ export default function BookLayoutEditor() {
       // TM-001342. Робимо їх один раз на фото за сесію: повторне відкриття вже
       // приносить готові шляхи в метаданих.
       const ensureVariants = async (p: PhotoData, path: string, body?: Blob | File) => {
-        if (p.previewPath || p.thumbPath) {
-          return { previewPath: p.previewPath, thumbPath: p.thumbPath };
-        }
+        // Копії, які вже є — у самому знімку або в довіднику, що пережив
+        // заміну масиву. Це і є перевірка «вже є в збереженому макеті»:
+        // відкриття несе previewPath і thumbPath у фото, а довідник їх ловить.
+        const known = knownVariantsOf(p);
+        if (known.previewPath || known.thumbPath) return known;
         if (photoVariantTriedRef.current.has(p.id)) return {};
         photoVariantTriedRef.current.add(p.id);
         const source = body || (p.originalFile as File | undefined) || p.preview;
@@ -4248,8 +4305,7 @@ export default function BookLayoutEditor() {
           originalHeight: p.height,
           originalBytes: (p.originalFile as File | undefined)?.size || (body instanceof Blob ? body.size : undefined),
         });
-        if (made.previewPath) p.previewPath = made.previewPath;
-        if (made.thumbPath) p.thumbPath = made.thumbPath;
+        rememberVariants(p, made);
         return made;
       };
       const uploadOne = async (p: PhotoData) => {
@@ -5867,7 +5923,16 @@ export default function BookLayoutEditor() {
       const uploadedPhotosMeta: Array<{ id: string; name: string; width: number; height: number; path?: string; previewPath?: string; thumbPath?: string }> =
         photos.map(p => ({ id: p.id, name: p.name, width: p.width, height: p.height }));
 
-      for (let i = 0; i < photos.length; i++) {
+      // Один знімок: оригінал у сховище, далі зменшені копії для показу.
+      //
+      // ЧОМУ ЦЕ ВИНЕСЕНО В ФУНКЦІЮ. Тут був один довгий цикл `for`, у якому
+      // кожна ітерація чекала на ЧОТИРИ послідовні мережеві кроки: оригінал,
+      // потім копія на полотно, потім копія на стрічку, і аж тоді наступне
+      // фото. Тридцять фото це дев'яносто звернень до сховища одне за одним, і
+      // шістдесят із них додали коміти 1cd72bb та 11f2f0d. На каналі 10 Мбіт/с
+      // це коштувало +23,5 секунди до «Додати в кошик». Канал стільки не
+      // важить — важить те, що він порожній між кожною парою запитів.
+      const putOnePhoto = async (i: number) => {
         const ph = photos[i];
         // Already uploaded in this session (e.g. restored from a saved draft
         // via reopenDesign, or uploaded earlier by handleSaveAndExit) — reuse
@@ -5882,8 +5947,9 @@ export default function BookLayoutEditor() {
           // їх ще немає, і зробити їх треба тут — інакше це замовлення так і
           // відкриватиметься з оригіналів. Друку це не стосується: Railway
           // бере `path`.
-          const v = ph.previewPath || ph.thumbPath
-            ? { previewPath: ph.previewPath, thumbPath: ph.thumbPath }
+          const known = knownVariantsOf(ph);
+          const v = known.previewPath || known.thumbPath
+            ? known
             : await ensurePhotoVariants(sb, 'photobook-uploads', existingPath, (ph.originalFile as File | undefined) || ph.preview, {
                 display: ph.preview,
                 thumb: ph.thumb,
@@ -5891,9 +5957,10 @@ export default function BookLayoutEditor() {
                 originalHeight: ph.height,
                 originalBytes: (ph.originalFile as File | undefined)?.size,
               });
-          if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
-          if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
-          continue;
+          rememberVariants(ph, v);
+          if (v.previewPath) uploadedPhotosMeta[i].previewPath = v.previewPath;
+          if (v.thumbPath) uploadedPhotosMeta[i].thumbPath = v.thumbPath;
+          return;
         }
         let body: Blob | undefined;
         const origFile = ph.originalFile as File | undefined;
@@ -5904,7 +5971,7 @@ export default function BookLayoutEditor() {
         } else if (ph.preview?.startsWith('data:') || ph.preview?.startsWith('https://')) {
           try { body = await (await fetch(ph.preview)).blob(); } catch { /* skip */ }
         }
-        if (!body) continue;
+        if (!body) return;
         const path = `guest/${orderId}/originals/${ph.id}.jpg`;
         try {
           const { error: upErr } = await sb.storage
@@ -5920,11 +5987,28 @@ export default function BookLayoutEditor() {
               originalHeight: ph.height,
               originalBytes: body.size,
             });
-            if (v.previewPath) { uploadedPhotosMeta[i].previewPath = v.previewPath; ph.previewPath = v.previewPath; }
-            if (v.thumbPath) { uploadedPhotosMeta[i].thumbPath = v.thumbPath; ph.thumbPath = v.thumbPath; }
+            rememberVariants(ph, v);
+            if (v.previewPath) uploadedPhotosMeta[i].previewPath = v.previewPath;
+            if (v.thumbPath) uploadedPhotosMeta[i].thumbPath = v.thumbPath;
           }
           else console.warn('[design-snapshot] photo upload error', ph.id, upErr.message);
         } catch (e) { console.warn('[design-snapshot] photo upload failed', ph.id, e); }
+      };
+      // Три знімки одночасно — те саме число, що в persistDraft, і з тієї самої
+      // причини: більше не дає нічого, бо впирається в канал, а менше лишає
+      // його порожнім між запитами.
+      //
+      // Чекаємо на ВСІ до єдиного, перш ніж збирати знімок дизайну нижче.
+      // Спокуса «хай копії дозаливаються самі, а ми вже підемо» тут хибна:
+      // позиція, яка записала previewPath без файла під ним, виглядає справною
+      // рівно до того, як хтось відкриє макет і побачить порожні рамки. Та сама
+      // асиметрія, що в гочі 18 — відмова краща за тихий запис не того.
+      {
+        let nextIdx = 0;
+        const worker = async () => {
+          while (nextIdx < photos.length) await putOnePhoto(nextIdx++);
+        };
+        await Promise.all(Array.from({ length: Math.min(3, Math.max(1, photos.length)) }, worker));
       }
 
       const designSnapshot = {
