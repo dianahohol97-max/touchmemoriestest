@@ -23,6 +23,7 @@
  *                 тобто перенесення мовчки падає щопроходу
  *   no_layout   — книга в замовленні, за якою немає жодного макета
  *   no_forzat   — оплачено друк на форзаці, а файлу форзаца в наборі немає
+ *   short_print — у виробі менше друкованих аркушів, ніж людина замовила
  *
  * ЧОМУ НЕ БІЛЬШЕ. Сторож, який кричить вовк, вимикають, і тоді ми знову в
  * тиші — у цьому ж репозиторії вже довелося окремо вгамовувати сканер. Тому
@@ -34,7 +35,8 @@
  * поломку, або дзвонить щопроходу.
  */
 
-import { forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
+import { forzatShortfallLine, missingForzatFiles, paidForzatSides, type ForzatSides } from '@/lib/print/forzat-expectation';
+import { projectIdFromExportPath } from '@/lib/print/register-export-files';
 
 /** Памʼять про вже надіслані сигнали: ключ ознаки → коли сказали. */
 export const LOST_SIGNALS_KEY = 'lost_order_signals_state';
@@ -83,16 +85,111 @@ export const LAYOUT_GRACE_HOURS = 1;
  */
 export const BOOK_SLUG_RE = /(photobook|fotoknig|travel|magazine|zhurnal|journal|planner|wish|pobazhan)/;
 
-export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm' | 'no_layout' | 'no_forzat';
+export type SignalKind = 'photos' | 'no_product' | 'no_email' | 'not_in_crm' | 'no_layout' | 'no_forzat' | 'short_print';
 
 /**
- * Скільки годин дати замовленню, перш ніж відсутність оплаченого форзаца стає
+ * Скільки годин дати замовленню, перш ніж неповний набір для друку стає
  * сигналом.
  *
  * Рендер іде за хвилину-дві після оплати, тож три години — це свідомо багато:
- * ловимо «форзаца немає і не буде», а не «ще рендериться».
+ * ловимо «файлів немає і не буде», а не «ще рендериться». Поріг один на обидві
+ * друкарські ознаки — і на нестачу форзаца, і на нестачу аркушів, — бо питання
+ * в них теж одне: рендер уже мав відбутися.
  */
-export const FORZAT_GRACE_HOURS = 3;
+export const PRINT_GRACE_HOURS = 3;
+
+/**
+ * ЩО САМЕ ВІДРЕНДЕРИЛОСЯ ПО КОЖНОМУ ВИРОБУ ОКРЕМО.
+ *
+ * Досі обидві друкарські ознаки дивилися на імена файлів УСЬОГО замовлення
+ * однією купою, і на замовленні з кількома книгами це відповідало неправду в
+ * обидва боки. Чужий `f1.jpg` ховав нестачу свого, а книга, у якої не зібралася
+ * половина аркушів, узагалі не мала кому про себе сказати.
+ *
+ * `orderedSheets` береться з рядка кошика, а не з макета, і це свідомо. У
+ * друкарський набір іде рівно стільки пронумерованих аркушів, скільки людина
+ * замовила: у старій моделі форзаци сидять усередині цього числа, у новій вони
+ * зайві сторінки з власними іменами f1 та f2. Рядок кошика до того ж не
+ * змінюється, коли клієнтка править макет після рендеру, тож ознака не
+ * спрацьовує на те, що файли просто старші за макет — про це є окрема
+ * перевірка «Перевірити макет» в адмінці.
+ *
+ * `forzatExtra` читається з самого макета, бо ззовні ці дві моделі не
+ * розрізнити: і тревелбук із форзацами в нумерації, і журнал із двома
+ * порожніми форзацами дають однакову теку без f1 та f2. `null` означає, що
+ * макет не читали, і тоді про форзац не кажемо нічого — мовчання дешевше за
+ * хибну тривогу, якою вже відзначилося TM-001354.
+ */
+export type BookPrintState = {
+    projectId: string | null;
+    cartItemId: string | null;
+    /** Як назвати виріб у повідомленні. */
+    label: string;
+    /** Скільки аркушів замовлено — з рядка кошика. Нуль означає «не знаємо». */
+    orderedSheets: number;
+    /** Усі імена файлів саме цього виробу, включно з обкладинкою. */
+    files: string[];
+    /** Чи несе макет форзаци ОКРЕМИМИ аркушами f1/f2. null — макет не читали. */
+    forzatExtra: boolean | null;
+    /** За які форзаци заплачено в цьому рядку кошика. */
+    paid: ForzatSides;
+};
+
+/**
+ * ЩО В ТЕЦІ Є АРКУШЕМ КНИГИ.
+ *
+ * Перелічено за формою імені, а не «усе, крім обкладинки». Різниця не
+ * теоретична: у теці лежать і вставки на обкладинку на кшталт `akryl_1.jpg`, і
+ * згенеровані сервером `cover_bw.jpg` та `insert_photo.jpg`, і кожна з них
+ * додавала б до лічильника аркуш, якого в книзі немає. На TM-001094 саме такий
+ * `akryl_1.jpg` робив із вісімнадцяти розворотів девʼятнадцять.
+ *
+ * Форм рівно чотири: `01.jpg` — нинішня нумерація, `01_page.jpg` — та сама
+ * сторінка за старим іменем, `01_spread.jpg` — розворот фотокниги, `f1`/`f2` —
+ * форзаци.
+ */
+const SHEET_NAME_RE = /^(\d+(_page|_spread)?|f1|f2)\.jpe?g$/i;
+
+/** Аркуші цього виробу. f1 та f2 рахуються аркушами, обкладинка — ні. */
+export function sheetFilesOf(book: BookPrintState): string[] {
+    return (book.files || []).filter(n => SHEET_NAME_RE.test(String(n || '').trim()));
+}
+
+/**
+ * СКІЛЬКИ ФАЙЛІВ МАЄ ДАТИ ЦЕЙ ВИРІБ.
+ *
+ * Питання не таке просте, як «скільки сторінок замовили», бо одиниця в різних
+ * виробів різна. Тревелбук і журнал ріжуться на сторінки, тож файл дорівнює
+ * сторінці. Фотокнига експортується розворотами, тож файл дорівнює ДВОМ
+ * сторінкам, і порівняння з кількістю сторінок оголошувало б неповним кожен
+ * справний фотокнижковий набір: 23.09.2026 таких було шість із двадцяти шести.
+ *
+ * Одиницю питаємо в самих файлів, а не вгадуємо зі slug: ім'я `NN_spread.jpg`
+ * каже про неї прямо і не може розійтися з тим, що насправді лежить у теці.
+ */
+export function expectedSheetCount(book: BookPrintState): number {
+    if (!(book.orderedSheets > 0)) return 0;
+    const sheets = sheetFilesOf(book);
+    const spreads = sheets.filter(n => /_spread\.jpe?g$/i.test(n)).length;
+    // Розворотами — тільки коли розворотами зібрано ВЕСЬ виріб. Мішанина
+    // означає, що ми чогось не розуміємо, і тоді краще порахувати сторінками:
+    // помилитися в бік мовчання дешевше, ніж у бік хибної тривоги.
+    const bySpreads = spreads > 0 && spreads === sheets.length;
+    return bySpreads ? Math.ceil(book.orderedSheets / 2) : book.orderedSheets;
+}
+
+/**
+ * Чи зібрано цей набір ЩЕ ДО ТОГО, як форзаци дістали власні імена.
+ *
+ * Імена `NN_page.jpg` рендер перестав писати 11.08.2026, коли друкарня
+ * попросила `f1.jpg` та `f2.jpg` окремо. У наборах, старших за ту дату,
+ * форзаци пішли звичайними пронумерованими аркушами, і вимагати від них
+ * окремих файлів означає кричати на те, що давно надруковано як слід:
+ * TM-001110 від 2 серпня і TM-001091 від 26 липня — саме такі.
+ */
+export function isLegacyPageNaming(book: BookPrintState): boolean {
+    return sheetFilesOf(book).some(n => /_page\.jpe?g$/i.test(n));
+}
 
 export type OrderRow = {
     id: string;
@@ -180,24 +277,38 @@ export function findLostOrderSignals(input: {
     crmCandidateSince: Map<string, string>;
     /** Ідентифікатори рядків кошика, за якими макет у базі вже є. */
     layoutCartIds?: Set<string>;
-    /** Імена експортованих файлів кожного замовлення — для перевірки форзаца. */
-    exportNamesByOrder?: Map<string, string[]>;
+    /** Що відрендерилося по кожному виробу окремо — обидві друкарські ознаки. */
+    booksByOrder?: Map<string, BookPrintState[]>;
+    /**
+     * Замовлення, які потрапили сюди поза вікном — лише тому, що досі чекають
+     * друку. Для них перевіряються ТІЛЬКИ друкарські ознаки.
+     *
+     * Часові ознаки на них не мають сенсу і були б шкідливі. Скарга на лист,
+     * якого не надіслали в липні, вже нікому не допоможе, а двісті таких скарг
+     * за один прохід — це рівно той сторож, якого вимикають.
+     */
+    printOnlyOrderIds?: Set<string>;
     now: number;
 }): LostSignal[] {
     const out: LostSignal[] = [];
     const layoutCartIds = input.layoutCartIds || new Set<string>();
-    const exportNamesByOrder = input.exportNamesByOrder || new Map<string, string[]>();
+    const booksByOrder = input.booksByOrder || new Map<string, BookPrintState[]>();
+    const printOnly = input.printOnlyOrderIds || new Set<string>();
 
     for (const o of input.orders) {
         const orderNumber = o.order_number || '(без номера)';
         const base = { orderId: o.id, orderNumber, createdAt: o.created_at };
         const attrs = o.custom_attributes || {};
 
+        // Замовлення, яке потрапило сюди лише тому, що досі чекає друку,
+        // перевіряється тільки друкарськими ознаками — дивіться `printOnly`.
+        const timeSignals = !printOnly.has(o.id);
+
         // 1. Фото не доїхали. Обидва числа пише саме оформлення, тож їх
         //    відсутність означає лише те, що замовлення з іншого потоку.
         const submitted = num(attrs.photos_submitted);
         const attached = num(attrs.photos_attached);
-        if (submitted > 0 && attached < submitted) {
+        if (timeSignals && submitted > 0 && attached < submitted) {
             const lost = submitted - attached;
             out.push({
                 ...base,
@@ -209,7 +320,7 @@ export function findLostOrderSignals(input: {
         // 2. Заявка з дизайнером без товару. Нуль гривень сам по собі не
         //    ознака — у заявці ціни ще й не мусить бути. Ознакою є нуль РАЗОМ
         //    із порожнім товаром: тоді ми не знаємо навіть, про що йдеться.
-        if (o.with_designer) {
+        if (timeSignals && o.with_designer) {
             const first = Array.isArray(o.items) ? o.items[0] : null;
             const slug = String(first?.product_slug || '').trim();
             const hasOptions = first?.options && typeof first.options === 'object'
@@ -227,7 +338,8 @@ export function findLostOrderSignals(input: {
         //    куди писати: дзеркалена копія з CRM листів і не мусить мати.
         const age = hoursSince(o.created_at, input.now);
         if (
-            o.customer_email
+            timeSignals
+            && o.customer_email
             && o.source !== 'keycrm'
             && age >= EMAIL_GRACE_HOURS
             && !input.emailedOrderIds.has(o.id)
@@ -243,7 +355,7 @@ export function findLostOrderSignals(input: {
         //    двома копіями однієї книги: у замовленні дві різні тревелбуки, а
         //    привʼязаний макет був один, і дізналися ми про це від менеджерки,
         //    яка звіряла картку руками.
-        if (!o.with_designer && age >= LAYOUT_GRACE_HOURS) {
+        if (timeSignals && !o.with_designer && age >= LAYOUT_GRACE_HOURS) {
             const orphans = bookLinesWithoutLayout(o.items, layoutCartIds);
             for (const line of orphans) {
                 out.push({
@@ -254,39 +366,100 @@ export function findLostOrderSignals(input: {
             }
         }
 
-        // 6. Оплачений форзац без файлу.
+        // 6 і 7. Друкарський набір: нестача форзаца і нестача аркушів.
         //
-        //    Сервіс рендеру навмисно не вантажить ПОРОЖНІЙ форзац: друкарня
-        //    просила не отримувати чистих аркушів. Коли за форзац заплатили,
-        //    той самий пропуск стає тихою втратою — у теці просто немає f1, а
-        //    рядок про це лишається в консолі Railway, куди ніхто не дивиться.
-        //    Шістдесятиденний прохід по живій базі дав два замовлення,
-        //    TM-001352 і TM-001349, обидва вже в статусі confirmed.
+        //    Обидві ознаки дивляться ПО ВИРОБАХ, а не по замовленню однією
+        //    купою. Купа відповідала неправду в обидва боки: на TM-001354 вона
+        //    підняла хибну тривогу про форзац, бо в тих тревелбуках форзаци
+        //    йдуть пронумерованими аркушами і файлів f1 та f2 у них не буває
+        //    взагалі, а на замовленні з пʼятьма книгами чужий f1 ховав би
+        //    нестачу свого.
         //
-        //    Сигнал мовчить, поки в замовленні НЕМАЄ жодного експорту: макет,
-        //    який ще не відрендерився або не відрендерився взагалі, — це
-        //    ознака no_layout, і кричати про нього двічі означає навчити не
-        //    читати.
-        const exportNames = exportNamesByOrder.get(o.id);
-        if (exportNames && exportNames.length && age >= FORZAT_GRACE_HOURS && Array.isArray(o.items)) {
-            for (const it of o.items) {
-                const missing = missingForzatFiles(paidForzatSides((it as any)?.options), exportNames);
+        //    Обидві мовчать, поки в замовленні НЕМАЄ жодного експорту: макет,
+        //    який ще не рендерився, — це ознака no_layout, і кричати про нього
+        //    двічі означає навчити не читати.
+        const books = booksByOrder.get(o.id) || [];
+        const orderRendered = books.some(b => (b.files || []).length > 0);
+        if (orderRendered && age >= PRINT_GRACE_HOURS) {
+            // 6. Оплачений форзац без файлу.
+            //
+            //    Сервіс рендеру навмисно не вантажить ПОРОЖНІЙ форзац:
+            //    друкарня просила не отримувати чистих аркушів. Коли за форзац
+            //    заплатили, той самий пропуск стає тихою втратою — у теці
+            //    просто немає f1, а рядок про це лишається в консолі Railway,
+            //    куди ніхто не дивиться. TM-001352 оплатило обидва форзаци й
+            //    отримало тільки f2, TM-001349 оплатило обидва й не отримало
+            //    жодного.
+            //
+            //    Питаємо лише там, де форзац МАЄ бути окремим файлом. Макет,
+            //    у якому форзаци сидять усередині нумерації, окремих файлів не
+            //    дає за будовою, і вимагати їх від нього означає кричати на
+            //    справний набір.
+            const shortfalls: string[] = [];
+            for (const b of books) {
+                if (b.forzatExtra !== true) continue;
+                // Набір, зібраний до 11.08.2026, форзаців окремими файлами не
+                // має за визначенням — там вони пронумеровані разом зі
+                // сторінками.
+                if (isLegacyPageNaming(b)) continue;
+                const missing = missingForzatFiles(b.paid, sheetFilesOf(b));
                 if (!missing.length) continue;
+                shortfalls.push(books.length > 1
+                    ? `«${b.label}»: ${forzatShortfallLine(missing)}`
+                    : forzatShortfallLine(missing));
+            }
+            // Одна скарга на замовлення, скільки б виробів вона не називала:
+            // два однакові рядки поспіль читаються як помилка сторожа, а не як
+            // дві втрати.
+            if (shortfalls.length) {
+                out.push({ ...base, kind: 'no_forzat', detail: shortfalls.join('; ') });
+            }
+
+            // 7. Аркушів менше, ніж замовлено.
+            //
+            //    Рендер іде розворотами, і розворот, який упав, пропускається
+            //    цілком — разом з обома своїми сторінками. Помилки при цьому
+            //    немає ніде: у теці просто менше файлів, картка виглядає
+            //    справною, і дізнаєшся про це аж у друкарні. TM-001244 поїхало
+            //    б без аркушів 01, 04, 05 і без початкового форзаца, а
+            //    TM-001354 — трьома книгами з чотирьох, одна з яких мала саму
+            //    лише обкладинку.
+            //
+            //    Кажемо тільки про НЕСТАЧУ. Надлишок теж буває — старий рендер
+            //    нумерував форзаци разом зі сторінками, тож у теці лежить на
+            //    два аркуші більше, — але надлишок себе показує, а тиха втрата
+            //    ні, і звірку зайвого вже робить «Перевірити макет».
+            //
+            //    Мовчимо там, де не впізнали макет виробу. Нуль файлів у такої
+            //    позиції означає не втрату, а те, що ми не змогли зіставити
+            //    файли з книгою: на TM-001342 рядки кошика не несуть ключа, і
+            //    порахувати нуль аркушів замість двадцяти було б наклепом на
+            //    справний набір. Книгу зовсім без макета ловить no_layout.
+            const short = books
+                .filter(b => b.projectId
+                    && b.orderedSheets > 0
+                    && sheetFilesOf(b).length < expectedSheetCount(b))
+                .map(b => {
+                    const have = sheetFilesOf(b).length;
+                    const want = expectedSheetCount(b);
+                    return books.length > 1
+                        ? `«${b.label}»: ${have} аркушів замість ${want}`
+                        : `у теці ${have} аркушів, а мало бути ${want}`;
+                });
+            if (short.length) {
                 out.push({
                     ...base,
-                    kind: 'no_forzat',
-                    detail: forzatShortfallLine(missing),
+                    kind: 'short_print',
+                    detail: books.length > 1
+                        ? `набір неповний у ${short.length} виробах — ${short.join('; ')}`
+                        : short[0],
                 });
-                // Одна скарга на замовлення. Форзац оплачують раз, а позицій у
-                // кошику буває кілька, і два однакові рядки поспіль читаються
-                // як помилка сторожа, а не як дві втрати.
-                break;
             }
         }
 
         // 4. Висить кандидатом на перенесення. Крон пробує щопівгодини, тож
         //    шість годин — це дванадцять невдалих спроб поспіль.
-        const since = input.crmCandidateSince.get(o.id);
+        const since = timeSignals ? input.crmCandidateSince.get(o.id) : undefined;
         if (since) {
             const waiting = hoursSince(since, input.now);
             if (waiting >= CRM_STALE_HOURS) {
@@ -369,6 +542,7 @@ const TITLES: Record<SignalKind, string> = {
     not_in_crm: 'Замовлення не переноситься в CRM',
     no_layout: 'Книга без макета',
     no_forzat: 'Оплачений форзац без файлу',
+    short_print: 'Неповний набір для друку',
 };
 
 function kyivTime(iso: string | null): string {
@@ -419,6 +593,166 @@ type Sender = (text: string) => Promise<boolean>;
  */
 const WINDOW_HOURS = 36;
 
+/** Стовпці замовлення, які читає сторож. Один перелік на обидва читання. */
+const ORDER_COLUMNS =
+    'id, order_number, created_at, with_designer, total, items, customer_email, customer_name, source, custom_attributes';
+
+/**
+ * Сторінка за сторінкою, бо `orders` росте від роботи магазину (гоча 14).
+ *
+ * Обидва читання сторожа зараз дають сотні рядків, а не тисячі, але саме
+ * «подивитися на сьогоднішню кількість» нас уже підводило. Цикл коштує один
+ * зайвий запит і знімає питання назавжди.
+ */
+async function readAllOrders(query: any): Promise<OrderRow[]> {
+    const PAGE = 1000;
+    const out: OrderRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+        const { data, error } = await query.range(from, from + PAGE - 1);
+        if (error) throw error;
+        const rows = (data || []) as OrderRow[];
+        out.push(...rows);
+        if (rows.length < PAGE) return out;
+    }
+}
+
+/** Скільки аркушів названо в рядку кошика. Нуль означає «не сказано». */
+export function orderedSheetsOfLine(line: unknown): number {
+    if (!line || typeof line !== 'object') return 0;
+    const opts = (line as any).options;
+    const raw = opts && typeof opts === 'object' ? String(opts['Сторінок'] ?? '') : '';
+    const n = parseInt(raw.match(/\d+/)?.[0] || '0', 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+/**
+ * Що відрендерилося по кожному виробу кожного замовлення.
+ *
+ * ЧОМУ МАКЕТИ ЧИТАЮТЬСЯ НЕ ЗАВЖДИ. `pages_data` важить сотні кілобайтів на
+ * книгу, а крон ходить щопівгодини, тож тягнути їх на всі замовлення вікна
+ * означало б десятки мегабайтів заради одного числа. Макет потрібен рівно для
+ * одного питання — чи несе цей виріб форзаци окремими аркушами, — і питання це
+ * має сенс лише там, де за форзац заплатили. Таких замовлень 23.09.2026 було
+ * двадцять із двохсот девʼяноста восьми.
+ *
+ * Нестача аркушів макета не потребує взагалі: скільки їх мало бути, каже рядок
+ * кошика.
+ */
+async function readBookPrintStates(
+    supabase: any,
+    orders: OrderRow[],
+): Promise<Map<string, BookPrintState[]>> {
+    const out = new Map<string, BookPrintState[]>();
+    if (!orders.length) return out;
+
+    // Файли по замовленнях. `project_id` проставляє реєстрація експорту; у
+    // старих рядках його немає, тож виріб упізнаємо ще й зі шляху.
+    const filesByOrder = new Map<string, { projectId: string | null; name: string }[]>();
+    const { data: exports } = await supabase
+        .from('order_files')
+        .select('order_id, project_id, file_name, file_path')
+        .eq('file_type', 'export')
+        .in('order_id', orders.map(o => o.id))
+        .limit(5000);
+    for (const row of exports || []) {
+        const oid = String(row?.order_id || '');
+        if (!oid) continue;
+        const list = filesByOrder.get(oid) || [];
+        list.push({
+            projectId: row?.project_id
+                ? String(row.project_id)
+                : projectIdFromExportPath(String(row?.file_path || '')),
+            name: String(row?.file_name || ''),
+        });
+        filesByOrder.set(oid, list);
+    }
+
+    // Макети тих замовлень, де за форзац заплатили І вже щось відрендерилося.
+    const needDesign = new Set<string>();
+    for (const o of orders) {
+        if (!filesByOrder.get(o.id)?.length) continue;
+        if (!Array.isArray(o.items)) continue;
+        const paid = o.items.some((it: any) => {
+            const s = paidForzatSides(it?.options);
+            return s.first || s.last;
+        });
+        if (paid) needDesign.add(o.id);
+    }
+    const designsByOrder = new Map<string, any[]>();
+    if (needDesign.size) {
+        const { data: projects } = await supabase
+            .from('projects')
+            .select('id, order_id, cart_payload, pages_data, overlays_data, product_type')
+            .in('order_id', [...needDesign])
+            .limit(200);
+        for (const p of projects || []) {
+            const oid = String(p?.order_id || '');
+            if (!oid) continue;
+            const list = designsByOrder.get(oid) || [];
+            list.push(p);
+            designsByOrder.set(oid, list);
+        }
+    }
+
+    for (const o of orders) {
+        const files = filesByOrder.get(o.id) || [];
+        if (!files.length) continue;
+        const designs = designsByOrder.get(o.id) || [];
+        const items: any[] = Array.isArray(o.items) ? o.items : [];
+        const books: BookPrintState[] = [];
+
+        for (const it of items) {
+            const slug = String(it?.slug || '').toLowerCase();
+            if (!slug || !BOOK_SLUG_RE.test(slug)) continue;
+            const cartItemId = String(it?.cart_item_id || '').trim() || null;
+            // Макет шукається ПО КЛЮЧУ рядка (гоча 18). Без ключа пара
+            // однозначна лише тоді, коли і позиція, і макет на замовленні одні.
+            const design = cartItemId
+                ? designs.find(d => String(d?.cart_payload?.id || '').trim() === cartItemId)
+                : (items.length === 1 && designs.length === 1 ? designs[0] : undefined);
+            const projectId = design ? String(design.id) : null;
+            // Файли виробу. Коли макет один на все замовлення, беремо всі —
+            // інакше старі рядки без `project_id` лишили б виріб без файлів і
+            // це прочиталося б як повна втрата набору.
+            const mine = (projectId
+                ? files.filter(f => f.projectId === projectId)
+                : (designs.length <= 1 && items.length === 1 ? files : []));
+            books.push({
+                projectId,
+                cartItemId,
+                label: String(it?.product_name || slug),
+                orderedSheets: orderedSheetsOfLine(it),
+                files: mine.map(f => f.name),
+                forzatExtra: design ? hasForzatExtraShape(slug, design) : null,
+                paid: paidForzatSides(it?.options),
+            });
+        }
+        if (books.length) out.set(o.id, books);
+    }
+    return out;
+}
+
+/**
+ * Чи несе цей макет форзаци ОКРЕМИМИ аркушами f1 та f2.
+ *
+ * Та сама умова, за якою вирішує сервіс рендеру: товар ріжеться на сторінки, і
+ * змістових сторінок на дві більше, ніж замовлено в конфігу макета. Розійтися
+ * їм не можна — розбіжність означала б або мовчання на справжній нестачі, або
+ * крик на набір, у якому форзаци просто пронумеровані разом зі сторінками.
+ */
+function hasForzatExtraShape(slug: string, design: any): boolean {
+    const splitToPages = ['travel', 'magazine', 'journal', 'zhurnal', 'fotozhurnal']
+        .some(k => slug.includes(k));
+    if (!splitToPages) return false;
+    const pages = Array.isArray(design?.pages_data) ? design.pages_data : [];
+    const contentPages = Math.max(0, pages.length - 1);
+    const ordered = parseInt(
+        String(design?.overlays_data?.config?.selectedPageCount ?? '').match(/\d+/)?.[0] || '0',
+        10,
+    ) || 0;
+    return ordered > 0 && contentPages >= ordered + 2;
+}
+
 /**
  * Повний прохід сторожа.
  *
@@ -434,19 +768,57 @@ export async function checkLostOrderSignals(
     const nowIso = new Date(now).toISOString();
     const since = new Date(now - WINDOW_HOURS * 3600_000).toISOString();
 
-    // Вікно на добу з гаком — це десятки рядків, не тисячі, тож свідомий ліміт
-    // замість циклу з .range() (гоча 14). Ліміт навмисно вищий за будь-який
-    // реальний день, щоб «обрізало» ніколи не означало «не побачили».
-    const { data: ordersRaw, error } = await supabase
-        .from('orders')
-        .select('id, order_number, created_at, with_designer, total, items, customer_email, customer_name, source, custom_attributes')
-        .gte('created_at', since)
-        .not('order_status', 'in', '("cancelled","refunded")')
-        .order('created_at', { ascending: false })
-        .limit(500);
-    if (error) throw error;
+    const windowOrders = await readAllOrders(
+        supabase
+            .from('orders')
+            .select(ORDER_COLUMNS)
+            .gte('created_at', since)
+            .not('order_status', 'in', '("cancelled","refunded")')
+            .order('created_at', { ascending: false }),
+    );
 
-    const orders: OrderRow[] = ordersRaw || [];
+    /**
+     * ЗАМОВЛЕННЯ, ЯКІ ЩЕ НЕ ПЕРЕДАНО В ДРУК, ДИВИМОСЯ БЕЗ ОГЛЯДУ НА ВІК.
+     *
+     * Вікно на добу з гаком правильне для ознак, які живуть у годинах: лист
+     * або пішов одразу, або не піде вже ніколи. Друкарський набір живе інакше.
+     * TM-001244 стоїть неповним із 28 серпня, TM-001091 з 26 липня, і обидва
+     * досі чекають друку — а сторож їх не бачив жодного разу, бо на момент,
+     * коли друкарські ознаки зʼявилися, обидва давно випали з доби.
+     *
+     * Тому другий список: підтверджене, ще не у виробництві, ще не відправлене.
+     * Замовлення, яке вже поїхало, звідси випадає само, і минуле нас не
+     * наздоганяє нескінченно.
+     *
+     * Для цих замовлень перевіряються ТІЛЬКИ друкарські ознаки. Часові —
+     * відсутність листа, черга в CRM, недовантажені фото — лишаються у вікні:
+     * скарга на лист, якого не надіслали в липні, нікому вже не допоможе, а
+     * сторож, який кричить вовк, вимикають.
+     *
+     * Міряно 23.09.2026: 292 такі замовлення, з них 30 і так у вікні, з
+     * оплаченим форзацом двадцять, із готовими файлами тридцять сім.
+     */
+    const pendingPrintOrders = await readAllOrders(
+        supabase
+            .from('orders')
+            .select(ORDER_COLUMNS)
+            .eq('order_status', 'confirmed')
+            .is('production_at', null)
+            .is('shipped_at', null)
+            .is('delivered_at', null)
+            .in('production_status', ['pending', 'new'])
+            .order('created_at', { ascending: false }),
+    );
+
+    const byId = new Map<string, OrderRow>();
+    for (const o of windowOrders) if (o?.id) byId.set(o.id, o);
+    const printOnlyOrderIds = new Set<string>();
+    for (const o of pendingPrintOrders) {
+        if (!o?.id || byId.has(o.id)) continue;
+        byId.set(o.id, o);
+        printOnlyOrderIds.add(o.id);
+    }
+    const orders: OrderRow[] = [...byId.values()];
 
     // За якими з них лист уже є. Спроба, навіть невдала, знімає підозру, що
     // листа не шле НІХТО, — а саме це ми тут і ловимо.
@@ -487,25 +859,7 @@ export async function checkLostOrderSignals(
         }
     }
 
-    // Імена експортованих файлів — щоб побачити, чи є f1/f2 там, де за форзац
-    // заплатили. Читаємо тільки ім'я і замовлення: розмір, шлях і решта тут ні
-    // до чого, а на добовому вікні це десятки рядків.
-    const exportNamesByOrder = new Map<string, string[]>();
-    if (orders.length) {
-        const { data: exports } = await supabase
-            .from('order_files')
-            .select('order_id, file_name')
-            .eq('file_type', 'export')
-            .in('order_id', orders.map(o => o.id))
-            .limit(1000);
-        for (const row of exports || []) {
-            const oid = String(row?.order_id || '');
-            if (!oid) continue;
-            const list = exportNamesByOrder.get(oid) || [];
-            list.push(String(row?.file_name || ''));
-            exportNamesByOrder.set(oid, list);
-        }
-    }
+    const booksByOrder = await readBookPrintStates(supabase, orders);
 
     // Черга на перенесення: коли кожного кандидата побачили вперше.
     const { data: queueRow } = await supabase
@@ -520,7 +874,8 @@ export async function checkLostOrderSignals(
         emailedOrderIds,
         crmCandidateSince: new Map(Object.entries(queue)),
         layoutCartIds,
-        exportNamesByOrder,
+        booksByOrder,
+        printOnlyOrderIds,
         now,
     });
 
