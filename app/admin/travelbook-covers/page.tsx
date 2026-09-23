@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Pipette, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { Archive, Download, Loader2, Pipette, Plus, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { coverArtworkFit, type CoverArtworkFit } from '@/lib/print/cover-fold';
+import { coverFileName, coverFileNames } from '@/lib/admin/cover-file-name';
 import { sampleCoverBackgroundColor } from '@/lib/editor/cover-bg-color';
 
 /**
@@ -224,6 +225,40 @@ export default function TravelbookCoversPage() {
     }
   }, [form, covers, load]);
 
+  /**
+   * Скачування оригіналу.
+   *
+   * Через blob, а не простим посиланням: атрибут download браузер ігнорує на
+   * чужому домені, тож посилання просто відкрило б картинку у вкладці замість
+   * зберегти її під потрібною назвою. Кошик публічний і віддає CORS, тож
+   * звичайний fetch тут працює.
+   */
+  const saveBlob = (blob: Blob, name: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const downloadOne = useCallback(async (cover: Cover) => {
+    setDownloadingId(cover.id); setError('');
+    try {
+      const r = await fetch(cover.image_url);
+      if (!r.ok) throw new Error(`сховище відповіло ${r.status}`);
+      saveBlob(await r.blob(), coverFileName(cover));
+    } catch (e: any) {
+      setError(`Не вдалося скачати «${cover.name}»: ${String(e?.message || e)}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
+
+
   const remove = useCallback(async (cover: Cover) => {
     if (!confirm(`Видалити «${cover.name}» з каталогу? Файл у сховищі лишиться.`)) return;
     setSavingId(cover.id);
@@ -249,6 +284,68 @@ export default function TravelbookCoversPage() {
   }, [covers, search, filter]);
 
   const withoutColor = covers.filter(c => !HEX.test(String(c.background_color || ''))).length;
+
+  /**
+   * Архів з усіх обкладинок ПОТОЧНОГО фільтра.
+   *
+   * Саме поточного, а не всіх ста: сто файлів це близько 240 МБ, які браузер
+   * тримає в памʼяті цілими, поки збирає архів. Фільтр тут не примха
+   * інтерфейсу, а спосіб не просити браузер про чверть гігабайта, коли потрібні
+   * лише країни.
+   *
+   * Стиснення вимкнене свідомо. PNG уже стиснутий, deflate над ним виграє
+   * відсотки і коштує хвилини процесорного часу на кожен файл.
+   *
+   * Файли тягнуться ПО ЧЕРЗІ. Сто паралельних запитів по два з половиною
+   * мегабайти це і стеля памʼяті вкладки, і зайвий шанс, що сховище почне
+   * відмовляти на півдорозі.
+   */
+  const [zipping, setZipping] = useState<{ done: number; total: number; bytes: number } | null>(null);
+  const downloadAll = useCallback(async () => {
+    const picked = filtered;
+    if (picked.length === 0) { setSummary({ tone: 'warn', text: 'За поточним фільтром немає жодної обкладинки.' }); return; }
+    const estimateMb = Math.round(picked.length * 2.4);
+    if (!confirm(`Зібрати архів із ${picked.length} обкладинок? Це приблизно ${estimateMb} МБ, які браузер спершу тримає в памʼяті.`)) return;
+
+    setSummary(null); setError('');
+    setZipping({ done: 0, total: picked.length, bytes: 0 });
+    const names = coverFileNames(picked);
+    const failed: string[] = [];
+    let bytes = 0;
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      for (let i = 0; i < picked.length; i++) {
+        try {
+          const r = await fetch(picked[i].image_url);
+          if (!r.ok) throw new Error(String(r.status));
+          const blob = await r.blob();
+          bytes += blob.size;
+          zip.file(names[i], blob);
+        } catch {
+          failed.push(picked[i].name);
+        }
+        setZipping({ done: i + 1, total: picked.length, bytes });
+      }
+      const added = picked.length - failed.length;
+      if (added === 0) {
+        setSummary({ tone: 'bad', text: 'Жоден файл не завантажився — архів не створено.' });
+        return;
+      }
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      saveBlob(blob, `travelbook-covers-${picked.length === covers.length ? 'usi' : 'vybirka'}-${added}.zip`);
+      setSummary({
+        tone: failed.length ? 'warn' : 'ok',
+        text: `В архіві ${added} з ${picked.length} обкладинок, ${(bytes / 1048576).toFixed(0)} МБ`
+          + (failed.length ? `. Не завантажилися: ${failed.slice(0, 8).join(', ')}${failed.length > 8 ? ` та ще ${failed.length - 8}` : ''}.` : '.'),
+      });
+    } catch (e: any) {
+      setSummary({ tone: 'bad', text: `Не вдалося зібрати архів: ${String(e?.message || e)}` });
+    } finally {
+      setZipping(null);
+    }
+  }, [filtered, covers.length]);
+
 
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto', fontFamily: 'sans-serif' }}>
@@ -282,6 +379,15 @@ export default function TravelbookCoversPage() {
             border: '1.5px solid #0369a1', background: '#fff', color: '#0369a1', cursor: bulk ? 'default' : 'pointer' }}>
           {bulk ? <Loader2 size={14} className="animate-spin" /> : <Pipette size={14} />}
           {bulk ? `Рахую ${bulk.done} з ${bulk.total}` : 'Підказати колір усім без кольору'}
+        </button>
+        <button onClick={downloadAll} disabled={!!zipping || loading || filtered.length === 0}
+          title="Архів з усіх обкладинок, які зараз показані фільтром"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+            border: '1.5px solid #16a34a', background: '#fff', color: '#16a34a', cursor: zipping ? 'default' : 'pointer' }}>
+          {zipping ? <Loader2 size={14} className="animate-spin" /> : <Archive size={14} />}
+          {zipping
+            ? `Збираю ${zipping.done} з ${zipping.total} · ${(zipping.bytes / 1048576).toFixed(0)} МБ`
+            : `Скачати всі (${filtered.length})`}
         </button>
         <button onClick={() => setAdding(a => !a)}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', background: '#1e2d7d', color: '#fff', cursor: 'pointer' }}>
@@ -429,7 +535,15 @@ export default function TravelbookCoversPage() {
                     {busy ? <Loader2 size={12} className="animate-spin" /> : <Pipette size={12} />}
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <button onClick={() => downloadOne(cover)} disabled={downloadingId === cover.id}
+                  title={`Скачати оригінал під назвою ${coverFileName(cover)}`}
+                  style={{ width: '100%', marginTop: 8, padding: '5px 6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                    border: '1px solid #e2e8f0', borderRadius: 5, background: '#f8fafc', fontSize: 10.5, fontWeight: 700, color: '#334155',
+                    cursor: downloadingId === cover.id ? 'default' : 'pointer' }}>
+                  {downloadingId === cover.id ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+                  Скачати оригінал
+                </button>
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                   <button onClick={() => patch(cover.id, { active: !cover.active })} disabled={busy}
                     style={{ flex: 1, padding: '4px 6px', border: '1px solid #e2e8f0', borderRadius: 5, background: '#fff', fontSize: 10.5, fontWeight: 700, color: cover.active ? '#16a34a' : '#94a3b8', cursor: 'pointer' }}>
                     {cover.active ? 'Активна' : 'Прихована'}
