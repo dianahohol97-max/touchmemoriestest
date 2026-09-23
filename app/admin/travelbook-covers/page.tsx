@@ -42,6 +42,7 @@ export default function TravelbookCoversPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [suggesting, setSuggesting] = useState<string | null>(null);
   const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [summary, setSummary] = useState<{ tone: 'ok' | 'warn' | 'bad'; text: string } | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<{ name: string; name_en: string; kind: 'city' | 'country'; file: File | null }>({
     name: '', name_en: '', kind: 'city', file: null,
@@ -65,7 +66,7 @@ export default function TravelbookCoversPage() {
   useEffect(() => { load(); }, [load]);
 
   /** Зберегти зміну однієї обкладинки. Порожній колір знімає значення. */
-  const patch = useCallback(async (id: string, fields: Partial<Cover>) => {
+  const patch = useCallback(async (id: string, fields: Partial<Cover>): Promise<boolean> => {
     setSavingId(id); setError('');
     try {
       const r = await fetch('/api/admin/travelbook-covers', {
@@ -76,8 +77,10 @@ export default function TravelbookCoversPage() {
       const body = await r.json();
       if (!r.ok) throw new Error(body?.error || 'Не вдалося зберегти');
       setCovers(prev => prev.map(c => (c.id === id ? body.cover : c)));
+      return true;
     } catch (e: any) {
       setError(String(e?.message || e));
+      return false;
     } finally {
       setSavingId(null);
     }
@@ -104,16 +107,41 @@ export default function TravelbookCoversPage() {
    */
   const suggestAllEmpty = useCallback(async () => {
     const targets = covers.filter(c => !HEX.test(String(c.background_color || '')));
-    if (targets.length === 0) { setError('Усі обкладинки вже мають колір.'); return; }
+    if (targets.length === 0) { setSummary({ tone: 'ok', text: 'Усі обкладинки вже мають колір — рахувати нема чого.' }); return; }
     if (!confirm(`Порахувати підказку для ${targets.length} обкладинок без кольору? Уже задані кольори лишаться як є.`)) return;
+
+    setSummary(null);
     setBulk({ done: 0, total: targets.length });
+    let written = 0;
+    const unreadable: string[] = [];
+    const notSaved: string[] = [];
     for (let i = 0; i < targets.length; i++) {
       const hex = await sampleCoverBackgroundColor(targets[i].image_url);
-      if (hex) await patch(targets[i].id, { background_color: hex });
+      if (!hex) unreadable.push(targets[i].name);
+      else if (await patch(targets[i].id, { background_color: hex })) written++;
+      else notSaved.push(targets[i].name);
       setBulk({ done: i + 1, total: targets.length });
     }
     setBulk(null);
     await load();
+
+    // ПРОГІН ЗАВЖДИ НАЗИВАЄ ЧИСЛА.
+    //
+    // Раніше невдале читання картинки просто пропускалося, і прогін, який не
+    // записав НІЧОГО, виглядав точнісінько як успішний: смужка «Рахую 100 зі
+    // 100» доходила до кінця і зникала. Це та сама поломка, про яку каже
+    // правило «тихо втрачене ніхто не помітить»: дані про невдачу були, і
+    // ніхто їх не бачив.
+    const parts = [`записано ${written} з ${targets.length}`];
+    if (unreadable.length) parts.push(`не вдалося прочитати картинку: ${unreadable.length}`);
+    if (notSaved.length) parts.push(`не збереглося: ${notSaved.length}`);
+    const failed = unreadable.concat(notSaved);
+    setSummary({
+      tone: written === targets.length ? 'ok' : written === 0 ? 'bad' : 'warn',
+      text: parts.join(', ')
+        + (failed.length ? `. Не вийшло: ${failed.slice(0, 8).join(', ')}${failed.length > 8 ? ` та ще ${failed.length - 8}` : ''}.` : '')
+        + (written === 0 ? ' Жоден колір не записано — картинки не читаються з цього браузера.' : ''),
+    });
   }, [covers, patch, load]);
 
   const addCover = useCallback(async () => {
@@ -267,6 +295,21 @@ export default function TravelbookCoversPage() {
           </button>
         </div>
       )}
+
+      {summary && (
+        <div style={{
+          marginBottom: 14, padding: '10px 12px', borderRadius: 8, fontSize: 12.5, lineHeight: 1.5,
+          background: summary.tone === 'ok' ? '#f0fdf4' : summary.tone === 'warn' ? '#fffbeb' : '#fef2f2',
+          border: `1px solid ${summary.tone === 'ok' ? '#bbf7d0' : summary.tone === 'warn' ? '#fde68a' : '#fecaca'}`,
+          color: summary.tone === 'ok' ? '#15803d' : summary.tone === 'warn' ? '#92400e' : '#b91c1c',
+        }}>
+          {summary.text}
+        </div>
+      )}
+
+      <div style={{ marginBottom: 12, fontSize: 12, color: '#64748b' }}>
+        Колір задано у {covers.length - withoutColor} з {covers.length} обкладинок.
+      </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Завантаження…</div>}
 
