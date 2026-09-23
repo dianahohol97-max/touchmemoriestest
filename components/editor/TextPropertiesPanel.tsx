@@ -45,6 +45,12 @@ export default function TextPropertiesPanel({ element, pageIndex }: TextProperti
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Шрифт
         </label>
+        {/* Georgia звідси прибрана 23.09.2026. Це системний шрифт Windows, якого
+            немає ні в нашому пакеті `public/editor-fonts/`, ні в контейнері
+            Railway, де знімається макет для друку: обраний тут, він друкувався
+            б системною зарубкою, різною на кожній машині. Макети, збережені з
+            ним раніше, відкриваються як відкривалися, і про підміну кажуть
+            перелік перед «Додати в кошик» та перевірка макетів в адмінці. */}
         <select
           value={element.fontFamily || 'Montserrat'}
           onChange={(e) => handleUpdate({ fontFamily: e.target.value })}
@@ -55,7 +61,6 @@ export default function TextPropertiesPanel({ element, pageIndex }: TextProperti
           <option value="Playfair Display" style={{ fontFamily: 'Playfair Display' }}>Playfair Display</option>
           <option value="Lato" style={{ fontFamily: 'Lato' }}>Lato</option>
           <option value="Roboto" style={{ fontFamily: 'Roboto' }}>Roboto</option>
-          <option value="Georgia" style={{ fontFamily: 'Georgia' }}>Georgia</option>
           <option value="Dancing Script" style={{ fontFamily: 'Dancing Script' }}>Dancing Script (cursive)</option>
           <option value="Oswald" style={{ fontFamily: 'Oswald' }}>Oswald</option>
         </select>

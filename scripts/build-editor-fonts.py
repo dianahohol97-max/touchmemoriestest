@@ -246,6 +246,7 @@ def main() -> None:
     # а `cyr` лишається тим, чим був, і тест пиняє, щоб `cyr: true` без
     # кирилиці більше не траплявся.
     with_cyrillic = sorted({f["family"] for f in faces if f["subset"] == "cyrillic"})
+    in_pack = sorted(served)
     scripts_ts = os.path.join(REPO, "lib", "editor", "font-scripts.ts")
     with open(scripts_ts, "w", encoding="utf-8") as fh:
         fh.write(
@@ -260,6 +261,18 @@ def main() -> None:
             " */\n"
             "export const FONTS_WITH_CYRILLIC: ReadonlySet<string> = new Set([\n"
             + "".join(f"  '{name}',\n" for name in with_cyrillic)
+            + "]);\n"
+            "\n"
+            "/**\n"
+            " * Усі родини, файли яких ми віддаємо самі.\n"
+            " *\n"
+            " * Родина поза цим переліком друкується системним шрифтом, хай би що\n"
+            " * стояло в макеті: у контейнері Railway немає ні Georgia, ні будь-чого\n"
+            " * іншого з Windows. Це не те саме, що «немає кирилиці» — там ідеться\n"
+            " * про частину тексту, а тут про весь.\n"
+            " */\n"
+            "export const FONTS_IN_PACK: ReadonlySet<string> = new Set([\n"
+            + "".join(f"  '{name}',\n" for name in in_pack)
             + "]);\n"
         )
 

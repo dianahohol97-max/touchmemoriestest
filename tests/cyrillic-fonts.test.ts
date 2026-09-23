@@ -6,6 +6,8 @@ import {
   collectCyrillicFallbacks,
   cyrillicFallbackLine,
   describeCyrillicFallback,
+  fallbackReason,
+  fontInPack,
 } from '@/lib/editor/cyrillic-fonts';
 import { FONT_DATA } from '@/lib/editor/constants';
 import { FONTS_WITH_CYRILLIC } from '@/lib/editor/font-scripts';
@@ -76,6 +78,40 @@ describe('коли текст надрукується не тим шрифто�
   });
 });
 
+describe('родина поза нашим набором', () => {
+  it('Georgia не входить у пакет, тож підміняється ЦІЛКОМ, а не частиною', () => {
+    // Це системний шрифт Windows, якого в контейнері Railway немає. Кирилиця й
+    // латиниця в ньому друкуються однаково чужою зарубкою, тому попередження
+    // спрацьовує і на «Our trip», де про кирилицю не йдеться зовсім.
+    expect(fontInPack('Georgia')).toBe(false);
+    expect(fallbackReason('Georgia', 'Привіт')).toBe('not-in-pack');
+    expect(fallbackReason('Georgia', 'Our trip 2026')).toBe('not-in-pack');
+  });
+
+  it('наша родина без кирилиці — це інший випадок і інші слова', () => {
+    expect(fontInPack('Lato')).toBe(true);
+    expect(fallbackReason('Lato', 'Привіт')).toBe('no-cyrillic');
+    expect(fallbackReason('Lato', 'Our trip')).toBeNull();
+  });
+
+  it('порожній напис не має шрифту, тож і попередження не має', () => {
+    expect(fallbackReason('Georgia', '   ')).toBeNull();
+    expect(fallbackReason('Georgia', '')).toBeNull();
+  });
+
+  it('стек шрифтів читається за першою родиною', () => {
+    expect(fontInPack('Montserrat, sans-serif')).toBe(true);
+    expect(fallbackReason("'Georgia', serif", 'Привіт')).toBe('not-in-pack');
+  });
+
+  it('кожна причина каже своє', () => {
+    expect(describeCyrillicFallback('Georgia', 'Привіт', 'not-in-pack'))
+      .toBe('шрифт Georgia не входить у наш набір — ці рядки («Привіт») надрукуються системним шрифтом');
+    expect(describeCyrillicFallback('Lato', 'Привіт', 'no-cyrillic'))
+      .toBe('шрифт Lato не має кирилиці — ці рядки («Привіт») надрукуються іншим шрифтом');
+  });
+});
+
 describe('обхід збереженого макета', () => {
   const pages = [
     { textBlocks: [{ id: 'cover-ignored', fontFamily: 'Lato', text: 'Привіт' }] }, // обкладинка — свій редактор
@@ -129,5 +165,18 @@ describe('обхід збереженого макета', () => {
   it('формулювання дослівне — воно однакове в конструкторі й в адмінці', () => {
     expect(describeCyrillicFallback('Lato', 'Наша подорож'))
       .toBe('шрифт Lato не має кирилиці — ці рядки («Наша подорож») надрукуються іншим шрифтом');
+  });
+
+  it('Georgia в макеті книжки потрапляє в той самий перелік', () => {
+    // Збережені макети з нею мають відкриватися й рендеритися, тож прибрати її
+    // з підбірки — це пів справи; друга половина в тому, щоб такий макет сказав
+    // про себе сам.
+    const found = collectCyrillicFallbacks(
+      [{}, { textBlocks: [{ id: 'g1', fontFamily: 'Georgia', text: 'Our trip' }] }],
+      null,
+    );
+    expect(found).toHaveLength(1);
+    expect(found[0].reason).toBe('not-in-pack');
+    expect(cyrillicFallbackLine(found)).toContain('не входить у наш набір');
   });
 });
