@@ -1878,8 +1878,8 @@ export default function BookLayoutEditor() {
       const previewsFit = approxPreviewBytes < 3_500_000;
       try {
         const data = previewsFit
-          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: p.storagePath || undefined }))
-          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, path: p.storagePath || undefined }));
+          ? photos.map(p => ({ id: p.id, preview: p.preview, width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, ...durablePathsOf(p) }))
+          : photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, focalX: p.focalX, focalY: p.focalY, hasFace: p.hasFace, ...durablePathsOf(p) }));
         sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(data));
       } catch {
         // sessionStorage quota exceeded. We can't fit full-size data URLs in
@@ -1896,7 +1896,7 @@ export default function BookLayoutEditor() {
         // setting src — and (b) would have softened photos visibly even if
         // it had run. We dropped both behaviours.)
         try {
-          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, path: p.storagePath || undefined }));
+          const meta = photos.map(p => ({ id: p.id, preview: '', width: p.width, height: p.height, name: p.name, ...durablePathsOf(p) }));
           sessionStorage.setItem('bookConstructorPhotos', JSON.stringify(meta));
         } catch { /* give up — user will need to re-upload after a hard refresh */ }
       }
@@ -4190,6 +4190,8 @@ export default function BookLayoutEditor() {
   // кожному колі: шість десятків розкодувань щохвилини вішають вкладку надійніше
   // за будь-яке повільне відкриття, яке ці копії мали вилікувати.
   const photoVariantTriedRef = useRef<Set<string>>(new Set());
+  /** Чи вже сказали людині, що фото не доїхали у сховище. Один раз за сесію. */
+  const photosLostWarnedRef = useRef(false);
   /**
    * Які копії фото вже існують — довідник, що переживає заміну масиву `photos`.
    *
@@ -4233,6 +4235,78 @@ export default function BookLayoutEditor() {
     if (previewPath) p.previewPath = previewPath;
     if (thumbPath) p.thumbPath = thumbPath;
     return { previewPath, thumbPath };
+  };
+  /**
+   * ДЕ ЛЕЖИТЬ ОРИГІНАЛ КОЖНОГО ФОТО — довідник тієї ж природи, що й сусідній.
+   *
+   * ЧОМУ РЕФ, А НЕ САМ ЗНІМОК. `storagePath` дописувався ПРЯМО в обʼєкт
+   * PhotoData повз setPhotos, рівно так, як колись дописувалися шляхи копій.
+   * Для копій це вже полікували довідником, для оригіналу — ні, хоча ціна
+   * помилки тут набагато вища: копію просто наріжуть удруге, а загублений
+   * шлях до оригіналу означає макет БЕЗ ЖОДНОГО файлу. `uploadOne` у такому
+   * разі не знаходить ні `storagePath`, ні живого джерела (у відновленій
+   * чернетці немає `originalFile`, а `blob:`-посилання з минулого життя
+   * сторінки вже відкликане) і повертає метадані без `path`. Рядок при цьому
+   * пишеться мовчки.
+   *
+   * Прохід по живій базі 23.09.2026: 102 макети, у яких ЖОДНЕ фото не має
+   * шляху. Найясніший слід — користувач 9179af0d 14.09: о 19:35 макет
+   * зберігся з 29 фото і 29 шляхами, а о 19:38 і 19:40 зʼявилися ще два рядки
+   * з тими самими 29 фото і нулем шляхів. Знімки нікуди не поділися, новий
+   * рядок просто перестав знати, де вони. До замовлення таке доходило пʼять
+   * разів у липні й один раз у серпні — серед них TM-001108, у якого фото на
+   * початковому форзаці немає у сховищі взагалі.
+   *
+   * Наповнюється з двох боків, як і довідник копій: ефект забирає шлях із
+   * кожного знімка, який його несе (у тому числі з `path` збереженого макета),
+   * а завантаження записує сюди щойно зроблений.
+   */
+  const photoStoragePathRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    for (const p of photos) {
+      const path = p.storagePath || p.path;
+      if (!path || photoStoragePathRef.current[p.id] === path) continue;
+      photoStoragePathRef.current[p.id] = path;
+    }
+  }, [photos]);
+  /**
+   * Шлях до оригіналу цього знімка: у ньому самому або в довіднику.
+   *
+   * Знайдене повертається НАЗАД у знімок — так усі читачі нижче бачать
+   * `storagePath` без жодної згадки про довідник, і жоден із них не треба
+   * переписувати.
+   */
+  const knownStoragePathOf = (p: PhotoData): string | undefined => {
+    const path = p.storagePath || p.path || photoStoragePathRef.current[p.id];
+    if (path && p.storagePath !== path) p.storagePath = path;
+    return path;
+  };
+  /** Пройтися по всьому масиву перед збереженням чи оформленням. */
+  const hydrateStoragePaths = (list: PhotoData[]) => { for (const p of list) knownStoragePathOf(p); };
+  /** Запамʼятати щойно завантажений оригінал так, щоб заміна масиву його не стерла. */
+  const rememberStoragePath = (p: PhotoData, path: string) => {
+    if (!path) return;
+    photoStoragePathRef.current[p.id] = path;
+    p.storagePath = path;
+  };
+  /**
+   * Довговічні шляхи знімка для знімка вкладки.
+   *
+   * У sessionStorage їде не тільки `path`, а й шляхи зменшених копій. Без них
+   * звичайне перезавантаження сторінки змушувало різати копії наново, хоча в
+   * сховищі вони вже лежали, — та сама подвійна робота, від якої лікувався
+   * довідник копій, тільки через інші двері.
+   */
+  const durablePathsOf = (p: PhotoData) => {
+    const path = p.storagePath || p.path || photoStoragePathRef.current[p.id];
+    const seen = photoVariantPathsRef.current[p.id];
+    const previewPath = p.previewPath || seen?.previewPath;
+    const thumbPath = p.thumbPath || seen?.thumbPath;
+    return {
+      ...(path ? { path } : {}),
+      ...(previewPath ? { previewPath } : {}),
+      ...(thumbPath ? { thumbPath } : {}),
+    };
   };
   /** Запамʼятати щойно зроблені копії так, щоб їх не загубила заміна масиву. */
   const rememberVariants = (p: PhotoData, made: { previewPath?: string; thumbPath?: string }) => {
@@ -4310,7 +4384,9 @@ export default function BookLayoutEditor() {
         return made;
       };
       const uploadOne = async (p: PhotoData) => {
-        const existingPath = p.storagePath as string | undefined;
+        // Довідник, а не саме поле: заміна масиву `photos` могла стерти слід
+        // про вже завантажений оригінал, і тоді фото їхало в макет без шляху.
+        const existingPath = knownStoragePathOf(p);
         if (existingPath) {
           const v = await ensureVariants(p, existingPath);
           return { id: p.id, name: p.name, width: p.width, height: p.height, path: existingPath, ...v };
@@ -4338,7 +4414,7 @@ export default function BookLayoutEditor() {
             console.warn('[persistDraft] photo upload failed', p.id, upErr.message);
             return { id: p.id, name: p.name, width: p.width, height: p.height };
           }
-          p.storagePath = path;
+          rememberStoragePath(p, path);
           const v = await ensureVariants(p, path, body);
           return { id: p.id, name: p.name, width: p.width, height: p.height, path, ...v };
         } catch (e) {
@@ -4357,6 +4433,38 @@ export default function BookLayoutEditor() {
           }
         };
         await Promise.all(Array.from({ length: Math.min(3, Math.max(1, photos.length)) }, worker));
+      }
+
+      /**
+       * МАКЕТ, У ЯКОМУ ЖОДНЕ ФОТО НЕ ПОТРАПИЛО В СХОВИЩЕ.
+       *
+       * Рядок пишеться однаково, є в нього шляхи чи немає, і саме ця тиша
+       * робила поломку невидимою: у базі 102 макети, де шляху не має жодне
+       * фото, і шість із них дійшли до замовлення. Найдорожчий — TM-001108,
+       * у якого фото з початкового форзаца немає у сховищі взагалі.
+       *
+       * Рядок ми однаково пишемо, і це свідомо: у ньому лежить розкладка,
+       * тексти й структура сторінок, тобто вся робота людини, крім самих
+       * файлів. Відмовити в записі означало б до втрати фото додати ще й
+       * втрату макета. Але мовчати тут не можна: людина єдина, хто може
+       * покласти знімки назад, і дізнатися про це вона мусить зараз, а не
+       * від менеджерки перед друком.
+       *
+       * Кажемо ОДИН раз за сесію. Автозбереження ходить щохвилини, і
+       * повідомлення на кожному колі читалося б як несправність редактора.
+       */
+      const placedPhotoIds = new Set<string>();
+      for (const pg of pages) for (const sl of (pg?.slots || [])) if (sl?.photoId) placedPhotoIds.add(sl.photoId);
+      const savedWithPath = uploadedPhotosMeta.filter(m => m?.path).length;
+      if (placedPhotoIds.size > 0 && savedWithPath === 0 && !photosLostWarnedRef.current) {
+        photosLostWarnedRef.current = true;
+        console.error('[persistDraft] жодне фото не має шляху у сховищі', {
+          photos: photos.length, placed: placedPhotoIds.size,
+        });
+        toast.error(
+          'Фотографії не збереглися у сховищі, тож макет поки без них. Додайте знімки ще раз — вони стануть на свої місця за назвою файлу.',
+          { duration: 12000 },
+        );
       }
 
       // Тип макета рахує resolveProjectType — ОДНА функція на весь проєкт.
@@ -4917,6 +5025,10 @@ export default function BookLayoutEditor() {
       // Live progress for the long part. The old overlay was wired only to the
       // permanently-disabled html2canvas branch, so this multi-minute upload
       // ran with zero feedback — the editor looked frozen.
+      // Спершу підтягуємо шляхи з довідника: інакше фото, чий слід загубила
+      // заміна масиву, поїде на повторне завантаження, а без живого джерела —
+      // узагалі без шляху.
+      hydrateStoragePaths(photos);
       const toUpload = photos.filter(p => !p.storagePath);
       if (toUpload.length > 0) {
         setUploadState({ active: true, done: 0, total: toUpload.length, failed: 0, orderId: uploadOrderId });
@@ -4939,7 +5051,7 @@ export default function BookLayoutEditor() {
             .from('photobook-uploads')
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
           if (!upErr) {
-            ph.storagePath = path;
+            rememberStoragePath(ph, path);
             setUploadState(prev => prev ? { ...prev, done: prev.done + 1 } : prev);
           } else {
             setUploadState(prev => prev ? { ...prev, failed: prev.failed + 1 } : prev);
@@ -5966,7 +6078,7 @@ export default function BookLayoutEditor() {
         // Belt-and-braces: accept `path` too (draft-restored photos carry it),
         // so a photo that is already in storage is never re-uploaded — and
         // never silently dropped when the re-upload can't find bytes.
-        const existingPath = (ph.storagePath || ph.path) as string | undefined;
+        const existingPath = knownStoragePathOf(ph);
         if (existingPath) {
           uploadedPhotosMeta[i].path = existingPath;
           // Зменшені копії для показу: якщо фото приїхало зі старої чернетки,
@@ -6005,7 +6117,7 @@ export default function BookLayoutEditor() {
             .upload(path, body, { cacheControl: '31536000', upsert: true, contentType: 'image/jpeg' });
           if (!upErr) {
             uploadedPhotosMeta[i].path = path;
-            ph.storagePath = path;
+            rememberStoragePath(ph, path);
             const v = await ensurePhotoVariants(sb, 'photobook-uploads', path, body, {
               display: ph.preview,
               thumb: ph.thumb,
