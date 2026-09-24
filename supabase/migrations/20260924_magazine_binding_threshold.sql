@@ -86,6 +86,36 @@ set translations = jsonb_set(
 where slug = 'personalized-glossy-magazine'
   and translations->'ro'->>'description' is not null;
 
+-- П'яте місце, знайдене вже на живій сторінці, а не пошуком по репозиторію:
+-- FAQ товару. Воно лежить окремою колонкою `faq` масивом JSONB із ключами
+-- `q` і `a` (не `question`/`answer`, на чому пошук спершу й промахнувся), і
+-- формулювання там третє за рахунком — «До 44 сторінок ми скріплюємо блок
+-- скобою». Перекладів у цього FAQ немає в жодній мові, тож рядок один.
+--
+-- Урок для наступного разу: широкий пошук по базі треба робити ДО правки, а
+-- не після. Перелік колонок, у яких може жити те саме число, довший за
+-- очікуваний — description, short_description, faq, specs, characteristics,
+-- features, translations, meta_description, h1, і це лише в `products`.
+update public.products
+set faq = (
+      select jsonb_agg(
+        case
+          when item->>'a' like '%До 44 сторінок ми скріплюємо блок скобою%'
+            then jsonb_set(item, '{a}', to_jsonb(replace(
+                   item->>'a',
+                   'До 44 сторінок ми скріплюємо блок скобою, а все, що більше, збираємо на клей,',
+                   'До 52 сторінок ми скріплюємо блок скобою, а все, що більше, збираємо на клей,'
+                 )))
+          else item
+        end
+        order by ord
+      )
+      from jsonb_array_elements(faq) with ordinality t(item, ord)
+    )
+where slug = 'personalized-glossy-magazine'
+  and jsonb_typeof(faq) = 'array'
+  and faq::text like '%До 44 сторінок ми скріплюємо блок скобою%';
+
 -- Перевірка після застосування: жодної згадки сорока чотирьох у жодній мові.
 -- select slug,
 --        description ~ 'сорока чотирьох' as uk_still_44,
