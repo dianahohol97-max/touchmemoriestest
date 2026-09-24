@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Gift, Search, Check, X, Calendar, AlertTriangle, Plus, Copy, ExternalLink } from 'lucide-react';
+import { Gift, Search, Check, X, Calendar, AlertTriangle, Plus, Copy, Eye, Download, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { generateCertificateHTML } from '@/lib/certificates/generateCertificate';
@@ -16,6 +16,7 @@ interface Certificate {
   format: 'electronic' | 'printed';
   recipient_name?: string;
   recipient_email?: string;
+  recipient_phone?: string;
   valid_from: string;
   valid_until: string;
   redeemed: boolean;
@@ -49,6 +50,8 @@ export default function CertificatesAdminPage() {
     sender_name: '', message: '', expires_at: '', source: 'manual', notes: '', sendEmail: false
   });
   const [savingCert, setSavingCert] = useState(false);
+  const [downloadingPng, setDownloadingPng] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const generateCode = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -66,27 +69,29 @@ export default function CertificatesAdminPage() {
     // (the table lib/certificates/generateCertificate.ts also writes to)
     // and mapped the legacy fields onto its schema: expires_at→valid_until,
     // status='active' is implicit when redeemed=false.
-    const { error } = await supabase.from('certificates').insert({
+    const recipientEmail = newCert.recipient_email.trim();
+    const recipientPhone = newCert.recipient_phone.trim();
+    const { data: created, error } = await supabase.from('certificates').insert({
       code: newCert.code,
       amount: newCert.amount,
       certificate_type: 'money',
       format: 'electronic',
       recipient_name: newCert.recipient_name || null,
-      recipient_email: newCert.recipient_email || null,
-      recipient_phone: newCert.recipient_phone || null,
+      recipient_email: recipientEmail || null,
+      recipient_phone: recipientPhone || null,
       purchaser_name: newCert.sender_name || null,
       message: newCert.message || null,
       valid_until: newCert.expires_at || null,
       source: newCert.source || null,
       notes: newCert.notes || null,
       redeemed: false,
-    });
+    }).select().single();
     setSavingCert(false);
-    if (error) { toast.error('Помилка: ' + error.message); return; }
+    if (error || !created) { toast.error('Помилка: ' + (error?.message || 'сертифікат не повернувся з бази')); return; }
 
     // "Create & send": actually email the recipient their certificate. This
     // was previously a no-op — the button label changed but no mail was sent.
-    if (newCert.sendEmail && newCert.recipient_email) {
+    if (newCert.sendEmail && recipientEmail.includes('@')) {
       try {
         const res = await fetch('/api/admin/send-certificate-email', {
           method: 'POST',
@@ -95,7 +100,7 @@ export default function CertificatesAdminPage() {
             code: newCert.code,
             amount: newCert.amount,
             recipient_name: newCert.recipient_name || null,
-            recipient_email: newCert.recipient_email,
+            recipient_email: recipientEmail,
             sender_name: newCert.sender_name || null,
             message: newCert.message || null,
             expires_at: newCert.expires_at || null,
@@ -114,6 +119,10 @@ export default function CertificatesAdminPage() {
       toast.success('Сертифікат створено!');
     }
     setShowCreateModal(false);
+    // Open the new certificate straight away — after a bare toast staff were
+    // dropped back to the list and couldn't tell where the certificate was.
+    setSelectedCertificate(created as Certificate);
+    setShowDetailsModal(true);
     setNewCert({ code: '', amount: 0, recipient_name: '', recipient_email: '', recipient_phone: '', sender_name: '', message: '', expires_at: '', source: 'manual', notes: '', sendEmail: false });
     fetchCertificates();
   };
@@ -149,6 +158,7 @@ export default function CertificatesAdminPage() {
           cert.code.toLowerCase().includes(query) ||
           cert.recipient_name?.toLowerCase().includes(query) ||
           cert.recipient_email?.toLowerCase().includes(query) ||
+          cert.recipient_phone?.toLowerCase().includes(query) ||
           cert.product_name?.toLowerCase().includes(query)
       );
     }
@@ -235,6 +245,81 @@ export default function CertificatesAdminPage() {
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
+  };
+
+  // Download the certificate as PNG: render the same HTML the «Переглянути»
+  // view shows into an offscreen iframe, then rasterize its .certificate node.
+  const handleDownloadPng = async (certificate: Certificate) => {
+    setDownloadingPng(true);
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-10000px';
+    iframe.style.top = '0';
+    iframe.style.width = '1200px';
+    iframe.style.height = '1000px';
+    iframe.style.border = '0';
+    try {
+      await new Promise<void>((resolve, reject) => {
+        iframe.onload = () => resolve();
+        iframe.onerror = () => reject(new Error('iframe load failed'));
+        iframe.srcdoc = generateCertificateHTML(certificate);
+        document.body.appendChild(iframe);
+      });
+      const doc = iframe.contentDocument;
+      if (!doc) throw new Error('немає документа');
+      if ((doc as any).fonts?.ready) await (doc as any).fonts.ready;
+      const node = doc.querySelector('.certificate') as HTMLElement | null;
+      if (!node) throw new Error('не знайдено блок сертифіката');
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('не вдалося створити PNG');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificate-${certificate.code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('PNG завантажено');
+    } catch (e: any) {
+      toast.error('Не вдалося завантажити PNG: ' + (e?.message || 'помилка'));
+    } finally {
+      iframe.remove();
+      setDownloadingPng(false);
+    }
+  };
+
+  // Re-send an existing certificate to the recipient's email.
+  const handleSendEmail = async (certificate: Certificate) => {
+    if (!certificate.recipient_email) return;
+    setSendingEmail(true);
+    try {
+      const res = await fetch('/api/admin/send-certificate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: certificate.code,
+          amount: certificate.amount,
+          recipient_name: certificate.recipient_name || null,
+          recipient_email: certificate.recipient_email,
+          sender_name: certificate.purchaser_name || null,
+          message: certificate.message || null,
+          expires_at: certificate.valid_until || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success(`Сертифікат надіслано на ${certificate.recipient_email}`);
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error('Лист не надіслано: ' + (j.error || 'помилка'));
+      }
+    } catch {
+      toast.error('Лист не вдалося надіслати');
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   if (loading) {
@@ -359,7 +444,7 @@ export default function CertificatesAdminPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Формат</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Дійсний до</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Статус</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Дії</th>
+                  <th className="sticky right-0 bg-stone-50 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.15)] px-6 py-3 text-left text-xs font-medium text-stone-500 uppercase tracking-wider">Дії</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200">
@@ -368,7 +453,7 @@ export default function CertificatesAdminPage() {
                   const isActive = !cert.redeemed && new Date(cert.valid_until) >= new Date();
 
                   return (
-                    <tr key={cert.id} className="hover:bg-stone-50 transition-colors">
+                    <tr key={cert.id} className="group hover:bg-stone-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <code className="font-mono font-bold text-[#1e3a8a]">{cert.code}</code>
@@ -395,7 +480,7 @@ export default function CertificatesAdminPage() {
                       <td className="px-6 py-4">
                         <div className="text-sm">
                           <div className="font-medium text-stone-900">{cert.recipient_name || '—'}</div>
-                          <div className="text-stone-500">{cert.recipient_email || '—'}</div>
+                          <div className="text-stone-500">{cert.recipient_email || cert.recipient_phone || '—'}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -426,24 +511,18 @@ export default function CertificatesAdminPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="sticky right-0 bg-white group-hover:bg-stone-50 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.15)] px-6 py-4">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
                               setSelectedCertificate(cert);
                               setShowDetailsModal(true);
                             }}
-                            className="p-2 hover:bg-stone-200 rounded transition-colors"
-                            title="Деталі"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2d7d] text-white rounded-lg text-sm font-semibold hover:bg-[#263a99] transition-colors whitespace-nowrap"
+                            title="Відкрити сертифікат"
                           >
-                            <ExternalLink className="w-4 h-4 text-stone-600" />
-                          </button>
-                          <button
-                            onClick={() => handleViewCertificate(cert)}
-                            className="p-2 hover:bg-stone-200 rounded transition-colors"
-                            title="Переглянути сертифікат"
-                          >
-                            <Gift className="w-4 h-4 text-stone-600" />
+                            <Gift className="w-4 h-4" />
+                            Сертифікат
                           </button>
                           {isActive && !cert.redeemed && (
                             <>
@@ -495,6 +574,37 @@ export default function CertificatesAdminPage() {
                 </button>
               </div>
 
+              <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                  onClick={() => handleViewCertificate(selectedCertificate)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1e2d7d] text-white rounded-lg text-sm font-semibold hover:bg-[#263a99] transition-colors"
+                >
+                  <Eye className="w-4 h-4" /> Переглянути
+                </button>
+                <button
+                  onClick={() => handleDownloadPng(selectedCertificate)}
+                  disabled={downloadingPng}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone-300 text-stone-700 rounded-lg text-sm font-semibold hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> {downloadingPng ? 'Готуємо PNG...' : 'Завантажити PNG'}
+                </button>
+                <button
+                  onClick={() => handleCopyCode(selectedCertificate.code)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone-300 text-stone-700 rounded-lg text-sm font-semibold hover:bg-stone-50 transition-colors"
+                >
+                  <Copy className="w-4 h-4" /> Скопіювати код
+                </button>
+                {selectedCertificate.recipient_email && (
+                  <button
+                    onClick={() => handleSendEmail(selectedCertificate)}
+                    disabled={sendingEmail}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone-300 text-stone-700 rounded-lg text-sm font-semibold hover:bg-stone-50 disabled:opacity-50 transition-colors"
+                  >
+                    <Mail className="w-4 h-4" /> {sendingEmail ? 'Надсилаємо...' : 'Надіслати на email'}
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <div className="text-sm text-stone-500">Код</div>
@@ -534,6 +644,9 @@ export default function CertificatesAdminPage() {
                   <div className="text-sm text-stone-500">Отримувач</div>
                   <div className="font-medium">{selectedCertificate.recipient_name || '—'}</div>
                   <div className="text-sm text-stone-600">{selectedCertificate.recipient_email || '—'}</div>
+                  {selectedCertificate.recipient_phone && (
+                    <div className="text-sm text-stone-600">{selectedCertificate.recipient_phone}</div>
+                  )}
                 </div>
 
                 {selectedCertificate.message && (
@@ -678,16 +791,21 @@ export default function CertificatesAdminPage() {
                 <input type="number" value={newCert.amount || ''} onChange={e => setNewCert(p => ({...p, amount: Number(e.target.value)}))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="500" />
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Отримувач</label>
+                <input type="text" value={newCert.recipient_name} onChange={e => setNewCert(p => ({...p, recipient_name: e.target.value}))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ім'я" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Отримувач</label>
-                  <input type="text" value={newCert.recipient_name} onChange={e => setNewCert(p => ({...p, recipient_name: e.target.value}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Ім'я" />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Email отримувача</label>
+                  <input type="email" value={newCert.recipient_email} onChange={e => setNewCert(p => ({...p, recipient_email: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="name@example.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Email / Телефон</label>
-                  <input type="text" value={newCert.recipient_email} onChange={e => setNewCert(p => ({...p, recipient_email: e.target.value}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="email або +380..." />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Телефон отримувача</label>
+                  <input type="tel" value={newCert.recipient_phone} onChange={e => setNewCert(p => ({...p, recipient_phone: e.target.value}))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="+380..." />
                 </div>
               </div>
               <div>
@@ -723,7 +841,7 @@ export default function CertificatesAdminPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" placeholder="Для внутрішнього використання" />
               </div>
             </div>
-            {newCert.recipient_email && (
+            {newCert.recipient_email.includes('@') && (
               <div className="px-6 py-3 bg-blue-50 border-t border-blue-100 flex items-center gap-2">
                 <input type="checkbox" id="sendEmailCheck" checked={newCert.sendEmail}
                   onChange={e => setNewCert(p => ({...p, sendEmail: e.target.checked}))}
@@ -737,7 +855,7 @@ export default function CertificatesAdminPage() {
               <button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">Скасувати</button>
               <button onClick={handleCreateCert} disabled={savingCert}
                 className="flex-1 px-4 py-2 bg-[#1e2d7d] text-white rounded-lg font-semibold hover:bg-[#263a99] disabled:opacity-50">
-                {savingCert ? 'Збереження...' : (newCert.sendEmail ? ' Створити та відправити' : 'Створити')}
+                {savingCert ? 'Збереження...' : (newCert.sendEmail && newCert.recipient_email.includes('@') ? ' Створити та відправити' : 'Створити')}
               </button>
             </div>
           </div>
