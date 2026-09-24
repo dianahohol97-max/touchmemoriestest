@@ -31,6 +31,8 @@ export interface Gallery {
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
   photo_count: number; favorite_count: number; days_left: number;
   photo_downloads: number; zip_downloads: number;
+  /** «Завантажити все» attempts; null when the tally failed or none yet. */
+  zip_attempts?: { started: number; completed: number; unfinished: number; failed: number } | null;
   cover_photo_id: string | null;
   cover_url: string | null;
   design: Record<string, string> | null;
@@ -653,8 +655,13 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
                   ♥ {g.favorite_count}
                 </span>
               )}
-              {(g.zip_downloads > 0 || g.photo_downloads > 0) && (
-                <span title={`Завантажень: ZIP-архів ${g.zip_downloads} раз(ів), окремих фото ${g.photo_downloads}`}
+              {/* Started-but-unfinished archives count too: a gallery where every
+                  attempt crashed must not look untouched (2026-09-24). */}
+              {(g.zip_downloads > 0 || g.photo_downloads > 0 || (g.zip_attempts?.started || 0) > 0) && (
+                <span title={`Завантажень: ZIP-архів ${g.zip_downloads} раз(ів), окремих фото ${g.photo_downloads}`
+                  + (g.zip_attempts?.started
+                    ? `. Спроб архіву: почали ${g.zip_attempts.started}, завершили ${g.zip_attempts.completed}, не дійшли до кінця ${g.zip_attempts.started - g.zip_attempts.completed}`
+                    : '')}
                   style={{ fontSize: 12, fontWeight: 800, color: '#263A99', background: '#eef1fb', borderRadius: 999, padding: '4px 10px' }}>
                   ↓ {g.zip_downloads + g.photo_downloads}
                 </span>

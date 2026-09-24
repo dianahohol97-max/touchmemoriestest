@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './GalleryClient.module.css';
 import type { GalleryDesign } from '@/lib/photographers/gallery-design';
 import { GALLERY_I18N } from '@/lib/photographers/gallery-i18n';
+import ZipPanel from './ZipPanel';
 
 interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean; media_type: 'photo' | 'video' }
 interface GalleryData {
@@ -44,8 +45,7 @@ export default function GalleryClient({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const [zipping, setZipping] = useState(false);
-  const [zipProgress, setZipProgress] = useState(0);
+  const [zipOpen, setZipOpen] = useState(false);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const touchX = useRef<number | null>(null);
@@ -115,54 +115,11 @@ export default function GalleryClient({ token }: { token: string }) {
   // the bytes still come straight from storage.
   const dlHref = (photoId: string) => `/api/gallery/${encodeURIComponent(token)}/file/${encodeURIComponent(photoId)}`;
   // Fire-and-forget download telemetry for the photographer's stats.
-  const track = (payload: { type: 'zip' } | { type: 'photo'; photoId: string }) => {
+  // ZIP attempts have their own journal (ZipPanel → /zip-attempt).
+  const track = (payload: { type: 'photo'; photoId: string }) => {
     fetch(`/api/gallery/${encodeURIComponent(token)}/track`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
     }).catch(() => {});
-  };
-
-  /**
-   * One file's bytes for the archive. The direct storage URL is tried first
-   * because it costs us no bandwidth, but a cross-origin fetch needs CORS
-   * headers on the response — which an <img> never does, so photos can display
-   * perfectly while this throws («Не вдалося сформувати архів», Diana
-   * 2026-08-06, right after the move to Cloudflare's r2.dev address). On any
-   * failure the same file is pulled through our own origin instead.
-   */
-  const fetchForZip = async (p: { id: string; url: string }): Promise<Blob> => {
-    try {
-      const direct = await fetch(p.url);
-      if (direct.ok) return await direct.blob();
-    } catch { /* cross-origin refusal — fall through */ }
-    // stream=1: proxy the bytes rather than redirect — a redirect would land
-    // back on the cross-origin URL that just refused us.
-    const viaUs = await fetch(`/api/gallery/${encodeURIComponent(token)}/file/${encodeURIComponent(p.id)}?stream=1`);
-    if (!viaUs.ok) throw new Error('file');
-    return await viaUs.blob();
-  };
-
-  const downloadAll = async () => {
-    if (!data || zipping) return;
-    setZipping(true); setZipProgress(0);
-    try {
-      const { default: JSZip } = await import('jszip');
-      const zip = new JSZip();
-      for (let i = 0; i < data.photos.length; i++) {
-        const p = data.photos[i];
-        const blob = await fetchForZip(p);
-        zip.file(p.file_name || `photo_${i + 1}.jpg`, blob);
-        setZipProgress(Math.round(((i + 1) / data.photos.length) * 100));
-      }
-      const out = await zip.generateAsync({ type: 'blob' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(out);
-      a.download = `${data.title.replace(/[^\wа-яіїєґА-ЯІЇЄҐ -]+/g, '').trim() || 'gallery'}.zip`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      track({ type: 'zip' });
-    } catch {
-      alert((GALLERY_I18N[data.design?.lang] || GALLERY_I18N.uk).zipError);
-    } finally { setZipping(false); }
   };
 
   const scrollToGrid = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -343,8 +300,8 @@ const formatDate = (d: string) =>
               </button>
             )}
             {data.photos.length > 0 && (
-              <button onClick={downloadAll} disabled={zipping} className={styles.downloadBtn}>
-                {zipping ? `${zipProgress}%` : t.downloadAll}
+              <button onClick={() => setZipOpen(true)} className={styles.downloadBtn}>
+                {t.downloadAll}
               </button>
             )}
           </div>
@@ -489,6 +446,11 @@ const formatDate = (d: string) =>
             <img src={current.url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
           )}
         </div>
+      )}
+
+      {/* Inside the themed root so the panel picks up the --g-* palette. */}
+      {zipOpen && (
+        <ZipPanel token={token} title={data.title} photos={data.photos} t={t} onClose={() => setZipOpen(false)} />
       )}
     </div>
   );

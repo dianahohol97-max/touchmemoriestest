@@ -43,6 +43,9 @@ const WATCHED_TABLES = [
     // Крон очищення читав тисячу, а видаляв усі рядки, тож друга тисяча файлів
     // лишалася в R2 без жодного рядка. Читати — через lib/photographers/gallery-photos.ts.
     'photographer_gallery_photos',
+    // Спроби «Завантажити все»: рядок на кожне натискання клієнта. Кабінет
+    // читає їх лише агрегатом gallery_zip_attempt_stats (рядок на галерею).
+    'gallery_zip_attempts',
 ];
 
 const SKIP_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.vercel', 'scripts']);

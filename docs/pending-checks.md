@@ -767,3 +767,47 @@ select
 скрипта. Три галереї, очищені до переписування, були тестовими галереями
 Діани. Скрипт `scripts/r2-orphans-purged-galleries.mjs` лишається в репозиторії
 на майбутнє.
+
+## 16. «Завантажити все» в галереї: CORS бакета R2 і перший тиждень журналу спроб
+
+Архів тепер збирається частинами на телефоні і пишеться прямо на диск у
+Chrome/Edge на комп'ютері (24.09.2026). Кожна спроба лягає в
+`gallery_zip_attempts` ще до першого байта. Лишилося два кроки.
+
+**CORS, робить Діана.** Звідси бакет не видно, бо проксі не пускає на
+`r2.dev`. Спершу знімок поточної політики: Cloudflare → R2 → бакет → Settings
+→ CORS Policy. Звірити його з цим варіантом і лише тоді замінювати, бо
+`PUT` тут потрібен фотографам для завантаження:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://touchmemories.com.ua", "https://www.touchmemories.com.ua", "https://touchmemories1.vercel.app"],
+    "AllowedMethods": ["GET", "HEAD", "PUT"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["Content-Length", "ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Архів працює і без `GET`, але тоді кожен файл іде через Vercel.
+
+**Журнал, дивиться Claude.** Через тиждень після деплою, тільки читання:
+
+```sql
+select device, method, outcome,
+       count(*) as attempts,
+       sum(files_via_proxy) as via_vercel,
+       sum(files_total) as files
+from gallery_zip_attempts
+where started_at > now() - interval '7 days'
+group by 1, 2, 3
+order by 1, 2, 3;
+```
+
+Рядки з порожнім `outcome` — спроби, які не дійшли до кінця і не встигли про
+це сказати, найчастіше через нестачу пам'яті. Якщо їх помітно на `ios`,
+частину для iPhone варто зменшити (`PART_LIMIT_BYTES` у
+`lib/photographers/zip-plan.ts`). Якщо `via_vercel` не нуль уже ПІСЛЯ зміни
+CORS, прямий `GET` із R2 досі відмовляє.

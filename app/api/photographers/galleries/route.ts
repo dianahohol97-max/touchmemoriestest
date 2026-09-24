@@ -59,6 +59,24 @@ export async function GET(req: NextRequest) {
     dlFailed = !!dl.error;
   }
 
+  // «Завантажити все»: скільки спроб почали і скільки не дійшли до кінця
+  // (gallery_zip_attempts, 2026-09-24). Агрегат у базі — рядок на галерею,
+  // тож стеля в тисячу рядків тут не діє. Відмова (наприклад, міграцію ще не
+  // накатано) не валить список: кабінет просто не покаже розбивки.
+  const zipStats: Record<string, { started: number; completed: number; unfinished: number; failed: number }> = {};
+  if (galleryIds.length) {
+    const { data: stats, error: statsError } = await admin.rpc('gallery_zip_attempt_stats', { gallery_ids: galleryIds });
+    if (statsError) console.error('[photographers/galleries] zip attempts tally failed:', statsError.message);
+    else for (const r of (stats || []) as any[]) {
+      zipStats[r.gallery_id] = {
+        started: Number(r.started) || 0,
+        completed: Number(r.completed) || 0,
+        unfinished: Number(r.unfinished) || 0,
+        failed: Number(r.failed) || 0,
+      };
+    }
+  }
+
   // Cover thumbnail for the cabinet list: the photographer's explicit pick,
   // else the first uploaded photo — same rule as the client gallery hero.
   // One photographer has few galleries, so per-gallery lookups are cheap.
@@ -91,6 +109,7 @@ export async function GET(req: NextRequest) {
       photo_downloads: dlFailed ? null : photoDlByGallery[g.id] || 0,
       days_left: g.files_purged_at ? 0 : daysLeft(g.expires_at),
       cover_url: coverByGallery[g.id] || null,
+      zip_attempts: zipStats[g.id] || null,
       photographer_gallery_photos: undefined,
     })),
   });
