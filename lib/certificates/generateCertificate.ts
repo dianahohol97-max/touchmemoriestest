@@ -127,6 +127,13 @@ export function generateCertificateHTML(certificate: {
   message?: string;
   valid_until: string;
 }): string {
+  // Fonts are self-hosted in public/certificate-fonts/ (downloaded from Google
+  // Fonts' css2 API, latin for Bodoni Moda and Alex Brush, latin + cyrillic
+  // for Montserrat 500/700; unicode-range kept from that output). The URLs are
+  // ABSOLUTE because this HTML is opened as a blob / srcdoc, where a relative
+  // path resolves against nothing. tests/editor-fonts-pack.test.ts forbids new
+  // links to fonts.googleapis.com.
+  const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua');
   const esc = (v: unknown) =>
     String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
@@ -147,9 +154,62 @@ export function generateCertificateHTML(certificate: {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Подарунковий сертифікат touch.memories ${esc(certificate.code)}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400&family=Alex+Brush&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    /* Bodoni Moda 400, latin */
+    @font-face {
+      font-family: 'Bodoni Moda';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/bodoni-moda-400-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    /* Alex Brush 400, latin */
+    @font-face {
+      font-family: 'Alex Brush';
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/alex-brush-400-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    /* Montserrat 500, latin */
+    @font-face {
+      font-family: 'Montserrat';
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/montserrat-500-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    /* Montserrat 500, cyrillic */
+    @font-face {
+      font-family: 'Montserrat';
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/montserrat-500-cyrillic.woff2) format('woff2');
+      unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+    }
+    /* Montserrat 700, latin */
+    @font-face {
+      font-family: 'Montserrat';
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/montserrat-700-latin.woff2) format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    /* Montserrat 700, cyrillic */
+    @font-face {
+      font-family: 'Montserrat';
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: url(${origin}/certificate-fonts/montserrat-700-cyrillic.woff2) format('woff2');
+      unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+    }
+  </style>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { background: #e9ebf3; }
