@@ -127,6 +127,32 @@ describe('readAllGalleryPhotos', () => {
     expect(new Set(rows.map((r: any) => r.id)).size).toBe(1500);
   });
 
+  it('клієнт, що ігнорує .range(), дає помилку, а не нескінченний цикл', async () => {
+    let calls = 0;
+    const endless = {
+      from: () => {
+        const q: any = {
+          select: () => q, eq: () => q, order: () => q, range: () => q,
+          then: (res: any) => { calls++; return Promise.resolve({ data: Array.from({ length: 1000 }, (_, i) => ({ id: i })), error: null }).then(res); },
+        };
+        return q;
+      },
+    };
+    const { rows, error } = await readAllGalleryPhotos(endless, GALLERY, 'id');
+    expect(error).toMatch(/перевищило 10 сторінок/);
+    expect(rows).toEqual([]);
+    expect(calls).toBe(10);
+  });
+
+  it('2000 фото вкладаються в ліміт; тісніший ліміт спрацьовує як помилка', async () => {
+    const db = seed(2000);
+    const { error } = await readAllGalleryPhotos(db, GALLERY, 'id');
+    expect(error).toBeNull();
+    // 2 full pages + 1 empty confirmation page = 3, far under the fuse.
+    const { error: tight } = await readGalleryPhotoRows(db, 'id', q => q.eq('gallery_id', GALLERY), 2);
+    expect(tight).toMatch(/перевищило 2 сторінок/);
+  });
+
   it('фільтр по кількох галереях теж іде сторінками', async () => {
     const db = seed(1500);
     const { rows } = await readGalleryPhotoRows(db, 'id', q => q.in('gallery_id', [GALLERY]).eq('favorite', true));

@@ -1051,7 +1051,12 @@ export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash, re
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, photo_id: p.id }),
       });
-      if (!res.ok) { alert((await res.json())?.error || 'Не вдалося видалити'); return; }
+      if (!res.ok) {
+        // A gateway 502/504 comes back without a JSON body.
+        const body = await res.json().catch(() => null);
+        alert(body?.error || 'Не вдалося видалити фото, спробуйте пізніше');
+        return;
+      }
       setPhotos(list => (list || []).filter(x => x.id !== p.id));
       if (selected === p.id) setSelected(null);
       await onDone();

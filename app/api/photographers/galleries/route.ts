@@ -39,11 +39,14 @@ export async function GET(req: NextRequest) {
   let favFailed = false;
   let dlFailed = false;
   if (galleryIds.length) {
+    // These span every live gallery of the photographer, not one gallery, so
+    // the page fuse is wider than the per-gallery default of 10.
+    const TALLY_MAX_PAGES = 50;
     const [fav, dl] = await Promise.all([
       readGalleryPhotoRows<{ gallery_id: string }>(admin, 'id, gallery_id',
-        q => q.in('gallery_id', galleryIds).eq('favorite', true)),
+        q => q.in('gallery_id', galleryIds).eq('favorite', true), TALLY_MAX_PAGES),
       readGalleryPhotoRows<{ gallery_id: string; download_count: number | null }>(admin, 'id, gallery_id, download_count',
-        q => q.in('gallery_id', galleryIds).gt('download_count', 0)),
+        q => q.in('gallery_id', galleryIds).gt('download_count', 0), TALLY_MAX_PAGES),
     ]);
     // A short tally would look like a real number, so a failed read shows NO
     // number (null — the cabinet hides the badge) rather than a wrong one,

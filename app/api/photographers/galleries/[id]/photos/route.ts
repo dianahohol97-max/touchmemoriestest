@@ -121,7 +121,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const rmErr = await removeFiles([{ path: photo.storage_path, provider: photo.storage_provider }]);
   if (rmErr) {
     console.error('[photographers/photos] file delete failed', { photo: photo.id, error: rmErr });
-    return NextResponse.json({ error: `Не вдалося видалити файл зі сховища: ${rmErr}` }, { status: 502 });
+    // The raw reason (S3 codes, key names) goes to the log; the cabinet shows
+    // this text verbatim in an alert, so it has to be plain Ukrainian.
+    return NextResponse.json({ error: 'Не вдалося видалити файл зі сховища, спробуйте пізніше' }, { status: 502 });
   }
   const { error } = await admin.from('photographer_gallery_photos').delete().eq('id', photo.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

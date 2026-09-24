@@ -20,6 +20,15 @@
 export const GALLERY_PHOTOS_PAGE = 1000;
 
 /**
+ * Fuse against an endless loop. A gallery holds at most 2000 files, and the
+ * widest read (favorites across all of a photographer's galleries) is far
+ * below ten thousand. A client that ignores .range() and always answers a
+ * full page would otherwise spin forever; hitting the fuse is an ERROR, not a
+ * truncated success.
+ */
+export const GALLERY_PHOTOS_MAX_PAGES = 10;
+
+/**
  * Every row matching `scope`, read page by page.
  *
  * `scope` adds the filters (`.eq('gallery_id', …)`, `.in(…)`, `.eq('favorite', true)`).
@@ -30,9 +39,13 @@ export async function readGalleryPhotoRows<T = any>(
   db: any,
   columns: string,
   scope: (q: any) => any,
+  maxPages: number = GALLERY_PHOTOS_MAX_PAGES,
 ): Promise<{ rows: T[]; error: string | null }> {
   const rows: T[] = [];
-  for (let from = 0; ; from += GALLERY_PHOTOS_PAGE) {
+  for (let page = 0, from = 0; ; page++, from += GALLERY_PHOTOS_PAGE) {
+    if (page >= maxPages) {
+      return { rows: [], error: `читання фото галереї перевищило ${maxPages} сторінок по ${GALLERY_PHOTOS_PAGE} рядків` };
+    }
     const { data, error } = await scope(
       db.from('photographer_gallery_photos').select(columns),
     )
@@ -40,9 +53,9 @@ export async function readGalleryPhotoRows<T = any>(
       .order('id', { ascending: true })
       .range(from, from + GALLERY_PHOTOS_PAGE - 1);
     if (error) return { rows: [], error: error.message || String(error) };
-    const page = (data || []) as T[];
-    rows.push(...page);
-    if (page.length < GALLERY_PHOTOS_PAGE) break;
+    const got = (data || []) as T[];
+    rows.push(...got);
+    if (got.length < GALLERY_PHOTOS_PAGE) break;
   }
   return { rows, error: null };
 }
