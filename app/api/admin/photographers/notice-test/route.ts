@@ -11,8 +11,9 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 /**
- * GET /api/admin/photographers/notice-test — по одному примірнику трьох листів
- * фотографу («галерея скоро згасне», «місце закінчується», «файли видалено»),
+ * GET /api/admin/photographers/notice-test — по одному примірнику листів
+ * фотографу («галерея скоро згасне» в обох варіантах, «місце закінчується»,
+ * «файли видалено»),
  * щоб Діана побачила їх у справжній скриньці, а не на знімку HTML.
  *
  * Будує листи ТИМИ САМИМИ функціями, що й крон та аплоад, тож затверджений тут
@@ -51,7 +52,8 @@ export async function GET(req: NextRequest) {
     const now = Date.now();
     const title = 'Весілля Марії та Андрія';
     const letters = [
-        { template: NOTICE_TEMPLATES.expiry, mail: expiryNoticeEmail({ galleryTitle: title, expiresAt: new Date(now + 3.5 * 86_400_000).toISOString(), cabinetToken }) },
+        { template: NOTICE_TEMPLATES.expiry, mail: expiryNoticeEmail({ galleryTitle: title, expiresAt: new Date(now + 3.5 * 86_400_000).toISOString(), cabinetToken, variant: 'extend' }) },
+        { template: NOTICE_TEMPLATES.expiry, mail: expiryNoticeEmail({ galleryTitle: title, expiresAt: new Date(now + 3.5 * 86_400_000).toISOString(), cabinetToken, variant: 'upgrade' }) },
         { template: NOTICE_TEMPLATES.storage, mail: storageNoticeEmail({ usedBytes: 3_655_431_429, limitBytes: 4 * 1024 ** 3, planName: 'Безкоштовно' }) },
         { template: NOTICE_TEMPLATES.purge, mail: purgeNoticeEmail({ galleryTitle: title, purgedAt: new Date(now).toISOString(), cabinetToken }) },
     ];

@@ -5,6 +5,7 @@ import {
     storageNoticeAction, canEmailPhotographer,
 } from './notice-rules';
 import { expiryNoticeEmail, purgeNoticeEmail, storageNoticeEmail } from './notice-emails';
+import { planOf, expiryLetterVariant } from './plan-rules';
 
 /**
  * Листи фотографу про галереї: хто, коли і з якою позначкою в базі.
@@ -50,7 +51,10 @@ export interface NoticeReport {
     skipped: number;
 }
 
-type PhotographerRow = { id: string; name: string | null; email: string | null; is_active: boolean | null; cabinet_token: string };
+type PhotographerRow = {
+    id: string; name: string | null; email: string | null; is_active: boolean | null; cabinet_token: string;
+    plan?: string | null; plan_expires_at?: string | null;
+};
 
 const PAGE = 1000;
 const MAX_PAGES = 10;
@@ -73,7 +77,7 @@ async function readPhotographers(db: any, ids: string[]): Promise<Map<string, Ph
     for (let i = 0; i < unique.length; i += 200) {
         const { data, error } = await db
             .from('photographers')
-            .select('id, name, email, is_active, cabinet_token')
+            .select('id, name, email, is_active, cabinet_token, plan, plan_expires_at')
             .in('id', unique.slice(i, i + 200));
         if (error) throw new Error(error.message || String(error));
         for (const p of data || []) map.set(p.id, p);
@@ -95,7 +99,7 @@ async function trySend(deps: NoticeDeps, p: PhotographerRow, email: { subject: s
 }
 
 type ExpiryGallery = {
-    id: string; photographer_id: string; title: string;
+    id: string; photographer_id: string; title: string; created_at: string | null;
     expires_at: string; files_purged_at: string | null; expiry_notice_for: string | null;
 };
 
@@ -113,7 +117,7 @@ export async function sendExpiryNotices(deps: NoticeDeps): Promise<NoticeReport>
 
     const { rows, error } = await readPaged<ExpiryGallery>(() => db
         .from('photographer_galleries')
-        .select('id, photographer_id, title, expires_at, files_purged_at, expiry_notice_for')
+        .select('id, photographer_id, title, created_at, expires_at, files_purged_at, expiry_notice_for')
         .is('files_purged_at', null)
         .gt('expires_at', now.toISOString())
         .lt('expires_at', expiryNoticeHorizon(now).toISOString())
@@ -129,8 +133,12 @@ export async function sendExpiryNotices(deps: NoticeDeps): Promise<NoticeReport>
     for (const g of due) {
         const p = photographers.get(g.photographer_id);
         if (!canEmailPhotographer(p)) { report.skipped++; continue; }
+        // The letter promises an extension only when the server would accept
+        // one: the plan in force tonight and the gallery's creation date decide
+        // (lib/photographers/plan-rules.ts), exactly as the PATCH route does.
         const ok = await trySend(deps, p!, expiryNoticeEmail({
             galleryTitle: g.title, expiresAt: g.expires_at, cabinetToken: p!.cabinet_token,
+            variant: expiryLetterVariant(planOf(p!), g.created_at),
         }), NOTICE_TEMPLATES.expiry);
         if (!ok) { report.failed++; continue; }
         report.sent++;

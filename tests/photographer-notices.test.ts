@@ -105,9 +105,10 @@ describe('тексти листів', () => {
     const IRINA_BYTES = 3_655_431_429;
     const FREE_QUOTA = 4 * 1024 ** 3;
     const mails = () => [
-        expiryNoticeEmail({ galleryTitle: '<b>X</b>', expiresAt: '2026-10-06T15:31:31Z', cabinetToken: 't' }),
+        expiryNoticeEmail({ galleryTitle: '<b>X</b>', expiresAt: '2026-10-06T15:31:31Z', cabinetToken: 't', variant: 'extend' }),
         storageNoticeEmail({ usedBytes: IRINA_BYTES, limitBytes: FREE_QUOTA, planName: 'Безкоштовно' }),
         purgeNoticeEmail({ galleryTitle: '<b>X</b>', purgedAt: '2026-10-07T03:30:00Z', cabinetToken: 't' }),
+        expiryNoticeEmail({ galleryTitle: '<b>X</b>', expiresAt: '2026-10-06T15:31:31Z', cabinetToken: 't', variant: 'upgrade' }),
     ];
     const text = (html: string) => html.replace(/<[^>]+>/g, ' ');
 
@@ -130,7 +131,7 @@ describe('тексти листів', () => {
         }
     });
 
-    it('звертання без імені в усіх трьох листах', () => {
+    it('звертання без імені в усіх листах', () => {
         for (const m of mails()) {
             expect(text(m.html)).toContain('Доброго дня!');
             expect(m.html).not.toMatch(/Доброго дня,/);
@@ -142,6 +143,18 @@ describe('тексти листів', () => {
         // Рівно 90% квоти в ГіБ — 3,6 ГБ із 4 ГБ.
         const at90 = storageNoticeEmail({ usedBytes: 0.9 * FREE_QUOTA, limitBytes: FREE_QUOTA, planName: 'Безкоштовно' });
         expect(text(at90.html)).toContain('3,6 ГБ із 4 ГБ');
+    });
+
+    it('лист «скоро згасне» обіцяє продовження лише у варіанті extend', () => {
+        const [extend, , , upgrade] = mails();
+        expect(text(extend.html)).toContain('термін зберігання можна продовжити в кабінеті');
+        expect(extend.html).toContain('Відкрити кабінет');
+        expect(text(upgrade.html)).not.toContain('можна продовжити в кабінеті');
+        expect(text(upgrade.html)).toContain('Щоб зберігати галерею довше, оберіть платний тариф');
+        // Тарифи в кабінеті, де їх оплачують, а не публічна сторінка з кнопкою на заявку.
+        expect(upgrade.html).toContain('/uk/photographer/cabinet/t?plans=1#plans');
+        expect(upgrade.html).toContain('Обрати тариф');
+        expect(upgrade.subject).toBe(extend.subject);
     });
 
     it('у листі про місце немає рядка з посиланням на кабінет', () => {
@@ -243,9 +256,9 @@ class FakeQuery {
 }
 
 function recorder(result: 'ok' | 'fail' | 'throw' = 'ok') {
-    const calls: { to: string; subject: string; template: string }[] = [];
+    const calls: { to: string; subject: string; template: string; html: string }[] = [];
     const send: SendFn = async (params, meta) => {
-        calls.push({ to: params.to, subject: params.subject, template: meta.template });
+        calls.push({ to: params.to, subject: params.subject, template: meta.template, html: params.html });
         if (result === 'throw') throw new Error('Brevo впав');
         return result === 'ok'
             ? { sent: true, providerMessageId: 'm-1', error: null, failureKind: null }
@@ -297,6 +310,27 @@ describe('sendExpiryNotices', () => {
 
         const ok = recorder();
         expect((await sendExpiryNotices({ db, send: ok.send, now: () => new Date(NOW.getTime() + DAY) })).sent).toBe(1);
+    });
+
+    it('варіант листа — за тарифом і датою створення галереї, як і сам PATCH', async () => {
+        const OLD = '2026-09-06T15:31:31.312Z';   // галерея Ірини: старі правила
+        const NEW = '2026-10-01T10:00:00.000Z';   // після межі нових правил
+        const cases: { created: string; photographer: Row; variant: 'extend' | 'upgrade' }[] = [
+            { created: OLD, photographer: PH, variant: 'extend' },
+            { created: NEW, photographer: PH, variant: 'upgrade' },
+            // Оплачений тариф, який уже скінчився, — це безкоштовний. Дата в
+            // минулому відносно справжнього годинника: effectivePlanId, як і
+            // маршрути, дивиться на Date.now(), а не на годинник крону.
+            { created: NEW, photographer: { ...PH, plan: 'studio', plan_expires_at: '2026-09-01T00:00:00.000Z' }, variant: 'upgrade' },
+            { created: NEW, photographer: { ...PH, plan: 'start', plan_expires_at: '2099-01-01T00:00:00.000Z' }, variant: 'extend' },
+        ];
+        for (const c of cases) {
+            const db = seed([{ id: 'g-1', created_at: c.created, expires_at: at(3 * DAY) }], c.photographer);
+            const r = recorder();
+            expect((await sendExpiryNotices({ db, send: r.send, now: () => NOW })).sent).toBe(1);
+            const extendText = r.calls[0].html.includes('можна продовжити в кабінеті');
+            expect(extendText, `${c.created} ${c.photographer.plan ?? 'free'}`).toBe(c.variant === 'extend');
+        }
     });
 
     it('демо-кабінет листа не отримує', async () => {

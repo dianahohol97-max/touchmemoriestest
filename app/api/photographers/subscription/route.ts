@@ -5,6 +5,7 @@ import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import { getPlan, effectivePlanId, GALLERY_PLANS } from '@/lib/photographers/plans';
 import { getStorageUsage } from '@/lib/photographers/usage';
 import { monoCreateInvoice } from '@/lib/photographers/payments';
+import { termOptionsFor, canUploadVideo } from '@/lib/photographers/plan-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,14 +42,21 @@ export async function GET(req: NextRequest) {
   if (!photographer) return NextResponse.json({ error: 'Кабінет не знайдено' }, { status: 404 });
 
   const usage = await getStorageUsage(photographer);
+  const planId = effectivePlanId(photographer);
   return NextResponse.json({
     usage,
     plan: {
-      id: effectivePlanId(photographer),
+      id: planId,
       stored: photographer.plan || 'free',
       expires_at: photographer.plan_expires_at || null,
     },
     plans: GALLERY_PLANS,
+    // What the plan allows in galleries, so the new-gallery form offers only
+    // the terms the server will accept (lib/photographers/plan-rules.ts).
+    gallery_rules: {
+      term_options: termOptionsFor(planId),
+      can_upload_video: canUploadVideo(planId),
+    },
   });
 }
 

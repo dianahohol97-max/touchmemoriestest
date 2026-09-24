@@ -1,6 +1,7 @@
 import { escapeHtml } from '@/lib/email/escape';
 import { formatBytes } from './plans';
 import { kyivDateParts } from './notice-rules';
+import type { ExpiryLetterVariant } from './plan-rules';
 
 /**
  * Тексти трьох листів фотографу про галереї. Лише складання HTML — хто і коли
@@ -11,9 +12,9 @@ import { kyivDateParts } from './notice-rules';
  * Правила тексту від Діани: українською, без маркованих списків, без речень
  * з одного-двох слів, спокійний тон, без слова «успішно».
  *
- * Умов продовження тарифом тут свідомо немає: код і тарифи в цьому місці
- * зараз розходяться, і обіцянка в листі закріпила б одну зі сторін раніше,
- * ніж це вирішено.
+ * Лист «галерея скоро згасне» має два варіанти, і обирає їх не цей файл, а
+ * правило тарифу (expiryLetterVariant у ./plan-rules): лист обіцяє
+ * продовження лише тоді, коли сервер його справді прийме.
  */
 
 export interface NoticeEmail {
@@ -31,6 +32,15 @@ export function cabinetUrl(cabinetToken: string): string {
 
 export function plansUrl(): string {
     return `${siteUrl()}/uk/photographers#tarify`;
+}
+
+/**
+ * Тарифи в кабінеті, де їх і оплачують: ?plans=1 розгортає список тарифів.
+ * Публічна сторінка тарифів для цього не годиться, бо її кнопка «Обрати тариф»
+ * веде на заявку на знижку, а не до оплати.
+ */
+export function cabinetPlansUrl(cabinetToken: string): string {
+    return `${cabinetUrl(cabinetToken)}?plans=1#plans`;
 }
 
 const P = 'font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px';
@@ -67,13 +77,25 @@ export function expiryNoticeEmail(input: {
     galleryTitle: string;
     expiresAt: string;
     cabinetToken: string;
+    /** 'extend' — галерею можна продовжити; 'upgrade' — лише з платним тарифом. */
+    variant: ExpiryLetterVariant;
 }): NoticeEmail {
     const { date, time } = kyivDateParts(input.expiresAt);
     const title = escapeHtml(input.galleryTitle);
+    const first = `Галерея «${title}» зберігається до ${date}, ${time} за київським часом. Після цього її фото й відео буде видалено зі сховища, а клієнтське посилання показуватиме сторінку про завершення терміну.`;
+    if (input.variant === 'upgrade') {
+        return {
+            subject: `Галерея «${input.galleryTitle}» зберігається до ${date}`,
+            html: layout([
+                first,
+                'На безкоштовному тарифі галерея зберігається 30 днів без продовження. Щоб зберігати галерею довше, оберіть платний тариф: на ньому цю галерею можна буде продовжити, а для нових обрати термін до 90 днів. Радимо також переконатися, що клієнти вже завантажили собі все потрібне.',
+            ], { href: cabinetPlansUrl(input.cabinetToken), label: 'Обрати тариф' }, CABINET_NOTE),
+        };
+    }
     return {
         subject: `Галерея «${input.galleryTitle}» зберігається до ${date}`,
         html: layout([
-            `Галерея «${title}» зберігається до ${date}, ${time} за київським часом. Після цього її фото й відео буде видалено зі сховища, а клієнтське посилання показуватиме сторінку про завершення терміну.`,
+            first,
             'Якщо клієнтам ще потрібен доступ до знімків, термін зберігання можна продовжити в кабінеті, на картці цієї галереї. Радимо також переконатися, що клієнти вже завантажили собі все потрібне.',
         ], { href: cabinetUrl(input.cabinetToken), label: 'Відкрити кабінет' }, CABINET_NOTE),
     };

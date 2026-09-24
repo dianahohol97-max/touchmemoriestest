@@ -4,7 +4,8 @@ import {
   getPhotographerByToken, galleryPhotoPath,
   MAX_VIDEO_BYTES, MAX_PHOTO_BYTES, MAX_PHOTOS_PER_GALLERY,
 } from '@/lib/photographers/helpers';
-import { presignUpload, fileExists, fileUrl, activeProvider } from '@/lib/photographers/storage';
+import { presignUpload, fileExists, fileUrl, activeProvider, removeFiles } from '@/lib/photographers/storage';
+import { planOf, canUploadVideo, isVideoFile, videoRefusal } from '@/lib/photographers/plan-rules';
 import { checkQuota } from '@/lib/photographers/usage';
 import { notifyStorageAfterUpload } from '@/lib/photographers/storage-notice';
 
@@ -55,10 +56,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const fileName = String(body.file_name || 'video.mp4');
     const size = Number(body.size || 0);
     const contentType = String(body.content_type || '');
-    const isVideo = contentType.startsWith('video/');
-    const isPhoto = contentType.startsWith('image/');
+    // Video by the declared type OR by the file extension: the type is the
+    // client's word, and a video sent as image/jpeg must not pass for a photo.
+    const isVideo = isVideoFile({ contentType, fileName });
+    const isPhoto = !isVideo && contentType.startsWith('image/');
     if (!isVideo && !isPhoto) {
       return NextResponse.json({ error: `«${fileName}» не є фото чи відео` }, { status: 400 });
+    }
+    // Video is a paid-plan feature (from «Старт»). Refused BEFORE the signed
+    // URL is minted, so the file never reaches storage. Photos on the free plan
+    // go through this same route and are not affected. `video_not_allowed`
+    // lets the cabinet skip the file and carry on with the rest of the batch.
+    if (isVideo && !canUploadVideo(planOf(ctx.photographer))) {
+      return NextResponse.json({ error: videoRefusal(fileName), video_not_allowed: true }, { status: 403 });
     }
     const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES;
     if (!size || size > maxBytes) {
@@ -89,9 +99,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (stage === 'confirm') {
     const path = String(body.path || '');
     const fileName = String(body.file_name || 'video.mp4');
-    // The client says what it uploaded; only 'video' vs 'photo' rides on it,
-    // and a wrong value would merely mislabel the tile in the gallery.
-    const mediaType = String(body.media_type || 'video') === 'photo' ? 'photo' : 'video';
+    // The server decides what the file is: a video if the client says so OR
+    // the name says so. media_type alone is the client's word.
+    const mediaType = String(body.media_type || 'video') === 'photo' && !isVideoFile({ fileName }) ? 'photo' : 'video';
     // The path must belong to this photographer+gallery — a tampered path
     // would otherwise let one cabinet register objects of another.
     if (!path.startsWith(`${ctx.photographer.id}/${galleryId}/`)) {
@@ -102,6 +112,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const provider = activeProvider();
     const head = await fileExists(path, provider);
     if (!head.ok) return NextResponse.json({ error: 'Файл не знайдено у сховищі — повторіть завантаження' }, { status: 400 });
+
+    // Second gate for video: a client that skipped `sign`'s refusal (another
+    // name at sign, a video name here) would otherwise register a video on the
+    // free plan. The object is removed, so it does not sit in storage unseen.
+    if (mediaType === 'video' && !canUploadVideo(planOf(ctx.photographer))) {
+      const rmErr = await removeFiles([{ path, provider }]);
+      if (rmErr) console.error('[photographers/videos] refused video left in storage', { path, error: rmErr });
+      return NextResponse.json({ error: videoRefusal(fileName), video_not_allowed: true }, { status: 403 });
+    }
 
     const { data: row, error } = await admin
       .from('photographer_gallery_photos')

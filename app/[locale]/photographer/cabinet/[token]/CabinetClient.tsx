@@ -23,6 +23,8 @@ export interface Gallery {
   cover_photo_id: string | null;
   cover_url: string | null;
   design: Record<string, string> | null;
+  /** The plan allows extending this gallery (lib/photographers/plan-rules.ts). */
+  can_extend?: boolean;
 }
 // `url` is the original (downloads use it); tiles show `thumb_url`, the
 // smallest screen copy, which the API sets to the original while there is none.
@@ -403,7 +405,10 @@ function StorageSection({ token }: { token: string }) {
       const json = await res.json();
       if (!res.ok) return;
       setInfo(json);
-      if (json?.usage?.ratio >= 0.8) setShowPlans(true);
+      // The «галерея скоро згасне» letter links here with ?plans=1 when the
+      // gallery can only be kept longer on a paid plan.
+      const askedForPlans = new URLSearchParams(window.location.search).get('plans') === '1';
+      if (json?.usage?.ratio >= 0.8 || askedForPlans) setShowPlans(true);
     } catch { /* the meter is informational — never break the cabinet */ }
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
@@ -429,7 +434,7 @@ function StorageSection({ token }: { token: string }) {
   const barColor = usage.over ? '#b91c1c' : warn ? '#b45309' : '#263A99';
 
   return (
-    <div style={{ ...card, border: warn ? '1px solid #fcd9a5' : card.border, background: warn ? '#fffdf7' : '#fff' }}>
+    <div id="plans" style={{ ...card, border: warn ? '1px solid #fcd9a5' : card.border, background: warn ? '#fffdf7' : '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
         <h2 style={sectionTitle}>Місце для галерей</h2>
         <button style={{ ...btnGhost, padding: '7px 14px' }} onClick={() => setShowPlans(v => !v)}>
@@ -598,7 +603,7 @@ function GalleriesSection({ token, galleries, onChanged, flash }: {
           + Нова галерея
         </a>
       </div>
-      <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>Фото зберігаються 30 днів від створення галереї, після чого видаляються автоматично.</p>
+      <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>На безкоштовному тарифі галерея зберігається 30 днів без продовження, на платних ви обираєте 30, 60 або 90 днів і можете продовжити термін. Після завершення терміну фото видаляються автоматично.</p>
 
       {galleries.length === 0 && (
         <div style={{ color: '#8B8378', marginTop: 14, fontSize: 14 }}>
@@ -761,15 +766,25 @@ export function EditGalleryPanel({ token, gallery, onDone, flash }: {
           Термін дії — до {new Date(gallery.expires_at).toLocaleDateString('uk-UA')}
           {!gallery.files_purged_at && <span style={{ color: '#8B8378', fontWeight: 400 }}> (лишилось {g_daysWord(gallery.days_left)})</span>}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          {[30, 60, 90].map(d => (
-            <button key={d} style={btnGhost} disabled={saving || !!gallery.files_purged_at}
-              onClick={() => patch({ extend_days: d }, `Термін продовжено на ${d} дн.`)}>
-              +{d} днів
-            </button>
-          ))}
-          <span style={{ fontSize: 12, color: '#94a3b8' }}>Максимум — 90 днів від сьогодні. Після завершення терміну файли видаляються автоматично.</span>
-        </div>
+        {gallery.can_extend === false ? (
+          // The server refuses the extension on this plan (free plan, gallery
+          // created under the plan rules), so no buttons that would only fail.
+          <div style={{ fontSize: 12.5, color: '#8B8378', lineHeight: 1.55 }}>
+            На безкоштовному тарифі галерея зберігається 30 днів без продовження. Щоб зберігати галереї довше, оберіть платний тариф у розділі{' '}
+            <a href={`/uk/photographer/cabinet/${token}?plans=1#plans`} style={{ color: '#263A99', fontWeight: 700 }}>«Місце для галерей»</a>.
+            Після завершення терміну файли видаляються автоматично.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[30, 60, 90].map(d => (
+              <button key={d} style={btnGhost} disabled={saving || !!gallery.files_purged_at}
+                onClick={() => patch({ extend_days: d }, `Термін продовжено на ${d} дн.`)}>
+                +{d} днів
+              </button>
+            ))}
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>Максимум — 90 днів від сьогодні. Після завершення терміну файли видаляються автоматично.</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1139,7 +1154,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   //
   // `retryable` marks the failures where the bytes never left the browser, so
   // a small photo can still fall back to the multipart route below.
-  const uploadDirect = async (f: File): Promise<{ error: string | null; retryable?: boolean }> => {
+  const uploadDirect = async (f: File): Promise<{ error: string | null; retryable?: boolean; skipped?: boolean }> => {
     const isVideo = f.type.startsWith('video/');
     const signRes = await fetch(`/api/photographers/galleries/${galleryId}/videos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1148,7 +1163,9 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     const signJson = await signRes.json().catch(() => ({}));
     // A refusal here is a real verdict — quota, size cap, expired gallery —
     // so it must not be retried by another route that would refuse it too.
-    if (!signRes.ok) return { error: signJson?.error || 'Не вдалося підготувати аплоад' };
+    // A video the plan does not allow is skipped, not fatal: the rest of the
+    // batch (the photos) still goes up.
+    if (!signRes.ok) return { error: signJson?.error || 'Не вдалося підготувати аплоад', skipped: !!signJson?.video_not_allowed };
 
     let putRes: Response;
     try {
@@ -1174,7 +1191,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     const confirmJson = await confirmRes.json().catch(() => ({}));
     // The file IS in storage at this point — retrying elsewhere would upload it
     // a second time, so this failure stands.
-    if (!confirmRes.ok) return { error: confirmJson?.error || 'Не вдалося зареєструвати файл' };
+    if (!confirmRes.ok) return { error: confirmJson?.error || 'Не вдалося зареєструвати файл', skipped: !!confirmJson?.video_not_allowed };
     return { error: null };
   };
 
@@ -1191,17 +1208,22 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     return null;
   };
 
-  /** One file. Returns an error message, or null when it landed. */
-  const uploadOne = async (f: File): Promise<string | null> => {
+  /** One file. Returns an error message (with `skipped` when only this file
+   *  is refused and the batch goes on), or null when it landed. */
+  const uploadOne = async (f: File): Promise<{ error: string; skipped?: boolean } | null> => {
     const direct = await uploadDirect(f);
     if (!direct.error) return null;
+    if (direct.skipped) return { error: direct.error, skipped: true };
     // Safety net: if the bucket's CORS policy is missing or wrong, a photo
     // small enough for our function still gets through the old route instead
     // of failing the whole batch. Videos and big photos have no such fallback —
     // they exceed the body limit by definition.
     const fitsInline = !f.type.startsWith('video/') && f.size <= INLINE_LIMIT;
-    if (direct.retryable && fitsInline) return uploadViaServer(f);
-    return direct.error;
+    if (direct.retryable && fitsInline) {
+      const viaServer = await uploadViaServer(f);
+      return viaServer ? { error: viaServer } : null;
+    }
+    return { error: direct.error };
   };
 
   // Screen copies for the new photos (640/1280/2048 px, see
@@ -1246,6 +1268,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
       let done = 0;
       let next = 0;
       let failure: string | null = null;
+      const skipped: string[] = [];
 
       // Workers pull from a shared cursor, so a slow file never blocks the
       // queue behind it the way fixed chunks would.
@@ -1254,9 +1277,11 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
           const i = next++;
           if (i >= all.length) return;
           const err = await uploadOne(all[i]);
-          // The first error stops the rest: the usual cause is the storage
+          // A file the plan refuses (a video on the free plan) is set aside.
+          if (err?.skipped) { skipped.push(all[i].name); continue; }
+          // Any other error stops the rest: the usual cause is the storage
           // quota, and grinding through 300 more doomed files helps nobody.
-          if (err) { failure = failure || err; return; }
+          if (err) { failure = failure || err.error; return; }
           done += 1;
           setProgress(`${done}/${all.length}`);
         }
@@ -1267,6 +1292,11 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
       );
 
       if (failure) alert(failure);
+      if (skipped.length) {
+        alert(skipped.length === 1
+          ? `Відео «${skipped[0]}» не завантажено, бо відео в галереї доступні від тарифу «Старт». Решта файлів завантажується як і раніше.`
+          : `Не завантажено ${skipped.length} відео, бо відео в галереї доступні від тарифу «Старт». Решта файлів завантажується як і раніше.`);
+      }
       await onDone();
       if (done > 0) {
         setResult(`Готово, завантажено ${done} ${done === 1 ? 'файл' : 'файлів'} — вони вже у стрічці нижче.`);
@@ -1301,7 +1331,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
         </div>
       )}
       <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
-        Можна обрати одразу кілька файлів. Фото до 100 МБ, відео до 2 ГБ, разом до 2000 файлів у галереї.
+        Можна обрати одразу кілька файлів. Фото до 100 МБ, відео до 2 ГБ (від тарифу «Старт»), разом до 2000 файлів у галереї.
       </div>
     </div>
   );

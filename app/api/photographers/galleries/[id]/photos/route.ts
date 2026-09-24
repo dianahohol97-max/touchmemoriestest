@@ -10,6 +10,7 @@ import { notifyStorageAfterUpload } from '@/lib/photographers/storage-notice';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
 import { galleryFilesToRemove, gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
 import { galleryThumbUrl } from '@/lib/photographers/gallery-image';
+import { planOf, canUploadVideo, isVideoFile, videoRefusal } from '@/lib/photographers/plan-rules';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -57,7 +58,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const uploaded: any[] = [];
   let uploadedBytes = 0;
   for (const file of files) {
-    if (!file.type.startsWith('image/')) {
+    // This route takes photos only; a video named as a photo (image/jpeg type,
+    // .mp4 name) is caught by its name. On the free plan the refusal says why.
+    if (isVideoFile({ contentType: file.type, fileName: file.name }) && !canUploadVideo(planOf(ctx.photographer))) {
+      return NextResponse.json({ error: videoRefusal(file.name), video_not_allowed: true, uploaded }, { status: 403 });
+    }
+    if (!file.type.startsWith('image/') || isVideoFile({ fileName: file.name })) {
       return NextResponse.json({ error: `«${file.name}» не є зображенням` }, { status: 400 });
     }
     if (file.size > MAX_PHOTO_BYTES) {

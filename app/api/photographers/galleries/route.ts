@@ -5,6 +5,7 @@ import { fileUrl } from '@/lib/photographers/storage';
 import { readGalleryPhotoRows } from '@/lib/photographers/gallery-photos';
 import { gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
 import { galleryThumbUrl } from '@/lib/photographers/gallery-image';
+import { planOf, termOptionsFor, canExtendGallery, FREE_TERM_REFUSAL } from '@/lib/photographers/plan-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,9 +113,14 @@ export async function GET(req: NextRequest) {
     coverByGallery[g.id] = first?.storage_path ? coverThumb(first) : null;
   }));
 
+  // Whether each gallery can be extended — the same rule the PATCH enforces,
+  // so the cabinet shows the buttons only where the server will accept them.
+  const planId = planOf(photographer);
+
   return NextResponse.json({
     galleries: (galleries || []).map((g: any) => ({
       ...g,
+      can_extend: canExtendGallery(planId, g.created_at),
       photo_count: g.photographer_gallery_photos?.[0]?.count || 0,
       favorite_count: favFailed ? null : favByGallery[g.id] || 0,
       photo_downloads: dlFailed ? null : photoDlByGallery[g.id] || 0,
@@ -136,8 +142,13 @@ export async function POST(req: NextRequest) {
     const title = String(body?.title || '').trim();
     if (!title) return NextResponse.json({ error: 'Вкажіть назву галереї' }, { status: 400 });
     // Storage term picked at creation (30 is the default the column carries).
+    // The plan decides which terms exist: the free plan has 30 days only
+    // (lib/photographers/plan-rules.ts). Checked here, not just in the form.
     const termDays = Number(body?.term_days || 30);
     if (![30, 60, 90].includes(termDays)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
+    if (!termOptionsFor(planOf(photographer)).includes(termDays)) {
+      return NextResponse.json({ error: FREE_TERM_REFUSAL, plan_required: true }, { status: 403 });
+    }
 
     const admin = getAdminClient();
     const { data: gallery, error } = await admin

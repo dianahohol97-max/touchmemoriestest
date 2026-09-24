@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { card, sectionTitle, btn, btnGhost, label, input } from '../../CabinetClient';
@@ -27,6 +27,26 @@ export default function NewGalleryClient({ token }: { token: string }) {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
   const [createdId, setCreatedId] = useState('');
+  // Terms the plan allows (lib/photographers/plan-rules.ts). Until the answer
+  // arrives only 30 days is on offer: that one every plan has, and the server
+  // checks the term anyway.
+  const [termOptions, setTermOptions] = useState<number[]>([30]);
+  const [rulesLoaded, setRulesLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/photographers/subscription?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then(json => {
+        if (cancelled) return;
+        const options = json?.gallery_rules?.term_options;
+        if (Array.isArray(options) && options.length) setTermOptions(options);
+      })
+      .catch(() => { /* the form still works with 30 days */ })
+      .finally(() => { if (!cancelled) setRulesLoaded(true); });
+    return () => { cancelled = true; };
+  }, [token]);
+  const freeTerm = rulesLoaded && termOptions.length === 1;
 
   const back = `/uk/photographer/cabinet/${token}`;
 
@@ -114,20 +134,27 @@ export default function NewGalleryClient({ token }: { token: string }) {
 
                 <label style={label}>Термін зберігання</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[30, 60, 90].map(d => (
-                    <button key={d} type="button" onClick={() => setTermDays(d)}
-                      style={{
-                        padding: '9px 18px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-                        fontFamily: 'var(--font-heading), sans-serif',
-                        border: termDays === d ? '2px solid #263A99' : '1px solid #e2e8f0',
-                        background: termDays === d ? '#eef3ff' : '#fff', color: '#1f2937',
-                      }}>
-                      {d} днів
-                    </button>
-                  ))}
+                  {[30, 60, 90].map(d => {
+                    const allowed = termOptions.includes(d);
+                    return (
+                      <button key={d} type="button" onClick={() => allowed && setTermDays(d)} disabled={!allowed}
+                        title={allowed ? undefined : 'Доступно на платних тарифах'}
+                        style={{
+                          padding: '9px 18px', borderRadius: 999, fontSize: 13.5, fontWeight: 700,
+                          cursor: allowed ? 'pointer' : 'not-allowed', opacity: allowed ? 1 : 0.45,
+                          fontFamily: 'var(--font-heading), sans-serif',
+                          border: termDays === d ? '2px solid #263A99' : '1px solid #e2e8f0',
+                          background: termDays === d ? '#eef3ff' : '#fff', color: '#1f2937',
+                        }}>
+                        {d} днів
+                      </button>
+                    );
+                  })}
                 </div>
                 <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>
-                  Після завершення терміну фото видаляються автоматично, а клієнт бачить сторінку з вашими контактами. Термін можна продовжити пізніше.
+                  {freeTerm
+                    ? <>На безкоштовному тарифі галерея зберігається 30 днів без продовження. Термін 60 чи 90 днів і продовження доступні на платних тарифах, обрати їх можна в розділі <a href={`${back}?plans=1#plans`} style={{ color: '#263A99', fontWeight: 700 }}>«Місце для галерей»</a>. Після завершення терміну фото видаляються автоматично, а клієнт бачить сторінку з вашими контактами.</>
+                    : 'Після завершення терміну фото видаляються автоматично, а клієнт бачить сторінку з вашими контактами. Термін можна продовжити пізніше.'}
                 </div>
 
                 {error && <div style={{ color: '#b91c1c', fontSize: 13.5, marginTop: 12 }}>{error}</div>}

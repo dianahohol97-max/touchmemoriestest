@@ -4,6 +4,7 @@ import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import { sanitizeDesign } from '@/lib/photographers/gallery-design';
 import { extendedExpiry, EXTEND_DAY_OPTIONS } from '@/lib/photographers/gallery-term';
 import { kyivDateParts } from '@/lib/photographers/notice-rules';
+import { planOf, canExtendGallery, FREE_EXTEND_REFUSAL } from '@/lib/photographers/plan-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const admin = getAdminClient();
     const { data: gallery } = await admin
       .from('photographer_galleries')
-      .select('id, design, expires_at, files_purged_at')
+      .select('id, design, expires_at, files_purged_at, created_at')
       .eq('id', id)
       .eq('photographer_id', photographer.id)
       .maybeSingle();
@@ -39,6 +40,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if ('extend_days' in body) {
       if (gallery.files_purged_at) return NextResponse.json({ error: 'Файли галереї вже видалено — продовжити неможливо' }, { status: 400 });
+      // Free plan: no extension for galleries created under the plan rules;
+      // older galleries keep the old behaviour (lib/photographers/plan-rules.ts).
+      if (!canExtendGallery(planOf(photographer), gallery.created_at)) {
+        return NextResponse.json({ error: FREE_EXTEND_REFUSAL, plan_required: true }, { status: 403 });
+      }
       const days = Number(body.extend_days);
       if (!(EXTEND_DAY_OPTIONS as readonly number[]).includes(days)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
       // Extends from the later of now and the current expiry, capped at
