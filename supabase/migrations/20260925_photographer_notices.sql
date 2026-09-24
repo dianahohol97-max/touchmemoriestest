@@ -31,7 +31,7 @@ alter table public.photographers
 comment on column public.photographer_galleries.expiry_notice_for is
   'expires_at, про який пішов лист «галерея скоро згасне». Не дорівнює expires_at — лист ще не надіслано для поточного терміну.';
 comment on column public.photographer_galleries.purge_notice_sent_at is
-  'Коли пішов лист «файли галереї видалено». Ставиться тільки після успішної відправки.';
+  'Коли пішов лист «файли галереї видалено». Ставиться тільки після того, як провайдер прийняв лист.';
 comment on column public.photographers.storage_notice_sent_at is
   'Коли пішов лист «місце закінчується» (поріг 90%). Скидається, коли зайняте падає нижче 80%.';
 comment on column public.photographers.storage_notice_pending_at is

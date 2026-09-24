@@ -130,7 +130,7 @@ export async function sendExpiryNotices(deps: NoticeDeps): Promise<NoticeReport>
         const p = photographers.get(g.photographer_id);
         if (!canEmailPhotographer(p)) { report.skipped++; continue; }
         const ok = await trySend(deps, p!, expiryNoticeEmail({
-            photographerName: p!.name || '', galleryTitle: g.title, expiresAt: g.expires_at, cabinetToken: p!.cabinet_token,
+            galleryTitle: g.title, expiresAt: g.expires_at, cabinetToken: p!.cabinet_token,
         }), NOTICE_TEMPLATES.expiry);
         if (!ok) { report.failed++; continue; }
         report.sent++;
@@ -179,7 +179,7 @@ export async function sendPurgeNotices(deps: NoticeDeps): Promise<NoticeReport> 
         const p = photographers.get(g.photographer_id);
         if (!canEmailPhotographer(p)) { report.skipped++; continue; }
         const ok = await trySend(deps, p!, purgeNoticeEmail({
-            photographerName: p!.name || '', galleryTitle: g.title, purgedAt: g.files_purged_at!, cabinetToken: p!.cabinet_token,
+            galleryTitle: g.title, purgedAt: g.files_purged_at!, cabinetToken: p!.cabinet_token,
         }), NOTICE_TEMPLATES.purge);
         if (!ok) { report.failed++; continue; }
         report.sent++;
@@ -262,12 +262,10 @@ export async function handleStorageNotice(deps: NoticeDeps & {
     if (!claimed || claimed.length === 0) return 'busy';
 
     const ok = await trySend(deps, p, storageNoticeEmail({
-        photographerName: p.name || '',
         usedBytes: usage.usedBytes,
         limitBytes: usage.limitBytes,
         planName: usage.planName,
         limitOverridden: usage.limitOverridden,
-        cabinetToken: p.cabinet_token,
     }), NOTICE_TEMPLATES.storage);
 
     await db

@@ -379,7 +379,7 @@ Any failed step leaves the gallery for the next night and lands in `skipped` wit
 - **«галерея скоро згасне»** — the retention cron, before purging. Sent on the last nightly run after which fewer than three days would remain, so the photographer always gets 3–4 days, not 2–3. The mark is `expiry_notice_for` = the `expires_at` the letter was about, so an extension re-arms it without any code in the extension routes.
 - **«місце закінчується»** — after the row is inserted in both upload routes (multipart `photos` once per request, `videos` confirm once per file). 90% by `getStorageUsage`; `storage_notice_sent_at` re-arms when usage before or after the upload is under 80%. Parallel confirms are serialised by the `storage_notice_pending_at` lease (5 min).
 - **«файли галереї видалено»** — the retention cron, after purging, only for galleries whose `files_purged_at` is set; a failed send is retried on the next nights for three days, which also keeps galleries purged before this existed out of it.
-The demo cabinet (`DEMO_PHOTOGRAPHER_EMAIL`) and inactive cabinets are skipped. The new columns carry no foreign keys, so no embed changes (gotcha 12). Senders overview: `docs/email-senders.md`.
+The letters greet with a plain «Доброго дня!» (no automatic vocative). A test copy of all three goes out through `GET /api/admin/photographers/notice-test` (template suffix `_test`, no marks set). The demo cabinet (`DEMO_PHOTOGRAPHER_EMAIL`) and inactive cabinets are skipped. The new columns carry no foreign keys, so no embed changes (gotcha 12). Senders overview: `docs/email-senders.md`.
 
 ---
 

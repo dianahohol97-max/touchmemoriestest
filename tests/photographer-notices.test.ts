@@ -102,18 +102,51 @@ describe('тексти листів', () => {
         expect(kyivDateParts('2026-10-06T15:31:31.312Z')).toEqual({ date: '6 жовтня 2026', time: '18:31' });
     });
 
+    const IRINA_BYTES = 3_655_431_429;
+    const FREE_QUOTA = 4 * 1024 ** 3;
+    const mails = () => [
+        expiryNoticeEmail({ galleryTitle: '<b>X</b>', expiresAt: '2026-10-06T15:31:31Z', cabinetToken: 't' }),
+        storageNoticeEmail({ usedBytes: IRINA_BYTES, limitBytes: FREE_QUOTA, planName: 'Безкоштовно' }),
+        purgeNoticeEmail({ galleryTitle: '<b>X</b>', purgedAt: '2026-10-07T03:30:00Z', cabinetToken: 't' }),
+    ];
+    const text = (html: string) => html.replace(/<[^>]+>/g, ' ');
+
     it('назва галереї екранується, а тексти не містять «успішно»', () => {
-        const mails = [
-            expiryNoticeEmail({ photographerName: 'Ірина', galleryTitle: '<b>X</b>', expiresAt: '2026-10-06T15:31:31Z', cabinetToken: 't' }),
-            storageNoticeEmail({ photographerName: 'Ірина', usedBytes: 3.9 * 1024 ** 3, limitBytes: 4 * 1024 ** 3, planName: 'Безкоштовно', cabinetToken: 't' }),
-            purgeNoticeEmail({ photographerName: 'Ірина', galleryTitle: '<b>X</b>', purgedAt: '2026-10-07T03:30:00Z', cabinetToken: 't' }),
-        ];
-        for (const m of mails) {
+        for (const m of mails()) {
             expect(m.html).not.toContain('<b>X</b>');
             expect(m.html.toLowerCase()).not.toContain('успішно');
-            expect(m.html).toContain('/uk/photographer/cabinet/t');
         }
-        expect(mails[1].html).toContain('3,9 ГБ із 4 ГБ');
+        expect(mails()[0].html).toContain('/uk/photographer/cabinet/t');
+        expect(mails()[2].html).toContain('/uk/photographer/cabinet/t');
+        expect(mails()[1].html).toContain('/uk/photographers#tarify');
+    });
+
+    it('жодної незамінної заглушки у фігурних дужках — ні в темі, ні в тексті', () => {
+        for (const m of mails()) {
+            for (const part of [m.subject, text(m.html)]) {
+                expect(part).not.toMatch(/[{}]/);
+                expect(part).not.toMatch(/undefined|null|NaN|\$\{/);
+            }
+        }
+    });
+
+    it('звертання без імені в усіх трьох листах', () => {
+        for (const m of mails()) {
+            expect(text(m.html)).toContain('Доброго дня!');
+            expect(m.html).not.toMatch(/Доброго дня,/);
+        }
+    });
+
+    it('зайняте і квота в одних одиницях: Ірина на 85% бачить 3,4 ГБ із 4 ГБ, а не 3,6', () => {
+        expect(text(mails()[1].html)).toContain('3,4 ГБ із 4 ГБ');
+        // Рівно 90% квоти в ГіБ — 3,6 ГБ із 4 ГБ.
+        const at90 = storageNoticeEmail({ usedBytes: 0.9 * FREE_QUOTA, limitBytes: FREE_QUOTA, planName: 'Безкоштовно' });
+        expect(text(at90.html)).toContain('3,6 ГБ із 4 ГБ');
+    });
+
+    it('у листі про місце немає рядка з посиланням на кабінет', () => {
+        expect(mails()[1].html).not.toContain('/uk/photographer/cabinet/');
+        expect(mails()[1].html).not.toContain('Змінити тариф можна в кабінеті');
     });
 });
 
