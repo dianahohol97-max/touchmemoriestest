@@ -113,7 +113,10 @@ export async function createCertificate(params: {
 }
 
 /**
- * Generate certificate HTML for email or PDF
+ * Generate certificate HTML — the brand gift certificate (1200×800, 3:2).
+ * Mirrors the Canva design: #263A99 field, cream frame with a gift-icon tab,
+ * "GIFT / certificate" lockup, amount, validity, vertical code on the right,
+ * Instagram handle under the frame. Used for the admin preview and PNG export.
  */
 export function generateCertificateHTML(certificate: {
   code: string;
@@ -124,11 +127,18 @@ export function generateCertificateHTML(certificate: {
   message?: string;
   valid_until: string;
 }): string {
-  const validUntilDate = new Date(certificate.valid_until).toLocaleDateString('uk-UA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const esc = (v: unknown) =>
+    String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+
+  const d = new Date(certificate.valid_until);
+  const validUntilDate = isNaN(d.getTime())
+    ? '—'
+    : `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+
+  const valueLine =
+    certificate.certificate_type === 'money'
+      ? `НА ${esc(certificate.amount)} ГРН`
+      : esc(certificate.product_name || 'СЕРТИФІКАТ НА ПРОДУКТ').toUpperCase();
 
   return `
 <!DOCTYPE html>
@@ -136,206 +146,162 @@ export function generateCertificateHTML(certificate: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Подарунковий сертифікат Touch.Memories</title>
+  <title>Подарунковий сертифікат touch.memories ${esc(certificate.code)}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400&family=Alex+Brush&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #e9ebf3; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #fef3c7 0%, #fff 50%, #fed7aa 100%);
-      padding: 40px 20px;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 24px;
+      font-family: 'Montserrat', Arial, Helvetica, sans-serif;
     }
     .certificate {
-      max-width: 800px;
-      background: white;
-      border: 3px solid #f59e0b;
-      border-radius: 16px;
-      padding: 60px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
       position: relative;
+      width: 1200px;
+      height: 800px;
+      background: #263A99;
+      color: #F7F5EF;
       overflow: hidden;
+      flex: none;
     }
-    .certificate::before {
-      content: '';
+    .frame {
       position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
-      pointer-events: none;
+      left: 140px; right: 140px; top: 92px; bottom: 105px;
+      border: 5px solid #F7F5EF;
+      border-radius: 18px;
     }
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-      position: relative;
-      z-index: 1;
+    .tab {
+      position: absolute;
+      left: 50%; top: 0;
+      width: 192px; height: 230px;
+      margin-left: -96px;
+      background: #F7F5EF;
+      border-radius: 0 0 96px 96px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 6px;
     }
-    .logo {
-      font-size: 14px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: #f59e0b;
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-    .title {
-      font-size: 36px;
+    .tab svg { width: 112px; height: 112px; display: block; }
+    .code-vertical {
+      position: absolute;
+      right: 82px; top: 128px;
+      transform: rotate(-90deg);
+      transform-origin: right top;
       font-weight: 700;
-      color: #1c1917;
-      margin-bottom: 8px;
+      font-size: 24px;
+      letter-spacing: 3px;
+      white-space: nowrap;
     }
-    .subtitle {
-      font-size: 18px;
-      color: #78716c;
-    }
-    .content {
+    .lockup {
+      position: absolute;
+      left: 0; right: 0; top: 246px;
       text-align: center;
-      margin: 40px 0;
-      position: relative;
-      z-index: 1;
+      height: 200px;
+    }
+    .gift {
+      font-family: 'Bodoni Moda', 'Didot', 'Playfair Display', 'Times New Roman', serif;
+      font-weight: 400;
+      font-size: 190px;
+      line-height: 1;
+      letter-spacing: 14px;
+      color: #F7F5EF;
+    }
+    .script {
+      position: absolute;
+      left: 0; right: 0; top: 56px;
+      font-family: 'Alex Brush', 'Brush Script MT', cursive;
+      font-size: 84px;
+      line-height: 1;
+      color: #0f1a4d;
+      transform: rotate(-4deg);
     }
     .value {
-      font-size: 64px;
-      font-weight: 800;
-      color: #f59e0b;
-      margin: 20px 0;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .product-name {
-      font-size: 28px;
+      position: absolute;
+      left: 0; right: 0; top: 486px;
+      text-align: center;
       font-weight: 700;
-      color: #1c1917;
-      margin: 20px 0;
-    }
-    .code-section {
-      background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-      border-radius: 12px;
-      padding: 24px;
-      margin: 40px 0;
-      position: relative;
-      z-index: 1;
-    }
-    .code-label {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #78716c;
-      margin-bottom: 8px;
-    }
-    .code {
-      font-size: 32px;
-      font-weight: 800;
-      color: #1c1917;
+      font-size: 34px;
       letter-spacing: 6px;
-      font-family: 'Courier New', monospace;
     }
-    .recipient {
-      text-align: center;
-      margin: 30px 0;
-      font-size: 18px;
-      color: #57534e;
-      position: relative;
-      z-index: 1;
-    }
-    .recipient strong {
-      color: #1c1917;
-      font-weight: 600;
-    }
-    .message {
-      background: #fafaf9;
-      border-left: 4px solid #f59e0b;
-      padding: 20px;
-      margin: 30px 0;
-      font-style: italic;
-      color: #57534e;
-      border-radius: 8px;
-      position: relative;
-      z-index: 1;
-    }
-    .footer {
-      border-top: 2px solid #f5f5f4;
-      padding-top: 30px;
-      margin-top: 40px;
-      text-align: center;
-      position: relative;
-      z-index: 1;
+    .dots {
+      position: absolute;
+      left: 50%; top: 536px;
+      width: 370px; margin-left: -185px;
+      border-top: 5px dotted #F7F5EF;
+      opacity: .95;
     }
     .validity {
-      font-size: 14px;
-      color: #78716c;
-      margin-bottom: 16px;
+      position: absolute;
+      left: 0; right: 0; top: 556px;
+      text-align: center;
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: 2px;
     }
-    .instructions {
-      font-size: 14px;
-      color: #a8a29e;
-      line-height: 1.6;
+    .validity .date {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 30px;
+      letter-spacing: 3px;
+      border-bottom: 5px dotted #F7F5EF;
+      padding: 0 22px 2px;
+      margin-left: 6px;
+      vertical-align: -6px;
     }
-    .contact {
-      margin-top: 20px;
-      font-size: 13px;
-      color: #a8a29e;
+    .handle {
+      position: absolute;
+      left: 0; right: 0; bottom: 34px;
+      text-align: center;
+      color: #0f1a4d;
+      font-weight: 700;
+      font-size: 24px;
+      letter-spacing: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
     }
-    .contact a {
-      color: #f59e0b;
-      text-decoration: none;
-    }
+    .handle svg { width: 34px; height: 34px; }
     @media print {
-      body { background: white; padding: 0; }
+      html, body { background: white; padding: 0; }
       .certificate { box-shadow: none; }
     }
   </style>
 </head>
 <body>
   <div class="certificate">
-    <div class="header">
-      <div class="logo">Touch.Memories · Тернопіль</div>
-      <h1 class="title">Подарунковий сертифікат</h1>
-      <p class="subtitle">Збережіть найкращі моменти назавжди</p>
+    <div class="frame"></div>
+    <div class="tab">
+      <svg viewBox="0 0 64 64" fill="none" stroke="#263A99" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="26" width="48" height="10" rx="1.5"/>
+        <path d="M12 36v20a2 2 0 0 0 2 2h36a2 2 0 0 0 2-2V36"/>
+        <path d="M32 26v32"/>
+        <path d="M32 26c-6 0-14-1-14-8 0-4 3-6 6-6 5 0 8 9 8 14z"/>
+        <path d="M32 26c6 0 14-1 14-8 0-4-3-6-6-6-5 0-8 9-8 14z"/>
+      </svg>
     </div>
-
-    <div class="content">
-      ${
-        certificate.certificate_type === 'money'
-          ? `<div class="value">${certificate.amount} ₴</div>`
-          : `
-            <div class="product-name">${certificate.product_name}</div>
-            <p style="color: #78716c; margin-top: 8px;">Сертифікат на продукт</p>
-          `
-      }
+    <div class="code-vertical">${esc(certificate.code)}</div>
+    <div class="lockup">
+      <div class="gift">GIFT</div>
+      <div class="script">certificate</div>
     </div>
-
-    ${
-      certificate.recipient_name
-        ? `<div class="recipient">Для: <strong>${certificate.recipient_name}</strong></div>`
-        : ''
-    }
-
-    ${certificate.message ? `<div class="message">${certificate.message}</div>` : ''}
-
-    <div class="code-section">
-      <div class="code-label">Код сертифікату</div>
-      <div class="code">${certificate.code}</div>
-    </div>
-
-    <div class="footer">
-      <div class="validity">
-        Дійсний до: <strong>${validUntilDate}</strong>
-      </div>
-      <div class="instructions">
-        Використайте цей код при оформленні замовлення на сайті touchmemories.com.ua<br>
-        або зв'яжіться з нами для активації сертифікату
-      </div>
-      <div class="contact">
-        <strong>Touch.Memories</strong><br>
-        Тернопіль, вул. Січових Стрільців, 22<br>
-        Telegram: <a href="https://t.me/touchmemories">@touchmemories</a> ·
-        Instagram: <a href="https://instagram.com/touchmemories.te">@touchmemories.te</a><br>
-        Тел: +380 67 123 4567
-      </div>
+    <div class="value">${valueLine}</div>
+    <div class="dots"></div>
+    <div class="validity">дійсний до<span class="date">${validUntilDate}</span></div>
+    <div class="handle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0f1a4d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2.5" y="2.5" width="19" height="19" rx="5"/>
+        <circle cx="12" cy="12" r="4.2"/>
+        <circle cx="17.3" cy="6.7" r="1" fill="#0f1a4d" stroke="none"/>
+      </svg>
+      TOUCH.MEMORIES
     </div>
   </div>
 </body>

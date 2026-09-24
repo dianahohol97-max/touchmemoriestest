@@ -255,8 +255,8 @@ export default function CertificatesAdminPage() {
     iframe.style.position = 'fixed';
     iframe.style.left = '-10000px';
     iframe.style.top = '0';
-    iframe.style.width = '1200px';
-    iframe.style.height = '1000px';
+    iframe.style.width = '1300px';
+    iframe.style.height = '900px';
     iframe.style.border = '0';
     try {
       await new Promise<void>((resolve, reject) => {
@@ -271,7 +271,7 @@ export default function CertificatesAdminPage() {
       const node = doc.querySelector('.certificate') as HTMLElement | null;
       if (!node) throw new Error('не знайдено блок сертифіката');
       const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#263A99', useCORS: true, windowWidth: 1300, windowHeight: 900 });
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('не вдалося створити PNG');
       const url = URL.createObjectURL(blob);
