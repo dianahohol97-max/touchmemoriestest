@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Gift, Search, Check, X, Calendar, AlertTriangle, Plus, Copy, Eye, Download, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { generateCertificateHTML } from '@/lib/certificates/generateCertificate';
 
 interface Certificate {
   id: string;
@@ -50,7 +49,6 @@ export default function CertificatesAdminPage() {
     sender_name: '', message: '', expires_at: '', source: 'manual', notes: '', sendEmail: false
   });
   const [savingCert, setSavingCert] = useState(false);
-  const [downloadingPng, setDownloadingPng] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const generateCode = () => {
@@ -239,56 +237,20 @@ export default function CertificatesAdminPage() {
     toast.success('Код скопійовано');
   };
 
-  // View certificate HTML
+  // Certificate PNG is rendered server-side (Satori) at /api/admin/certificates/[code]/png,
+  // so preview and download are the same pixels.
+  const certificatePngUrl = (certificate: Certificate) =>
+    `/api/admin/certificates/${encodeURIComponent(certificate.code)}/png`;
   const handleViewCertificate = (certificate: Certificate) => {
-    const html = generateCertificateHTML(certificate);
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    window.open(certificatePngUrl(certificate), '_blank');
   };
-
-  // Download the certificate as PNG: render the same HTML the «Переглянути»
-  // view shows into an offscreen iframe, then rasterize its .certificate node.
-  const handleDownloadPng = async (certificate: Certificate) => {
-    setDownloadingPng(true);
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-10000px';
-    iframe.style.top = '0';
-    iframe.style.width = '1300px';
-    iframe.style.height = '900px';
-    iframe.style.border = '0';
-    try {
-      await new Promise<void>((resolve, reject) => {
-        iframe.onload = () => resolve();
-        iframe.onerror = () => reject(new Error('iframe load failed'));
-        iframe.srcdoc = generateCertificateHTML(certificate);
-        document.body.appendChild(iframe);
-      });
-      const doc = iframe.contentDocument;
-      if (!doc) throw new Error('немає документа');
-      if ((doc as any).fonts?.ready) await (doc as any).fonts.ready;
-      const node = doc.querySelector('.certificate') as HTMLElement | null;
-      if (!node) throw new Error('не знайдено блок сертифіката');
-      const { default: html2canvas } = await import('html2canvas');
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#263A99', useCORS: true, windowWidth: 1300, windowHeight: 900 });
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('не вдалося створити PNG');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `certificate-${certificate.code}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success('PNG завантажено');
-    } catch (e: any) {
-      toast.error('Не вдалося завантажити PNG: ' + (e?.message || 'помилка'));
-    } finally {
-      iframe.remove();
-      setDownloadingPng(false);
-    }
+  const handleDownloadPng = (certificate: Certificate) => {
+    const a = document.createElement('a');
+    a.href = `${certificatePngUrl(certificate)}?download=1`;
+    a.download = `certificate-${certificate.code}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   // Re-send an existing certificate to the recipient's email.
@@ -583,10 +545,9 @@ export default function CertificatesAdminPage() {
                 </button>
                 <button
                   onClick={() => handleDownloadPng(selectedCertificate)}
-                  disabled={downloadingPng}
                   className="inline-flex items-center gap-1.5 px-3 py-2 border border-stone-300 text-stone-700 rounded-lg text-sm font-semibold hover:bg-stone-50 disabled:opacity-50 transition-colors"
                 >
-                  <Download className="w-4 h-4" /> {downloadingPng ? 'Готуємо PNG...' : 'Завантажити PNG'}
+                  <Download className="w-4 h-4" /> Завантажити PNG
                 </button>
                 <button
                   onClick={() => handleCopyCode(selectedCertificate.code)}

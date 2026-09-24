@@ -1,5 +1,11 @@
 // auto-deploy: deploy-1781697900-redeploy
 const nextConfig = {
+  // Static TTFs the gift-certificate PNG route reads at runtime (Satori needs
+  // real font files). Without this Vercel's file tracing drops them from the
+  // serverless bundle and the route fails with ENOENT in production only.
+  outputFileTracingIncludes: {
+    '/api/admin/certificates/[code]/png': ['./lib/certificates/fonts/**/*'],
+  },
   // Disable Partial Pre-Rendering globally — admin panel must never be statically cached
   experimental: {
     ppr: false,
