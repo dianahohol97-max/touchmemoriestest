@@ -138,7 +138,9 @@ export type PartnerHub = {
  * власній сторінці /photographers зі своїм текстом і своїм кабінетом. Тримати
  * заради нього фальшивий `kind` у типі лендінга означало б, що getPartnerLanding
  * пообіцяє сторінку, якої немає. Тож картка несе адресу, а `kind` лишився
- * тільки для іконки.
+ * тільки для іконки. Двоє з чотирьох напрямів — фотографи і весільні агенції —
+ * мають власні сторінки поза цим модулем, тож адреса тут єдиний спосіб на них
+ * послатися.
  */
 export type PartnerHubRoute = {
     title: string;
@@ -151,7 +153,7 @@ export type PartnerHubRoute = {
     href: string;
 };
 
-export type PartnerHubRouteKind = 'photographer' | 'blogger' | 'agency';
+export type PartnerHubRouteKind = 'photographer' | 'wedding' | 'blogger' | 'agency';
 
 /**
  * Порядок карток на хабі й водночас порядок пунктів у меню «Співпраця»
@@ -161,6 +163,7 @@ export type PartnerHubRouteKind = 'photographer' | 'blogger' | 'agency';
  */
 const HUB_ROUTES: Array<{ kind: PartnerHubRouteKind; path: string }> = [
     { kind: 'photographer', path: '/photographers' },
+    { kind: 'wedding', path: '/wedding-agencies' },
     { kind: 'blogger', path: PATHS.blogger },
     { kind: 'agency', path: PATHS.agency },
 ];

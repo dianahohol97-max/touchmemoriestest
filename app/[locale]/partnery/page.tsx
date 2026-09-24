@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { Camera, Gift, Percent, Users } from 'lucide-react';
+import { Camera, Gift, Heart, Percent, Users } from 'lucide-react';
 import { getCanonicalUrl, getSingleLocaleAlternates, getBaseUrl } from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 import { getPartnerHub, type PartnerHubRouteKind } from '@/lib/partners/landing-content';
@@ -56,6 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 const ROUTE_ICON: Record<PartnerHubRouteKind, ReactNode> = {
     photographer: <Camera size={26} color="#3d56d6" />,
+    wedding: <Heart size={26} color="#3d56d6" />,
     blogger: <Percent size={26} color="#3d56d6" />,
     agency: <Gift size={26} color="#3d56d6" />,
 };
