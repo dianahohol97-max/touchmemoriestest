@@ -324,6 +324,27 @@ export const TRAVEL_BOOK: TravelBookProduct = {
   }
 };
 
+/**
+ * ДО СКІЛЬКОХ СТОРІНОК ЖУРНАЛ ІДЕ НА СКОБУ.
+ *
+ * Число прийшло від друкарні 24.09.2026: до п'ятдесяти двох включно скоба,
+ * більший обсяг на клей. До того в коді і в описі товару стояло 44, і звідки
+ * воно взялося, не пам'ятає ніхто — друкарня його не називала.
+ *
+ * Константа одна на весь проєкт СВІДОМО. Поріг жив у чотирьох місцях
+ * одночасно: тут, у `getBindingType`, у тексті блока переваг на сторінці
+ * товару і в самому описі товару в базі, у п'яти мовах прописом. Три з
+ * чотирьох були текстом, який ніхто не звіряє з кодом, тож розійтися вони
+ * могли лише в один бік — клієнт читає одне число, виробництво робить інше.
+ * Опис у базі до коду не дотягнути, він лишається текстом і правиться
+ * міграцією `20260924_magazine_binding_threshold.sql`, але три місця в коді
+ * тепер читають одне значення.
+ *
+ * Наступний доступний тираж після 52 — це 60 (див. `pagesAvailable`), тож
+ * «більше за 52» на практиці означає «від 60».
+ */
+export const MAGAZINE_STAPLE_MAX_PAGES = 52;
+
 export const PHOTO_JOURNAL_SOFT: PhotoJournalProduct = {
   id: 'photo_journal_soft',
   name: 'PHOTO JOURNAL — SOFT COVER (Фотожурнал)',
@@ -331,7 +352,7 @@ export const PHOTO_JOURNAL_SOFT: PhotoJournalProduct = {
   format: 'A4',
   canvasDimensions: '2480×3508 px',
   productionTime: '4–8 business days',
-  binding: 'staple ≤44 pages · glue/perfect binding >44 pages',
+  binding: `staple ≤${MAGAZINE_STAPLE_MAX_PAGES} pages · glue/perfect binding >${MAGAZINE_STAPLE_MAX_PAGES} pages`,
   pagesAvailable: [8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 60, 72, 80, 92, 100],
   prices: {
     8: 525,
@@ -757,8 +778,20 @@ export const MAGAZINE_PRICES_WITH_TYPESETTING = Object.fromEntries(
 
 export type BindingType = 'saddle-stitch' | 'perfect-binding';
 
+/**
+ * Перший тираж, який уже не влазить у скобу.
+ *
+ * Рахується з переліку доступних тиражів, а не пишеться числом. Тут стояло
+ * «від 46 сторінок», а 46 не продається взагалі: після 44 йде 48, потім 52,
+ * потім 60. Назване вручну число мусить збігатися і з порогом, і з переліком
+ * тиражів одночасно, і саме цього воно не робило.
+ */
+const FIRST_GLUED_PAGE_COUNT =
+  PHOTO_JOURNAL_SOFT.pagesAvailable.find(p => p > MAGAZINE_STAPLE_MAX_PAGES)
+  ?? MAGAZINE_STAPLE_MAX_PAGES + 1;
+
 export function getBindingType(pages: number): BindingType {
-  return pages <= 44 ? 'saddle-stitch' : 'perfect-binding';
+  return pages <= MAGAZINE_STAPLE_MAX_PAGES ? 'saddle-stitch' : 'perfect-binding';
 }
 
 export function getBindingInfo(pages: number) {
@@ -769,7 +802,7 @@ export function getBindingInfo(pages: number) {
       type: 'saddle-stitch',
       icon: '',
       title: 'Скоба (Saddle-stitch)',
-      description: 'Класична журнальна палітурка — ідеально до 44 сторінок. Аркуші складаються навпіл і скріплюються двома металевими скобами.',
+      description: `Класична журнальна палітурка — ідеально до ${MAGAZINE_STAPLE_MAX_PAGES} сторінок. Аркуші складаються навпіл і скріплюються двома металевими скобами.`,
       backgroundColor: '#F0F8FF',
       borderColor: '#3B82F6',
       displayName: 'Скоба',
@@ -780,7 +813,7 @@ export function getBindingInfo(pages: number) {
     type: 'perfect-binding',
     icon: '',
     title: 'Клейова палітурка (Perfect binding)',
-    description: 'Книжкова якість — для журналів від 46 сторінок. Сторінки приклеюються до корінця. Журнал виглядає як справжня книга.',
+    description: `Книжкова якість — для журналів від ${FIRST_GLUED_PAGE_COUNT} сторінок. Сторінки приклеюються до корінця. Журнал виглядає як справжня книга.`,
     backgroundColor: '#F0FFF4',
     borderColor: '#10B981',
     displayName: 'Клейова палітурка',
