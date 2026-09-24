@@ -803,3 +803,50 @@ order by 1, 2, 3;
 дійшли до кінця і не встигли про це сказати, найчастіше через нестачу
 пам'яті. Якщо їх помітно на `ios`, частину для iPhone варто зменшити
 (`PART_LIMIT_BYTES` у `lib/photographers/zip-plan.ts`).
+
+## 17. Колонки сайту-візитки фотографа — міграція на видалення, пізніше
+
+Візитку фотографа, каталог і бронювання зйомок прибрано з коду (Діана,
+24.09.2026). Колонки й таблицю в базі свідомо лишили, щоб видалити окремою
+міграцією, коли код без них уже працюватиме в продакшні.
+
+Що видаляти: таблицю `photographer_slots` (0 рядків, один зовнішній ключ на
+`photographers`) і колонки `photographers`: `landing_enabled`, `landing_theme`,
+`pricing`, `portfolio`, `city`, `specialization`, `custom_domain` (на ній
+унікальний індекс), `custom_domain_paid`, `booking_enabled`, `pay_mono_*`,
+`pay_wfp_*`, `pay_requisites*`. `slug` і `bio` лишаються: `slug` обов'язковий
+і його генерують місця створення кабінету, а `bio` показує клієнтська
+галерея. Окремо варто прибрати файли портфоліо з бакета брендингу.
+
+**Уже перевірено (інвентаризація 24.09.2026):** ці колонки не використовуються
+ні у функціях, ні в представленнях, ні в політиках RLS. Тобто міграція не
+зламає жодного об'єкта в самій базі.
+
+**Перед міграцією, робить Claude.** Спершу переконатися, що в `main` немає
+коду, який читає ці колонки, тоді повторити перевірку бази, бо за час до
+міграції могло щось з'явитися. Тільки читання:
+
+```sql
+-- функції, у тілі яких згадано колонки чи таблицю
+select p.proname
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.prosrc ~ '(landing_enabled|landing_theme|custom_domain|booking_enabled|pay_mono_|pay_wfp_|pay_requisites|photographer_slots)';
+
+-- представлення
+select table_name from information_schema.views
+where table_schema = 'public'
+  and view_definition ~ '(landing_enabled|landing_theme|custom_domain|booking_enabled|pay_mono_|pay_wfp_|pay_requisites|photographer_slots)';
+
+-- політики RLS
+select tablename, policyname from pg_policies
+where coalesce(qual, '') || coalesce(with_check, '')
+  ~ '(landing_enabled|landing_theme|custom_domain|booking_enabled|pay_mono_|pay_wfp_|pay_requisites|photographer_slots)';
+```
+
+Усі три запити мають повернути порожній результат. Колонки `pricing`,
+`portfolio`, `city` і `specialization` у шаблоні пошуку свідомо відсутні:
+ці слова трапляються в назвах цін і товарів, тож дали б хибні збіги. Їх
+перевірити очима в знайдених функціях, якщо такі будуть. Після міграції варто
+перевірити вбудовування `photographers(...)` у запитах (гоча 12), хоча
+зовнішній ключ тут зникає, а не додається.
