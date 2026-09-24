@@ -1,31 +1,18 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LANDING_THEMES } from '@/lib/photographers/themes';
-import { SHOP_CONTACT_EMAIL } from '@/lib/email/contact-address';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
 import { partnerRefLink } from '@/lib/partners/referral-link';
 
+// Only what the client gallery shows about the photographer. The landing
+// («візитка»), booking and payment fields were removed with the landing
+// itself (Diana, 2026-09-24).
 interface Profile {
-  id: string; slug: string; name: string; bio: string | null; email: string;
+  id: string; name: string; bio: string | null; email: string;
   phone: string | null; instagram: string | null; website: string | null;
   logo_url: string | null; avatar_url: string | null;
-  city: string | null; specialization: string | null;
-  landing_enabled: boolean; landing_theme: string | null;
-  pricing: PriceRow[]; portfolio: string[];
-  custom_domain: string | null; custom_domain_paid: boolean;
-  booking_enabled: boolean;
-  pay_mono_enabled: boolean; pay_mono_link: string | null;
-  pay_wfp_enabled: boolean; pay_wfp_link: string | null;
-  pay_requisites_enabled: boolean; pay_requisites: string | null;
 }
-interface Slot {
-  id: string; slot_date: string; slot_time: string; duration_min: number;
-  price: string | null; status: string; payment_status: string;
-  client_name: string | null; client_phone: string | null; client_comment: string | null;
-}
-interface PriceRow { title: string; price: string; description?: string }
 export interface Gallery {
   id: string; client_token: string; title: string; client_name: string | null;
   shoot_date: string | null; expires_at: string; files_purged_at: string | null;
@@ -50,7 +37,7 @@ export const btn: React.CSSProperties = { background: '#263A99', color: '#fff', 
 export const btnGhost: React.CSSProperties = { ...btn, background: '#fff', color: '#263A99', border: '1px solid #c9d0ee' };
 export const sectionTitle: React.CSSProperties = { fontFamily: 'var(--font-heading), sans-serif', fontSize: 19, fontWeight: 800, color: '#1A1A1A', margin: 0 };
 
-type CabinetTab = 'galleries' | 'earnings' | 'orders' | 'booking' | 'landing';
+type CabinetTab = 'galleries' | 'profile' | 'earnings' | 'orders';
 
 export default function CabinetClient({ token }: { token: string }) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -82,15 +69,14 @@ export default function CabinetClient({ token }: { token: string }) {
   if (error || !profile) return <Centered>{error || 'Кабінет не знайдено'}</Centered>;
 
   // Tab navigation instead of one endless scroll — Diana's UX complaint
-  // («незручна і не юзабельна»). Booking/візитка tabs appear only behind the
-  // landing_enabled feature flag.
+  // («незручна і не юзабельна»). «Ваші дані» used to hide behind the landing
+  // feature flag together with the landing itself, so nobody could set the
+  // logo their galleries show; it is open to every photographer now.
   const TABS: { id: CabinetTab; label: string }[] = [
     { id: 'galleries', label: 'Галереї' },
+    { id: 'profile', label: 'Ваші дані' },
     { id: 'earnings', label: 'Заробіток' },
     { id: 'orders', label: 'Замовлення' },
-    ...(profile.landing_enabled
-      ? [{ id: 'booking' as const, label: 'Запис на зйомку' }, { id: 'landing' as const, label: 'Візитка' }]
-      : []),
   ];
   const favTotal = galleries.reduce((s, g) => s + (g.favorite_count || 0), 0);
 
@@ -110,9 +96,6 @@ export default function CabinetClient({ token }: { token: string }) {
           </h1>
           <p style={{ color: '#8B8378', margin: '4px 0 0', fontSize: 14 }}>
             {profile.name}
-            {profile.landing_enabled && (
-              <> · <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#263A99', fontWeight: 600 }}>ваша публічна сторінка ↗</a></>
-            )}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -157,19 +140,9 @@ export default function CabinetClient({ token }: { token: string }) {
           <GalleriesSection token={token} galleries={galleries} onChanged={loadAll} flash={flash} />
         </>
       )}
+      {tab === 'profile' && <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />}
       {tab === 'earnings' && <ReferralSection token={token} flash={flash} />}
       {tab === 'orders' && <OrdersSection token={token} />}
-      {/* Booking/візитка live behind the landing_enabled feature flag while
-          their design is finished (Diana, 2026-08-04). */}
-      {tab === 'booking' && profile.landing_enabled && (
-        <BookingCabinetSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
-      )}
-      {tab === 'landing' && profile.landing_enabled && (
-        <>
-          <ProfileSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
-          <LandingSection token={token} profile={profile} onChanged={loadAll} flash={flash} />
-        </>
-      )}
     </div>
     </main>
     <Footer categories={[]} />
@@ -1334,15 +1307,17 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
   );
 }
 
-/* ── Профіль ─────────────────────────────────────────────────────────── */
+/* ── Ваші дані в галереях ─────────────────────────────────────────────── */
 
+/** Everything here is shown to the client in every gallery: the name and the
+ *  logo (the avatar stands in while there is no logo) in the top bar, and the
+ *  bio with the contacts in the footer. */
 function ProfileSection({ token, profile, onChanged, flash }: {
   token: string; profile: Profile; onChanged: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [form, setForm] = useState({
     name: profile.name || '', bio: profile.bio || '', phone: profile.phone || '',
     instagram: profile.instagram || '', website: profile.website || '',
-    city: profile.city || '', specialization: profile.specialization || '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -1355,29 +1330,19 @@ function ProfileSection({ token, profile, onChanged, flash }: {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, ...form }),
       });
-      if (res.ok) { await onChanged(); flash('Профіль збережено'); }
+      if (res.ok) { await onChanged(); flash('Дані збережено'); }
       else alert((await res.json())?.error || 'Помилка');
     } finally { setSaving(false); }
   };
 
   return (
     <div style={card}>
-      <h2 style={sectionTitle}>Профіль (візитка)</h2>
+      <h2 style={sectionTitle}>Ваші дані в галереях</h2>
+      <p style={{ color: '#8B8378', fontSize: 13, marginTop: 6, marginBottom: 0 }}>
+        Клієнт бачить ці дані в кожній вашій галереї: імʼя й логотип угорі сторінки, а опис і контакти внизу.
+      </p>
       <label style={label}>Ім&apos;я / назва студії</label>
       <input style={input} value={form.name} onChange={set('name')} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <label style={label}>Спеціалізація</label>
-          <input style={input} value={form.specialization} onChange={set('specialization')} placeholder="Весільний фотограф" />
-        </div>
-        <div>
-          <label style={label}>Місто</label>
-          <input style={input} value={form.city} onChange={set('city')} placeholder="Київ" />
-        </div>
-      </div>
-      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-        Спеціалізація і місто показуються в заголовку вашої сторінки та допомагають знаходити вас у Google (напр. «весільний фотограф Київ»).
-      </div>
       <label style={label}>Про себе</label>
       <textarea style={{ ...input, minHeight: 80, resize: 'vertical' }} value={form.bio} onChange={set('bio')} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1386,19 +1351,27 @@ function ProfileSection({ token, profile, onChanged, flash }: {
       </div>
       <label style={label}>Сайт</label>
       <input style={input} value={form.website} onChange={set('website')} placeholder="https://…" />
+      <label style={label}>Email</label>
+      <input style={{ ...input, background: '#f5f3ef', color: '#8B8378' }} value={profile.email || ''} readOnly />
+      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+        Це адреса, з якою ви створили кабінет. Щоб її змінити, напишіть нам.
+      </div>
 
       <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
         <BrandUpload token={token} kind="logo" current={profile.logo_url} label="Логотип" onDone={onChanged} flash={flash} />
         <BrandUpload token={token} kind="avatar" current={profile.avatar_url} label="Фото профілю" onDone={onChanged} flash={flash} />
       </div>
+      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6 }}>
+        Якщо логотипа немає, замість нього галерея показує фото профілю.
+      </div>
 
-      <button style={{ ...btn, marginTop: 16 }} onClick={save} disabled={saving}>{saving ? 'Зберігаємо…' : 'Зберегти профіль'}</button>
+      <button style={{ ...btn, marginTop: 16 }} onClick={save} disabled={saving}>{saving ? 'Зберігаємо…' : 'Зберегти'}</button>
     </div>
   );
 }
 
 function BrandUpload({ token, kind, current, label: title, onDone, flash }: {
-  token: string; kind: 'logo' | 'avatar' | 'portfolio'; current?: string | null; label: string;
+  token: string; kind: 'logo' | 'avatar'; current?: string | null; label: string;
   onDone: () => Promise<void>; flash: (m: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
@@ -1417,421 +1390,13 @@ function BrandUpload({ token, kind, current, label: title, onDone, flash }: {
   };
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-      {current && kind !== 'portfolio' && (
+      {current && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={current} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb' }} />
       )}
       <span style={{ ...btnGhost, display: 'inline-block' }}>{busy ? 'Завантажуємо…' : `${title}`}</span>
       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => upload(e.target.files?.[0])} disabled={busy} />
     </label>
-  );
-}
-
-/* ── Лендинг: прайс + портфоліо + домен ──────────────────────────────── */
-
-function LandingSection({ token, profile, onChanged, flash }: {
-  token: string; profile: Profile; onChanged: () => Promise<void>; flash: (m: string) => void;
-}) {
-  const [pricing, setPricing] = useState<PriceRow[]>(Array.isArray(profile.pricing) ? profile.pricing : []);
-  const [saving, setSaving] = useState(false);
-
-  const setRow = (i: number, k: keyof PriceRow, v: string) =>
-    setPricing(rows => rows.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const clean = pricing.filter(r => (r.title || '').trim());
-      const res = await fetch('/api/photographers/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, pricing: clean }),
-      });
-      if (res.ok) { setPricing(clean); await onChanged(); flash('Прайс збережено'); }
-      else alert((await res.json())?.error || 'Помилка');
-    } finally { setSaving(false); }
-  };
-
-  const removePortfolio = async (url: string) => {
-    const next = (profile.portfolio || []).filter(u => u !== url);
-    const res = await fetch('/api/photographers/profile', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, portfolio: next }),
-    });
-    if (res.ok) { await onChanged(); flash('Фото прибрано з портфоліо'); }
-  };
-
-  return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={sectionTitle}>Лендинг: прайс і портфоліо</h2>
-        <a href={`/uk/photographer/${profile.slug}`} target="_blank" rel="noopener noreferrer" style={{ ...btn, textDecoration: 'none', display: 'inline-block' }}>
-          Переглянути мою сторінку ↗
-        </a>
-      </div>
-      <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>
-        Адреса вашого лендингу: <a href={`/uk/photographer/${profile.slug}`} target="_blank" style={{ color: '#1e2d7d', fontWeight: 700 }}>touchmemories.com.ua/uk/photographer/{profile.slug}</a>
-      </div>
-
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 16 }}>Дизайн сторінки</h3>
-      <ThemePicker token={token} current={profile.landing_theme || 'classic'} onChanged={onChanged} flash={flash} slug={profile.slug} />
-
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Прайс</h3>
-      {pricing.map((row, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr auto', gap: 8, marginTop: 8, alignItems: 'center' }}>
-          <input style={input} placeholder="Послуга (напр. Фотосесія 1 год)" value={row.title || ''} onChange={e => setRow(i, 'title', e.target.value)} />
-          <input style={input} placeholder="Ціна" value={row.price || ''} onChange={e => setRow(i, 'price', e.target.value)} />
-          <input style={input} placeholder="Опис (необов'язково)" value={row.description || ''} onChange={e => setRow(i, 'description', e.target.value)} />
-          <button style={{ ...btnGhost, padding: '9px 12px' }} onClick={() => setPricing(rows => rows.filter((_, idx) => idx !== i))}>✕</button>
-        </div>
-      ))}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <button style={btnGhost} onClick={() => setPricing(r => [...r, { title: '', price: '' }])}>+ Додати позицію</button>
-        <button style={btn} onClick={save} disabled={saving}>{saving ? 'Зберігаємо…' : 'Зберегти прайс'}</button>
-      </div>
-
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Портфоліо</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8, marginTop: 8 }}>
-        {(profile.portfolio || []).map(url => (
-          <div key={url} style={{ position: 'relative' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8 }} />
-            <button onClick={() => removePortfolio(url)}
-              style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 6, width: 22, height: 22, cursor: 'pointer', lineHeight: '20px' }}>✕</button>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 10 }}>
-        <BrandUpload token={token} kind="portfolio" label="Додати фото в портфоліо" onDone={onChanged} flash={flash} />
-      </div>
-
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Власний домен</h3>
-      {profile.custom_domain_paid && profile.custom_domain ? (
-        <p style={{ fontSize: 14, color: '#065f46', margin: 0 }}>Підключено: <b>{profile.custom_domain}</b></p>
-      ) : (
-        <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>
-          Платна опція: ваш лендинг на власному домені (напр. <i>photo-olena.com</i>).
-          Напишіть нам на <a href={`mailto:${SHOP_CONTACT_EMAIL}`} style={{ color: '#1e2d7d' }}>{SHOP_CONTACT_EMAIL}</a> — підключимо.
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ── Запис на зйомку: слоти + оплата ─────────────────────────────────── */
-
-const fmtSlotDate = (d: string) =>
-  new Date(`${d}T00:00:00`).toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'short' });
-
-function BookingCabinetSection({ token, profile, onChanged, flash }: {
-  token: string; profile: Profile; onChanged: () => Promise<void>; flash: (m: string) => void;
-}) {
-  const [slots, setSlots] = useState<Slot[]>([]);
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [duration, setDuration] = useState(60);
-  const [price, setPrice] = useState('');
-  const [adding, setAdding] = useState(false);
-  const [pay, setPay] = useState({
-    booking_enabled: profile.booking_enabled ?? true,
-    pay_mono_enabled: !!profile.pay_mono_enabled, pay_mono_link: profile.pay_mono_link || '',
-    pay_mono_token: (profile as any).pay_mono_token || '',
-    pay_wfp_enabled: !!profile.pay_wfp_enabled, pay_wfp_link: profile.pay_wfp_link || '',
-    pay_wfp_account: (profile as any).pay_wfp_account || '',
-    pay_wfp_secret: (profile as any).pay_wfp_secret || '',
-    pay_requisites_enabled: !!profile.pay_requisites_enabled, pay_requisites: profile.pay_requisites || '',
-  });
-  const [savingPay, setSavingPay] = useState(false);
-
-  const loadSlots = async () => {
-    const res = await fetch(`/api/photographers/slots?token=${encodeURIComponent(token)}`);
-    const json = await res.json();
-    if (res.ok) setSlots(json.slots || []);
-  };
-  useEffect(() => { loadSlots(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [token]);
-
-  const addSlot = async () => {
-    if (!date || !time || adding) return;
-    setAdding(true);
-    try {
-      const res = await fetch('/api/photographers/slots', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, date, time, duration_min: duration, price }),
-      });
-      const json = await res.json();
-      if (!res.ok) { alert(json?.error || 'Помилка'); return; }
-      setTime(''); setPrice('');
-      await loadSlots();
-      flash('Слот додано');
-    } finally { setAdding(false); }
-  };
-
-  const removeSlot = async (id: string) => {
-    const res = await fetch('/api/photographers/slots', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, slot_id: id }),
-    });
-    if (res.ok) { await loadSlots(); flash('Слот видалено'); }
-    else alert((await res.json())?.error || 'Помилка');
-  };
-
-  const markPaid = async (id: string, paid: boolean) => {
-    const res = await fetch('/api/photographers/slots', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, slot_id: id, paid }),
-    });
-    if (res.ok) { await loadSlots(); flash(paid ? 'Позначено оплаченим' : 'Позначку знято'); }
-    else alert((await res.json())?.error || 'Помилка');
-  };
-
-  const savePayments = async () => {
-    setSavingPay(true);
-    try {
-      const res = await fetch('/api/photographers/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, ...pay }),
-      });
-      if (res.ok) { await onChanged(); flash('Налаштування оплати збережено'); }
-      else alert((await res.json())?.error || 'Помилка');
-    } finally { setSavingPay(false); }
-  };
-
-  const toggle = (k: keyof typeof pay) => setPay(p => ({ ...p, [k]: !p[k] }));
-
-  return (
-    <div style={card}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={sectionTitle}>Запис на зйомку</h2>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>
-          {/* Зберігається одразу — вимкнув і блок зник зі сторінки, без окремої кнопки */}
-          <input type="checkbox" checked={pay.booking_enabled}
-            onChange={async e => {
-              const enabled = e.target.checked;
-              setPay(p => ({ ...p, booking_enabled: enabled }));
-              const res = await fetch('/api/photographers/profile', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, booking_enabled: enabled }),
-              });
-              if (res.ok) flash(enabled ? 'Запис увімкнено на сторінці' : 'Запис вимкнено — блок зник зі сторінки');
-              else { setPay(p => ({ ...p, booking_enabled: !enabled })); alert('Не вдалося зберегти'); }
-            }} />
-          Показувати запис на сторінці
-        </label>
-      </div>
-      <p style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>
-        Додайте вільні дати й час — клієнти бронюватимуть їх прямо на вашій сторінці, а вам прийде лист. Оплата надходить напряму вам.
-      </p>
-
-      {/* Додавання слота */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
-        <div>
-          <label style={label}>Дата</label>
-          <input style={input} type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={e => setDate(e.target.value)} />
-        </div>
-        <div>
-          <label style={label}>Час</label>
-          <input style={input} type="time" value={time} onChange={e => setTime(e.target.value)} />
-        </div>
-        <div>
-          <label style={label}>Тривалість</label>
-          <select style={input} value={duration} onChange={e => setDuration(Number(e.target.value))}>
-            <option value={30}>30 хв</option><option value={60}>1 год</option>
-            <option value={90}>1.5 год</option><option value={120}>2 год</option>
-            <option value={180}>3 год</option><option value={240}>4 год</option>
-          </select>
-        </div>
-        <div>
-          <label style={label}>Ціна (текст)</label>
-          <input style={input} value={price} onChange={e => setPrice(e.target.value)} placeholder="2500 грн" />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button style={{ ...btn, width: '100%' }} onClick={addSlot} disabled={adding || !date || !time}>
-            {adding ? '…' : '+ Додати'}
-          </button>
-        </div>
-      </div>
-
-      {/* Список слотів */}
-      {slots.length > 0 && (
-        <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
-          {slots.map(s => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', border: '1px solid #e5e7eb', borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontWeight: 800, minWidth: 130, textTransform: 'capitalize' }}>{fmtSlotDate(s.slot_date)}</div>
-              <div style={{ fontWeight: 700 }}>{s.slot_time}</div>
-              <div style={{ color: '#64748b', fontSize: 13 }}>{s.duration_min} хв{s.price ? ` · ${s.price}` : ''}</div>
-              <div style={{ flex: 1 }} />
-              {s.status === 'booked' ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#ecfdf5', borderRadius: 999, padding: '4px 10px' }}>
-                    ✓ {s.client_name} · {s.client_phone}
-                  </span>
-                  {/* Payment badge: platform never sees the money — the client
-                      claims payment, the photographer verifies in their bank */}
-                  {s.payment_status === 'paid' ? (
-                    <button onClick={() => markPaid(s.id, false)} title="Зняти позначку"
-                      style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: '#d1fae5', border: 'none', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-                       Оплачено
-                    </button>
-                  ) : s.payment_status === 'claimed' ? (
-                    <button onClick={() => markPaid(s.id, true)} title="Клієнт повідомив про оплату — перевірте банк і підтвердіть"
-                      style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px dashed #f59e0b', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-                       Клієнт повідомив про оплату — підтвердити?
-                    </button>
-                  ) : (
-                    <button onClick={() => markPaid(s.id, true)} title="Позначити оплаченим"
-                      style={{ fontSize: 12, fontWeight: 700, color: '#64748b', background: '#f1f5f9', border: 'none', borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-                      Не оплачено · позначити ✓
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e', background: '#fffbeb', borderRadius: 999, padding: '4px 10px' }}>Вільно</span>
-                  <button style={{ ...btnGhost, padding: '6px 10px' }} onClick={() => removeSlot(s.id)}>✕</button>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Оплата */}
-      <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 4, marginTop: 22 }}>Оплата (напряму вам)</h3>
-      <p style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
-        Клієнт побачить увімкнені способи одразу після бронювання. Увімкніть хоча б один — або жодного, якщо берете оплату при зустрічі.
-      </p>
-      <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            <input type="checkbox" checked={pay.pay_mono_enabled} onChange={() => toggle('pay_mono_enabled')} />
-            Monobank
-          </label>
-          {pay.pay_mono_enabled && (
-            <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-              <div>
-                <label style={{ ...label, marginTop: 0 }}>Варіант 1 — просто посилання (банка/оплата)</label>
-                <input style={input} placeholder="https://send.monobank.ua/jar/…"
-                  value={pay.pay_mono_link} onChange={e => setPay(p => ({ ...p, pay_mono_link: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ ...label, marginTop: 0 }}>Варіант 2 — автопідтвердження: токен еквайрингу mono (X-Token)</label>
-                <input style={input} placeholder="Токен з кабінету еквайрингу monobank (для ФОП)"
-                  value={pay.pay_mono_token} onChange={e => setPay(p => ({ ...p, pay_mono_token: e.target.value }))} />
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                  З токеном рахунок створюється автоматично на суму слота, а статус «Оплачено» ставиться сам після оплати. Токен бачите лише ви.
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            <input type="checkbox" checked={pay.pay_wfp_enabled} onChange={() => toggle('pay_wfp_enabled')} />
-            WayForPay
-          </label>
-          {pay.pay_wfp_enabled && (
-            <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-              <div>
-                <label style={{ ...label, marginTop: 0 }}>Варіант 1 — просто посилання на оплату</label>
-                <input style={input} placeholder="https://secure.wayforpay.com/…"
-                  value={pay.pay_wfp_link} onChange={e => setPay(p => ({ ...p, pay_wfp_link: e.target.value }))} />
-              </div>
-              <div>
-                <label style={{ ...label, marginTop: 0 }}>Варіант 2 — автопідтвердження: merchant-дані WayForPay</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input style={input} placeholder="merchantAccount"
-                    value={pay.pay_wfp_account} onChange={e => setPay(p => ({ ...p, pay_wfp_account: e.target.value }))} />
-                  <input style={input} type="password" placeholder="SecretKey"
-                    value={pay.pay_wfp_secret} onChange={e => setPay(p => ({ ...p, pay_wfp_secret: e.target.value }))} />
-                </div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
-                  З merchant-даними рахунок створюється автоматично, а «Оплачено» ставиться саме після оплати. Ключі бачите лише ви.
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            <input type="checkbox" checked={pay.pay_requisites_enabled} onChange={() => toggle('pay_requisites_enabled')} />
-            Реквізити для ручної оплати
-          </label>
-          {pay.pay_requisites_enabled && (
-            <textarea style={{ ...input, marginTop: 8, minHeight: 70, resize: 'vertical' }}
-              placeholder={'Картка: 5375 0000 0000 0000\nОтримувач: Олена Коваленко\nПризначення: фотозйомка'}
-              value={pay.pay_requisites} onChange={e => setPay(p => ({ ...p, pay_requisites: e.target.value }))} />
-          )}
-        </div>
-      </div>
-      <button style={{ ...btn, marginTop: 12 }} onClick={savePayments} disabled={savingPay}>
-        {savingPay ? 'Зберігаємо…' : 'Зберегти налаштування оплати'}
-      </button>
-    </div>
-  );
-}
-
-/* ── Вибір теми лендингу ─────────────────────────────────────────────── */
-
-function ThemePicker({ token, current, onChanged, flash, slug }: {
-  token: string; current: string; onChanged: () => Promise<void>; flash: (m: string) => void; slug: string;
-}) {
-  const [saving, setSaving] = useState('');
-
-  const pick = async (key: string) => {
-    if (key === current || saving) return;
-    setSaving(key);
-    try {
-      const res = await fetch('/api/photographers/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, landing_theme: key }),
-      });
-      if (res.ok) { await onChanged(); flash('Дизайн застосовано'); }
-      else alert((await res.json())?.error || 'Помилка');
-    } finally { setSaving(''); }
-  };
-
-  return (
-    <div>
-      <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>
-        Оберіть стиль — зміни видно одразу на <a href={`/uk/photographer/${slug}`} target="_blank" style={{ color: '#1e2d7d', fontWeight: 700 }}>вашій сторінці</a>.
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-        {LANDING_THEMES.map(t => {
-          const active = t.key === current;
-          return (
-            <button key={t.key} onClick={() => pick(t.key)} disabled={!!saving}
-              style={{
-                textAlign: 'left', cursor: active ? 'default' : 'pointer', padding: 0, overflow: 'hidden',
-                borderRadius: 12, background: '#fff',
-                border: active ? '2px solid #1e2d7d' : '1px solid #e5e7eb',
-                boxShadow: active ? '0 0 0 3px rgba(30,45,125,0.12)' : 'none',
-                opacity: saving && saving !== t.key ? 0.6 : 1,
-              }}>
-              {/* Міні-макет: смуга хіро + плитки портфоліо в кольорах теми */}
-              <div style={{ background: t.bg, padding: '12px 12px 10px' }}>
-                <div style={{ width: 26, height: 26, borderRadius: t.pill ? '50%' : 4, background: t.accent, margin: t.heroAlign === 'center' ? '0 auto 6px' : '0 0 6px' }} />
-                <div style={{
-                  height: 8, width: '65%', borderRadius: 3, background: t.ink,
-                  margin: t.heroAlign === 'center' ? '0 auto 5px' : '0 0 5px',
-                  fontFamily: t.headingFont,
-                }} />
-                <div style={{ height: 5, width: '45%', borderRadius: 3, background: t.faint, margin: t.heroAlign === 'center' ? '0 auto 8px' : '0 0 8px' }} />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3 }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{ aspectRatio: t.grid === 'portrait' ? '4/5' : '1/1', borderRadius: Math.min(t.radius, 6), background: t.tileBg, border: `1px solid ${t.border}` }} />
-                  ))}
-                </div>
-              </div>
-              <div style={{ padding: '8px 12px 10px', borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e2d7d' }}>
-                  {saving === t.key ? 'Застосовуємо…' : t.label} {active && '✓'}
-                </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, lineHeight: 1.4 }}>{t.tagline}</div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 

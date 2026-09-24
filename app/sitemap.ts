@@ -121,8 +121,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // неправдою, а порахувати справжній набір можна лише прочитавши
   // `translations` — тобто там, де їх і читають.
 
-  // Photographer catalog + public landing pages ("фотограф {місто}" queries)
-  // and the service landing for photographers themselves.
+  // The service landing for photographers. The photographer catalog and the
+  // per-photographer landings were removed (Diana, 2026-09-24); their old
+  // addresses redirect here from next.config.ts.
   // Client galleries are token-gated and noindex — never listed here.
   {
     const path = '/gallery-for-photographers';
@@ -132,38 +133,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: getCanonicalUrl(locale, path),
         changeFrequency: 'monthly',
         priority: 0.8,
-        alternates: { languages: alternates },
-      });
-    }
-  }
-  {
-    const path = '/photographer';
-    const alternates = getAlternateLanguages(path);
-    for (const locale of LOCALES) {
-      entries.push({
-        url: getCanonicalUrl(locale, path),
-        changeFrequency: 'weekly',
-        priority: 0.7,
-        alternates: { languages: alternates },
-      });
-    }
-  }
-
-  const { data: photographers } = await admin
-    .from('photographers')
-    .select('slug, updated_at')
-    .eq('is_active', true)
-    .eq('landing_enabled', true);
-
-  for (const ph of photographers || []) {
-    const path = `/photographer/${ph.slug}`;
-    const alternates = getAlternateLanguages(path);
-    for (const locale of LOCALES) {
-      entries.push({
-        url: getCanonicalUrl(locale, path),
-        lastModified: ph.updated_at ? new Date(ph.updated_at) : new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.7,
         alternates: { languages: alternates },
       });
     }

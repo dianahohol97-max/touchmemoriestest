@@ -194,7 +194,7 @@ export async function POST(request: Request) {
                         <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${escapeHtml(name)}!</h2>
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Дякуємо за заявку на партнерську програму TouchMemories. Ми переглянемо ваше портфоліо протягом 1–2 робочих днів і повідомимо про підтвердження на цю пошту.</p>
                         <p style="font-size:15px;line-height:1.7;color:#475569;margin:0">Після підтвердження вам автоматично відкриється постійна знижка ${cfg.discountPercent}% — нічого вводити не доведеться, ціна враховуватиметься щойно ви увійдете у свій акаунт.</p>${cabinetToken ? `
-                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">А <strong>кабінет фотографа</strong> доступний уже зараз: галереї для передачі фото клієнтам (зберігання 30 днів) і ваша сторінка-візитка з портфоліо та прайсом.</p>
+                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">А <strong>кабінет фотографа</strong> доступний уже зараз: у ньому ви створюєте галереї для передачі фото клієнтам і додаєте логотип та контакти, які клієнт бачить у кожній галереї.</p>
                         <p style="margin:16px 0 0"><a href="${siteUrl}/uk/photographer/cabinet/${cabinetToken}" style="background:#1e2d7d;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет фотографа</a></p>` : ''}
                       </div>
                     </div>`,

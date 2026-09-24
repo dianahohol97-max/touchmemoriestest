@@ -65,12 +65,13 @@ export async function PATCH(request: Request) {
         await admin.from('customers').update(custPatch).ilike('email', likeEscape(app.email));
     }
 
-    // Approved photographers also get a gallery cabinet + public landing
-    // (photographers table) — one B2B registration covers the 10% discount
-    // AND the client-gallery/landing toolkit. Idempotent: reuse an existing
-    // row (matched by customer or email) and just make sure it's linked.
+    // Approved photographers also get a gallery cabinet (photographers
+    // table) — one B2B registration covers the 10% discount AND the client
+    // galleries. Idempotent: reuse an existing row (matched by customer or
+    // email) and just make sure it's linked. The row still gets a slug because
+    // the column requires one, but no public page is built from it any more:
+    // the photographer landing was removed from the product (Diana, 2026-09-24).
     let cabinetToken: string | null = null;
-    let landingSlug: string | null = null;
     if (action === 'approve' && app.role === 'photographer') {
         try {
             // Match by customer link OR email. Guard the customer_id condition:
@@ -91,7 +92,6 @@ export async function PATCH(request: Request) {
 
             if (existing) {
                 cabinetToken = existing.cabinet_token;
-                landingSlug = existing.slug;
                 if (!existing.customer_id && app.customer_id) {
                     await admin.from('photographers')
                         .update({ customer_id: app.customer_id })
@@ -117,7 +117,6 @@ export async function PATCH(request: Request) {
                     .select('cabinet_token, slug')
                     .single();
                 cabinetToken = created?.cabinet_token || null;
-                landingSlug = created?.slug || null;
             }
         } catch (e) {
             console.error('[b2b-approve] photographer cabinet creation failed:', e);
@@ -134,11 +133,10 @@ export async function PATCH(request: Request) {
             const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
             const photographerBlock = cabinetToken
                 ? `
-                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">Також вам доступний <strong>кабінет фотографа</strong>: галереї для передачі фото клієнтам (зберігання 30 днів) і власна сторінка-візитка з портфоліо та прайсом.</p>
+                        <p style="font-size:15px;line-height:1.7;color:#475569;margin:14px 0 0">Також вам доступний <strong>кабінет фотографа</strong>: у ньому ви створюєте галереї для передачі фото клієнтам і додаєте логотип та контакти, які клієнт бачить у кожній галереї.</p>
                         <p style="margin:16px 0 0">
                           <a href="${site}/uk/photographer/cabinet/${cabinetToken}" style="background:#1e2d7d;color:#fff;padding:11px 20px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет фотографа</a>
-                        </p>
-                        ${landingSlug ? `<p style="font-size:13px;color:#94a3b8;margin:12px 0 0">Ваша публічна сторінка: <a href="${site}/uk/photographer/${landingSlug}">${site}/uk/photographer/${landingSlug}</a></p>` : ''}`
+                        </p>`
                 : '';
             await sendLoggedEmail({
                 to: app.email,

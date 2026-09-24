@@ -96,7 +96,7 @@ export default function CabinetEntry() {
           </div>
         )}
         <div style={{ fontSize: 20, fontWeight: 800, color: '#1e2d7d' }}>У вас ще немає кабінету фотографа</div>
-        <div style={{ maxWidth: 440 }}>Ваш акаунт є, але кабінет фотографа ще не створено. Натисніть кнопку — галереї для клієнтів і сторінка-візитка зʼявляться одразу, нічого заповнювати не потрібно.</div>
+        <div style={{ maxWidth: 440 }}>Ваш акаунт є, але кабінет фотографа ще не створено. Натисніть кнопку, і галереї для клієнтів зʼявляться одразу, нічого заповнювати не потрібно.</div>
         <button onClick={createCabinet} style={btn}>Створити кабінет одним кліком</button>
         <a href="/uk/gallery-for-photographers#signup" style={{ color: '#94a3b8', fontSize: 13 }}>Дізнатися більше про кабінет →</a>
       </div>

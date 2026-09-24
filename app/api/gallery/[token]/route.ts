@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     .from('photographer_galleries')
     .select(`
       id, title, client_name, shoot_date, expires_at, files_purged_at, created_at, cover_photo_id, design,
-      photographer:photographers(name, bio, phone, instagram, website, email, logo_url, avatar_url, slug, is_active, landing_enabled)
+      photographer:photographers(name, bio, phone, instagram, website, email, logo_url, avatar_url, is_active)
     `)
     .eq('client_token', token)
     .maybeSingle();
@@ -49,7 +49,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       email: photographer.email,
       logo_url: photographer.logo_url,
       avatar_url: photographer.avatar_url,
-      slug: photographer.landing_enabled ? photographer.slug : null,
     },
   };
 

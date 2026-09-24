@@ -628,15 +628,11 @@ export default function AccountPage() {
                                             style={{ display: 'block', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                                             Кабінет фотографа: галереї
                                         </a>
-                                        <a href={`/uk/photographer/${b2b.photographer.slug}`} target="_blank"
-                                            style={{ display: 'block', textAlign: 'center', background: '#eef2ff', color: '#1e2d7d', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                                            Моя сторінка-візитка ↗
-                                        </a>
                                     </div>
                                 ) : (
                                     <div>
                                         <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
-                                            Галереї для передачі фото клієнтам (30 днів) і власна сторінка-візитка — безкоштовно.
+                                            Галереї для передачі фото клієнтам безкоштовно на тарифі з 4 ГБ місця.
                                         </div>
                                         <button onClick={createPhotographerCabinet} disabled={creatingCabinet}
                                             style={{ display: 'block', width: '100%', textAlign: 'center', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 12px', fontWeight: 700, fontSize: 13, border: 'none', cursor: creatingCabinet ? 'default' : 'pointer', opacity: creatingCabinet ? 0.7 : 1 }}>

@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     .select('*')
     .single();
   if (error) {
-    const msg = error.code === '23505' ? 'Такий slug або домен уже існує' : error.message;
+    const msg = error.code === '23505' ? 'Такий slug уже існує' : error.message;
     return NextResponse.json({ error: msg }, { status: 400 });
   }
   return NextResponse.json({ photographer: data });

@@ -1,24 +1,16 @@
-import crypto from 'crypto';
-
 /**
- * Direct-to-photographer payment integrations. The photographer stores THEIR
- * OWN credentials (Monobank acquiring X-Token / WayForPay merchant account +
- * secret) in their cabinet; invoices are created on their behalf, money lands
- * on their account, and the provider's webhook flips the booking to 'paid'
- * automatically. The platform never holds the funds.
+ * Monobank acquiring for the photographers' storage plans: the invoice is
+ * created on the PLATFORM account (see app/api/photographers/subscription).
+ *
+ * This file used to carry the direct-to-photographer payments of the landing
+ * booking too (the photographer's own Monobank token or WayForPay merchant),
+ * with a WayForPay client and a price parser. Those went with the landing and
+ * its booking (Diana, 2026-09-24).
  */
 
 const MONO_API = 'https://api.monobank.ua/api/merchant';
-const WFP_API = 'https://api.wayforpay.com/api';
 
-/** Parse "2500 грн" / "2 500грн" / "2500" → integer UAH, or null. */
-export function parsePriceUah(price: string | null | undefined): number | null {
-  const digits = String(price || '').replace(/[^\d]/g, '');
-  const n = parseInt(digits, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-/** Create a Monobank acquiring invoice with the photographer's own token. */
+/** Create a Monobank acquiring invoice with the given merchant token. */
 export async function monoCreateInvoice(opts: {
   token: string; amountUah: number; reference: string; destination: string;
   redirectUrl: string; webHookUrl: string;
@@ -42,7 +34,7 @@ export async function monoCreateInvoice(opts: {
   return { invoiceId: json.invoiceId, pageUrl: json.pageUrl };
 }
 
-/** Check invoice status with the photographer's token — the webhook handler
+/** Check invoice status with the merchant token — the webhook handler
  *  re-verifies against this instead of trusting the webhook body. */
 export async function monoInvoiceStatus(token: string, invoiceId: string): Promise<string | null> {
   const res = await fetch(`${MONO_API}/invoice/status?invoiceId=${encodeURIComponent(invoiceId)}`, {
@@ -50,68 +42,4 @@ export async function monoInvoiceStatus(token: string, invoiceId: string): Promi
   });
   const json = await res.json().catch(() => ({}));
   return res.ok ? (json?.status || null) : null;
-}
-
-const hmacMd5 = (secret: string, data: string) =>
-  crypto.createHmac('md5', secret).update(data, 'utf8').digest('hex');
-
-/** Create a WayForPay invoice (CREATE_INVOICE API) with the photographer's
- *  own merchant credentials. */
-export async function wfpCreateInvoice(opts: {
-  merchantAccount: string; merchantSecret: string; domain: string;
-  amountUah: number; reference: string; productName: string;
-  serviceUrl: string; returnUrl: string;
-}): Promise<{ invoiceUrl: string }> {
-  const orderDate = Math.floor(Date.now() / 1000);
-  const amount = opts.amountUah.toFixed(2);
-  const signSource = [
-    opts.merchantAccount, opts.domain, opts.reference, String(orderDate),
-    amount, 'UAH', opts.productName, '1', amount,
-  ].join(';');
-  const res = await fetch(WFP_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      transactionType: 'CREATE_INVOICE',
-      merchantAccount: opts.merchantAccount,
-      merchantAuthType: 'SimpleSignature',
-      merchantDomainName: opts.domain,
-      merchantSignature: hmacMd5(opts.merchantSecret, signSource),
-      apiVersion: 1,
-      orderReference: opts.reference,
-      orderDate,
-      amount: Number(amount),
-      currency: 'UAH',
-      productName: [opts.productName],
-      productPrice: [Number(amount)],
-      productCount: [1],
-      serviceUrl: opts.serviceUrl,
-      returnUrl: opts.returnUrl,
-    }),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!json?.invoiceUrl) {
-    throw new Error(json?.reason || `WayForPay: помилка створення рахунку (${json?.reasonCode || res.status})`);
-  }
-  return { invoiceUrl: json.invoiceUrl };
-}
-
-/** Verify a WayForPay serviceUrl callback signature. */
-export function wfpVerifyCallback(secret: string, body: any): boolean {
-  const source = [
-    body?.merchantAccount, body?.orderReference, body?.amount, body?.currency,
-    body?.authCode, body?.cardPan, body?.transactionStatus, body?.reasonCode,
-  ].join(';');
-  return hmacMd5(secret, source) === String(body?.merchantSignature || '');
-}
-
-/** Build the accept response WayForPay expects from serviceUrl. */
-export function wfpAcceptResponse(secret: string, orderReference: string) {
-  const time = Math.floor(Date.now() / 1000);
-  return {
-    orderReference,
-    status: 'accept',
-    time,
-    signature: hmacMd5(secret, [orderReference, 'accept', String(time)].join(';')),
-  };
 }

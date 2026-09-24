@@ -3,11 +3,15 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/auth/guards';
 import { sendBrevoEmail } from '@/lib/email/brevo';
 import { sendLoggedEmail } from '@/lib/email/send-logged';
+import { escapeHtml } from '@/lib/email/escape';
 
 export const dynamic = 'force-dynamic';
 
 // Staff-managed fields. Cabinet-editable fields live in /api/photographers/profile.
-const STAFF_FIELDS = ['name', 'email', 'slug', 'is_active', 'custom_domain', 'custom_domain_paid', 'landing_enabled'] as const;
+// custom_domain, custom_domain_paid and landing_enabled went with the
+// photographer landing (Diana, 2026-09-24): the columns stay until the
+// clean-up migration, but nothing writes them any more.
+const STAFF_FIELDS = ['name', 'email', 'slug', 'is_active'] as const;
 
 /**
  * GET — галереї одного фотографа з розмірами (Diana, 2026-08-06: «я б хотіла
@@ -89,7 +93,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const site = (process.env.NEXT_PUBLIC_SITE_URL || 'https://touchmemories.com.ua').replace(/\/$/, '');
   const cabinetUrl = `${site}/uk/photographer/cabinet/${p.cabinet_token}`;
-  const landingUrl = `${site}/uk/photographer/${p.slug}`;
 
   try {
     await sendLoggedEmail({
@@ -98,17 +101,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       subject: 'Ваш кабінет фотографа на Touch.Memories',
       html: `
         <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937">
-          <h2 style="color:#1e2d7d">Вітаємо, ${p.name}!</h2>
-          <p>Для вас створено кабінет фотографа на Touch.Memories. У ньому ви можете:</p>
-          <ul>
-            <li>створювати галереї та завантажувати фото своїх клієнтів;</li>
-            <li>ділитися з клієнтами посиланням на галерею (фото зберігаються 30 днів);</li>
-            <li>налаштувати свою сторінку-візитку: логотип, контакти, портфоліо, прайс.</li>
-          </ul>
+          <h2 style="color:#1e2d7d">Вітаємо, ${escapeHtml(p.name || '')}!</h2>
+          <p>Для вас створено кабінет фотографа на Touch.Memories. У ньому ви створюєте галереї, завантажуєте фото своїх клієнтів і надсилаєте їм особисте посилання, а на безкоштовному тарифі кожна галерея зберігається 30 днів.</p>
+          <p>Логотип і контакти, які клієнт бачить у кожній галереї, додаються в розділі «Ваші дані».</p>
           <p style="margin:24px 0">
             <a href="${cabinetUrl}" style="background:#1e2d7d;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700">Відкрити кабінет</a>
           </p>
-          <p>Ваша публічна сторінка: <a href="${landingUrl}">${landingUrl}</a></p>
           <p style="color:#6b7280;font-size:13px">Посилання на кабінет — особисте, не передавайте його стороннім.</p>
         </div>`,
     }, { template: 'photographer_cabinet' });

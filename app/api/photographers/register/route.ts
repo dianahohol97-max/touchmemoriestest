@@ -123,9 +123,9 @@ export async function POST(request: Request) {
               <div style="background:#263A99;padding:24px 28px;text-align:center"><span style="color:#fff;font-size:20px;font-weight:900;letter-spacing:.1em">TOUCH.MEMORIES</span></div>
               <div style="padding:32px 28px;background:#fff;border:1px solid #e2e8f0">
                 <h2 style="color:#1e2d7d;font-size:22px;margin:0 0 12px">Привіт, ${escapeHtml(name)}!</h2>
-                <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Ваш кабінет фотографа створено: галереї для передачі фото клієнтам (зберігання 30 днів) і сторінка-візитка з портфоліо та прайсом.</p>
+                <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 14px">Ваш кабінет фотографа створено: у ньому ви створюєте галереї для передачі фото клієнтам, і на безкоштовному тарифі кожна з них зберігається 30 днів. Логотип і контакти, які клієнт бачить у кожній галереї, додаються в розділі «Ваші дані».</p>
                 <p style="margin:18px 0 0"><a href="${cabinetUrl}" style="background:#1e2d7d;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block">Відкрити кабінет</a></p>
-                <p style="font-size:13px;color:#94a3b8;margin:14px 0 0">Посилання особисте — не передавайте його стороннім. Ваша публічна сторінка: <a href="${site}/uk/photographer/${created.slug}">${site}/uk/photographer/${created.slug}</a></p>
+                <p style="font-size:13px;color:#94a3b8;margin:14px 0 0">Посилання особисте, тому не передавайте його стороннім.</p>
                 <p style="font-size:13px;color:#94a3b8;margin:10px 0 0">Хочете знижку 10% на друк і заробіток з рекомендацій? Подайте заявку фотографа з портфоліо: <a href="${site}/uk/photographers/apply">touchmemories.com.ua/uk/photographers/apply</a> — після підтвердження обидві опції увімкнуться у вашому кабінеті.</p>
               </div>
             </div>`,

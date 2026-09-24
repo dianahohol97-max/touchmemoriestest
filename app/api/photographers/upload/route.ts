@@ -4,13 +4,13 @@ import { getPhotographerByToken, brandingPath, publicUrl, GALLERY_BUCKET, MAX_BR
 
 export const dynamic = 'force-dynamic';
 
-const KINDS = ['logo', 'avatar', 'portfolio'] as const;
-const MAX_PORTFOLIO = 24;
+const KINDS = ['logo', 'avatar'] as const;
 
 /**
  * Branding upload for the photographer cabinet. Multipart: token, kind, file.
- * logo/avatar overwrite the profile field; portfolio appends to the jsonb
- * array (used by the public landing page).
+ * logo/avatar overwrite the profile field; the client gallery shows them.
+ * The `portfolio` kind fed the photographer landing and went with it
+ * (Diana, 2026-09-24).
  */
 export async function POST(req: NextRequest) {
   const form = await req.formData().catch(() => null);
@@ -20,21 +20,16 @@ export async function POST(req: NextRequest) {
   if (!photographer) return NextResponse.json({ error: 'Кабінет не знайдено' }, { status: 404 });
 
   const kind = String(form.get('kind') || '') as (typeof KINDS)[number];
-  if (!KINDS.includes(kind)) return NextResponse.json({ error: 'kind: logo | avatar | portfolio' }, { status: 400 });
+  if (!KINDS.includes(kind)) return NextResponse.json({ error: 'kind: logo | avatar' }, { status: 400 });
 
   const file = form.get('file');
   if (!(file instanceof File)) return NextResponse.json({ error: 'Немає файлу' }, { status: 400 });
   // Raster images only. SVG is `image/*` but is an active document — served from
   // the public gallery bucket it would execute scripts in visitors' browsers
-  // (stored XSS on the photographer's public landing page).
+  // (stored XSS in the client galleries that show the logo).
   const ALLOWED_IMG = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
   if (!ALLOWED_IMG.includes(file.type)) return NextResponse.json({ error: 'Підтримуються JPG, PNG, WEBP, GIF, HEIC' }, { status: 400 });
   if (file.size > MAX_BRANDING_BYTES) return NextResponse.json({ error: `Файл більший за ${Math.round(MAX_BRANDING_BYTES / 1024 / 1024)} МБ` }, { status: 400 });
-
-  const portfolio: string[] = Array.isArray(photographer.portfolio) ? photographer.portfolio : [];
-  if (kind === 'portfolio' && portfolio.length >= MAX_PORTFOLIO) {
-    return NextResponse.json({ error: `Ліміт ${MAX_PORTFOLIO} фото у портфоліо` }, { status: 400 });
-  }
 
   const admin = getAdminClient();
   const path = brandingPath(photographer.id, kind, file.name);
@@ -44,10 +39,7 @@ export async function POST(req: NextRequest) {
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
 
   const url = publicUrl(path);
-  const patch =
-    kind === 'logo' ? { logo_url: url } :
-    kind === 'avatar' ? { avatar_url: url } :
-    { portfolio: [...portfolio, url] };
+  const patch = kind === 'logo' ? { logo_url: url } : { avatar_url: url };
 
   const { error } = await admin
     .from('photographers')

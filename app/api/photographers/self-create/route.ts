@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Self-service gallery cabinet for ANY logged-in user (product decision:
- * galleries + landing are open to everyone; only the 10% B2B discount is
+ * galleries are open to everyone; only the 10% B2B discount is
  * approval-gated). Creates a photographers row linked to the caller's
  * customer account, or returns the existing one — idempotent.
  */

@@ -36,8 +36,7 @@ const DISALLOW = [
   // Blog tag pages — thin content, no direct SEO value
   '/*/blog/tag/*',
   // Private token pages: client photo galleries and photographer
-  // cabinets (both also noindex). Public landings /*/photographer/{slug}
-  // stay crawlable.
+  // cabinets (both also noindex).
   '/*/gallery/',
   '/*/photographer/cabinet/',
   // Other token/personal pages (all also carry a noindex meta): design

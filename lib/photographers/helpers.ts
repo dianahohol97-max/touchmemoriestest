@@ -11,7 +11,7 @@ export const MAX_PHOTOS_PER_GALLERY = 2000;
 // вантажиться підписаним посиланням напряму у сховище — саме тому «фото до
 // 25 МБ» раніше було обіцянкою, яку наш власний API не міг виконати.
 export const MAX_INLINE_UPLOAD_BYTES = 4 * 1024 * 1024;
-// Лого, аватар і портфоліо йдуть тільки через наш API, тож для них діє саме
+// Лого й аватар ідуть тільки через наш API, тож для них діє саме
 // цей ліміт, а не великий галерейний.
 export const MAX_BRANDING_BYTES = MAX_INLINE_UPLOAD_BYTES;
 
@@ -50,6 +50,6 @@ export function galleryPhotoPath(photographerId: string, galleryId: string, file
   return `${photographerId}/${galleryId}/${Date.now()}_${sanitize(fileName)}`;
 }
 
-export function brandingPath(photographerId: string, kind: 'logo' | 'avatar' | 'portfolio', fileName: string) {
+export function brandingPath(photographerId: string, kind: 'logo' | 'avatar', fileName: string) {
   return `${photographerId}/branding/${kind}_${Date.now()}_${sanitize(fileName)}`;
 }

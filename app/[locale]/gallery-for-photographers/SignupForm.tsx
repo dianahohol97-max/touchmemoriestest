@@ -55,7 +55,7 @@ export default function SignupForm({ locale }: { locale: string }) {
   return (
     <form onSubmit={submit} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px 22px', maxWidth: 460, margin: '0 auto', boxShadow: '0 4px 24px rgba(0,0,0,0.05)' }}>
       <div style={{ fontWeight: 800, fontSize: 18, color: '#1e2d7d' }}>Створити кабінет</div>
-      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Галереї та сторінка-візитка запрацюють одразу, без модерації. Знижка 10% і заробіток з рекомендацій увімкнуться в цьому ж кабінеті після схвалення вашої заявки фотографа.</div>
+      <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Галереї запрацюють одразу, без модерації. Знижка 10% і заробіток з рекомендацій увімкнуться в цьому ж кабінеті після схвалення вашої заявки фотографа.</div>
 
       <label style={label}>Ім&apos;я або назва студії *</label>
       <input style={input} value={name} onChange={e => setName(e.target.value)} placeholder="Олена Коваленко" />

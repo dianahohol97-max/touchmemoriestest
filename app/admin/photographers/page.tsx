@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 interface Photographer {
   id: string; slug: string; cabinet_token: string; name: string; email: string;
   phone: string | null; instagram: string | null; is_active: boolean;
-  landing_enabled: boolean; custom_domain: string | null; custom_domain_paid: boolean;
   gallery_count: number; storage_bytes: number; created_at: string;
   plan?: string | null; plan_expires_at?: string | null;
   orders_count: number; orders_total: number;
@@ -94,13 +93,13 @@ export default function AdminPhotographersPage() {
         <h1 className="text-2xl font-extrabold text-indigo-900">Фотографи</h1>
         <button className={btn} onClick={() => setShowNew(v => !v)}>{showNew ? 'Скасувати' : '+ Додати фотографа'}</button>
       </div>
-      <p className="text-sm text-slate-500 mb-4">Галереї клієнтів (зберігання 30 днів), сторінка-візитка з портфоліо і прайсом.</p>
+      <p className="text-sm text-slate-500 mb-4">Галереї клієнтів: на безкоштовному тарифі 30 днів без продовження, на платних 30, 60 або 90 днів із продовженням.</p>
 
       {showNew && (
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5 grid gap-3 md:grid-cols-2">
           <input className={input} placeholder="Ім'я / студія *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           <input className={input} placeholder="Email *" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-          <input className={input} placeholder="Slug (URL, лат.) *" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
+          <input className={input} placeholder="Slug (службовий ідентифікатор, лат.) *" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
           <input className={input} placeholder="Телефон" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
           <input className={input} placeholder="Instagram" value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))} />
           <button className={btn} onClick={create}>Створити</button>
@@ -120,10 +119,6 @@ export default function AdminPhotographersPage() {
               </div>
               <span className="text-sm text-slate-500">{p.gallery_count} галерей · {fmtSize(p.storage_bytes)}</span>
             </div>
-            <div className="text-sm text-slate-500 mt-1">
-              /photographer/{p.slug}
-              {p.custom_domain && <> · домен: <b>{p.custom_domain}</b> {p.custom_domain_paid ? '(оплачено)' : '(не оплачено)'}</>}
-            </div>
             {/* Гроші фотографа: що замовив на сайті і що заплатив за тарифи памʼяті. Лише оплачене. */}
             <div className="text-sm text-slate-600 mt-1">
               Замовлень: <b>{p.orders_count}</b>{p.orders_count > 0 && <> на <b>{p.orders_total.toLocaleString('uk-UA')} ₴</b></>}
@@ -134,18 +129,9 @@ export default function AdminPhotographersPage() {
             <div className="flex gap-2 mt-3 flex-wrap">
               <button className={btnGhost} disabled={busyId === p.id} onClick={() => sendWelcome(p.id)}>Надіслати лист</button>
               <button className={btnGhost} onClick={() => copy(`${window.location.origin}/uk/photographer/cabinet/${p.cabinet_token}`, 'Посилання на кабінет скопійовано')}>Кабінет</button>
-              <a className={btnGhost} href={`/uk/photographer/${p.slug}`} target="_blank">Візитка ↗</a>
               <button className={btnGhost} disabled={busyId === p.id}
                 onClick={() => patch(p.id, { is_active: !p.is_active }, p.is_active ? 'Вимкнено' : 'Увімкнено')}>
                 {p.is_active ? 'Вимкнути' : 'Увімкнути'}
-              </button>
-              <button className={btnGhost} disabled={busyId === p.id}
-                onClick={() => {
-                  const domain = prompt('Домен (порожньо — прибрати):', p.custom_domain || '');
-                  if (domain === null) return;
-                  patch(p.id, { custom_domain: domain.trim() || null, custom_domain_paid: !!domain.trim() }, 'Домен оновлено');
-                }}>
-                Домен…
               </button>
               {p.gallery_count > 0 && (
                 <button className={btnGhost} onClick={() => setOpenGalleries(v => v === p.id ? '' : p.id)}>

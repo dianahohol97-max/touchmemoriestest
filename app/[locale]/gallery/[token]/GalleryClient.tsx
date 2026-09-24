@@ -31,7 +31,6 @@ interface GalleryData {
   photographer: {
     name: string; bio: string | null; phone: string | null; instagram: string | null;
     website: string | null; email: string | null; logo_url: string | null; avatar_url: string | null;
-    slug: string | null;
   };
 }
 

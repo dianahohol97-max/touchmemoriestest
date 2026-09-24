@@ -488,6 +488,18 @@ const nextConfig = {
       { source: '/catalog/:slug*', destination: '/uk/catalog/:slug*', permanent: true },
       { source: '/category/:slug*', destination: '/uk/category/:slug*', permanent: true },
 
+      // The photographer catalog and the per-photographer landing («візитка»)
+      // were removed from the product (Diana, 2026-09-24). Their old addresses
+      // go to the service landing for photographers. The slug rule must NOT
+      // catch /photographer/cabinet — the cabinet entry page lives at that
+      // address — hence the negative lookahead. Deeper paths (the cabinet
+      // itself, /photographer/cabinet/<token>) have two segments and never
+      // match a one-segment :slug.
+      { source: '/photographer',                                                   destination: '/uk/gallery-for-photographers',      permanent: true },
+      { source: '/photographer/:slug((?!cabinet$)[^/]+)',                          destination: '/uk/gallery-for-photographers',      permanent: true },
+      { source: '/:locale(uk|en|ro|pl|de)/photographer',                           destination: '/:locale/gallery-for-photographers', permanent: true },
+      { source: '/:locale(uk|en|ro|pl|de)/photographer/:slug((?!cabinet$)[^/]+)', destination: '/:locale/gallery-for-photographers', permanent: true },
+
       // Short address for the colouring tool, worth sharing out loud. The
       // locale-prefixed form of the tool itself is handled by a rewrite in
       // rewrites(), never a redirect — see the comment there.
