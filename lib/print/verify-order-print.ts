@@ -3,7 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { deriveGeometry, normalizeSizeKey, resolveProjectSizeKey, mmToPx, type SizeRow } from '@/lib/print/geometry';
 import { referencedPhotoIds } from '@/lib/print/resolve-photo-paths';
 import { blankForzatLine, blankPaidForzats, forzatShortfallLine, missingForzatFiles, paidForzatSides } from '@/lib/print/forzat-expectation';
-import { collectCyrillicFallbacks, cyrillicFallbackLine } from '@/lib/editor/cyrillic-fonts';
+import { collectCyrillicFallbacks, collectPosterFallbacks, cyrillicFallbackLine } from '@/lib/editor/cyrillic-fonts';
 
 /**
  * Чи відповідає надрукований комплект тому, що склала клієнтка.
@@ -111,6 +111,22 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         // pages_data[0] — обкладинка, решта сторінки.
         const designPages = Math.max(0, pages.length - 1);
 
+        // ПОСТЕР — НЕ КНИГА З НУЛЯ СТОРІНОК.
+        //
+        // Постер лежить у тій самій колонці, але формою він інший: увесь виріб —
+        // один об'єкт конфігурації в `pages_data[0]`, сторінок немає взагалі, а
+        // друкарський файл складає браузер клієнта і кладе його в `poster-exports`
+        // під власним іменем, у якому ідентифікатора макета немає. Книжкова мірка
+        // на ньому відповідала неправду тричі поспіль — «порожня чернетка»,
+        // «немає файлу обкладинки», «немає жодного файлу сторінок», — і саме такий
+        // звіт видало б сьогодні TM-001090, у якого і макет, і файл на місці.
+        // Форму питаємо в даних, а не в назви товару: станом на 23.09.2026 з 1268
+        // не-постерних макетів у базі жоден не має ні `textBlocks`, ні `fontFamily`
+        // на нульовій сторінці.
+        const posterConfig = (pages[0] && typeof pages[0] === 'object') ? pages[0] as Record<string, any> : null;
+        const isPoster = !!posterConfig && designPages === 0
+            && (Array.isArray(posterConfig.textBlocks) || typeof posterConfig.fontFamily === 'string');
+
         // Скільки фото поставлено і скільки з них має файл у сховищі. Форзаци й
         // текстові сторінки законно порожні, тому далі порожнеча перевіряється
         // не «на кожній сторінці», а тільки там, де фото справді є.
@@ -214,11 +230,16 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
                 problems.push('задня обкладинка порожня — лише заливка, без фото і без тексту');
             }
         }
-        if (!referenced.size) problems.push('у макеті не розставлено жодного фото — це порожня чернетка');
-        if (!hasCover) problems.push('немає файлу обкладинки');
-        if (pageFiles.length === 0) problems.push('немає жодного файлу сторінок');
-        else if (pageFiles.length < designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — рендер не дійшов до кінця`);
-        else if (pageFiles.length > designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — лишилися файли попереднього макета`);
+        // Три мірки нижче книжкові за побудовою: у постера немає ні слотів під
+        // фото, ні обкладинки, ні посторінкових файлів, і мовчати про це чесніше,
+        // ніж називати справний виріб порожньою чернеткою.
+        if (!isPoster) {
+            if (!referenced.size) problems.push('у макеті не розставлено жодного фото — це порожня чернетка');
+            if (!hasCover) problems.push('немає файлу обкладинки');
+            if (pageFiles.length === 0) problems.push('немає жодного файлу сторінок');
+            else if (pageFiles.length < designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — рендер не дійшов до кінця`);
+            else if (pageFiles.length > designPages) problems.push(`сторінок у файлах ${pageFiles.length}, а в макеті ${designPages} — лишилися файли попереднього макета`);
+        }
         if (photosWithoutFile > 0) problems.push(`${photosWithoutFile} поставлених фото не мають файлу у сховищі — на папері буде порожньо`);
         // ОПЛАЧЕНИЙ ФОРЗАЦ БЕЗ ФАЙЛУ.
         //
@@ -279,7 +300,16 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         // людина — тому рядок у звіті, а не заборона. Той самий обхід показує
         // цей рядок клієнтці в переліку перед «Додати в кошик», щоб менеджерка
         // і клієнтка бачили одне й те саме.
-        const wrongFont = collectCyrillicFallbacks(proj?.pages_data, proj?.cover_data);
+        //
+        // Постер дає ті самі два випадки, але лежить іншою формою, тож обхід у
+        // нього власний — `collectPosterFallbacks`. Без нього перевірка мовчала
+        // про постери весь час свого існування, хоча обидві збережені зоряні
+        // карти з Georgia лежали в базі з серпня, а їхній друкарський файл через
+        // /print і через сторож рендер-сервісу не проходить ніколи.
+        const wrongFont = [
+            ...collectCyrillicFallbacks(proj?.pages_data, proj?.cover_data),
+            ...collectPosterFallbacks(proj?.pages_data),
+        ];
         const wrongFontLine = cyrillicFallbackLine(wrongFont);
         if (wrongFontLine) problems.push(wrongFontLine);
         if (blank.length) problems.push(`порожні аркуші: ${blank.slice(0, 8).join(', ')}${blank.length > 8 ? ` і ще ${blank.length - 8}` : ''}`);
@@ -287,7 +317,9 @@ export async function verifyOrderPrint(orderId: string): Promise<OrderPrintVerdi
         if (unchecked > 0) problems.push(`${unchecked} файлів не вдалося перевірити — перевірте вручну`);
 
         books.push({
-            label: `Виріб ${i + 1}${proj.format ? ` · ${proj.format}` : ''} · ${designPages} стор.`,
+            label: isPoster
+                ? `Постер ${i + 1}${proj.format ? ` · ${proj.format}` : ''}`
+                : `Виріб ${i + 1}${proj.format ? ` · ${proj.format}` : ''} · ${designPages} стор.`,
             projectId: String(proj.id),
             designPages,
             filePages: pageFiles.length,

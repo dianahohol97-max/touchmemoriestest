@@ -4,6 +4,7 @@ import {
   fontHasCyrillic,
   textFallsBackFromFont,
   collectCyrillicFallbacks,
+  collectPosterFallbacks,
   cyrillicFallbackLine,
   describeCyrillicFallback,
   fallbackReason,
@@ -199,5 +200,61 @@ describe('обхід збереженого макета', () => {
     expect(found).toHaveLength(1);
     expect(found[0].reason).toBe('not-in-pack');
     expect(cyrillicFallbackLine(found)).toContain('не входить у наш набір');
+  });
+});
+
+/**
+ * Постер лежить у тій самій колонці, що й книга, але іншою формою: увесь виріб —
+ * один об'єкт конфігурації в `pages_data[0]`. Книжковий обхід нульову сторінку
+ * пропускає навмисно, і через це перевірка макетів мовчала про постери весь час
+ * свого існування, хоча обидві збережені зоряні карти з Georgia лежали в базі з
+ * серпня. Друкарський файл постера складає браузер клієнта, повз /print і повз
+ * сторож рендер-сервісу, тож інших очей у цих макетів немає взагалі.
+ */
+describe('шрифт у макеті постера', () => {
+  it('один шрифт на весь виріб береться з конфігурації, а написи — з її полів', () => {
+    const found = collectPosterFallbacks([{
+      fontFamily: 'Georgia',
+      headline: 'Час коли перейшов на заслужену пенсію',
+      subtitle: '12 грудня 2022 р., Винники',
+      dedication: '',
+      // Не друкується: колір, розмір аркуша і назва товару на постер не йдуть.
+      textColor: '#0a0e1a',
+      size: 'A4 (21×29.7 см)',
+      productType: 'Постер',
+    }]);
+    expect(found.map(f => f.blockId).sort()).toEqual(['headline', 'subtitle']);
+    expect(found.every(f => f.reason === 'not-in-pack')).toBe(true);
+  });
+
+  it('текстові блоки постера мають кожен свій шрифт', () => {
+    const found = collectPosterFallbacks([{
+      textBlocks: [
+        { id: 't1', fontFamily: 'Lato', text: 'Наша подорож' },
+        { id: 't2', fontFamily: 'Lato', text: 'Summer 2026' },
+        { id: 't3', fontFamily: 'Playfair Display', text: 'Наша подорож' },
+      ],
+    }]);
+    expect(found.map(f => f.blockId)).toEqual(['t1']);
+    expect(found[0].reason).toBe('no-cyrillic');
+  });
+
+  it('родина з пакета і з кирилицею мовчить', () => {
+    expect(collectPosterFallbacks([{ fontFamily: 'Playfair Display', headline: 'Наша подорож' }])).toEqual([]);
+  });
+
+  it('книжковий макет через цей обхід нічого не додає', () => {
+    // Обхід безпечно бігає по будь-якому макету: у книги ні `textBlocks`, ні
+    // `fontFamily` на нульовій сторінці не буває, і саме тому тут не треба
+    // питати про тип виробу.
+    const book = [{ cover: true }, { textBlocks: [{ id: 'b1', fontFamily: 'Lato', text: 'Київ' }] }];
+    expect(collectPosterFallbacks(book)).toEqual([]);
+  });
+
+  it('порожній або зіпсований макет не ламає обхід', () => {
+    expect(collectPosterFallbacks(null)).toEqual([]);
+    expect(collectPosterFallbacks([])).toEqual([]);
+    expect(collectPosterFallbacks('щось')).toEqual([]);
+    expect(collectPosterFallbacks([{ textBlocks: null, fontFamily: null }])).toEqual([]);
   });
 });

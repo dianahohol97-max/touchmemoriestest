@@ -156,6 +156,73 @@ export function collectCyrillicFallbacks(pagesData: unknown, coverData: unknown)
     return out;
 }
 
+/**
+ * Написи постера, які вийдуть не тим шрифтом.
+ *
+ * ЧОМУ ОКРЕМИЙ ОБХІД, А НЕ ГІЛКА В ТОМУ, ЩО ВИЩЕ. Постер зберігається в ту саму
+ * колонку `pages_data`, але формою він не книга: весь виріб лежить одним
+ * об'єктом конфігурації в `pages_data[0]`. Книжковий обхід нульову сторінку
+ * ПРОПУСКАЄ, бо в книги це обкладинка з власним редактором і власними полями в
+ * `cover_data`, — і саме через це перевірка макетів мовчала про постери весь
+ * час свого існування, хоча обидві збережені зоряні карти з Georgia лежали в
+ * базі. Зводити ці два обходи в один означало б або зламати книжковий, або
+ * поставити в ньому умову про продукт, яка розійдеться з формою даних.
+ *
+ * Дві форми постера, і обидві тут:
+ *   • `config.textBlocks[]` — PosterConstructor, у кожного блока свій шрифт;
+ *   • `config.fontFamily` — конструктори мап, зоряної карти, монограми і
+ *     зодіаку: один шрифт на весь виріб, а написи лежать окремими полями.
+ *
+ * Обхід безпечно запускати на БУДЬ-ЯКОМУ макеті, без питання про тип виробу:
+ * станом на 23.09.2026 з 1268 не-постерних макетів у базі жоден не має ні
+ * `textBlocks`, ні `fontFamily` на нульовій сторінці, бо в книги обидва поля
+ * живуть деінде. Питати форму, а не назву товару, — те саме правило, за яким
+ * макет звіряється по ключу рядка, а не по лічильнику.
+ */
+export function collectPosterFallbacks(pagesData: unknown): CyrillicFallback[] {
+    const pages = Array.isArray(pagesData) ? pagesData : [];
+    const config = (pages[0] && typeof pages[0] === 'object') ? pages[0] as Record<string, any> : null;
+    if (!config) return [];
+
+    const out: CyrillicFallback[] = [];
+    const note = (blockId: string, family: unknown, text: unknown) => {
+        const fam = familyName(String(family ?? ''));
+        const body = String(text ?? '');
+        const reason = fallbackReason(fam, body);
+        if (!fam || !reason) return;
+        out.push({ pageIndex: 0, blockId, family: fam, text: body, reason });
+    };
+
+    if (Array.isArray(config.textBlocks)) {
+        for (const tb of config.textBlocks) note(String(tb?.id ?? ''), tb?.fontFamily, tb?.text);
+    }
+
+    for (const key of POSTER_TEXT_KEYS) {
+        const value = config[key];
+        if (typeof value === 'string' && value.trim()) note(key, config.fontFamily, value);
+    }
+    return out;
+}
+
+/**
+ * Поля конфігурації постера, які справді друкуються.
+ *
+ * Перелік, а не «всі рядки об'єкта», бо в тій самій конфігурації лежать колір
+ * тла, ідентифікатор стилю, розмір аркуша і назва товару — вони на аркуш не
+ * потрапляють, а попередження про них навчило б не читати попереджень. Поза
+ * переліком свідомо лишилися `date` і `birthDate` (сира дата, на аркуш іде
+ * відформатованою), `location` (з неї складається `subtitle`), `weight` і
+ * `height` (числа) та `zodiacSign` із `zodiacSymbol` (значення зі словника).
+ */
+const POSTER_TEXT_KEYS = [
+    'headline', 'subtitle', 'dedication',   // зоряна карта
+    'title', 'textNote', 'coordinates',     // мапа міста
+    'names', 'dateText',                    // мапа кохання, зодіак
+    'letter', 'customText',                 // монограма
+    'name', 'babyName',                     // зодіак, статистика народження
+    'captionText', 'customName',            // мультяшний портрет
+] as const;
+
 /** Рядок для звіту перевірки макетів: коротко, по одній родині. */
 export function cyrillicFallbackLine(items: CyrillicFallback[]): string | null {
     if (!items.length) return null;
