@@ -60,6 +60,22 @@ function fileKindFor(productType: unknown, slug: unknown): { category: string; t
   return { category: 'photo-print', type: 'export' };
 }
 
+/**
+ * Бакет для запису без явного `bucket`.
+ *
+ * Конструктор книг (BookLayoutEditor, persistDraft) заливає оригінали в
+ * `photobook-uploads` під `drafts/{user}/{draft}/…` і бакет у uploaded_photos
+ * не пише. Раніше тут стояло голе 'order-files', тож рядки order_files вказували
+ * на бакет, де цих файлів немає, і адмінка підписувала посилання в порожнечу.
+ * TM-001367 приїхало з 17 рядками файлів і жодним видимим фото, хоча всі 17
+ * лежали у сховищі цілі; за три тижні так само биті рядки мали ще 23 замовлення.
+ * Під `drafts/` у `order-files` немає жодного обʼєкта (перевірено 24.09.2026:
+ * 49 140 проти нуля), тож префікс визначає бакет однозначно.
+ */
+function defaultBucketFor(path: string): string {
+  return path.startsWith('drafts/') ? 'photobook-uploads' : 'order-files';
+}
+
 /** Дістає з uploaded_photos лише записи з придатним шляхом у сховищі. */
 function storagePathsOf(uploaded: unknown): { path: string; bucket: string }[] {
   if (!Array.isArray(uploaded)) return [];
@@ -71,7 +87,7 @@ function storagePathsOf(uploaded: unknown): { path: string; bucket: string }[] {
     if (typeof path !== 'string' || !path || path.startsWith('data:')) continue;
     const bucket = typeof (entry as any).bucket === 'string' && (entry as any).bucket
       ? (entry as any).bucket
-      : 'order-files';
+      : defaultBucketFor(path);
     out.push({ path, bucket });
   }
   return out;
