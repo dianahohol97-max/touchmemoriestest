@@ -154,7 +154,22 @@ export default function StarMapConstructor() {
         skyColor: '#0a0e1a',
         starColor: '#ffffff',
         textColor: '#0a0e1a',
-        fontFamily: 'Georgia',
+        /**
+         * Дефолт — родина з підбірки, а не системний шрифт Windows.
+         *
+         * Тут стояла Georgia, якої немає ні в `FONT_GROUPS` (тобто в списку її
+         * не видно й обрати її свідомо не можна), ні в `public/editor-fonts/`,
+         * ні в контейнері Railway. Файл для друку малює canvas на машині
+         * клієнта, тож на Windows і Mac у JPEG запікалася справжня Georgia, а
+         * на Android і Linux — системна зарубка, і яка саме вийшла, нам не
+         * видно нічим. Два збережені макети зоряних карт із серпня стоять саме
+         * на ній; вони відкриваються як відкривалися, а про підміну тепер каже
+         * перевірка макетів в адмінці.
+         *
+         * Playfair Display — той самий настрій зарубкою, вона є в пакеті й має
+         * кирилицю, тож екран і друк читають один файл.
+         */
+        fontFamily: 'Playfair Display',
         showStarNames: true,
         // Map-element toggles must be explicitly initialised. Previously they
         // were undefined: the toggle UI treats undefined as ON (x!==false)

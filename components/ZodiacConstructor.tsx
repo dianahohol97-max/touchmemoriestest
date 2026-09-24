@@ -58,7 +58,12 @@ const { addItem } = useCartStore();
         backgroundColor: '#0a1128',
         zodiacColor: '#ffd700',
         textColor: '#ffffff',
-        fontFamily: 'Georgia',
+        // Дефолт — родина з підбірки, а не системний шрифт Windows: Georgia
+        // немає ні в нашому пакеті, ні в контейнері рендеру, тож напис малювався
+        // тим, що знайдеться на машині клієнта, і різним на кожній. Причина й
+        // заміна — у тому ж коментарі в StarMapConstructor. Georgia лишається в
+        // списку `fonts` нижче: прибрати шрифт із підбірки — рішення про товар.
+        fontFamily: 'Playfair Display',
 
         // Step 4 defaults
         size: '30×40 см',
