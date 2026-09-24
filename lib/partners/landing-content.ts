@@ -126,8 +126,44 @@ export type PartnerHub = {
     chooseH2: string;
     chooseLead: string;
     chooseAlt: string;
-    routes: Array<{ title: string; text: string; cta: string; alt: string; landing: PartnerLandingKind }>;
+    routes: PartnerHubRoute[];
 };
+
+/**
+ * Напрям співпраці, як його показує картка на хабі.
+ *
+ * ЧОМУ ТУТ ГОТОВА АДРЕСА, А НЕ `landing`. Раніше картка знала тільки
+ * `PartnerLandingKind`, і сторінка сама складала з нього адресу.
+ * Напрямів стало три, і третій — фотографи — живе не в цьому модулі, а на
+ * власній сторінці /photographers зі своїм текстом і своїм кабінетом. Тримати
+ * заради нього фальшивий `kind` у типі лендінга означало б, що getPartnerLanding
+ * пообіцяє сторінку, якої немає. Тож картка несе адресу, а `kind` лишився
+ * тільки для іконки.
+ */
+export type PartnerHubRoute = {
+    title: string;
+    text: string;
+    cta: string;
+    alt: string;
+    /** Ключ напряму — з нього беруться рядки в locales і іконка на картці. */
+    kind: PartnerHubRouteKind;
+    /** Адреса профільної сторінки разом із локаллю. */
+    href: string;
+};
+
+export type PartnerHubRouteKind = 'photographer' | 'blogger' | 'agency';
+
+/**
+ * Порядок карток на хабі й водночас порядок пунктів у меню «Співпраця»
+ * (migration 20260924_partner_menu_three_directions.sql). Розходження між
+ * ними — це та сама поломка, з якої все почалося: у меню був один напрям, на
+ * хабі два, і жодне місце не показувало всі.
+ */
+const HUB_ROUTES: Array<{ kind: PartnerHubRouteKind; path: string }> = [
+    { kind: 'photographer', path: '/photographers' },
+    { kind: 'blogger', path: PATHS.blogger },
+    { kind: 'agency', path: PATHS.agency },
+];
 
 export function getPartnerHub(locale: string = 'uk'): PartnerHub {
     const t = getServerT(locale);
@@ -154,14 +190,14 @@ export function getPartnerHub(locale: string = 'uk'): PartnerHub {
         chooseH2: at('choose_h2'),
         chooseLead: at('choose_lead'),
         chooseAlt: at('choose_alt'),
-        routes: [
-            { title: at('blogger_title'), text: at('blogger_text'), cta: at('blogger_cta'), alt: at('blogger_alt'), landing: 'blogger' },
-            { title: at('agency_title'), text: at('agency_text'), cta: at('agency_cta'), alt: at('agency_alt'), landing: 'agency' },
-        ],
+        routes: HUB_ROUTES.map(r => ({
+            kind: r.kind,
+            href: `/${locale}${r.path}`,
+            title: at(`${r.kind}_title`),
+            text: at(`${r.kind}_text`),
+            cta: at(`${r.kind}_cta`),
+            alt: at(`${r.kind}_alt`),
+        })),
     };
 }
 
-/** Адреса сторінки лендінга з локаллю — для посилань усередині сайту. */
-export function landingHref(locale: string, kind: PartnerLandingKind): string {
-    return `/${locale}${PATHS[kind]}`;
-}

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { Navigation } from '@/components/ui/Navigation';
 import { Footer } from '@/components/ui/Footer';
-import { Gift, Percent, Users } from 'lucide-react';
+import { Camera, Gift, Percent, Users } from 'lucide-react';
 import { getCanonicalUrl, getSingleLocaleAlternates, getBaseUrl } from '@/lib/seo/locales';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
-import { getPartnerHub, landingHref } from '@/lib/partners/landing-content';
+import { getPartnerHub, type PartnerHubRouteKind } from '@/lib/partners/landing-content';
 import { CardSection, IconBadge, PartnerHero } from '@/components/partners/PartnerLandingUI';
 
 /**
@@ -47,6 +48,17 @@ export async function generateMetadata(): Promise<Metadata> {
         twitter: { card: 'summary', title: hub.metaTitle, description: hub.metaDescription },
     };
 }
+
+/**
+ * Іконка картки напряму. Лежить поруч зі сторінкою, а не в locales, бо це
+ * розмітка: у JSON їй нема чим бути, крім назви, яку однаково довелося б тут
+ * розгортати назад у компонент.
+ */
+const ROUTE_ICON: Record<PartnerHubRouteKind, ReactNode> = {
+    photographer: <Camera size={26} color="#3d56d6" />,
+    blogger: <Percent size={26} color="#3d56d6" />,
+    agency: <Gift size={26} color="#3d56d6" />,
+};
 
 export default async function PartneryHubPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
@@ -95,12 +107,10 @@ export default async function PartneryHubPage({ params }: { params: Promise<{ lo
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
                                 {hub.routes.map(route => (
-                                    <a key={route.landing} href={landingHref(locale, route.landing)}
+                                    <a key={route.kind} href={route.href}
                                         style={{ display: 'flex', flexDirection: 'column', background: '#fff', border: '1px solid #E8DCC8', borderRadius: 16, padding: '30px 26px', textDecoration: 'none' }}>
                                         <IconBadge alt={route.alt}>
-                                            {route.landing === 'blogger'
-                                                ? <Percent size={26} color="#3d56d6" />
-                                                : <Gift size={26} color="#3d56d6" />}
+                                            {ROUTE_ICON[route.kind]}
                                         </IconBadge>
                                         <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: 20, color: '#1e2d7d', margin: '16px 0 8px' }}>
                                             {route.title}

@@ -333,10 +333,29 @@ export function Navigation() {
                 return [...mainProductLinks, ...navLinks, { id:'other', name:t('nav.other'), href:`/${locale}/catalog` }, ...aboutItems]
                   .filter(link => { if (!link.href || seen.has(link.href)) return !link.href; seen.add(link.href); return true; });
               })().map(link => (
-                <Link key={link.id || link.href} href={localePath(locale, link.href)} onClick={() => setIsMobileMenuOpen(false)}
-                  className="py-4 text-base font-bold text-primary no-underline border-b border-primary/5 block">
-                  {link.name}
-                </Link>
+                // Вкладені пункти показуються і тут, а не тільки у випадайці на
+                // десктопі. «Співпраця» має трьох дітей — фотографи, блогери,
+                // турагентства, — і на телефоні жоден із них не було видно:
+                // натиск на батьківський пункт просто відкривав сторінку
+                // одного напряму, і решта двох не існувала для людини з
+                // телефона, тобто для більшості (Діана, 24.09.2026).
+                <div key={link.id || link.href}>
+                  <Link href={localePath(locale, link.href)} onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn('py-4 text-base font-bold text-primary no-underline block',
+                      link.children?.length > 0 ? '' : 'border-b border-primary/5')}>
+                    {link.name}
+                  </Link>
+                  {link.children?.length > 0 && (
+                    <div className="border-b border-primary/5 pb-3 -mt-1">
+                      {link.children.map((child: any) => (
+                        <Link key={child.href} href={localePath(locale, child.href)} onClick={() => setIsMobileMenuOpen(false)}
+                          className="py-2.5 pl-4 text-[15px] font-semibold text-primary/70 no-underline block">
+                          {child.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
               {/* Language switcher (mobile) */}
               <div className="pt-6 mt-2">

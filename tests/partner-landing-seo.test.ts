@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getPartnerHub, getPartnerLanding, landingHref, type PartnerLanding } from '@/lib/partners/landing-content';
+import { getPartnerHub, getPartnerLanding, type PartnerLanding } from '@/lib/partners/landing-content';
 
 /**
  * Текст трьох сторінок партнерської програми перевіряється тестом, бо
@@ -212,8 +212,11 @@ describe('лендінги партнерської програми', () => {
     describe('хаб співпраці', () => {
         const hub = getPartnerHub('uk');
 
-        it('веде на обидві профільні сторінки', () => {
-            expect(hub.routes.map(r => landingHref('uk', r.landing))).toEqual([
+        it('веде на всі три профільні сторінки', () => {
+            // Напрямів три, і хаб мусить показувати всі: меню «Співпраця» веде
+            // саме сюди, тож напрям, якого тут немає, не має жодних дверей.
+            expect(hub.routes.map(r => r.href)).toEqual([
+                '/uk/photographers',
                 '/uk/partnerska-programa-dlya-blogeriv',
                 '/uk/partnerska-programa-dlya-turagentstv',
             ]);
