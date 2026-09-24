@@ -823,7 +823,7 @@ export default function PosterConstructor() {
       // preview canvas). Falls back silently if anything fails — the per-photo
       // originals are still uploaded below, so the manager is never left empty.
       try {
-        const { renderPosterPrintBlob } = await import('@/lib/poster-render');
+        const { renderPosterPrintBlob, posterFontTroubleLine } = await import('@/lib/poster-render');
         const blob = await renderPosterPrintBlob(
           {
             bgColor: config.bgColor,
@@ -837,6 +837,16 @@ export default function PosterConstructor() {
           sizeObj.hCm,
           (W, H, p) => layout.getSlots(W, H, p) as any,
           PREVIEW_W,
+          {
+            // Тут відмова НЕ вмикається свідомо: файл для друку — це растр,
+            // знятий на тій самій машині, що показувала прев'ю, тож людина
+            // отримає надрукованим рівно те, що бачила, а зупинка коштувала б
+            // замовлення. Сказати про підміну все одно треба, поки вона ще в
+            // конструкторі й може обрати інший шрифт.
+            onFontTrouble: (troubles) => {
+              toast.warning(posterFontTroubleLine(troubles), { duration: 12000 });
+            },
+          },
         );
         if (blob) {
           const filePath = `poster-${Date.now()}.jpg`;

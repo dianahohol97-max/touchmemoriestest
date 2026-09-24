@@ -10,6 +10,8 @@
  * terms of W/H, so calling it at print size scales everything proportionally.
  */
 
+import { FONTS_IN_PACK } from '@/lib/editor/font-scripts';
+
 export type PosterPhoto = {
   id: string;
   photoUrl: string;
@@ -45,6 +47,108 @@ export type PosterDrawConfig = {
   photos: PosterPhoto[];
   textBlocks: PosterTextBlock[];
 };
+
+/**
+ * Родина, якою набрано напис на постері, і те, чому вона не намалюється.
+ *
+ * Ті самі два випадки, що розрізняє сторож друкованого аркуша
+ * (`lib/print/font-audit.ts`), і розрізняються вони з тієї самої причини.
+ *
+ *   `not-in-pack`  — родини немає в нашому наборі взагалі. Так стоїть Georgia,
+ *                    системний шрифт Windows: на машині, де вона є, напис
+ *                    вийде саме нею, а на будь-якій іншій — системною
+ *                    зарубкою, і повтор цього не лікує ніколи.
+ *   `not-loaded`   — родина наша, але грань, яка покриває ЦІ символи, у
+ *                    документі не завантажилась. Або не доїхала таблиця
+ *                    стилів, або не доїхав файл підмножини. Саме це лікує
+ *                    повтор, і саме це досі ставалося мовчки.
+ */
+export type PosterFontTrouble = {
+  family: string;
+  reason: 'not-in-pack' | 'not-loaded';
+  /** Символи, набрані цією родиною — по них і питали грань. */
+  sample: string;
+};
+
+/** Назва родини так, як її порівнювати: перша в стеку, без лапок. */
+function familyName(family: string | null | undefined): string {
+  return String(family ?? '').split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+}
+
+/**
+ * Дочекатися шрифтів, якими справді набрано цей постер, і сказати, чого бракує.
+ *
+ * НАВІЩО ОКРЕМА ФУНКЦІЯ, А НЕ `document.fonts.ready`. Саме `ready` тут і стояла,
+ * і вона означає не «шрифти на місці», а «завантаження, яке йшло, скінчилося»:
+ * на сторінці, де жодна з цих родин не набрана в DOM, завантаження не йде
+ * ніяке, і `ready` резолвиться миттєво з порожнім набором. Так і виходив
+ * єдиний друкарський файл TM-001090 — його зібрала кнопка «Зібрати постер з
+ * дизайну» на сторінці адмінки, яка таблиці шрифтів конструктора не підключала
+ * взагалі, тож Playfair Display із макета намалювалася системною зарубкою.
+ * `document.fonts.check()` цього теж не ловить: для будь-якої родини вона
+ * відповідає `true`, бо фолбек «завантажений».
+ *
+ * Що ловить ця функція. `document.fonts.load(spec, text)` віддає САМЕ ті грані,
+ * чий `unicode-range` покриває передані символи: порожній масив означає, що
+ * родини в документі немає жодної, а грань зі статусом не `loaded` означає, що
+ * файл підмножини не приїхав. Питаємо по символах, а не по родині, з тієї самої
+ * причини, з якої так робить сторож на Railway — там уже було, що кирилична
+ * підмножина впала при живій латинській, і аркуш вийшов наполовину авторським.
+ */
+export async function loadPosterFonts(textBlocks: PosterTextBlock[]): Promise<PosterFontTrouble[]> {
+  const fonts: any = (typeof document !== 'undefined') ? (document as any).fonts : null;
+  if (!fonts?.load) return [];
+
+  // Родина → усі символи, набрані нею, і всі накреслення, які реально малюються.
+  const byFamily = new Map<string, { sample: Set<string>; specs: Set<string> }>();
+  for (const tb of textBlocks || []) {
+    const family = familyName(tb?.fontFamily);
+    const text = String(tb?.text ?? '');
+    if (!family || !text.trim()) continue;
+    if (!byFamily.has(family)) byFamily.set(family, { sample: new Set(), specs: new Set() });
+    const entry = byFamily.get(family)!;
+    for (const ch of text) entry.sample.add(ch);
+    // Розмір у специфікації не має значення — грань добирається за родиною,
+    // вагою і стилем, — але шорткат без нього не парситься.
+    entry.specs.add(`${tb.italic ? 'italic ' : ''}${tb.bold ? 'bold ' : ''}16px "${family}"`);
+  }
+
+  const troubles: PosterFontTrouble[] = [];
+  for (const [family, { sample, specs }] of byFamily) {
+    const text = [...sample].join('');
+    let declared = 0;
+    let loaded = 0;
+    for (const spec of specs) {
+      let faces: any[] = [];
+      try {
+        faces = await fonts.load(spec, text);
+      } catch {
+        // Невалідна специфікація або відмова браузера — рахуємо як «немає
+        // грані»: мовчки намалювати фолбеком гірше, ніж сказати про це.
+        faces = [];
+      }
+      declared += faces.length;
+      loaded += faces.filter((f: any) => f?.status === 'loaded').length;
+    }
+    if (declared === 0) {
+      // Родини в документі немає. Чи то вона поза нашим набором, чи то не
+      // доїхала наша таблиця стилів — відповідь у переліку файлів пакета.
+      troubles.push({ family, reason: FONTS_IN_PACK.has(family) ? 'not-loaded' : 'not-in-pack', sample: text });
+    } else if (loaded === 0) {
+      troubles.push({ family, reason: 'not-loaded', sample: text });
+    }
+  }
+  return troubles;
+}
+
+/** Рядок для людини — однаковий в адмінці і в конструкторі, щоб питання ставилося раз. */
+export function posterFontTroubleLine(troubles: PosterFontTrouble[]): string {
+  return troubles
+    .map(t => t.reason === 'not-in-pack'
+      ? `шрифт ${t.family} не входить у наш набір — напис намалюється системним`
+      : `шрифт ${t.family} не завантажився — напис намалюється системним`)
+    .join('; ');
+}
 
 function applyShapeClip(ctx: CanvasRenderingContext2D, slot: PosterSlot) {
   ctx.beginPath();
@@ -202,6 +306,21 @@ export async function renderPosterPrintBlob(
   heightCm: number,
   getSlots: (W: number, H: number, pad: number) => PosterSlot[],
   previewW: number = 480,
+  opts: {
+    /** Що саме не намалюється — викликається завжди, навіть коли файл усе одно збирається. */
+    onFontTrouble?: (troubles: PosterFontTrouble[]) => void;
+    /**
+     * Відмовитись збирати файл, коли НАША родина не завантажилась.
+     *
+     * Вмикається там, де людина поруч і може повторити, — у кнопці «Зібрати
+     * постер з дизайну» в адмінці. У клієнтському конструкторі лишається
+     * вимкненим свідомо: там растр знімається на тій самій машині, що
+     * показувала прев'ю, тож клієнт і друкарня бачать одне й те саме, а
+     * відмова коштувала б замовлення. Родина поза набором (Georgia) не
+     * зупиняє нічого ніде — повтор її не лікує.
+     */
+    refuseOnUnloadedFont?: boolean;
+  } = {},
 ): Promise<Blob | null> {
   const DPI = 300;
   const cmToPx = (cm: number) => Math.round((cm / 2.54) * DPI);
@@ -218,8 +337,19 @@ export async function renderPosterPrintBlob(
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Make sure fonts are ready so text isn't drawn in a fallback face.
-  try { await (document as any).fonts?.ready; } catch {}
+  // Дочекатися САМЕ тих граней, якими набрано цей постер. Тут стояла
+  // `document.fonts.ready`, і вона мовчала: див. коментар до loadPosterFonts.
+  const troubles = await loadPosterFonts(config.textBlocks);
+  if (troubles.length) {
+    console.warn('[poster] шрифти макета:', posterFontTroubleLine(troubles));
+    opts.onFontTrouble?.(troubles);
+    if (opts.refuseOnUnloadedFont && troubles.some(t => t.reason === 'not-loaded')) {
+      // Повтор це лікує, тож краще зупинитись, ніж покласти в друк файл із
+      // підставленим накресленням: такий файл виглядає справним до самої
+      // друкарні. Родина поза набором сюди не потрапляє навмисно.
+      throw new Error(posterFontTroubleLine(troubles.filter(t => t.reason === 'not-loaded')) + ' — спробуйте ще раз');
+    }
+  }
 
   // Frame inset from the paper edge: 0.7 cm trim zone + 1 cm clearance от неї
   // (Diana: «хоча б 1 см від безпечної зони») = 1.7 cm of the physical

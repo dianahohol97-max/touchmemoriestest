@@ -133,7 +133,6 @@ describe('локальний пакет шрифтів конструктора'
     const allowed = [
       'app/[locale]/constructor/guestbook/GuestbookConstructor.tsx',
       'app/[locale]/constructor/photoalbum/PhotoalbumConstructor.tsx',
-      'app/admin/orders/[id]/page.tsx',
       'components/CoverEditor.tsx',
       'components/PhotoPrintConstructor.tsx',
       'components/ui/InscriptionDesigner.tsx',

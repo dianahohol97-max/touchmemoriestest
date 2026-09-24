@@ -17,6 +17,7 @@ import { cleanItemOptions, describeItemOptions, resolveDecoration } from '@/lib/
 import { repeatSourceOf } from '@/lib/orders/repeat-order';
 import { engravedInscriptions, orderMentionsEngraving } from '@/lib/print/engravable-text';
 import { buildPdfSheets, isNumberedPage, pageSizeMm } from '@/lib/export/layout-pdf';
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import {
     ArrowLeft,
     User,
@@ -92,18 +93,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // Load the handwriting/display fonts used for cover inscriptions, so the
-  // inscription preview in each order item renders in the real font (Marck
-  // Script, Lobster, etc.) rather than a system fallback. One-time link inject.
+  /**
+   * Шрифти цієї сторінки — з нашого походження, а не з fonts.googleapis.com.
+   *
+   * Сторінка малює НА CANVAS два справжні виробничі файли: «Макет для
+   * нанесення» (чорне по білому для гравіювання) і «Зібрати постер з дизайну».
+   * Раніше вона підключала з Google вісім родин для прев'ю напису — і жодної
+   * з тих, якими набирають постер. Дефолт текстового блока постера, Playfair
+   * Display, на цій сторінці не існував ніде, `document.fonts.ready` в
+   * рендері резолвилася миттєво, і постер малювався системною зарубкою.
+   * Так зібрано єдиний друкарський файл TM-001090 (`poster-exports/rebuilt/…`
+   * від 31.07.2026), і побачити це можна було тільки в друкарні.
+   *
+   * Той самий файл беруть конструктори і `/print`, тож екран менеджерки,
+   * екран клієнта і друк тепер читають один байт. Усі вісім родин напису в
+   * ньому є, накреслення там і було 400 — ні прев'ю, ні майстер для лазера на
+   * вигляд не змінюються.
+   */
   useEffect(() => {
     const id = 'inscription-fonts-admin';
     if (document.getElementById(id)) return;
-    const fams = ['Marck Script', 'Montserrat', 'Philosopher', 'Lobster', 'Pacifico', 'Rubik', 'Nunito', 'Ubuntu']
-      .map(f => `family=${f.replace(/ /g, '+')}:wght@400;600;700`).join('&');
     const link = document.createElement('link');
     link.id = id;
     link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?${fams}&display=swap`;
+    link.href = EDITOR_FONTS_CSS_URL;
     document.head.appendChild(link);
   }, []);
 
@@ -1208,7 +1221,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             if (!r.ok) throw new Error(j.error || `API ${r.status}`);
             const { config, format, slotUrls } = j;
 
-            const [{ renderPosterPrintBlob }, posterMod] = await Promise.all([
+            const [{ renderPosterPrintBlob, posterFontTroubleLine }, posterMod] = await Promise.all([
                 import('@/lib/poster-render'),
                 import('@/components/PosterConstructor'),
             ]);
@@ -1239,6 +1252,18 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                 sizeObj.hCm,
                 layout.getSlots,
                 PREVIEW_W,
+                {
+                    // Тут людина поруч і може повторити, тож ненавантажений
+                    // шрифт зупиняє збирання: файл із підставленим накресленням
+                    // виглядає справним рівно до друкарні. Родина поза набором
+                    // (Georgia зі старих зоряних карт) не зупиняє — повтор її не
+                    // лікує, — але про неї теж кажемо вголос.
+                    refuseOnUnloadedFont: true,
+                    onFontTrouble: (troubles) => {
+                        const notInPack = troubles.filter(t => t.reason === 'not-in-pack');
+                        if (notInPack.length) toast.warning(posterFontTroubleLine(notInPack), { duration: 12000 });
+                    },
+                },
             );
             if (!blob) throw new Error('Рендер постера не вдався');
 
