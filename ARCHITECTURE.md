@@ -353,6 +353,30 @@ Counting goes through `referral_visit_stats()` from the same migration, never a 
 
 ---
 
+## Photographer galleries (added 2026-09-24)
+
+A photographer's client galleries: the cabinet at `/[locale]/photographer/cabinet/[token]` (auth is the cabinet token, not Supabase Auth) and the public page behind `photographer_galleries.client_token` (`GET /api/gallery/[token]`). Not to be confused with the photographer as a **partner** in the referral program above — same person, separate tables.
+
+**Tables.** `photographer_galleries` is one row per shoot: `expires_at` (term 30/60/90 days, extendable up to `MAX_TERM_DAYS`), `files_purged_at`, `cover_photo_id`, `design`, `zip_downloads`. `photographer_gallery_photos` is one row per file: `storage_path`, `storage_provider`, `size_bytes`, `media_type` (`photo`/`video`), `favorite`, `download_count`. There are **two FKs between these tables** (`gallery_id` and `cover_photo_id`), so an embed must be hinted: `photographer_gallery_photos!gallery_id(count)` (gotcha 12).
+
+**Where the files live.** `lib/photographers/storage.ts` is the only door. New uploads go to Cloudflare R2 when the five `R2_*` env vars look real (`isR2Configured()`), otherwise to the Supabase bucket `photographer-galleries`. Each row records its own `storage_provider` and every read resolves the URL from it, so a mixed gallery works and nothing is ever migrated. R2 exists because Supabase egress is what made galleries expensive. The path is always `{photographer_id}/{gallery_id}/{timestamp}_{name}` (`galleryPhotoPath`), which is also the only way to find a file whose row is gone. `/api/photographers/storage-check` does a write–head–read–delete round trip and says why R2 is off.
+
+**Uploads.** Small photos go multipart through `POST /api/photographers/galleries/[id]/photos`. Anything above ~4 MB and every video goes **sign → confirm** through `/api/photographers/galleries/[id]/videos`: `sign` checks size, file count and quota, then mints a single-use upload URL for one path; the browser PUTs straight to storage; `confirm` checks the path belongs to this photographer and gallery, asks storage whether the object exists and how big it is (never trusts the client), and only then inserts the row. Limits are in `lib/photographers/helpers.ts`: **2000 files per gallery** (`MAX_PHOTOS_PER_GALLERY`), 100 MB per photo, 2 GB per video.
+
+**Quotas.** `lib/photographers/plans.ts` gives 4 / 50 / 250 / 500 GB (Безкоштовно / Старт / Про / Студія). An expired paid plan counts as free (`effectivePlanId`), and `photographers.storage_limit_mb` overrides the plan's cap. `lib/photographers/usage.ts` sums `size_bytes` over the photographer's rows page by page. `checkQuota` runs per file BEFORE anything reaches storage and answers 402 so the cabinet opens the upgrade dialog.
+
+**Reading rows.** One gallery alone can pass PostgREST's silent 1000-row cap, so every «all photos of these galleries» read goes through `lib/photographers/gallery-photos.ts`: `.range()` pages of 1000 ordered by `(created_at, id)`, any page error fails the whole read, and more than 10 pages is an error rather than an endless loop. The table is in `WATCHED_TABLES` of `scripts/unpaginated-queries.mjs` (gotcha 14).
+
+**Retention cron** (`/api/cron/cleanup-galleries`, daily 03:30 UTC; logic in `lib/photographers/gallery-cleanup.ts`, tested in `tests/gallery-cleanup.test.ts`). It guarantees that **a row disappears only after storage confirmed its file is gone**:
+1. read ALL rows of the expired gallery through the helper;
+2. `removeFiles()` — returns `null` only when every file is gone; R2 keys while R2 is off, a non-empty `Errors` in a `DeleteObjects` 200, or a Supabase path that `remove()` skipped and that still exists are all errors;
+3. only then delete rows **by their ids** (never `eq('gallery_id')`, which would take a row uploaded mid-purge whose file nobody deleted);
+4. recount with `head: true`, and set `files_purged_at` only at 0.
+
+Any failed step leaves the gallery for the next night and lands in `skipped` with its stage; one bad gallery never aborts the run. It purges up to 25 galleries out of a window of 200 candidates, so stuck galleries cannot starve the rest (gotcha 13), and stops starting new ones after 45 s. Before 2026-09-24 it read one unpaginated page and deleted every row, so files past the 1000th would have stayed in R2 with no row; `scripts/r2-orphans-purged-galleries.mjs` (read-only) counts what may be left under purged galleries' prefixes. Deleting a single photo in the cabinet follows the same rule: storage failure → 502 and the row stays.
+
+---
+
 ## Routing & i18n
 
 - All public routes live under `app/[locale]/` — locale is one of `uk`, `en`, `ro`, `pl`, `de`
