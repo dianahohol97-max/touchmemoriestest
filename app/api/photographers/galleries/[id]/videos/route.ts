@@ -6,6 +6,7 @@ import {
 } from '@/lib/photographers/helpers';
 import { presignUpload, fileExists, fileUrl, activeProvider } from '@/lib/photographers/storage';
 import { checkQuota } from '@/lib/photographers/usage';
+import { notifyStorageAfterUpload } from '@/lib/photographers/storage-notice';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,6 +116,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select('id, storage_path, file_name, size_bytes, storage_provider, created_at')
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // «Місце закінчується» — лише після того, як рядок справді є. Ніколи не
+    // кидає, тож confirm лишається успішним за будь-якої відмови пошти.
+    await notifyStorageAfterUpload(ctx.photographer, head.size ?? 0);
     return NextResponse.json({ uploaded: { ...row, url: fileUrl(path, provider) } });
   }
 

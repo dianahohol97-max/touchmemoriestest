@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { putFile, removeFiles } from '@/lib/photographers/storage';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
+import { DEMO_PHOTOGRAPHER_EMAIL } from '@/lib/photographers/notice-rules';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,7 +19,8 @@ export const maxDuration = 60;
  * calls are no-ops. The demo gallery never expires (client API 404s expired
  * galleries) and its photographer has no cabinet exposure beyond this.
  */
-const DEMO_EMAIL = 'demo-gallery@touchmemories.com.ua';
+// Shared with the gallery notices, which must never mail this address.
+const DEMO_EMAIL = DEMO_PHOTOGRAPHER_EMAIL;
 const DEMO_CLIENT_TOKEN = 'a0000000-0000-4000-8000-000000000001';
 // Wedding photos from Pexels (license: free commercial use, no attribution
 // required). Only these two ids survive the Pexels CDN's datacenter blocking

@@ -6,6 +6,7 @@ import {
 } from '@/lib/photographers/helpers';
 import { putFile, fileUrl, removeFiles } from '@/lib/photographers/storage';
 import { checkQuota } from '@/lib/photographers/usage';
+import { notifyStorageAfterUpload } from '@/lib/photographers/storage-notice';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const uploaded: any[] = [];
+  let uploadedBytes = 0;
   for (const file of files) {
     if (!file.type.startsWith('image/')) {
       return NextResponse.json({ error: `«${file.name}» не є зображенням` }, { status: 400 });
@@ -63,7 +65,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // the cap instead of overshooting it; 402 tells the cabinet to show the
     // upgrade dialog rather than a generic error.
     const quotaErr = await checkQuota(ctx.photographer, file.size);
-    if (quotaErr) return NextResponse.json({ error: quotaErr, quota: true, uploaded }, { status: 402 });
+    if (quotaErr) {
+      await notifyStorageAfterUpload(ctx.photographer, uploadedBytes);
+      return NextResponse.json({ error: quotaErr, quota: true, uploaded }, { status: 402 });
+    }
     const path = galleryPhotoPath(ctx.photographer.id, galleryId, file.name);
     const put = await putFile(path, Buffer.from(await file.arrayBuffer()), file.type);
     if ('error' in put) return NextResponse.json({ error: `Аплоад «${file.name}»: ${put.error}` }, { status: 500 });
@@ -78,8 +83,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .single();
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
     uploaded.push({ ...row, url: fileUrl(path, put.provider) });
+    uploadedBytes += file.size;
   }
 
+  // «Місце закінчується» — один раз на весь запит, а не на кожен файл.
+  // Ніколи не кидає, тож аплоад лишається успішним за будь-якої відмови пошти.
+  await notifyStorageAfterUpload(ctx.photographer, uploadedBytes);
   return NextResponse.json({ uploaded });
 }
 
