@@ -7,6 +7,7 @@ import { EDITOR_BASE_CANVAS_H } from '@/lib/print/text-scale';
 import { parseDecoVariantMm } from '@/lib/print/deco-variant';
 import { isEngravedDeco, stripEmoji } from '@/lib/print/engravable-text';
 import { useWheelZoomBinder } from '@/lib/editor/wheel-zoom';
+import { EDITOR_FONTS_CSS_URL } from '@/lib/editor/constants';
 import { readyCoverLayout, type ReadyCoverFit } from '@/lib/editor/ready-cover-fit';
 import { deriveGeometry } from '@/lib/print/geometry';
 import { toast } from 'sonner';
@@ -404,11 +405,38 @@ export function CoverEditor({ canvasW, canvasH, sizeValue, coverSizeKey, config,
     }
     return { snapped: best, lines };
   };
-  // Load Cyrillic calligraphic fonts
+  /**
+   * Шрифти обкладинки — з нашого походження, не з fonts.googleapis.com.
+   *
+   * ЧОМУ ЦЕ БУЛО ВАЖЛИВО САМЕ ТУТ. `cover_data` цього редактора їде в /print, а
+   * /print бере шрифти з `public/editor-fonts/`. Доки екран просив їх у Google,
+   * два джерела могли не збігтися — і не гіпотетично: цей запит тягнув Pinyon
+   * Script, Alex Brush та Italianno, яких у нашому пакеті немає ЖОДНОЇ. Обрана
+   * на екрані, будь-яка з трьох надрукувалася б системним шрифтом, а сторож
+   * аркуша в рендер-сервісі такий випадок ('unknown-family') свідомо лише
+   * звітує й рендер не зупиняє. Це та сама прірва, яку книгам закрили 23.09, з
+   * іншого боку.
+   *
+   * Три родини прибрані зовсім, а не додані в пакет. Кирилиці в них НЕМАЄ
+   * взагалі: css2 не віддає для них кириличної підмножини, і в апстрімних
+   * `PinyonScript-Regular.ttf`, `AlexBrush-Regular.ttf` та
+   * `Italianno-Regular.ttf` із google/fonts кириличних гліфів нуль із 757, 575
+   * і 498 відповідно (міряно по cmap, а не по unicode-range — саме так збрехав
+   * колись Lato). Тобто український напис на обкладинці в них підмінявся б
+   * завжди, а полагодити це можна тільки іншим шрифтом у самому макеті. У базі
+   * жоден із 1275 збережених макетів жодну з трьох не використовує, тож
+   * прибрати їх — це нічого нікому не зламати.
+   *
+   * Решта шістнадцяти родин у пакеті є з тими самими дескрипторами, тож на
+   * вигляд не змінюється нічого. П'ять із них — Dancing Script, Sacramento,
+   * Cinzel, Josefin Sans і Bebas Neue — кирилиці не мають, але вони НАШІ, і про
+   * український напис у них уже каже перелік перед «Додати в кошик» та
+   * перевірка макетів в адмінці.
+   */
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Marck+Script&family=Caveat&family=Philosopher&family=Comfortaa&family=Lobster&family=Dancing+Script&family=Great+Vibes&family=Pinyon+Script&family=Sacramento&family=Alex+Brush&family=Italianno&family=Pacifico&family=Playfair+Display&family=Cormorant+Garamond&family=Cinzel&family=EB+Garamond&family=Raleway&family=Josefin+Sans&family=Bebas+Neue&display=swap';
+    link.href = EDITOR_FONTS_CSS_URL;
     document.head.appendChild(link);
     return () => { try { document.head.removeChild(link); } catch {} };
   }, []);

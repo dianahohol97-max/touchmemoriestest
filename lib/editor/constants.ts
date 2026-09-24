@@ -256,11 +256,20 @@ export const FONT_GROUPS = FONT_GROUPS_ALL
  * додати шрифт у підбірку без файлів і не дає з'явитися новому посиланню на
  * fonts.googleapis.com у конструкторі чи в друці.
  *
- * Що НЕ переведено і лишається на мережі, бо просить родини поза цією підбіркою:
- * `components/CoverEditor.tsx` (Pinyon Script, Alex Brush, Italianno),
- * `components/PhotoPrintConstructor.tsx`, `components/ui/InscriptionDesigner.tsx`,
- * `app/admin/orders/[id]/page.tsx` і два конструктори з `@import` у CSS —
- * guestbook і photoalbum.
+ * Що НЕ переведено і лишається на мережі: `components/PhotoPrintConstructor.tsx`
+ * та `components/ui/InscriptionDesigner.tsx` (обидва просять свої набори, і всі
+ * родини в них уже є тут — їх лишилося перевести), два конструктори з `@import`
+ * у CSS, guestbook і photoalbum (обидва недосяжні: посилання на них живуть лише
+ * в `lib/constructorRouting.ts`, який сам нікуди не імпортується), і два місця
+ * для Satori — `lib/print/wishbook-cover.tsx` та `lib/seo/og-font.ts`, які
+ * тягнуть сам ФАЙЛ шрифта з `&text=`, чого цей пакет не замінює.
+ *
+ * `app/admin/orders/[id]/page.tsx` переведена 24.09.2026: вона малює на canvas
+ * два справжні виробничі файли, а таблиці шрифтів конструктора не мала взагалі.
+ * `components/CoverEditor.tsx` — тоді ж, і разом із нею прибрані Pinyon Script,
+ * Alex Brush та Italianno: кирилиці в цих трьох немає ні в тому, що віддає
+ * Google, ні в апстрімі google/fonts, у пакеті їх немає, а в жодному з 1275
+ * збережених макетів вони не стояли.
  */
 export const EDITOR_FONTS_CSS_URL = '/editor-fonts/fonts.css';
 

@@ -115,6 +115,11 @@ describe('локальний пакет шрифтів конструктора'
       ['components', 'PosterConstructor.tsx'],
       ['components', 'DeskCalendarConstructor.tsx'],
       ['components', 'CalendarPrintPage.tsx'],
+      // Обкладинка теж: `cover_data` цього редактора їде в /print, тож екран і
+      // друк мусять читати один файл. Доти він просив у Google три родини, яких
+      // у пакеті немає взагалі, і обрана на екрані будь-яка з них друкувалася б
+      // системним шрифтом.
+      ['components', 'CoverEditor.tsx'],
     ]) {
       const src = readFileSync(join(process.cwd(), ...file), 'utf8');
       expect(src, file.join('/')).toContain('EDITOR_FONTS_CSS_URL');
@@ -125,15 +130,15 @@ describe('локальний пакет шрифтів конструктора'
   it('нових посилань на Google Fonts не з’являється', () => {
     // Сторож тієї самої породи, що й порожній пошук `api.brevo.com` поза
     // `lib/email/brevo.ts`: перелік нижче — це те, що лишилося НЕ переведеним, і
-    // він мусить лише коротшати. Кожен із цих файлів просить родини поза
-    // підбіркою (CoverEditor — Pinyon Script, Alex Brush, Italianno) або тягне
-    // сам файл шрифта для Satori з параметром `&text=`, що наш пакет не
+    // він мусить лише коротшати. Два конструктори з `@import` недосяжні
+    // (посилання на них живуть лише в `lib/constructorRouting.ts`, який сам
+    // нікуди не імпортується), два просять свої набори, а два останні тягнуть
+    // сам файл шрифта для Satori з параметром `&text=`, чого наш пакет не
     // замінює. Новий рядок тут означає, що хтось повернув мережу в шлях, з
     // якого її прибрали.
     const allowed = [
       'app/[locale]/constructor/guestbook/GuestbookConstructor.tsx',
       'app/[locale]/constructor/photoalbum/PhotoalbumConstructor.tsx',
-      'components/CoverEditor.tsx',
       'components/PhotoPrintConstructor.tsx',
       'components/ui/InscriptionDesigner.tsx',
       'lib/print/wishbook-cover.tsx',   // Satori тягне сам файл, не таблицю стилів
