@@ -191,7 +191,7 @@ function DiscountBanner({ status }: { status: string | null }) {
     <div style={{ background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
       <div style={{ fontWeight: 800, color: '#1e2d7d', fontSize: 15, marginBottom: 2 }}>Хочете знижку 10% і заробіток з рекомендацій?</div>
       <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>
-        Цей кабінет — для галерей і вашої сторінки. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки та <b>відсоток з замовлень клієнтів</b> за вашим посиланням — подайте коротку заявку фотографа з портфоліо, ми розглянемо її вручну.
+        Цей кабінет — для галерей ваших клієнтів. Окремо ви можете отримати <b>постійну знижку 10%</b> на фотокниги, журнали, фотодрук і тревелбуки та <b>відсоток з замовлень клієнтів</b> за вашим посиланням — подайте коротку заявку фотографа з портфоліо, ми розглянемо її вручну.
       </div>
       <a href="/uk/photographers/apply" style={{ display: 'inline-block', background: '#1e2d7d', color: '#fff', borderRadius: 8, padding: '9px 16px', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
         Подати заявку фотографа
