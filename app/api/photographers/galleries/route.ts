@@ -3,6 +3,8 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { getPhotographerByToken, daysLeft } from '@/lib/photographers/helpers';
 import { fileUrl } from '@/lib/photographers/storage';
 import { readGalleryPhotoRows } from '@/lib/photographers/gallery-photos';
+import { gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
+import { galleryThumbUrl } from '@/lib/photographers/gallery-image';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,25 +82,34 @@ export async function GET(req: NextRequest) {
   // Cover thumbnail for the cabinet list: the photographer's explicit pick,
   // else the first uploaded photo — same rule as the client gallery hero.
   // One photographer has few galleries, so per-gallery lookups are cheap.
+  // The cabinet shows it at 64–380 px, so it is the smallest screen copy, and
+  // the original only while the photo has no copies yet.
+  const coverThumb = (c: any) => {
+    const url = fileUrl(c.storage_path, c.storage_provider);
+    return galleryThumbUrl({ url, sources: gallerySources(c, path => fileUrl(path, c.storage_provider), url) });
+  };
   const coverByGallery: Record<string, string | null> = {};
   await Promise.all((galleries || []).map(async (g: any) => {
     if (g.cover_photo_id) {
       const { data: c } = await admin
         .from('photographer_gallery_photos')
-        .select('storage_path, storage_provider')
+        .select(`storage_path, storage_provider, media_type, ${VARIANT_COLUMNS}`)
         .eq('id', g.cover_photo_id)
         .maybeSingle();
-      if (c?.storage_path) { coverByGallery[g.id] = fileUrl(c.storage_path, c.storage_provider); return; }
+      if (c?.storage_path) {
+        coverByGallery[g.id] = c.media_type === 'video' ? fileUrl(c.storage_path, c.storage_provider) : coverThumb(c);
+        return;
+      }
     }
     const { data: first } = await admin
       .from('photographer_gallery_photos')
-      .select('storage_path, storage_provider')
+      .select(`storage_path, storage_provider, ${VARIANT_COLUMNS}`)
       .eq('gallery_id', g.id)
       .eq('media_type', 'photo')
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();
-    coverByGallery[g.id] = first?.storage_path ? fileUrl(first.storage_path, first.storage_provider) : null;
+    coverByGallery[g.id] = first?.storage_path ? coverThumb(first) : null;
   }));
 
   return NextResponse.json({

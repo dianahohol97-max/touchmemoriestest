@@ -37,7 +37,9 @@ export interface Gallery {
   cover_url: string | null;
   design: Record<string, string> | null;
 }
-export interface CabinetPhoto { id: string; file_name: string; url: string; favorite: boolean; media_type?: 'photo' | 'video' }
+// `url` is the original (downloads use it); tiles show `thumb_url`, the
+// smallest screen copy, which the API sets to the original while there is none.
+export interface CabinetPhoto { id: string; file_name: string; url: string; thumb_url?: string; favorite: boolean; media_type?: 'photo' | 'video' }
 
 // Brand-styled building blocks (touch.memories palette: Soft White bg, Sand
 // borders, Charcoal text, Brand Blue accents, Montserrat headings).
@@ -727,7 +729,7 @@ export function ClientPicks({ token, galleryId }: { token: string; galleryId: st
              target="_blank" rel="noopener noreferrer"
              title={`Завантажити ${p.file_name}`} style={{ display: 'block' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={p.file_name} loading="lazy"
+            <img src={p.thumb_url || p.url} alt={p.file_name} loading="lazy" decoding="async"
                  style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 8, border: '1px solid #f1d4d5' }} />
           </a>
         ))}
@@ -1096,7 +1098,7 @@ export function PhotoManager({ token, galleryId, coverPhotoId, onDone, flash, re
                      style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.url} alt={p.file_name} loading="lazy"
+              <img src={p.thumb_url || p.url} alt={p.file_name} loading="lazy" decoding="async"
                    style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
             )}
 
@@ -1229,6 +1231,33 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
     return direct.error;
   };
 
+  // Screen copies for the new photos (640/1280/2048 px, see
+  // lib/photographers/gallery-variants.ts). The server cuts them, portion by
+  // portion; this only keeps asking while the queue shrinks. It runs AFTER the
+  // batch and is never awaited: the upload is what matters, and a photo
+  // without copies is simply shown from the original. If the tab closes
+  // first, the hourly cron finishes the job.
+  const buildCopies = async () => {
+    let lastRemaining = Infinity;
+    for (let round = 0; round < 30; round++) {
+      try {
+        const res = await fetch(`/api/photographers/galleries/${galleryId}/variants`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const remaining = Number(json?.remaining);
+        if (!Number.isFinite(remaining) || remaining <= 0) break;
+        // No progress means the rest is waiting for a retry later — stop.
+        if (!(json?.made > 0) && remaining >= lastRemaining) break;
+        lastRemaining = remaining;
+      } catch { return; }
+    }
+    // Refresh the strip so its tiles switch to the light copies.
+    await onDone().catch(() => {});
+  };
+
   // A wedding gallery is hundreds of files, and one at a time meant the browser
   // sat idle between round trips — 14 photos of ~2,4 МБ took 66 seconds
   // (Diana, 2026-08-06). Four at once keeps the connection busy without
@@ -1269,6 +1298,7 @@ export function UploadZone({ token, galleryId, onDone, flash }: {
       if (done > 0) {
         setResult(`Готово, завантажено ${done} ${done === 1 ? 'файл' : 'файлів'} — вони вже у стрічці нижче.`);
         flash(`Завантажено ${done} файл(ів)`);
+        void buildCopies();
       }
     } finally { setBusy(false); setProgress(''); if (fileRef.current) fileRef.current.value = ''; }
   };

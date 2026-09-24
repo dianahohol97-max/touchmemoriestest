@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { processPendingMentions } from '@/lib/chatbot/work-chat-monitor';
 import { promoteStaleQuestions } from '@/lib/chatbot/open-questions';
+import { catchUpRecentVariants } from '@/lib/photographers/gallery-variants';
+import { liveVariantDeps } from '@/lib/photographers/gallery-variants-live';
 
 export const dynamic = 'force-dynamic';
+// The gallery-copies piggyback below spends at most ~20 s of this.
+export const maxDuration = 60;
 
 /**
  * Self-healing Telegram webhook registration.
@@ -69,6 +73,19 @@ export async function GET(req: Request) {
         }
     } catch (e) {
         console.error('[telegram-webhook-sync] open questions failed:', e);
+    }
+
+    // Piggyback: screen copies for gallery photos uploaded in the last 48 h
+    // whose cabinet tab closed before asking for them. Lives here instead of
+    // its own cron because the project is near Vercel's cron limit
+    // (lib/photographers/gallery-variants.ts, catchUpRecentVariants).
+    let galleryCopies: unknown = null;
+    try {
+        galleryCopies = await catchUpRecentVariants(liveVariantDeps());
+        const made = (galleryCopies as any)?.made;
+        if (made) console.log(`[telegram-webhook-sync] cut screen copies for ${made} gallery photos`);
+    } catch (e) {
+        console.error('[telegram-webhook-sync] gallery copies failed:', e);
     }
 
     const token = process.env.TELEGRAM_PUBLIC_BOT_TOKEN;

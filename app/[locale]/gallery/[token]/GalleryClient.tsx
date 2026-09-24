@@ -5,8 +5,15 @@ import styles from './GalleryClient.module.css';
 import type { GalleryDesign } from '@/lib/photographers/gallery-design';
 import { GALLERY_I18N } from '@/lib/photographers/gallery-i18n';
 import ZipPanel from './ZipPanel';
+import type { ImageSource } from '@/lib/photographers/gallery-variant-paths';
+import { galleryImgAttrs, gridSizes, heroSizes, lightboxSizes } from '@/lib/photographers/gallery-image';
 
-interface Photo { id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean; media_type: 'photo' | 'video' }
+// `url` is the original — downloads and the ZIP use it. The screen uses
+// `sources` (screen copies) and falls back to `url` while there are none.
+interface Photo {
+  id: string; file_name: string; size_bytes: number | null; url: string; favorite: boolean; media_type: 'photo' | 'video';
+  w?: number | null; h?: number | null; sources?: ImageSource[];
+}
 interface GalleryData {
   title: string;
   client_name: string | null;
@@ -16,6 +23,9 @@ interface GalleryData {
   expired: boolean;
   cover_url: string | null;
   cover_type: 'photo' | 'video';
+  cover_w?: number | null;
+  cover_h?: number | null;
+  cover_sources?: ImageSource[];
   design: GalleryDesign;
   photos: Photo[];
   photographer: {
@@ -216,7 +226,13 @@ const formatDate = (d: string) =>
     ? (data.cover_type === 'video'
       ? <video src={data.cover_url} className={styles.heroImg} style={{ objectPosition: coverPos }} autoPlay muted loop playsInline />
       // eslint-disable-next-line @next/next/no-img-element
-      : <img src={data.cover_url} alt="" className={styles.heroImg} style={{ objectPosition: coverPos }} />)
+      : <img
+          {...galleryImgAttrs(
+            { url: data.cover_url, w: data.cover_w, h: data.cover_h, sources: data.cover_sources },
+            'full',
+            heroSizes((data.cover_w || 3) / (data.cover_h || 2)),
+          )}
+          alt="" className={styles.heroImg} style={{ objectPosition: coverPos }} decoding="async" fetchPriority="high" />)
     : <div className={styles.heroFallback} />;
 
   // Text block only — the scroll cue is rendered separately, because on the
@@ -339,7 +355,13 @@ const formatDate = (d: string) =>
                     </>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photo.url} alt={photo.file_name} loading="lazy" />
+                    <img
+                      {...galleryImgAttrs(photo, 'thumb', gridSizes(
+                        design.layout,
+                        (photo.w || 1) / (photo.h || 1),
+                        design.layout === 'mixed' && i % 7 === 0,
+                      ))}
+                      alt={photo.file_name} loading="lazy" decoding="async" />
                   )}
                 </button>
                 <button
@@ -443,7 +465,10 @@ const formatDate = (d: string) =>
             <video src={current.url} className={styles.lbImg} controls autoPlay playsInline onClick={e => e.stopPropagation()} />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={current.url} alt="" className={styles.lbImg} onClick={e => e.stopPropagation()} />
+            <img
+              key={current.id}
+              {...galleryImgAttrs(current, 'full', lightboxSizes((current.w || 3) / (current.h || 2)))}
+              alt="" className={styles.lbImg} decoding="async" onClick={e => e.stopPropagation()} />
           )}
         </div>
       )}

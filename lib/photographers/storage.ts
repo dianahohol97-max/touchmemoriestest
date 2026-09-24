@@ -169,6 +169,56 @@ export async function putFile(path: string, body: Buffer, contentType: string):
   return { provider: 'supabase' };
 }
 
+/**
+ * Write a file to ONE named provider, with no fallback to the other.
+ *
+ * Screen copies of gallery photos (lib/photographers/gallery-variant-paths.ts)
+ * must live where their original lives: every read and every delete resolves
+ * the provider from the original's row, so a copy that fell back to Supabase
+ * while its original is on R2 could be neither shown nor deleted. putFile's
+ * fallback is right for an upload and wrong here.
+ */
+export async function putFileTo(path: string, body: Buffer, contentType: string, provider: StorageProvider):
+  Promise<string | null> {
+  if (provider === 'r2') {
+    if (!isR2Configured()) return `R2 не налаштовано${r2ConfigProblem() ? ` (${r2ConfigProblem()})` : ''}`;
+    try {
+      await r2().send(new PutObjectCommand({
+        Bucket: R2.bucket, Key: path, Body: body, ContentType: contentType,
+        // The path is derived from the original and never reused for other
+        // bytes, so the browser may keep it for good.
+        CacheControl: 'public, max-age=31536000, immutable',
+      }));
+      return null;
+    } catch (e: any) {
+      return e?.message || 'R2 upload failed';
+    }
+  }
+  const { error } = await getAdminClient().storage
+    .from(GALLERY_BUCKET)
+    .upload(path, body, { contentType, upsert: true, cacheControl: '31536000' });
+  return error ? error.message : null;
+}
+
+/** Read a stored file into memory (the server-side variant generator). */
+export async function readFile(path: string, provider: string | null | undefined): Promise<Buffer | null> {
+  try {
+    if (provider === 'r2') {
+      if (!isR2Configured()) return null;
+      const res = await r2().send(new GetObjectCommand({ Bucket: R2.bucket, Key: path }));
+      const bytes = await res.Body?.transformToByteArray();
+      return bytes && bytes.length ? Buffer.from(bytes) : null;
+    }
+    const { data, error } = await getAdminClient().storage.from(GALLERY_BUCKET).download(path);
+    if (error || !data) return null;
+    const buf = Buffer.from(await data.arrayBuffer());
+    return buf.length ? buf : null;
+  } catch (e: any) {
+    console.error('[storage] read failed:', path, e?.message || e);
+    return null;
+  }
+}
+
 /** Single-use upload URL for large files the browser PUTs directly
  *  (videos — they exceed the serverless request body limit). */
 export async function presignUpload(path: string, contentType: string):

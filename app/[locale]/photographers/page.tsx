@@ -4,6 +4,8 @@ import { Footer } from '@/components/ui/Footer';
 import { getCanonicalUrl, getAlternateLanguages, OG_LOCALE_MAP, type Locale } from '@/lib/seo/locales';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { fileUrl } from '@/lib/photographers/storage';
+import { gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
+import { galleryImgAttrs, type GalleryImgAttrs } from '@/lib/photographers/gallery-image';
 import { GALLERY_PLANS } from '@/lib/photographers/plans';
 import { serializeJsonLd } from '@/lib/seo/jsonld';
 
@@ -112,7 +114,7 @@ const BENEFITS: { n: string; title: string; text: string }[] = [
 /** First photos of the demo gallery — rendered as a strip under the cover so
  *  the landing shows the actual work, not just the hero (Diana: «показуй і
  *  фото, хоча б перших 6»). Server-side query, no client fetch. */
-async function demoPhotos(limit = 6): Promise<string[]> {
+async function demoPhotos(limit = 6): Promise<GalleryImgAttrs[]> {
     try {
         const admin = getAdminClient();
         const { data: gallery } = await admin
@@ -123,12 +125,21 @@ async function demoPhotos(limit = 6): Promise<string[]> {
         if (!gallery) return [];
         const { data: photos } = await admin
             .from('photographer_gallery_photos')
-            .select('storage_path, storage_provider')
+            .select(`storage_path, storage_provider, ${VARIANT_COLUMNS}`)
             .eq('gallery_id', gallery.id)
             .eq('media_type', 'photo')
             .order('created_at', { ascending: true })
             .limit(limit);
-        return (photos || []).map(p => fileUrl(p.storage_path, p.storage_provider));
+        // Tiles of ~150–380 px (3:4 crop): screen copies, the original only
+        // while the demo photo has none yet.
+        return (photos || []).map(p => {
+            const url = fileUrl(p.storage_path, p.storage_provider);
+            return galleryImgAttrs(
+                { url, w: p.width, h: p.height, sources: gallerySources(p, path => fileUrl(path, p.storage_provider), url) },
+                'thumb',
+                '(max-width: 640px) 60vw, 300px',
+            );
+        });
     } catch {
         return [];
     }
@@ -257,10 +268,10 @@ export default async function PhotographersPage({ params }: { params: Promise<{ 
                                 shows the work and not only the cover. */}
                             {photos.length > 0 && (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 4, padding: 4, background: '#fff' }}>
-                                    {photos.map(url => (
+                                    {photos.map(img => (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img key={url} src={url} alt="" loading="lazy"
-                                            style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }} />
+                                        <img key={img.src} {...img} alt="" loading="lazy" decoding="async"
+                                            style={{ width: '100%', height: 'auto', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }} />
                                     ))}
                                 </div>
                             )}

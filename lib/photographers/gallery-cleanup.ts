@@ -1,5 +1,6 @@
 import { readAllGalleryPhotos } from './gallery-photos';
 import type { StoredFile } from './remove-files';
+import { galleryFilesToRemove, VARIANT_COLUMNS, type VariantRow } from './gallery-variant-paths';
 
 /**
  * Retention for photographer galleries: once expires_at has passed, the files
@@ -52,15 +53,17 @@ export const ROW_DELETE_CHUNK = 200;
 export async function purgeGallery(deps: GalleryCleanupDeps, galleryId: string): Promise<PurgeResult> {
   const { db } = deps;
 
-  const { rows, error: readErr } = await readAllGalleryPhotos<{ id: string; storage_path: string; storage_provider: string | null }>(
-    db, galleryId, 'id, storage_path, storage_provider',
+  const { rows, error: readErr } = await readAllGalleryPhotos<{ id: string } & VariantRow>(
+    db, galleryId, `id, storage_path, storage_provider, ${VARIANT_COLUMNS}`,
   );
   if (readErr) return { ok: false, stage: 'read', reason: readErr };
 
   // Rows without a path point at nothing in storage; they still have to go.
-  const files = rows
-    .filter(r => r.storage_path)
-    .map(r => ({ path: r.storage_path, provider: r.storage_provider }));
+  // Each photo takes its screen copies with it (gallery-variant-paths.ts):
+  // a copy left behind would be an orphan exactly like the files past the
+  // 1000th row used to be. `files` counts originals only, as before.
+  const originals = rows.filter(r => r.storage_path);
+  const files = originals.flatMap(r => galleryFilesToRemove(r));
   if (files.length) {
     const rmErr = await deps.removeFiles(files);
     if (rmErr) return { ok: false, stage: 'files', reason: rmErr };
@@ -97,7 +100,7 @@ export async function purgeGallery(deps: GalleryCleanupDeps, galleryId: string):
     .is('files_purged_at', null);
   if (markErr) return { ok: false, stage: 'mark', reason: markErr.message || String(markErr) };
 
-  return { ok: true, files: files.length };
+  return { ok: true, files: originals.length };
 }
 
 export interface CleanupReport {

@@ -8,6 +8,8 @@ import { putFile, fileUrl, removeFiles } from '@/lib/photographers/storage';
 import { checkQuota } from '@/lib/photographers/usage';
 import { notifyStorageAfterUpload } from '@/lib/photographers/storage-notice';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
+import { galleryFilesToRemove, gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
+import { galleryThumbUrl } from '@/lib/photographers/gallery-image';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -101,10 +103,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const admin = getAdminClient();
   // Paged: up to 2000 files per gallery against PostgREST's silent 1000.
   const { rows: photos, error } = await readAllGalleryPhotos<any>(
-    admin, galleryId, 'id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, created_at',
+    admin, galleryId, `id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, created_at, ${VARIANT_COLUMNS}`,
   );
   if (error) return NextResponse.json({ error }, { status: 500 });
-  return NextResponse.json({ photos: photos.map(p => ({ ...p, url: fileUrl(p.storage_path, p.storage_provider) })) });
+  // `url` stays the original (the cabinet downloads by it); tiles show
+  // `thumb_url`, the smallest screen copy, or the original while there is none.
+  return NextResponse.json({
+    photos: photos.map(p => {
+      const url = fileUrl(p.storage_path, p.storage_provider);
+      const sources = p.media_type === 'video' ? [] : gallerySources(p, path => fileUrl(path, p.storage_provider), url);
+      return { ...p, url, thumb_url: galleryThumbUrl({ url, sources }) };
+    }),
+  });
 }
 
 /** Delete one photo (body: token, photo_id). */
@@ -117,7 +127,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const admin = getAdminClient();
   const { data: photo } = await admin
     .from('photographer_gallery_photos')
-    .select('id, storage_path, storage_provider')
+    .select(`id, storage_path, storage_provider, ${VARIANT_COLUMNS}`)
     .eq('id', String(body?.photo_id || ''))
     .eq('gallery_id', galleryId)
     .maybeSingle();
@@ -127,7 +137,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   // storage confirmed the file is gone. The result used to be ignored: with
   // R2 off, or a key DeleteObjects quietly refused, the row vanished and the
   // file stayed in the bucket for good.
-  const rmErr = await removeFiles([{ path: photo.storage_path, provider: photo.storage_provider }]);
+  // The screen copies go in the same call: one of them left behind would be
+  // an orphan nobody can find (lib/photographers/gallery-variant-paths.ts).
+  const rmErr = await removeFiles(galleryFilesToRemove(photo));
   if (rmErr) {
     console.error('[photographers/photos] file delete failed', { photo: photo.id, error: rmErr });
     // The raw reason (S3 codes, key names) goes to the log; the cabinet shows

@@ -4,6 +4,7 @@ import { daysLeft } from '@/lib/photographers/helpers';
 import { fileUrl } from '@/lib/photographers/storage';
 import { sanitizeDesign } from '@/lib/photographers/gallery-design';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
+import { gallerySources, VARIANT_COLUMNS } from '@/lib/photographers/gallery-variant-paths';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,18 +58,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
   // Paged: a gallery holds up to 2000 files and one PostgREST read stops at
   // 1000 without saying so — the client would silently see half the shoot.
   const { rows: photos, error: photosErr } = await readAllGalleryPhotos<any>(
-    admin, gallery.id, 'id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider',
+    admin, gallery.id, `id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, ${VARIANT_COLUMNS}`,
   );
   if (photosErr) {
     console.error('[gallery/token] photos read failed:', photosErr);
     return NextResponse.json({ error: 'Не вдалося завантажити фото' }, { status: 500 });
   }
 
-  const list = photos.map(p => ({
-    id: p.id, file_name: p.file_name, size_bytes: p.size_bytes,
-    favorite: !!p.favorite, media_type: p.media_type === 'video' ? 'video' : 'photo',
-    url: fileUrl(p.storage_path, p.storage_provider),
-  }));
+  // `url` is the ORIGINAL and stays so: single downloads and «Завантажити все»
+  // take it. The screen gets `sources` (copies of 640/1280/2048 px, see
+  // lib/photographers/gallery-variant-paths.ts) plus the original's `w`/`h`
+  // for width/height. No copies yet → empty `sources`, and the page shows
+  // the original exactly as before. Videos are left alone.
+  const list = photos.map(p => {
+    const url = fileUrl(p.storage_path, p.storage_provider);
+    const isVideo = p.media_type === 'video';
+    return {
+      id: p.id, file_name: p.file_name, size_bytes: p.size_bytes,
+      favorite: !!p.favorite, media_type: isVideo ? 'video' : 'photo',
+      url,
+      w: p.width || null,
+      h: p.height || null,
+      sources: isVideo ? [] : gallerySources(p, path => fileUrl(path, p.storage_provider), url),
+    };
+  });
   // Cover for the fullscreen hero: the photographer's pick, else the first
   // PHOTO (a video only becomes the cover by explicit choice — an accidental
   // first-uploaded video autoplaying as hero would surprise).
@@ -82,6 +95,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
       ...base,
       cover_url: cover?.url || null,
       cover_type: cover?.media_type || 'photo',
+      cover_w: cover?.w || null,
+      cover_h: cover?.h || null,
+      cover_sources: cover?.sources || [],
       photos: list,
     },
   });

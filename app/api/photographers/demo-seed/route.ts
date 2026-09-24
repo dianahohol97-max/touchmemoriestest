@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { putFile, removeFiles } from '@/lib/photographers/storage';
 import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
+import { galleryFilesToRemove, VARIANT_COLUMNS, type VariantRow } from '@/lib/photographers/gallery-variant-paths';
 import { DEMO_PHOTOGRAPHER_EMAIL } from '@/lib/photographers/notice-rules';
 
 export const dynamic = 'force-dynamic';
@@ -116,8 +117,9 @@ export async function GET(req: Request) {
     const isWanted = (path: string) =>
       pexelsPaths.has(path) || path.includes('/demo-ov-');
 
-    const { rows: existing, error: existingErr } = await readAllGalleryPhotos<{ id: string; storage_path: string; storage_provider: string | null }>(
-      admin, gallery.id, 'id, storage_path, storage_provider',
+    // Variant columns too: removing a stock photo removes its screen copies.
+    const { rows: existing, error: existingErr } = await readAllGalleryPhotos<{ id: string; storage_path: string } & VariantRow>(
+      admin, gallery.id, `id, storage_path, storage_provider, ${VARIANT_COLUMNS}`,
     );
     if (existingErr) return NextResponse.json({ error: existingErr }, { status: 500 });
     const manualCount = (existing || []).filter(r => !isStock(r.storage_path)).length;
@@ -134,7 +136,7 @@ export async function GET(req: Request) {
         if (!isStock(row.storage_path)) continue;
         // Keep the row when the file could not be deleted — it is the only
         // pointer to that file.
-        const rmErr = await removeFiles([{ path: row.storage_path, provider: row.storage_provider }]);
+        const rmErr = await removeFiles(galleryFilesToRemove(row));
         if (rmErr) { clearFailures[row.storage_path] = rmErr; continue; }
         await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
         cleared += 1;
@@ -153,7 +155,7 @@ export async function GET(req: Request) {
     let removed = 0;
     for (const row of existing || []) {
       if (isWanted(row.storage_path)) continue;
-      const rmErr = await removeFiles([{ path: row.storage_path, provider: row.storage_provider }]);
+      const rmErr = await removeFiles(galleryFilesToRemove(row));
       if (rmErr) { console.error('[demo-seed] leftover not removed', { path: row.storage_path, error: rmErr }); continue; }
       await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
       removed += 1;
