@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { putFile, removeFiles } from '@/lib/photographers/storage';
+import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -113,10 +114,10 @@ export async function GET(req: Request) {
     const isWanted = (path: string) =>
       pexelsPaths.has(path) || path.includes('/demo-ov-');
 
-    const { data: existing } = await admin
-      .from('photographer_gallery_photos')
-      .select('id, storage_path, storage_provider')
-      .eq('gallery_id', gallery.id);
+    const { rows: existing, error: existingErr } = await readAllGalleryPhotos<{ id: string; storage_path: string; storage_provider: string | null }>(
+      admin, gallery.id, 'id, storage_path, storage_provider',
+    );
+    if (existingErr) return NextResponse.json({ error: existingErr }, { status: 500 });
     const manualCount = (existing || []).filter(r => !isStock(r.storage_path)).length;
 
     // mode=clear-stock: real photos have been uploaded manually — remove the
@@ -126,13 +127,17 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: `Замало власних фото (${manualCount}) — спершу завантажте їх у демо-кабінеті`, manual: manualCount }, { status: 400 });
       }
       let cleared = 0;
+      const clearFailures: Record<string, string> = {};
       for (const row of existing || []) {
         if (!isStock(row.storage_path)) continue;
-        await removeFiles([{ path: row.storage_path, provider: (row as any).storage_provider }]);
+        // Keep the row when the file could not be deleted — it is the only
+        // pointer to that file.
+        const rmErr = await removeFiles([{ path: row.storage_path, provider: row.storage_provider }]);
+        if (rmErr) { clearFailures[row.storage_path] = rmErr; continue; }
         await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
         cleared += 1;
       }
-      return NextResponse.json({ ok: true, cleared, manual: manualCount });
+      return NextResponse.json({ ok: Object.keys(clearFailures).length === 0, cleared, manual: manualCount, failures: clearFailures });
     }
 
     // With manual photos present the gallery is real content now — never
@@ -146,7 +151,8 @@ export async function GET(req: Request) {
     let removed = 0;
     for (const row of existing || []) {
       if (isWanted(row.storage_path)) continue;
-      await removeFiles([{ path: row.storage_path, provider: (row as any).storage_provider }]);
+      const rmErr = await removeFiles([{ path: row.storage_path, provider: row.storage_provider }]);
+      if (rmErr) { console.error('[demo-seed] leftover not removed', { path: row.storage_path, error: rmErr }); continue; }
       await admin.from('photographer_gallery_photos').delete().eq('id', row.id);
       removed += 1;
     }

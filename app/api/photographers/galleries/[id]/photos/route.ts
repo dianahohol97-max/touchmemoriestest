@@ -6,6 +6,7 @@ import {
 } from '@/lib/photographers/helpers';
 import { putFile, fileUrl, removeFiles } from '@/lib/photographers/storage';
 import { checkQuota } from '@/lib/photographers/usage';
+import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -89,13 +90,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
 
   const admin = getAdminClient();
-  const { data: photos, error } = await admin
-    .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, created_at')
-    .eq('gallery_id', galleryId)
-    .order('created_at', { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ photos: (photos || []).map(p => ({ ...p, url: fileUrl(p.storage_path, p.storage_provider) })) });
+  // Paged: up to 2000 files per gallery against PostgREST's silent 1000.
+  const { rows: photos, error } = await readAllGalleryPhotos<any>(
+    admin, galleryId, 'id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider, created_at',
+  );
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  return NextResponse.json({ photos: photos.map(p => ({ ...p, url: fileUrl(p.storage_path, p.storage_provider) })) });
 }
 
 /** Delete one photo (body: token, photo_id). */
@@ -114,7 +114,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     .maybeSingle();
   if (!photo) return NextResponse.json({ error: 'Фото не знайдено' }, { status: 404 });
 
-  await removeFiles([{ path: photo.storage_path, provider: photo.storage_provider }]);
+  // The row is the only way to find the file again, so it goes only after
+  // storage confirmed the file is gone. The result used to be ignored: with
+  // R2 off, or a key DeleteObjects quietly refused, the row vanished and the
+  // file stayed in the bucket for good.
+  const rmErr = await removeFiles([{ path: photo.storage_path, provider: photo.storage_provider }]);
+  if (rmErr) {
+    console.error('[photographers/photos] file delete failed', { photo: photo.id, error: rmErr });
+    return NextResponse.json({ error: `Не вдалося видалити файл зі сховища: ${rmErr}` }, { status: 502 });
+  }
   const { error } = await admin.from('photographer_gallery_photos').delete().eq('id', photo.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

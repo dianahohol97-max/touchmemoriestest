@@ -1,6 +1,6 @@
 # Запити без пагінації до великих таблиць
 
-Останній замір: **15.09.2026**, гілка `main`.
+Останній замір: **24.09.2026**, гілка `main`.
 Перезаміряти: `node scripts/unpaginated-queries.mjs`
 
 ## Навіщо цей файл
@@ -24,7 +24,7 @@ PostgREST віддає щонайбільше тисячу рядків і не 
 ## Які таблиці під наглядом і чому саме вони
 
 `orders`, `customers`, `social_messages`, `social_conversations`, `email_logs`,
-`projects`.
+`projects`, а також `wedding_photos` і `photographer_gallery_photos`.
 
 Критерій один: таблиця росте від роботи магазину, а не від рішення
 адміністратора. Довідник на кшталт `products` чи `categories` росте тоді, коли
@@ -36,43 +36,81 @@ PostgREST віддає щонайбільше тисячу рядків і не 
 `customers` 1 283, `orders` 1 107, `social_conversations` 840, `email_logs`
 менше тисячі.
 
+`wedding_photos` і `photographer_gallery_photos` під тим самим критерієм, але з
+іншої причини: їх наповнюють гості й фотографи, і тисячу рядків там переходить
+ОДИН батьківський запис. Галерея фотографа тримає до двох тисяч файлів
+(`MAX_PHOTOS_PER_GALLERY`), тож фільтр по `gallery_id` її не рятує — див.
+«Полагоджено 24.09.2026» нижче.
+
 ## Як читати результат скрипта
 
 Скрипт ділить знахідки на три частини.
 
-**Уже обмежені** — 210 запитів. Мають `.range()`, свідомий `.limit()`,
+**Уже обмежені** — 254 запити (24.09.2026). Мають `.range()`, свідомий `.limit()`,
 `.single()`, `.maybeSingle()` або рахують лише кількість. Не друкуються, лише
 рахуються.
 
-**Треба переписати** — 25 запитів. Нічого не обмежує вибірку, крім межі самого
+**Треба переписати** — 13 запитів. Нічого не обмежує вибірку, крім межі самого
 PostgREST. Саме цей список має ставати коротшим.
 
-**Обмежені батьківським ключем** — 31 запит. Фільтр по `*_id` або `*_email`,
+**Обмежені батьківським ключем** — 34 запити. Фільтр по `*_id` або `*_email`,
 тобто вибірку тримають дані, а не ліміт: замовлення одного клієнта, файли
 одного замовлення. Це **не** автоматично безпечно, і скрипт навмисно не
 зараховує їх до чистих: найдовший діалог у скриньці має 3 021 повідомлення, і
 фільтр по `conversation_id` його не врятував. Переглядати варто тоді, коли в
 одного батька рядків може стати понад тисячу.
 
-## Треба переписати — 10 місць
+## Треба переписати — 13 місць
 
 | таблиця | місце | область |
 |---|---|---|
 | orders | `app/api/account/orders/route.ts:17` | кабінет клієнта |
-| orders | `app/api/admin/orders/[id]/route.ts:100` | замовлення |
+| orders | `app/api/admin/orders/[id]/route.ts:101` | замовлення |
 | customers | `app/api/admin/orders/create/route.ts:28` | замовлення |
 | customers | `app/api/cron/birthday-emails/route.ts:38` | листи |
-| orders | `app/api/cron/design-lifecycle/route.ts:170` | крони |
+| orders | `app/api/cron/design-lifecycle/route.ts:171` | крони |
 | orders | `app/api/nova-poshta/sync-tracking/route.ts:142` | доставка |
-| orders | `lib/automation/keycrm-mirror.ts:580` | KeyCRM |
-| orders | `lib/automation/keycrm-mirror.ts:623` | KeyCRM |
-| orders | `lib/automation/keycrm-push.ts:786` | KeyCRM |
+| orders | `lib/alerts/lost-order-signals.ts:773` | сторож тихих втрат |
+| orders | `lib/alerts/lost-order-signals.ts:803` | сторож тихих втрат |
+| orders | `lib/alerts/magazine-brief-fallback.ts:110` | сторож журналу |
+| orders | `lib/automation/keycrm-mirror.ts:588` | KeyCRM |
+| orders | `lib/automation/keycrm-mirror.ts:631` | KeyCRM |
+| orders | `lib/automation/keycrm-push.ts:812` | KeyCRM |
 | orders | `lib/automation/keycrm-twoway.ts:595` | KeyCRM |
 
 `app/api/cron/birthday-emails/route.ts:38` — хибне спрацювання, і воно таким і
 лишиться: запит бере лише клієнтів із заповненим днем народження, а таких
 сорок. Скрипт читає текст і фільтра по вмісту не розуміє; у самому файлі про це
 є коментар із числом.
+
+Три рядки, що зʼявилися після 15.09, теж хибні, і з тієї самої причини, яку
+описано нижче в «Чого цей список НЕ ловить». Обидва місця в
+`lost-order-signals.ts` передають запит в обгортку `readAllOrders`, яка ходить
+сторінками через `.range()`, а `magazine-brief-fallback.ts:110` збирає запит
+через змінну і закінчує його `.limit(1)`. Решту списку 24.09 не перевіряли, це
+лише перезамір.
+
+## Полагоджено 24.09.2026 — галереї фотографів
+
+Шість читань `photographer_gallery_photos` скрипт до цього дня не бачив зовсім:
+таблиці не було в списку, а якби й була, усі шість потрапили б в «обмежені
+батьківським ключем», бо фільтрують по `gallery_id`. Саме тут цей список і
+бреше: одна галерея тримає до двох тисяч файлів.
+
+| місце | що ламалося |
+|---|---|
+| `app/api/cron/cleanup-galleries/route.ts` | крон читав тисячу фото, стирав зі сховища лише їх, а тоді видаляв з бази всі рядки галереї і ставив `files_purged_at` — друга тисяча файлів лишалася в R2 назавжди, без рядка |
+| `app/api/gallery/[token]/route.ts` | клієнт бачив лише першу тисячу знімків |
+| `app/api/photographers/galleries/[id]/photos/route.ts` | фотограф у кабінеті бачив лише першу тисячу |
+| `app/api/photographers/galleries/route.ts` (два запити) | улюблені й завантаження рахувалися по ВСІХ галереях фотографа одним запитом, тож тисячу переходили найшвидше |
+| `app/api/photographers/demo-seed/route.ts` | демо-галерея мала, але читання було тим самим |
+
+Усі тепер ходять через `lib/photographers/gallery-photos.ts`: сторінки по тисячі
+через `.range()`, сортування `created_at`, потім `id`. Другий ключ потрібен,
+бо пакетне завантаження пише багато рядків в одну мілісекунду, і без нього
+сторінки на стику губили б або дублювали рядки. Уже пагіновані
+`app/api/admin/photographers/route.ts`, `app/api/admin/photographers/[id]/route.ts`
+і `lib/photographers/usage.ts` не чіпали.
 
 ## Полагоджено 15.09.2026
 

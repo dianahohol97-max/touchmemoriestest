@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectsCommand, Hea
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { GALLERY_BUCKET } from './helpers';
+import { removeFilesWith } from './remove-files';
 
 /**
  * Storage backend for photographer gallery files.
@@ -242,29 +243,28 @@ export async function fileExists(path: string, provider: StorageProvider):
   return obj ? { ok: true, size: (obj.metadata as any)?.size } : { ok: false };
 }
 
-/** Delete files, grouped by the provider each one lives on. */
+/**
+ * Delete files, grouped by the provider each one lives on.
+ *
+ * `null` means every file is really gone; anything else is an error string and
+ * the caller must keep its rows (see lib/photographers/remove-files.ts for why
+ * R2-off and DeleteObjects `Errors` count as failures).
+ */
 export async function removeFiles(files: { path: string; provider?: string | null }[]): Promise<string | null> {
-  const r2Keys = files.filter(f => f.provider === 'r2').map(f => f.path);
-  const sbKeys = files.filter(f => f.provider !== 'r2').map(f => f.path);
-
-  if (r2Keys.length && isR2Configured()) {
-    for (let i = 0; i < r2Keys.length; i += 1000) {
-      try {
-        await r2().send(new DeleteObjectsCommand({
-          Bucket: R2.bucket,
-          Delete: { Objects: r2Keys.slice(i, i + 1000).map(Key => ({ Key })) },
-        }));
-      } catch (e: any) {
-        return e?.message || 'R2 delete failed';
-      }
-    }
-  }
-  if (sbKeys.length) {
-    const admin = getAdminClient();
-    for (let i = 0; i < sbKeys.length; i += 100) {
-      const { error } = await admin.storage.from(GALLERY_BUCKET).remove(sbKeys.slice(i, i + 100));
-      if (error) return error.message;
-    }
-  }
-  return null;
+  return removeFilesWith({
+    r2Enabled: isR2Configured(),
+    r2Problem: r2ConfigProblem(),
+    r2DeleteBatch: keys => r2().send(new DeleteObjectsCommand({
+      Bucket: R2.bucket,
+      Delete: { Objects: keys.map(Key => ({ Key })) },
+    })),
+    supabaseRemove: paths => getAdminClient().storage.from(GALLERY_BUCKET).remove(paths) as any,
+    supabaseExists: async path => {
+      const dir = path.slice(0, path.lastIndexOf('/'));
+      const base = path.slice(path.lastIndexOf('/') + 1);
+      const { data, error } = await getAdminClient().storage.from(GALLERY_BUCKET).list(dir, { search: base, limit: 100 });
+      if (error || !data) return null;
+      return data.some(o => o.name === base);
+    },
+  }, files);
 }

@@ -3,6 +3,7 @@ import { getAdminClient } from '@/lib/supabase/admin';
 import { daysLeft } from '@/lib/photographers/helpers';
 import { fileUrl } from '@/lib/photographers/storage';
 import { sanitizeDesign } from '@/lib/photographers/gallery-design';
+import { readAllGalleryPhotos } from '@/lib/photographers/gallery-photos';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,13 +54,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 
   if (expired) return NextResponse.json({ gallery: { ...base, photos: [] } });
 
-  const { data: photos } = await admin
-    .from('photographer_gallery_photos')
-    .select('id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider')
-    .eq('gallery_id', gallery.id)
-    .order('created_at', { ascending: true });
+  // Paged: a gallery holds up to 2000 files and one PostgREST read stops at
+  // 1000 without saying so — the client would silently see half the shoot.
+  const { rows: photos, error: photosErr } = await readAllGalleryPhotos<any>(
+    admin, gallery.id, 'id, storage_path, file_name, size_bytes, favorite, media_type, storage_provider',
+  );
+  if (photosErr) {
+    console.error('[gallery/token] photos read failed:', photosErr);
+    return NextResponse.json({ error: 'Не вдалося завантажити фото' }, { status: 500 });
+  }
 
-  const list = (photos || []).map(p => ({
+  const list = photos.map(p => ({
     id: p.id, file_name: p.file_name, size_bytes: p.size_bytes,
     favorite: !!p.favorite, media_type: p.media_type === 'video' ? 'video' : 'photo',
     url: fileUrl(p.storage_path, p.storage_provider),

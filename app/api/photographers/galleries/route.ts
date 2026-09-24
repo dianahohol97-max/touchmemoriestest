@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getPhotographerByToken, daysLeft } from '@/lib/photographers/helpers';
 import { fileUrl } from '@/lib/photographers/storage';
+import { readGalleryPhotoRows } from '@/lib/photographers/gallery-photos';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,27 +29,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // How many photos the client hearted in each gallery (what to print).
-  // Favorite selections are small, so one flat query + JS tally is cheapest.
+  // How many photos the client hearted in each gallery (what to print), and
+  // single-photo downloads (ZIP counts live on the gallery row itself). Both
+  // span EVERY gallery of the photographer, so they cross PostgREST's silent
+  // 1000-row cap easily — read page by page.
   const galleryIds = (galleries || []).map((g: any) => g.id);
   const favByGallery: Record<string, number> = {};
   const photoDlByGallery: Record<string, number> = {};
+  let favFailed = false;
+  let dlFailed = false;
   if (galleryIds.length) {
-    const { data: favRows } = await admin
-      .from('photographer_gallery_photos')
-      .select('gallery_id')
-      .in('gallery_id', galleryIds)
-      .eq('favorite', true);
-    for (const r of favRows || []) favByGallery[r.gallery_id] = (favByGallery[r.gallery_id] || 0) + 1;
-
-    // Single-photo download tally per gallery (ZIP counts live on the
-    // gallery row itself).
-    const { data: dlRows } = await admin
-      .from('photographer_gallery_photos')
-      .select('gallery_id, download_count')
-      .in('gallery_id', galleryIds)
-      .gt('download_count', 0);
-    for (const r of dlRows || []) photoDlByGallery[r.gallery_id] = (photoDlByGallery[r.gallery_id] || 0) + (r.download_count || 0);
+    const [fav, dl] = await Promise.all([
+      readGalleryPhotoRows<{ gallery_id: string }>(admin, 'id, gallery_id',
+        q => q.in('gallery_id', galleryIds).eq('favorite', true)),
+      readGalleryPhotoRows<{ gallery_id: string; download_count: number | null }>(admin, 'id, gallery_id, download_count',
+        q => q.in('gallery_id', galleryIds).gt('download_count', 0)),
+    ]);
+    // A short tally would look like a real number, so a failed read shows NO
+    // number (null — the cabinet hides the badge) rather than a wrong one,
+    // and the list itself still loads.
+    if (fav.error) console.error('[photographers/galleries] favorites tally failed:', fav.error);
+    else for (const r of fav.rows) favByGallery[r.gallery_id] = (favByGallery[r.gallery_id] || 0) + 1;
+    if (dl.error) console.error('[photographers/galleries] downloads tally failed:', dl.error);
+    else for (const r of dl.rows) photoDlByGallery[r.gallery_id] = (photoDlByGallery[r.gallery_id] || 0) + (r.download_count || 0);
+    favFailed = !!fav.error;
+    dlFailed = !!dl.error;
   }
 
   // Cover thumbnail for the cabinet list: the photographer's explicit pick,
@@ -79,8 +84,8 @@ export async function GET(req: NextRequest) {
     galleries: (galleries || []).map((g: any) => ({
       ...g,
       photo_count: g.photographer_gallery_photos?.[0]?.count || 0,
-      favorite_count: favByGallery[g.id] || 0,
-      photo_downloads: photoDlByGallery[g.id] || 0,
+      favorite_count: favFailed ? null : favByGallery[g.id] || 0,
+      photo_downloads: dlFailed ? null : photoDlByGallery[g.id] || 0,
       days_left: g.files_purged_at ? 0 : daysLeft(g.expires_at),
       cover_url: coverByGallery[g.id] || null,
       photographer_gallery_photos: undefined,

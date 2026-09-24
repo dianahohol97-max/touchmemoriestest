@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { removeFiles } from '@/lib/photographers/storage';
+import { cleanupExpiredGalleries } from '@/lib/photographers/gallery-cleanup';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * Nightly retention for photographer galleries: photos live 30 days
+ * Nightly retention for photographer galleries: photos live 30–90 days
  * (photographer_galleries.expires_at), then the files are deleted from
- * storage. The gallery row is kept (the client link shows an "expired"
- * state with the photographer's contacts); files_purged_at marks it done
- * so a gallery is never processed twice. Same pattern as cleanup-order-files.
+ * storage. The logic — and why its order matters — lives in
+ * lib/photographers/gallery-cleanup.ts; this route only authorises and
+ * reports.
+ *
+ * A gallery that fails is logged and left for the next run; it no longer
+ * aborts the whole run. `skipped` in the response says which and why.
  */
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
@@ -21,41 +25,14 @@ export async function GET(req: Request) {
   const admin = getAdminClient();
   if (!admin) return NextResponse.json({ error: 'No admin client' }, { status: 500 });
 
-  const BATCH = 25;
-  const { data: galleries, error } = await admin
-    .from('photographer_galleries')
-    .select('id')
-    .lt('expires_at', new Date().toISOString())
-    .is('files_purged_at', null)
-    .limit(BATCH);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  let purgedGalleries = 0;
-  let purgedFiles = 0;
-  for (const g of galleries || []) {
-    const { data: photos } = await admin
-      .from('photographer_gallery_photos')
-      .select('storage_path, storage_provider')
-      .eq('gallery_id', g.id);
-
-    // Files may live on Supabase Storage or Cloudflare R2 — removeFiles()
-    // groups them by the provider each row recorded and chunks per backend.
-    const files = (photos || []).map(p => ({ path: p.storage_path, provider: p.storage_provider }));
-    if (files.length) {
-      const rmErr = await removeFiles(files);
-      if (rmErr) {
-        console.error('[cleanup-galleries] remove failed', { gallery: g.id, error: rmErr });
-        return NextResponse.json({ error: rmErr, purgedGalleries, purgedFiles }, { status: 500 });
-      }
-      purgedFiles += files.length;
-    }
-
-    await admin.from('photographer_gallery_photos').delete().eq('gallery_id', g.id);
-    await admin.from('photographer_galleries')
-      .update({ files_purged_at: new Date().toISOString() })
-      .eq('id', g.id);
-    purgedGalleries++;
+  try {
+    const report = await cleanupExpiredGalleries({
+      db: admin,
+      removeFiles,
+      log: (message, context) => console.error(message, context),
+    });
+    return NextResponse.json({ success: true, ...report, skippedCount: report.skipped.length });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, purgedGalleries, purgedFiles });
 }

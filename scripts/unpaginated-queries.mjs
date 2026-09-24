@@ -38,6 +38,11 @@ const WATCHED_TABLES = [
     // по двадцять знімків — це дві тисячі рядків на одному весіллі, тобто
     // критерій той самий, що й у шести вище.
     'wedding_photos',
+    // Галереї фотографів: таблицю наповнюють фотографи, а не адміністратор, і
+    // одна галерея сама дає до двох тисяч рядків (MAX_PHOTOS_PER_GALLERY).
+    // Крон очищення читав тисячу, а видаляв усі рядки, тож друга тисяча файлів
+    // лишалася в R2 без жодного рядка. Читати — через lib/photographers/gallery-photos.ts.
+    'photographer_gallery_photos',
 ];
 
 const SKIP_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', '.vercel', 'scripts']);
