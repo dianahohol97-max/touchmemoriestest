@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import { getPhotographerByToken } from '@/lib/photographers/helpers';
 import { sanitizeDesign } from '@/lib/photographers/gallery-design';
+import { extendedExpiry, EXTEND_DAY_OPTIONS } from '@/lib/photographers/gallery-term';
+import { kyivDateParts } from '@/lib/photographers/notice-rules';
 
 export const dynamic = 'force-dynamic';
-
-// Free storage terms the photographer can pick; the purge cron deletes files
-// after expires_at, so this is the single knob for gallery lifetime.
-const MAX_TERM_DAYS = 90;
 
 /** Update gallery settings (auth = cabinet token): title/client/date, the
  *  cover photo/video, design options, and the storage term. Only the fields
@@ -42,12 +40,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if ('extend_days' in body) {
       if (gallery.files_purged_at) return NextResponse.json({ error: 'Файли галереї вже видалено — продовжити неможливо' }, { status: 400 });
       const days = Number(body.extend_days);
-      if (![30, 60, 90].includes(days)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
-      // Extend from "now or current expiry, whichever is later", capped so a
-      // gallery can't be pushed further than MAX_TERM_DAYS from today.
-      const base = Math.max(Date.now(), new Date(gallery.expires_at).getTime());
-      const cap = Date.now() + MAX_TERM_DAYS * 86400000;
-      update.expires_at = new Date(Math.min(base + days * 86400000, cap)).toISOString();
+      if (!(EXTEND_DAY_OPTIONS as readonly number[]).includes(days)) return NextResponse.json({ error: 'Термін: 30, 60 або 90 днів' }, { status: 400 });
+      // Extends from the later of now and the current expiry, capped at
+      // MAX_TERM_DAYS from today — but never below the current expiry: the cap
+      // used to SHORTEN a longer term (see lib/photographers/gallery-term).
+      const next = extendedExpiry(gallery.expires_at, days, new Date());
+      if (next) {
+        update.expires_at = next;
+      } else if (Object.keys(body).every(k => k === 'token' || k === 'extend_days')) {
+        // Only the extension was asked and it changes nothing. Saying «продовжено»
+        // would be false, so the cabinet gets the reason in its alert instead.
+        const { date } = kyivDateParts(gallery.expires_at);
+        return NextResponse.json({
+          error: `Галерея вже зберігається до ${date}, а це довше, ніж дає продовження, тому термін лишається без змін.`,
+          unchanged: true,
+        }, { status: 409 });
+      }
     }
 
     if ('cover_photo_id' in body) {
