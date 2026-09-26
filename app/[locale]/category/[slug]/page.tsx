@@ -25,18 +25,23 @@ const CAT_FIELDS = 'id, name, slug, description, cover_image, translations, is_a
 async function getCategory(slug: string) {
   const supabase = getAdminClient();
   if (!supabase) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('categories')
     .select(CAT_FIELDS)
     .eq('slug', slug)
     .maybeSingle();
+  // A failed query is not a missing category. Returning null here turned every
+  // Supabase outage into notFound(), and ISR then cached and served that 404 as
+  // if the category had been deleted (2026-09-26, travel-book ad traffic).
+  // Throwing makes Next keep serving the last good render instead.
+  if (error) throw new Error(`[category] categories lookup failed: ${error.message}`);
   return data as any;
 }
 
 async function getProducts(categoryId: string) {
   const supabase = getAdminClient();
   if (!supabase) return [];
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select('id, name, slug, price, price_from, short_description, images, translations')
     .eq('category_id', categoryId)
@@ -46,6 +51,9 @@ async function getProducts(categoryId: string) {
     // ("Товари з'являться незабаром") despite having active products. Order by
     // a column that exists.
     .order('created_at', { ascending: true });
+  // Same reason as getCategory: an empty list triggers a PERMANENT redirect to
+  // /catalog below, which browsers cache — never let an error look like "empty".
+  if (error) throw new Error(`[category] products lookup failed: ${error.message}`);
   return (data as any[]) || [];
 }
 

@@ -23,13 +23,16 @@ const PRODUCT_CARD_FIELDS = 'id, name, slug, price, price_from, short_descriptio
 async function getLanding(categorySlug: string, occasion: string) {
   const supabase = getAdminClient();
   if (!supabase) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('landing_pages')
     .select('*')
     .eq('category_slug', categorySlug)
     .eq('occasion', occasion)
     .eq('is_active', true)
     .maybeSingle();
+  // A failed query must not become notFound(): ISR would cache the 404 for a
+  // live landing page (see getCategory in ../page.tsx).
+  if (error) throw new Error(`[landing] landing_pages lookup failed: ${error.message}`);
   return data as any;
 }
 
